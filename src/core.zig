@@ -352,7 +352,7 @@ pub fn run(comptime g: Game) !void {
             var buf: [64]u8 = undefined;
             _ = std.fmt.bufPrintZ(
                 &buf,
-                "{s} | FPS:{d:.0} AVG CPU:{d:.1}ms",
+                "{s} | FPS:{d:.1} AVG CPU:{d:.1}ms",
                 .{ g.title, ctx.fps, ctx.average_cpu_time },
             ) catch unreachable;
             sdl.c.SDL_SetWindowTitle(ctx.window.ptr, &buf);
