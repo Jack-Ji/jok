@@ -17,7 +17,7 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
         lib.linkSystemLibrary("imm32");
         lib.linkSystemLibrary("gdi32");
     }
-    lib.addIncludeDir(comptime thisDir() ++ "/imgui/c");
+    lib.addIncludeDir(comptime thisDir() ++ "/c");
     lib.addCSourceFiles(&.{
         comptime thisDir() ++ "/c/imgui.cpp",
         comptime thisDir() ++ "/c/imgui_demo.cpp",
@@ -25,8 +25,6 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
         comptime thisDir() ++ "/c/imgui_tables.cpp",
         comptime thisDir() ++ "/c/imgui_widgets.cpp",
         comptime thisDir() ++ "/c/cimgui.cpp",
-        comptime thisDir() ++ "/c/imgui_impl_sdlrenderer.cpp",
-        comptime thisDir() ++ "/c/imgui_impl_sdlrenderer_wrapper.cpp",
     }, flags.items);
     lib.addCSourceFiles(&.{
         comptime thisDir() ++ "/ext/implot/c/implot.cpp",

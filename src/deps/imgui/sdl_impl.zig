@@ -10,6 +10,7 @@ const string_c = @cImport({
 
 extern fn SDL_free(mem: ?*anyopaque) void;
 var performance_frequency: u64 = undefined;
+var app_context: *jok.Context = undefined;
 
 const BackendData = struct {
     window: *sdl.c.SDL_Window,
@@ -20,7 +21,7 @@ const BackendData = struct {
     mouse_can_use_global_state: bool,
 };
 
-pub fn init(window: *sdl.c.SDL_Window) !void {
+pub fn init(ctx: *jok.Context) !void {
     const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     if (io.BackendPlatformUserData != null) {
         std.debug.panic("already initialized!", .{});
@@ -43,8 +44,8 @@ pub fn init(window: *sdl.c.SDL_Window) !void {
         }
     }
 
-    const bd = try std.heap.c_allocator.create(BackendData);
-    bd.window = window;
+    const bd = try ctx.default_allocator.create(BackendData);
+    bd.window = ctx.window.ptr;
     bd.time = 0;
     bd.mouse_pressed = [_]bool{false} ** bd.mouse_pressed.len;
     bd.mouse_cursors = [_]?*sdl.c.SDL_Cursor{null} ** bd.mouse_cursors.len;
@@ -103,6 +104,7 @@ pub fn init(window: *sdl.c.SDL_Window) !void {
     _ = sdl.c.SDL_SetHint(sdl.c.SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
 
     performance_frequency = sdl.c.SDL_GetPerformanceFrequency();
+    app_context = ctx;
 }
 
 pub fn deinit() void {
@@ -119,7 +121,7 @@ pub fn deinit() void {
 
     io.BackendPlatformUserData = null;
     io.BackendPlatformName = null;
-    std.heap.c_allocator.destroy(bd);
+    app_context.default_allocator.destroy(bd);
 }
 
 // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear c wants to use your inputs.

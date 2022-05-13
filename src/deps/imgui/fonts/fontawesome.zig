@@ -1,5 +1,5 @@
-pub const FONT_ICON_FILE_NAME_FAR = "fa-regular-400.ttf";
-pub const FONT_ICON_FILE_NAME_FAS = "fa-solid-900.ttf";
+pub const regular_ttf = @embedFile("./fa-regular-400.ttf");
+pub const solid_ttf = @embedFile("./fa-solid-900.ttf");
 pub const ICON_MIN_FA = @import("std").zig.c_translation.promoteIntLiteral(c_int, 0xe005, .hexadecimal);
 pub const ICON_MAX_FA = @import("std").zig.c_translation.promoteIntLiteral(c_int, 0xf8ff, .hexadecimal);
 pub const ICON_FA_AD = "\xef\x99\x81";

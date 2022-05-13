@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const jok = @import("../../jok.zig");
 const event = jok.event;
 const sdl = @import("sdl");
+const sdlrenderer_impl = @import("sdlrenderer_impl.zig");
 const sdl_impl = @import("sdl_impl.zig");
 pub const c = @import("c.zig");
 
@@ -21,23 +22,17 @@ pub const fontawesome = @import("fonts/fontawesome.zig");
 /// export 3rd-party extensions
 pub const ext = @import("ext/ext.zig");
 
-extern fn _ImGui_ImplSDLRenderer_Init(renderer: [*c]sdl.c.SDL_Renderer) bool;
-extern fn _ImGui_ImplSDLRenderer_Shutdown() void;
-extern fn _ImGui_ImplSDLRenderer_NewFrame() void;
-extern fn _ImGui_ImplSDLRenderer_RenderDrawData(draw_data: *c.ImDrawData) void;
-
 /// internal static vars
-var initialized = false;
-var plot_ctx: ?*ext.plot.ImPlotContext = undefined;
-var nodes_ctx: ?*ext.nodes.ImNodesContext = undefined;
+var imgui_ctx: ?*c.ImGuiContext = null;
+var plot_ctx: ?*ext.plot.ImPlotContext = null;
+var nodes_ctx: ?*ext.nodes.ImNodesContext = null;
 
 /// initialize sdl2 backend
 pub fn init(ctx: *jok.Context) !void {
-    _ = c.igCreateContext(null);
-    try sdl_impl.init(ctx.window.ptr);
-    if (!_ImGui_ImplSDLRenderer_Init(null)) {
-        return error.InitBackendFailed;
-    }
+    imgui_ctx = c.igCreateContext(null);
+    assert(imgui_ctx != null);
+    try sdl_impl.init(ctx);
+    try sdlrenderer_impl.init(ctx);
 
     plot_ctx = ext.plot.createContext();
     if (plot_ctx == null) {
@@ -53,45 +48,41 @@ pub fn init(ctx: *jok.Context) !void {
     var style = c.igGetStyle();
     assert(style != null);
     c.ImGuiStyle_ScaleAllSizes(style, pixel_ratio);
-    initialized = true;
 }
 
 /// release allocated resources
 pub fn deinit() void {
-    if (!initialized) {
-        std.debug.panic("cimgui isn't initialized!", .{});
-    }
+    assert(imgui_ctx != null);
     ext.nodes.destroyContext(nodes_ctx.?);
     ext.plot.destroyContext(plot_ctx.?);
+    sdlrenderer_impl.deinit();
     sdl_impl.deinit();
-    _ImGui_ImplSDLRenderer_Shutdown();
-    initialized = false;
 }
 
 /// process i/o event
 pub fn processEvent(e: event.Event) bool {
-    assert(initialized);
+    assert(imgui_ctx != null);
     return sdl_impl.processEvent(e);
 }
 
 /// begin frame
 pub fn beginFrame() void {
-    assert(initialized);
+    assert(imgui_ctx != null);
     sdl_impl.newFrame();
-    _ImGui_ImplSDLRenderer_NewFrame();
+    sdlrenderer_impl.newFrame();
     c.igNewFrame();
 }
 
 /// end frame
 pub fn endFrame() void {
-    assert(initialized);
+    assert(imgui_ctx != null);
     c.igRender();
-    _ImGui_ImplSDLRenderer_RenderDrawData(c.igGetDrawData());
+    sdlrenderer_impl.render(@ptrCast(*c.ImDrawData, c.igGetDrawData()));
 }
 
-/// load font awesome
+/// load fontawesome
 pub fn loadFontAwesome(size: f32, regular: bool, monospaced: bool) !*c.ImFont {
-    assert(initialized);
+    assert(imgui_ctx != null);
     var font_atlas = c.igGetIO().*.Fonts;
     _ = c.ImFontAtlas_AddFontDefault(
         font_atlas,
@@ -110,12 +101,14 @@ pub fn loadFontAwesome(size: f32, regular: bool, monospaced: bool) !*c.ImFont {
     if (monospaced) {
         cfg.*.GlyphMinAdvanceX = size;
     }
-    const font = c.ImFontAtlas_AddFontFromFileTTF(
+    const ttf: []const u8 = if (regular)
+        fontawesome.regular_ttf
+    else
+        fontawesome.solid_ttf;
+    const font = c.ImFontAtlas_AddFontFromMemoryTTF(
         font_atlas,
-        if (regular)
-            fontawesome.FONT_ICON_FILE_NAME_FAR
-        else
-            fontawesome.FONT_ICON_FILE_NAME_FAS,
+        ttf.ptr,
+        @intCast(c_int, ttf.len),
         size,
         cfg,
         &ranges,
@@ -135,7 +128,7 @@ pub fn loadTTF(
     size: f32,
     addional_ranges: ?[*c]const c.ImWchar,
 ) !*c.ImFont {
-    assert(initialized);
+    assert(imgui_ctx != null);
     var font_atlas = c.igGetIO().*.Fonts;
 
     var default_ranges = c.ImFontAtlas_GetGlyphRangesDefault(font_atlas);

@@ -1,3 +1,3 @@
-[submodule "libs/sdl"]
+[submodule "src/deps/sdl"]
 	path = src/deps/sdl
-	url = https://github.com/MasterQ32/SDL.zig
+	url = https://github.com/Jack-Ji/SDL.zig
