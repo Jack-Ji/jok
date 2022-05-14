@@ -10,5 +10,8 @@ pub const gfx = @import("graphics.zig");
 /// audio module
 pub const audio = deps.miniaudio;
 
+/// math module
+pub const math = deps.zmath;
+
 /// vendor libraries
 pub const deps = @import("deps/deps.zig");

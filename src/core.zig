@@ -189,7 +189,7 @@ pub const Game = struct {
     allocator: ?std.mem.Allocator = null,
 
     /// default memory allocator settings
-    enable_mem_leak_checks: bool = false,
+    enable_mem_leak_checks: bool = true,
     enable_mem_detail_logs: bool = false,
 
     /// called once before rendering loop starts

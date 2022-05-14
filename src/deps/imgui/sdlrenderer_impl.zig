@@ -31,13 +31,14 @@ pub fn init(ctx: *jok.Context) !void {
     io.BackendFlags |= c.ImGuiBackendFlags_RendererHasVtxOffset;
     bd.renderer = ctx.renderer;
     bd.font_texture = null;
+    app_context = ctx;
 }
 
 pub fn deinit() void {
     const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     const bd = getBackendData();
     if (bd.font_texture) |tex| {
-        c.ImFontAtlas_SetTexID(io.Fonts, 0);
+        c.ImFontAtlas_SetTexID(io.Fonts, @intToPtr(*allowzero anyopaque, 0));
         tex.destroy();
         bd.font_texture = null;
     }

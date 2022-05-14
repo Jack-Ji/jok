@@ -2155,6 +2155,8 @@ fn loop(ctx: *jok.Context) anyerror!void {
 fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
+
+    imgui.deinit();
 }
 
 pub fn main() anyerror!void {
