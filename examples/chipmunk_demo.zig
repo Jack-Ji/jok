@@ -31,7 +31,7 @@ fn init(ctx: *jok.Context) anyerror!void {
         .elasticity = 0.5,
     };
     var i: u32 = 0;
-    while (i < 200) : (i += 1) {
+    while (i < 300) : (i += 1) {
         const t = rng.random().intRangeAtMost(u32, 0, 30);
         if (t < 10) {
             _ = try world.addObject(.{

@@ -291,6 +291,7 @@ pub fn run(comptime g: Game) !void {
     const AllocatorType = std.heap.GeneralPurposeAllocator(.{
         .safety = if (g.enable_mem_leak_checks) true else false,
         .verbose_log = if (g.enable_mem_detail_logs) true else false,
+        .enable_memory_limit = true,
     });
     var gpa: ?AllocatorType = null;
     if (g.allocator) |a| {
@@ -364,8 +365,14 @@ pub fn run(comptime g: Game) !void {
             var buf: [64]u8 = undefined;
             _ = std.fmt.bufPrintZ(
                 &buf,
-                "{s} | FPS:{d:.1} AVG CPU:{d:.1}ms",
-                .{ g.title, ctx.fps, ctx.average_cpu_time },
+                "{s} | FPS:{d:.1} AVG-CPU:{d:.1}ms VSYNC:{s} MEM:{d} bytes",
+                .{
+                    g.title,
+                    ctx.fps,
+                    ctx.average_cpu_time,
+                    if (g.enable_vsync) "ON" else "OFF",
+                    if (gpa) |a| a.total_requested_bytes else 0,
+                },
             ) catch unreachable;
             sdl.c.SDL_SetWindowTitle(ctx.window.ptr, &buf);
         }

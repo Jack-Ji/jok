@@ -97,7 +97,7 @@ pub const World = struct {
             ),
         };
         if (opt.enable_debug_draw) {
-            self.debug = try PhysicsDebug.init(allocator, 640000);
+            self.debug = try PhysicsDebug.init(allocator, 6400000);
         }
 
         return self;
