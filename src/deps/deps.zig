@@ -7,4 +7,5 @@ pub const ztracy = @import("ztracy/src/ztracy.zig");
 pub const miniaudio = @import("miniaudio/miniaudio.zig");
 pub const stb = @import("stb/stb.zig");
 pub const imgui = @import("imgui/imgui.zig");
+pub const chipmunk = @import("chipmunk/chipmunk.zig");
 pub const nfd = @import("nfd/nfd.zig");

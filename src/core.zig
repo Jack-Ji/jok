@@ -1,8 +1,11 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const sdl = @import("sdl");
 const jok = @import("jok.zig");
 const event = jok.event;
 const audio = jok.audio;
+
+const log = std.log.scoped(.jok);
 
 var perf_counter_freq: f64 = undefined;
 
@@ -148,6 +151,15 @@ pub const Context = struct {
             @ptrCast(*c_int, &h),
         );
         return .{ .w = w, .h = h };
+    }
+
+    /// get size of framebuffer
+    pub fn getFramebufferSize(self: Context) struct { w: u32, h: u32 } {
+        const fsize = self.renderer.getOutputSize() catch unreachable;
+        return .{
+            .w = @intCast(u32, fsize.width_pixels),
+            .h = @intCast(u32, fsize.height_pixels),
+        };
     }
 
     /// get pixel ratio
@@ -358,7 +370,11 @@ pub fn run(comptime g: Game) !void {
             sdl.c.SDL_SetWindowTitle(ctx.window.ptr, &buf);
         }
         g.loopFn(&ctx) catch |e| {
-            std.log.err("got error in loop: {any}", .{e});
+            log.err("got error in loop: {}", .{e});
+            if (@errorReturnTrace()) |trace| {
+                std.debug.dumpStackTrace(trace.*);
+                break;
+            }
         };
         ctx.renderer.present();
     }

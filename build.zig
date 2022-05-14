@@ -19,6 +19,7 @@ pub fn build(b: *std.build.Builder) void {
     const examples = [_]struct { name: []const u8, opt: BuildOptions }{
         .{ .name = "hello", .opt = .{} },
         .{ .name = "imgui_demo", .opt = .{ .link_imgui = true } },
+        .{ .name = "chipmunk_demo", .opt = .{ .link_chipmunk = true } },
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |demo| {
@@ -50,6 +51,7 @@ pub const BuildOptions = struct {
     link_zenet: bool = false,
     link_ztracy: bool = false,
     link_imgui: bool = false,
+    link_chipmunk: bool = false,
     link_nfd: bool = false,
     enable_tracy: bool = false,
 };
@@ -79,6 +81,9 @@ pub fn link(exe: *std.build.LibExeObjStep, opt: BuildOptions) void {
     }
     if (opt.link_imgui) {
         @import("src/deps/imgui/build.zig").link(exe);
+    }
+    if (opt.link_chipmunk) {
+        @import("src/deps/chipmunk/build.zig").link(exe);
     }
     if (opt.link_nfd) {
         @import("src/deps/nfd/build.zig").link(exe);
