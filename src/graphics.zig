@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const jok = @import("jok.zig");
 const sdl = @import("sdl");
 const native_endian = @import("builtin").target.cpu.arch.endian();
@@ -69,6 +70,7 @@ pub fn createTextureFromFile(
     if (image_data == null) {
         return error.LoadImageError;
     }
+    assert(channels == 3 or channels == 4);
     defer stb.image.stbi_image_free(image_data);
 
     return try createTextureFromPixels(
