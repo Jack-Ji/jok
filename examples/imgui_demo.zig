@@ -2075,7 +2075,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
         var show_another_window = true;
         var show_plot_demo_window = true;
         var show_nodes_demo_window = true;
-        var clear_color = [4]f32{ 0.45, 0.55, 0.6, 1.0 };
+        var clear_color = [3]f32{ 0.45, 0.55, 0.6 };
     };
 
     try ctx.renderer.clear();
@@ -2100,7 +2100,13 @@ fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.checkbox("Plot Demo Window", &S.show_plot_demo_window);
         _ = imgui.checkbox("Nodes Demo Window", &S.show_nodes_demo_window);
         _ = imgui.sliderFloat("float", &S.f, 0, 1, .{});
-        _ = imgui.colorEdit4("clear color", &S.clear_color, null);
+        if (imgui.colorEdit3("clear color", &S.clear_color, null)) {
+            try ctx.renderer.setColorRGB(
+                @floatToInt(u8, @floor(S.clear_color[0] * 255.0)),
+                @floatToInt(u8, @floor(S.clear_color[1] * 255.0)),
+                @floatToInt(u8, @floor(S.clear_color[2] * 255.0)),
+            );
+        }
         if (imgui.button("Button", null))
             S.counter += 1;
         imgui.sameLine(.{});
