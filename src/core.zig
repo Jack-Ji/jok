@@ -362,7 +362,7 @@ pub fn run(comptime g: Game) !void {
     // game loop
     while (!ctx.quit) {
         if (ctx.updateStats() and g.enable_framestat_display) {
-            var buf: [64]u8 = undefined;
+            var buf: [128]u8 = undefined;
             _ = std.fmt.bufPrintZ(
                 &buf,
                 "{s} | FPS:{d:.1} AVG-CPU:{d:.1}ms VSYNC:{s} MEM:{d} bytes",
