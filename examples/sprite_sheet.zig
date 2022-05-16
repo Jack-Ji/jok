@@ -11,9 +11,8 @@ fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
-    const size = ctx.getFramebufferSize();
-
     // create sprite sheet
+    const size = ctx.getFramebufferSize();
     sheet = try gfx.SpriteSheet.fromPicturesInDir(
         ctx.default_allocator,
         ctx.renderer,

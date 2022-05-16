@@ -37,6 +37,7 @@ pub fn createTextureFromPixels(
     height: u32,
 ) !sdl.Texture {
     var tex = try sdl.createTexture(renderer, format, access, width, height);
+    try tex.setBlendMode(.blend); // enable alpha blending by default
     errdefer tex.destroy();
 
     const stride = getChannels(format) * width;

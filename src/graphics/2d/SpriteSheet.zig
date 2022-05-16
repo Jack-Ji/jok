@@ -379,13 +379,10 @@ pub fn saveToFiles(self: Self, path: []const u8) !void {
     var json_file = try std.fs.cwd().createFile(json_path, .{});
     defer json_file.close();
     var arena_allocator = std.heap.ArenaAllocator.init(self.allocator);
-    var json_tree = json.ValueTree{
-        .arena = arena_allocator,
-        .root = json.Value{
-            .Object = json.ObjectMap.init(arena_allocator.allocator()),
-        },
+    defer arena_allocator.deinit();
+    var json_root = json.Value{
+        .Object = json.ObjectMap.init(arena_allocator.allocator()),
     };
-    defer json_tree.deinit();
     var it = self.search_tree.iterator();
     while (it.next()) |entry| {
         const name = entry.key_ptr.*;
@@ -397,9 +394,9 @@ pub fn saveToFiles(self: Self, path: []const u8) !void {
         try obj.put("t1", json.Value{ .Float = @as(f64, rect.t1) });
         try obj.put("width", json.Value{ .Float = @as(f64, rect.width) });
         try obj.put("height", json.Value{ .Float = @as(f64, rect.height) });
-        try json_tree.root.Object.put(name, json.Value{ .Object = obj });
+        try json_root.Object.put(name, json.Value{ .Object = obj });
     }
-    try json_tree.root.jsonStringify(
+    try json_root.jsonStringify(
         .{ .whitespace = json.StringifyOptions.Whitespace{} },
         json_file.writer(),
     );

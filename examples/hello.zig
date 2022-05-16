@@ -14,6 +14,7 @@ fn init(ctx: *jok.Context) anyerror!void {
         .static,
         false,
     );
+    try tex.setBlendMode(.blend);
 }
 
 fn loop(ctx: *jok.Context) anyerror!void {
@@ -32,6 +33,8 @@ fn loop(ctx: *jok.Context) anyerror!void {
         }
     }
 
+    try ctx.renderer.setColorRGB(77, 77, 77);
+    try ctx.renderer.clear();
     try ctx.renderer.copy(
         tex,
         null,
