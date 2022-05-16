@@ -54,7 +54,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.clear();
-    try ctx.renderer.setDrawBlendMode(.add);
+    try ctx.renderer.setDrawBlendMode(.none);
     try ctx.renderer.copy(
         sheet.tex,
         sdl.Rectangle{ .x = 0, .y = 0, .width = 200, .height = 200 },
