@@ -17,7 +17,7 @@ pub const DepthSortMethod = enum {
 };
 
 pub const BlendMethod = enum {
-    alpha_blend,
+    blend,
     additive,
     overwrite,
 };
@@ -56,8 +56,11 @@ search_tree: std.AutoHashMap(*SpriteSheet, u32),
 /// maximum limit
 max_sprites_per_drawcall: u32,
 
+///  blend method
+blend_method: BlendMethod = .blend,
+
 ///  sort method
-depth_sort: DepthSortMethod,
+depth_sort: DepthSortMethod = .none,
 
 /// create sprite-batch
 pub fn init(
@@ -74,7 +77,6 @@ pub fn init(
         .batches = batches,
         .search_tree = std.AutoHashMap(*SpriteSheet, u32).init(allocator),
         .max_sprites_per_drawcall = max_sprites_per_drawcall,
-        .depth_sort = .none,
     };
     for (self.batches) |*b| {
         b.sheet = null;
@@ -99,9 +101,11 @@ pub fn deinit(self: *Self) void {
 /// begin batched data
 pub const BatchOption = struct {
     depth_sort: DepthSortMethod = .none,
+    blend_method: BlendMethod = .blend,
 };
 pub fn begin(self: *Self, opt: BatchOption) void {
     self.depth_sort = opt.depth_sort;
+    self.blend_method = opt.blend_method;
     const size = self.search_tree.count();
     for (self.batches[0..size]) |*b| {
         b.sheet = null;
@@ -190,6 +194,11 @@ pub fn end(self: *Self, renderer: sdl.Renderer) !void {
 
     // send draw command
     for (self.batches[0..size]) |b| {
+        switch (self.blend_method) {
+            .blend => try b.sheet.?.tex.setBlendMode(.blend),
+            .additive => try b.sheet.?.tex.setBlendMode(.add),
+            .overwrite => try b.sheet.?.tex.setBlendMode(.none),
+        }
         try renderer.drawGeometry(
             b.sheet.?.tex,
             b.vattrib.items,

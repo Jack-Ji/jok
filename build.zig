@@ -21,6 +21,8 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "imgui_demo", .opt = .{ .link_imgui = true } },
         .{ .name = "chipmunk_demo", .opt = .{ .link_chipmunk = true } },
         .{ .name = "sprite_sheet", .opt = .{} },
+        .{ .name = "particle_2d", .opt = .{} },
+        .{ .name = "sprite_benchmark", .opt = .{} },
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |demo| {

@@ -4,7 +4,7 @@ const sdl = @import("sdl");
 const SpriteSheet = @import("SpriteSheet.zig");
 const jok = @import("../../jok.zig");
 const gfx = jok.gfx;
-const math = jok.math;
+const zmath = jok.zmath;
 const Self = @This();
 
 /// size of sprite
@@ -47,17 +47,17 @@ pub fn appendDrawData(
     assert(opt.scale_w >= 0 and opt.scale_h >= 0);
     assert(opt.anchor_point.x >= 0 and opt.anchor_point.x <= 1);
     assert(opt.anchor_point.y >= 0 and opt.anchor_point.y <= 1);
-    const m_scale = math.scaling(self.width * opt.scale_w, self.height * opt.scale_h, 1);
-    const m_rotate = math.rotationZ(gfx.utils.degreeToRadian(opt.rotate_degree));
-    const m_translate = math.translation(opt.pos.x, opt.pos.y, 0);
-    const m_transform = math.mul(math.mul(m_scale, m_rotate), m_translate);
-    const basic_coords = math.loadMat(&[_]f32{
+    const m_scale = zmath.scaling(self.width * opt.scale_w, self.height * opt.scale_h, 1);
+    const m_rotate = zmath.rotationZ(gfx.utils.degreeToRadian(opt.rotate_degree));
+    const m_translate = zmath.translation(opt.pos.x, opt.pos.y, 0);
+    const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
+    const basic_coords = zmath.loadMat(&[_]f32{
         -opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // left top
         -opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // left bottom
         1 - opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // right bottom
         1 - opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // right top
     });
-    const trasformed_coords = math.mul(basic_coords, m_transform);
+    const trasformed_coords = zmath.mul(basic_coords, m_transform);
     const base_index = @intCast(u32, vattribs.items.len);
     try vattribs.appendSlice(&[_]sdl.Vertex{
         .{

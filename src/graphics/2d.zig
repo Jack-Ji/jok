@@ -1,3 +1,6 @@
+/// 2d vector
+pub const Vector = @import("2d/Vector.zig");
+
 /// sprite
 pub const Sprite = @import("2d/Sprite.zig");
 
@@ -11,4 +14,4 @@ pub const SpriteBatch = @import("2d/SpriteBatch.zig");
 //pub const Camera = @import("2d/Camera.zig");
 
 // particle system
-//pub const ParticleSystem = @import("2d/ParticleSystem.zig");
+pub const ParticleSystem = @import("2d/ParticleSystem.zig");
