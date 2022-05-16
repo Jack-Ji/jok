@@ -41,7 +41,7 @@ pub const DrawOption = struct {
 pub fn appendDrawData(
     self: Self,
     vattribs: *std.ArrayList(sdl.Vertex),
-    indices: *std.ArrayList(u32),
+    vindices: *std.ArrayList(u32),
     opt: DrawOption,
 ) !void {
     assert(opt.scale_w >= 0 and opt.scale_h >= 0);
@@ -81,7 +81,7 @@ pub fn appendDrawData(
             .tex_coord = .{ .x = self.uv1.x, .y = self.uv0.y },
         },
     });
-    try indices.appendSlice(&[_]u32{
+    try vindices.appendSlice(&[_]u32{
         base_index,
         base_index + 1,
         base_index + 2,
