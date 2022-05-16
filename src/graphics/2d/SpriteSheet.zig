@@ -296,7 +296,7 @@ pub fn fromSheetFiles(allocator: std.mem.Allocator, renderer: sdl.Renderer, path
         false,
     );
     try tex.setScaleMode(.nearest);
-    errdefer tex.deinit();
+    errdefer tex.destroy();
 
     // load sprites info
     const json_path = try std.fmt.bufPrint(&path_buf, "{s}.json", .{path});

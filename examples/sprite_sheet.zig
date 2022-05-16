@@ -23,8 +23,9 @@ fn init(ctx: *jok.Context) anyerror!void {
         true,
         .{},
     );
-    //sheet = try SpriteSheet.fromSheetFiles(
+    //sheet = try gfx.SpriteSheet.fromSheetFiles(
     //    ctx.default_allocator,
+    //    ctx.renderer,
     //    "sheet",
     //);
     sprite = try sheet.createSprite("ogre");
@@ -54,7 +55,6 @@ fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.clear();
-    try ctx.renderer.setDrawBlendMode(.add);
     try ctx.renderer.copy(
         sheet.tex,
         sdl.Rectangle{ .x = 0, .y = 0, .width = 200, .height = 200 },
