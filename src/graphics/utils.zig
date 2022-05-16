@@ -101,7 +101,7 @@ pub const EncodingOption = struct {
     png_compress_level: u8 = 8,
     tga_rle_compress: bool = true,
     jpg_quality: u8 = 75, // between 1 and 100
-    flip_on_write: bool = true, // flip by default
+    flip_on_write: bool = false, // flip by default
 };
 pub fn savePixelsToFile(
     pixels: []const u8,
