@@ -54,7 +54,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.clear();
-    try ctx.renderer.setDrawBlendMode(.blend);
+    try ctx.renderer.setDrawBlendMode(.add);
     try ctx.renderer.copy(
         sheet.tex,
         sdl.Rectangle{ .x = 0, .y = 0, .width = 200, .height = 200 },
@@ -74,7 +74,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
         .rotate_degree = @floatCast(f32, ctx.tick) * 30,
         .scale_w = 4 + 2 * @cos(@floatCast(f32, ctx.tick)),
         .scale_h = 4 + 2 * @sin(@floatCast(f32, ctx.tick)),
-        .color = sdl.Color.rgb(255, 0, 0),
+        .tint_color = sdl.Color.rgb(255, 0, 0),
         .depth = 0.6,
     });
     try sprite_batch.end(ctx.renderer);

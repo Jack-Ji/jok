@@ -52,10 +52,10 @@ pub fn appendDrawData(
     const m_translate = math.translation(opt.pos.x, opt.pos.y, 0);
     const m_transform = math.mul(math.mul(m_scale, m_rotate), m_translate);
     const basic_coords = math.loadMat(&[_]f32{
-        -opt.anchor_point.x, -opt.anchor_point.y, 0, 0, // left top
-        -opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 0, // left bottom
-        1 - opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 0, // right bottom
-        1 - opt.anchor_point.x, -opt.anchor_point.y, 0, 0, // right top
+        -opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // left top
+        -opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // left bottom
+        1 - opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // right bottom
+        1 - opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // right top
     });
     const trasformed_coords = math.mul(basic_coords, m_transform);
     const base_index = @intCast(u32, vattribs.items.len);
