@@ -2,15 +2,15 @@ const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
 
-var tex: jok.gfx.Texture = undefined;
+var tex: sdl.Texture = undefined;
 
 fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
-    tex = try jok.gfx.createTextureFromFile(
+    tex = try jok.gfx.utils.createTextureFromFile(
         ctx.renderer,
-        "assets/jok.png",
+        "assets/images/jok.png",
         .static,
         false,
     );
