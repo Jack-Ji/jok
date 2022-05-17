@@ -65,11 +65,12 @@ pub fn deinit(self: *Self) void {
 
 pub fn createAtlas(
     self: Self,
+    renderer: sdl.Renderer,
     font_size: u32,
     codepoint_ranges: []const [2]u32,
     atlas_size: ?u32,
 ) !Atlas {
-    return Atlas.init(self.allocator, &self.font_info, font_size, codepoint_ranges, atlas_size);
+    return Atlas.init(self.allocator, renderer, &self.font_info, font_size, codepoint_ranges, atlas_size);
 }
 
 /// useful codepoint ranges
@@ -305,7 +306,7 @@ pub const Atlas = struct {
         // create texture
         var tex = try gfx.utils.createTextureFromPixels(
             renderer,
-            pixels.ptr,
+            pixels,
             .index8,
             .static,
             atlas_size,
@@ -341,22 +342,21 @@ pub const Atlas = struct {
         return current_ypos + @round((self.vmetric_ascent - self.vmetric_descent + self.vmetric_line_gap) * self.scale);
     }
 
-    /// append draw data for rendering utf8 string
+    /// append draw data for rendering utf8 string, return next x position
     pub const YPosType = enum { baseline, top, bottom };
     pub fn appendDrawDataFromUTF8String(
         self: Atlas,
         text: []const u8,
-        vx: f32,
-        vy: f32,
+        pos: sdl.PointF,
         ypos_type: YPosType,
         color: sdl.Color,
         vattrib: *std.ArrayList(sdl.Vertex),
         vindices: *std.ArrayList(u32),
     ) !f32 {
-        if (text.len == 0) return vx;
+        if (text.len == 0) return pos.x;
 
-        var xpos = vx;
-        var ypos = vy;
+        var xpos = pos.x;
+        var ypos = pos.y;
         var pxpos = &xpos;
         var pypos = &ypos;
 
@@ -370,10 +370,11 @@ pub const Atlas = struct {
                 if (codepoint < range.codepoint_begin or codepoint > range.codepoint_end) continue;
 
                 var quad: truetype.stbtt_aligned_quad = undefined;
+                const info = try self.tex.query();
                 truetype.stbtt_GetPackedQuad(
                     range.packedchar.items.ptr,
-                    @intCast(c_int, self.tex.width),
-                    @intCast(c_int, self.tex.width),
+                    @intCast(c_int, info.width),
+                    @intCast(c_int, info.height),
                     @intCast(c_int, codepoint - range.codepoint_begin),
                     pxpos,
                     pypos,
@@ -385,7 +386,7 @@ pub const Atlas = struct {
                     .top => self.vmetric_ascent * self.scale,
                     .bottom => self.vmetric_descent * self.scale,
                 };
-                const base_index = vattrib.items.len;
+                const base_index = @intCast(u32, vattrib.items.len);
                 try vattrib.appendSlice(&[_]sdl.Vertex{
                     .{
                         .position = .{ .x = quad.x0, .y = quad.y0 + yoffset },
@@ -424,3 +425,69 @@ pub const Atlas = struct {
         return pxpos.*;
     }
 };
+
+/// builtin debug font
+pub const DrawOption = struct {
+    pos: sdl.PointF,
+    ypos_type: Atlas.YPosType = .top,
+    color: sdl.Color = sdl.Color.black,
+    font_size: u32 = 16,
+};
+pub const NextDraw = struct {
+    next_xpos: f32,
+    next_line_ypos: f32,
+};
+pub fn debugDraw(renderer: sdl.Renderer, text: []const u8, opt: DrawOption) !NextDraw {
+    const S = struct {
+        const allocator = std.heap.c_allocator;
+        const font_data = @embedFile("clacon2.ttf");
+        const max_text_size = 1000;
+        var font: ?*Self = null;
+        var atlases: std.AutoHashMap(u32, Atlas) = undefined;
+        var vattrib: std.ArrayList(sdl.Vertex) = undefined;
+        var vindices: std.ArrayList(u32) = undefined;
+    };
+
+    // initialize font data and atlases as needed
+    if (S.font == null) {
+        S.font = fromTrueTypeData(S.allocator, S.font_data) catch unreachable;
+        S.atlases = std.AutoHashMap(u32, Atlas).init(S.allocator);
+        S.vattrib = std.ArrayList(sdl.Vertex).initCapacity(S.allocator, S.max_text_size * 4) catch unreachable;
+        S.vindices = std.ArrayList(u32).initCapacity(S.allocator, S.max_text_size * 6) catch unreachable;
+    }
+    var atlas: Atlas = undefined;
+    if (S.atlases.get(opt.font_size)) |a| {
+        atlas = a;
+    } else {
+        atlas = S.font.?.createAtlas(
+            renderer,
+            opt.font_size,
+            &[_][2]u32{
+                .{ 0x0020, 0x00FF }, // Basic Latin + Latin Supplement
+                .{ 0x2500, 0x25FF }, // Special marks (block, line, triangle etc)
+                .{ 0x2801, 0x28FF }, // Braille
+                .{ 0x16A0, 0x16F0 }, // Runic
+            },
+            2048,
+        ) catch unreachable;
+        try S.atlases.put(opt.font_size, atlas);
+    }
+
+    defer S.vattrib.clearRetainingCapacity();
+    defer S.vindices.clearRetainingCapacity();
+
+    assert(text.len < S.max_text_size);
+    const next_xpos = try atlas.appendDrawDataFromUTF8String(
+        text,
+        opt.pos,
+        opt.ypos_type,
+        opt.color,
+        &S.vattrib,
+        &S.vindices,
+    );
+    try renderer.drawGeometry(atlas.tex, S.vattrib.items, S.vindices.items);
+    return NextDraw{
+        .next_xpos = next_xpos,
+        .next_line_ypos = atlas.getVPosOfNextLine(opt.pos.y),
+    };
+}
