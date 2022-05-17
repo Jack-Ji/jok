@@ -1420,7 +1420,7 @@ pub const raw = struct {
     };
 };
 
-comptime {
+test "znetwork.enet" {
     _ = PacketFreeCallback;
     _ = InterceptCallback;
     std.testing.refAllDecls(@This());
@@ -1434,7 +1434,7 @@ comptime {
     std.testing.refAllDecls(@This().UnixPlatform);
 }
 
-test "zenet.init" {
+test "znetwork.enet.init" {
     try initialize();
     defer deinitialize();
 }

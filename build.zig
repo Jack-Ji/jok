@@ -52,7 +52,7 @@ pub const BuildOptions = struct {
     link_zmesh: bool = false,
     link_znoise: bool = false,
     link_zbullet: bool = false,
-    link_zenet: bool = false,
+    link_znetwork: bool = false,
     link_ztracy: bool = false,
     link_imgui: bool = false,
     link_chipmunk: bool = false,
@@ -77,8 +77,8 @@ pub fn link(exe: *std.build.LibExeObjStep, opt: BuildOptions) void {
     if (opt.link_zbullet) {
         @import("src/deps/zbullet/build.zig").link(exe);
     }
-    if (opt.link_zenet) {
-        @import("src/deps/zenet/build.zig").link(exe);
+    if (opt.link_znetwork) {
+        @import("src/deps/znetwork/build.zig").link(exe);
     }
     if (opt.link_ztracy) {
         @import("src/deps/ztracy/build.zig").link(exe, opt.enable_tracy, .{});
