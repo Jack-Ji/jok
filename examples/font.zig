@@ -26,17 +26,46 @@ fn loop(ctx: *jok.Context) anyerror!void {
 
     const size = ctx.getFramebufferSize();
 
-    try ctx.renderer.setColor(sdl.Color.rgb(128, 77, 77));
+    try ctx.renderer.setColorRGB(100, 100, 100);
     try ctx.renderer.clear();
-    _ = try gfx.Font.debugDraw(
+
+    try ctx.renderer.setColorRGBA(0, 128, 0, 120);
+    try ctx.renderer.setDrawBlendMode(.blend);
+
+    var result = try gfx.Font.debugDraw(
         ctx.renderer,
         "你好！ABCDEFGHIJKL abcdefghijkl",
         .{
             .pos = sdl.PointF{ .x = 0, .y = 0 },
             .ypos_type = .top,
+            .color = sdl.Color.cyan,
         },
     );
-    _ = try gfx.Font.debugDraw(
+    try ctx.renderer.fillRectF(result.area);
+
+    result = try gfx.Font.debugDraw(
+        ctx.renderer,
+        "Hello,",
+        .{
+            .pos = sdl.PointF{ .x = 0, .y = @intToFloat(f32, size.h) / 2 },
+            .font_size = 80,
+            .ypos_type = .bottom,
+        },
+    );
+    try ctx.renderer.fillRectF(result.area);
+
+    result = try gfx.Font.debugDraw(
+        ctx.renderer,
+        "jok!",
+        .{
+            .pos = sdl.PointF{ .x = result.area.x + result.area.width, .y = @intToFloat(f32, size.h) / 2 },
+            .font_size = 80,
+            .ypos_type = .top,
+        },
+    );
+    try ctx.renderer.fillRectF(result.area);
+
+    result = try gfx.Font.debugDraw(
         ctx.renderer,
         "你好！ABCDEFGHIJKL abcdefghijkl",
         .{
@@ -46,6 +75,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
             .font_size = 32,
         },
     );
+    try ctx.renderer.fillRectF(result.area);
 }
 
 fn quit(ctx: *jok.Context) void {

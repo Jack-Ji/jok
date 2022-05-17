@@ -17,7 +17,7 @@ font_data: ?[]const u8,
 font_info: truetype.stbtt_fontinfo,
 
 /// accept 20M font file at most
-const maxFontSize = 20 * (1 << 20);
+const max_font_size = 20 * (1 << 20);
 
 /// init Font instance with truetype file
 pub fn init(allocator: std.mem.Allocator, path: [:0]const u8) !*Self {
@@ -25,7 +25,7 @@ pub fn init(allocator: std.mem.Allocator, path: [:0]const u8) !*Self {
 
     var self = try allocator.create(Self);
     self.allocator = allocator;
-    self.font_data = try dir.readFileAlloc(allocator, path, maxFontSize);
+    self.font_data = try dir.readFileAlloc(allocator, path, max_font_size);
 
     // extract font info
     var rc = truetype.stbtt_InitFont(
@@ -266,14 +266,16 @@ pub const Atlas = struct {
         var ranges = try std.ArrayList(CharRange).initCapacity(allocator, codepoint_ranges.len);
         errdefer ranges.deinit();
         const atlas_size = map_size orelse default_map_size;
-        const pixels = try allocator.alloc(u8, atlas_size * atlas_size);
-        defer allocator.free(pixels);
+        const stb_pixels = try allocator.alloc(u8, atlas_size * atlas_size);
+        defer allocator.free(stb_pixels);
+        const real_pixels = try allocator.alloc(u8, atlas_size * atlas_size * 4);
+        defer allocator.free(real_pixels);
 
         // generate atlas
         var pack_ctx = std.mem.zeroes(truetype.stbtt_pack_context);
         var rc = truetype.stbtt_PackBegin(
             &pack_ctx,
-            pixels.ptr,
+            stb_pixels.ptr,
             @intCast(c_int, atlas_size),
             @intCast(c_int, atlas_size),
             0,
@@ -302,12 +304,18 @@ pub const Atlas = struct {
             );
         }
         truetype.stbtt_PackEnd(&pack_ctx);
+        for (stb_pixels) |px, i| {
+            real_pixels[i * 4] = px;
+            real_pixels[i * 4 + 1] = px;
+            real_pixels[i * 4 + 2] = px;
+            real_pixels[i * 4 + 3] = px;
+        }
 
         // create texture
         var tex = try gfx.utils.createTextureFromPixels(
             renderer,
-            pixels,
-            .index8,
+            real_pixels,
+            gfx.utils.getFormatByEndian(),
             .static,
             atlas_size,
             atlas_size,
@@ -342,7 +350,7 @@ pub const Atlas = struct {
         return current_ypos + @round((self.vmetric_ascent - self.vmetric_descent + self.vmetric_line_gap) * self.scale);
     }
 
-    /// append draw data for rendering utf8 string, return next x position
+    /// append draw data for rendering utf8 string, return drawing area
     pub const YPosType = enum { baseline, top, bottom };
     pub fn appendDrawDataFromUTF8String(
         self: Atlas,
@@ -352,13 +360,14 @@ pub const Atlas = struct {
         color: sdl.Color,
         vattrib: *std.ArrayList(sdl.Vertex),
         vindices: *std.ArrayList(u32),
-    ) !f32 {
-        if (text.len == 0) return pos.x;
-
+    ) !sdl.RectangleF {
         var xpos = pos.x;
         var ypos = pos.y;
         var pxpos = &xpos;
         var pypos = &ypos;
+        var rect = sdl.RectangleF{ .x = pos.x, .y = std.math.floatMax(f32), .width = 0, .height = 0 };
+
+        if (text.len == 0) return rect;
 
         var i: u32 = 0;
         while (i < text.len) {
@@ -417,27 +426,30 @@ pub const Atlas = struct {
                     base_index + 2,
                     base_index + 3,
                 });
+                if (quad.y0 + yoffset < rect.y) rect.y = quad.y0 + yoffset;
+                if (quad.y1 + yoffset - rect.y > rect.height) rect.height = quad.y1 + yoffset - rect.y;
                 break;
             }
             i += size;
         }
 
-        return pxpos.*;
+        rect.width = pxpos.* - rect.x;
+        return rect;
     }
 };
 
-/// builtin debug font
+/// draw debug text using builtin font
 pub const DrawOption = struct {
     pos: sdl.PointF,
     ypos_type: Atlas.YPosType = .top,
     color: sdl.Color = sdl.Color.black,
     font_size: u32 = 16,
 };
-pub const NextDraw = struct {
-    next_xpos: f32,
+pub const DrawResult = struct {
+    area: sdl.RectangleF,
     next_line_ypos: f32,
 };
-pub fn debugDraw(renderer: sdl.Renderer, text: []const u8, opt: DrawOption) !NextDraw {
+pub fn debugDraw(renderer: sdl.Renderer, text: []const u8, opt: DrawOption) !DrawResult {
     const S = struct {
         const allocator = std.heap.c_allocator;
         const font_data = @embedFile("clacon2.ttf");
@@ -446,6 +458,11 @@ pub fn debugDraw(renderer: sdl.Renderer, text: []const u8, opt: DrawOption) !Nex
         var atlases: std.AutoHashMap(u32, Atlas) = undefined;
         var vattrib: std.ArrayList(sdl.Vertex) = undefined;
         var vindices: std.ArrayList(u32) = undefined;
+    };
+
+    if (text.len == 0) return DrawResult{
+        .area = .{ .x = opt.pos.x, .y = opt.pos.y, .width = 0, .height = 0 },
+        .next_line_ypos = 0,
     };
 
     // initialize font data and atlases as needed
@@ -477,7 +494,7 @@ pub fn debugDraw(renderer: sdl.Renderer, text: []const u8, opt: DrawOption) !Nex
     defer S.vindices.clearRetainingCapacity();
 
     assert(text.len < S.max_text_size);
-    const next_xpos = try atlas.appendDrawDataFromUTF8String(
+    const area = try atlas.appendDrawDataFromUTF8String(
         text,
         opt.pos,
         opt.ypos_type,
@@ -486,8 +503,8 @@ pub fn debugDraw(renderer: sdl.Renderer, text: []const u8, opt: DrawOption) !Nex
         &S.vindices,
     );
     try renderer.drawGeometry(atlas.tex, S.vattrib.items, S.vindices.items);
-    return NextDraw{
-        .next_xpos = next_xpos,
+    return DrawResult{
+        .area = area,
         .next_line_ypos = atlas.getVPosOfNextLine(opt.pos.y),
     };
 }
