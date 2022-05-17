@@ -13,9 +13,8 @@ pub const SpriteBatch = @import("2d/SpriteBatch.zig");
 // particle system
 pub const ParticleSystem = @import("2d/ParticleSystem.zig");
 
-// font rendering
-pub const Font = @import("2d/Font.zig");
+// font system
+pub const font = @import("2d/font.zig");
 
 // 2d camera
-//pub const Camera = @import("2d/Camera.zig");
-
+pub const Camera = @import("2d/Camera.zig");

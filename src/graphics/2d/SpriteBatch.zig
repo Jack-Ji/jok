@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const sdl = @import("sdl");
 const Sprite = @import("Sprite.zig");
 const SpriteSheet = @import("SpriteSheet.zig");
+const Camera = @import("Camera.zig");
 const Self = @This();
 
 pub const Error = error{
@@ -24,6 +25,7 @@ pub const BlendMethod = enum {
 
 pub const DrawOption = struct {
     pos: sdl.PointF,
+    camera: ?Camera = null,
     tint_color: sdl.Color = sdl.Color.white,
     scale_w: f32 = 1.0,
     scale_h: f32 = 1.0,
@@ -181,9 +183,9 @@ pub fn end(self: *Self, renderer: sdl.Renderer) !void {
                 &b.vattrib,
                 &b.vindices,
                 .{
-                    .pos = data.draw_option.pos,
-                    .scale_w = data.draw_option.scale_w,
-                    .scale_h = data.draw_option.scale_h,
+                    .pos = if (data.draw_option.camera) |c| c.translatePointF(data.draw_option.pos) else data.draw_option.pos,
+                    .scale_w = if (data.draw_option.camera) |c| data.draw_option.scale_w / c.zoom else data.draw_option.scale_w,
+                    .scale_h = if (data.draw_option.camera) |c| data.draw_option.scale_h / c.zoom else data.draw_option.scale_h,
                     .rotate_degree = data.draw_option.rotate_degree,
                     .anchor_point = data.draw_option.anchor_point,
                     .tint_color = data.draw_option.tint_color,

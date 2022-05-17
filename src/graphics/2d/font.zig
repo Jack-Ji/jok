@@ -5,73 +5,77 @@ const sdl = @import("sdl");
 const jok = @import("../../jok.zig");
 const gfx = jok.gfx;
 const truetype = jok.deps.stb.truetype;
-const Self = @This();
 
-/// memory allocator
-allocator: std.mem.Allocator,
+/// loaded truetype font
+pub const Font = struct {
+    const Self = @This();
 
-/// font file's data
-font_data: ?[]const u8,
+    /// memory allocator
+    allocator: std.mem.Allocator,
 
-/// internal font information
-font_info: truetype.stbtt_fontinfo,
+    /// font file's data
+    font_data: ?[]const u8,
 
-/// accept 20M font file at most
-const max_font_size = 20 * (1 << 20);
+    /// internal font information
+    font_info: truetype.stbtt_fontinfo,
 
-/// init Font instance with truetype file
-pub fn init(allocator: std.mem.Allocator, path: [:0]const u8) !*Self {
-    const dir = std.fs.cwd();
+    /// accept 20M font file at most
+    const max_font_size = 20 * (1 << 20);
 
-    var self = try allocator.create(Self);
-    self.allocator = allocator;
-    self.font_data = try dir.readFileAlloc(allocator, path, max_font_size);
+    /// init Font instance with truetype file
+    pub fn init(allocator: std.mem.Allocator, path: [:0]const u8) !*Self {
+        const dir = std.fs.cwd();
 
-    // extract font info
-    var rc = truetype.stbtt_InitFont(
-        &self.font_info,
-        self.font_data.?.ptr,
-        truetype.stbtt_GetFontOffsetForIndex(self.font_data.?.ptr, 0),
-    );
-    assert(rc > 0);
+        var self = try allocator.create(Self);
+        self.allocator = allocator;
+        self.font_data = try dir.readFileAlloc(allocator, path, max_font_size);
 
-    return self;
-}
+        // extract font info
+        var rc = truetype.stbtt_InitFont(
+            &self.font_info,
+            self.font_data.?.ptr,
+            truetype.stbtt_GetFontOffsetForIndex(self.font_data.?.ptr, 0),
+        );
+        assert(rc > 0);
 
-/// init Font instance with truetype data
-/// WARNING: font data must be valid as long as Font instance
-pub fn fromTrueTypeData(allocator: std.mem.Allocator, data: []const u8) !*Self {
-    var self = try allocator.create(Self);
-    self.allocator = allocator;
-    self.font_data = null;
-
-    // extract font info
-    var rc = truetype.stbtt_InitFont(
-        &self.font_info,
-        data.ptr,
-        truetype.stbtt_GetFontOffsetForIndex(data.ptr, 0),
-    );
-    assert(rc > 0);
-
-    return self;
-}
-
-pub fn deinit(self: *Self) void {
-    if (self.font_data) |data| {
-        self.allocator.free(data);
+        return self;
     }
-    self.allocator.destroy(self);
-}
 
-pub fn createAtlas(
-    self: Self,
-    renderer: sdl.Renderer,
-    font_size: u32,
-    codepoint_ranges: []const [2]u32,
-    atlas_size: ?u32,
-) !Atlas {
-    return Atlas.init(self.allocator, renderer, &self.font_info, font_size, codepoint_ranges, atlas_size);
-}
+    /// init Font instance with truetype data
+    /// WARNING: font data must be valid as long as Font instance
+    pub fn fromTrueTypeData(allocator: std.mem.Allocator, data: []const u8) !*Self {
+        var self = try allocator.create(Self);
+        self.allocator = allocator;
+        self.font_data = null;
+
+        // extract font info
+        var rc = truetype.stbtt_InitFont(
+            &self.font_info,
+            data.ptr,
+            truetype.stbtt_GetFontOffsetForIndex(data.ptr, 0),
+        );
+        assert(rc > 0);
+
+        return self;
+    }
+
+    pub fn deinit(self: *Self) void {
+        if (self.font_data) |data| {
+            self.allocator.free(data);
+        }
+        self.allocator.destroy(self);
+    }
+
+    pub fn createAtlas(
+        self: Self,
+        renderer: sdl.Renderer,
+        font_size: u32,
+        codepoint_ranges: []const [2]u32,
+        atlas_size: ?u32,
+    ) !Atlas {
+        return Atlas.init(self.allocator, renderer, &self.font_info, font_size, codepoint_ranges, atlas_size);
+    }
+};
 
 /// useful codepoint ranges
 pub const CodepointRanges = struct {
@@ -454,7 +458,7 @@ pub fn debugDraw(renderer: sdl.Renderer, text: []const u8, opt: DrawOption) !Dra
         const allocator = std.heap.c_allocator;
         const font_data = @embedFile("clacon2.ttf");
         const max_text_size = 1000;
-        var font: ?*Self = null;
+        var font: ?*Font = null;
         var atlases: std.AutoHashMap(u32, Atlas) = undefined;
         var vattrib: std.ArrayList(sdl.Vertex) = undefined;
         var vindices: std.ArrayList(u32) = undefined;
@@ -467,7 +471,7 @@ pub fn debugDraw(renderer: sdl.Renderer, text: []const u8, opt: DrawOption) !Dra
 
     // initialize font data and atlases as needed
     if (S.font == null) {
-        S.font = fromTrueTypeData(S.allocator, S.font_data) catch unreachable;
+        S.font = Font.fromTrueTypeData(S.allocator, S.font_data) catch unreachable;
         S.atlases = std.AutoHashMap(u32, Atlas).init(S.allocator);
         S.vattrib = std.ArrayList(sdl.Vertex).initCapacity(S.allocator, S.max_text_size * 4) catch unreachable;
         S.vindices = std.ArrayList(u32).initCapacity(S.allocator, S.max_text_size * 6) catch unreachable;

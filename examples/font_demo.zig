@@ -32,7 +32,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGBA(0, 128, 0, 120);
     try ctx.renderer.setDrawBlendMode(.blend);
 
-    var result = try gfx.Font.debugDraw(
+    var result = try gfx.font.debugDraw(
         ctx.renderer,
         "你好！ABCDEFGHIJKL abcdefghijkl",
         .{
@@ -43,7 +43,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
     );
     try ctx.renderer.fillRectF(result.area);
 
-    result = try gfx.Font.debugDraw(
+    result = try gfx.font.debugDraw(
         ctx.renderer,
         "Hello,",
         .{
@@ -54,7 +54,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
     );
     try ctx.renderer.fillRectF(result.area);
 
-    result = try gfx.Font.debugDraw(
+    result = try gfx.font.debugDraw(
         ctx.renderer,
         "jok!",
         .{
@@ -65,7 +65,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
     );
     try ctx.renderer.fillRectF(result.area);
 
-    result = try gfx.Font.debugDraw(
+    result = try gfx.font.debugDraw(
         ctx.renderer,
         "你好！ABCDEFGHIJKL abcdefghijkl",
         .{
