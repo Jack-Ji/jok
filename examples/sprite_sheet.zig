@@ -39,6 +39,13 @@ fn init(ctx: *jok.Context) anyerror!void {
 }
 
 fn loop(ctx: *jok.Context) anyerror!void {
+    const bounds = gfx.Camera.CoordLimit{
+        .min_x = -10,
+        .min_y = -10,
+        .max_x = 1200,
+        .max_y = 700,
+    };
+
     while (ctx.pollEvent()) |e| {
         switch (e) {
             .keyboard_event => |key| {
@@ -46,12 +53,12 @@ fn loop(ctx: *jok.Context) anyerror!void {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
                         .f2 => try sheet.saveToFiles("sheet"),
-                        .left => camera.move(-10, 0, .{}),
-                        .right => camera.move(10, 0, .{}),
-                        .up => camera.move(0, -10, .{}),
-                        .down => camera.move(0, 10, .{}),
-                        .z => camera.setZoom(std.math.min(2, camera.zoom + 0.1), .{}),
-                        .x => camera.setZoom(std.math.max(0.1, camera.zoom - 0.1), .{}),
+                        .left => camera.move(-10, 0, bounds),
+                        .right => camera.move(10, 0, bounds),
+                        .up => camera.move(0, -10, bounds),
+                        .down => camera.move(0, 10, bounds),
+                        .z => camera.setZoom(std.math.min(2, camera.zoom + 0.1), bounds),
+                        .x => camera.setZoom(std.math.max(0.1, camera.zoom - 0.1), bounds),
                         else => {},
                     }
                 }
@@ -75,7 +82,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
         .camera = camera,
         .scale_w = 2,
         .scale_h = 2,
-        .rotate_degree = @floatCast(f32, ctx.tick) * 30,
+        //.rotate_degree = @floatCast(f32, ctx.tick) * 30,
     });
     try sprite_batch.drawSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },

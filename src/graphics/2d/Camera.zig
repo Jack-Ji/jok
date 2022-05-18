@@ -111,23 +111,13 @@ pub fn move(self: *Self, tr_x: f32, tr_y: f32, limit: CoordLimit) void {
 /// zooming
 pub fn setZoom(self: *Self, zoom: f32, limit: CoordLimit) void {
     assert(zoom > 0);
-    var left_top = sdl.PointF{
-        .x = self.pos.x - self.half_size.x,
-        .y = self.pos.y - self.half_size.y,
-    };
-    var right_bottom = sdl.PointF{
-        .x = self.pos.x + self.half_size.x,
-        .y = self.pos.y + self.half_size.y,
-    };
-    if (left_top.x <= limit.min_x and right_bottom.x >= limit.max_x) return;
-    if (left_top.y <= limit.min_y and right_bottom.y >= limit.max_y) return;
     const half_size_x = self.orig_half_size.x * zoom;
     const half_size_y = self.orig_half_size.y * zoom;
-    left_top = sdl.PointF{
+    var left_top = sdl.PointF{
         .x = self.pos.x - half_size_x,
         .y = self.pos.y - half_size_y,
     };
-    right_bottom = sdl.PointF{
+    var right_bottom = sdl.PointF{
         .x = self.pos.x + half_size_x,
         .y = self.pos.y + half_size_y,
     };
