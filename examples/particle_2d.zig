@@ -40,8 +40,9 @@ fn init(ctx: *jok.Context) anyerror!void {
                 },
             },
         },
-        4096,
-        4096,
+        100,
+        100,
+        1,
         false,
     );
     sb = try gfx.SpriteBatch.init(
