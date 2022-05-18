@@ -169,6 +169,7 @@ pub fn init(
     const inv_width = 1.0 / @intToFloat(f32, width);
     const inv_height = 1.0 / @intToFloat(f32, height);
     for (stb_rects) |r, i| {
+        assert(r.was_packed == 1);
         rects[i] = .{
             .s0 = @intToFloat(f32, r.x) * inv_width,
             .t0 = @intToFloat(f32, r.y) * inv_height,
