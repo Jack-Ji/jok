@@ -338,15 +338,20 @@ pub fn run(comptime g: Game) !void {
             .present_vsync = g.enable_vsync,
             .target_texture = true,
         },
-    ) catch if (g.enable_software_renderer) try sdl.createRenderer(
-        ctx.window,
-        null,
-        .{
-            .software = true,
-            .present_vsync = g.enable_vsync,
-            .target_texture = true,
-        },
-    ) else unreachable;
+    ) catch blk: {
+        if (g.enable_software_renderer) {
+            log.warn("hardware accelerated renderer isn't supported, fallback to software backend", .{});
+            break :blk try sdl.createRenderer(
+                ctx.window,
+                null,
+                .{
+                    .software = true,
+                    .present_vsync = g.enable_vsync,
+                    .target_texture = true,
+                },
+            );
+        }
+    };
     defer ctx.renderer.destroy();
 
     // allocate audio engine
