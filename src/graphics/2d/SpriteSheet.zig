@@ -81,6 +81,7 @@ pub fn init(
 
     var pixels = try allocator.alloc(u8, width * height * 4);
     errdefer allocator.free(pixels);
+    std.mem.set(u8, pixels, 0);
 
     var tree = std.StringHashMap(u32).init(allocator);
     var rects = try allocator.alloc(SpriteRect, sources.len);
