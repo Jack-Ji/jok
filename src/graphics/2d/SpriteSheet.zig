@@ -71,6 +71,7 @@ pub fn init(
     sources: []const ImageSource,
     width: u32,
     height: u32,
+    gap: u32,
     keep_packed_pixels: bool,
 ) !*Self {
     assert(sources.len > 0);
@@ -135,8 +136,8 @@ pub fn init(
         }
         stb_rects[i] = std.mem.zeroes(stb_rect_pack.stbrp_rect);
         stb_rects[i].id = @intCast(c_int, i);
-        stb_rects[i].w = @intCast(c_ushort, images[i].pixels.width);
-        stb_rects[i].h = @intCast(c_ushort, images[i].pixels.height);
+        stb_rects[i].w = @intCast(c_ushort, images[i].pixels.width + gap);
+        stb_rects[i].h = @intCast(c_ushort, images[i].pixels.height + gap);
     }
     defer {
         // free file-images' data when we're done
@@ -173,13 +174,13 @@ pub fn init(
         rects[i] = .{
             .s0 = @intToFloat(f32, r.x) * inv_width,
             .t0 = @intToFloat(f32, r.y) * inv_height,
-            .s1 = @intToFloat(f32, r.x + r.w) * inv_width,
-            .t1 = @intToFloat(f32, r.y + r.h) * inv_height,
-            .width = @intToFloat(f32, r.w),
-            .height = @intToFloat(f32, r.h),
+            .s1 = @intToFloat(f32, r.x + r.w - gap) * inv_width,
+            .t1 = @intToFloat(f32, r.y + r.h - gap) * inv_height,
+            .width = @intToFloat(f32, r.w - gap),
+            .height = @intToFloat(f32, r.h - gap),
         };
         const y_begin: u32 = @intCast(u32, r.y);
-        const y_end: u32 = @intCast(u32, r.y + r.h);
+        const y_end: u32 = @intCast(u32, r.y + r.h - gap);
         const src_pixels = images[i].pixels;
         const dst_stride: u32 = width * 4;
         const src_stride: u32 = src_pixels.width * 4;
@@ -202,7 +203,7 @@ pub fn init(
         width,
         height,
     );
-    try tex.setScaleMode(.nearest);
+    try tex.setScaleMode(.linear);
     errdefer tex.destroy();
 
     // fill search tree, abort if name collision happens
@@ -243,6 +244,7 @@ pub fn fromPicturesInDir(
     dir_path: []const u8,
     width: u32,
     height: u32,
+    gap: u32,
     keep_packed_pixels: bool,
     opt: DirScanOption,
 ) !*Self {
@@ -283,7 +285,7 @@ pub fn fromPicturesInDir(
         }
     }
 
-    return try Self.init(allocator, renderer, images.items, width, height, keep_packed_pixels);
+    return try Self.init(allocator, renderer, images.items, width, height, gap, keep_packed_pixels);
 }
 
 pub fn fromSheetFiles(allocator: std.mem.Allocator, renderer: sdl.Renderer, path: []const u8) !*Self {

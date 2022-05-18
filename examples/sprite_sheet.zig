@@ -20,6 +20,7 @@ fn init(ctx: *jok.Context) anyerror!void {
         "assets/images",
         size.w,
         size.h,
+        1,
         true,
         .{},
     );
