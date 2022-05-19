@@ -12,7 +12,6 @@ const Actor = struct {
 var sheet: *gfx.SpriteSheet = undefined;
 var sprite_batch: *gfx.SpriteBatch = undefined;
 var characters: std.ArrayList(Actor) = undefined;
-var all_names: std.ArrayList([]const u8) = undefined;
 var rand_gen: std.rand.DefaultPrng = undefined;
 var delta_tick: f32 = 0;
 
@@ -23,15 +22,21 @@ fn init(ctx: *jok.Context) anyerror!void {
     const size = ctx.getFramebufferSize();
 
     // create sprite sheet
-    sheet = try gfx.SpriteSheet.fromPicturesInDir(
+    sheet = try gfx.SpriteSheet.init(
         ctx.default_allocator,
         ctx.renderer,
-        "assets/images",
+        &[_]gfx.SpriteSheet.ImageSource{
+            .{
+                .name = "ogre",
+                .image = .{
+                    .file_path = "assets/images/ogre.png",
+                },
+            },
+        },
         size.w,
         size.h,
         1,
         false,
-        .{ .accept_jpg = false },
     );
     sprite_batch = try gfx.SpriteBatch.init(
         ctx.default_allocator,
@@ -42,14 +47,6 @@ fn init(ctx: *jok.Context) anyerror!void {
         ctx.default_allocator,
         1000000,
     );
-    all_names = try std.ArrayList([]const u8).initCapacity(
-        ctx.default_allocator,
-        10000,
-    );
-    var it = sheet.search_tree.iterator();
-    while (it.next()) |k| {
-        try all_names.append(k.key_ptr.*);
-    }
     rand_gen = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
 
     try ctx.renderer.setColorRGB(77, 77, 77);
@@ -82,11 +79,9 @@ fn loop(ctx: *jok.Context) anyerror!void {
                             };
                             var i: u32 = 0;
                             while (i < 1000) : (i += 1) {
-                                const index = rd.uintLessThan(usize, all_names.items.len);
                                 const angle = rd.float(f32) * 2 * std.math.pi;
-                                const name = all_names.items[index];
                                 try characters.append(.{
-                                    .sprite = try sheet.createSprite(name),
+                                    .sprite = try sheet.createSprite("ogre"),
                                     .pos = pos,
                                     .velocity = .{
                                         .x = 5 * @cos(angle),
@@ -126,7 +121,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
 
     _ = try gfx.font.debugDraw(
         ctx.renderer,
-        .{ .pos = .{ .x = 0, .y = 0 }, .color = sdl.Color.white },
+        .{ .pos = .{ .x = 0, .y = 0 } },
         "# of sprites: {d}",
         .{characters.items.len},
     );
@@ -138,7 +133,6 @@ fn quit(ctx: *jok.Context) void {
     sheet.deinit();
     sprite_batch.deinit();
     characters.deinit();
-    all_names.deinit();
 }
 
 pub fn main() anyerror!void {

@@ -101,19 +101,19 @@ fn loop(ctx: *jok.Context) anyerror!void {
 
     var result = try gfx.font.debugDraw(
         ctx.renderer,
-        .{ .pos = .{ .x = 300, .y = 0 }, .color = sdl.Color.white },
+        .{ .pos = .{ .x = 300, .y = 0 } },
         "press z to zoom out, x to zoom in, current zoom value: {d:.1}",
         .{camera.zoom},
     );
     result = try gfx.font.debugDraw(
         ctx.renderer,
-        .{ .pos = .{ .x = 300, .y = result.next_line_ypos }, .color = sdl.Color.white },
+        .{ .pos = .{ .x = 300, .y = result.next_line_ypos } },
         "camera pos: {d:.0},{d:.0}",
         .{ camera.pos.x, camera.pos.y },
     );
     _ = try gfx.font.debugDraw(
         ctx.renderer,
-        .{ .pos = .{ .x = 300, .y = result.next_line_ypos }, .color = sdl.Color.white },
+        .{ .pos = .{ .x = 300, .y = result.next_line_ypos } },
         "camera half-size: {d:.0},{d:.0}",
         .{ camera.half_size.x, camera.half_size.y },
     );

@@ -446,7 +446,7 @@ pub const Atlas = struct {
 pub const DrawOption = struct {
     pos: sdl.PointF,
     ypos_type: Atlas.YPosType = .top,
-    color: sdl.Color = sdl.Color.black,
+    color: sdl.Color = sdl.Color.white,
     font_size: u32 = 16,
 };
 pub const DrawResult = struct {
