@@ -2,10 +2,10 @@ const sdl = @import("sdl");
 const c = sdl.c;
 const Self = @This();
 
-/// input text
+/// Input text
 text: [32]u8,
 
-/// timestamp of event
+/// Timestamp of event
 timestamp: u32 = undefined,
 
 pub fn init(e: c.SDL_TextInputEvent) Self {

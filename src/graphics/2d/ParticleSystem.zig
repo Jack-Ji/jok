@@ -8,13 +8,13 @@ const Self = @This();
 
 const default_effects_capacity = 10;
 
-/// memory allocator
+/// Memory allocator
 allocator: std.mem.Allocator,
 
-/// particle effects
+/// Particle effects
 effects: std.ArrayList(Effect),
 
-/// create particle effect system/manager
+/// Create particle effect system/manager
 pub fn init(allocator: std.mem.Allocator) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
@@ -24,7 +24,7 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
     return self;
 }
 
-/// destroy particle effect system/manager
+/// Destroy particle effect system/manager
 pub fn deinit(self: *Self) void {
     for (self.effects.items) |e| {
         e.deinit();
@@ -33,7 +33,7 @@ pub fn deinit(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-/// update system
+/// Update system
 pub fn update(self: *Self, delta_time: f32) void {
     var i: usize = 0;
     while (i < self.effects.items.len) {
@@ -47,14 +47,14 @@ pub fn update(self: *Self, delta_time: f32) void {
     }
 }
 
-/// draw effects
+/// Draw effects
 pub fn draw(self: Self, sprite_batch: *SpriteBatch) !void {
     for (self.effects.items) |e| {
         try e.draw(sprite_batch);
     }
 }
 
-/// add effect
+/// Add effect
 pub fn addEffect(
     self: *Self,
     random: std.rand.Random,
@@ -79,38 +79,38 @@ pub fn addEffect(
     try self.effects.append(effect);
 }
 
-/// represent a particle effect
+/// Represent a particle effect
 pub const Effect = struct {
     pub const ParticleEmitFn = fn (
         random: std.rand.Random,
         origin: Vector,
     ) Particle;
 
-    /// random number generator
+    /// Random number generator
     random: std.rand.Random,
 
-    /// all particles
+    /// All particles
     particles: std.ArrayList(Particle),
 
-    /// particle emitter
+    /// Particle emitter
     emit_fn: ParticleEmitFn,
 
-    /// origin of particle
+    /// Origin of particle
     origin: Vector,
 
-    /// effect duration
+    /// Effect duration
     effect_duration: f32,
 
-    /// new particle amount per burst
+    /// New particle amount per burst
     gen_amount: u32,
 
-    /// burst frequency
+    /// Burst frequency
     burst_freq: f32,
 
-    /// burst countdown
+    /// Burst countdown
     burst_countdown: f32,
 
-    /// particle effect initialization
+    /// Particle effect initialization
     pub fn init(
         allocator: std.mem.Allocator,
         random: std.rand.Random,
@@ -143,7 +143,7 @@ pub const Effect = struct {
         self.particles.deinit();
     }
 
-    /// update effect
+    /// Update effect
     pub fn update(self: *Effect, delta_time: f32) void {
         if (self.effect_duration > 0) {
             self.effect_duration -= delta_time;
@@ -154,7 +154,7 @@ pub const Effect = struct {
             {
                 var i: u32 = 0;
                 while (i < self.gen_amount) : (i += 1) {
-                    // generate new particle
+                    // Generate new particle
                     self.particles.appendAssumeCapacity(
                         self.emit_fn(self.random, self.origin),
                     );
@@ -163,7 +163,7 @@ pub const Effect = struct {
             }
         }
 
-        // update each particles' status
+        // Update each particles' status
         var i: usize = 0;
         while (i < self.particles.items.len) {
             var p = &self.particles.items[i];
@@ -176,19 +176,19 @@ pub const Effect = struct {
         }
     }
 
-    /// draw the effect
+    /// Draw the effect
     pub fn draw(self: Effect, sprite_batch: *SpriteBatch) !void {
         for (self.particles.items) |p| {
             try p.draw(sprite_batch);
         }
     }
 
-    /// if effect is over
+    /// If effect is over
     pub fn isOver(self: Effect) bool {
         return self.effect_duration <= 0 and self.particles.items.len == 0;
     }
 
-    /// bulitin particle emitter: fire
+    /// Bulitin particle emitter: fire
     pub fn FireEmitter(
         comptime radius: f32,
         comptime age_initial: f32,
@@ -231,32 +231,32 @@ pub const Effect = struct {
     }
 };
 
-/// represent a particle
+/// Represent a particle
 pub const Particle = struct {
-    /// sprite of particle
+    /// Sprite of particle
     sprite: Sprite,
 
-    /// life of particle
+    /// Life of particle
     age: f32,
 
-    /// position changing
+    /// Position changing
     pos: Vector,
     move_speed: Vector,
     move_acceleration: Vector,
     move_damp: f32,
 
-    /// rotation changing
+    /// Rotation changing
     angle: f32 = 0,
     rotation_speed: f32 = 0,
     rotation_damp: f32 = 1,
 
-    /// scale changing
+    /// Scale changing
     scale: f32 = 1,
     scale_speed: f32 = 0,
     scale_acceleration: f32 = 0,
     scale_max: f32 = 1,
 
-    /// color changing
+    /// Color changing
     color: sdl.Color = undefined,
     color_initial: sdl.Color = sdl.Color.white,
     color_final: sdl.Color = sdl.Color.white,
@@ -302,12 +302,12 @@ pub const Particle = struct {
         }
     }
 
-    /// if particle is dead
+    /// If particle is dead
     pub inline fn isDead(self: Particle) bool {
         return self.age <= 0;
     }
 
-    /// update particle's status
+    /// Update particle's status
     pub fn update(self: *Particle, delta_time: f32) void {
         if (self.age <= 0) return;
         self.age -= delta_time;
@@ -317,7 +317,7 @@ pub const Particle = struct {
         self.updateColor();
     }
 
-    /// draw particle
+    /// Draw particle
     pub fn draw(self: Particle, sprite_batch: *SpriteBatch) !void {
         try sprite_batch.drawSprite(
             self.sprite,

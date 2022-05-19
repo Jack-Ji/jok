@@ -1,4 +1,4 @@
-/// common graphics utils
+/// Common graphics utils
 pub const utils = @import("graphics/utils.zig");
 
 /// 2d game utils

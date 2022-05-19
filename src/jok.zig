@@ -1,17 +1,17 @@
-/// export core definitions
+/// Export core definitions
 pub usingnamespace @import("core.zig");
 
-/// system events
+/// System events
 pub const event = @import("event.zig");
 
-/// graphics module
+/// Graphics module
 pub const gfx = @import("graphics.zig");
 
-/// audio module
+/// Audio module
 pub const audio = deps.miniaudio;
 
-/// linear algebra math module
+/// Linear algebra math module
 pub const zmath = deps.zmath;
 
-/// vendor libraries
+/// Vendor libraries
 pub const deps = @import("deps/deps.zig");

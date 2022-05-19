@@ -1,25 +1,25 @@
 const sdl = @import("sdl");
 const Self = @This();
 
-///  press or release
+/// Press or release
 pub const TriggerType = enum {
     down,
     up,
 };
 
-/// trigger type
+/// Trigger type
 trigger_type: TriggerType = undefined,
 
-/// key being pressed/released
+/// Key being pressed/released
 scan_code: sdl.Scancode = undefined,
 
-/// key modifier
+/// Key modifier
 modifiers: sdl.KeyModifierSet = undefined,
 
-/// repeat key
+/// Repeat key
 is_repeat: bool = undefined,
 
-/// timestamp of event
+/// Timestamp of event
 timestamp: u32 = undefined,
 
 pub fn init(e: sdl.KeyboardEvent) Self {

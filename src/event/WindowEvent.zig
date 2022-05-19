@@ -2,19 +2,19 @@ const sdl = @import("sdl");
 const c = sdl.c;
 const Self = @This();
 
-/// window position
+/// Window position
 const Point = extern struct {
     x: u32,
     y: u32,
 };
 
-/// window size
+/// Window size
 const Size = extern struct {
     width: u32,
     height: u32,
 };
 
-/// event type
+/// Event type
 const Type = enum(u8) {
     none = c.SDL_WINDOWEVENT_NONE,
     shown = c.SDL_WINDOWEVENT_SHOWN,
@@ -37,7 +37,7 @@ const Type = enum(u8) {
     _,
 };
 
-/// event data
+/// Event data
 const Data = union(Type) {
     shown: void,
     hidden: void,
@@ -58,13 +58,13 @@ const Data = union(Type) {
     none: void,
 };
 
-/// window id
+/// Window id
 window_id: u32 = undefined,
 
-/// event data
+/// Event data
 data: Data = undefined,
 
-/// timestamp of event
+/// Timestamp of event
 timestamp: u32 = undefined,
 
 pub fn init(e: sdl.WindowEvent) Self {

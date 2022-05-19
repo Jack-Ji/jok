@@ -17,7 +17,7 @@ pub const Error = error{
     NoTextureData,
 };
 
-/// image pixels
+/// Image pixels
 pub const ImagePixels = struct {
     data: []const u8,
     width: u32,
@@ -25,7 +25,7 @@ pub const ImagePixels = struct {
     format: sdl.Texture.Format,
 };
 
-/// image data source
+/// Image data source
 pub const ImageSource = struct {
     name: []const u8,
     image: union(enum) {
@@ -34,37 +34,37 @@ pub const ImageSource = struct {
     },
 };
 
-/// sprite rectangle
+/// Sprite rectangle
 pub const SpriteRect = struct {
-    // texture coordinate of top-left
+    // Texture coordinate of top-left
     s0: f32,
     t0: f32,
 
-    // texture coordinate of bottom-right
+    // Texture coordinate of bottom-right
     s1: f32,
     t1: f32,
 
-    // size of sprite
+    // Size of sprite
     width: f32,
     height: f32,
 };
 
-/// used allocator
+/// Used allocator
 allocator: std.mem.Allocator,
 
-/// packed pixels
+/// Packed pixels
 packed_pixels: ?ImagePixels = null,
 
-/// packed texture
+/// Packed texture
 tex: sdl.Texture,
 
-/// sprite rectangles
+/// Sprite rectangles
 rects: []SpriteRect,
 
-/// sprite search-tree
+/// Sprite search-tree
 search_tree: std.StringHashMap(u32),
 
-/// create sprite-sheet
+/// Create sprite-sheet
 pub fn init(
     allocator: std.mem.Allocator,
     renderer: sdl.Renderer,
@@ -97,7 +97,7 @@ pub fn init(
     var images = try allocator.alloc(ImageData, sources.len);
     defer allocator.free(images);
 
-    // load images' data
+    // Load images' data
     for (sources) |s, i| {
         switch (s.image) {
             .file_path => |path| {
@@ -109,7 +109,7 @@ pub fn init(
                     &image_width,
                     &image_height,
                     &image_channels,
-                    4, // alpha channel is required
+                    4, // Alpha channel is required
                 );
                 assert(image_data != null);
                 var image_len = image_width * image_height * 4;
@@ -140,7 +140,7 @@ pub fn init(
         stb_rects[i].h = @intCast(c_ushort, images[i].pixels.height + gap);
     }
     defer {
-        // free file-images' data when we're done
+        // Free file-images' data when we're done
         for (images) |img| {
             if (img.is_file) {
                 stb_image.stbi_image_free(img.pixels.data.ptr);
@@ -148,7 +148,7 @@ pub fn init(
         }
     }
 
-    // start packing images
+    // Start packing images
     var pack_ctx: stb_rect_pack.stbrp_context = undefined;
     stb_rect_pack.stbrp_init_target(
         &pack_ctx,
@@ -166,7 +166,7 @@ pub fn init(
         return error.TextureNotLargeEnough;
     }
 
-    // merge textures and upload to gpu
+    // Merge textures and upload to gpu
     const inv_width = 1.0 / @intToFloat(f32, width);
     const inv_height = 1.0 / @intToFloat(f32, height);
     for (stb_rects) |r, i| {
@@ -206,7 +206,7 @@ pub fn init(
     try tex.setScaleMode(.nearest);
     errdefer tex.destroy();
 
-    // fill search tree, abort if name collision happens
+    // Fill search tree, abort if name collision happens
     for (sources) |s, i| {
         try tree.putNoClobber(
             try std.fmt.allocPrint(allocator, "{s}", .{s.name}),
@@ -233,7 +233,7 @@ pub fn init(
     return self;
 }
 
-/// create sprite-sheet with all picture files in given directory
+/// Create sprite-sheet with all picture files in given directory
 pub const DirScanOption = struct {
     accept_png: bool = true,
     accept_jpg: bool = true,
@@ -255,7 +255,7 @@ pub fn fromPicturesInDir(
     var images = try std.ArrayList(ImageSource).initCapacity(allocator, 10);
     defer images.deinit();
 
-    // collect pictures
+    // Collect pictures
     var it = dir.iterate();
     while (try it.next()) |entry| {
         if (entry.kind != .File) continue;
@@ -291,7 +291,7 @@ pub fn fromPicturesInDir(
 pub fn fromSheetFiles(allocator: std.mem.Allocator, renderer: sdl.Renderer, path: []const u8) !*Self {
     var path_buf: [128]u8 = undefined;
 
-    // load texture
+    // Load texture
     const image_path = try std.fmt.bufPrintZ(&path_buf, "{s}.png", .{path});
     var tex = try gfx.utils.createTextureFromFile(
         renderer,
@@ -302,7 +302,7 @@ pub fn fromSheetFiles(allocator: std.mem.Allocator, renderer: sdl.Renderer, path
     try tex.setScaleMode(.nearest);
     errdefer tex.destroy();
 
-    // load sprites info
+    // Load sprites info
     const json_path = try std.fmt.bufPrint(&path_buf, "{s}.json", .{path});
     var json_content = try std.fs.cwd().readFileAlloc(allocator, json_path, 1 << 30);
     defer allocator.free(json_content);
@@ -336,7 +336,7 @@ pub fn fromSheetFiles(allocator: std.mem.Allocator, renderer: sdl.Renderer, path
         );
     }
 
-    // allocate and init SpriteSheet
+    // Allocate and init SpriteSheet
     var sp = try allocator.create(Self);
     sp.* = Self{
         .allocator = allocator,
@@ -347,7 +347,7 @@ pub fn fromSheetFiles(allocator: std.mem.Allocator, renderer: sdl.Renderer, path
     return sp;
 }
 
-/// destroy sprite-sheet
+/// Destroy sprite-sheet
 pub fn deinit(self: *Self) void {
     if (self.packed_pixels) |px| {
         self.allocator.free(px.data);
@@ -362,12 +362,12 @@ pub fn deinit(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-/// save sprite-sheet to 2 files (image and json)
+/// Save sprite-sheet to 2 files (image and json)
 pub fn saveToFiles(self: Self, path: []const u8) !void {
     if (self.packed_pixels == null) return error.NoTextureData;
     var path_buf: [128]u8 = undefined;
 
-    // save image file
+    // Save image file
     const image_path = try std.fmt.bufPrintZ(&path_buf, "{s}.png", .{path});
     try gfx.utils.savePixelsToFile(
         self.packed_pixels.?.data,
@@ -378,7 +378,7 @@ pub fn saveToFiles(self: Self, path: []const u8) !void {
         .{ .format = .png },
     );
 
-    // save json file
+    // Save json file
     const json_path = try std.fmt.bufPrint(&path_buf, "{s}.json", .{path});
     var json_file = try std.fs.cwd().createFile(json_path, .{});
     defer json_file.close();
@@ -406,7 +406,7 @@ pub fn saveToFiles(self: Self, path: []const u8) !void {
     );
 }
 
-/// create sprite
+/// Create sprite
 pub fn createSprite(
     self: *Self,
     name: []const u8,
@@ -423,7 +423,7 @@ pub fn createSprite(
     return error.SpriteNotExist;
 }
 
-/// get sprite rectangle by name
+/// Get sprite rectangle by name
 pub fn getSpriteRect(self: Self, name: []const u8) ?SpriteRect {
     if (self.search_tree.get(name)) |idx| {
         return self.rects[idx];

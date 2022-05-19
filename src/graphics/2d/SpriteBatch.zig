@@ -48,16 +48,16 @@ const BatchData = struct {
     vindices: std.ArrayList(u32),
 };
 
-/// memory allocator
+/// Memory allocator
 allocator: std.mem.Allocator,
 
-/// all batch data
+/// All batch data
 batches: []BatchData,
 
-/// sprite-sheet search tree
+/// Sprite-sheet search tree
 search_tree: std.AutoHashMap(*SpriteSheet, u32),
 
-/// maximum limit
+/// Maximum limit
 max_sprites_per_drawcall: u32,
 
 ///  blend method
@@ -66,7 +66,7 @@ blend_method: BlendMethod = .blend,
 ///  sort method
 depth_sort: DepthSortMethod = .none,
 
-/// create sprite-batch
+/// Create sprite-batch
 pub fn init(
     allocator: std.mem.Allocator,
     max_sheet_num: u32,
@@ -102,7 +102,7 @@ pub fn deinit(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-/// begin batched data
+/// Begin batched data
 pub const BatchOption = struct {
     depth_sort: DepthSortMethod = .none,
     blend_method: BlendMethod = .blend,
@@ -120,7 +120,7 @@ pub fn begin(self: *Self, opt: BatchOption) void {
     self.search_tree.clearRetainingCapacity();
 }
 
-/// add sprite to next batch
+/// Add sprite to next batch
 pub fn drawSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
     var index = self.search_tree.get(sprite.sheet) orelse blk: {
         var count = self.search_tree.count();
@@ -150,17 +150,17 @@ fn descendCompare(self: *Self, lhs: BatchData.SpriteData, rhs: BatchData.SpriteD
     return lhs.draw_option.depth > rhs.draw_option.depth;
 }
 
-/// send batched data to gpu, issue draw command
+/// Send batched data to gpu, issue draw command
 pub fn end(self: *Self, renderer: sdl.Renderer) !void {
     const size = self.search_tree.count();
     if (size == 0) return;
 
-    // generate draw data
+    // Generate draw data
     for (self.batches) |*b| {
-        // sort sprites when needed
+        // Sort sprites when needed
         switch (self.depth_sort) {
             .back_to_forth => {
-                // sort depth value in descending order
+                // Sort depth value in descending order
                 std.sort.sort(
                     BatchData.SpriteData,
                     b.sprites_data.items,
@@ -169,7 +169,7 @@ pub fn end(self: *Self, renderer: sdl.Renderer) !void {
                 );
             },
             .forth_to_back => {
-                // sort depth value in ascending order
+                // Sort depth value in ascending order
                 std.sort.sort(
                     BatchData.SpriteData,
                     b.sprites_data.items,
@@ -198,7 +198,7 @@ pub fn end(self: *Self, renderer: sdl.Renderer) !void {
         }
     }
 
-    // send draw command
+    // Send draw command
     for (self.batches[0..size]) |b| {
         switch (self.blend_method) {
             .blend => try b.sheet.?.tex.setBlendMode(.blend),

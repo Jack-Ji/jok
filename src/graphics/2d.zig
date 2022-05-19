@@ -1,20 +1,20 @@
-// 2d camera
+/// 2d camera
 pub const Camera = @import("2d/Camera.zig");
 
-/// sprite
+/// Sprite
 pub const Sprite = @import("2d/Sprite.zig");
 
-/// sprite sheet
+/// Sprite sheet
 pub const SpriteSheet = @import("2d/SpriteSheet.zig");
 
-// sprite batch
+/// Sprite batch
 pub const SpriteBatch = @import("2d/SpriteBatch.zig");
 
-// particle system
+/// Particle system
 pub const ParticleSystem = @import("2d/ParticleSystem.zig");
 
 /// 2d vector
 pub const Vector = @import("2d/Vector.zig");
 
-// font system
+/// Font system
 pub const font = @import("2d/font.zig");

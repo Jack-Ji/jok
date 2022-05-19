@@ -7,41 +7,41 @@ const gfx = jok.gfx;
 const zmath = jok.zmath;
 const Self = @This();
 
-/// size of sprite
+/// Size of sprite
 width: f32,
 height: f32,
 
-/// tex-coords of sprite
+/// Tex-coords of sprite
 uv0: sdl.PointF,
 uv1: sdl.PointF,
 
-/// reference to sprite-sheet
+/// Reference to sprite-sheet
 sheet: *SpriteSheet,
 
-/// sprite's drawing params
+/// Sprite's drawing params
 pub const DrawOption = struct {
-    /// position of sprite
+    /// Position of sprite
     pos: sdl.PointF,
 
-    /// mod color
+    /// Mod color
     tint_color: sdl.Color = sdl.Color.white,
 
-    /// scale of width/height
+    /// Scale of width/height
     scale_w: f32 = 1.0,
     scale_h: f32 = 1.0,
 
-    /// rotation around anchor-point (center by default)
+    /// Rotation around anchor-point (center by default)
     rotate_degree: f32 = 0,
 
-    /// anchor-point of sprite, around which rotation and translation is calculated
+    /// Anchor-point of sprite, around which rotation and translation is calculated
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
 
-    /// horizontal/vertial flipping
+    /// Horizontal/vertial flipping
     flip_h: bool = false,
     flip_v: bool = false,
 };
 
-/// add vertex data
+/// Add vertex data
 pub fn appendDrawData(
     self: Self,
     vattribs: *std.ArrayList(sdl.Vertex),
@@ -60,10 +60,10 @@ pub fn appendDrawData(
     const m_translate = zmath.translation(opt.pos.x, opt.pos.y, 0);
     const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
     const basic_coords = zmath.loadMat(&[_]f32{
-        -opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // left top
-        -opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // left bottom
-        1 - opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // right bottom
-        1 - opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // right top
+        -opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // Left top
+        -opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // Left bottom
+        1 - opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // Right bottom
+        1 - opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // Right top
     });
     const trasformed_coords = zmath.mul(basic_coords, m_transform);
     const base_index = @intCast(u32, vattribs.items.len);

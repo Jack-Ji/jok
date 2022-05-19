@@ -10,7 +10,7 @@ pub const Error = error{
     EncodeTextureFailed,
 };
 
-/// get # of channels from pixel format
+/// Get # of channels from pixel format
 pub inline fn getChannels(format: sdl.Texture.Format) u32 {
     return switch (format) {
         .rgb888, .bgr888 => @as(u32, 3),
@@ -19,7 +19,7 @@ pub inline fn getChannels(format: sdl.Texture.Format) u32 {
     };
 }
 
-/// get appropriate 4-channel pixel format from endian
+/// Get appropriate 4-channel pixel format from endian
 pub inline fn getFormatByEndian() sdl.Texture.Format {
     return switch (native_endian) {
         .Big => .rgba8888,
@@ -27,7 +27,7 @@ pub inline fn getFormatByEndian() sdl.Texture.Format {
     };
 }
 
-/// create texture from pixel data
+/// Create texture from pixel data
 pub fn createTextureFromPixels(
     renderer: sdl.Renderer,
     pixels: ?[]const u8,
@@ -37,7 +37,7 @@ pub fn createTextureFromPixels(
     height: u32,
 ) !sdl.Texture {
     var tex = try sdl.createTexture(renderer, format, access, width, height);
-    try tex.setBlendMode(.blend); // enable alpha blending by default
+    try tex.setBlendMode(.blend); // Enable alpha blending by default
     errdefer tex.destroy();
 
     const stride = getChannels(format) * width;
@@ -61,7 +61,7 @@ pub fn createTextureFromPixels(
     return tex;
 }
 
-/// create texture from image
+/// Create texture from image
 pub fn createTextureFromFile(
     renderer: sdl.Renderer,
     image_file: [:0]const u8,
@@ -96,12 +96,12 @@ pub fn createTextureFromFile(
     );
 }
 
-/// save texture into encoded format (png/bmp/tga/jpg) on disk
+/// Save texture into encoded format (png/bmp/tga/jpg) on disk
 pub const EncodingOption = struct {
     format: enum { png, bmp, tga, jpg } = .png,
     png_compress_level: u8 = 8,
     tga_rle_compress: bool = true,
-    jpg_quality: u8 = 75, // between 1 and 100
+    jpg_quality: u8 = 75, // Between 1 and 100
     flip_on_write: bool = false,
 };
 pub fn savePixelsToFile(
@@ -115,7 +115,7 @@ pub fn savePixelsToFile(
     var channels = getChannels(format);
     assert(pixels.len == @intCast(usize, width * height * channels));
 
-    // encode file
+    // Encode file
     var result: c_int = undefined;
     stb.image.stbi_flip_vertically_on_write(@boolToInt(option.flip_on_write));
     switch (option.format) {
@@ -167,12 +167,12 @@ pub fn savePixelsToFile(
     }
 }
 
-/// convert radian to degree
+/// Convert radian to degree
 pub inline fn radianToDegree(r: f32) f32 {
     return r * 180.0 / std.math.pi;
 }
 
-/// convert degree to radian
+/// Convert degree to radian
 pub inline fn degreeToRadian(d: f32) f32 {
     return d * std.math.pi / 180.0;
 }

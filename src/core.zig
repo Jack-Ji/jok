@@ -9,48 +9,48 @@ const log = std.log.scoped(.jok);
 
 var perf_counter_freq: f64 = undefined;
 
-/// application context
+/// Application context
 pub const Context = struct {
-    /// default allocator
+    /// Default allocator
     default_allocator: std.mem.Allocator = undefined,
 
-    /// internal window
+    /// Internal window
     window: sdl.Window,
 
-    /// renderer
+    /// Renderer
     renderer: sdl.Renderer = undefined,
 
-    /// audio engine
+    /// Audio engine
     audio: *audio.Engine = undefined,
 
-    /// quit switch
+    /// Quit switch
     quit: bool = false,
 
-    /// resizable mode
+    /// Resizable mode
     resizable: bool = undefined,
 
-    /// fullscreen mode
+    /// Fullscreen mode
     fullscreen: bool = undefined,
 
-    /// relative mouse mode
+    /// Relative mouse mode
     relative_mouse: bool = undefined,
 
-    /// number of seconds since launch/last-frame
+    /// Number of seconds since launch/last-frame
     tick: f64 = 0,
     delta_tick: f32 = 0,
     last_perf_counter: u64 = 0,
 
-    /// frames stats
+    /// Frames stats
     fps: f32 = 0,
     average_cpu_time: f32 = 0,
     fps_refresh_time: f64 = 0,
     frame_counter: u32 = 0,
     frame_number: u64 = 0,
 
-    /// text buffer for rendering console font
+    /// Text buffer for rendering console font
     text_buf: [512]u8 = undefined,
 
-    /// update frame stats
+    /// Update frame stats
     pub fn updateStats(self: *Context) bool {
         const counter = sdl.c.SDL_GetPerformanceCounter();
         self.delta_tick = @floatCast(
@@ -75,12 +75,12 @@ pub const Context = struct {
         return false;
     }
 
-    /// kill app
+    /// Kill app
     pub fn kill(self: *Context) void {
         self.quit = true;
     }
 
-    /// poll event
+    /// Poll event
     pub fn pollEvent(self: *Context) ?event.Event {
         _ = self;
         while (sdl.pollEvent()) |e| {
@@ -91,7 +91,7 @@ pub const Context = struct {
         return null;
     }
 
-    /// toggle resizable
+    /// Toggle resizable
     pub fn toggleResizable(self: *Context, on_off: ?bool) void {
         if (on_off) |state| {
             self.resizable = state;
@@ -104,7 +104,7 @@ pub const Context = struct {
         );
     }
 
-    /// toggle fullscreen
+    /// Toggle fullscreen
     pub fn toggleFullscreeen(self: *Context, on_off: ?bool) void {
         if (on_off) |state| {
             self.fullscreen = state;
@@ -117,7 +117,7 @@ pub const Context = struct {
         );
     }
 
-    /// toggle relative mouse mode
+    /// Toggle relative mouse mode
     pub fn toggleRelativeMouseMode(self: *Context, on_off: ?bool) void {
         if (on_off) |state| {
             self.relative_mouse = state;
@@ -129,7 +129,7 @@ pub const Context = struct {
         );
     }
 
-    /// get position of window
+    /// Get position of window
     pub fn getPosition(self: Context) struct { x: u32, y: u32 } {
         var x: u32 = undefined;
         var y: u32 = undefined;
@@ -141,7 +141,7 @@ pub const Context = struct {
         return .{ .x = x, .y = y };
     }
 
-    /// get size of window
+    /// Get size of window
     pub fn getWindowSize(self: Context) struct { w: u32, h: u32 } {
         var w: u32 = undefined;
         var h: u32 = undefined;
@@ -153,7 +153,7 @@ pub const Context = struct {
         return .{ .w = w, .h = h };
     }
 
-    /// get size of framebuffer
+    /// Get size of framebuffer
     pub fn getFramebufferSize(self: Context) struct { w: u32, h: u32 } {
         const fsize = self.renderer.getOutputSize() catch unreachable;
         return .{
@@ -162,27 +162,27 @@ pub const Context = struct {
         };
     }
 
-    /// get pixel ratio
+    /// Get pixel ratio
     pub fn getPixelRatio(self: Context) f32 {
         const wsize = self.getWindowSize();
         const fsize = self.renderer.getOutputSize() catch unreachable;
         return @intToFloat(f32, fsize.width_pixels) / @intToFloat(f32, wsize.w);
     }
 
-    /// get key status
+    /// Get key status
     pub fn isKeyPressed(self: Context, key: sdl.Scancode) bool {
         _ = self;
         const state = sdl.c.SDL_GetKeyboardState(null);
         return state[@enumToInt(key)] == 1;
     }
 
-    /// get mouse state
+    /// Get mouse state
     pub fn getMouseState(self: Context) sdl.MouseState {
         _ = self;
         return sdl.getMouseState();
     }
 
-    /// move mouse to given position (relative to window)
+    /// Move mouse to given position (relative to window)
     pub fn setMousePosition(self: Context, xrel: f32, yrel: f32) void {
         var w: i32 = undefined;
         var h: i32 = undefined;
@@ -195,75 +195,75 @@ pub const Context = struct {
     }
 };
 
-/// application configurations
+/// Application configurations
 pub const Game = struct {
-    /// custom memory allocator
+    /// Custom memory allocator
     allocator: ?std.mem.Allocator = null,
 
-    /// default memory allocator settings
+    /// Default memory allocator settings
     enable_mem_leak_checks: bool = true,
     enable_mem_detail_logs: bool = false,
 
-    /// called once before rendering loop starts
+    /// Called once before rendering loop starts
     initFn: fn (ctx: *Context) anyerror!void,
 
-    /// called every frame
+    /// Called every frame
     loopFn: fn (ctx: *Context) anyerror!void,
 
-    /// called before life ends
+    /// Called before life ends
     quitFn: fn (ctx: *Context) void,
 
-    /// window's title
+    /// Window's title
     title: [:0]const u8 = "jok",
 
-    /// whether fallback to software renderer
+    /// Whether fallback to software renderer
     enable_software_renderer: bool = true,
 
-    /// position of window
+    /// Position of window
     pos_x: sdl.WindowPosition = .default,
     pos_y: sdl.WindowPosition = .default,
 
-    /// width/height of window
+    /// Width/height of window
     width: u32 = 800,
     height: u32 = 600,
 
-    /// mimimum size of window
+    /// Mimimum size of window
     min_size: ?struct { w: u32, h: u32 } = null,
 
-    /// maximumsize of window
+    /// Maximumsize of window
     max_size: ?struct { w: u32, h: u32 } = null,
 
-    // resizable switch
+    // Resizable switch
     enable_resizable: bool = false,
 
-    /// display switch
+    /// Display switch
     enable_fullscreen: bool = false,
 
-    /// borderless window
+    /// Borderless window
     enable_borderless: bool = false,
 
-    /// minimize window
+    /// Minimize window
     enable_minimized: bool = false,
 
-    /// maximize window
+    /// Maximize window
     enable_maximized: bool = false,
 
-    /// relative mouse mode switch
+    /// Relative mouse mode switch
     enable_relative_mouse_mode: bool = false,
 
-    /// vsync switch
+    /// Vsync switch
     enable_vsync: bool = true,
 
-    /// display framestat on title
+    /// Display framestat on title
     enable_framestat_display: bool = true,
 };
 
-/// entrance point, never return until application is killed
+/// Entrance point, never return until application is killed
 pub fn run(comptime g: Game) !void {
     try sdl.init(sdl.InitFlags.everything);
     defer sdl.quit();
 
-    // create window
+    // Create window
     var flags = sdl.WindowFlags{
         .allow_high_dpi = true,
         .mouse_capture = true,
@@ -309,7 +309,7 @@ pub fn run(comptime g: Game) !void {
         ctx.window.destroy();
     }
 
-    // apply window options
+    // Apply window options
     if (g.min_size) |size| {
         sdl.c.SDL_SetWindowMinimumSize(
             ctx.window.ptr,
@@ -328,8 +328,8 @@ pub fn run(comptime g: Game) !void {
     ctx.toggleFullscreeen(g.enable_fullscreen);
     ctx.toggleRelativeMouseMode(g.enable_relative_mouse_mode);
 
-    // create hardware accelerated renderer
-    // fallback to software renderer if allowed
+    // Create hardware accelerated renderer
+    // Fallback to software renderer if allowed
     ctx.renderer = sdl.createRenderer(
         ctx.window,
         null,
@@ -354,17 +354,17 @@ pub fn run(comptime g: Game) !void {
     };
     defer ctx.renderer.destroy();
 
-    // allocate audio engine
+    // Allocate audio engine
     ctx.audio = try audio.Engine.init(ctx.default_allocator, .{});
     defer ctx.audio.deinit();
 
-    // init before loop
+    // Init before loop
     perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
     try g.initFn(&ctx);
     defer g.quitFn(&ctx);
     _ = ctx.updateStats();
 
-    // game loop
+    // Game loop
     while (!ctx.quit) {
         if (ctx.updateStats() and g.enable_framestat_display) {
             var buf: [128]u8 = undefined;

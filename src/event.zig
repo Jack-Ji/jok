@@ -1,7 +1,7 @@
 const std = @import("std");
 const sdl = @import("sdl");
 
-/// event definitions
+/// Event definitions
 pub const WindowEvent = @import("event/WindowEvent.zig");
 pub const KeyboardEvent = @import("event/KeyboardEvent.zig");
 pub const TextInputEvent = @import("event/TextInputEvent.zig");
@@ -9,7 +9,7 @@ pub const MouseEvent = @import("event/MouseEvent.zig");
 pub const GamepadEvent = @import("event/GamepadEvent.zig");
 pub const QuitEvent = struct {};
 
-/// generic event
+/// Generic event
 pub const Event = union(enum) {
     window_event: WindowEvent,
     keyboard_event: KeyboardEvent,
@@ -66,7 +66,7 @@ pub const Event = union(enum) {
                 .quit_event = QuitEvent{},
             },
 
-            // ignored other events
+            // Ignored other events
             else => null,
         };
     }

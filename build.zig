@@ -5,8 +5,8 @@ pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
     const target = b.standardTargetOptions(.{
         .default_target = .{
-            // prefer compatibility over performance here
-            // make your own choice
+            // Prefer compatibility over performance here
+            // Make your own choice
             .cpu_model = .baseline,
         },
     });
@@ -60,11 +60,11 @@ pub const BuildOptions = struct {
     enable_tracy: bool = false,
 };
 
-/// add jok framework to executable
+/// Add jok framework to executable
 pub fn link(exe: *std.build.LibExeObjStep, opt: BuildOptions) void {
     const sdl = @import("src/deps/sdl/Sdk.zig").init(exe.builder);
 
-    // build and link dependencies
+    // Build and link dependencies
     sdl.link(exe, .dynamic);
     @import("src/deps/miniaudio/build.zig").link(exe);
     @import("src/deps/stb/build.zig").link(exe);
@@ -93,7 +93,7 @@ pub fn link(exe: *std.build.LibExeObjStep, opt: BuildOptions) void {
         @import("src/deps/nfd/build.zig").link(exe);
     }
 
-    // add package
+    // Add package
     exe.addPackage(.{
         .name = "jok",
         .path = .{ .path = comptime thisDir() ++ "/src/jok.zig" },

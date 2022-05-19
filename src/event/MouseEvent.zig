@@ -4,28 +4,28 @@ const Self = @This();
 
 const Data = union(enum) {
     motion: struct {
-        x: i32, // current horizontal coordinate, relative to window
-        y: i32, // current vertical coordinate, relative to window
-        xrel: i32, // relative to last event
-        yrel: i32, // relative to last event
+        x: i32, // Current horizontal coordinate, relative to window
+        y: i32, // Current vertical coordinate, relative to window
+        xrel: i32, // Relative to last event
+        yrel: i32, // Relative to last event
     },
     button: struct {
-        x: i32, // current horizontal coordinate, relative to window
-        y: i32, // current vertical coordinate, relative to window
-        btn: sdl.MouseButton, // pressed/released button
-        clicked: bool, // false means released
-        double_clicked: bool, // double clicks
+        x: i32, // Current horizontal coordinate, relative to window
+        y: i32, // Current vertical coordinate, relative to window
+        btn: sdl.MouseButton, // Pressed/released button
+        clicked: bool, // False means released
+        double_clicked: bool, // Double clicks
     },
     wheel: struct {
-        scroll_x: i32, // positive to the right, negative to the left
-        scroll_y: i32, // positive away from user, negative towards user
+        scroll_x: i32, // Positive to the right, negative to the left
+        scroll_y: i32, // Positive away from user, negative towards user
     },
 };
 
-/// timestamp of event
+/// Timestamp of event
 timestamp: u32 = undefined,
 
-/// mouse event data
+/// Mouse event data
 data: Data = undefined,
 
 pub fn fromMotionEvent(e: sdl.MouseMotionEvent) Self {

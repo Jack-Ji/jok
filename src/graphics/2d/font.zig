@@ -6,23 +6,23 @@ const jok = @import("../../jok.zig");
 const gfx = jok.gfx;
 const truetype = jok.deps.stb.truetype;
 
-/// loaded truetype font
+/// Loaded truetype font
 pub const Font = struct {
     const Self = @This();
 
-    /// memory allocator
+    /// Memory allocator
     allocator: std.mem.Allocator,
 
-    /// font file's data
+    /// Font file's data
     font_data: ?[]const u8,
 
-    /// internal font information
+    /// Internal font information
     font_info: truetype.stbtt_fontinfo,
 
-    /// accept 20M font file at most
+    /// Accept 20M font file at most
     const max_font_size = 20 * (1 << 20);
 
-    /// init Font instance with truetype file
+    /// Init Font instance with truetype file
     pub fn init(allocator: std.mem.Allocator, path: [:0]const u8) !*Self {
         const dir = std.fs.cwd();
 
@@ -30,7 +30,7 @@ pub const Font = struct {
         self.allocator = allocator;
         self.font_data = try dir.readFileAlloc(allocator, path, max_font_size);
 
-        // extract font info
+        // Extract font info
         var rc = truetype.stbtt_InitFont(
             &self.font_info,
             self.font_data.?.ptr,
@@ -41,14 +41,14 @@ pub const Font = struct {
         return self;
     }
 
-    /// init Font instance with truetype data
+    /// Init Font instance with truetype data
     /// WARNING: font data must be valid as long as Font instance
     pub fn fromTrueTypeData(allocator: std.mem.Allocator, data: []const u8) !*Self {
         var self = try allocator.create(Self);
         self.allocator = allocator;
         self.font_data = null;
 
-        // extract font info
+        // Extract font info
         var rc = truetype.stbtt_InitFont(
             &self.font_info,
             data.ptr,
@@ -77,7 +77,7 @@ pub const Font = struct {
     }
 };
 
-/// useful codepoint ranges
+/// Useful codepoint ranges
 pub const CodepointRanges = struct {
     pub const default = [_][2]u32{
         .{ 0x0020, 0x00FF },
@@ -239,7 +239,7 @@ pub const CodepointRanges = struct {
     }
 };
 
-/// font atlas
+/// Font atlas
 pub const Atlas = struct {
     const CharRange = struct {
         codepoint_begin: u32,
@@ -256,7 +256,7 @@ pub const Atlas = struct {
     vmetric_descent: f32,
     vmetric_line_gap: f32,
 
-    /// create font atlas
+    /// Create font atlas
     fn init(
         allocator: std.mem.Allocator,
         renderer: sdl.Renderer,
@@ -275,7 +275,7 @@ pub const Atlas = struct {
         const real_pixels = try allocator.alloc(u8, atlas_size * atlas_size * 4);
         defer allocator.free(real_pixels);
 
-        // generate atlas
+        // Generate atlas
         var pack_ctx = std.mem.zeroes(truetype.stbtt_pack_context);
         var rc = truetype.stbtt_PackBegin(
             &pack_ctx,
@@ -315,7 +315,7 @@ pub const Atlas = struct {
             real_pixels[i * 4 + 3] = px;
         }
 
-        // create texture
+        // Create texture
         var tex = try gfx.utils.createTextureFromPixels(
             renderer,
             real_pixels,
@@ -354,7 +354,7 @@ pub const Atlas = struct {
         return current_ypos + @round((self.vmetric_ascent - self.vmetric_descent + self.vmetric_line_gap) * self.scale);
     }
 
-    /// append draw data for rendering utf8 string, return drawing area
+    /// Append draw data for rendering utf8 string, return drawing area
     pub const YPosType = enum { baseline, top, bottom };
     pub fn appendDrawDataFromUTF8String(
         self: Atlas,
@@ -442,7 +442,7 @@ pub const Atlas = struct {
     }
 };
 
-/// draw debug text using builtin font
+/// Draw debug text using builtin font
 pub const DrawOption = struct {
     pos: sdl.PointF,
     ypos_type: Atlas.YPosType = .top,
@@ -471,7 +471,7 @@ pub fn debugDraw(renderer: sdl.Renderer, opt: DrawOption, comptime fmt: []const 
         .next_line_ypos = 0,
     };
 
-    // initialize font data and atlases as needed
+    // Initialize font data and atlases as needed
     if (S.font == null) {
         S.font = Font.fromTrueTypeData(S.allocator, S.font_data) catch unreachable;
         S.atlases = std.AutoHashMap(u32, Atlas).init(S.allocator);

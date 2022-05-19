@@ -4,14 +4,14 @@ const sdl = @import("sdl");
 const jok = @import("../../jok.zig");
 const Self = @This();
 
-/// position of camera's center
+/// Position of camera's center
 pos: sdl.PointF,
 
-/// half-size of camera
+/// Half-size of camera
 orig_half_size: sdl.PointF,
 half_size: sdl.PointF,
 
-/// zoom value
+/// Zoom value
 zoom: f32,
 
 pub fn init(pos: sdl.PointF, half_size: sdl.PointF) Self {
@@ -32,7 +32,7 @@ pub fn fromViewport(vp: sdl.Rectangle) Self {
     );
 }
 
-/// calculate coordinate in camera space
+/// Calculate coordinate in camera space
 pub fn translatePoint(self: Self, pos: sdl.Point) sdl.Point {
     const left_top = sdl.Point{
         .x = @floatToInt(c_int, self.pos.x - self.half_size.x),
@@ -44,7 +44,7 @@ pub fn translatePoint(self: Self, pos: sdl.Point) sdl.Point {
     };
 }
 
-/// calculate coordinate in camera space
+/// Calculate coordinate in camera space
 pub fn translatePointF(self: Self, pos: sdl.PointF) sdl.PointF {
     const left_top = sdl.PointF{
         .x = self.pos.x - self.half_size.x,
@@ -56,7 +56,7 @@ pub fn translatePointF(self: Self, pos: sdl.PointF) sdl.PointF {
     };
 }
 
-/// calculate coordinate in camera space
+/// Calculate coordinate in camera space
 pub fn translateRectangle(self: Self, rect: sdl.Rectangle) sdl.Rectangle {
     const left_top = sdl.Point{
         .x = @floatToInt(c_int, self.pos.x - self.half_size.x),
@@ -70,7 +70,7 @@ pub fn translateRectangle(self: Self, rect: sdl.Rectangle) sdl.Rectangle {
     };
 }
 
-/// calculate coordinate in camera space
+/// Calculate coordinate in camera space
 pub fn translateRectangleF(self: Self, rect: sdl.RectangleF) sdl.RectangleF {
     const left_top = sdl.PointF{
         .x = self.pos.x - self.half_size.x,
@@ -84,7 +84,7 @@ pub fn translateRectangleF(self: Self, rect: sdl.RectangleF) sdl.RectangleF {
     };
 }
 
-/// coordinate limiting
+/// Coordinate limiting
 pub const CoordLimit = struct {
     min_x: f32 = 0,
     min_y: f32 = 0,
@@ -92,7 +92,7 @@ pub const CoordLimit = struct {
     max_y: f32 = std.math.floatMax(f32),
 };
 
-/// move camera around
+/// Move camera around
 pub fn move(self: *Self, tr_x: f32, tr_y: f32, limit: CoordLimit) void {
     var move_x = if (tr_x > 0)
         std.math.min(tr_x, limit.max_x - (self.pos.x + self.half_size.x))
@@ -108,7 +108,7 @@ pub fn move(self: *Self, tr_x: f32, tr_y: f32, limit: CoordLimit) void {
     self.pos.y += move_y;
 }
 
-/// zooming
+/// Zooming
 pub fn setZoom(self: *Self, zoom: f32, limit: CoordLimit) void {
     assert(zoom > 0);
     const half_size_x = self.orig_half_size.x * zoom;
