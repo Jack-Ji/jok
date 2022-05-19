@@ -203,7 +203,7 @@ pub fn init(
         width,
         height,
     );
-    try tex.setScaleMode(.linear);
+    try tex.setScaleMode(.nearest);
     errdefer tex.destroy();
 
     // fill search tree, abort if name collision happens

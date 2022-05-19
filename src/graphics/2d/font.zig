@@ -453,7 +453,7 @@ pub const DrawResult = struct {
     area: sdl.RectangleF,
     next_line_ypos: f32,
 };
-pub fn debugDraw(renderer: sdl.Renderer, text: []const u8, opt: DrawOption) !DrawResult {
+pub fn debugDraw(renderer: sdl.Renderer, opt: DrawOption, comptime fmt: []const u8, args: anytype) !DrawResult {
     const S = struct {
         const allocator = std.heap.c_allocator;
         const font_data = @embedFile("clacon2.ttf");
@@ -462,8 +462,10 @@ pub fn debugDraw(renderer: sdl.Renderer, text: []const u8, opt: DrawOption) !Dra
         var atlases: std.AutoHashMap(u32, Atlas) = undefined;
         var vattrib: std.ArrayList(sdl.Vertex) = undefined;
         var vindices: std.ArrayList(u32) = undefined;
+        var text_buf: [1024]u8 = undefined;
     };
 
+    var text = try std.fmt.bufPrint(&S.text_buf, fmt, args);
     if (text.len == 0) return DrawResult{
         .area = .{ .x = opt.pos.x, .y = opt.pos.y, .width = 0, .height = 0 },
         .next_line_ypos = 0,

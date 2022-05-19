@@ -124,9 +124,12 @@ fn loop(ctx: *jok.Context) anyerror!void {
     }
     try sprite_batch.end(ctx.renderer);
 
-    var buf: [64]u8 = undefined;
-    const txt = try std.fmt.bufPrint(&buf, "# of sprites: {d}", .{characters.items.len});
-    _ = try gfx.font.debugDraw(ctx.renderer, txt, .{ .pos = .{ .x = 0, .y = 0 }, .color = sdl.Color.white });
+    _ = try gfx.font.debugDraw(
+        ctx.renderer,
+        .{ .pos = .{ .x = 0, .y = 0 }, .color = sdl.Color.white },
+        "# of sprites: {d}",
+        .{characters.items.len},
+    );
 }
 
 fn quit(ctx: *jok.Context) void {

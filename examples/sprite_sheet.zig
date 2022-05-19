@@ -97,30 +97,23 @@ fn loop(ctx: *jok.Context) anyerror!void {
     });
     try sprite_batch.end(ctx.renderer);
 
-    var buf: [128]u8 = undefined;
-    var txt = try std.fmt.bufPrint(&buf, "fps: {d:.1}", .{ctx.fps});
     var result = try gfx.font.debugDraw(
         ctx.renderer,
-        txt,
         .{ .pos = .{ .x = 300, .y = 0 }, .color = sdl.Color.white },
+        "press z to zoom out, x to zoom in, current zoom value: {d:.1}",
+        .{camera.zoom},
     );
-    txt = try std.fmt.bufPrint(&buf, "press z to zoom out, x to zoom in, current zoom value: {d:.1}", .{camera.zoom});
     result = try gfx.font.debugDraw(
         ctx.renderer,
-        txt,
         .{ .pos = .{ .x = 300, .y = result.next_line_ypos }, .color = sdl.Color.white },
+        "camera pos: {d:.0},{d:.0}",
+        .{ camera.pos.x, camera.pos.y },
     );
-    txt = try std.fmt.bufPrint(&buf, "camera pos: {d:.0},{d:.0}", .{ camera.pos.x, camera.pos.y });
-    result = try gfx.font.debugDraw(
-        ctx.renderer,
-        txt,
-        .{ .pos = .{ .x = 300, .y = result.next_line_ypos }, .color = sdl.Color.white },
-    );
-    txt = try std.fmt.bufPrint(&buf, "camera half-size: {d:.0},{d:.0}", .{ camera.half_size.x, camera.half_size.y });
     _ = try gfx.font.debugDraw(
         ctx.renderer,
-        txt,
         .{ .pos = .{ .x = 300, .y = result.next_line_ypos }, .color = sdl.Color.white },
+        "camera half-size: {d:.0},{d:.0}",
+        .{ camera.half_size.x, camera.half_size.y },
     );
 }
 

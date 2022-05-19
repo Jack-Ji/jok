@@ -34,46 +34,50 @@ fn loop(ctx: *jok.Context) anyerror!void {
 
     var result = try gfx.font.debugDraw(
         ctx.renderer,
-        "你好！ABCDEFGHIJKL abcdefghijkl",
         .{
             .pos = sdl.PointF{ .x = 0, .y = 0 },
             .ypos_type = .top,
             .color = sdl.Color.cyan,
         },
+        "你好！ABCDEFGHIJKL abcdefghijkl",
+        .{},
     );
     try ctx.renderer.fillRectF(result.area);
 
     result = try gfx.font.debugDraw(
         ctx.renderer,
-        "Hello,",
         .{
             .pos = sdl.PointF{ .x = 0, .y = @intToFloat(f32, size.h) / 2 },
             .font_size = 80,
             .ypos_type = .bottom,
         },
+        "Hello,",
+        .{},
     );
     try ctx.renderer.fillRectF(result.area);
 
     result = try gfx.font.debugDraw(
         ctx.renderer,
-        "jok!",
         .{
             .pos = sdl.PointF{ .x = result.area.x + result.area.width, .y = @intToFloat(f32, size.h) / 2 },
             .font_size = 80,
             .ypos_type = .top,
         },
+        "jok!",
+        .{},
     );
     try ctx.renderer.fillRectF(result.area);
 
     result = try gfx.font.debugDraw(
         ctx.renderer,
-        "你好！ABCDEFGHIJKL abcdefghijkl",
         .{
             .pos = sdl.PointF{ .x = 0, .y = @intToFloat(f32, size.h) },
             .ypos_type = .bottom,
             .color = sdl.Color.red,
             .font_size = 32,
         },
+        "你好！ABCDEFGHIJKL abcdefghijkl",
+        .{},
     );
     try ctx.renderer.fillRectF(result.area);
 }
