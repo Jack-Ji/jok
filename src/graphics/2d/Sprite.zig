@@ -23,6 +23,9 @@ pub const DrawOption = struct {
     /// position of sprite
     pos: sdl.PointF,
 
+    /// mod color
+    tint_color: sdl.Color = sdl.Color.white,
+
     /// scale of width/height
     scale_w: f32 = 1.0,
     scale_h: f32 = 1.0,
@@ -33,8 +36,9 @@ pub const DrawOption = struct {
     /// anchor-point of sprite, around which rotation and translation is calculated
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
 
-    /// mod color
-    tint_color: sdl.Color = sdl.Color.white,
+    /// horizontal/vertial flipping
+    flip_h: bool = false,
+    flip_v: bool = false,
 };
 
 /// add vertex data
@@ -47,6 +51,10 @@ pub fn appendDrawData(
     assert(opt.scale_w >= 0 and opt.scale_h >= 0);
     assert(opt.anchor_point.x >= 0 and opt.anchor_point.x <= 1);
     assert(opt.anchor_point.y >= 0 and opt.anchor_point.y <= 1);
+    var uv0 = self.uv0;
+    var uv1 = self.uv1;
+    if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
+    if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
     const m_scale = zmath.scaling(self.width * opt.scale_w, self.height * opt.scale_h, 1);
     const m_rotate = zmath.rotationZ(gfx.utils.degreeToRadian(opt.rotate_degree));
     const m_translate = zmath.translation(opt.pos.x, opt.pos.y, 0);
@@ -63,22 +71,22 @@ pub fn appendDrawData(
         .{
             .position = .{ .x = trasformed_coords[0][0], .y = trasformed_coords[0][1] },
             .color = opt.tint_color,
-            .tex_coord = .{ .x = self.uv0.x, .y = self.uv0.y },
+            .tex_coord = .{ .x = uv0.x, .y = uv0.y },
         },
         .{
             .position = .{ .x = trasformed_coords[1][0], .y = trasformed_coords[1][1] },
             .color = opt.tint_color,
-            .tex_coord = .{ .x = self.uv0.x, .y = self.uv1.y },
+            .tex_coord = .{ .x = uv0.x, .y = uv1.y },
         },
         .{
             .position = .{ .x = trasformed_coords[2][0], .y = trasformed_coords[2][1] },
             .color = opt.tint_color,
-            .tex_coord = .{ .x = self.uv1.x, .y = self.uv1.y },
+            .tex_coord = .{ .x = uv1.x, .y = uv1.y },
         },
         .{
             .position = .{ .x = trasformed_coords[3][0], .y = trasformed_coords[3][1] },
             .color = opt.tint_color,
-            .tex_coord = .{ .x = self.uv1.x, .y = self.uv0.y },
+            .tex_coord = .{ .x = uv1.x, .y = uv0.y },
         },
     });
     try vindices.appendSlice(&[_]u32{
@@ -89,12 +97,4 @@ pub fn appendDrawData(
         base_index + 2,
         base_index + 3,
     });
-}
-
-pub fn flipH(self: *Self) void {
-    std.mem.swap(u32, &self.uv0.x, &self.uv1.x);
-}
-
-pub fn flipV(self: *Self) void {
-    std.mem.swap(u32, &self.uv0.y, &self.uv1.y);
 }

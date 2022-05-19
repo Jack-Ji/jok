@@ -83,6 +83,8 @@ fn loop(ctx: *jok.Context) anyerror!void {
         .camera = camera,
         .scale_w = 2,
         .scale_h = 2,
+        .flip_h = true,
+        .flip_v = true,
         //.rotate_degree = @floatCast(f32, ctx.tick) * 30,
     });
     try sprite_batch.drawSprite(sprite, .{

@@ -31,6 +31,8 @@ pub const DrawOption = struct {
     scale_h: f32 = 1.0,
     rotate_degree: f32 = 0,
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    flip_h: bool = false,
+    flip_v: bool = false,
     depth: f32 = 0.5,
 };
 
@@ -184,11 +186,13 @@ pub fn end(self: *Self, renderer: sdl.Renderer) !void {
                 &b.vindices,
                 .{
                     .pos = if (data.draw_option.camera) |c| c.translatePointF(data.draw_option.pos) else data.draw_option.pos,
+                    .tint_color = data.draw_option.tint_color,
                     .scale_w = if (data.draw_option.camera) |c| data.draw_option.scale_w / c.zoom else data.draw_option.scale_w,
                     .scale_h = if (data.draw_option.camera) |c| data.draw_option.scale_h / c.zoom else data.draw_option.scale_h,
                     .rotate_degree = data.draw_option.rotate_degree,
                     .anchor_point = data.draw_option.anchor_point,
-                    .tint_color = data.draw_option.tint_color,
+                    .flip_h = data.draw_option.flip_h,
+                    .flip_v = data.draw_option.flip_v,
                 },
             );
         }
