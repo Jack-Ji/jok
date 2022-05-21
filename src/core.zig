@@ -423,13 +423,13 @@ pub fn run(comptime g: Game) !void {
             var buf: [128]u8 = undefined;
             const txt = std.fmt.bufPrintZ(
                 &buf,
-                "{s} | FPS: {d:.1} | AVG-CPU: {d:.1}ms | RENDERER: {s} | FPS-LIMIT: {s} | MEM: {d:.2}kb",
+                "{s} | FPS: {d:.1}, {s} | AVG-CPU: {d:.1}ms | RENDERER: {s} | MEM: {d:.2}kb",
                 .{
                     g.title,
                     ctx.fps,
+                    g.fps_limit.str(),
                     ctx.average_cpu_time,
                     ctx.getRendererName(),
-                    g.fps_limit.str(),
                     if (gpa) |a| @intToFloat(f64, a.total_requested_bytes) / 1024.0 else 0,
                 },
             ) catch unreachable;
