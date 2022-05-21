@@ -19,6 +19,7 @@ pub const Context = struct {
 
     /// Renderer
     renderer: sdl.Renderer = undefined,
+    is_software: bool = false,
 
     /// Audio engine
     audio: *audio.Engine = undefined,
@@ -35,6 +36,9 @@ pub const Context = struct {
     /// Relative mouse mode
     relative_mouse: bool = undefined,
 
+    /// Residue of fps capping
+    fps_limit_residue: u64 = 0,
+
     /// Number of seconds since launch/last-frame
     tick: f64 = 0,
     delta_tick: f32 = 0,
@@ -43,15 +47,47 @@ pub const Context = struct {
     /// Frames stats
     fps: f32 = 0,
     average_cpu_time: f32 = 0,
-    fps_refresh_time: f64 = 0,
     frame_counter: u32 = 0,
-    frame_number: u64 = 0,
+    last_fps_refresh_time: f64 = 0,
 
     /// Text buffer for rendering console font
     text_buf: [512]u8 = undefined,
 
     /// Update frame stats
-    pub fn updateStats(self: *Context) bool {
+    inline fn updateFrameStats(self: *Context) bool {
+        self.frame_counter += 1;
+        if ((self.tick - self.last_fps_refresh_time) >= 1.0) {
+            const t = self.tick - self.last_fps_refresh_time;
+            self.fps = @floatCast(
+                f32,
+                @intToFloat(f64, self.frame_counter) / t,
+            );
+            self.average_cpu_time = (1.0 / self.fps) * 1000.0;
+            self.last_fps_refresh_time = self.tick;
+            self.frame_counter = 0;
+            return true;
+        }
+        return false;
+    }
+
+    /// Flush graphics contents
+    inline fn present(self: *Context, comptime fps_limit: FpsLimit) void {
+        var counter_threshold: u64 = switch (fps_limit) {
+            .none => 0,
+            .auto => if (self.is_software) @divTrunc(@floatToInt(u64, perf_counter_freq), 30) else 0,
+            .manual => |fps| @floatToInt(u64, perf_counter_freq) / @intCast(u64, fps),
+        };
+        if (counter_threshold > 0) {
+            if (self.fps_limit_residue >= counter_threshold) {
+                self.fps_limit_residue -= counter_threshold;
+            } else {
+                counter_threshold -= self.fps_limit_residue;
+                while ((sdl.c.SDL_GetPerformanceCounter() - self.last_perf_counter) < counter_threshold) {
+                    sdl.delay(1);
+                }
+                self.fps_limit_residue = sdl.c.SDL_GetPerformanceCounter() - self.last_perf_counter - counter_threshold;
+            }
+        }
         const counter = sdl.c.SDL_GetPerformanceCounter();
         self.delta_tick = @floatCast(
             f32,
@@ -59,20 +95,12 @@ pub const Context = struct {
         );
         self.last_perf_counter = counter;
         self.tick += self.delta_tick;
-        if ((self.tick - self.fps_refresh_time) >= 1.0) {
-            const t = self.tick - self.fps_refresh_time;
-            self.fps = @floatCast(
-                f32,
-                @intToFloat(f64, self.frame_counter) / t,
-            );
-            self.average_cpu_time = (1.0 / self.fps) * 1000.0;
-            self.fps_refresh_time = self.tick;
-            self.frame_counter = 0;
-            return true;
-        }
-        self.frame_counter += 1;
-        self.frame_number += 1;
-        return false;
+        self.renderer.present();
+    }
+
+    /// Get renderer's name
+    pub inline fn getRendererName(self: *Context) []const u8 {
+        return if (self.is_software) "soft" else "hard";
     }
 
     /// Kill app
@@ -195,6 +223,21 @@ pub const Context = struct {
     }
 };
 
+/// Graphics flushing method
+pub const FpsLimit = union(enum) {
+    none, // No limit, draw as fast as we can
+    auto, // Enable vsync when hardware acceleration is available, default to 30 fps otherwise
+    manual: u32, // Capped to given fps
+
+    inline fn str(self: @This()) []const u8 {
+        return switch (self) {
+            .none => "none",
+            .auto => "auto",
+            .manual => "manual",
+        };
+    }
+};
+
 /// Application configurations
 pub const Game = struct {
     /// Custom memory allocator
@@ -251,11 +294,11 @@ pub const Game = struct {
     /// Relative mouse mode switch
     enable_relative_mouse_mode: bool = false,
 
-    /// Vsync switch
-    enable_vsync: bool = true,
-
-    /// Display framestat on title
+    /// Display frame stats on title
     enable_framestat_display: bool = true,
+
+    /// FPS limiting (auto means vsync)
+    fps_limit: FpsLimit = .auto,
 };
 
 /// Entrance point, never return until application is killed
@@ -335,7 +378,7 @@ pub fn run(comptime g: Game) !void {
         null,
         .{
             .accelerated = true,
-            .present_vsync = g.enable_vsync,
+            .present_vsync = g.fps_limit == .auto,
             .target_texture = true,
         },
     ) catch blk: {
@@ -346,12 +389,14 @@ pub fn run(comptime g: Game) !void {
                 null,
                 .{
                     .software = true,
-                    .present_vsync = g.enable_vsync,
+                    .present_vsync = g.fps_limit == .auto, // Doesn't matter actually, vsync won't work anyway
                     .target_texture = true,
                 },
             );
         }
     };
+    const rdinfo = try ctx.renderer.getInfo();
+    ctx.is_software = ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0);
     defer ctx.renderer.destroy();
 
     // Allocate audio engine
@@ -359,28 +404,13 @@ pub fn run(comptime g: Game) !void {
     defer ctx.audio.deinit();
 
     // Init before loop
-    perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
     try g.initFn(&ctx);
     defer g.quitFn(&ctx);
-    _ = ctx.updateStats();
 
     // Game loop
+    perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
+    ctx.last_perf_counter = sdl.c.SDL_GetPerformanceCounter();
     while (!ctx.quit) {
-        if (ctx.updateStats() and g.enable_framestat_display) {
-            var buf: [128]u8 = undefined;
-            _ = std.fmt.bufPrintZ(
-                &buf,
-                "{s} | FPS:{d:.1} AVG-CPU:{d:.1}ms VSYNC:{s} MEM:{d} bytes",
-                .{
-                    g.title,
-                    ctx.fps,
-                    ctx.average_cpu_time,
-                    if (g.enable_vsync) "ON" else "OFF",
-                    if (gpa) |a| a.total_requested_bytes else 0,
-                },
-            ) catch unreachable;
-            sdl.c.SDL_SetWindowTitle(ctx.window.ptr, &buf);
-        }
         g.loopFn(&ctx) catch |e| {
             log.err("got error in loop: {}", .{e});
             if (@errorReturnTrace()) |trace| {
@@ -388,6 +418,22 @@ pub fn run(comptime g: Game) !void {
                 break;
             }
         };
-        ctx.renderer.present();
+        ctx.present(g.fps_limit);
+        if (ctx.updateFrameStats() and g.enable_framestat_display) {
+            var buf: [128]u8 = undefined;
+            const txt = std.fmt.bufPrintZ(
+                &buf,
+                "{s} | FPS: {d:.1} | AVG-CPU: {d:.1}ms | RENDERER: {s} | FPS-LIMIT: {s} | MEM: {d:.2}kb",
+                .{
+                    g.title,
+                    ctx.fps,
+                    ctx.average_cpu_time,
+                    ctx.getRendererName(),
+                    g.fps_limit.str(),
+                    if (gpa) |a| @intToFloat(f64, a.total_requested_bytes) / 1024.0 else 0,
+                },
+            ) catch unreachable;
+            sdl.c.SDL_SetWindowTitle(ctx.window.ptr, txt.ptr);
+        }
     }
 }
