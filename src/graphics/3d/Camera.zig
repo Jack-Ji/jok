@@ -2,8 +2,8 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../../jok.zig");
-const gfx = jok.gfx;
-const zmath = jok.deps.zmath;
+const @"3d" = jok.gfx.@"3d";
+const zmath = @"3d".zmath;
 const Self = @This();
 
 /// Params for viewing frustrum
@@ -58,7 +58,7 @@ roll: f32 = undefined,
 pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: zmath.Vec, target: zmath.Vec, world_up: ?zmath.Vec) Self {
     var camera: Self = .{};
     camera.frustrum = frustrum;
-    camera.world_up = zmath.normalize3(world_up orelse gfx.@"3d".v_up);
+    camera.world_up = zmath.normalize3(world_up orelse @"3d".v_up);
     camera.position = pos;
     camera.dir = zmath.normalize3(target - pos);
     camera.right = zmath.normalize3(zmath.cross3(camera.dir, camera.world_up));
@@ -73,9 +73,9 @@ pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: zmath.Vec, target: zma
     } else {
         camera.pitch = math.acos(cos_pitch[0]);
     }
-    crossdir = zmath.cross3(camera.right, gfx.@"3d".v_right);
+    crossdir = zmath.cross3(camera.right, @"3d".v_right);
     angles = zmath.dot3(crossdir, camera.world_up);
-    const cos_yaw = zmath.dot3(camera.right, gfx.@"3d".v_right);
+    const cos_yaw = zmath.dot3(camera.right, @"3d".v_right);
     if (zmath.Vec.dot(crossdir, camera.world_up) < 0) {
         camera.yaw = -math.acos(cos_yaw[0]) - math.pi / 2;
     } else {
@@ -89,7 +89,7 @@ pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: zmath.Vec, target: zma
 pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: zmath.Vec, pitch: f32, yaw: f32, world_up: ?zmath.Vec) Self {
     var camera: Self = .{};
     camera.frustrum = frustrum;
-    camera.world_up = zmath.normalize3(world_up orelse gfx.@"3d".v_up);
+    camera.world_up = zmath.normalize3(world_up orelse @"3d".v_up);
     camera.position = pos;
     camera.pitch = pitch;
     camera.yaw = yaw - math.pi / 2;
