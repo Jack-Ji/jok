@@ -77,9 +77,9 @@ pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: zmath.Vec, target: zma
     angles = zmath.dot3(crossdir, camera.world_up);
     const cos_yaw = zmath.dot3(camera.right, @"3d".v_right);
     if (angles[0] < 0) {
-        camera.yaw = math.acos(cos_yaw[0]) - math.pi / 2.0;
+        camera.yaw = math.acos(cos_yaw[0]);
     } else {
-        camera.yaw = -math.acos(cos_yaw[0]) - math.pi / 2.0;
+        camera.yaw = -math.acos(cos_yaw[0]);
     }
     camera.roll = 0;
     return camera;
@@ -92,7 +92,7 @@ pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: zmath.Vec, pitch:
     camera.world_up = zmath.normalize3(world_up orelse @"3d".v_up);
     camera.position = pos;
     camera.pitch = pitch;
-    camera.yaw = yaw - math.pi / 2;
+    camera.yaw = yaw;
     camera.roll = 0;
     camera.updateVectors();
     return camera;
@@ -143,15 +143,17 @@ pub fn move(self: *Self, direction: MoveDirection, distance: f32) void {
 pub fn rotate(self: *Self, pitch: f32, yaw: f32) void {
     self.pitch += pitch;
     self.yaw += yaw;
-    self.yaw = zmath.modAngle(self.yaw);
     self.updateVectors();
 }
 
 /// Update vectors: direction/right/up
 fn updateVectors(self: *Self) void {
-    const min_pitch = -0.48 * math.pi;
-    const max_pitch = 0.48 * math.pi;
-    self.pitch = math.clamp(self.pitch, min_pitch, max_pitch);
+    self.pitch = math.clamp(
+        self.pitch,
+        -0.48 * math.pi,
+        0.48 * math.pi,
+    );
+    self.yaw = zmath.modAngle(self.yaw);
     const transform = zmath.mul(
         zmath.rotationX(self.pitch),
         zmath.rotationY(self.yaw),
