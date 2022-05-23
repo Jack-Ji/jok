@@ -61,25 +61,25 @@ pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: zmath.Vec, target: zma
     camera.world_up = zmath.normalize3(world_up orelse @"3d".v_up);
     camera.position = pos;
     camera.dir = zmath.normalize3(target - pos);
-    camera.right = zmath.normalize3(zmath.cross3(camera.dir, camera.world_up));
-    camera.up = zmath.normalize3(zmath.cross3(camera.right, camera.dir));
+    camera.right = zmath.normalize3(zmath.cross3(camera.world_up, camera.dir));
+    camera.up = zmath.normalize3(zmath.cross3(camera.dir, camera.right));
 
     // Calculate euler angles
-    var crossdir = zmath.cross3(camera.world_up, camera.up);
+    var crossdir = zmath.cross3(camera.up, camera.world_up);
     var angles = zmath.dot3(crossdir, camera.right);
     const cos_pitch = zmath.dot3(camera.world_up, camera.up);
     if (angles[0] < 0) {
-        camera.pitch = -math.acos(cos_pitch[0]);
-    } else {
         camera.pitch = math.acos(cos_pitch[0]);
+    } else {
+        camera.pitch = -math.acos(cos_pitch[0]);
     }
     crossdir = zmath.cross3(camera.right, @"3d".v_right);
     angles = zmath.dot3(crossdir, camera.world_up);
     const cos_yaw = zmath.dot3(camera.right, @"3d".v_right);
     if (angles[0] < 0) {
-        camera.yaw = -math.acos(cos_yaw[0]) - math.pi / 2.0;
-    } else {
         camera.yaw = math.acos(cos_yaw[0]) - math.pi / 2.0;
+    } else {
+        camera.yaw = -math.acos(cos_yaw[0]) - math.pi / 2.0;
     }
     camera.roll = 0;
     return camera;
@@ -118,7 +118,7 @@ pub fn getProjectMatrix(self: Self) zmath.Mat {
 
 /// Get view matrix
 pub fn getViewMatrix(self: Self) zmath.Mat {
-    return zmath.lookAtLh(self.position, self.position + self.dir, self.world_up);
+    return zmath.lookToLh(self.position, self.dir, self.world_up);
 }
 
 /// Get projection*view matrix
@@ -129,35 +129,36 @@ pub fn getViewProjectMatrix(self: Self) zmath.Mat {
 /// Move camera
 pub fn move(self: *Self, direction: MoveDirection, distance: f32) void {
     var movement = switch (direction) {
-        .forward => self.dir * distance,
-        .backward => self.dir * -distance,
-        .left => self.right * -distance,
-        .right => self.right * distance,
-        .up => self.up * distance,
-        .down => self.up * -distance,
+        .forward => self.dir * zmath.splat(zmath.Vec, distance),
+        .backward => self.dir * zmath.splat(zmath.Vec, -distance),
+        .left => self.right * zmath.splat(zmath.Vec, -distance),
+        .right => self.right * zmath.splat(zmath.Vec, distance),
+        .up => self.up * zmath.splat(zmath.Vec, distance),
+        .down => self.up * zmath.splat(zmath.Vec, -distance),
     };
     self.position = self.position + movement;
 }
 
-/// Rotate camera (in degrees)
+/// Rotate camera (in radians)
 pub fn rotate(self: *Self, pitch: f32, yaw: f32) void {
     self.pitch += pitch;
     self.yaw += yaw;
+    self.yaw = zmath.modAngle(self.yaw);
     self.updateVectors();
 }
 
 /// Update vectors: direction/right/up
 fn updateVectors(self: *Self) void {
-    const min_pitch = -89.0 * math.pi / 180.0;
-    const max_pitch = 89.0 * math.pi / 180.0;
+    const min_pitch = -0.48 * math.pi;
+    const max_pitch = 0.48 * math.pi;
     self.pitch = math.clamp(self.pitch, min_pitch, max_pitch);
-    const sin_pitch = @sin(self.pitch);
-    const cos_pitch = @cos(self.pitch);
-    const sin_yaw = @sin(self.yaw);
-    const cos_yaw = @cos(self.yaw);
-    self.dir = zmath.normalize3(zmath.f32x4(cos_yaw * cos_pitch, sin_pitch, sin_yaw * cos_pitch, 0));
-    self.right = zmath.normalize3(zmath.cross3(self.dir, self.world_up));
-    self.up = zmath.normalize3(zmath.cross3(self.right, self.dir));
+    const transform = zmath.mul(
+        zmath.rotationX(self.pitch),
+        zmath.rotationY(self.yaw),
+    );
+    self.dir = zmath.normalize3(zmath.mul(@"3d".v_forward, transform));
+    self.right = zmath.normalize3(zmath.cross3(self.world_up, self.dir));
+    self.up = zmath.normalize3(zmath.cross3(self.dir, self.right));
 }
 
 /// Get position of ray test target
