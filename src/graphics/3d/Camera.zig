@@ -76,10 +76,10 @@ pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: zmath.Vec, target: zma
     crossdir = zmath.cross3(camera.right, @"3d".v_right);
     angles = zmath.dot3(crossdir, camera.world_up);
     const cos_yaw = zmath.dot3(camera.right, @"3d".v_right);
-    if (zmath.Vec.dot(crossdir, camera.world_up) < 0) {
-        camera.yaw = -math.acos(cos_yaw[0]) - math.pi / 2;
+    if (angles[0] < 0) {
+        camera.yaw = -math.acos(cos_yaw[0]) - math.pi / 2.0;
     } else {
-        camera.yaw = math.acos(cos_yaw[0]) - math.pi / 2;
+        camera.yaw = math.acos(cos_yaw[0]) - math.pi / 2.0;
     }
     camera.roll = 0;
     return camera;
@@ -123,7 +123,7 @@ pub fn getViewMatrix(self: Self) zmath.Mat {
 
 /// Get projection*view matrix
 pub fn getViewProjectMatrix(self: Self) zmath.Mat {
-    return zmath.mul(self.getViewMatrix(), getProjectMatrix());
+    return zmath.mul(self.getViewMatrix(), self.getProjectMatrix());
 }
 
 /// Move camera
