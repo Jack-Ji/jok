@@ -15,6 +15,12 @@ fn init(ctx: *jok.Context) anyerror!void {
 
     camera = gfx.Camera.fromPositionAndTarget(
         .{
+            //.orthographic = .{
+            //    .width = 2 * ctx.getAspectRatio(),
+            //    .height = 2,
+            //    .near = 0.1,
+            //    .far = 100,
+            //},
             .perspective = .{
                 .fov = std.math.pi / 4.0,
                 .aspect_ratio = ctx.getAspectRatio(),
@@ -73,34 +79,41 @@ fn loop(ctx: *jok.Context) anyerror!void {
         }
     }
 
-    const model = gfx.zmath.mul(
-        gfx.zmath.translation(-0.5, -0.5, -0.5),
-        gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi / 3.0),
-    );
-
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.clear();
+
     renderer.clearVertex(true);
     try renderer.appendVertex(
         ctx.renderer,
-        model,
+        gfx.zmath.mul(
+            gfx.zmath.translation(-0.5, -0.5, -0.5),
+            gfx.zmath.mul(
+                gfx.zmath.scaling(0.5, 0.5, 0.5),
+                gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi),
+            ),
+        ),
         &camera,
         cube.indices,
         cube.positions,
         null,
         null,
     );
-    try renderer.drawWireframe(ctx.renderer, sdl.Color.white);
+    try renderer.draw(ctx.renderer, null);
 
-    _ = try font.debugDraw(
+    renderer.clearVertex(true);
+    try renderer.appendVertex(
         ctx.renderer,
-        .{
-            .pos = .{ .x = 300, .y = 0 },
-            .color = sdl.Color.green,
-        },
-        "camera pos: {any}",
-        .{camera.position},
+        gfx.zmath.mul(
+            gfx.zmath.translation(-0.5, -0.5, -0.5),
+            gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi / 3.0),
+        ),
+        &camera,
+        cube.indices,
+        cube.positions,
+        null,
+        null,
     );
+    try renderer.drawWireframe(ctx.renderer, sdl.Color.green);
 }
 
 fn quit(ctx: *jok.Context) void {

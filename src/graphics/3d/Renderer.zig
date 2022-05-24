@@ -49,24 +49,24 @@ pub fn appendVertex(
     colors: ?[]sdl.Color,
     texcoords: ?[][2]f32,
 ) !void {
-    const vp = renderer.getViewport();
-
-    // Add indices
     if (indices.len == 0) return;
+    const vp = renderer.getViewport();
     const base_index = @intCast(u32, self.vertices.items.len);
-    try self.indices.ensureTotalCapacity(self.indices.items.len + indices.len);
-    for (indices) |idx| self.indices.appendAssumeCapacity(
-        @intCast(u32, idx) + base_index,
-    );
-    errdefer self.indices.resize(self.indices.items.len - indices.len) catch unreachable;
+    var clipped_indices = std.StaticBitSet(std.math.maxInt(u16)).initEmpty();
 
     // Add vertices
-    try self.vertices.ensureTotalCapacity(self.indices.items.len + positions.len);
+    try self.vertices.ensureTotalCapacity(self.vertices.items.len + positions.len);
     const transform = zmath.mul(model, camera.getViewProjectMatrix());
     for (positions) |pos, i| {
         // Do MVP transforming
         const pos_clip = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1.0), transform);
         const ndc = pos_clip / zmath.splat(zmath.Vec, pos_clip[3]);
+        if ((ndc[0] < -1 or ndc[0] > 1) or
+            (ndc[1] < -1 or ndc[1] > 1) or
+            (ndc[2] < -1 or ndc[2] > 1))
+        {
+            clipped_indices.set(i);
+        }
         self.vertices.appendAssumeCapacity(.{
             .position = .{
                 .x = (1.0 + ndc[0]) * @intToFloat(f32, vp.width) / 2.0,
@@ -74,6 +74,31 @@ pub fn appendVertex(
             },
             .color = if (colors) |cs| cs[i] else sdl.Color.white,
             .tex_coord = if (texcoords) |tex| .{ .x = tex[i][0], .y = tex[i][1] } else undefined,
+        });
+    }
+    errdefer self.vertices.resize(self.vertices.items.len - positions.len) catch unreachable;
+
+    // Add indices
+    try self.indices.ensureTotalCapacity(self.indices.items.len + indices.len);
+    var i: usize = 2;
+    while (i < indices.len) : (i += 3) {
+        const idx1 = indices[i - 2];
+        const idx2 = indices[i - 1];
+        const idx3 = indices[i];
+
+        // Ignore clipped triangles
+        if (clipped_indices.isSet(idx1) and
+            clipped_indices.isSet(idx2) and
+            clipped_indices.isSet(idx3))
+        {
+            continue;
+        }
+
+        // Append indices
+        self.indices.appendSliceAssumeCapacity(&[_]u32{
+            idx1 + base_index,
+            idx2 + base_index,
+            idx3 + base_index,
         });
     }
 }
