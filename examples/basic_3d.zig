@@ -97,6 +97,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
         cube.positions,
         null,
         null,
+        true,
     );
     try renderer.draw(ctx.renderer, null);
 
@@ -112,6 +113,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
         cube.positions,
         null,
         null,
+        false,
     );
     try renderer.drawWireframe(ctx.renderer, sdl.Color.green);
 }

@@ -5,7 +5,6 @@ const sdl = @import("sdl");
 const jok = @import("../../jok.zig");
 const @"3d" = jok.gfx.@"3d";
 const zmath = @"3d".zmath;
-const zmesh = @"3d".zmesh;
 const Camera = @"3d".Camera;
 const Self = @This();
 
@@ -48,18 +47,20 @@ pub fn appendVertex(
     positions: [][3]f32,
     colors: ?[]sdl.Color,
     texcoords: ?[][2]f32,
+    cull_faces: bool,
 ) !void {
     if (indices.len == 0) return;
     const vp = renderer.getViewport();
+    const mv = zmath.mul(model, camera.getViewMatrix());
+    const mvp = zmath.mul(model, camera.getViewProjectMatrix());
     const base_index = @intCast(u32, self.vertices.items.len);
     var clipped_indices = std.StaticBitSet(std.math.maxInt(u16)).initEmpty();
 
     // Add vertices
     try self.vertices.ensureTotalCapacity(self.vertices.items.len + positions.len);
-    const transform = zmath.mul(model, camera.getViewProjectMatrix());
     for (positions) |pos, i| {
         // Do MVP transforming
-        const pos_clip = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1.0), transform);
+        const pos_clip = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1.0), mvp);
         const ndc = pos_clip / zmath.splat(zmath.Vec, pos_clip[3]);
         if ((ndc[0] < -1 or ndc[0] > 1) or
             (ndc[1] < -1 or ndc[1] > 1) or
@@ -82,23 +83,35 @@ pub fn appendVertex(
     try self.indices.ensureTotalCapacity(self.indices.items.len + indices.len);
     var i: usize = 2;
     while (i < indices.len) : (i += 3) {
-        const idx1 = indices[i - 2];
-        const idx2 = indices[i - 1];
-        const idx3 = indices[i];
+        const idx0 = indices[i - 2];
+        const idx1 = indices[i - 1];
+        const idx2 = indices[i];
 
         // Ignore clipped triangles
-        if (clipped_indices.isSet(idx1) and
-            clipped_indices.isSet(idx2) and
-            clipped_indices.isSet(idx3))
+        if (clipped_indices.isSet(idx0) and
+            clipped_indices.isSet(idx1) and
+            clipped_indices.isSet(idx2))
         {
             continue;
         }
 
+        // Ignore triangles facing away from camera
+        if (cull_faces) {
+            const v0 = zmath.mul(zmath.f32x4(positions[idx0][0], positions[idx0][1], positions[idx0][2], 1), mv);
+            const v1 = zmath.mul(zmath.f32x4(positions[idx1][0], positions[idx1][1], positions[idx1][2], 1), mv);
+            const v2 = zmath.mul(zmath.f32x4(positions[idx2][0], positions[idx2][1], positions[idx2][2], 1), mv);
+            const v1v0 = v1 - v0;
+            const v2v0 = v2 - v0;
+            const face_dir = zmath.cross3(v1v0, v2v0);
+            const angles = zmath.dot3(face_dir, camera.dir);
+            if (angles[0] > 0) continue;
+        }
+
         // Append indices
         self.indices.appendSliceAssumeCapacity(&[_]u32{
+            idx0 + base_index,
             idx1 + base_index,
             idx2 + base_index,
-            idx3 + base_index,
         });
     }
 }
