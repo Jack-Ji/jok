@@ -101,12 +101,39 @@ pub fn appendVertex(
         const idx1 = indices[i - 1];
         const idx2 = indices[i];
 
-        // Ignore clipped triangles
+        // Ignore triangles whose center is outside of clip space
         if (clipped_indices.isSet(idx0) and
             clipped_indices.isSet(idx1) and
             clipped_indices.isSet(idx2))
         {
-            continue;
+            const pos_clip0 = zmath.mul(zmath.f32x4(
+                positions[idx0][0],
+                positions[idx0][1],
+                positions[idx0][2],
+                1.0,
+            ), mvp);
+            const ndc0 = pos_clip0 / zmath.splat(zmath.Vec, pos_clip0[3]);
+            const pos_clip1 = zmath.mul(zmath.f32x4(
+                positions[idx1][0],
+                positions[idx1][1],
+                positions[idx1][2],
+                1.0,
+            ), mvp);
+            const ndc1 = pos_clip1 / zmath.splat(zmath.Vec, pos_clip1[3]);
+            const pos_clip2 = zmath.mul(zmath.f32x4(
+                positions[idx2][0],
+                positions[idx2][1],
+                positions[idx2][2],
+                1.0,
+            ), mvp);
+            const ndc2 = pos_clip2 / zmath.splat(zmath.Vec, pos_clip2[3]);
+            const center_ndc = (ndc0 + ndc1 + ndc2) / zmath.splat(zmath.Vec, 3.0);
+            if ((center_ndc[0] < -1 or center_ndc[0] > 1) or
+                (center_ndc[1] < -1 or center_ndc[1] > 1) or
+                (center_ndc[2] < -1 or center_ndc[2] > 1))
+            {
+                continue;
+            }
         }
 
         // Ignore triangles facing away from camera
