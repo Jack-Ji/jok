@@ -74,19 +74,24 @@ fn loop(ctx: *jok.Context) anyerror!void {
         }
     }
 
+    const model = gfx.zmath.mul(
+        gfx.zmath.translation(-0.5, -0.5, -0.5),
+        gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi / 3.0),
+    );
+
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.clear();
     renderer.clearVertex(true);
     try renderer.appendVertex(
         ctx.renderer,
-        gfx.zmath.translation(-0.5, -0.5, -0.5),
+        model,
         &camera,
         cube.indices,
         cube.positions,
         null,
         null,
     );
-    try renderer.render(ctx.renderer, null);
+    try renderer.drawWireframe(ctx.renderer, sdl.Color.white);
 
     _ = try font.debugDraw(
         ctx.renderer,

@@ -78,11 +78,40 @@ pub fn appendVertex(
     }
 }
 
-/// Render the data
-pub fn render(self: Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
+/// Draw the meshes, fill triangles, using texture if possible
+pub fn draw(self: Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
     try renderer.drawGeometry(
         tex,
         self.vertices.items,
         self.indices.items,
     );
+}
+
+/// Draw the wireframe
+pub fn drawWireframe(self: Self, renderer: sdl.Renderer, color: sdl.Color) !void {
+    const old_color = try renderer.getColor();
+    defer renderer.setColor(old_color) catch unreachable;
+
+    try renderer.setColor(color);
+    var i: usize = 2;
+    while (i < self.indices.items.len) : (i += 3) {
+        try renderer.drawLineF(
+            self.vertices.items[self.indices.items[i - 2]].position.x,
+            self.vertices.items[self.indices.items[i - 2]].position.y,
+            self.vertices.items[self.indices.items[i - 1]].position.x,
+            self.vertices.items[self.indices.items[i - 1]].position.y,
+        );
+        try renderer.drawLineF(
+            self.vertices.items[self.indices.items[i - 1]].position.x,
+            self.vertices.items[self.indices.items[i - 1]].position.y,
+            self.vertices.items[self.indices.items[i]].position.x,
+            self.vertices.items[self.indices.items[i]].position.y,
+        );
+        try renderer.drawLineF(
+            self.vertices.items[self.indices.items[i]].position.x,
+            self.vertices.items[self.indices.items[i]].position.y,
+            self.vertices.items[self.indices.items[i - 2]].position.x,
+            self.vertices.items[self.indices.items[i - 2]].position.y,
+        );
+    }
 }
