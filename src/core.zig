@@ -190,6 +190,12 @@ pub const Context = struct {
         };
     }
 
+    /// Get aspect ratio of drawing area
+    pub fn getAspectRatio(self: Context) f32 {
+        const fsize = self.renderer.getOutputSize() catch unreachable;
+        return @intToFloat(f32, fsize.width_pixels) / @intToFloat(f32, fsize.width_pixels);
+    }
+
     /// Get pixel ratio
     pub fn getPixelRatio(self: Context) f32 {
         const wsize = self.getWindowSize();

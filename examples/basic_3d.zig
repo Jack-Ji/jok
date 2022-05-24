@@ -12,13 +12,12 @@ fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
     gfx.zmesh.init(ctx.default_allocator);
-    const size = ctx.getFramebufferSize();
 
     camera = gfx.Camera.fromPositionAndTarget(
         .{
             .perspective = .{
                 .fov = std.math.pi / 4.0,
-                .aspect_ratio = @intToFloat(f32, size.w) / @intToFloat(f32, size.h),
+                .aspect_ratio = ctx.getAspectRatio(),
                 .near = 0.1,
                 .far = 100,
             },
