@@ -115,7 +115,8 @@ fn loop(ctx: *jok.Context) anyerror!void {
         null,
         false,
     );
-    try renderer.drawWireframe(ctx.renderer, sdl.Color.green);
+    try ctx.renderer.setColor(sdl.Color.green);
+    try renderer.drawWireframe(ctx.renderer);
 }
 
 fn quit(ctx: *jok.Context) void {

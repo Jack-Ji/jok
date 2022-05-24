@@ -10,20 +10,26 @@ const Self = @This();
 
 /// Vertex Indices
 indices: std.ArrayList(u32),
+sorted: bool = false,
 
 /// Triangle vertices
 vertices: std.ArrayList(sdl.Vertex),
+
+/// Depth of vertices
+depths: std.ArrayList(f32),
 
 pub fn init(allocator: std.mem.Allocator) Self {
     return .{
         .indices = std.ArrayList(u32).init(allocator),
         .vertices = std.ArrayList(sdl.Vertex).init(allocator),
+        .depths = std.ArrayList(f32).init(allocator),
     };
 }
 
 pub fn deinit(self: *Self) void {
     self.indices.deinit();
     self.vertices.deinit();
+    self.depths.deinit();
 }
 
 /// Clear mesh data
@@ -31,10 +37,13 @@ pub fn clearVertex(self: *Self, retain_memory: bool) void {
     if (retain_memory) {
         self.indices.clearRetainingCapacity();
         self.vertices.clearRetainingCapacity();
+        self.depths.clearRetainingCapacity();
     } else {
         self.indices.clearAndFree();
         self.vertices.clearAndFree();
+        self.depths.clearAndFree();
     }
+    self.sorted = false;
 }
 
 /// Append vertex data
@@ -50,14 +59,15 @@ pub fn appendVertex(
     cull_faces: bool,
 ) !void {
     if (indices.len == 0) return;
+    assert(@rem(indices.len, 3) == 0);
     const vp = renderer.getViewport();
-    const mv = zmath.mul(model, camera.getViewMatrix());
     const mvp = zmath.mul(model, camera.getViewProjectMatrix());
     const base_index = @intCast(u32, self.vertices.items.len);
     var clipped_indices = std.StaticBitSet(std.math.maxInt(u16)).initEmpty();
 
     // Add vertices
     try self.vertices.ensureTotalCapacity(self.vertices.items.len + positions.len);
+    try self.depths.ensureTotalCapacity(self.vertices.items.len + positions.len);
     for (positions) |pos, i| {
         // Do MVP transforming
         const pos_clip = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1.0), mvp);
@@ -76,8 +86,12 @@ pub fn appendVertex(
             .color = if (colors) |cs| cs[i] else sdl.Color.white,
             .tex_coord = if (texcoords) |tex| .{ .x = tex[i][0], .y = tex[i][1] } else undefined,
         });
+        self.depths.appendAssumeCapacity((1.0 + ndc[3]) / 2.0);
     }
-    errdefer self.vertices.resize(self.vertices.items.len - positions.len) catch unreachable;
+    errdefer {
+        self.vertices.resize(self.vertices.items.len - positions.len) catch unreachable;
+        self.depths.resize(self.vertices.items.len - positions.len) catch unreachable;
+    }
 
     // Add indices
     try self.indices.ensureTotalCapacity(self.indices.items.len + indices.len);
@@ -97,14 +111,14 @@ pub fn appendVertex(
 
         // Ignore triangles facing away from camera
         if (cull_faces) {
-            const v0 = zmath.mul(zmath.f32x4(positions[idx0][0], positions[idx0][1], positions[idx0][2], 1), mv);
-            const v1 = zmath.mul(zmath.f32x4(positions[idx1][0], positions[idx1][1], positions[idx1][2], 1), mv);
-            const v2 = zmath.mul(zmath.f32x4(positions[idx2][0], positions[idx2][1], positions[idx2][2], 1), mv);
-            const v1v0 = v1 - v0;
-            const v2v0 = v2 - v0;
-            const face_dir = zmath.cross3(v1v0, v2v0);
+            const v0 = zmath.mul(zmath.f32x4(positions[idx0][0], positions[idx0][1], positions[idx0][2], 1), model);
+            const v1 = zmath.mul(zmath.f32x4(positions[idx1][0], positions[idx1][1], positions[idx1][2], 1), model);
+            const v2 = zmath.mul(zmath.f32x4(positions[idx2][0], positions[idx2][1], positions[idx2][2], 1), model);
+            const v0v1 = v1 - v0;
+            const v0v2 = v2 - v0;
+            const face_dir = zmath.cross3(v0v2, v0v1);
             const angles = zmath.dot3(face_dir, camera.dir);
-            if (angles[0] > 0) continue;
+            if (angles[0] > 0.1) continue;
         }
 
         // Append indices
@@ -114,10 +128,39 @@ pub fn appendVertex(
             idx2 + base_index,
         });
     }
+
+    self.sorted = false;
+}
+
+/// Sort vertices by depth values
+fn sortVerticesByDepth(self: *Self, lhs: [3]u32, rhs: [3]u32) bool {
+    const d1 = std.math.min3(
+        self.depths.items[lhs[0]],
+        self.depths.items[lhs[1]],
+        self.depths.items[lhs[2]],
+    );
+    const d2 = std.math.min3(
+        self.depths.items[rhs[0]],
+        self.depths.items[rhs[1]],
+        self.depths.items[rhs[2]],
+    );
+    return d1 < d2;
 }
 
 /// Draw the meshes, fill triangles, using texture if possible
-pub fn draw(self: Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
+pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
+    if (!self.sorted) {
+        // Sort triangles by depth
+        const indices = @bitCast([][3]u32, self.indices.items)[0..@divTrunc(self.indices.items.len, 3)];
+        std.sort.sort(
+            [3]u32,
+            indices,
+            self,
+            sortVerticesByDepth,
+        );
+        self.sorted = true;
+    }
+
     try renderer.drawGeometry(
         tex,
         self.vertices.items,
@@ -126,11 +169,7 @@ pub fn draw(self: Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
 }
 
 /// Draw the wireframe
-pub fn drawWireframe(self: Self, renderer: sdl.Renderer, color: sdl.Color) !void {
-    const old_color = try renderer.getColor();
-    defer renderer.setColor(old_color) catch unreachable;
-
-    try renderer.setColor(color);
+pub fn drawWireframe(self: Self, renderer: sdl.Renderer) !void {
     var i: usize = 2;
     while (i < self.indices.items.len) : (i += 3) {
         try renderer.drawLineF(
