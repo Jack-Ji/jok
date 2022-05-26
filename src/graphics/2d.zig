@@ -10,6 +10,9 @@ pub const SpriteSheet = @import("2d/SpriteSheet.zig");
 /// Sprite batch
 pub const SpriteBatch = @import("2d/SpriteBatch.zig");
 
+/// Animation
+pub const Animation = @import("2d/Animation.zig");
+
 /// Particle system
 pub const ParticleSystem = @import("2d/ParticleSystem.zig");
 

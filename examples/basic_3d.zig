@@ -7,6 +7,7 @@ const font = jok.gfx.@"2d".font;
 var camera: gfx.Camera = undefined;
 var renderer: gfx.Renderer = undefined;
 var cube: gfx.zmesh.Shape = undefined;
+var tex: sdl.Texture = undefined;
 
 fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -34,6 +35,12 @@ fn init(ctx: *jok.Context) anyerror!void {
     );
     renderer = gfx.Renderer.init(ctx.default_allocator);
     cube = gfx.zmesh.Shape.initCube();
+    tex = try jok.gfx.utils.createTextureFromFile(
+        ctx.renderer,
+        "assets/images/image5.jpg",
+        .static,
+        false,
+    );
 }
 
 fn loop(ctx: *jok.Context) anyerror!void {
@@ -89,17 +96,27 @@ fn loop(ctx: *jok.Context) anyerror!void {
             gfx.zmath.translation(-0.5, -0.5, -0.5),
             gfx.zmath.mul(
                 gfx.zmath.scaling(0.5, 0.5, 0.5),
-                gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi),
+                //gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi),
+                gfx.zmath.rotationY(0),
             ),
         ),
         &camera,
         cube.indices,
         cube.positions,
         null,
-        null,
+        &[_][2]f32{
+            .{ 0, 1 },
+            .{ 0, 0 },
+            .{ 1, 0 },
+            .{ 1, 1 },
+            .{ 1, 1 },
+            .{ 0, 1 },
+            .{ 0, 0 },
+            .{ 1, 0 },
+        },
         true,
     );
-    try renderer.draw(ctx.renderer, null);
+    try renderer.draw(ctx.renderer, tex);
 
     renderer.clearVertex(true);
     try renderer.appendVertex(

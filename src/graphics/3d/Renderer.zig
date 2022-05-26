@@ -52,14 +52,16 @@ pub fn appendVertex(
     renderer: sdl.Renderer,
     model: zmath.Mat,
     camera: *Camera,
-    indices: []u16,
-    positions: [][3]f32,
-    colors: ?[]sdl.Color,
-    texcoords: ?[][2]f32,
+    indices: []const u16,
+    positions: []const [3]f32,
+    colors: ?[]const sdl.Color,
+    texcoords: ?[]const [2]f32,
     cull_faces: bool,
 ) !void {
-    if (indices.len == 0) return;
     assert(@rem(indices.len, 3) == 0);
+    assert(if (colors) |cs| cs.len == positions.len else true);
+    assert(if (texcoords) |ts| ts.len == positions.len else true);
+    if (indices.len == 0) return;
     const vp = renderer.getViewport();
     const mvp = zmath.mul(model, camera.getViewProjectMatrix());
     const base_index = @intCast(u32, self.vertices.items.len);
@@ -86,7 +88,7 @@ pub fn appendVertex(
             .color = if (colors) |cs| cs[i] else sdl.Color.white,
             .tex_coord = if (texcoords) |tex| .{ .x = tex[i][0], .y = tex[i][1] } else undefined,
         });
-        self.depths.appendAssumeCapacity((1.0 + ndc[3]) / 2.0);
+        self.depths.appendAssumeCapacity((1.0 + ndc[2]) / 2.0);
     }
     errdefer {
         self.vertices.resize(self.vertices.items.len - positions.len) catch unreachable;
@@ -136,16 +138,16 @@ pub fn appendVertex(
             }
         }
 
-        // Ignore triangles facing away from camera
+        // Ignore triangles facing away from camera (front faces' vertices are clock-wise organized)
         if (cull_faces) {
             const v0 = zmath.mul(zmath.f32x4(positions[idx0][0], positions[idx0][1], positions[idx0][2], 1), model);
             const v1 = zmath.mul(zmath.f32x4(positions[idx1][0], positions[idx1][1], positions[idx1][2], 1), model);
             const v2 = zmath.mul(zmath.f32x4(positions[idx2][0], positions[idx2][1], positions[idx2][2], 1), model);
             const v0v1 = v1 - v0;
             const v0v2 = v2 - v0;
-            const face_dir = zmath.cross3(v0v2, v0v1);
+            const face_dir = zmath.cross3(v0v1, v0v2);
             const angles = zmath.dot3(face_dir, camera.dir);
-            if (angles[0] > 0.1) continue;
+            if (angles[0] > 0) continue;
         }
 
         // Append indices
@@ -159,31 +161,23 @@ pub fn appendVertex(
     self.sorted = false;
 }
 
-/// Sort vertices by depth values
-fn sortVerticesByDepth(self: *Self, lhs: [3]u32, rhs: [3]u32) bool {
-    const d1 = std.math.min3(
-        self.depths.items[lhs[0]],
-        self.depths.items[lhs[1]],
-        self.depths.items[lhs[2]],
-    );
-    const d2 = std.math.min3(
-        self.depths.items[rhs[0]],
-        self.depths.items[rhs[1]],
-        self.depths.items[rhs[2]],
-    );
-    return d1 < d2;
+/// Sort triangles by depth values
+fn compareTriangleDepths(self: *Self, lhs: [3]u32, rhs: [3]u32) bool {
+    const d1 = (self.depths.items[lhs[0]] + self.depths.items[lhs[1]] + self.depths.items[lhs[2]]) / 3.0;
+    const d2 = (self.depths.items[rhs[0]] + self.depths.items[rhs[1]] + self.depths.items[rhs[2]]) / 3.0;
+    return d1 > d2;
 }
 
 /// Draw the meshes, fill triangles, using texture if possible
 pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
     if (!self.sorted) {
-        // Sort triangles by depth
+        // Sort triangles by depth, from farthest to closest
         const indices = @bitCast([][3]u32, self.indices.items)[0..@divTrunc(self.indices.items.len, 3)];
         std.sort.sort(
             [3]u32,
             indices,
             self,
-            sortVerticesByDepth,
+            compareTriangleDepths,
         );
         self.sorted = true;
     }
