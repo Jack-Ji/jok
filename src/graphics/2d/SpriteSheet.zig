@@ -406,11 +406,8 @@ pub fn saveToFiles(self: Self, path: []const u8) !void {
     );
 }
 
-/// Create sprite
-pub fn createSprite(
-    self: *Self,
-    name: []const u8,
-) !Sprite {
+/// Get sprite by name
+pub fn getSpriteByName(self: *Self, name: []const u8) !Sprite {
     if (self.getSpriteRect(name)) |rect| {
         return Sprite{
             .width = rect.width,
@@ -424,7 +421,7 @@ pub fn createSprite(
 }
 
 /// Get sprite rectangle by name
-pub fn getSpriteRect(self: Self, name: []const u8) ?SpriteRect {
+inline fn getSpriteRect(self: Self, name: []const u8) ?SpriteRect {
     if (self.search_tree.get(name)) |idx| {
         return self.rects[idx];
     }

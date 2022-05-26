@@ -51,8 +51,8 @@ fn init(ctx: *jok.Context) anyerror!void {
         10000,
     );
     ps = try gfx.ParticleSystem.init(ctx.default_allocator);
-    emitter1.sprite = try sheet.createSprite("particle");
-    emitter2.sprite = try sheet.createSprite("particle");
+    emitter1.sprite = try sheet.getSpriteByName("particle");
+    emitter2.sprite = try sheet.getSpriteByName("particle");
     try ps.addEffect(
         rd.random(),
         8000,

@@ -4,8 +4,7 @@ const sdl = @import("sdl");
 const gfx = jok.gfx.@"2d";
 
 var sheet: *gfx.SpriteSheet = undefined;
-var sprite: gfx.Sprite = undefined;
-var sprite_batch: *gfx.SpriteBatch = undefined;
+var sb: *gfx.SpriteBatch = undefined;
 var camera: gfx.Camera = undefined;
 
 fn init(ctx: *jok.Context) anyerror!void {
@@ -29,8 +28,7 @@ fn init(ctx: *jok.Context) anyerror!void {
     //    ctx.renderer,
     //    "sheet",
     //);
-    sprite = try sheet.createSprite("ogre");
-    sprite_batch = try gfx.SpriteBatch.init(
+    sb = try gfx.SpriteBatch.init(
         ctx.default_allocator,
         10,
         1000,
@@ -77,8 +75,9 @@ fn loop(ctx: *jok.Context) anyerror!void {
         null,
     );
 
-    sprite_batch.begin(.{ .depth_sort = .back_to_forth });
-    try sprite_batch.drawSprite(sprite, .{
+    sb.begin(.{ .depth_sort = .back_to_forth });
+    const sprite = try sheet.getSpriteByName("ogre");
+    try sb.drawSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .camera = camera,
         .scale_w = 2,
@@ -87,7 +86,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
         .flip_v = true,
         //.rotate_degree = @floatCast(f32, ctx.tick) * 30,
     });
-    try sprite_batch.drawSprite(sprite, .{
+    try sb.drawSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .camera = camera,
         .tint_color = sdl.Color.rgb(255, 0, 0),
@@ -97,7 +96,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
         .depth = 0.6,
     });
-    try sprite_batch.end(ctx.renderer);
+    try sb.end(ctx.renderer);
 
     var result = try gfx.font.debugDraw(
         ctx.renderer,
@@ -123,7 +122,7 @@ fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     sheet.deinit();
-    sprite_batch.deinit();
+    sb.deinit();
 }
 
 pub fn main() anyerror!void {

@@ -18,9 +18,11 @@ effects: std.ArrayList(Effect),
 pub fn init(allocator: std.mem.Allocator) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
-    self.allocator = allocator;
-    self.effects = try std.ArrayList(Effect)
-        .initCapacity(allocator, default_effects_capacity);
+    self.* = .{
+        .allocator = allocator,
+        .effects = try std.ArrayList(Effect)
+            .initCapacity(allocator, default_effects_capacity),
+    };
     return self;
 }
 

@@ -10,11 +10,11 @@ pub const SpriteSheet = @import("2d/SpriteSheet.zig");
 /// Sprite batch
 pub const SpriteBatch = @import("2d/SpriteBatch.zig");
 
-/// Animation
-pub const Animation = @import("2d/Animation.zig");
-
 /// Particle system
 pub const ParticleSystem = @import("2d/ParticleSystem.zig");
+
+/// Animation system
+pub const AnimationSystem = @import("2d/AnimationSystem.zig");
 
 /// 2d vector
 pub const Vector = @import("2d/Vector.zig");

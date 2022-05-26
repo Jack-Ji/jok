@@ -18,6 +18,33 @@ uv1: sdl.PointF,
 /// Reference to sprite-sheet
 sheet: *SpriteSheet,
 
+/// Get sub-sprite by offsets/size
+pub fn getSubSprite(
+    self: Self,
+    offset_x: f32,
+    offset_y: f32,
+    width: f32,
+    height: f32,
+) Self {
+    assert(offset_x >= 0 and offset_x < self.width);
+    assert(offset_y >= 0 and offset_y < self.height);
+    assert(width > 0 and width <= self.width - offset_x);
+    assert(height > 0 and height <= self.height - offset_y);
+    return .{
+        .width = width,
+        .height = height,
+        .uv0 = .{
+            .x = self.uv0.x + (self.uv1.x - self.uv0.x) * offset_x / self.width,
+            .y = self.uv0.y + (self.uv1.y - self.uv0.y) * offset_y / self.height,
+        },
+        .uv1 = .{
+            .x = self.uv0.x + (self.uv1.x - self.uv0.x) * (offset_x + width) / self.width,
+            .y = self.uv0.y + (self.uv1.y - self.uv0.y) * (offset_y + height) / self.height,
+        },
+        .sheet = self.sheet,
+    };
+}
+
 /// Sprite's drawing params
 pub const DrawOption = struct {
     /// Position of sprite

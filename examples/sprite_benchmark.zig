@@ -10,7 +10,7 @@ const Actor = struct {
 };
 
 var sheet: *gfx.SpriteSheet = undefined;
-var sprite_batch: *gfx.SpriteBatch = undefined;
+var sb: *gfx.SpriteBatch = undefined;
 var characters: std.ArrayList(Actor) = undefined;
 var rand_gen: std.rand.DefaultPrng = undefined;
 var delta_tick: f32 = 0;
@@ -38,7 +38,7 @@ fn init(ctx: *jok.Context) anyerror!void {
         1,
         false,
     );
-    sprite_batch = try gfx.SpriteBatch.init(
+    sb = try gfx.SpriteBatch.init(
         ctx.default_allocator,
         10,
         1000000,
@@ -81,7 +81,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
                             while (i < 1000) : (i += 1) {
                                 const angle = rd.float(f32) * 2 * std.math.pi;
                                 try characters.append(.{
-                                    .sprite = try sheet.createSprite("ogre"),
+                                    .sprite = try sheet.getSpriteByName("ogre"),
                                     .pos = pos,
                                     .velocity = .{
                                         .x = 300 * @cos(angle),
@@ -115,13 +115,13 @@ fn loop(ctx: *jok.Context) anyerror!void {
     }
 
     try ctx.renderer.clear();
-    sprite_batch.begin(.{});
+    sb.begin(.{});
     for (characters.items) |c| {
-        try sprite_batch.drawSprite(c.sprite, .{
+        try sb.drawSprite(c.sprite, .{
             .pos = c.pos,
         });
     }
-    try sprite_batch.end(ctx.renderer);
+    try sb.end(ctx.renderer);
 
     _ = try gfx.font.debugDraw(
         ctx.renderer,
@@ -135,7 +135,7 @@ fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     sheet.deinit();
-    sprite_batch.deinit();
+    sb.deinit();
     characters.deinit();
 }
 
