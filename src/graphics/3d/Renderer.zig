@@ -164,7 +164,11 @@ pub fn appendVertex(
 }
 
 /// Test whether a triangle is outside of clipping space
-/// Using Seperating Axis Therom (aka SAT) algorithm
+/// Using Seperating Axis Therom (aka SAT) algorithm. There are 13 axes 
+/// that must be considered for projection:
+/// 1. Nine axes given by the cross products of combination of edges from both
+/// 2. Three face normals from the AABB
+/// 3. One face normal from the triangle
 inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
     const S = struct {
         // Face normals of the AABB, which is our clipping space [-1, 1]
@@ -181,16 +185,11 @@ inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
 
             // Project the AABB onto the seperating axis
             const r = @fabs(zmath.dot3(n0, axis)[0]) +
-                @fabs(zmath.dot3(n1, axis)[0]) + @fabs(zmath.dot3(n2, axis)[0]);
+                      @fabs(zmath.dot3(n1, axis)[0]) +
+                      @fabs(zmath.dot3(n2, axis)[0]);
 
-            // Now do the actual test, basically see if either of
-            // the most extreme of the triangle points intersects r
-            if (math.max(-math.max3(p0, p1, p2), math.min3(p0, p1, p2)) > r) {
-                // This means BOTH of the points of the projected triangle
-                // are outside the projected half-length of the AABB
-                return true;
-            }
-            return false;
+            // TODO Probably something wrong here, following comparison is opposite to textbook!
+            return math.max(-math.max3(p0, p1, p2), math.min3(p0, p1, p2)) <= r;
         }
     };
 
@@ -203,17 +202,15 @@ inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
     // We first test against 9 axis, these axis are given by
     // cross product combinations of the edges of the triangle
     // and the edges of the AABB.
-    const axis_n0_f0 = zmath.normalize3(zmath.cross3(S.n0, f0));
-    const axis_n0_f1 = zmath.normalize3(zmath.cross3(S.n0, f1));
-    const axis_n0_f2 = zmath.normalize3(zmath.cross3(S.n0, f2));
-    const axis_n1_f0 = zmath.normalize3(zmath.cross3(S.n1, f0));
-    const axis_n1_f1 = zmath.normalize3(zmath.cross3(S.n1, f1));
-    const axis_n1_f2 = zmath.normalize3(zmath.cross3(S.n1, f2));
-    const axis_n2_f0 = zmath.normalize3(zmath.cross3(S.n2, f0));
-    const axis_n2_f1 = zmath.normalize3(zmath.cross3(S.n2, f1));
-    const axis_n2_f2 = zmath.normalize3(zmath.cross3(S.n2, f2));
-
-    // Testing axises
+    const axis_n0_f0 = zmath.cross3(S.n0, f0);
+    const axis_n0_f1 = zmath.cross3(S.n0, f1);
+    const axis_n0_f2 = zmath.cross3(S.n0, f2);
+    const axis_n1_f0 = zmath.cross3(S.n1, f0);
+    const axis_n1_f1 = zmath.cross3(S.n1, f1);
+    const axis_n1_f2 = zmath.cross3(S.n1, f2);
+    const axis_n2_f0 = zmath.cross3(S.n2, f0);
+    const axis_n2_f1 = zmath.cross3(S.n2, f1);
+    const axis_n2_f2 = zmath.cross3(S.n2, f2);
     if (S.checkAxis(axis_n0_f0, v0, v1, v2)) return true;
     if (S.checkAxis(axis_n0_f1, v0, v1, v2)) return true;
     if (S.checkAxis(axis_n0_f2, v0, v1, v2)) return true;
@@ -227,15 +224,14 @@ inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
     // Next, we have 3 face normals from the AABB
     // for these tests we are conceptually checking if the bounding box
     // of the triangle intersects the bounding box of the AABB
-    if (S.checkAxis(S.n0, v0, v1, v2)) return true;
-    if (S.checkAxis(S.n1, v0, v1, v2)) return true;
-    if (S.checkAxis(S.n2, v0, v1, v2)) return true;
+    if (math.max3(v0[0], v1[0], v2[0]) < -1 or math.min3(v0[0], v1[0], v2[0]) > 1) return true;
+    if (math.max3(v0[1], v1[1], v2[1]) < -1 or math.min3(v0[1], v1[1], v2[1]) > 1) return true;
+    if (math.max3(v0[2], v1[2], v2[2]) < -1 or math.min3(v0[2], v1[2], v2[2]) > 1) return true;
 
-    // Finally, we have one last axis to test, the face normal of the triangle
-    // We can get the normal of the triangle by crossing the first two line segments
-    if (S.checkAxis(zmath.normalize3(zmath.cross3(f0, f1)), v0, v1, v2)) return true;
-
-    return false;
+    // Finally, test if AABB intersects triangle plane
+    const plane_n = zmath.normalize3(zmath.cross3(f0, f1));
+    const r = @fabs(plane_n[0]) + @fabs(plane_n[1]) + @fabs(plane_n[2]);
+    return @fabs(zmath.dot3(plane_n, v0)[0]) > r;
 }
 
 /// Sort triangles by depth values

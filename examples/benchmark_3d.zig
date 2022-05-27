@@ -48,7 +48,7 @@ fn init(ctx: *jok.Context) anyerror!void {
     translations = std.ArrayList(gfx.zmath.Mat).init(ctx.default_allocator);
     rotation_axises = std.ArrayList(gfx.zmath.Vec).init(ctx.default_allocator);
     var i: u32 = 0;
-    while (i < 1000) : (i += 1) {
+    while (i < 10000) : (i += 1) {
         try translations.append(gfx.zmath.translation(
             -5 + rng.random().float(f32) * 10,
             -5 + rng.random().float(f32) * 10,
