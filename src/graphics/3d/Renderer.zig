@@ -169,6 +169,7 @@ pub fn appendVertex(
 /// 1. Nine axes given by the cross products of combination of edges from both
 /// 2. Three face normals from the AABB
 /// 3. One face normal from the triangle
+/// TODO Need more investigation, it deson't work
 inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
     const S = struct {
         // Face normals of the AABB, which is our clipping space [-1, 1]
@@ -188,8 +189,7 @@ inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
                       @fabs(zmath.dot3(n1, axis)[0]) +
                       @fabs(zmath.dot3(n2, axis)[0]);
 
-            // TODO Probably something wrong here, following comparison is opposite to textbook!
-            return math.max(-math.max3(p0, p1, p2), math.min3(p0, p1, p2)) <= r;
+            return math.max(-math.max3(p0, p1, p2), math.min3(p0, p1, p2)) > r;
         }
     };
 
