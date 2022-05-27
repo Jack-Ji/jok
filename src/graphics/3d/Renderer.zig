@@ -65,7 +65,7 @@ pub fn appendVertex(
     const vp = renderer.getViewport();
     const mvp = zmath.mul(model, camera.getViewProjectMatrix());
     const base_index = @intCast(u32, self.vertices.items.len);
-    var clipped_indices = std.StaticBitSet(std.math.maxInt(u16)).initEmpty();
+    var clipped_indices = std.StaticBitSet(math.maxInt(u16)).initEmpty();
 
     // Add vertices
     try self.vertices.ensureTotalCapacity(self.vertices.items.len + positions.len);
@@ -80,15 +80,19 @@ pub fn appendVertex(
         {
             clipped_indices.set(i);
         }
+        const pos_screen = zmath.mul(ndc, zmath.loadMat43(&[_]f32{
+            // zig fmt: off
+            0.5 * @intToFloat(f32, vp.width), 1.0, 0.0,
+            0.0, -0.5 * @intToFloat(f32, vp.height), 0.0,
+            0.0, 0.0, 0.5,
+            0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height), 0.5,
+        }));
         self.vertices.appendAssumeCapacity(.{
-            .position = .{
-                .x = (1.0 + ndc[0]) * @intToFloat(f32, vp.width) / 2.0,
-                .y = @intToFloat(f32, vp.height) - (1.0 + ndc[1]) * @intToFloat(f32, vp.height) / 2.0,
-            },
+            .position = .{ .x = pos_screen[0], .y = pos_screen[1] },
             .color = if (colors) |cs| cs[i] else sdl.Color.white,
             .tex_coord = if (texcoords) |tex| .{ .x = tex[i][0], .y = tex[i][1] } else undefined,
         });
-        self.depths.appendAssumeCapacity((1.0 + ndc[2]) / 2.0);
+        self.depths.appendAssumeCapacity(pos_screen[2]);
     }
     errdefer {
         self.vertices.resize(self.vertices.items.len - positions.len) catch unreachable;
@@ -103,7 +107,7 @@ pub fn appendVertex(
         const idx1 = indices[i - 1];
         const idx2 = indices[i];
 
-        // Ignore triangles completely outside of clip space
+        // Ignore triangles outside of clip space
         if (clipped_indices.isSet(idx0) and
             clipped_indices.isSet(idx1) and
             clipped_indices.isSet(idx2))
@@ -129,10 +133,7 @@ pub fn appendVertex(
                 1.0,
             ), mvp);
             const ndc2 = pos_clip2 / zmath.splat(zmath.Vec, pos_clip2[3]);
-            if ((ndc0[0] < -1 and ndc1[0] < -1 and ndc2[0] < -1) or
-                (ndc0[1] < -1 and ndc1[1] < -1 and ndc2[1] < -1) or
-                (ndc0[2] < -1 and ndc1[2] < -1 and ndc2[2] < -1))
-            {
+            if (isTriangleOutside(ndc0, ndc1, ndc2)) {
                 continue;
             }
         }
@@ -146,7 +147,7 @@ pub fn appendVertex(
             const v0v1 = v1 - v0;
             const v0v2 = v2 - v0;
             const face_dir = zmath.normalize3(zmath.cross3(v0v1, v0v2));
-            const camera_dir = center - camera.position;
+            const camera_dir = zmath.normalize3(center - camera.position);
             const angles = zmath.dot3(face_dir, camera_dir);
             if (angles[0] >= 0) continue;
         }
@@ -160,6 +161,81 @@ pub fn appendVertex(
     }
 
     self.sorted = false;
+}
+
+/// Test whether a triangle is outside of clipping space
+/// Using Seperating Axis Therom (aka SAT) algorithm
+inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
+    const S = struct {
+        // Face normals of the AABB, which is our clipping space [-1, 1]
+        const n0 = @"3d".v_right;
+        const n1 = @"3d".v_up;
+        const n2 = @"3d".v_forward;
+
+        // Testing axis
+        inline fn checkAxis(axis: zmath.Vec, _v0: zmath.Vec, _v1: zmath.Vec, _v2: zmath.Vec) bool {
+            // Project all 3 vertices of the triangle onto the Seperating axis
+            const p0 = zmath.dot3(_v0, axis)[0];
+            const p1 = zmath.dot3(_v1, axis)[0];
+            const p2 = zmath.dot3(_v2, axis)[0];
+
+            // Project the AABB onto the seperating axis
+            const r = @fabs(zmath.dot3(n0, axis)[0]) +
+                @fabs(zmath.dot3(n1, axis)[0]) + @fabs(zmath.dot3(n2, axis)[0]);
+
+            // Now do the actual test, basically see if either of
+            // the most extreme of the triangle points intersects r
+            if (math.max(-math.max3(p0, p1, p2), math.min3(p0, p1, p2)) > r) {
+                // This means BOTH of the points of the projected triangle
+                // are outside the projected half-length of the AABB
+                return true;
+            }
+            return false;
+        }
+    };
+
+    // Compute the edge vectors of the triangle  (ABC)
+    // That is, get the lines between the points as vectors
+    const f0 = v1 - v0;
+    const f1 = v2 - v1;
+    const f2 = v0 - v2;
+
+    // We first test against 9 axis, these axis are given by
+    // cross product combinations of the edges of the triangle
+    // and the edges of the AABB.
+    const axis_n0_f0 = zmath.normalize3(zmath.cross3(S.n0, f0));
+    const axis_n0_f1 = zmath.normalize3(zmath.cross3(S.n0, f1));
+    const axis_n0_f2 = zmath.normalize3(zmath.cross3(S.n0, f2));
+    const axis_n1_f0 = zmath.normalize3(zmath.cross3(S.n1, f0));
+    const axis_n1_f1 = zmath.normalize3(zmath.cross3(S.n1, f1));
+    const axis_n1_f2 = zmath.normalize3(zmath.cross3(S.n1, f2));
+    const axis_n2_f0 = zmath.normalize3(zmath.cross3(S.n2, f0));
+    const axis_n2_f1 = zmath.normalize3(zmath.cross3(S.n2, f1));
+    const axis_n2_f2 = zmath.normalize3(zmath.cross3(S.n2, f2));
+
+    // Testing axises
+    if (S.checkAxis(axis_n0_f0, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n0_f1, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n0_f2, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n1_f0, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n1_f1, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n1_f2, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n2_f0, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n2_f1, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n2_f2, v0, v1, v2)) return true;
+
+    // Next, we have 3 face normals from the AABB
+    // for these tests we are conceptually checking if the bounding box
+    // of the triangle intersects the bounding box of the AABB
+    if (S.checkAxis(S.n0, v0, v1, v2)) return true;
+    if (S.checkAxis(S.n1, v0, v1, v2)) return true;
+    if (S.checkAxis(S.n2, v0, v1, v2)) return true;
+
+    // Finally, we have one last axis to test, the face normal of the triangle
+    // We can get the normal of the triangle by crossing the first two line segments
+    if (S.checkAxis(zmath.normalize3(zmath.cross3(f0, f1)), v0, v1, v2)) return true;
+
+    return false;
 }
 
 /// Sort triangles by depth values

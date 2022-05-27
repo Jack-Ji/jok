@@ -29,8 +29,8 @@ fn init(ctx: *jok.Context) anyerror!void {
                 .far = 100,
             },
         },
-        gfx.zmath.f32x4(0, 1, -2, 1),
-        gfx.zmath.f32x4(0, 0, 0, 0),
+        [_]f32{ 0, 1, -2 },
+        [_]f32{ 0, 0, 0 },
         null,
     );
     renderer = gfx.Renderer.init(ctx.default_allocator);

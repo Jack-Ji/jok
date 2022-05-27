@@ -55,13 +55,12 @@ yaw: f32 = undefined,
 roll: f32 = undefined,
 
 /// Create a camera using position and target
-pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: zmath.Vec, target: zmath.Vec, world_up: ?zmath.Vec) Self {
-    assert(pos[3] == 1);
+pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: [3]f32, target: [3]f32, world_up: ?[3]f32) Self {
     var camera: Self = .{};
     camera.frustrum = frustrum;
-    camera.world_up = zmath.normalize3(world_up orelse @"3d".v_up);
-    camera.position = pos;
-    camera.dir = zmath.normalize3(target - pos);
+    camera.world_up = zmath.normalize3(if (world_up) |up| zmath.f32x4(up[0], up[1], up[2], 1.0) else @"3d".v_up);
+    camera.position = zmath.f32x4(pos[0], pos[1], pos[2], 1.0);
+    camera.dir = zmath.normalize3(zmath.f32x4(target[0], target[1], target[2], 1.0) - camera.position);
     camera.right = zmath.normalize3(zmath.cross3(camera.world_up, camera.dir));
     camera.up = zmath.normalize3(zmath.cross3(camera.dir, camera.right));
 
@@ -87,12 +86,11 @@ pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: zmath.Vec, target: zma
 }
 
 /// Create a 3d camera using position and euler angle (in degrees)
-pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: zmath.Vec, pitch: f32, yaw: f32, world_up: ?zmath.Vec) Self {
-    assert(pos[3] == 1);
+pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: [3]f32, pitch: f32, yaw: f32, world_up: ?[3]f32) Self {
     var camera: Self = .{};
     camera.frustrum = frustrum;
-    camera.world_up = zmath.normalize3(world_up orelse @"3d".v_up);
-    camera.position = pos;
+    camera.position = zmath.f32x4(pos[0], pos[1], pos[2], 1.0);
+    camera.world_up = zmath.normalize3(if (world_up) |up| zmath.f32x4(up[0], up[1], up[2], 1.0) else @"3d".v_up);
     camera.pitch = pitch;
     camera.yaw = yaw;
     camera.roll = 0;
