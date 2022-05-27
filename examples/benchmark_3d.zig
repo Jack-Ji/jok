@@ -8,6 +8,8 @@ var camera: gfx.Camera = undefined;
 var renderer: gfx.Renderer = undefined;
 var cube: gfx.zmesh.Shape = undefined;
 var tex: sdl.Texture = undefined;
+var translations: std.ArrayList(gfx.zmath.Mat) = undefined;
+var rotation_axises: std.ArrayList(gfx.zmath.Vec) = undefined;
 
 fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -29,7 +31,7 @@ fn init(ctx: *jok.Context) anyerror!void {
                 .far = 100,
             },
         },
-        gfx.zmath.f32x4(0, 1, -2, 1),
+        gfx.zmath.f32x4(8, 9, -9, 1),
         gfx.zmath.f32x4(0, 0, 0, 0),
         null,
     );
@@ -41,6 +43,24 @@ fn init(ctx: *jok.Context) anyerror!void {
         .static,
         false,
     );
+
+    var rng = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
+    translations = std.ArrayList(gfx.zmath.Mat).init(ctx.default_allocator);
+    rotation_axises = std.ArrayList(gfx.zmath.Vec).init(ctx.default_allocator);
+    var i: u32 = 0;
+    while (i < 2) : (i += 1) {
+        try translations.append(gfx.zmath.translation(
+            -5 + rng.random().float(f32) * 10,
+            -5 + rng.random().float(f32) * 10,
+            -5 + rng.random().float(f32) * 10,
+        ));
+        try rotation_axises.append(gfx.zmath.f32x4(
+            -1 + rng.random().float(f32) * 2,
+            -1 + rng.random().float(f32) * 2,
+            -1 + rng.random().float(f32) * 2,
+            0,
+        ));
+    }
 }
 
 fn loop(ctx: *jok.Context) anyerror!void {
@@ -90,66 +110,43 @@ fn loop(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.clear();
 
     renderer.clearVertex(true);
-    try renderer.appendVertex(
-        ctx.renderer,
-        gfx.zmath.mul(
-            gfx.zmath.translation(-0.5, -0.5, -0.5),
+    for (translations.items) |tr, i| {
+        try renderer.appendVertex(
+            ctx.renderer,
             gfx.zmath.mul(
-                gfx.zmath.scaling(0.5, 0.5, 0.5),
-                //gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi),
-                gfx.zmath.rotationY(0),
+                gfx.zmath.translation(-0.5, -0.5, -0.5),
+                gfx.zmath.mul(
+                    gfx.zmath.mul(
+                        gfx.zmath.scaling(0.1, 0.1, 0.1),
+                        gfx.zmath.matFromAxisAngle(rotation_axises.items[i], std.math.pi / 3.0 * @floatCast(f32, ctx.tick)),
+                    ),
+                    tr,
+                ),
             ),
-        ),
-        &camera,
-        cube.indices,
-        cube.positions,
-        null,
-        &[_][2]f32{
-            .{ 0, 1 },
-            .{ 0, 0 },
-            .{ 1, 0 },
-            .{ 1, 1 },
-            .{ 1, 1 },
-            .{ 0, 1 },
-            .{ 0, 0 },
-            .{ 1, 0 },
-        },
-        true,
-    );
+            &camera,
+            cube.indices,
+            cube.positions,
+            null,
+            &[_][2]f32{
+                .{ 0, 1 },
+                .{ 0, 0 },
+                .{ 1, 0 },
+                .{ 1, 1 },
+                .{ 1, 1 },
+                .{ 0, 1 },
+                .{ 0, 0 },
+                .{ 1, 0 },
+            },
+            true,
+        );
+    }
     try renderer.draw(ctx.renderer, tex);
-
-    renderer.clearVertex(true);
-    try renderer.appendVertex(
-        ctx.renderer,
-        gfx.zmath.mul(
-            gfx.zmath.translation(-0.5, -0.5, -0.5),
-            gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi / 3.0),
-        ),
-        &camera,
-        cube.indices,
-        cube.positions,
-        null,
-        null,
-        false,
-    );
-    try ctx.renderer.setColor(sdl.Color.green);
-    try renderer.drawWireframe(ctx.renderer);
 
     _ = try font.debugDraw(
         ctx.renderer,
         .{ .pos = .{ .x = 200, .y = 10 } },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
-    );
-    _ = try font.debugDraw(
-        ctx.renderer,
-        .{ .pos = .{ .x = 200, .y = 28 } },
-        "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
-        .{
-            // zig fmt: off
-            camera.position[0],camera.position[1],camera.position[2],
-            camera.dir[0],camera.dir[1],camera.dir[2],
-        },
     );
 }
 
@@ -160,6 +157,8 @@ fn quit(ctx: *jok.Context) void {
     cube.deinit();
     gfx.zmesh.deinit();
     renderer.deinit();
+    translations.deinit();
+    rotation_axises.deinit();
 }
 
 pub fn main() anyerror!void {

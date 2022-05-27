@@ -103,7 +103,7 @@ pub fn appendVertex(
         const idx1 = indices[i - 1];
         const idx2 = indices[i];
 
-        // Ignore triangles whose center is outside of clip space
+        // Ignore triangles completely outside of clip space
         if (clipped_indices.isSet(idx0) and
             clipped_indices.isSet(idx1) and
             clipped_indices.isSet(idx2))
@@ -129,10 +129,9 @@ pub fn appendVertex(
                 1.0,
             ), mvp);
             const ndc2 = pos_clip2 / zmath.splat(zmath.Vec, pos_clip2[3]);
-            const center_ndc = (ndc0 + ndc1 + ndc2) / zmath.splat(zmath.Vec, 3.0);
-            if ((center_ndc[0] < -1 or center_ndc[0] > 1) or
-                (center_ndc[1] < -1 or center_ndc[1] > 1) or
-                (center_ndc[2] < -1 or center_ndc[2] > 1))
+            if ((ndc0[0] < -1 and ndc1[0] < -1 and ndc2[0] < -1) or
+                (ndc0[1] < -1 and ndc1[1] < -1 and ndc2[1] < -1) or
+                (ndc0[2] < -1 and ndc1[2] < -1 and ndc2[2] < -1))
             {
                 continue;
             }
@@ -143,11 +142,13 @@ pub fn appendVertex(
             const v0 = zmath.mul(zmath.f32x4(positions[idx0][0], positions[idx0][1], positions[idx0][2], 1), model);
             const v1 = zmath.mul(zmath.f32x4(positions[idx1][0], positions[idx1][1], positions[idx1][2], 1), model);
             const v2 = zmath.mul(zmath.f32x4(positions[idx2][0], positions[idx2][1], positions[idx2][2], 1), model);
+            const center = (v0 + v1 + v2) / zmath.splat(zmath.Vec, 3.0);
             const v0v1 = v1 - v0;
             const v0v2 = v2 - v0;
-            const face_dir = zmath.cross3(v0v1, v0v2);
-            const angles = zmath.dot3(face_dir, camera.dir);
-            if (angles[0] > 0) continue;
+            const face_dir = zmath.normalize3(zmath.cross3(v0v1, v0v2));
+            const camera_dir = center - camera.position;
+            const angles = zmath.dot3(face_dir, camera_dir);
+            if (angles[0] >= 0) continue;
         }
 
         // Append indices

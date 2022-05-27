@@ -26,6 +26,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "sprite_benchmark", .opt = .{} },
         .{ .name = "font_demo", .opt = .{} },
         .{ .name = "basic_3d", .opt = .{ .link_zmesh = true } },
+        .{ .name = "benchmark_3d", .opt = .{ .link_zmesh = true } },
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |demo| {
