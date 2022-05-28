@@ -99,7 +99,7 @@ pub fn link(exe: *std.build.LibExeObjStep, opt: BuildOptions) void {
     // Add package
     exe.addPackage(.{
         .name = "jok",
-        .path = .{ .path = comptime thisDir() ++ "/src/jok.zig" },
+        .source = .{ .path = comptime thisDir() ++ "/src/jok.zig" },
         .dependencies = &[_]std.build.Pkg{
             sdl.getWrapperPackage("sdl"),
         },
