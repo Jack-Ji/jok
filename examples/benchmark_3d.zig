@@ -7,6 +7,7 @@ const font = jok.gfx.@"2d".font;
 var camera: gfx.Camera = undefined;
 var renderer: gfx.Renderer = undefined;
 var cube: gfx.zmesh.Shape = undefined;
+var aabb: [6]f32 = undefined;
 var tex: sdl.Texture = undefined;
 var translations: std.ArrayList(gfx.zmath.Mat) = undefined;
 var rotation_axises: std.ArrayList(gfx.zmath.Vec) = undefined;
@@ -37,6 +38,7 @@ fn init(ctx: *jok.Context) anyerror!void {
     );
     renderer = gfx.Renderer.init(ctx.default_allocator);
     cube = gfx.zmesh.Shape.initCube();
+    cube.computeAabb(&aabb);
     tex = try jok.gfx.utils.createTextureFromFile(
         ctx.renderer,
         "assets/images/image5.jpg",
@@ -137,7 +139,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
                 .{ 0, 0 },
                 .{ 1, 0 },
             },
-            true,
+            .{ .aabb = aabb, .cull_faces = true },
         );
     }
     try renderer.draw(ctx.renderer, tex);

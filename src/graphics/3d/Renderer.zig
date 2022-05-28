@@ -46,6 +46,12 @@ pub fn clearVertex(self: *Self, retain_memory: bool) void {
     self.sorted = false;
 }
 
+/// Advanced vertice appending options
+pub const AppendOption = struct {
+    aabb: ?[6]f32 = null,
+    cull_faces: bool = true,
+};
+
 /// Append vertex data
 pub fn appendVertex(
     self: *Self,
@@ -56,7 +62,7 @@ pub fn appendVertex(
     positions: []const [3]f32,
     colors: ?[]const sdl.Color,
     texcoords: ?[]const [2]f32,
-    cull_faces: bool,
+    opt: AppendOption,
 ) !void {
     assert(@rem(indices.len, 3) == 0);
     assert(if (colors) |cs| cs.len == positions.len else true);
@@ -66,6 +72,33 @@ pub fn appendVertex(
     const mvp = zmath.mul(model, camera.getViewProjectMatrix());
     const base_index = @intCast(u32, self.vertices.items.len);
     var clipped_indices = std.StaticBitSet(math.maxInt(u16)).initEmpty();
+
+    // Do early clipping with aabb if possible
+    if (opt.aabb) |ab| {
+        const width = ab[3] - ab[0];
+        const length = ab[5] - ab[2];
+        assert(width > 0);
+        assert(length > 0);
+        const v0 = zmath.f32x4(ab[0], ab[1], ab[2], 1.0);
+        const v1 = zmath.f32x4(ab[0], ab[1], ab[2] + length, 1.0);
+        const v2 = zmath.f32x4(ab[0] + width, ab[1], ab[2] + length, 1.0);
+        const v3 = zmath.f32x4(ab[0] + width, ab[1], ab[2], 1.0);
+        const v4 = zmath.f32x4(ab[3] - width, ab[4], ab[5] - length, 1.0);
+        const v5 = zmath.f32x4(ab[3] - width, ab[4], ab[5], 1.0);
+        const v6 = zmath.f32x4(ab[3], ab[4], ab[5], 1.0);
+        const v7 = zmath.f32x4(ab[3], ab[4], ab[5] - length, 1.0);
+        const obb = [_]zmath.Vec{
+            zmath.mul(v0, mvp),
+            zmath.mul(v1, mvp),
+            zmath.mul(v2, mvp),
+            zmath.mul(v3, mvp),
+            zmath.mul(v4, mvp),
+            zmath.mul(v5, mvp),
+            zmath.mul(v6, mvp),
+            zmath.mul(v7, mvp),
+        };
+        if (isOBBOutside(&obb)) return;
+    }
 
     // Add vertices
     try self.vertices.ensureTotalCapacity(self.vertices.items.len + positions.len);
@@ -130,7 +163,7 @@ pub fn appendVertex(
         }
 
         // Ignore triangles facing away from camera (front faces' vertices are clock-wise organized)
-        if (cull_faces) {
+        if (opt.cull_faces) {
             const v0 = zmath.mul(zmath.f32x4(positions[idx0][0], positions[idx0][1], positions[idx0][2], 1), model);
             const v1 = zmath.mul(zmath.f32x4(positions[idx1][0], positions[idx1][1], positions[idx1][2], 1), model);
             const v2 = zmath.mul(zmath.f32x4(positions[idx2][0], positions[idx2][1], positions[idx2][2], 1), model);
@@ -154,7 +187,51 @@ pub fn appendVertex(
     self.sorted = false;
 }
 
-/// Test whether a triangle is outside of clipping space
+/// Test whether an OBB (oriented AABB) is outside of clipping space.
+/// Algorithm description: We simply test whether all vertices is 
+/// outside of clipping space, the method will report some very close
+/// OBBs as inside, but it's fast.
+fn isOBBOutside(obb: []const zmath.Vec) bool {
+    assert(obb.len == 8);
+
+    // Get extents of AABB (our clipping space)
+    const es = zmath.f32x8(
+        obb[0][3], obb[1][3], obb[2][3], obb[3][3],
+        obb[4][3], obb[5][3], obb[6][3], obb[7][3],
+    );
+    const e = @reduce(.Max, es);
+
+    // test x coordinate
+    const xs = zmath.f32x8(
+        obb[0][0], obb[1][0], obb[2][0], obb[3][0],
+        obb[4][0], obb[5][0], obb[6][0], obb[7][0],
+    );
+    if (@reduce(.Min, xs) > e or @reduce(.Max, xs) < -e) {
+        return true;
+    }
+   
+    // test y coordinate
+    const ys = zmath.f32x8(
+        obb[0][1], obb[1][1], obb[2][1], obb[3][1],
+        obb[4][1], obb[5][1], obb[6][1], obb[7][1],
+    );
+    if (@reduce(.Min, ys) > e or @reduce(.Max, ys) < -e) {
+        return true;
+    }
+   
+    // test z coordinate
+    const zs = zmath.f32x8(
+        obb[0][2], obb[1][2], obb[2][2], obb[3][2],
+        obb[4][2], obb[5][2], obb[6][2], obb[7][2],
+    );
+    if (@reduce(.Min, zs) > e or @reduce(.Max, zs) < -e) {
+        return true;
+    }
+
+    return false;
+}
+
+/// Test whether a triangle is outside of clipping space.
 /// Using Seperating Axis Therom (aka SAT) algorithm. There are 13 axes 
 /// that must be considered for projection:
 /// 1. Nine axes given by the cross products of combination of edges from both
@@ -191,10 +268,10 @@ fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
         }
     };
 
-    // Get AABB extents
-    const e0 = v0[3];
-    const e1 = v1[3];
-    const e2 = v2[3];
+    // Get extents of AABB (our clipping space)
+    const e0 = math.max3(v0[3], v1[3], v2[3]);
+    const e1 = e0;
+    const e2 = e0;
 
     // Compute the edge vectors of the triangle  (ABC)
     // That is, get the lines between the points as vectors
