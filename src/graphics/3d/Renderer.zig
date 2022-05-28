@@ -73,13 +73,13 @@ pub fn appendVertex(
     for (positions) |pos, i| {
         // Do MVP transforming
         const pos_clip = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1.0), mvp);
-        const ndc = pos_clip / zmath.splat(zmath.Vec, pos_clip[3]);
-        if ((ndc[0] < -1 or ndc[0] > 1) or
-            (ndc[1] < -1 or ndc[1] > 1) or
-            (ndc[2] < -1 or ndc[2] > 1))
+        if ((pos_clip[0] < -pos_clip[3] or pos_clip[0] > pos_clip[3]) or
+            (pos_clip[1] < -pos_clip[3] or pos_clip[1] > pos_clip[3]) or
+            (pos_clip[2] < -pos_clip[3] or pos_clip[2] > pos_clip[3]))
         {
             clipped_indices.set(i);
         }
+        const ndc = pos_clip / zmath.splat(zmath.Vec, pos_clip[3]);
         const pos_screen = zmath.mul(ndc, zmath.loadMat43(&[_]f32{
             // zig fmt: off
             0.5 * @intToFloat(f32, vp.width), 1.0, 0.0,
@@ -113,27 +113,18 @@ pub fn appendVertex(
             clipped_indices.isSet(idx2))
         {
             const pos_clip0 = zmath.mul(zmath.f32x4(
-                positions[idx0][0],
-                positions[idx0][1],
-                positions[idx0][2],
-                1.0,
+                positions[idx0][0], positions[idx0][1],
+                positions[idx0][2], 1.0,
             ), mvp);
-            const ndc0 = pos_clip0 / zmath.splat(zmath.Vec, pos_clip0[3]);
             const pos_clip1 = zmath.mul(zmath.f32x4(
-                positions[idx1][0],
-                positions[idx1][1],
-                positions[idx1][2],
-                1.0,
+                positions[idx1][0], positions[idx1][1],
+                positions[idx1][2], 1.0,
             ), mvp);
-            const ndc1 = pos_clip1 / zmath.splat(zmath.Vec, pos_clip1[3]);
             const pos_clip2 = zmath.mul(zmath.f32x4(
-                positions[idx2][0],
-                positions[idx2][1],
-                positions[idx2][2],
-                1.0,
+                positions[idx2][0], positions[idx2][1],
+                positions[idx2][2], 1.0,
             ), mvp);
-            const ndc2 = pos_clip2 / zmath.splat(zmath.Vec, pos_clip2[3]);
-            if (isTriangleOutside(ndc0, ndc1, ndc2)) {
+            if (isTriangleOutside(pos_clip0, pos_clip1, pos_clip2)) {
                 continue;
             }
         }
@@ -169,8 +160,7 @@ pub fn appendVertex(
 /// 1. Nine axes given by the cross products of combination of edges from both
 /// 2. Three face normals from the AABB
 /// 3. One face normal from the triangle
-/// TODO Need more investigation, it deson't work
-inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
+fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
     const S = struct {
         // Face normals of the AABB, which is our clipping space [-1, 1]
         const n0 = @"3d".v_right;
@@ -178,20 +168,33 @@ inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
         const n2 = @"3d".v_forward;
 
         // Testing axis
-        inline fn checkAxis(axis: zmath.Vec, _v0: zmath.Vec, _v1: zmath.Vec, _v2: zmath.Vec) bool {
+        inline fn checkAxis(
+            axis: zmath.Vec,
+            e0: f32,
+            e1: f32,
+            e2: f32,
+            _v0: zmath.Vec,
+            _v1: zmath.Vec,
+            _v2: zmath.Vec,
+        ) bool {
             // Project all 3 vertices of the triangle onto the Seperating axis
             const p0 = zmath.dot3(_v0, axis)[0];
             const p1 = zmath.dot3(_v1, axis)[0];
             const p2 = zmath.dot3(_v2, axis)[0];
 
             // Project the AABB onto the seperating axis
-            const r = @fabs(zmath.dot3(n0, axis)[0]) +
-                      @fabs(zmath.dot3(n1, axis)[0]) +
-                      @fabs(zmath.dot3(n2, axis)[0]);
+            const r = e0 * @fabs(zmath.dot3(n0, axis)[0]) +
+                      e1 * @fabs(zmath.dot3(n1, axis)[0]) +
+                      e2 * @fabs(zmath.dot3(n2, axis)[0]);
 
             return math.max(-math.max3(p0, p1, p2), math.min3(p0, p1, p2)) > r;
         }
     };
+
+    // Get AABB extents
+    const e0 = v0[3];
+    const e1 = v1[3];
+    const e2 = v2[3];
 
     // Compute the edge vectors of the triangle  (ABC)
     // That is, get the lines between the points as vectors
@@ -211,26 +214,26 @@ inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
     const axis_n2_f0 = zmath.cross3(S.n2, f0);
     const axis_n2_f1 = zmath.cross3(S.n2, f1);
     const axis_n2_f2 = zmath.cross3(S.n2, f2);
-    if (S.checkAxis(axis_n0_f0, v0, v1, v2)) return true;
-    if (S.checkAxis(axis_n0_f1, v0, v1, v2)) return true;
-    if (S.checkAxis(axis_n0_f2, v0, v1, v2)) return true;
-    if (S.checkAxis(axis_n1_f0, v0, v1, v2)) return true;
-    if (S.checkAxis(axis_n1_f1, v0, v1, v2)) return true;
-    if (S.checkAxis(axis_n1_f2, v0, v1, v2)) return true;
-    if (S.checkAxis(axis_n2_f0, v0, v1, v2)) return true;
-    if (S.checkAxis(axis_n2_f1, v0, v1, v2)) return true;
-    if (S.checkAxis(axis_n2_f2, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n0_f0, e0, e1, e2, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n0_f1, e0, e1, e2, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n0_f2, e0, e1, e2, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n1_f0, e0, e1, e2, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n1_f1, e0, e1, e2, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n1_f2, e0, e1, e2, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n2_f0, e0, e1, e2, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n2_f1, e0, e1, e2, v0, v1, v2)) return true;
+    if (S.checkAxis(axis_n2_f2, e0, e1, e2, v0, v1, v2)) return true;
 
     // Next, we have 3 face normals from the AABB
     // for these tests we are conceptually checking if the bounding box
     // of the triangle intersects the bounding box of the AABB
-    if (math.max3(v0[0], v1[0], v2[0]) < -1 or math.min3(v0[0], v1[0], v2[0]) > 1) return true;
-    if (math.max3(v0[1], v1[1], v2[1]) < -1 or math.min3(v0[1], v1[1], v2[1]) > 1) return true;
-    if (math.max3(v0[2], v1[2], v2[2]) < -1 or math.min3(v0[2], v1[2], v2[2]) > 1) return true;
+    if (math.max3(v0[0], v1[0], v2[0]) < -e0 or math.min3(v0[0], v1[0], v2[0]) > e0) return true;
+    if (math.max3(v0[1], v1[1], v2[1]) < -e1 or math.min3(v0[1], v1[1], v2[1]) > e1) return true;
+    if (math.max3(v0[2], v1[2], v2[2]) < -e2 or math.min3(v0[2], v1[2], v2[2]) > e2) return true;
 
     // Finally, test if AABB intersects triangle plane
     const plane_n = zmath.normalize3(zmath.cross3(f0, f1));
-    const r = @fabs(plane_n[0]) + @fabs(plane_n[1]) + @fabs(plane_n[2]);
+    const r = e0 * @fabs(plane_n[0]) + e1 * @fabs(plane_n[1]) + e2 * @fabs(plane_n[2]);
     return @fabs(zmath.dot3(plane_n, v0)[0]) > r;
 }
 
