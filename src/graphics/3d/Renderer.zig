@@ -191,7 +191,7 @@ pub fn appendVertex(
 /// Algorithm description: We simply test whether all vertices is 
 /// outside of clipping space, the method will report some very close
 /// OBBs as inside, but it's fast.
-fn isOBBOutside(obb: []const zmath.Vec) bool {
+inline fn isOBBOutside(obb: []const zmath.Vec) bool {
     assert(obb.len == 8);
 
     // Get extents of AABB (our clipping space)
@@ -237,7 +237,7 @@ fn isOBBOutside(obb: []const zmath.Vec) bool {
 /// 1. Nine axes given by the cross products of combination of edges from both
 /// 2. Three face normals from the AABB
 /// 3. One face normal from the triangle
-fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
+inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
     const S = struct {
         // Face normals of the AABB, which is our clipping space [-1, 1]
         const n0 = @"3d".v_right;
