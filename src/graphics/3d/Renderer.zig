@@ -323,6 +323,8 @@ fn compareTriangleDepths(self: *Self, lhs: [3]u32, rhs: [3]u32) bool {
 
 /// Draw the meshes, fill triangles, using texture if possible
 pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
+    if (self.indices.items.len == 0) return;
+
     if (!self.sorted) {
         // Sort triangles by depth, from farthest to closest
         const indices = @bitCast([][3]u32, self.indices.items)[0..@divTrunc(self.indices.items.len, 3)];
