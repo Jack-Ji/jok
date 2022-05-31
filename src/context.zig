@@ -5,10 +5,6 @@ const jok = @import("jok.zig");
 const event = jok.event;
 const audio = jok.audio;
 
-// Import game object's declarations
-const game = @import("game");
-usingnamespace @import("game");
-
 pub const log = std.log.scoped(.jok);
 
 pub var perf_counter_freq: f64 = undefined;

@@ -11,17 +11,37 @@ const audio = jok.audio;
 const game = @import("game");
 usingnamespace @import("game");
 
-/// Entrance point, never return until application is killed
-pub fn main() anyerror!void {
+// Do compile-time checking
+comptime {
     if (!@hasDecl(game, "init") or !@hasDecl(game, "loop") or !@hasDecl(game, "loop")) {
-        std.debug.panic(
+        @compileError(
             \\You must provide following 3 public api in your game code:
             \\    pub fn init(ctx: *jok.Context) anyerror!void
             \\    pub fn loop(ctx: *jok.Context) anyerror!void
             \\    pub fn quit(ctx: *jok.Context) void
-        , .{});
+        );
     }
+    switch (@typeInfo(@typeInfo(@TypeOf(game.init)).Fn.return_type.?)) {
+        .ErrorUnion => |info| if (info.payload != void) {
+            @compileError("`init` must return anyerror!void");
+        },
+        else => @compileError("`init` must return anyerror!void"),
+    }
+    switch (@typeInfo(@typeInfo(@TypeOf(game.loop)).Fn.return_type.?)) {
+        .ErrorUnion => |info| if (info.payload != void) {
+            @compileError("`loop` must return anyerror!void");
+        },
+        else => @compileError("`loop` must return anyerror!void"),
+    }
+    switch (@typeInfo(@typeInfo(@TypeOf(game.quit)).Fn.return_type.?)) {
+        .Void => {},
+        else => @compileError("`quit` must return void"),
+    }
+}
 
+/// Entrance point, never return until application is killed
+pub fn main() anyerror!void {
+    // Initialize SDL library
     try sdl.init(sdl.InitFlags.everything);
     defer sdl.quit();
 
