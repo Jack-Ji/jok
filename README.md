@@ -2,7 +2,7 @@
 A minimal game framework you can joke about.
 
 ## What you need?
-* zig compiler
+* zig compiler (latest version)
 * SDL library
 * Any code editor you like
 
