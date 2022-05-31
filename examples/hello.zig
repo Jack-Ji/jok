@@ -4,7 +4,7 @@ const jok = @import("jok");
 
 var tex: sdl.Texture = undefined;
 
-fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
@@ -17,7 +17,7 @@ fn init(ctx: *jok.Context) anyerror!void {
     try tex.setBlendMode(.blend);
 }
 
-fn loop(ctx: *jok.Context) anyerror!void {
+pub fn loop(ctx: *jok.Context) anyerror!void {
     while (ctx.pollEvent()) |e| {
         switch (e) {
             .keyboard_event => |key| {
@@ -42,15 +42,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
     );
 }
 
-fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-}
-
-pub fn main() anyerror!void {
-    try jok.run(.{
-        .initFn = init,
-        .loopFn = loop,
-        .quitFn = quit,
-    });
 }

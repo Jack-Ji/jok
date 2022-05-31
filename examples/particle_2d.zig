@@ -24,7 +24,7 @@ const emitter2 = gfx.ParticleSystem.Effect.FireEmitter(
     2.75,
 );
 
-fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
@@ -73,7 +73,7 @@ fn init(ctx: *jok.Context) anyerror!void {
     );
 }
 
-fn loop(ctx: *jok.Context) anyerror!void {
+pub fn loop(ctx: *jok.Context) anyerror!void {
     if (ctx.isKeyPressed(.up)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(gfx.Vector.new(0, -10));
     if (ctx.isKeyPressed(.down)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(gfx.Vector.new(0, 10));
     if (ctx.isKeyPressed(.left)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(gfx.Vector.new(-10, 0));
@@ -101,18 +101,10 @@ fn loop(ctx: *jok.Context) anyerror!void {
     try sb.end(ctx.renderer);
 }
 
-fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     sheet.deinit();
     sb.deinit();
     ps.deinit();
-}
-
-pub fn main() anyerror!void {
-    try jok.run(.{
-        .initFn = init,
-        .loopFn = loop,
-        .quitFn = quit,
-    });
 }

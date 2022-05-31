@@ -1,5 +1,8 @@
-/// Export core definitions
-pub usingnamespace @import("core.zig");
+/// Game config options
+pub const config = @import("config.zig");
+
+/// Context of application
+pub const Context = @import("context.zig").Context;
 
 /// System events
 pub const event = @import("event.zig");

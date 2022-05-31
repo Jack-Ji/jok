@@ -3,12 +3,12 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const gfx = jok.gfx.@"2d";
 
-fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 }
 
-fn loop(ctx: *jok.Context) anyerror!void {
+pub fn loop(ctx: *jok.Context) anyerror!void {
     while (ctx.pollEvent()) |e| {
         switch (e) {
             .keyboard_event => |key| {
@@ -82,15 +82,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.fillRectF(result.area);
 }
 
-fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-}
-
-pub fn main() anyerror!void {
-    try jok.run(.{
-        .initFn = init,
-        .loopFn = loop,
-        .quitFn = quit,
-    });
 }

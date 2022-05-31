@@ -9,7 +9,7 @@ var renderer: gfx.Renderer = undefined;
 var cube: gfx.zmesh.Shape = undefined;
 var tex: sdl.Texture = undefined;
 
-fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
     gfx.zmesh.init(ctx.default_allocator);
@@ -43,7 +43,7 @@ fn init(ctx: *jok.Context) anyerror!void {
     );
 }
 
-fn loop(ctx: *jok.Context) anyerror!void {
+pub fn loop(ctx: *jok.Context) anyerror!void {
     // camera movement
     const distance = ctx.delta_tick * 2;
     if (ctx.isKeyPressed(.w)) {
@@ -153,7 +153,7 @@ fn loop(ctx: *jok.Context) anyerror!void {
     );
 }
 
-fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 
@@ -162,10 +162,3 @@ fn quit(ctx: *jok.Context) void {
     renderer.deinit();
 }
 
-pub fn main() anyerror!void {
-    try jok.run(.{
-        .initFn = init,
-        .loopFn = loop,
-        .quitFn = quit,
-    });
-}

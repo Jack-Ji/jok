@@ -5,7 +5,7 @@ const cp = jok.deps.chipmunk;
 var rng: std.rand.Xoshiro256 = undefined;
 var world: cp.World = undefined;
 
-fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
     rng = std.rand.DefaultPrng.init(
@@ -151,7 +151,7 @@ fn init(ctx: *jok.Context) anyerror!void {
     });
 }
 
-fn loop(ctx: *jok.Context) anyerror!void {
+pub fn loop(ctx: *jok.Context) anyerror!void {
     while (ctx.pollEvent()) |e| {
         switch (e) {
             .keyboard_event => |key| {
@@ -172,16 +172,8 @@ fn loop(ctx: *jok.Context) anyerror!void {
     try world.debugDraw(ctx.renderer);
 }
 
-fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     world.deinit();
-}
-
-pub fn main() anyerror!void {
-    try jok.run(.{
-        .initFn = init,
-        .loopFn = loop,
-        .quitFn = quit,
-    });
 }

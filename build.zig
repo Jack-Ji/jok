@@ -30,13 +30,14 @@ pub fn build(b: *std.build.Builder) void {
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |demo| {
-        const exe = b.addExecutable(
+        const exe = createGame(
+            b,
             demo.name,
             "examples/" ++ demo.name ++ ".zig",
+            target,
+            mode,
+            demo.opt,
         );
-        exe.setBuildMode(mode);
-        exe.setTarget(target);
-        link(exe, demo.opt);
         const install_cmd = b.addInstallArtifact(exe);
         const run_cmd = exe.run();
         run_cmd.step.dependOn(&install_cmd.step);
@@ -63,11 +64,21 @@ pub const BuildOptions = struct {
     enable_tracy: bool = false,
 };
 
-/// Add jok framework to executable
-pub fn link(exe: *std.build.LibExeObjStep, opt: BuildOptions) void {
-    const sdl = @import("src/deps/sdl/Sdk.zig").init(exe.builder);
+/// Create game executable
+pub fn createGame(
+    b: *std.build.Builder,
+    name: []const u8,
+    root_file: []const u8,
+    target: std.zig.CrossTarget,
+    mode: std.builtin.Mode,
+    opt: BuildOptions,
+) *std.build.LibExeObjStep {
+    const exe = b.addExecutable(name, comptime thisDir() ++ "/src/app.zig");
+    exe.setTarget(target);
+    exe.setBuildMode(mode);
 
-    // Build and link dependencies
+    // Link dependencies
+    const sdl = @import("src/deps/sdl/Sdk.zig").init(exe.builder);
     sdl.link(exe, .dynamic);
     @import("src/deps/miniaudio/build.zig").link(exe);
     @import("src/deps/stb/build.zig").link(exe);
@@ -96,15 +107,25 @@ pub fn link(exe: *std.build.LibExeObjStep, opt: BuildOptions) void {
         @import("src/deps/nfd/build.zig").link(exe);
     }
 
-    // Add package
-    exe.addPackage(.{
+    // Add packages
+    const jok = std.build.Pkg{
         .name = "jok",
         .source = .{ .path = comptime thisDir() ++ "/src/jok.zig" },
         .dependencies = &[_]std.build.Pkg{
             sdl.getWrapperPackage("sdl"),
         },
-    });
+    };
+    const game = std.build.Pkg{
+        .name = "game",
+        .source = .{ .path = root_file },
+        .dependencies = &[_]std.build.Pkg{
+            jok,
+            sdl.getWrapperPackage("sdl"),
+        },
+    };
+    exe.addPackage(game);
     exe.addPackage(sdl.getWrapperPackage("sdl"));
+    return exe;
 }
 
 fn thisDir() []const u8 {

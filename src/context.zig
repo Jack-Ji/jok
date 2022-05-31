@@ -1,13 +1,17 @@
 const std = @import("std");
-const builtin = @import("builtin");
 const sdl = @import("sdl");
+const config = @import("config.zig");
 const jok = @import("jok.zig");
 const event = jok.event;
 const audio = jok.audio;
 
-const log = std.log.scoped(.jok);
+// Import game object's declarations
+const game = @import("game");
+usingnamespace @import("game");
 
-var perf_counter_freq: f64 = undefined;
+pub const log = std.log.scoped(.jok);
+
+pub var perf_counter_freq: f64 = undefined;
 
 /// Application context
 pub const Context = struct {
@@ -50,11 +54,8 @@ pub const Context = struct {
     frame_counter: u32 = 0,
     last_fps_refresh_time: f64 = 0,
 
-    /// Text buffer for rendering console font
-    text_buf: [512]u8 = undefined,
-
     /// Update frame stats
-    inline fn updateFrameStats(self: *Context) bool {
+    pub inline fn updateFrameStats(self: *Context) bool {
         self.frame_counter += 1;
         if ((self.tick - self.last_fps_refresh_time) >= 1.0) {
             const t = self.tick - self.last_fps_refresh_time;
@@ -71,7 +72,7 @@ pub const Context = struct {
     }
 
     /// Flush graphics contents
-    inline fn present(self: *Context, comptime fps_limit: FpsLimit) void {
+    pub inline fn present(self: *Context, comptime fps_limit: config.FpsLimit) void {
         var counter_threshold: u64 = switch (fps_limit) {
             .none => 0,
             .auto => if (self.is_software) @divTrunc(@floatToInt(u64, perf_counter_freq), 30) else 0,
@@ -228,218 +229,3 @@ pub const Context = struct {
         );
     }
 };
-
-/// Graphics flushing method
-pub const FpsLimit = union(enum) {
-    none, // No limit, draw as fast as we can
-    auto, // Enable vsync when hardware acceleration is available, default to 30 fps otherwise
-    manual: u32, // Capped to given fps
-
-    inline fn str(self: @This()) []const u8 {
-        return switch (self) {
-            .none => "none",
-            .auto => "auto",
-            .manual => "manual",
-        };
-    }
-};
-
-/// Application configurations
-pub const Game = struct {
-    /// Custom memory allocator
-    allocator: ?std.mem.Allocator = null,
-
-    /// Default memory allocator settings
-    enable_mem_leak_checks: bool = true,
-    enable_mem_detail_logs: bool = false,
-
-    /// Called once before rendering loop starts
-    initFn: fn (ctx: *Context) anyerror!void,
-
-    /// Called every frame
-    loopFn: fn (ctx: *Context) anyerror!void,
-
-    /// Called before life ends
-    quitFn: fn (ctx: *Context) void,
-
-    /// Window's title
-    title: [:0]const u8 = "jok",
-
-    /// Whether fallback to software renderer
-    enable_software_renderer: bool = true,
-
-    /// Position of window
-    pos_x: sdl.WindowPosition = .default,
-    pos_y: sdl.WindowPosition = .default,
-
-    /// Width/height of window
-    width: u32 = 800,
-    height: u32 = 600,
-
-    /// Mimimum size of window
-    min_size: ?struct { w: u32, h: u32 } = null,
-
-    /// Maximumsize of window
-    max_size: ?struct { w: u32, h: u32 } = null,
-
-    // Resizable switch
-    enable_resizable: bool = false,
-
-    /// Display switch
-    enable_fullscreen: bool = false,
-
-    /// Borderless window
-    enable_borderless: bool = false,
-
-    /// Minimize window
-    enable_minimized: bool = false,
-
-    /// Maximize window
-    enable_maximized: bool = false,
-
-    /// Relative mouse mode switch
-    enable_relative_mouse_mode: bool = false,
-
-    /// Display frame stats on title
-    enable_framestat_display: bool = true,
-
-    /// FPS limiting (auto means vsync)
-    fps_limit: FpsLimit = .auto,
-};
-
-/// Entrance point, never return until application is killed
-pub fn run(comptime g: Game) !void {
-    try sdl.init(sdl.InitFlags.everything);
-    defer sdl.quit();
-
-    // Create window
-    var flags = sdl.WindowFlags{
-        .allow_high_dpi = true,
-        .mouse_capture = true,
-        .mouse_focus = true,
-    };
-    if (g.enable_borderless) {
-        flags.borderless = true;
-    }
-    if (g.enable_minimized) {
-        flags.minimized = true;
-    }
-    if (g.enable_maximized) {
-        flags.maximized = true;
-    }
-    var ctx: Context = .{
-        .window = try sdl.createWindow(
-            g.title,
-            g.pos_x,
-            g.pos_y,
-            g.width,
-            g.height,
-            flags,
-        ),
-    };
-    const AllocatorType = std.heap.GeneralPurposeAllocator(.{
-        .safety = if (g.enable_mem_leak_checks) true else false,
-        .verbose_log = if (g.enable_mem_detail_logs) true else false,
-        .enable_memory_limit = true,
-    });
-    var gpa: ?AllocatorType = null;
-    if (g.allocator) |a| {
-        ctx.default_allocator = a;
-    } else {
-        gpa = AllocatorType{};
-        ctx.default_allocator = gpa.?.allocator();
-    }
-    defer {
-        if (gpa) |*a| {
-            if (a.deinit()) {
-                @panic("memory leaks happened!");
-            }
-        }
-        ctx.window.destroy();
-    }
-
-    // Apply window options
-    if (g.min_size) |size| {
-        sdl.c.SDL_SetWindowMinimumSize(
-            ctx.window.ptr,
-            @intCast(c_int, size.w),
-            @intCast(c_int, size.h),
-        );
-    }
-    if (g.max_size) |size| {
-        sdl.c.SDL_SetWindowMaximumSize(
-            ctx.window.ptr,
-            @intCast(c_int, size.w),
-            @intCast(c_int, size.h),
-        );
-    }
-    ctx.toggleResizable(g.enable_resizable);
-    ctx.toggleFullscreeen(g.enable_fullscreen);
-    ctx.toggleRelativeMouseMode(g.enable_relative_mouse_mode);
-
-    // Create hardware accelerated renderer
-    // Fallback to software renderer if allowed
-    ctx.renderer = sdl.createRenderer(
-        ctx.window,
-        null,
-        .{
-            .accelerated = true,
-            .present_vsync = g.fps_limit == .auto,
-            .target_texture = true,
-        },
-    ) catch blk: {
-        if (g.enable_software_renderer) {
-            log.warn("hardware accelerated renderer isn't supported, fallback to software backend", .{});
-            break :blk try sdl.createRenderer(
-                ctx.window,
-                null,
-                .{
-                    .software = true,
-                    .present_vsync = g.fps_limit == .auto, // Doesn't matter actually, vsync won't work anyway
-                    .target_texture = true,
-                },
-            );
-        }
-    };
-    const rdinfo = try ctx.renderer.getInfo();
-    ctx.is_software = ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0);
-    defer ctx.renderer.destroy();
-
-    // Allocate audio engine
-    ctx.audio = try audio.Engine.init(ctx.default_allocator, .{});
-    defer ctx.audio.deinit();
-
-    // Init before loop
-    try g.initFn(&ctx);
-    defer g.quitFn(&ctx);
-
-    // Game loop
-    perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
-    ctx.last_perf_counter = sdl.c.SDL_GetPerformanceCounter();
-    while (!ctx.quit) {
-        g.loopFn(&ctx) catch |e| {
-            log.err("got error in loop: {}", .{e});
-            if (@errorReturnTrace()) |trace| {
-                std.debug.dumpStackTrace(trace.*);
-                break;
-            }
-        };
-        ctx.present(g.fps_limit);
-        if (ctx.updateFrameStats() and g.enable_framestat_display) {
-            var buf: [128]u8 = undefined;
-            const txt = std.fmt.bufPrintZ(
-                &buf,
-                "{s} | FPS: {d:.1}, {s} | AVG-CPU: {d:.1}ms | RENDERER: {s} | MEM: {d:.2}kb",
-                .{
-                    g.title,
-                    ctx.fps,
-                    g.fps_limit.str(),
-                    ctx.average_cpu_time,
-                    ctx.getRendererName(),
-                    if (gpa) |a| @intToFloat(f64, a.total_requested_bytes) / 1024.0 else 0,
-                },
-            ) catch unreachable;
-            sdl.c.SDL_SetWindowTitle(ctx.window.ptr, txt.ptr);
-        }
-    }
-}

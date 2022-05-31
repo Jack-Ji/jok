@@ -3,6 +3,8 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const gfx = jok.gfx.@"2d";
 
+pub const jok_fps_limit = jok.config.FpsLimit{ .manual = 120 };
+
 const Actor = struct {
     sprite: gfx.Sprite,
     pos: sdl.PointF,
@@ -15,7 +17,7 @@ var characters: std.ArrayList(Actor) = undefined;
 var rand_gen: std.rand.DefaultPrng = undefined;
 var delta_tick: f32 = 0;
 
-fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
@@ -52,7 +54,7 @@ fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-fn loop(ctx: *jok.Context) anyerror!void {
+pub fn loop(ctx: *jok.Context) anyerror!void {
     delta_tick = (delta_tick + ctx.delta_tick) / 2;
 
     while (ctx.pollEvent()) |e| {
@@ -131,21 +133,10 @@ fn loop(ctx: *jok.Context) anyerror!void {
     );
 }
 
-fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     sheet.deinit();
     sb.deinit();
     characters.deinit();
-}
-
-pub fn main() anyerror!void {
-    try jok.run(.{
-        .initFn = init,
-        .loopFn = loop,
-        .quitFn = quit,
-        .width = 800,
-        .height = 600,
-        .fps_limit = .{ .manual = 120 },
-    });
 }

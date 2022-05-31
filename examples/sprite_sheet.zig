@@ -7,7 +7,7 @@ var sheet: *gfx.SpriteSheet = undefined;
 var sb: *gfx.SpriteBatch = undefined;
 var camera: gfx.Camera = undefined;
 
-fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
@@ -37,7 +37,7 @@ fn init(ctx: *jok.Context) anyerror!void {
     camera = gfx.Camera.fromViewport(ctx.renderer.getViewport());
 }
 
-fn loop(ctx: *jok.Context) anyerror!void {
+pub fn loop(ctx: *jok.Context) anyerror!void {
     const bounds = gfx.Camera.CoordLimit{
         .min_x = -10,
         .min_y = -10,
@@ -118,17 +118,9 @@ fn loop(ctx: *jok.Context) anyerror!void {
     );
 }
 
-fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     sheet.deinit();
     sb.deinit();
-}
-
-pub fn main() anyerror!void {
-    try jok.run(.{
-        .initFn = init,
-        .loopFn = loop,
-        .quitFn = quit,
-    });
 }

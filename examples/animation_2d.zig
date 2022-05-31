@@ -7,7 +7,7 @@ var sheet: *gfx.SpriteSheet = undefined;
 var sb: *gfx.SpriteBatch = undefined;
 var as: *gfx.AnimationSystem = undefined;
 
-fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
@@ -74,7 +74,7 @@ fn init(ctx: *jok.Context) anyerror!void {
     );
 }
 
-fn loop(ctx: *jok.Context) anyerror!void {
+pub fn loop(ctx: *jok.Context) anyerror!void {
     const S = struct {
         const velocity = 100;
         var animation: []const u8 = "player_down";
@@ -157,18 +157,10 @@ fn loop(ctx: *jok.Context) anyerror!void {
     );
 }
 
-fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     sheet.deinit();
     sb.deinit();
     as.deinit();
-}
-
-pub fn main() anyerror!void {
-    try jok.run(.{
-        .initFn = init,
-        .loopFn = loop,
-        .quitFn = quit,
-    });
 }

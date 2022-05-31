@@ -3,6 +3,9 @@ const jok = @import("jok");
 const imgui = jok.deps.imgui;
 const fontawesome = imgui.fontawesome;
 
+pub const jok_window_width = 1600;
+pub const jok_window_height = 900;
+
 var regular_font: *imgui.Font = undefined;
 var solid_font: *imgui.Font = undefined;
 const codepoints = [_][:0]const u8{
@@ -2015,7 +2018,7 @@ const codepoint_names = [_][:0]const u8{
     "YIN_YANG",
 };
 
-fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
     // init imgui
@@ -2050,7 +2053,7 @@ fn printIcons(column_size: usize) void {
     }
 }
 
-fn loop(ctx: *jok.Context) anyerror!void {
+pub fn loop(ctx: *jok.Context) anyerror!void {
     while (ctx.pollEvent()) |e| {
         _ = imgui.processEvent(e);
 
@@ -2158,19 +2161,9 @@ fn loop(ctx: *jok.Context) anyerror!void {
     imgui.end();
 }
 
-fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 
     imgui.deinit();
-}
-
-pub fn main() anyerror!void {
-    try jok.run(.{
-        .initFn = init,
-        .loopFn = loop,
-        .quitFn = quit,
-        .width = 1600,
-        .height = 900,
-    });
 }
