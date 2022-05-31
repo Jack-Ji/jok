@@ -8,7 +8,7 @@ A minimal game framework you can joke about.
 
 ## How to start?
 Copy `jok` folder or clone repo (recursively) into `libs` subdirectory of the root of your project.
-Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig)
+Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig).
 Then in your `build.zig` add:
 
 ```zig
