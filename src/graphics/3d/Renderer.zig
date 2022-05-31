@@ -112,6 +112,9 @@ pub fn appendVertex(
         {
             clipped_indices.set(i);
         }
+
+        // TODO Clip coordinates to [-w, w]
+
         const ndc = pos_clip / zmath.splat(zmath.Vec, pos_clip[3]);
         const pos_screen = zmath.mul(ndc, zmath.loadMat43(&[_]f32{
             // zig fmt: off

@@ -19,16 +19,16 @@ pub const Engine = struct {
     const SoundList = std.TailQueue(Sound);
     const SoundGroupList = std.TailQueue(SoundGroup);
 
-    /// memory allocator
+    /// Memory allocator
     allocator: std.mem.Allocator,
 
-    /// option of internal engine
+    /// Option of internal engine
     option: EngineOption,
 
-    /// internal sound engine
+    /// Internal sound engine
     engine: c.ma_engine,
 
-    /// allocated sound/sound group
+    /// Allocated sound/sound group
     sound_list: SoundList,
     sound_group_list: SoundGroupList,
 
@@ -40,7 +40,7 @@ pub const Engine = struct {
         engine.sound_group_list = SoundGroupList{};
         errdefer allocator.destroy(engine);
 
-        // create internal engine
+        // Create internal engine
         assert(opt.channels > 0);
         assert(opt.listener_num > 0);
         var config = c.ma_engine_config_init();
@@ -160,19 +160,19 @@ pub const Engine = struct {
     }
 
     pub const SoundOption = struct {
-        /// don't read file into memory at once
+        /// Don't read file into memory at once
         stream: bool = false,
 
-        /// asynchronously read file, return quickly but not ready to play yet
+        /// Asynchronously read file, return quickly but not ready to play yet
         async_read: bool = false,
 
-        /// decode now instead on the fly
+        /// Decode now instead on the fly
         decode: bool = false,
 
-        /// no spatialization effect
+        /// No spatialization effect
         no_spatialization: bool = false,
 
-        /// no doppler effect
+        /// No doppler effect
         no_doppler: bool = false,
 
         fn toInt(o: SoundOption) c_uint {
@@ -199,7 +199,7 @@ pub const Engine = struct {
         var node = try e.allocator.create(SoundList.Node);
         errdefer e.allocator.destroy(node);
 
-        // append to list
+        // Append to list
         e.sound_list.append(node);
         errdefer e.sound_list.remove(node);
 
@@ -222,7 +222,7 @@ pub const Engine = struct {
         var node = try e.allocator.create(SoundGroupList.Node);
         errdefer e.allocator.destroy(node);
 
-        // append to list
+        // Append to list
         e.sound_group_list.append(node);
         errdefer e.sound_group_list.remove(node);
 

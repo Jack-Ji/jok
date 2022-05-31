@@ -14,35 +14,35 @@ pub const Filter = struct {
 };
 
 pub const Object = struct {
-    /// object's physics body, null means using global static
+    /// Object's physics body, null means using global static
     body: ?*c.cpBody,
 
-    /// object's shape
+    /// Object's shape
     shapes: []*c.cpShape,
 
-    /// filter info
+    /// Filter info
     filter: Filter,
 };
 
 pub const World = struct {
 
-    /// memory allocator
+    /// Memory allocator
     allocator: std.mem.Allocator,
 
-    /// timing
+    /// Timing
     fixed_dt: f32,
     accumulator: f32,
 
-    /// physics world object
+    /// Physics world object
     space: *c.cpSpace,
 
-    /// objects in the world
+    /// Objects in the world
     objects: std.ArrayList(Object),
 
-    /// internal debug rendering
+    /// Internal debug rendering
     debug: ?*PhysicsDebug = null,
 
-    /// init chipmunk world
+    /// Init chipmunk world
     pub const CollisionCallback = struct {
         type_a: ?c.cpCollisionType = null,
         type_b: ?c.cpCollisionType = null,
@@ -160,7 +160,7 @@ pub const World = struct {
         );
     }
 
-    /// add object to world
+    /// Add object to world
     pub const ObjectOption = struct {
         pub const BodyProperty = union(enum) {
             dynamic: struct {
@@ -224,7 +224,7 @@ pub const World = struct {
     pub fn addObject(self: *World, opt: ObjectOption) !u32 {
         assert(opt.shapes.len > 0);
 
-        // create physics body
+        // Create physics body
         var use_global_static = false;
         var body = switch (opt.body) {
             .dynamic => |prop| blk: {
@@ -260,7 +260,7 @@ pub const World = struct {
             c.cpBodyFree(body);
         }
 
-        // create shapes
+        // Create shapes
         var shapes = try self.allocator.alloc(*c.cpShape, opt.shapes.len);
         for (opt.shapes) |s, i| {
             shapes[i] = switch (s) {
@@ -308,20 +308,20 @@ pub const World = struct {
             self.allocator.free(shapes);
         }
 
-        // prevent rotation if needed
+        // Prevent rotation if needed
         if (opt.never_rotate) {
             c.cpBodySetMoment(body, std.math.f32_max);
         }
 
-        // append to object array
+        // Append to object array
         try self.objects.append(.{
             .body = if (use_global_static) null else body,
             .shapes = shapes,
             .filter = opt.filter,
         });
 
-        // set user data of body/shapes, equal to
-        // index/id of object by default.
+        // Set user data of body/shapes, equal to
+        // Index/id of object by default.
         var ud = opt.user_data orelse @intToPtr(
             *allowzero anyopaque,
             self.objects.items.len - 1,
@@ -346,7 +346,7 @@ pub const World = struct {
         c.cpShapeSetSensor(shape, @as(u8, @boolToInt(phy.is_sensor)));
     }
 
-    /// update world
+    /// Update world
     pub fn update(self: *World, delta_tick: f32) void {
         self.accumulator += delta_tick;
         while (self.accumulator > self.fixed_dt) : (self.accumulator -= self.fixed_dt) {
@@ -354,7 +354,7 @@ pub const World = struct {
         }
     }
 
-    /// debug draw
+    /// Debug draw
     pub fn debugDraw(self: World, renderer: sdl.Renderer) !void {
         if (self.debug) |dbg| {
             dbg.clear();
@@ -364,7 +364,7 @@ pub const World = struct {
     }
 };
 
-/// debug draw
+/// Debug draw
 const PhysicsDebug = struct {
     const draw_alpha = 0.6;
 
@@ -392,10 +392,10 @@ const PhysicsDebug = struct {
                 .g = 0.91,
                 .b = 0.84,
                 .a = draw_alpha,
-            }, // outline color
+            }, // Outline color
             .colorForShape = drawColorForShape,
-            .constraintColor = .{ .r = 0, .g = 0.75, .b = 0, .a = draw_alpha }, // constraint color
-            .collisionPointColor = .{ .r = 1, .g = 0, .b = 0, .a = draw_alpha }, // collision color
+            .constraintColor = .{ .r = 0, .g = 0.75, .b = 0, .a = draw_alpha }, // Constraint color
+            .collisionPointColor = .{ .r = 1, .g = 0, .b = 0, .a = draw_alpha }, // Collision color
             .data = debug,
         };
         return debug;
@@ -461,13 +461,13 @@ const PhysicsDebug = struct {
         _ = angle;
         _ = outline_color;
         var debug = @ptrCast(*PhysicsDebug, @alignCast(@alignOf(*PhysicsDebug), data));
-        // zig fmt: off
+        // Zig fmt: off
         const vs = debug.addVertices(
             20,
             &[_]u32{
-                0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5, 0, 5, 6,
-                0, 6, 7, 0, 7, 8, 0, 8, 9, 0, 9, 10, 0, 10, 11, 0, 
-                11, 12, 0, 12, 13, 0, 13, 14, 0, 14, 15, 0, 15, 16, 
+                0, 1,  2,  0, 2,  3,  0, 3,  4,  0, 4,  5,  0, 5,  6,
+                0, 6,  7,  0, 7,  8,  0, 8,  9,  0, 9,  10, 0, 10, 11,
+                0, 11, 12, 0, 12, 13, 0, 13, 14, 0, 14, 15, 0, 15, 16,
                 0, 16, 17, 0, 17, 18, 0, 18, 19,
             },
         );
@@ -479,7 +479,7 @@ const PhysicsDebug = struct {
         for (vs[1..]) |_, i| {
             const offset_x = @cos(angle + theta * @intToFloat(f32, i)) * radius;
             const offset_y = @sin(angle + theta * @intToFloat(f32, i)) * radius;
-            vs[i+1] = .{
+            vs[i + 1] = .{
                 .position = .{ .x = pos.x + offset_x, .y = pos.y + offset_y },
                 .color = cpColorToRGBA(fill_color),
             };
@@ -506,7 +506,7 @@ const PhysicsDebug = struct {
         _ = outline_color;
         var debug = @ptrCast(*PhysicsDebug, @alignCast(@alignOf(*PhysicsDebug), data));
 
-        // make sure a is on left of b
+        // Make sure a is on left of b
         var a = _a;
         var b = _b;
         if (a.x > b.x) {
@@ -530,7 +530,7 @@ const PhysicsDebug = struct {
         for (vs[1..7]) |_, i| {
             const offset_x = @cos(angle + std.math.pi / 2.0 + theta * @intToFloat(f32, i)) * radius;
             const offset_y = @sin(angle + std.math.pi / 2.0 + theta * @intToFloat(f32, i)) * radius;
-            vs[i+1] = .{
+            vs[i + 1] = .{
                 .position = .{ .x = a.x + offset_x, .y = a.y + offset_y },
                 .color = cpColorToRGBA(fill_color),
             };
@@ -538,7 +538,7 @@ const PhysicsDebug = struct {
         for (vs[8..]) |_, i| {
             const offset_x = @cos(angle - std.math.pi / 2.0 + theta * @intToFloat(f32, i)) * radius;
             const offset_y = @sin(angle - std.math.pi / 2.0 + theta * @intToFloat(f32, i)) * radius;
-            vs[8+i] = .{
+            vs[8 + i] = .{
                 .position = .{ .x = b.x + offset_x, .y = b.y + offset_y },
                 .color = cpColorToRGBA(fill_color),
             };
@@ -562,7 +562,7 @@ const PhysicsDebug = struct {
         var indexes: [max_poly_indices]u32 = undefined;
         assert(count < max_poly_vertex);
 
-        // polygon fill triangles.
+        // Polygon fill triangles.
         var i: u32 = 0;
         while (i < count - 2) : (i += 1) {
             indexes[3 * i + 0] = 0;

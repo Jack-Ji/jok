@@ -443,6 +443,7 @@ pub const Atlas = struct {
 };
 
 /// Draw debug text using builtin font
+pub const clacon = @embedFile("clacon2.ttf");
 pub const DrawOption = struct {
     pos: sdl.PointF,
     ypos_type: Atlas.YPosType = .top,
@@ -456,7 +457,6 @@ pub const DrawResult = struct {
 pub fn debugDraw(renderer: sdl.Renderer, opt: DrawOption, comptime fmt: []const u8, args: anytype) !DrawResult {
     const S = struct {
         const allocator = std.heap.c_allocator;
-        const font_data = @embedFile("clacon2.ttf");
         const max_text_size = 1000;
         var font: ?*Font = null;
         var atlases: std.AutoHashMap(u32, Atlas) = undefined;
@@ -473,7 +473,7 @@ pub fn debugDraw(renderer: sdl.Renderer, opt: DrawOption, comptime fmt: []const 
 
     // Initialize font data and atlases as needed
     if (S.font == null) {
-        S.font = Font.fromTrueTypeData(S.allocator, S.font_data) catch unreachable;
+        S.font = Font.fromTrueTypeData(S.allocator, clacon) catch unreachable;
         S.atlases = std.AutoHashMap(u32, Atlas).init(S.allocator);
         S.vattrib = std.ArrayList(sdl.Vertex).initCapacity(S.allocator, S.max_text_size * 4) catch unreachable;
         S.vindices = std.ArrayList(u32).initCapacity(S.allocator, S.max_text_size * 6) catch unreachable;
