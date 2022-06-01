@@ -476,11 +476,6 @@ inline fn isOBBOutside(obb: []const zmath.Vec) bool {
 /// 3. One face normal from the triangle
 inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
     const S = struct {
-        // Face normals of the AABB, which is our clipping space [-1, 1]
-        const n0 = @"3d".v_right;
-        const n1 = @"3d".v_up;
-        const n2 = @"3d".v_forward;
-
         // Testing axis
         inline fn checkAxis(
             axis: zmath.Vec,
@@ -494,9 +489,7 @@ inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
             const p2 = zmath.dot3(_v2, axis)[0];
 
             // Project the AABB onto the seperating axis
-            const r = @fabs(zmath.dot3(n0, axis)[0]) +
-                      @fabs(zmath.dot3(n1, axis)[0]) +
-                      @fabs(zmath.dot3(n2, axis)[0]);
+            const r = @fabs(axis[0]) + @fabs(axis[1]) + @fabs(axis[2]);
 
             return math.max(-math.max3(p0, p1, p2), math.min3(p0, p1, p2)) > r;
         }
@@ -511,15 +504,15 @@ inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
     // We first test against 9 axis, these axis are given by
     // cross product combinations of the edges of the triangle
     // and the edges of the AABB.
-    const axis_n0_f0 = zmath.cross3(S.n0, f0);
-    const axis_n0_f1 = zmath.cross3(S.n0, f1);
-    const axis_n0_f2 = zmath.cross3(S.n0, f2);
-    const axis_n1_f0 = zmath.cross3(S.n1, f0);
-    const axis_n1_f1 = zmath.cross3(S.n1, f1);
-    const axis_n1_f2 = zmath.cross3(S.n1, f2);
-    const axis_n2_f0 = zmath.cross3(S.n2, f0);
-    const axis_n2_f1 = zmath.cross3(S.n2, f1);
-    const axis_n2_f2 = zmath.cross3(S.n2, f2);
+    const axis_n0_f0 = zmath.f32x4(0, -f0[2], f0[1], 0); // zmath.cross3(n0, f0)
+    const axis_n0_f1 = zmath.f32x4(0, -f1[2], f1[1], 0); // zmath.cross3(n0, f1)
+    const axis_n0_f2 = zmath.f32x4(0, -f2[2], f2[1], 0); // zmath.cross3(n0, f2)
+    const axis_n1_f0 = zmath.f32x4(f0[2], 0, -f0[0], 0); // zmath.cross3(n1, f0)
+    const axis_n1_f1 = zmath.f32x4(f1[2], 0, -f1[0], 0); // zmath.cross3(n1, f1)
+    const axis_n1_f2 = zmath.f32x4(f2[2], 0, -f2[0], 0); // zmath.cross3(n1, f2)
+    const axis_n2_f0 = zmath.f32x4(-f0[1], f0[0], 0, 0); // zmath.cross3(n2, f0)
+    const axis_n2_f1 = zmath.f32x4(-f1[1], f1[0], 0, 0); // zmath.cross3(n2, f1)
+    const axis_n2_f2 = zmath.f32x4(-f2[1], f2[0], 0, 0); // zmath.cross3(n2, f2)
     if (S.checkAxis(axis_n0_f0, v0, v1, v2)) return true;
     if (S.checkAxis(axis_n0_f1, v0, v1, v2)) return true;
     if (S.checkAxis(axis_n0_f2, v0, v1, v2)) return true;
