@@ -59,7 +59,7 @@ pub fn quit(ctx: *jok.Context) void {
 ```
 
 Noticed yet? That's right, you don't need to write main function, `jok` got your back.
-Your game is deemed as a separate package to `jok`'s runtime. 
+The game is deemed as a separate package to `jok`'s runtime as a matter of fact. 
 Your responsibility is to provide 3 pub functions: `init/loop/quit`, that's all (pretty much).
 
 Of course, you can customize some setup settings, such as width/height/title/position of window,
@@ -73,7 +73,7 @@ Some optional vendor libraries are confined to certain platforms, use at your ow
 ## Why would we joke about it?
 It's way too minimal (perhaps), you can't write shaders. If you want to achieve something fancy,
 you ought to resort to some clever art tricks or algorithms. Welcome to old golden time of 90s.
-Or, you can use other more powerfull/modern libraries/engines, no harm to switch, it's your choice.
+Or, you can use other more powerful/modern libraries/engines, no harm to switch.
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
