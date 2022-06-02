@@ -685,6 +685,7 @@ pub extern fn ma_biquad_init_preallocated(pConfig: [*c]const ma_biquad_config, p
 pub extern fn ma_biquad_init(pConfig: [*c]const ma_biquad_config, pAllocationCallbacks: [*c]const ma_allocation_callbacks, pBQ: [*c]ma_biquad) ma_result;
 pub extern fn ma_biquad_uninit(pBQ: [*c]ma_biquad, pAllocationCallbacks: [*c]const ma_allocation_callbacks) void;
 pub extern fn ma_biquad_reinit(pConfig: [*c]const ma_biquad_config, pBQ: [*c]ma_biquad) ma_result;
+pub extern fn ma_biquad_clear_cache(pBQ: [*c]ma_biquad) ma_result;
 pub extern fn ma_biquad_process_pcm_frames(pBQ: [*c]ma_biquad, pFramesOut: ?*anyopaque, pFramesIn: ?*const anyopaque, frameCount: ma_uint64) ma_result;
 pub extern fn ma_biquad_get_latency(pBQ: [*c]const ma_biquad) ma_uint32;
 pub const ma_lpf1_config = extern struct {
@@ -710,6 +711,7 @@ pub extern fn ma_lpf1_init_preallocated(pConfig: [*c]const ma_lpf1_config, pHeap
 pub extern fn ma_lpf1_init(pConfig: [*c]const ma_lpf1_config, pAllocationCallbacks: [*c]const ma_allocation_callbacks, pLPF: [*c]ma_lpf1) ma_result;
 pub extern fn ma_lpf1_uninit(pLPF: [*c]ma_lpf1, pAllocationCallbacks: [*c]const ma_allocation_callbacks) void;
 pub extern fn ma_lpf1_reinit(pConfig: [*c]const ma_lpf1_config, pLPF: [*c]ma_lpf1) ma_result;
+pub extern fn ma_lpf1_clear_cache(pLPF: [*c]ma_lpf1) ma_result;
 pub extern fn ma_lpf1_process_pcm_frames(pLPF: [*c]ma_lpf1, pFramesOut: ?*anyopaque, pFramesIn: ?*const anyopaque, frameCount: ma_uint64) ma_result;
 pub extern fn ma_lpf1_get_latency(pLPF: [*c]const ma_lpf1) ma_uint32;
 pub const ma_lpf2 = extern struct {
@@ -720,6 +722,7 @@ pub extern fn ma_lpf2_init_preallocated(pConfig: [*c]const ma_lpf2_config, pHeap
 pub extern fn ma_lpf2_init(pConfig: [*c]const ma_lpf2_config, pAllocationCallbacks: [*c]const ma_allocation_callbacks, pLPF: [*c]ma_lpf2) ma_result;
 pub extern fn ma_lpf2_uninit(pLPF: [*c]ma_lpf2, pAllocationCallbacks: [*c]const ma_allocation_callbacks) void;
 pub extern fn ma_lpf2_reinit(pConfig: [*c]const ma_lpf2_config, pLPF: [*c]ma_lpf2) ma_result;
+pub extern fn ma_lpf2_clear_cache(pLPF: [*c]ma_lpf2) ma_result;
 pub extern fn ma_lpf2_process_pcm_frames(pLPF: [*c]ma_lpf2, pFramesOut: ?*anyopaque, pFramesIn: ?*const anyopaque, frameCount: ma_uint64) ma_result;
 pub extern fn ma_lpf2_get_latency(pLPF: [*c]const ma_lpf2) ma_uint32;
 pub const ma_lpf_config = extern struct {
@@ -746,6 +749,7 @@ pub extern fn ma_lpf_init_preallocated(pConfig: [*c]const ma_lpf_config, pHeap: 
 pub extern fn ma_lpf_init(pConfig: [*c]const ma_lpf_config, pAllocationCallbacks: [*c]const ma_allocation_callbacks, pLPF: [*c]ma_lpf) ma_result;
 pub extern fn ma_lpf_uninit(pLPF: [*c]ma_lpf, pAllocationCallbacks: [*c]const ma_allocation_callbacks) void;
 pub extern fn ma_lpf_reinit(pConfig: [*c]const ma_lpf_config, pLPF: [*c]ma_lpf) ma_result;
+pub extern fn ma_lpf_clear_cache(pLPF: [*c]ma_lpf) ma_result;
 pub extern fn ma_lpf_process_pcm_frames(pLPF: [*c]ma_lpf, pFramesOut: ?*anyopaque, pFramesIn: ?*const anyopaque, frameCount: ma_uint64) ma_result;
 pub extern fn ma_lpf_get_latency(pLPF: [*c]const ma_lpf) ma_uint32;
 pub const ma_hpf1_config = extern struct {
@@ -1190,6 +1194,7 @@ pub extern fn ma_linear_resampler_get_input_latency(pResampler: [*c]const ma_lin
 pub extern fn ma_linear_resampler_get_output_latency(pResampler: [*c]const ma_linear_resampler) ma_uint64;
 pub extern fn ma_linear_resampler_get_required_input_frame_count(pResampler: [*c]const ma_linear_resampler, outputFrameCount: ma_uint64, pInputFrameCount: [*c]ma_uint64) ma_result;
 pub extern fn ma_linear_resampler_get_expected_output_frame_count(pResampler: [*c]const ma_linear_resampler, inputFrameCount: ma_uint64, pOutputFrameCount: [*c]ma_uint64) ma_result;
+pub extern fn ma_linear_resampler_reset(pResampler: [*c]ma_linear_resampler) ma_result;
 pub const ma_resampling_backend = anyopaque;
 pub const ma_resampling_backend_vtable = extern struct {
     onGetHeapSize: ?fn (?*anyopaque, [*c]const ma_resampler_config, [*c]usize) callconv(.C) ma_result,
@@ -1201,6 +1206,7 @@ pub const ma_resampling_backend_vtable = extern struct {
     onGetOutputLatency: ?fn (?*anyopaque, ?*const ma_resampling_backend) callconv(.C) ma_uint64,
     onGetRequiredInputFrameCount: ?fn (?*anyopaque, ?*const ma_resampling_backend, ma_uint64, [*c]ma_uint64) callconv(.C) ma_result,
     onGetExpectedOutputFrameCount: ?fn (?*anyopaque, ?*const ma_resampling_backend, ma_uint64, [*c]ma_uint64) callconv(.C) ma_result,
+    onReset: ?fn (?*anyopaque, ?*ma_resampling_backend) callconv(.C) ma_result,
 };
 pub const ma_resample_algorithm_linear: c_int = 0;
 pub const ma_resample_algorithm_custom: c_int = 1;
@@ -1232,6 +1238,7 @@ pub extern fn ma_resampler_get_input_latency(pResampler: [*c]const ma_resampler)
 pub extern fn ma_resampler_get_output_latency(pResampler: [*c]const ma_resampler) ma_uint64;
 pub extern fn ma_resampler_get_required_input_frame_count(pResampler: [*c]const ma_resampler, outputFrameCount: ma_uint64, pInputFrameCount: [*c]ma_uint64) ma_result;
 pub extern fn ma_resampler_get_expected_output_frame_count(pResampler: [*c]const ma_resampler, inputFrameCount: ma_uint64, pOutputFrameCount: [*c]ma_uint64) ma_result;
+pub extern fn ma_resampler_reset(pResampler: [*c]ma_resampler) ma_result;
 pub const ma_channel_conversion_path_unknown: c_int = 0;
 pub const ma_channel_conversion_path_passthrough: c_int = 1;
 pub const ma_channel_conversion_path_mono_out: c_int = 2;
@@ -1334,6 +1341,7 @@ pub extern fn ma_data_converter_get_required_input_frame_count(pConverter: [*c]c
 pub extern fn ma_data_converter_get_expected_output_frame_count(pConverter: [*c]const ma_data_converter, inputFrameCount: ma_uint64, pOutputFrameCount: [*c]ma_uint64) ma_result;
 pub extern fn ma_data_converter_get_input_channel_map(pConverter: [*c]const ma_data_converter, pChannelMap: [*c]ma_channel, channelMapCap: usize) ma_result;
 pub extern fn ma_data_converter_get_output_channel_map(pConverter: [*c]const ma_data_converter, pChannelMap: [*c]ma_channel, channelMapCap: usize) ma_result;
+pub extern fn ma_data_converter_reset(pConverter: [*c]ma_data_converter) ma_result;
 pub extern fn ma_pcm_u8_to_s16(pOut: ?*anyopaque, pIn: ?*const anyopaque, count: ma_uint64, ditherMode: ma_dither_mode) void;
 pub extern fn ma_pcm_u8_to_s24(pOut: ?*anyopaque, pIn: ?*const anyopaque, count: ma_uint64, ditherMode: ma_dither_mode) void;
 pub extern fn ma_pcm_u8_to_s32(pOut: ?*anyopaque, pIn: ?*const anyopaque, count: ma_uint64, ditherMode: ma_dither_mode) void;
@@ -1521,7 +1529,7 @@ const struct_unnamed_41 = extern struct {
     pDataBufferNode: ?*anyopaque,
     pFilePath: [*c]u8,
     pFilePathW: [*c]wchar_t,
-    decode: ma_bool32,
+    flags: ma_uint32,
     pInitNotification: ?*ma_async_notification,
     pDoneNotification: ?*ma_async_notification,
     pInitFence: [*c]ma_fence,
@@ -1546,6 +1554,11 @@ const struct_unnamed_44 = extern struct {
     pDoneNotification: ?*ma_async_notification,
     pInitFence: [*c]ma_fence,
     pDoneFence: [*c]ma_fence,
+    rangeBegInPCMFrames: ma_uint64,
+    rangeEndInPCMFrames: ma_uint64,
+    loopPointBegInPCMFrames: ma_uint64,
+    loopPointEndInPCMFrames: ma_uint64,
+    isLooping: ma_uint32,
 };
 const struct_unnamed_45 = extern struct {
     pDataBuffer: ?*anyopaque,
@@ -1986,21 +1999,22 @@ pub extern fn ma_data_source_get_length_in_pcm_frames(pDataSource: ?*ma_data_sou
 pub extern fn ma_data_source_get_cursor_in_seconds(pDataSource: ?*ma_data_source, pCursor: [*c]f32) ma_result;
 pub extern fn ma_data_source_get_length_in_seconds(pDataSource: ?*ma_data_source, pLength: [*c]f32) ma_result;
 pub extern fn ma_data_source_set_looping(pDataSource: ?*ma_data_source, isLooping: ma_bool32) ma_result;
-pub extern fn ma_data_source_is_looping(pDataSource: ?*ma_data_source) ma_bool32;
+pub extern fn ma_data_source_is_looping(pDataSource: ?*const ma_data_source) ma_bool32;
 pub extern fn ma_data_source_set_range_in_pcm_frames(pDataSource: ?*ma_data_source, rangeBegInFrames: ma_uint64, rangeEndInFrames: ma_uint64) ma_result;
-pub extern fn ma_data_source_get_range_in_pcm_frames(pDataSource: ?*ma_data_source, pRangeBegInFrames: [*c]ma_uint64, pRangeEndInFrames: [*c]ma_uint64) void;
+pub extern fn ma_data_source_get_range_in_pcm_frames(pDataSource: ?*const ma_data_source, pRangeBegInFrames: [*c]ma_uint64, pRangeEndInFrames: [*c]ma_uint64) void;
 pub extern fn ma_data_source_set_loop_point_in_pcm_frames(pDataSource: ?*ma_data_source, loopBegInFrames: ma_uint64, loopEndInFrames: ma_uint64) ma_result;
-pub extern fn ma_data_source_get_loop_point_in_pcm_frames(pDataSource: ?*ma_data_source, pLoopBegInFrames: [*c]ma_uint64, pLoopEndInFrames: [*c]ma_uint64) void;
+pub extern fn ma_data_source_get_loop_point_in_pcm_frames(pDataSource: ?*const ma_data_source, pLoopBegInFrames: [*c]ma_uint64, pLoopEndInFrames: [*c]ma_uint64) void;
 pub extern fn ma_data_source_set_current(pDataSource: ?*ma_data_source, pCurrentDataSource: ?*ma_data_source) ma_result;
-pub extern fn ma_data_source_get_current(pDataSource: ?*ma_data_source) ?*ma_data_source;
+pub extern fn ma_data_source_get_current(pDataSource: ?*const ma_data_source) ?*ma_data_source;
 pub extern fn ma_data_source_set_next(pDataSource: ?*ma_data_source, pNextDataSource: ?*ma_data_source) ma_result;
-pub extern fn ma_data_source_get_next(pDataSource: ?*ma_data_source) ?*ma_data_source;
+pub extern fn ma_data_source_get_next(pDataSource: ?*const ma_data_source) ?*ma_data_source;
 pub extern fn ma_data_source_set_next_callback(pDataSource: ?*ma_data_source, onGetNext: ma_data_source_get_next_proc) ma_result;
-pub extern fn ma_data_source_get_next_callback(pDataSource: ?*ma_data_source) ma_data_source_get_next_proc;
+pub extern fn ma_data_source_get_next_callback(pDataSource: ?*const ma_data_source) ma_data_source_get_next_proc;
 pub const ma_audio_buffer_ref = extern struct {
     ds: ma_data_source_base,
     format: ma_format,
     channels: ma_uint32,
+    sampleRate: ma_uint32,
     cursor: ma_uint64,
     sizeInFrames: ma_uint64,
     pData: ?*const anyopaque,
@@ -2019,6 +2033,7 @@ pub extern fn ma_audio_buffer_ref_get_available_frames(pAudioBufferRef: [*c]cons
 pub const ma_audio_buffer_config = extern struct {
     format: ma_format,
     channels: ma_uint32,
+    sampleRate: ma_uint32,
     sizeInFrames: ma_uint64,
     pData: ?*const anyopaque,
     allocationCallbacks: ma_allocation_callbacks,
@@ -2396,6 +2411,7 @@ pub const MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_STREAM: c_int = 1;
 pub const MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_DECODE: c_int = 2;
 pub const MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_ASYNC: c_int = 4;
 pub const MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_WAIT_INIT: c_int = 8;
+pub const MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_UNKNOWN_LENGTH: c_int = 16;
 pub const ma_resource_manager_data_source_flags = c_uint;
 pub const ma_resource_manager_pipeline_stage_notification = extern struct {
     pNotification: ?*ma_async_notification,
@@ -2776,7 +2792,7 @@ pub extern fn ma_delay_node_get_decay(pDelayNode: [*c]const ma_delay_node) f32;
 pub const struct_ma_sound = extern struct {
     engineNode: ma_engine_node,
     pDataSource: ?*ma_data_source,
-    seekTarget: ma_uint64,
+    seekTarget: ma_uint64 align(8),
     atEnd: ma_bool32 align(4),
     ownsDataSource: ma_bool8,
     pResourceManagerDataSource: [*c]ma_resource_manager_data_source,
