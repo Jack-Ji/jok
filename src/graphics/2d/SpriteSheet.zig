@@ -288,6 +288,7 @@ pub fn fromPicturesInDir(
     return try Self.init(allocator, renderer, images.items, width, height, gap, keep_packed_pixels);
 }
 
+/// Create from previous written sheet files (a picture and a json file)
 pub fn fromSheetFiles(allocator: std.mem.Allocator, renderer: sdl.Renderer, path: []const u8) !*Self {
     var path_buf: [128]u8 = undefined;
 
@@ -345,6 +346,61 @@ pub fn fromSheetFiles(allocator: std.mem.Allocator, renderer: sdl.Renderer, path
         .search_tree = search_tree,
     };
     return sp;
+}
+
+/// Create a very raw sheet with a single picture, initialize name tree if possible
+pub const SpriteInfo = struct {
+    name: []const u8,
+    rect: sdl.RectangleF,
+};
+pub fn fromSinglePicture(
+    allocator: std.mem.Allocator,
+    renderer: sdl.Renderer,
+    path: [:0]const u8,
+    sprites: []const SpriteInfo,
+) !*Self {
+    var tex = try gfx.utils.createTextureFromFile(
+        renderer,
+        path,
+        .static,
+        false,
+    );
+    try tex.setScaleMode(.nearest);
+    errdefer tex.destroy();
+
+    const info = try tex.query();
+    const tex_width = @intToFloat(f32, info.width);
+    const tex_height = @intToFloat(f32, info.height);
+
+    var tree = std.StringHashMap(u32).init(allocator);
+    var rects = try allocator.alloc(SpriteRect, sprites.len);
+    errdefer allocator.free(rects);
+
+    // Fill search tree, abort if name collision happens
+    for (sprites) |sp, i| {
+        var sr = SpriteRect{
+            .width = std.math.min(sp.rect.width, tex_width - sp.rect.x),
+            .height = std.math.min(sp.rect.height, tex_height - sp.rect.y),
+            .s0 = .{ .x = sp.rect.x / tex_width, .y = sp.rect.y / tex_height },
+            .t0 = undefined,
+        };
+        sp.s1 = (sp.rect.x + sp.rect.width) / tex_width;
+        sp.t1 = (sp.rect.y + sp.rect.height) / tex_height;
+        rects[i] = sr;
+        try tree.putNoClobber(
+            try std.fmt.allocPrint(allocator, "{s}", .{sp.name}),
+            @intCast(u32, i),
+        );
+    }
+
+    var self = try allocator.create(Self);
+    self.* = .{
+        .allocator = allocator,
+        .tex = tex,
+        .rects = rects,
+        .search_tree = tree,
+    };
+    return self;
 }
 
 /// Destroy sprite-sheet
@@ -418,6 +474,23 @@ pub fn getSpriteByName(self: *Self, name: []const u8) !Sprite {
         };
     }
     return error.SpriteNotExist;
+}
+
+/// Get sprite by rectangle
+pub fn getSpriteByRectangle(self: *Self, rect: sdl.RectangleF) !Sprite {
+    const info = try self.tex.query();
+    const tex_width = @intToFloat(f32, info.width);
+    const tex_height = @intToFloat(f32, info.height);
+    var sp = Sprite{
+        .width = std.math.min(rect.width, tex_width - rect.x),
+        .height = std.math.min(rect.height, tex_height - rect.y),
+        .sheet = self,
+        .uv0 = .{ .x = rect.x / tex_width, .y = rect.y / tex_height },
+        .uv1 = undefined,
+    };
+    sp.uv1.x = (rect.x + sp.width) / tex_width;
+    sp.uv1.y = (rect.y + sp.height) / tex_height;
+    return sp;
 }
 
 /// Get sprite rectangle by name
