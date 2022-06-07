@@ -25,6 +25,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "animation_2d", .opt = .{} },
         .{ .name = "sprite_benchmark", .opt = .{} },
         .{ .name = "font_demo", .opt = .{} },
+        .{ .name = "audio_demo", .opt = .{} },
         .{ .name = "basic_3d", .opt = .{ .link_zmesh = true } },
         .{ .name = "benchmark_3d", .opt = .{ .link_zmesh = true } },
     };

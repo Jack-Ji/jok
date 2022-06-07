@@ -12,7 +12,7 @@ pub const Engine = struct {
     pub const EngineOption = struct {
         channels: u32 = 2,
         sample_rate: u32 = 48000,
-        listener_num: u32 = 1,
+        listener_num: u32 = 2,
         no_auto_start: bool = false,
     };
 
@@ -170,10 +170,10 @@ pub const Engine = struct {
         decode: bool = false,
 
         /// No spatialization effect
-        no_spatialization: bool = false,
+        no_spatialization: bool = true,
 
         /// No doppler effect
-        no_doppler: bool = false,
+        no_doppler: bool = true,
 
         fn toInt(o: SoundOption) c_uint {
             var flags: c_uint = 0;
@@ -261,6 +261,11 @@ pub const TimeUnit = union(enum) {
     milliseconds: u64,
 };
 
+pub const PanMode = enum(c_uint) {
+    pan = c.ma_pan_mode_pan,
+    balance = c.ma_pan_mode_balance,
+};
+
 pub const Sound = struct {
     engine: *Engine,
     sound: c.ma_sound,
@@ -274,7 +279,11 @@ pub const Sound = struct {
     }
 
     pub fn stop(snd: *Sound) void {
-        _ = c.ma_sound_start(&snd.sound);
+        _ = c.ma_sound_stop(&snd.sound);
+    }
+
+    pub fn isPlaying(snd: *Sound) bool {
+        return if (c.ma_sound_is_playing(&snd.sound) == 1) true else false;
     }
 
     pub fn setVolume(snd: *Sound, volume: f32) void {
@@ -300,11 +309,14 @@ pub const Sound = struct {
     pub fn seekTo(snd: *Sound, t: TimeUnit) void {
         switch (t) {
             .pcm_frames => |frames| {
-                c.ma_sound_seek_to_pcm_frame(&snd.sound, @intCast(c_ulonglong, frames));
+                _ = c.ma_sound_seek_to_pcm_frame(&snd.sound, @intCast(c_ulonglong, frames));
             },
             .milliseconds => |ms| {
-                const frames = @floatToInt(c_ulonglong, @intToFloat(f32, ms) / 1000 * snd.sound.engineNode.sampleRate);
-                c.ma_sound_seek_to_pcm_frame(&snd.sound, frames);
+                const frames = @floatToInt(
+                    c_ulonglong,
+                    @intToFloat(f32, ms) / 1000 * @intToFloat(f32, snd.sound.engineNode.sampleRate),
+                );
+                _ = c.ma_sound_seek_to_pcm_frame(&snd.sound, frames);
             },
         }
     }
@@ -388,6 +400,10 @@ pub const Sound = struct {
 
     pub fn getVelocity(snd: *Sound) c.ma_vec3f {
         return c.ma_sound_get_velocity(&snd.sound);
+    }
+
+    pub fn setPanMode(snd: *Sound, mode: PanMode) void {
+        c.ma_sound_set_pan_mode(&snd.sound, @enumToInt(mode));
     }
 
     pub fn setPan(snd: *Sound, pan: f32) void {
