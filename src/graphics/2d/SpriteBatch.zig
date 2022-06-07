@@ -155,9 +155,6 @@ pub fn end(self: *Self, renderer: sdl.Renderer) !void {
     const size = self.search_tree.count();
     if (size == 0) return;
 
-    // Get renderer's info
-    const rdinfo = try renderer.getInfo();
-
     // Generate draw data
     for (self.batches) |*b| {
         // Sort sprites when needed
@@ -194,8 +191,8 @@ pub fn end(self: *Self, renderer: sdl.Renderer) !void {
                     .scale_h = if (data.draw_option.camera) |c| data.draw_option.scale_h / c.zoom else data.draw_option.scale_h,
                     .rotate_degree = data.draw_option.rotate_degree,
                     .anchor_point = data.draw_option.anchor_point,
-                    .flip_h = if ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0) false else data.draw_option.flip_h,
-                    .flip_v = if ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0) false else data.draw_option.flip_v,
+                    .flip_h = data.draw_option.flip_h,
+                    .flip_v = data.draw_option.flip_v,
                 },
             );
         }
