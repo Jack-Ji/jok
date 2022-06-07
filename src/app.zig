@@ -42,23 +42,25 @@ comptime {
 /// Entrance point, never return until application is killed
 pub fn main() anyerror!void {
     // Initialize SDL library
-    try sdl.init(sdl.InitFlags.everything);
+    var sdl_flags = sdl.InitFlags.everything;
+    sdl_flags.audio = false;
+    try sdl.init(sdl_flags);
     defer sdl.quit();
 
     // Create window
-    var flags = sdl.WindowFlags{
+    var window_flags = sdl.WindowFlags{
         .allow_high_dpi = true,
         .mouse_capture = true,
         .mouse_focus = true,
     };
     if (config.enable_borderless) {
-        flags.borderless = true;
+        window_flags.borderless = true;
     }
     if (config.enable_minimized) {
-        flags.minimized = true;
+        window_flags.minimized = true;
     }
     if (config.enable_maximized) {
-        flags.maximized = true;
+        window_flags.maximized = true;
     }
     var ctx: context.Context = .{
         .window = try sdl.createWindow(
@@ -67,7 +69,7 @@ pub fn main() anyerror!void {
             config.pos_y,
             config.width,
             config.height,
-            flags,
+            window_flags,
         ),
     };
     const AllocatorType = std.heap.GeneralPurposeAllocator(.{
