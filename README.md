@@ -71,9 +71,9 @@ Theoretically anywhere SDL2/miniaudio can run. But I'm focusing on PC platforms 
 Some optional vendor libraries are confined to certain platforms, use at your own needs.
 
 ## Why would we joke about it?
-It's way too minimal (perhaps), you can't write shaders. If you want to achieve something fancy,
-you ought to resort to some clever art tricks or algorithms. Welcome to old golden time of 90s.
-Or, you can use other more powerful/modern libraries/engines, no harm to switch.
+It's way too minimal (perhaps), you can't write shaders ([might change in the future](https://gist.github.com/icculus/f731224bef3906e4c5e8cbed6f98bb08)). 
+If you want to achieve something fancy, you ought to resort to some clever art tricks or algorithms.
+Welcome to old golden time of 90s. Or, you can choose other more powerful/modern libraries/engines.
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
