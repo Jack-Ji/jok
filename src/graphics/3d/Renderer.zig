@@ -192,11 +192,10 @@ pub fn appendVertex(
             zmath.f32x4(0.0, 0.0, 0.0, 1.0),
         };
         const positions_screen = zmath.mul(ndcs, zmath.loadMat43(&[_]f32{
-            // zig fmt: off
-            0.5 * @intToFloat(f32, vp.width), 1.0, 0.0,
-            0.0, -0.5 * @intToFloat(f32, vp.height), 0.0,
-            0.0, 0.0, 0.5,
-            0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height), 0.5,
+            0.5 * @intToFloat(f32, vp.width), 1.0,                                0.0,
+            0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
+            0.0,                              0.0,                                0.5,
+            0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
         }));
         self.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
             .{
@@ -217,8 +216,8 @@ pub fn appendVertex(
         });
         self.indices.appendSliceAssumeCapacity(&[_]u32{
             current_index,
-            current_index+1,
-            current_index+2,
+            current_index + 1,
+            current_index + 2,
         });
         current_index += 3;
         self.depths.appendSliceAssumeCapacity(&[_]f32{
@@ -277,7 +276,7 @@ inline fn clipTriangle(self: *Self, positions: []const zmath.Vec, colors: ?[3]sd
             std.mem.swap(sdl.Color, &c1, &c2);
         }
         if (texcoords) |_| {
-            std.mem.swap(sdl.PointF , &t0, &t1);
+            std.mem.swap(sdl.PointF, &t0, &t1);
             std.mem.swap(sdl.PointF, &t1, &t2);
         }
     } else if (!is_v0_inside and !is_v1_inside) {
@@ -297,7 +296,7 @@ inline fn clipTriangle(self: *Self, positions: []const zmath.Vec, colors: ?[3]sd
         }
     }
 
-    // Append first vertex 
+    // Append first vertex
     assert(is_v0_inside);
     self.clip_vertices.appendAssumeCapacity(v0);
     if (colors) |_| self.clip_colors.appendAssumeCapacity(c0);
@@ -319,10 +318,10 @@ inline fn clipTriangle(self: *Self, positions: []const zmath.Vec, colors: ?[3]sd
             assert(lerp >= 0 and lerp <= 1);
             var lerp_position = zmath.lerp(v1, v2, lerp);
             var lerp_color: ?sdl.Color = if (colors) |_| sdl.Color.rgba(
-                    @floatToInt(u8, @intToFloat(f32, c1.r) + (@intToFloat(f32, c2.r) - @intToFloat(f32, c1.r)) * lerp),
-                    @floatToInt(u8, @intToFloat(f32, c1.g) + (@intToFloat(f32, c2.g) - @intToFloat(f32, c1.g)) * lerp),
-                    @floatToInt(u8, @intToFloat(f32, c1.b) + (@intToFloat(f32, c2.b) - @intToFloat(f32, c1.b)) * lerp),
-                    @floatToInt(u8, @intToFloat(f32, c1.a) + (@intToFloat(f32, c2.a) - @intToFloat(f32, c1.a)) * lerp),
+                @floatToInt(u8, @intToFloat(f32, c1.r) + (@intToFloat(f32, c2.r) - @intToFloat(f32, c1.r)) * lerp),
+                @floatToInt(u8, @intToFloat(f32, c1.g) + (@intToFloat(f32, c2.g) - @intToFloat(f32, c1.g)) * lerp),
+                @floatToInt(u8, @intToFloat(f32, c1.b) + (@intToFloat(f32, c2.b) - @intToFloat(f32, c1.b)) * lerp),
+                @floatToInt(u8, @intToFloat(f32, c1.a) + (@intToFloat(f32, c2.a) - @intToFloat(f32, c1.a)) * lerp),
             ) else null;
             var lerp_texcoord: ?sdl.PointF = if (texcoords) |_| sdl.PointF{
                 .x = t1.x + (t2.x - t1.x) * lerp,
@@ -343,10 +342,10 @@ inline fn clipTriangle(self: *Self, positions: []const zmath.Vec, colors: ?[3]sd
             assert(lerp >= 0 and lerp <= 1);
             lerp_position = zmath.lerp(v0, v2, lerp);
             lerp_color = if (colors) |_| sdl.Color.rgba(
-                    @floatToInt(u8, @intToFloat(f32, c0.r) + (@intToFloat(f32, c2.r) - @intToFloat(f32, c0.r)) * lerp),
-                    @floatToInt(u8, @intToFloat(f32, c0.g) + (@intToFloat(f32, c2.g) - @intToFloat(f32, c0.g)) * lerp),
-                    @floatToInt(u8, @intToFloat(f32, c0.b) + (@intToFloat(f32, c2.b) - @intToFloat(f32, c0.b)) * lerp),
-                    @floatToInt(u8, @intToFloat(f32, c0.a) + (@intToFloat(f32, c2.a) - @intToFloat(f32, c0.a)) * lerp),
+                @floatToInt(u8, @intToFloat(f32, c0.r) + (@intToFloat(f32, c2.r) - @intToFloat(f32, c0.r)) * lerp),
+                @floatToInt(u8, @intToFloat(f32, c0.g) + (@intToFloat(f32, c2.g) - @intToFloat(f32, c0.g)) * lerp),
+                @floatToInt(u8, @intToFloat(f32, c0.b) + (@intToFloat(f32, c2.b) - @intToFloat(f32, c0.b)) * lerp),
+                @floatToInt(u8, @intToFloat(f32, c0.a) + (@intToFloat(f32, c2.a) - @intToFloat(f32, c0.a)) * lerp),
             ) else null;
             lerp_texcoord = if (texcoords) |_| sdl.PointF{
                 .x = t0.x + (t2.x - t0.x) * lerp,
@@ -425,7 +424,7 @@ inline fn clipTriangle(self: *Self, positions: []const zmath.Vec, colors: ?[3]sd
 }
 
 /// Test whether an OBB (oriented AABB) is outside of clipping space.
-/// Algorithm description: We simply test whether all vertices is 
+/// Algorithm description: We simply test whether all vertices is
 /// outside of clipping space, the method will report some very close
 /// OBBs as inside, but it's fast.
 inline fn isOBBOutside(obb: []const zmath.Vec) bool {
@@ -433,33 +432,57 @@ inline fn isOBBOutside(obb: []const zmath.Vec) bool {
 
     // Get extents of AABB (our clipping space)
     const es = zmath.f32x8(
-        obb[0][3], obb[1][3], obb[2][3], obb[3][3],
-        obb[4][3], obb[5][3], obb[6][3], obb[7][3],
+        obb[0][3],
+        obb[1][3],
+        obb[2][3],
+        obb[3][3],
+        obb[4][3],
+        obb[5][3],
+        obb[6][3],
+        obb[7][3],
     );
     const e = @reduce(.Max, es);
 
     // test x coordinate
     const xs = zmath.f32x8(
-        obb[0][0], obb[1][0], obb[2][0], obb[3][0],
-        obb[4][0], obb[5][0], obb[6][0], obb[7][0],
+        obb[0][0],
+        obb[1][0],
+        obb[2][0],
+        obb[3][0],
+        obb[4][0],
+        obb[5][0],
+        obb[6][0],
+        obb[7][0],
     );
     if (@reduce(.Min, xs) > e or @reduce(.Max, xs) < -e) {
         return true;
     }
-   
+
     // test y coordinate
     const ys = zmath.f32x8(
-        obb[0][1], obb[1][1], obb[2][1], obb[3][1],
-        obb[4][1], obb[5][1], obb[6][1], obb[7][1],
+        obb[0][1],
+        obb[1][1],
+        obb[2][1],
+        obb[3][1],
+        obb[4][1],
+        obb[5][1],
+        obb[6][1],
+        obb[7][1],
     );
     if (@reduce(.Min, ys) > e or @reduce(.Max, ys) < -e) {
         return true;
     }
-   
+
     // test z coordinate
     const zs = zmath.f32x8(
-        obb[0][2], obb[1][2], obb[2][2], obb[3][2],
-        obb[4][2], obb[5][2], obb[6][2], obb[7][2],
+        obb[0][2],
+        obb[1][2],
+        obb[2][2],
+        obb[3][2],
+        obb[4][2],
+        obb[5][2],
+        obb[6][2],
+        obb[7][2],
     );
     if (@reduce(.Min, zs) > e or @reduce(.Max, zs) < -e) {
         return true;
@@ -469,7 +492,7 @@ inline fn isOBBOutside(obb: []const zmath.Vec) bool {
 }
 
 /// Test whether a triangle is outside of NDC.
-/// Using Seperating Axis Therom (aka SAT) algorithm. There are 13 axes 
+/// Using Seperating Axis Therom (aka SAT) algorithm. There are 13 axes
 /// that must be considered for projection:
 /// 1. Nine axes given by the cross products of combination of edges from both
 /// 2. Three face normals from the AABB
