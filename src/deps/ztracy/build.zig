@@ -1,30 +1,49 @@
 const std = @import("std");
 
-pub fn getPkg(b: *std.build.Builder, options_pkg: std.build.Pkg) std.build.Pkg {
-    const pkg = std.build.Pkg{
-        .name = "ztracy",
-        .path = .{ .path = comptime thisDir() ++ "/src/ztracy.zig" },
-        .dependencies = &[_]std.build.Pkg{options_pkg},
-    };
-    return b.dupePkg(pkg);
-}
-
-pub const TracyBuildOptions = struct {
-    fibers: bool = false,
+pub const BuildOptions = struct {
+    enable_ztracy: bool = false,
+    enable_fibers: bool = false,
 };
 
-pub fn link(
-    exe: *std.build.LibExeObjStep,
-    enable_tracy: bool,
-    build_opts: TracyBuildOptions,
-) void {
-    if (enable_tracy) {
-        const fibers_flag = if (build_opts.fibers) "-DTRACY_FIBERS" else "";
+pub const BuildOptionsStep = struct {
+    options: BuildOptions,
+    step: *std.build.OptionsStep,
 
-        exe.addIncludeDir(comptime thisDir() ++ "/libs/tracy");
-        exe.addCSourceFile(comptime thisDir() ++ "/libs/tracy/TracyClient.cpp", &.{
+    pub fn init(b: *std.build.Builder, options: BuildOptions) BuildOptionsStep {
+        const bos = .{
+            .options = options,
+            .step = b.addOptions(),
+        };
+        bos.step.addOption(bool, "enable_ztracy", bos.options.enable_ztracy);
+        return bos;
+    }
+
+    pub fn getPkg(bos: BuildOptionsStep) std.build.Pkg {
+        return bos.step.getPackage("ztracy_options");
+    }
+
+    fn addTo(bos: BuildOptionsStep, target_step: *std.build.LibExeObjStep) void {
+        target_step.addOptions("ztracy_options", bos.step);
+    }
+};
+
+pub fn getPkg(dependencies: []const std.build.Pkg) std.build.Pkg {
+    return .{
+        .name = "ztracy",
+        .source = .{ .path = thisDir() ++ "/src/ztracy.zig" },
+        .dependencies = dependencies,
+    };
+}
+
+pub fn link(exe: *std.build.LibExeObjStep, bos: BuildOptionsStep) void {
+    bos.addTo(exe);
+    if (bos.options.enable_ztracy) {
+        const enable_fibers = if (bos.options.enable_fibers) "-DTRACY_FIBERS" else "";
+
+        exe.addIncludeDir(thisDir() ++ "/libs/tracy");
+        exe.addCSourceFile(thisDir() ++ "/libs/tracy/TracyClient.cpp", &.{
             "-DTRACY_ENABLE",
-            fibers_flag,
+            enable_fibers,
             // MinGW doesn't have all the newfangled windows features,
             // so we need to pretend to have an older windows version.
             "-D_WIN32_WINNT=0x601",
@@ -44,5 +63,7 @@ pub fn link(
 }
 
 fn thisDir() []const u8 {
-    return std.fs.path.dirname(@src().file) orelse ".";
+    comptime {
+        return std.fs.path.dirname(@src().file) orelse ".";
+    }
 }

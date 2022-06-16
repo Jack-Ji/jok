@@ -139,11 +139,29 @@ const char* btTypedConstraint::serialize(void* dataBuffer, btSerializer* seriali
 	return btTypedConstraintDataName;
 }
 
+// mziulek: We allocate 'fixed body' on the heap (originally, Bullet doesn't use heap here).
+// This change fixes problem we had with Bullet and Zig allocators.
+static btRigidBody* s_fixed = nullptr;
+
 btRigidBody& btTypedConstraint::getFixedBody()
 {
-	static btRigidBody s_fixed(0, 0, 0);
-	s_fixed.setMassProps(btScalar(0.), btVector3(btScalar(0.), btScalar(0.), btScalar(0.)));
-	return s_fixed;
+    if (s_fixed == nullptr)
+    {
+        s_fixed = (btRigidBody*)btAlignedAlloc(sizeof(btRigidBody), 16);
+        new (s_fixed) btRigidBody(0, 0, 0);
+        s_fixed->setMassProps(btScalar(0.), btVector3(btScalar(0.), btScalar(0.), btScalar(0.)));
+    }
+	return *s_fixed;
+}
+
+void btTypedConstraint::destroyFixedBody()
+{
+    if (s_fixed != nullptr)
+    {
+        s_fixed->~btRigidBody();
+        btAlignedFree(s_fixed);
+        s_fixed = nullptr;
+    }
 }
 
 void btAngularLimit::set(btScalar low, btScalar high, btScalar _softness, btScalar _biasFactor, btScalar _relaxationFactor)

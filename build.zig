@@ -1,5 +1,16 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const sdlsdk = @import("src/deps/sdl/Sdk.zig");
+const miniaudio = @import("src/deps/miniaudio/build.zig");
+const stb = @import("src/deps/stb/build.zig");
+const imgui = @import("src/deps/imgui/build.zig");
+const chipmunk = @import("src/deps/chipmunk/build.zig");
+const nfd = @import("src/deps/nfd/build.zig");
+const zmesh = @import("src/deps/zmesh/build.zig");
+const znoise = @import("src/deps/znoise/build.zig");
+const zbullet = @import("src/deps/zbullet/build.zig");
+const znetwork = @import("src/deps/znetwork/build.zig");
+const ztracy = @import("src/deps/ztracy/build.zig");
 
 pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
@@ -54,14 +65,14 @@ pub fn build(b: *std.build.Builder) void {
 }
 
 pub const BuildOptions = struct {
+    link_imgui: bool = false,
+    link_chipmunk: bool = false,
+    link_nfd: bool = false,
     link_zmesh: bool = false,
     link_znoise: bool = false,
     link_zbullet: bool = false,
     link_znetwork: bool = false,
     link_ztracy: bool = false,
-    link_imgui: bool = false,
-    link_chipmunk: bool = false,
-    link_nfd: bool = false,
     enable_tracy: bool = false,
 };
 
@@ -75,38 +86,28 @@ pub fn createGame(
     opt: BuildOptions,
 ) *std.build.LibExeObjStep {
     const exe = b.addExecutable(name, comptime thisDir() ++ "/src/app.zig");
+    const exe_options = b.addOptions();
+    exe.addOptions("build_options", exe_options);
     exe.setTarget(target);
     exe.setBuildMode(mode);
 
-    // Link dependencies
-    const sdl = @import("src/deps/sdl/Sdk.zig").init(exe.builder);
+    // Link must dependencies
+    const sdl = sdlsdk.init(exe.builder);
     sdl.link(exe, .dynamic);
-    @import("src/deps/miniaudio/build.zig").link(exe);
-    @import("src/deps/stb/build.zig").link(exe);
-    if (opt.link_zmesh) {
-        @import("src/deps/zmesh/build.zig").link(exe);
-    }
-    if (opt.link_znoise) {
-        @import("src/deps/znoise/build.zig").link(exe);
-    }
-    if (opt.link_zbullet) {
-        @import("src/deps/zbullet/build.zig").link(exe);
-    }
-    if (opt.link_znetwork) {
-        @import("src/deps/znetwork/build.zig").link(exe);
-    }
-    if (opt.link_ztracy) {
-        @import("src/deps/ztracy/build.zig").link(exe, opt.enable_tracy, .{});
-    }
-    if (opt.link_imgui) {
-        @import("src/deps/imgui/build.zig").link(exe);
-    }
-    if (opt.link_chipmunk) {
-        @import("src/deps/chipmunk/build.zig").link(exe);
-    }
-    if (opt.link_nfd) {
-        @import("src/deps/nfd/build.zig").link(exe);
-    }
+    miniaudio.link(exe);
+    stb.link(exe);
+
+    // Link optional dependencies
+    const zmesh_opt = zmesh.BuildOptionsStep.init(b, .{});
+    const ztracy_opt = ztracy.BuildOptionsStep.init(b, .{ .enable_ztracy = opt.enable_tracy });
+    if (opt.link_imgui) imgui.link(exe);
+    if (opt.link_chipmunk) chipmunk.link(exe);
+    if (opt.link_nfd) nfd.link(exe);
+    if (opt.link_zmesh) zmesh.link(exe, zmesh_opt);
+    if (opt.link_znoise) znoise.link(exe);
+    if (opt.link_zbullet) zbullet.link(exe);
+    if (opt.link_znetwork) znetwork.link(exe);
+    if (opt.link_ztracy) ztracy.link(exe, ztracy_opt);
 
     // Add packages
     const jok = std.build.Pkg{
@@ -114,6 +115,7 @@ pub fn createGame(
         .source = .{ .path = comptime thisDir() ++ "/src/jok.zig" },
         .dependencies = &[_]std.build.Pkg{
             sdl.getWrapperPackage("sdl"),
+            zmesh_opt.getPkg(),
         },
     };
     const game = std.build.Pkg{

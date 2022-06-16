@@ -24,12 +24,17 @@ const zmesh = @import("libs/zmesh/build.zig");
 
 pub fn build(b: *std.build.Builder) void {
     ...
-    exe.addPackage(zmesh.pkg);
-    zmesh.link(exe);
+    const zmesh_options = zmesh.BuildOptionsStep.init(b, .{});
+
+    const zmesh_pkg = zmesh.getPkg(&.{zmesh_options.getPkg()});
+
+    exe.addPackage(zmesh_pkg);
+
+    zmesh.link(exe, zmesh_options);
 }
 ```
 
-Now in your code you may import and use zmesh:
+Now in your code you may import and use `zmesh`:
 
 ```zig
 const zmesh = @import("zmesh");

@@ -1,4 +1,4 @@
-// cbullet - version 0.1
+// cbullet v0.2
 // C API for Bullet Physics SDK
 
 #pragma once
@@ -7,7 +7,7 @@
 
 #define CBT_DECLARE_HANDLE(name) typedef struct name##__ { int unused; } *name
 
-// cbtRayTestClosest
+// cbtWorldRayTestClosest
 #define CBT_COLLISION_FILTER_DEFAULT 1
 #define CBT_COLLISION_FILTER_STATIC 2
 #define CBT_COLLISION_FILTER_KINEMATIC 4
@@ -16,12 +16,12 @@
 #define CBT_COLLISION_FILTER_CHARACTER 32
 #define CBT_COLLISION_FILTER_ALL -1
 
-// cbtRayTestClosest
+// cbtWorldRayTestClosest
 #define CBT_RAYCAST_FLAG_NONE 0
 #define CBT_RAYCAST_FLAG_TRIMESH_SKIP_BACKFACES 1
 #define CBT_RAYCAST_FLAG_TRIMESH_KEEP_UNFLIPPED_NORMALS 2
 #define CBT_RAYCAST_FLAG_USE_SUB_SIMPLEX_CONVEX_TEST 4 // default, faster but less accurate
-#define CBT_RAYCAST_FLAG_USE_USE_GJK_CONVEX_TEST 8
+#define CBT_RAYCAST_FLAG_USE_GJK_CONVEX_TEST 8
 
 // cbtBodySetAnisotropicFriction
 #define CBT_ANISOTROPIC_FRICTION_DISABLED 0
@@ -54,6 +54,7 @@
 // cbtBodyGetActivationState, cbtBodySetActivationState
 #define CBT_ACTIVE_TAG 1
 #define CBT_ISLAND_SLEEPING 2
+#define CBT_WANTS_DEACTIVATION 3
 #define CBT_DISABLE_DEACTIVATION 4
 #define CBT_DISABLE_SIMULATION 5
 
@@ -137,6 +138,15 @@ typedef struct CbtRayCastResult {
 } CbtRayCastResult;
 
 //
+// Task scheduler
+//
+void cbtTaskSchedInit(void);
+void cbtTaskSchedDeinit(void);
+int cbtTaskSchedGetNumThreads(void);
+int cbtTaskSchedGetMaxNumThreads(void);
+void cbtTaskSchedSetNumThreads(int num_threads);
+
+//
 // World
 //
 CbtWorldHandle cbtWorldCreate(void);
@@ -166,7 +176,7 @@ CbtBodyHandle cbtWorldGetBody(CbtWorldHandle world_handle, int body_index);
 CbtConstraintHandle cbtWorldGetConstraint(CbtWorldHandle world_handle, int con_index);
 
 // Returns `true` when hits something, `false` otherwise
-bool cbtRayTestClosest(
+bool cbtWorldRayTestClosest(
     CbtWorldHandle world_handle,
     const CbtVector3 ray_from_world,
     const CbtVector3 ray_to_world,
@@ -178,6 +188,7 @@ bool cbtRayTestClosest(
 
 void cbtWorldDebugSetDrawer(CbtWorldHandle world_handle, const CbtDebugDraw* drawer);
 void cbtWorldDebugSetMode(CbtWorldHandle world_handle, int mode);
+int cbtWorldDebugGetMode(CbtWorldHandle world_handle);
 void cbtWorldDebugDrawAll(CbtWorldHandle world_handle);
 void cbtWorldDebugDrawLine1(
     CbtWorldHandle world_handle,
@@ -373,10 +384,17 @@ void cbtBodyGetCenterOfMassPosition(CbtBodyHandle body_handle, CbtVector3 positi
 void cbtBodyGetInvCenterOfMassTransform(CbtBodyHandle body_handle, CbtVector3 transform[4]);
 void cbtBodyGetGraphicsWorldTransform(CbtBodyHandle body_handle, CbtVector3 transform[4]);
 
+float cbtBodyGetCcdSweptSphereRadius(CbtBodyHandle body_handle);
+void cbtBodySetCcdSweptSphereRadius(CbtBodyHandle body_handle, float radius);
+
+float cbtBodyGetCcdMotionThreshold(CbtBodyHandle body_handle);
+void cbtBodySetCcdMotionThreshold(CbtBodyHandle body_handle, float threshold);
+
 //
 // Constraints
 //
 CbtBodyHandle cbtConGetFixedBody(void);
+void cbtConDestroyFixedBody(void);
 
 CbtConstraintHandle cbtConAllocate(int con_type);
 void cbtConDeallocate(CbtConstraintHandle con_handle);

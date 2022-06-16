@@ -1,4 +1,4 @@
-// zbullet - version 0.1
+// zbullet v0.2
 // Zig bindings for Bullet Physics SDK
 
 const std = @import("std");
@@ -6,8 +6,8 @@ const Mutex = std.Thread.Mutex;
 const expect = std.testing.expect;
 
 extern fn cbtAlignedAllocSetCustomAligned(
-    alloc: fn (size: usize, alignment: i32) callconv(.C) ?*anyopaque,
-    free: fn (ptr: ?*anyopaque) callconv(.C) void,
+    alloc: ?fn (size: usize, alignment: i32) callconv(.C) ?*anyopaque,
+    free: ?fn (ptr: ?*anyopaque) callconv(.C) void,
 ) void;
 
 var allocator: ?std.mem.Allocator = null;
@@ -42,23 +42,70 @@ export fn zbulletFree(ptr: ?*anyopaque) callconv(.C) void {
     }
 }
 
+extern fn cbtTaskSchedInit() void;
+extern fn cbtTaskSchedDeinit() void;
+
 pub fn init(alloc: std.mem.Allocator) void {
     std.debug.assert(allocator == null and allocations == null);
     allocator = alloc;
     allocations = std.AutoHashMap(usize, usize).init(allocator.?);
     allocations.?.ensureTotalCapacity(256) catch @panic("zbullet: out of memory");
     cbtAlignedAllocSetCustomAligned(zbulletAlloc, zbulletFree);
+    cbtTaskSchedInit();
+    _ = Constraint.getFixedBody(); // This will allocate 'fixed body' singleton on the heap.
 }
 
 pub fn deinit() void {
+    Constraint.destroyFixedBody();
+    cbtTaskSchedDeinit();
+    cbtAlignedAllocSetCustomAligned(null, null);
     allocations.?.deinit();
     allocations = null;
     allocator = null;
 }
 
+pub const CollisionFilter = packed struct {
+    default: bool = false,
+    static: bool = false,
+    kinematic: bool = false,
+    debris: bool = false,
+    sensor_trigger: bool = false,
+    character: bool = false,
+
+    _pad0: u10 = 0,
+    _pad1: u16 = 0,
+
+    pub const all = @bitCast(CollisionFilter, ~@as(u32, 0));
+
+    comptime {
+        std.debug.assert(@sizeOf(@This()) == @sizeOf(u32) and @bitSizeOf(@This()) == @bitSizeOf(u32));
+    }
+};
+
+pub const RayCastFlags = packed struct {
+    trimesh_skip_backfaces: bool = false,
+    trimesh_keep_unflipped_normals: bool = false,
+    use_subsimplex_convex_test: bool = false, // used by default, faster but less accurate
+    use_gjk_convex_test: bool = false,
+
+    _pad0: u12 = 0,
+    _pad1: u16 = 0,
+
+    comptime {
+        std.debug.assert(@sizeOf(@This()) == @sizeOf(u32) and @bitSizeOf(@This()) == @bitSizeOf(u32));
+    }
+};
+
+pub const RayCastResult = extern struct {
+    hit_normal_world: [3]f32,
+    hit_point_world: [3]f32,
+    hit_fraction: f32,
+    body: ?*const Body,
+};
+
 pub const World = opaque {
-    pub fn init(params: struct {}) *const World {
-        _ = params;
+    pub fn init(args: struct {}) *const World {
+        _ = args;
         std.debug.assert(allocator != null and allocations != null);
         return cbtWorldCreate();
     }
@@ -66,6 +113,7 @@ pub const World = opaque {
 
     pub fn deinit(world: *const World) void {
         std.debug.assert(world.getNumBodies() == 0);
+        std.debug.assert(world.getNumConstraints() == 0);
         cbtWorldDestroy(world);
     }
     extern fn cbtWorldDestroy(world: *const World) void;
@@ -76,15 +124,15 @@ pub const World = opaque {
     pub const getGravity = cbtWorldGetGravity;
     extern fn cbtWorldGetGravity(world: *const World, gravity: *[3]f32) void;
 
-    pub fn stepSimulation(world: *const World, time_step: f32, params: struct {
+    pub fn stepSimulation(world: *const World, time_step: f32, args: struct {
         max_sub_steps: u32 = 1,
         fixed_time_step: f32 = 1.0 / 60.0,
     }) u32 {
         return cbtWorldStepSimulation(
             world,
             time_step,
-            params.max_sub_steps,
-            params.fixed_time_step,
+            args.max_sub_steps,
+            args.fixed_time_step,
         );
     }
     extern fn cbtWorldStepSimulation(
@@ -114,28 +162,26 @@ pub const World = opaque {
     ) void;
 
     pub const removeConstraint = cbtWorldRemoveConstraint;
-    extern fn cbtWorldRemoveConstraint(
-        world: *const World,
-        con: *const Constraint,
-    ) void;
+    extern fn cbtWorldRemoveConstraint(world: *const World, con: *const Constraint) void;
 
     pub const getConstraint = cbtWorldGetConstraint;
-    extern fn cbtWorldGetConstraint(
-        world: *const World,
-        index: i32,
-    ) *const Constraint;
+    extern fn cbtWorldGetConstraint(world: *const World, index: i32) *const Constraint;
 
     pub const getNumConstraints = cbtWorldGetNumConstraints;
     extern fn cbtWorldGetNumConstraints(world: *const World) i32;
 
     pub const debugSetDrawer = cbtWorldDebugSetDrawer;
-    extern fn cbtWorldDebugSetDrawer(
-        world: *const World,
-        debug: *const DebugDraw,
-    ) void;
+    extern fn cbtWorldDebugSetDrawer(world: *const World, debug: *const DebugDraw) void;
 
-    pub const debugSetMode = cbtWorldDebugSetMode;
-    extern fn cbtWorldDebugSetMode(world: *const World, mode: DebugMode) void;
+    pub fn debugSetMode(world: *const World, mode: DebugMode) void {
+        cbtWorldDebugSetMode(world, @bitCast(c_int, mode));
+    }
+    extern fn cbtWorldDebugSetMode(world: *const World, mode: c_int) void;
+
+    pub fn debugGetMode(world: *const World) DebugMode {
+        return @bitCast(DebugMode, cbtWorldDebugGetMode(world));
+    }
+    extern fn cbtWorldDebugGetMode(world: *const World) c_int;
 
     pub const debugDrawAll = cbtWorldDebugDrawAll;
     extern fn cbtWorldDebugDrawAll(world: *const World) void;
@@ -164,6 +210,35 @@ pub const World = opaque {
         radius: f32,
         color: *const [3]f32,
     ) void;
+
+    pub fn rayTestClosest(
+        world: *const World,
+        ray_from_world: *const [3]f32,
+        ray_to_world: *const [3]f32,
+        group: CollisionFilter,
+        mask: CollisionFilter,
+        flags: RayCastFlags,
+        raycast_result: ?*RayCastResult,
+    ) bool {
+        return cbtWorldRayTestClosest(
+            world,
+            ray_from_world,
+            ray_to_world,
+            @bitCast(c_int, group),
+            @bitCast(c_int, mask),
+            @bitCast(c_int, flags),
+            raycast_result,
+        );
+    }
+    extern fn cbtWorldRayTestClosest(
+        world: *const World,
+        ray_from_world: *const [3]f32,
+        ray_to_world: *const [3]f32,
+        group: c_int,
+        mask: c_int,
+        flags: c_int,
+        raycast_result: ?*RayCastResult,
+    ) bool;
 };
 
 pub const Axis = enum(c_int) {
@@ -255,6 +330,25 @@ pub const Shape = opaque {
 
     pub const getUserIndex = cbtShapeGetUserIndex;
     extern fn cbtShapeGetUserIndex(shape: *const Shape, slot: u32) i32;
+
+    pub fn as(shape: *const Shape, comptime stype: ShapeType) switch (stype) {
+        .box => *const BoxShape,
+        .sphere => *const SphereShape,
+        .cylinder => *const CylinderShape,
+        .capsule => *const CapsuleShape,
+        .compound => *const CompoundShape,
+        .trimesh => *const TriangleMeshShape,
+    } {
+        std.debug.assert(shape.getType() == stype);
+        return switch (stype) {
+            .box => @ptrCast(*const BoxShape, shape),
+            .sphere => @ptrCast(*const SphereShape, shape),
+            .cylinder => @ptrCast(*const CylinderShape, shape),
+            .capsule => @ptrCast(*const CapsuleShape, shape),
+            .compound => @ptrCast(*const CompoundShape, shape),
+            .trimesh => @ptrCast(*const TriangleMeshShape, shape),
+        };
+    }
 };
 
 fn ShapeFunctions(comptime T: type) type {
@@ -262,6 +356,7 @@ fn ShapeFunctions(comptime T: type) type {
         pub fn asShape(shape: *const T) *const Shape {
             return @ptrCast(*const Shape, shape);
         }
+
         pub fn deallocate(shape: *const T) void {
             shape.asShape().deallocate();
         }
@@ -301,11 +396,7 @@ fn ShapeFunctions(comptime T: type) type {
         pub fn isCompound(shape: *const T) bool {
             return shape.asShape().isCompound();
         }
-        pub fn calculateLocalInertia(
-            shape: *const Shape,
-            mass: f32,
-            inertia: *[3]f32,
-        ) void {
+        pub fn calculateLocalInertia(shape: *const Shape, mass: f32, inertia: *[3]f32) void {
             shape.asShape().calculateLocalInertia(shape, mass, inertia);
         }
         pub fn setUserPointer(shape: *const T, ptr: ?*anyopaque) void {
@@ -337,22 +428,13 @@ pub const BoxShape = opaque {
     }
 
     pub const create = cbtShapeBoxCreate;
-    extern fn cbtShapeBoxCreate(
-        box: *const BoxShape,
-        half_extents: *const [3]f32,
-    ) void;
+    extern fn cbtShapeBoxCreate(box: *const BoxShape, half_extents: *const [3]f32) void;
 
     pub const getHalfExtentsWithoutMargin = cbtShapeBoxGetHalfExtentsWithoutMargin;
-    extern fn cbtShapeBoxGetHalfExtentsWithoutMargin(
-        box: *const BoxShape,
-        half_extents: *[3]f32,
-    ) void;
+    extern fn cbtShapeBoxGetHalfExtentsWithoutMargin(box: *const BoxShape, half_extents: *[3]f32) void;
 
     pub const getHalfExtentsWithMargin = cbtShapeBoxGetHalfExtentsWithMargin;
-    extern fn cbtShapeBoxGetHalfExtentsWithMargin(
-        box: *const BoxShape,
-        half_extents: *[3]f32,
-    ) void;
+    extern fn cbtShapeBoxGetHalfExtentsWithMargin(box: *const BoxShape, half_extents: *[3]f32) void;
 };
 
 pub const SphereShape = opaque {
@@ -375,10 +457,7 @@ pub const SphereShape = opaque {
     extern fn cbtShapeSphereGetRadius(sphere: *const SphereShape) f32;
 
     pub const setUnscaledRadius = cbtShapeSphereSetUnscaledRadius;
-    extern fn cbtShapeSphereSetUnscaledRadius(
-        sphere: *const SphereShape,
-        radius: f32,
-    ) void;
+    extern fn cbtShapeSphereSetUnscaledRadius(sphere: *const SphereShape, radius: f32) void;
 };
 
 pub const CapsuleShape = opaque {
@@ -435,8 +514,7 @@ pub const CylinderShape = opaque {
         upaxis: Axis,
     ) void;
 
-    pub const getHalfExtentsWithoutMargin =
-        cbtShapeCylinderGetHalfExtentsWithoutMargin;
+    pub const getHalfExtentsWithoutMargin = cbtShapeCylinderGetHalfExtentsWithoutMargin;
     extern fn cbtShapeCylinderGetHalfExtentsWithoutMargin(
         cylinder: *const CylinderShape,
         half_extents: *[3]f32,
@@ -456,16 +534,13 @@ pub const CompoundShape = opaque {
     usingnamespace ShapeFunctions(@This());
 
     pub fn init(
-        params: struct {
+        args: struct {
             enable_dynamic_aabb_tree: bool = true,
             initial_child_capacity: u32 = 0,
         },
     ) *const CompoundShape {
         const cshape = allocate();
-        cshape.create(
-            params.enable_dynamic_aabb_tree,
-            params.initial_child_capacity,
-        );
+        cshape.create(args.enable_dynamic_aabb_tree, args.initial_child_capacity);
         return cshape;
     }
 
@@ -488,25 +563,16 @@ pub const CompoundShape = opaque {
     ) void;
 
     pub const removeChild = cbtShapeCompoundRemoveChild;
-    extern fn cbtShapeCompoundRemoveChild(
-        cshape: *const CompoundShape,
-        child_shape: *const Shape,
-    ) void;
+    extern fn cbtShapeCompoundRemoveChild(cshape: *const CompoundShape, child_shape: *const Shape) void;
 
     pub const removeChildByIndex = cbtShapeCompoundRemoveChildByIndex;
-    extern fn cbtShapeCompoundRemoveChildByIndex(
-        cshape: *const CompoundShape,
-        index: i32,
-    ) void;
+    extern fn cbtShapeCompoundRemoveChildByIndex(cshape: *const CompoundShape, index: i32) void;
 
     pub const getNumChilds = cbtShapeCompoundGetNumChilds;
     extern fn cbtShapeCompoundGetNumChilds(cshape: *const CompoundShape) i32;
 
     pub const getChild = cbtShapeCompoundGetChild;
-    extern fn cbtShapeCompoundGetChild(
-        cshape: *const CompoundShape,
-        index: i32,
-    ) *const Shape;
+    extern fn cbtShapeCompoundGetChild(cshape: *const CompoundShape, index: i32) *const Shape;
 
     pub const getChildTransform = cbtShapeCompoundGetChildTransform;
     extern fn cbtShapeCompoundGetChildTransform(
@@ -525,7 +591,7 @@ pub const TriangleMeshShape = opaque {
         return trimesh;
     }
 
-    pub fn finalize(trimesh: *const TriangleMeshShape) void {
+    pub fn finish(trimesh: *const TriangleMeshShape) void {
         trimesh.createEnd();
     }
 
@@ -549,6 +615,14 @@ pub const TriangleMeshShape = opaque {
 
     pub const createEnd = cbtShapeTriMeshCreateEnd;
     extern fn cbtShapeTriMeshCreateEnd(trimesh: *const TriangleMeshShape) void;
+};
+
+pub const BodyActivationState = enum(c_int) {
+    active = 1,
+    sleeping = 2,
+    wants_deactivation = 3,
+    deactivation_disabled = 4,
+    simulation_disabled = 5,
 };
 
 pub const Body = opaque {
@@ -611,8 +685,80 @@ pub const Body = opaque {
         transform: *[12]f32,
     ) void;
 
+    pub const getCenterOfMassTransform = cbtBodyGetCenterOfMassTransform;
+    extern fn cbtBodyGetCenterOfMassTransform(
+        body: *const Body,
+        transform: *[12]f32,
+    ) void;
+
+    pub const getInvCenterOfMassTransform = cbtBodyGetInvCenterOfMassTransform;
+    extern fn cbtBodyGetInvCenterOfMassTransform(
+        body: *const Body,
+        transform: *[12]f32,
+    ) void;
+
     pub const applyCentralImpulse = cbtBodyApplyCentralImpulse;
-    extern fn cbtBodyApplyCentralImpulse(body: *const Body, impulse: *[3]f32) void;
+    extern fn cbtBodyApplyCentralImpulse(body: *const Body, impulse: *const [3]f32) void;
+
+    pub const setUserIndex = cbtBodySetUserIndex;
+    extern fn cbtBodySetUserIndex(body: *const Body, slot: u32, index: i32) void;
+
+    pub const getUserIndex = cbtBodyGetUserIndex;
+    extern fn cbtBodyGetUserIndex(body: *const Body, slot: u32) i32;
+
+    pub const getCcdSweptSphereRadius = cbtBodyGetCcdSweptSphereRadius;
+    extern fn cbtBodyGetCcdSweptSphereRadius(body: *const Body) f32;
+
+    pub const setCcdSweptSphereRadius = cbtBodySetCcdSweptSphereRadius;
+    extern fn cbtBodySetCcdSweptSphereRadius(body: *const Body, radius: f32) void;
+
+    pub const getCcdMotionThreshold = cbtBodyGetCcdMotionThreshold;
+    extern fn cbtBodyGetCcdMotionThreshold(body: *const Body) f32;
+
+    pub const setCcdMotionThreshold = cbtBodySetCcdMotionThreshold;
+    extern fn cbtBodySetCcdMotionThreshold(body: *const Body, threshold: f32) void;
+
+    pub const setMassProps = cbtBodySetMassProps;
+    extern fn cbtBodySetMassProps(body: *const Body, mass: f32, inertia: *const [3]f32) void;
+
+    pub const setDamping = cbtBodySetDamping;
+    extern fn cbtBodySetDamping(body: *const Body, linear: f32, angular: f32) void;
+
+    pub const getLinearDamping = cbtBodyGetLinearDamping;
+    extern fn cbtBodyGetLinearDamping(body: *const Body) f32;
+
+    pub const getAngularDamping = cbtBodyGetAngularDamping;
+    extern fn cbtBodyGetAngularDamping(body: *const Body) f32;
+
+    pub const getActivationState = cbtBodyGetActivationState;
+    extern fn cbtBodyGetActivationState(body: *const Body) BodyActivationState;
+
+    pub const setActivationState = cbtBodySetActivationState;
+    extern fn cbtBodySetActivationState(body: *const Body, state: BodyActivationState) void;
+
+    pub const forceActivationState = cbtBodyForceActivationState;
+    extern fn cbtBodyForceActivationState(body: *const Body, state: BodyActivationState) void;
+
+    pub const getDeactivationTime = cbtBodyGetDeactivationTime;
+    extern fn cbtBodyGetDeactivationTime(body: *const Body) f32;
+
+    pub const setDeactivationTime = cbtBodySetDeactivationTime;
+    extern fn cbtBodySetDeactivationTime(body: *const Body, time: f32) void;
+
+    pub const isActive = cbtBodyIsActive;
+    extern fn cbtBodyIsActive(body: *const Body) bool;
+
+    pub const isInWorld = cbtBodyIsInWorld;
+    extern fn cbtBodyIsInWorld(body: *const Body) bool;
+
+    pub const isStatic = cbtBodyIsStatic;
+    extern fn cbtBodyIsStatic(body: *const Body) bool;
+
+    pub const isKinematic = cbtBodyIsKinematic;
+    extern fn cbtBodyIsKinematic(body: *const Body) bool;
+
+    pub const isStaticOrKinematic = cbtBodyIsStaticOrKinematic;
+    extern fn cbtBodyIsStaticOrKinematic(body: *const Body) bool;
 };
 
 pub const ConstraintType = enum(c_int) {
@@ -622,6 +768,9 @@ pub const ConstraintType = enum(c_int) {
 pub const Constraint = opaque {
     pub const getFixedBody = cbtConGetFixedBody;
     extern fn cbtConGetFixedBody() *const Body;
+
+    pub const destroyFixedBody = cbtConDestroyFixedBody;
+    extern fn cbtConDestroyFixedBody() void;
 
     pub const allocate = cbtConAllocate;
     extern fn cbtConAllocate(ctype: ConstraintType) *const Constraint;
@@ -649,6 +798,9 @@ pub const Constraint = opaque {
 
     pub const getBodyB = cbtConGetBodyB;
     extern fn cbtConGetBodyB(con: *const Constraint) *const Body;
+
+    pub const setDebugDrawSize = cbtConSetDebugDrawSize;
+    extern fn cbtConSetDebugDrawSize(con: *const Constraint, size: f32) void;
 };
 
 fn ConstraintFunctions(comptime T: type) type {
@@ -680,6 +832,9 @@ fn ConstraintFunctions(comptime T: type) type {
         pub fn getBodyB(con: *const T) *const Body {
             return con.asConstraint().getBodyB();
         }
+        pub fn setDebugDrawSize(con: *const T, size: f32) void {
+            con.asConstraint().setDebugDrawSize(size);
+        }
     };
 }
 
@@ -687,10 +842,7 @@ pub const Point2PointConstraint = opaque {
     usingnamespace ConstraintFunctions(@This());
 
     pub fn allocate() *const Point2PointConstraint {
-        return @ptrCast(
-            *const Point2PointConstraint,
-            Constraint.allocate(.point2point),
-        );
+        return @ptrCast(*const Point2PointConstraint, Constraint.allocate(.point2point));
     }
 
     pub const create1 = cbtConPoint2PointCreate1;
@@ -710,53 +862,41 @@ pub const Point2PointConstraint = opaque {
     ) void;
 
     pub const setPivotA = cbtConPoint2PointSetPivotA;
-    extern fn cbtConPoint2PointSetPivotA(
-        con: *const Point2PointConstraint,
-        pivot: *const [3]f32,
-    ) void;
+    extern fn cbtConPoint2PointSetPivotA(con: *const Point2PointConstraint, pivot: *const [3]f32) void;
 
     pub const setPivotB = cbtConPoint2PointSetPivotB;
-    extern fn cbtConPoint2PointSetPivotB(
-        con: *const Point2PointConstraint,
-        pivot: *const [3]f32,
-    ) void;
+    extern fn cbtConPoint2PointSetPivotB(con: *const Point2PointConstraint, pivot: *const [3]f32) void;
 
     pub const getPivotA = cbtConPoint2PointGetPivotA;
-    extern fn cbtConPoint2PointGetPivotA(
-        con: *const Point2PointConstraint,
-        pivot: *[3]f32,
-    ) void;
+    extern fn cbtConPoint2PointGetPivotA(con: *const Point2PointConstraint, pivot: *[3]f32) void;
 
     pub const getPivotB = cbtConPoint2PointGetPivotB;
-    extern fn cbtConPoint2PointGetPivotB(
-        con: *const Point2PointConstraint,
-        pivot: *[3]f32,
-    ) void;
+    extern fn cbtConPoint2PointGetPivotB(con: *const Point2PointConstraint, pivot: *[3]f32) void;
 
-    pub const setTau = cbtConPoint2PointSetPivotB;
-    extern fn cbtConPoint2PointSetTau(
-        con: *const Point2PointConstraint,
-        tau: f32,
-    ) void;
+    pub const setTau = cbtConPoint2PointSetTau;
+    extern fn cbtConPoint2PointSetTau(con: *const Point2PointConstraint, tau: f32) void;
 
     pub const setDamping = cbtConPoint2PointSetDamping;
-    extern fn cbtConPoint2PointSetDamping(
-        con: *const Point2PointConstraint,
-        damping: f32,
-    ) void;
+    extern fn cbtConPoint2PointSetDamping(con: *const Point2PointConstraint, damping: f32) void;
 
     pub const setImpulseClamp = cbtConPoint2PointSetImpulseClamp;
-    extern fn cbtConPoint2PointSetImpulseClamp(
-        con: *const Point2PointConstraint,
-        damping: f32,
-    ) void;
+    extern fn cbtConPoint2PointSetImpulseClamp(con: *const Point2PointConstraint, impulse_clamp: f32) void;
 };
 
-pub const DebugMode = i32;
-pub const dbgmode_disabled: DebugMode = -1;
-pub const dbgmode_no_debug: DebugMode = 0;
-pub const dbgmode_draw_wireframe: DebugMode = 1;
-pub const dbgmode_draw_aabb: DebugMode = 2;
+pub const DebugMode = packed struct {
+    draw_wireframe: bool = false,
+    draw_aabb: bool = false,
+
+    _pad0: u14 = 0,
+    _pad1: u16 = 0,
+
+    pub const disabled = @bitCast(DebugMode, ~@as(u32, 0));
+    pub const user_only = @bitCast(DebugMode, @as(u32, 0));
+
+    comptime {
+        std.debug.assert(@sizeOf(@This()) == @sizeOf(u32) and @bitSizeOf(@This()) == @bitSizeOf(u32));
+    }
+};
 
 pub const DebugDraw = extern struct {
     drawLine1: fn (
@@ -880,7 +1020,7 @@ test "zbullet.world.gravity" {
     world.getGravity(&gravity);
     try expect(gravity[0] == 0.0 and gravity[1] == -10.0 and gravity[2] == 0.0);
 
-    world.setGravity(&zm.vec3ToArray(zm.f32x4(1.0, 2.0, 3.0, 0.0)));
+    world.setGravity(zm.arr3Ptr(&zm.f32x4(1.0, 2.0, 3.0, 0.0)));
     world.getGravity(&gravity);
     try expect(gravity[0] == 1.0 and gravity[1] == 2.0 and gravity[2] == 3.0);
 }
@@ -1036,11 +1176,11 @@ test "zbullet.shape.compound" {
     defer box.deinit();
 
     cshape.addChild(
-        &zm.mat43ToArray(zm.translation(1.0, 2.0, 3.0)),
+        &zm.mat43ToArr(zm.translation(1.0, 2.0, 3.0)),
         sphere.asShape(),
     );
     cshape.addChild(
-        &zm.mat43ToArray(zm.translation(-1.0, -2.0, -3.0)),
+        &zm.mat43ToArr(zm.translation(-1.0, -2.0, -3.0)),
         box.asShape(),
     );
     try expect(cshape.getNumChilds() == 2);
@@ -1079,7 +1219,7 @@ test "zbullet.shape.trimesh" {
         &vertices, // vertices_base
         12, // vertex_stride
     );
-    trimesh.finalize();
+    trimesh.finish();
     defer trimesh.deinit();
     try expect(trimesh.isCreated());
     try expect(trimesh.isNonMoving());
@@ -1142,7 +1282,7 @@ test "zbullet.body.basic" {
 
         const body = Body.init(
             0.0, // static body
-            &zm.mat43ToArray(zm.translation(2.0, 3.0, 4.0)),
+            &zm.mat43ToArr(zm.translation(2.0, 3.0, 4.0)),
             sphere.asShape(),
         );
         defer body.deinit();
@@ -1171,7 +1311,7 @@ test "zbullet.constraint.point2point" {
 
         const body = Body.init(
             1.0,
-            &zm.mat43ToArray(zm.translation(2.0, 3.0, 4.0)),
+            &zm.mat43ToArr(zm.translation(2.0, 3.0, 4.0)),
             sphere.asShape(),
         );
         defer body.deinit();
@@ -1208,14 +1348,14 @@ test "zbullet.constraint.point2point" {
 
         const body0 = Body.init(
             1.0,
-            &zm.mat43ToArray(zm.translation(2.0, 3.0, 4.0)),
+            &zm.mat43ToArr(zm.translation(2.0, 3.0, 4.0)),
             sphere.asShape(),
         );
         defer body0.deinit();
 
         const body1 = Body.init(
             1.0,
-            &zm.mat43ToArray(zm.translation(2.0, 3.0, 4.0)),
+            &zm.mat43ToArr(zm.translation(2.0, 3.0, 4.0)),
             sphere.asShape(),
         );
         defer body1.deinit();
