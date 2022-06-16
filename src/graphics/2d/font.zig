@@ -350,12 +350,67 @@ pub const Atlas = struct {
         self.ranges.deinit();
     }
 
+    /// Calculate next line's y coordinate
     pub fn getVPosOfNextLine(self: Atlas, current_ypos: f32) f32 {
         return current_ypos + @round((self.vmetric_ascent - self.vmetric_descent + self.vmetric_line_gap) * self.scale);
     }
 
-    /// Append draw data for rendering utf8 string, return drawing area
+    /// Position type of y axis (determine where text will be aligned to vertically)
     pub const YPosType = enum { baseline, top, bottom };
+
+    /// Get bounds (width and height)  of text
+    pub fn getRectangle(
+        self: Atlas,
+        text: []const u8,
+        pos: sdl.PointF,
+        ypos_type: YPosType,
+    ) !sdl.RectangleF {
+        var xpos = pos.x;
+        var ypos = pos.y;
+        var pxpos = &xpos;
+        var pypos = &ypos;
+        var rect = sdl.RectangleF{ .x = pos.x, .y = std.math.floatMax(f32), .width = 0, .height = 0 };
+
+        if (text.len == 0) return rect;
+
+        var i: u32 = 0;
+        while (i < text.len) {
+            var size = try unicode.utf8ByteSequenceLength(text[i]);
+            var codepoint = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
+
+            // TODO: use simple loop searching for now, may need optimization
+            for (self.ranges.items) |range| {
+                if (codepoint < range.codepoint_begin or codepoint > range.codepoint_end) continue;
+
+                var quad: truetype.stbtt_aligned_quad = undefined;
+                const info = try self.tex.query();
+                truetype.stbtt_GetPackedQuad(
+                    range.packedchar.items.ptr,
+                    @intCast(c_int, info.width),
+                    @intCast(c_int, info.height),
+                    @intCast(c_int, codepoint - range.codepoint_begin),
+                    pxpos,
+                    pypos,
+                    &quad,
+                    0,
+                );
+                const yoffset = switch (ypos_type) {
+                    .baseline => 0,
+                    .top => self.vmetric_ascent * self.scale,
+                    .bottom => self.vmetric_descent * self.scale,
+                };
+                if (quad.y0 + yoffset < rect.y) rect.y = quad.y0 + yoffset;
+                if (quad.y1 + yoffset - rect.y > rect.height) rect.height = quad.y1 + yoffset - rect.y;
+                break;
+            }
+            i += size;
+        }
+
+        rect.width = pxpos.* - rect.x;
+        return rect;
+    }
+
+    /// Append draw data for rendering utf8 string, return drawing area
     pub fn appendDrawDataFromUTF8String(
         self: Atlas,
         text: []const u8,
