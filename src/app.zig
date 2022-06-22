@@ -43,7 +43,6 @@ comptime {
 pub fn main() anyerror!void {
     // Initialize SDL library
     var sdl_flags = sdl.InitFlags.everything;
-    sdl_flags.audio = false;
     try sdl.init(sdl_flags);
     defer sdl.quit();
 

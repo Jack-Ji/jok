@@ -29,6 +29,7 @@ pub fn build(b: *std.build.Builder) void {
     });
     const examples = [_]struct { name: []const u8, opt: BuildOptions }{
         .{ .name = "hello", .opt = .{} },
+        .{ .name = "synthesizer_demo", .opt = .{} },
         .{ .name = "imgui_demo", .opt = .{ .link_imgui = true } },
         .{ .name = "chipmunk_demo", .opt = .{ .link_chipmunk = true } },
         .{ .name = "sprite_sheet", .opt = .{} },
