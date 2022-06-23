@@ -18,6 +18,9 @@ vertices: std.ArrayList(sdl.Vertex),
 /// Depth of vertices
 depths: std.ArrayList(f32),
 
+/// Large triangles directly in front of camera
+large_front_triangles: std.ArrayList([3]u32),
+
 /// Temporary storage for clipping
 clip_vertices: std.ArrayList(zmath.Vec),
 clip_colors: std.ArrayList(sdl.Color),
@@ -28,6 +31,7 @@ pub fn init(allocator: std.mem.Allocator) Self {
         .indices = std.ArrayList(u32).init(allocator),
         .vertices = std.ArrayList(sdl.Vertex).init(allocator),
         .depths = std.ArrayList(f32).init(allocator),
+        .large_front_triangles = std.ArrayList([3]u32).init(allocator),
         .clip_vertices = std.ArrayList(zmath.Vec).init(allocator),
         .clip_colors = std.ArrayList(sdl.Color).init(allocator),
         .clip_texcoords = std.ArrayList(sdl.PointF).init(allocator),
@@ -38,6 +42,7 @@ pub fn deinit(self: *Self) void {
     self.indices.deinit();
     self.vertices.deinit();
     self.depths.deinit();
+    self.large_front_triangles.deinit();
     self.clip_vertices.deinit();
     self.clip_colors.deinit();
     self.clip_texcoords.deinit();
@@ -49,10 +54,12 @@ pub fn clearVertex(self: *Self, retain_memory: bool) void {
         self.indices.clearRetainingCapacity();
         self.vertices.clearRetainingCapacity();
         self.depths.clearRetainingCapacity();
+        self.large_front_triangles.clearRetainingCapacity();
     } else {
         self.indices.clearAndFree();
         self.vertices.clearAndFree();
         self.depths.clearAndFree();
+        self.large_front_triangles.clearAndFree();
     }
     self.sorted = false;
 }
@@ -80,6 +87,13 @@ pub fn appendVertex(
     assert(if (texcoords) |ts| ts.len == positions.len else true);
     if (indices.len == 0) return;
     const vp = renderer.getViewport();
+    const ndc_to_screen = zmath.loadMat43(&[_]f32{
+        0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
+        0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
+        0.0,                              0.0,                                0.5,
+        0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
+    });
+    const front_tri_threshold = @intToFloat(f32, vp.width * vp.height) / 64;
     const mvp = zmath.mul(model, camera.getViewProjectMatrix());
 
     // Do early test with aabb if possible
@@ -102,9 +116,33 @@ pub fn appendVertex(
         const obb2 = zmath.mul(zmath.Mat{
             v4, v5, v6, v7,
         }, mvp);
+
+        // Ignore object outside of viewing space
         if (isOBBOutside(&[_]zmath.Vec{
             obb1[0], obb1[1], obb1[2], obb1[3],
             obb2[0], obb2[1], obb2[2], obb2[3],
+        })) return;
+
+        // Ignore object hidden behind front triangles
+        const ndc0 = obb1[0] / zmath.splat(zmath.Vec, obb1[0][3]);
+        const ndc1 = obb1[1] / zmath.splat(zmath.Vec, obb1[1][3]);
+        const ndc2 = obb1[2] / zmath.splat(zmath.Vec, obb1[2][3]);
+        const ndc3 = obb1[3] / zmath.splat(zmath.Vec, obb1[3][3]);
+        const ndc4 = obb2[0] / zmath.splat(zmath.Vec, obb2[0][3]);
+        const ndc5 = obb2[1] / zmath.splat(zmath.Vec, obb2[1][3]);
+        const ndc6 = obb2[2] / zmath.splat(zmath.Vec, obb2[2][3]);
+        const ndc7 = obb2[3] / zmath.splat(zmath.Vec, obb2[3][3]);
+        const positions_screen1 = zmath.mul(zmath.Mat{ ndc0, ndc1, ndc2, ndc3 }, ndc_to_screen);
+        const positions_screen2 = zmath.mul(zmath.Mat{ ndc4, ndc5, ndc6, ndc7 }, ndc_to_screen);
+        if (self.isOBBHiddenBehind(&[_]zmath.Vec{
+            positions_screen1[0],
+            positions_screen1[1],
+            positions_screen1[2],
+            positions_screen1[3],
+            positions_screen2[0],
+            positions_screen2[1],
+            positions_screen2[2],
+            positions_screen2[3],
         })) return;
     }
 
@@ -185,18 +223,16 @@ pub fn appendVertex(
             continue;
         }
 
+        // Calculate screen coordinate
         const ndcs = zmath.Mat{
             ndc0,
             ndc1,
             ndc2,
             zmath.f32x4(0.0, 0.0, 0.0, 1.0),
         };
-        const positions_screen = zmath.mul(ndcs, zmath.loadMat43(&[_]f32{
-            0.5 * @intToFloat(f32, vp.width), 1.0,                                0.0,
-            0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
-            0.0,                              0.0,                                0.5,
-            0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
-        }));
+        const positions_screen = zmath.mul(ndcs, ndc_to_screen);
+
+        // Finally, we can append vertices for rendering
         self.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
             .{
                 .position = .{ .x = positions_screen[0][0], .y = positions_screen[0][1] },
@@ -219,12 +255,65 @@ pub fn appendVertex(
             current_index + 1,
             current_index + 2,
         });
-        current_index += 3;
         self.depths.appendSliceAssumeCapacity(&[_]f32{
             positions_screen[0][2],
             positions_screen[1][2],
             positions_screen[2][2],
         });
+
+        // Update front triangles
+        const tri_coords = [3][2]f32{
+            .{ positions_screen[0][0], positions_screen[0][1] },
+            .{ positions_screen[1][0], positions_screen[1][1] },
+            .{ positions_screen[2][0], positions_screen[2][1] },
+        };
+        const tri_depth = (positions_screen[0][2] + positions_screen[1][2] + positions_screen[2][2]) / 3.0;
+        var is_suitable_front = false;
+        const tri_area = (tri_coords[0][0] * (tri_coords[1][1] - tri_coords[2][1]) +
+            tri_coords[1][0] * (tri_coords[2][1] - tri_coords[0][1]) +
+            tri_coords[2][0] * (tri_coords[0][1] - tri_coords[1][1])) / 2.0;
+        if (tri_area > front_tri_threshold) {
+            is_suitable_front = true;
+            var idx: u32 = 0;
+            while (idx < self.large_front_triangles.items.len) {
+                const front_tri = self.large_front_triangles.items[idx];
+                const front_tri_coords = [3][2]f32{
+                    .{ self.vertices.items[front_tri[0]].position.x, self.vertices.items[front_tri[0]].position.y },
+                    .{ self.vertices.items[front_tri[1]].position.x, self.vertices.items[front_tri[1]].position.y },
+                    .{ self.vertices.items[front_tri[2]].position.x, self.vertices.items[front_tri[2]].position.y },
+                };
+                const front_depth = (self.depths.items[front_tri[0]] +
+                    self.depths.items[front_tri[1]] + self.depths.items[front_tri[2]]) / 3.0;
+
+                if (tri_depth < front_depth and
+                    isPointInTriangle(tri_coords, front_tri_coords[0]) and
+                    isPointInTriangle(tri_coords, front_tri_coords[1]) and
+                    isPointInTriangle(tri_coords, front_tri_coords[2]))
+                {
+                    // Remove front triangle since new one is closer and larger
+                    _ = self.large_front_triangles.swapRemove(idx);
+                    continue;
+                } else if (tri_depth > front_depth and
+                    isPointInTriangle(front_tri_coords, tri_coords[0]) and
+                    isPointInTriangle(front_tri_coords, tri_coords[1]) and
+                    isPointInTriangle(front_tri_coords, tri_coords[2]))
+                {
+                    // The triangle is already covered
+                    is_suitable_front = false;
+                }
+                idx += 1;
+            }
+        }
+        if (is_suitable_front) {
+            self.large_front_triangles.append(.{
+                current_index,
+                current_index + 1,
+                current_index + 2,
+            }) catch unreachable;
+        }
+
+        // Step forward index, one triangle a time
+        current_index += 3;
     }
 
     self.sorted = false;
@@ -491,6 +580,92 @@ inline fn isOBBOutside(obb: []const zmath.Vec) bool {
     return false;
 }
 
+/// Test whether all obb's triangles are hidden behind current front triangles
+inline fn isOBBHiddenBehind(self: *Self, obb: []zmath.Vec) bool {
+    const S = struct {
+        /// Test whether a triangle is hidden behind another
+        inline fn isTriangleHiddenBehind(
+            front_tri: [3][2]f32,
+            front_depth: f32,
+            _obb: []zmath.Vec,
+            indices: [3]u32,
+        ) bool {
+            const tri = [3][2]f32{
+                .{ _obb[indices[0]][0], _obb[indices[0]][1] },
+                .{ _obb[indices[1]][0], _obb[indices[1]][1] },
+                .{ _obb[indices[2]][0], _obb[indices[2]][1] },
+            };
+            const tri_depth = (_obb[indices[0]][2] + _obb[indices[1]][2] + _obb[indices[2]][2]) / 3.0;
+            return tri_depth > front_depth and
+                isPointInTriangle(front_tri, tri[0]) and
+                isPointInTriangle(front_tri, tri[1]) and
+                isPointInTriangle(front_tri, tri[2]);
+        }
+    };
+
+    assert(obb.len == 8);
+    var obb_visible_flags: u12 = std.math.maxInt(u12);
+    for (self.large_front_triangles.items) |tri| {
+        const front_tri = [3][2]f32{
+            .{ self.vertices.items[tri[0]].position.x, self.vertices.items[tri[0]].position.y },
+            .{ self.vertices.items[tri[1]].position.x, self.vertices.items[tri[1]].position.y },
+            .{ self.vertices.items[tri[2]].position.x, self.vertices.items[tri[2]].position.y },
+        };
+        const front_depth = (self.depths.items[tri[0]] + self.depths.items[tri[1]] + self.depths.items[tri[2]]) / 3.0;
+
+        if ((obb_visible_flags & 0x1) != 0) {
+            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 1, 2 }))
+                obb_visible_flags &= ~@as(u12, 0x1);
+        }
+        if (obb_visible_flags & 0x2 != 0) {
+            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 2, 3 }))
+                obb_visible_flags &= ~@as(u12, 0x2);
+        }
+        if (obb_visible_flags & 0x4 != 0) {
+            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 3, 7 }))
+                obb_visible_flags &= ~@as(u12, 0x4);
+        }
+        if (obb_visible_flags & 0x8 != 0) {
+            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 7, 4 }))
+                obb_visible_flags &= ~@as(u12, 0x8);
+        }
+        if (obb_visible_flags & 0x10 != 0) {
+            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 4, 5 }))
+                obb_visible_flags &= ~@as(u12, 0x10);
+        }
+        if (obb_visible_flags & 0x20 != 0) {
+            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 5, 1 }))
+                obb_visible_flags &= ~@as(u12, 0x20);
+        }
+        if (obb_visible_flags & 0x40 != 0) {
+            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 7, 3 }))
+                obb_visible_flags &= ~@as(u12, 0x40);
+        }
+        if (obb_visible_flags & 0x80 != 0) {
+            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 3, 2 }))
+                obb_visible_flags &= ~@as(u12, 0x80);
+        }
+        if (obb_visible_flags & 0x100 != 0) {
+            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 2, 1 }))
+                obb_visible_flags &= ~@as(u12, 0x100);
+        }
+        if (obb_visible_flags & 0x200 != 0) {
+            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 1, 5 }))
+                obb_visible_flags &= ~@as(u12, 0x200);
+        }
+        if (obb_visible_flags & 0x400 != 0) {
+            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 5, 4 }))
+                obb_visible_flags &= ~@as(u12, 0x400);
+        }
+        if (obb_visible_flags & 0x800 != 0) {
+            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 4, 7 }))
+                obb_visible_flags &= ~@as(u12, 0x800);
+        }
+        if (obb_visible_flags == 0) return true;
+    }
+    return false;
+}
+
 /// Test whether a triangle is outside of NDC.
 /// Using Seperating Axis Therom (aka SAT) algorithm. There are 13 axes
 /// that must be considered for projection:
@@ -559,6 +734,38 @@ inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
     return @fabs(zmath.dot3(plane_n, v0)[0]) > r;
 }
 
+/// Test whether a point is in triangle
+/// Using Barycentric Technique, checkout link https://blackpawn.com/texts/pointinpoly
+inline fn isPointInTriangle(tri: [3][2]f32, point: [2]f32) bool {
+    const v0 = zmath.f32x4(
+        tri[2][0] - tri[0][0],
+        tri[2][1] - tri[0][1],
+        0,
+        0,
+    );
+    const v1 = zmath.f32x4(
+        tri[1][0] - tri[0][0],
+        tri[1][1] - tri[0][1],
+        0,
+        0,
+    );
+    const v2 = zmath.f32x4(
+        point[0] - tri[0][0],
+        point[1] - tri[0][1],
+        0,
+        0,
+    );
+    const dot00 = zmath.dot2(v0, v0)[0];
+    const dot01 = zmath.dot2(v0, v1)[0];
+    const dot02 = zmath.dot2(v0, v2)[0];
+    const dot11 = zmath.dot2(v1, v1)[0];
+    const dot12 = zmath.dot2(v1, v2)[0];
+    const inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01);
+    const u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
+    const v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
+    return u >= 0 and v >= 0 and (u + v < 1);
+}
+
 /// Sort triangles by depth values
 fn compareTriangleDepths(self: *Self, lhs: [3]u32, rhs: [3]u32) bool {
     const d1 = (self.depths.items[lhs[0]] + self.depths.items[lhs[1]] + self.depths.items[lhs[2]]) / 3.0;
@@ -587,6 +794,19 @@ pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
         self.vertices.items,
         self.indices.items,
     );
+
+    // Debug: draw front triangles
+    //for (self.large_front_triangles.items) |tri| {
+    //    try renderer.drawGeometry(
+    //        null,
+    //        &[3]sdl.Vertex{
+    //            self.vertices.items[tri[0]],
+    //            self.vertices.items[tri[1]],
+    //            self.vertices.items[tri[2]],
+    //        },
+    //        null,
+    //    );
+    //}
 }
 
 /// Draw the wireframe
