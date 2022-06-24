@@ -10,6 +10,9 @@ pub const event = @import("event.zig");
 /// Graphics module
 pub const gfx = @import("graphics.zig");
 
+/// Misc util functions
+pub const utils = @import("utils.zig");
+
 /// Audio module
 pub const audio = deps.miniaudio;
 
