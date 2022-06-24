@@ -18,7 +18,7 @@ pub fn deinit() void {
 
 /// Clear primitive
 pub fn clear() void {
-    rd.?.clearVertex(true);
+    rd.?.clear(true);
 }
 
 /// Render data

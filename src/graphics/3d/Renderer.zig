@@ -49,7 +49,7 @@ pub fn deinit(self: *Self) void {
 }
 
 /// Clear mesh data
-pub fn clearVertex(self: *Self, retain_memory: bool) void {
+pub fn clear(self: *Self, retain_memory: bool) void {
     if (retain_memory) {
         self.indices.clearRetainingCapacity();
         self.vertices.clearRetainingCapacity();

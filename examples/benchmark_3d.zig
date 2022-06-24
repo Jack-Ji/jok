@@ -111,7 +111,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.clear();
 
-    renderer.clearVertex(true);
+    renderer.clear(true);
     for (translations.items) |tr, i| {
         try renderer.appendVertex(
             ctx.renderer,
