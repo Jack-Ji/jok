@@ -26,11 +26,14 @@ pub fn flush(renderer: sdl.Renderer) !void {
 }
 
 /// Draw triangle
+pub const TriangleOption = struct {
+    color: sdl.Color = sdl.Color.white,
+};
 pub fn drawTriangle(
     p0: sdl.PointF,
     p1: sdl.PointF,
     p2: sdl.PointF,
-    opt: Renderer.TriangleOption,
+    opt: TriangleOption,
 ) !void {
     try rd.?.addTriangle(p0, p1, p2, opt);
 }
@@ -39,18 +42,32 @@ pub fn drawTriangle(
 pub fn drawCircle(
     center: sdl.PointF,
     radius: f32,
-    opt: Renderer.CircleOption,
+    opt: EllipseOption,
 ) !void {
-    try rd.?.addCircle(center, radius, opt);
+    try rd.?.addEllipse(center, radius, radius, opt);
+}
+
+/// Draw ecllipse
+pub const EllipseOption = struct {
+    res: u32 = 25,
+    color: sdl.Color = sdl.Color.white,
+};
+pub fn drawEllipse(
+    center: sdl.PointF,
+    half_width: f32,
+    half_height: f32,
+    opt: EllipseOption,
+) !void {
+    try rd.?.addEllipse(center, half_width, half_height, opt);
 }
 
 /// 2D primitive renderer
-pub const Renderer = struct {
+const Renderer = struct {
     vattribs: std.ArrayList(sdl.Vertex),
     vindices: std.ArrayList(u32),
 
     /// Create renderer
-    pub fn init(allocator: std.mem.Allocator) Renderer {
+    fn init(allocator: std.mem.Allocator) Renderer {
         return .{
             .vattribs = std.ArrayList(sdl.Vertex).init(allocator),
             .vindices = std.ArrayList(u32).init(allocator),
@@ -58,22 +75,19 @@ pub const Renderer = struct {
     }
 
     /// Destroy renderer
-    pub fn deinit(self: *Renderer) void {
+    fn deinit(self: *Renderer) void {
         self.vattribs.deinit();
         self.vindices.deinit();
     }
 
     /// Clear renderer
-    pub fn clear(self: *Renderer) void {
+    fn clear(self: *Renderer) void {
         self.vattribs.clearRetainingCapacity();
         self.vindices.clearRetainingCapacity();
     }
 
     /// Add a triangle
-    pub const TriangleOption = struct {
-        color: sdl.Color = sdl.Color.white,
-    };
-    pub fn addTriangle(
+    fn addTriangle(
         self: *Renderer,
         p0: sdl.PointF,
         p1: sdl.PointF,
@@ -93,16 +107,13 @@ pub const Renderer = struct {
         });
     }
 
-    /// Add a circle
-    pub const CircleOption = struct {
-        res: u32 = 20,
-        color: sdl.Color = sdl.Color.white,
-    };
-    pub fn addCircle(
+    /// Add a ellipse
+    fn addEllipse(
         self: *Renderer,
         center: sdl.PointF,
-        radius: f32,
-        opt: CircleOption,
+        half_width: f32,
+        half_height: f32,
+        opt: EllipseOption,
     ) !void {
         var i: u32 = 0;
         const base_index = @intCast(u32, self.vattribs.items.len);
@@ -114,8 +125,8 @@ pub const Renderer = struct {
         while (i < opt.res) : (i += 1) {
             try self.vattribs.append(.{
                 .position = .{
-                    .x = center.x + radius * @cos(@intToFloat(f32, i) * angle),
-                    .y = center.y + radius * @sin(@intToFloat(f32, i) * angle),
+                    .x = center.x + half_width * @cos(@intToFloat(f32, i) * angle),
+                    .y = center.y + half_height * @sin(@intToFloat(f32, i) * angle),
                 },
                 .color = opt.color,
             });
@@ -129,7 +140,7 @@ pub const Renderer = struct {
     }
 
     /// Draw batched data
-    pub fn draw(self: *Renderer, renderer: sdl.Renderer) !void {
+    fn draw(self: *Renderer, renderer: sdl.Renderer) !void {
         if (self.vindices.items.len == 0) return;
 
         try renderer.drawGeometry(
