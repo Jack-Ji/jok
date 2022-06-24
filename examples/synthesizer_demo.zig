@@ -1,17 +1,19 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const builtin = @import("builtin");
 const sdl = @import("sdl");
 const jok = @import("jok");
 
 var audio_device: sdl.AudioDevice = undefined;
 var audio_spec: sdl.AudioSpecResponse = undefined;
-var audio_value: i32 = std.math.maxInt(i32) / 8;
+var audio_value: f32 = 1.0;
 
 fn audioCallback(ptr: ?*anyopaque, buf: [*c]u8, size: c_int) callconv(.C) void {
     var ctx = @ptrCast(*jok.Context, @alignCast(@alignOf(*jok.Context), ptr));
     _ = ctx;
-    const audio_buf = @ptrCast([*]i32, @alignCast(@alignOf([*]i32), buf));
-    const buf_size = @intCast(u32, size) / 4;
+    const audio_buf = @ptrCast([*]f32, @alignCast(@alignOf([*]f32), buf));
+    const buf_size = @intCast(u32, size) / @sizeOf(f32);
+    assert(@intCast(u32, size) % @sizeOf(f32) == 0);
     var i: u32 = 0;
     while (i < buf_size) : (i += 2) {
         audio_buf[i] = audio_value;
@@ -28,9 +30,9 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         .desired_spec = .{
             .sample_rate = 44100,
             .buffer_format = if (builtin.target.cpu.arch.endian() == .Little)
-                sdl.AudioFormat.s32_lsb
+                sdl.AudioFormat.f32_lsb
             else
-                sdl.AudioFormat.s32_msb,
+                sdl.AudioFormat.f32_msb,
             .channel_count = 2,
             .callback = audioCallback,
             .userdata = ctx,
