@@ -21,3 +21,6 @@ pub const Vector = @import("2d/Vector.zig");
 
 /// Font system
 pub const font = @import("2d/font.zig");
+
+/// 2d primitive drawing
+pub const primitive = @import("2d/primitive.zig");

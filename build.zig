@@ -29,7 +29,6 @@ pub fn build(b: *std.build.Builder) void {
     });
     const examples = [_]struct { name: []const u8, opt: BuildOptions }{
         .{ .name = "hello", .opt = .{} },
-        .{ .name = "synthesizer_demo", .opt = .{} },
         .{ .name = "imgui_demo", .opt = .{ .link_imgui = true } },
         .{ .name = "chipmunk_demo", .opt = .{ .link_chipmunk = true } },
         .{ .name = "sprite_sheet", .opt = .{} },
@@ -38,6 +37,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "sprite_benchmark", .opt = .{} },
         .{ .name = "font_demo", .opt = .{} },
         .{ .name = "audio_demo", .opt = .{} },
+        .{ .name = "audio_synthesize_demo", .opt = .{} },
         .{ .name = "basic_3d", .opt = .{ .link_zmesh = true } },
         .{ .name = "benchmark_3d", .opt = .{ .link_zmesh = true } },
     };

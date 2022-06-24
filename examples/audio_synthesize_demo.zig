@@ -3,10 +3,15 @@ const assert = std.debug.assert;
 const builtin = @import("builtin");
 const sdl = @import("sdl");
 const jok = @import("jok");
+const gfx = jok.gfx.@"2d";
 
 var audio_device: sdl.AudioDevice = undefined;
 var audio_spec: sdl.AudioSpecResponse = undefined;
-var audio_value: f32 = 1.0;
+
+var frequency: f32 = undefined;
+var phase: f32 = undefined;
+var amplitude: f32 = undefined;
+var sample: f32 = 1;
 
 fn audioCallback(ptr: ?*anyopaque, buf: [*c]u8, size: c_int) callconv(.C) void {
     var ctx = @ptrCast(*jok.Context, @alignCast(@alignOf(*jok.Context), ptr));
@@ -16,14 +21,13 @@ fn audioCallback(ptr: ?*anyopaque, buf: [*c]u8, size: c_int) callconv(.C) void {
     assert(@intCast(u32, size) % @sizeOf(f32) == 0);
     var i: u32 = 0;
     while (i < buf_size) : (i += 2) {
-        audio_buf[i] = audio_value;
-        audio_buf[i + 1] = audio_value;
+        audio_buf[i] = sample;
+        audio_buf[i + 1] = sample;
     }
-    audio_value = -audio_value;
+    sample = -sample;
 }
 
 pub fn init(ctx: *jok.Context) anyerror!void {
-    _ = ctx;
     std.log.info("game init", .{});
 
     const result = try sdl.openAudioDevice(.{
@@ -62,6 +66,13 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     }
 
     try ctx.renderer.clear();
+
+    //var fb = ctx.getFramebufferSize();
+    //try gfx.primitive.drawCircle(
+    //    .{ .x = @intToFloat(f32, fb.w) / 2, .y = @intToFloat(f32, fb.h) / 2 },
+    //    100,
+    //    .{},
+    //);
 }
 
 pub fn quit(ctx: *jok.Context) void {
