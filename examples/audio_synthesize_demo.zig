@@ -94,6 +94,37 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         10,
         .{},
     );
+
+    _ = try gfx.font.debugDraw(
+        ctx.renderer,
+        .{ .pos = .{ .x = 0, .y = 0 } },
+        "frequency:{d:.1} amplitude:{d:.3}",
+        .{ frequency, amplitude },
+    );
+    _ = try gfx.font.debugDraw(
+        ctx.renderer,
+        .{ .pos = .{ .x = 0, .y = 16 } },
+        "Move mouse to left to decrease frequency",
+        .{},
+    );
+    _ = try gfx.font.debugDraw(
+        ctx.renderer,
+        .{ .pos = .{ .x = 0, .y = 32 } },
+        "Move mouse to right to increase frequency",
+        .{},
+    );
+    _ = try gfx.font.debugDraw(
+        ctx.renderer,
+        .{ .pos = .{ .x = 0, .y = 48 } },
+        "Move mouse to bottom to decrease amplitude",
+        .{},
+    );
+    _ = try gfx.font.debugDraw(
+        ctx.renderer,
+        .{ .pos = .{ .x = 0, .y = 64 } },
+        "Move mouse to top to increase amplitude",
+        .{},
+    );
 }
 
 pub fn quit(ctx: *jok.Context) void {
