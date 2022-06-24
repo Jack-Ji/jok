@@ -119,10 +119,11 @@ pub const Renderer = struct {
                 },
                 .color = opt.color,
             });
+            const last_index = if (i == opt.res - 1) base_index + 1 else base_index + i + 2;
             try self.vindices.appendSlice(&.{
                 base_index,
                 base_index + i + 1,
-                if (i == opt.res - 1) base_index + 1 else base_index + i + 2,
+                last_index,
             });
         }
     }

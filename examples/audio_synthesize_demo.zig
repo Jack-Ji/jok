@@ -67,12 +67,12 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.clear();
 
-    //var fb = ctx.getFramebufferSize();
-    //try gfx.primitive.drawCircle(
-    //    .{ .x = @intToFloat(f32, fb.w) / 2, .y = @intToFloat(f32, fb.h) / 2 },
-    //    100,
-    //    .{},
-    //);
+    var fb = ctx.getFramebufferSize();
+    try gfx.primitive.drawCircle(
+        .{ .x = @intToFloat(f32, fb.w) / 2, .y = @intToFloat(f32, fb.h) / 2 },
+        100,
+        .{},
+    );
 }
 
 pub fn quit(ctx: *jok.Context) void {
