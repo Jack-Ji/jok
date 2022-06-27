@@ -38,6 +38,24 @@ pub fn drawTriangle(
     try rd.?.addTriangle(p0, p1, p2, opt);
 }
 
+/// Draw square
+pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: RectangleOption) !void {
+    try rd.?.addRectangle(.{
+        .x = center.x - half_size,
+        .y = center.y - half_size,
+        .width = 2 * half_size,
+        .height = 2 * half_size,
+    }, opt);
+}
+
+/// Draw rectangle
+pub const RectangleOption = struct {
+    color: sdl.Color = sdl.Color.white,
+};
+pub fn drawRectangle(rect: sdl.RectangleF, opt: RectangleOption) !void {
+    try rd.?.addRectangle(rect, opt);
+}
+
 /// Draw circle
 pub fn drawCircle(
     center: sdl.PointF,
@@ -104,6 +122,25 @@ const Renderer = struct {
             base_index,
             base_index + 1,
             base_index + 2,
+        });
+    }
+
+    /// Add a rectangle
+    fn addRectangle(self: *Renderer, rect: sdl.RectangleF, opt: RectangleOption) !void {
+        const base_index = @intCast(u32, self.vattribs.items.len);
+        try self.vattribs.appendSlice(&.{
+            .{ .position = .{ .x = rect.x, .y = rect.y }, .color = opt.color },
+            .{ .position = .{ .x = rect.x + rect.width, .y = rect.y }, .color = opt.color },
+            .{ .position = .{ .x = rect.x + rect.width, .y = rect.y + rect.height }, .color = opt.color },
+            .{ .position = .{ .x = rect.x, .y = rect.y + rect.height }, .color = opt.color },
+        });
+        try self.vindices.appendSlice(&.{
+            base_index,
+            base_index + 1,
+            base_index + 2,
+            base_index,
+            base_index + 2,
+            base_index + 3,
         });
     }
 
