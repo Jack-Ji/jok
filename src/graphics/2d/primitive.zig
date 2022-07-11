@@ -4,7 +4,7 @@ const math = std.math;
 const sdl = @import("sdl");
 
 pub const CommonDrawOption = struct {
-    rotation_degree: f32 = 0,
+    rotate_degree: f32 = 0,
     color: sdl.Color = sdl.Color.white,
 };
 
