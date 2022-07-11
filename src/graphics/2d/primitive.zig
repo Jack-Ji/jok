@@ -3,7 +3,7 @@ const assert = std.debug.assert;
 const math = std.math;
 const sdl = @import("sdl");
 
-pub const DrawOption = struct {
+pub const CommonDrawOption = struct {
     rotation_degree: f32 = 0,
     color: sdl.Color = sdl.Color.white,
 };
@@ -31,7 +31,7 @@ pub fn flush(renderer: sdl.Renderer) !void {
 }
 
 /// Draw equilateral triangle
-pub fn drawEquilateralTriangle(center: sdl.PointF, side_len: f32, opt: DrawOption) !void {
+pub fn drawEquilateralTriangle(center: sdl.PointF, side_len: f32, opt: CommonDrawOption) !void {
     const height = math.sqrt(@as(f32, 3)) / 2.0 * side_len;
     const size = height * 2 / 3;
     const p0 = sdl.PointF{ .x = center.x, .y = center.y - size };
@@ -41,12 +41,12 @@ pub fn drawEquilateralTriangle(center: sdl.PointF, side_len: f32, opt: DrawOptio
 }
 
 /// Draw triangle
-pub fn drawTriangle(p0: sdl.PointF, p1: sdl.PointF, p2: sdl.PointF, opt: DrawOption) !void {
+pub fn drawTriangle(p0: sdl.PointF, p1: sdl.PointF, p2: sdl.PointF, opt: CommonDrawOption) !void {
     try rd.?.addTriangle(p0, p1, p2, opt);
 }
 
 /// Draw square
-pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: DrawOption) !void {
+pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: CommonDrawOption) !void {
     try rd.?.addRectangle(.{
         .x = center.x - half_size,
         .y = center.y - half_size,
@@ -56,7 +56,7 @@ pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: DrawOption) !void {
 }
 
 /// Draw rectangle
-pub fn drawRectangle(rect: sdl.RectangleF, opt: DrawOption) !void {
+pub fn drawRectangle(rect: sdl.RectangleF, opt: CommonDrawOption) !void {
     try rd.?.addRectangle(rect, opt);
 }
 
@@ -67,8 +67,8 @@ pub fn drawCircle(center: sdl.PointF, radius: f32, opt: EllipseOption) !void {
 
 /// Draw ecllipse
 pub const EllipseOption = struct {
+    common_opt: CommonDrawOption = .{},
     res: u32 = 25,
-    color: sdl.Color = sdl.Color.white,
 };
 pub fn drawEllipse(center: sdl.PointF, half_width: f32, half_height: f32, opt: EllipseOption) !void {
     try rd.?.addEllipse(center, half_width, half_height, opt);
@@ -105,14 +105,12 @@ const Renderer = struct {
         p0: sdl.PointF,
         p1: sdl.PointF,
         p2: sdl.PointF,
-        opt: DrawOption,
+        opt: CommonDrawOption,
     ) !void {
         const base_index = @intCast(u32, self.vattribs.items.len);
-        try self.vattribs.appendSlice(&.{
-            .{ .position = p0, .color = opt.color },
-            .{ .position = p1, .color = opt.color },
-            .{ .position = p2, .color = opt.color },
-        });
+        try self.vattribs.append(.{ .position = p0, .color = opt.color });
+        try self.vattribs.append(.{ .position = p1, .color = opt.color });
+        try self.vattribs.append(.{ .position = p2, .color = opt.color });
         try self.vindices.appendSlice(&.{
             base_index,
             base_index + 1,
@@ -121,14 +119,12 @@ const Renderer = struct {
     }
 
     /// Add a rectangle
-    fn addRectangle(self: *Renderer, rect: sdl.RectangleF, opt: DrawOption) !void {
+    fn addRectangle(self: *Renderer, rect: sdl.RectangleF, opt: CommonDrawOption) !void {
         const base_index = @intCast(u32, self.vattribs.items.len);
-        try self.vattribs.appendSlice(&.{
-            .{ .position = .{ .x = rect.x, .y = rect.y }, .color = opt.color },
-            .{ .position = .{ .x = rect.x + rect.width, .y = rect.y }, .color = opt.color },
-            .{ .position = .{ .x = rect.x + rect.width, .y = rect.y + rect.height }, .color = opt.color },
-            .{ .position = .{ .x = rect.x, .y = rect.y + rect.height }, .color = opt.color },
-        });
+        try self.vattribs.append(.{ .position = .{ .x = rect.x, .y = rect.y }, .color = opt.color });
+        try self.vattribs.append(.{ .position = .{ .x = rect.x + rect.width, .y = rect.y }, .color = opt.color });
+        try self.vattribs.append(.{ .position = .{ .x = rect.x + rect.width, .y = rect.y + rect.height }, .color = opt.color });
+        try self.vattribs.append(.{ .position = .{ .x = rect.x, .y = rect.y + rect.height }, .color = opt.color });
         try self.vindices.appendSlice(&.{
             base_index,
             base_index + 1,
@@ -152,7 +148,7 @@ const Renderer = struct {
         const angle = math.tau / @intToFloat(f32, opt.res);
         try self.vattribs.append(.{
             .position = center,
-            .color = opt.color,
+            .color = opt.common_opt.color,
         });
         while (i < opt.res) : (i += 1) {
             try self.vattribs.append(.{
@@ -160,7 +156,7 @@ const Renderer = struct {
                     .x = center.x + half_width * @cos(@intToFloat(f32, i) * angle),
                     .y = center.y + half_height * @sin(@intToFloat(f32, i) * angle),
                 },
-                .color = opt.color,
+                .color = opt.common_opt.color,
             });
             const last_index = if (i == opt.res - 1) base_index + 1 else base_index + i + 2;
             try self.vindices.appendSlice(&.{
