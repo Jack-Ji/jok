@@ -3,6 +3,11 @@ const assert = std.debug.assert;
 const math = std.math;
 const sdl = @import("sdl");
 
+pub const DrawOption = struct {
+    rotation_degree: f32 = 0,
+    color: sdl.Color = sdl.Color.white,
+};
+
 var rd: ?Renderer = null;
 
 /// Create default primitive renderer
@@ -25,21 +30,23 @@ pub fn flush(renderer: sdl.Renderer) !void {
     try rd.?.draw(renderer);
 }
 
+/// Draw equilateral triangle
+pub fn drawEquilateralTriangle(center: sdl.PointF, side_len: f32, opt: DrawOption) !void {
+    const height = math.sqrt(@as(f32, 3)) / 2.0 * side_len;
+    const size = height * 2 / 3;
+    const p0 = sdl.PointF{ .x = center.x, .y = center.y - size };
+    const p1 = sdl.PointF{ .x = center.x + side_len / 2, .y = center.y + height - size };
+    const p2 = sdl.PointF{ .x = center.x - side_len / 2, .y = center.y + height - size };
+    try rd.?.addTriangle(p0, p1, p2, opt);
+}
+
 /// Draw triangle
-pub const TriangleOption = struct {
-    color: sdl.Color = sdl.Color.white,
-};
-pub fn drawTriangle(
-    p0: sdl.PointF,
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    opt: TriangleOption,
-) !void {
+pub fn drawTriangle(p0: sdl.PointF, p1: sdl.PointF, p2: sdl.PointF, opt: DrawOption) !void {
     try rd.?.addTriangle(p0, p1, p2, opt);
 }
 
 /// Draw square
-pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: RectangleOption) !void {
+pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: DrawOption) !void {
     try rd.?.addRectangle(.{
         .x = center.x - half_size,
         .y = center.y - half_size,
@@ -49,19 +56,12 @@ pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: RectangleOption) !voi
 }
 
 /// Draw rectangle
-pub const RectangleOption = struct {
-    color: sdl.Color = sdl.Color.white,
-};
-pub fn drawRectangle(rect: sdl.RectangleF, opt: RectangleOption) !void {
+pub fn drawRectangle(rect: sdl.RectangleF, opt: DrawOption) !void {
     try rd.?.addRectangle(rect, opt);
 }
 
 /// Draw circle
-pub fn drawCircle(
-    center: sdl.PointF,
-    radius: f32,
-    opt: EllipseOption,
-) !void {
+pub fn drawCircle(center: sdl.PointF, radius: f32, opt: EllipseOption) !void {
     try rd.?.addEllipse(center, radius, radius, opt);
 }
 
@@ -70,12 +70,7 @@ pub const EllipseOption = struct {
     res: u32 = 25,
     color: sdl.Color = sdl.Color.white,
 };
-pub fn drawEllipse(
-    center: sdl.PointF,
-    half_width: f32,
-    half_height: f32,
-    opt: EllipseOption,
-) !void {
+pub fn drawEllipse(center: sdl.PointF, half_width: f32, half_height: f32, opt: EllipseOption) !void {
     try rd.?.addEllipse(center, half_width, half_height, opt);
 }
 
@@ -110,7 +105,7 @@ const Renderer = struct {
         p0: sdl.PointF,
         p1: sdl.PointF,
         p2: sdl.PointF,
-        opt: TriangleOption,
+        opt: DrawOption,
     ) !void {
         const base_index = @intCast(u32, self.vattribs.items.len);
         try self.vattribs.appendSlice(&.{
@@ -126,7 +121,7 @@ const Renderer = struct {
     }
 
     /// Add a rectangle
-    fn addRectangle(self: *Renderer, rect: sdl.RectangleF, opt: RectangleOption) !void {
+    fn addRectangle(self: *Renderer, rect: sdl.RectangleF, opt: DrawOption) !void {
         const base_index = @intCast(u32, self.vattribs.items.len);
         try self.vattribs.appendSlice(&.{
             .{ .position = .{ .x = rect.x, .y = rect.y }, .color = opt.color },
