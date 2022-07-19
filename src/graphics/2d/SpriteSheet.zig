@@ -249,7 +249,7 @@ pub fn fromPicturesInDir(
     opt: DirScanOption,
 ) !*Self {
     var curdir = std.fs.cwd();
-    var dir = try curdir.openDir(dir_path, .{ .iterate = true, .no_follow = true });
+    var dir = try curdir.openIterableDir(dir_path, .{ .no_follow = true });
     defer dir.close();
 
     var images = try std.ArrayList(ImageSource).initCapacity(allocator, 10);
