@@ -34,6 +34,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "sprite_sheet", .opt = .{} },
         .{ .name = "particle_2d", .opt = .{} },
         .{ .name = "animation_2d", .opt = .{} },
+        .{ .name = "primitive_2d", .opt = .{ .link_imgui = true } },
         .{ .name = "sprite_benchmark", .opt = .{} },
         .{ .name = "font_demo", .opt = .{} },
         .{ .name = "audio_demo", .opt = .{} },

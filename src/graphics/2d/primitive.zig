@@ -2,9 +2,12 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const sdl = @import("sdl");
+const jok = @import("../../jok.zig");
+const zmath = jok.zmath;
 
 pub const CommonDrawOption = struct {
     rotate_degree: f32 = 0,
+    anchor_pos: ?sdl.PointF = null,
     color: sdl.Color = sdl.Color.white,
 };
 
@@ -99,6 +102,21 @@ const Renderer = struct {
         self.vindices.clearRetainingCapacity();
     }
 
+    // Calculate transform matrix
+    inline fn getTransformMatrix(anchor_pos: sdl.PointF, rotate_degree: f32) zmath.Mat {
+        const translate1_m = zmath.translation(-anchor_pos.x, -anchor_pos.y, 0);
+        const rotate_m = zmath.rotationZ(rotate_degree * math.pi / 180);
+        const translate2_m = zmath.translation(anchor_pos.x, anchor_pos.y, 0);
+        return zmath.mul(zmath.mul(translate1_m, rotate_m), translate2_m);
+    }
+
+    // Transform coordinate
+    inline fn transformPoint(pos: sdl.PointF, trs: zmath.Mat) sdl.PointF {
+        const v = zmath.f32x4(pos.x, pos.y, 0, 1);
+        const tv = zmath.mul(v, trs);
+        return .{ .x = tv[0], .y = tv[1] };
+    }
+
     /// Add a triangle
     fn addTriangle(
         self: *Renderer,
@@ -108,9 +126,13 @@ const Renderer = struct {
         opt: CommonDrawOption,
     ) !void {
         const base_index = @intCast(u32, self.vattribs.items.len);
-        try self.vattribs.append(.{ .position = p0, .color = opt.color });
-        try self.vattribs.append(.{ .position = p1, .color = opt.color });
-        try self.vattribs.append(.{ .position = p2, .color = opt.color });
+        const transform_m = getTransformMatrix(
+            opt.anchor_pos orelse sdl.PointF{ .x = (p0.x + p1.x + p2.x) / 3.0, .y = (p0.y + p1.y + p2.y) / 3.0 },
+            opt.rotate_degree,
+        );
+        try self.vattribs.append(.{ .position = transformPoint(p0, transform_m), .color = opt.color });
+        try self.vattribs.append(.{ .position = transformPoint(p1, transform_m), .color = opt.color });
+        try self.vattribs.append(.{ .position = transformPoint(p2, transform_m), .color = opt.color });
         try self.vindices.appendSlice(&.{
             base_index,
             base_index + 1,
@@ -121,10 +143,26 @@ const Renderer = struct {
     /// Add a rectangle
     fn addRectangle(self: *Renderer, rect: sdl.RectangleF, opt: CommonDrawOption) !void {
         const base_index = @intCast(u32, self.vattribs.items.len);
-        try self.vattribs.append(.{ .position = .{ .x = rect.x, .y = rect.y }, .color = opt.color });
-        try self.vattribs.append(.{ .position = .{ .x = rect.x + rect.width, .y = rect.y }, .color = opt.color });
-        try self.vattribs.append(.{ .position = .{ .x = rect.x + rect.width, .y = rect.y + rect.height }, .color = opt.color });
-        try self.vattribs.append(.{ .position = .{ .x = rect.x, .y = rect.y + rect.height }, .color = opt.color });
+        const transform_m = getTransformMatrix(
+            opt.anchor_pos orelse sdl.PointF{ .x = (rect.x + rect.width) / 2.0, .y = (rect.y + rect.height) / 3.0 },
+            opt.rotate_degree,
+        );
+        try self.vattribs.append(.{
+            .position = transformPoint(.{ .x = rect.x, .y = rect.y }, transform_m),
+            .color = opt.color,
+        });
+        try self.vattribs.append(.{
+            .position = transformPoint(.{ .x = rect.x + rect.width, .y = rect.y }, transform_m),
+            .color = opt.color,
+        });
+        try self.vattribs.append(.{
+            .position = transformPoint(.{ .x = rect.x + rect.width, .y = rect.y + rect.height }, transform_m),
+            .color = opt.color,
+        });
+        try self.vattribs.append(.{
+            .position = transformPoint(.{ .x = rect.x, .y = rect.y + rect.height }, transform_m),
+            .color = opt.color,
+        });
         try self.vindices.appendSlice(&.{
             base_index,
             base_index + 1,
@@ -146,16 +184,20 @@ const Renderer = struct {
         var i: u32 = 0;
         const base_index = @intCast(u32, self.vattribs.items.len);
         const angle = math.tau / @intToFloat(f32, opt.res);
+        const transform_m = getTransformMatrix(
+            opt.common_opt.anchor_pos orelse center,
+            opt.common_opt.rotate_degree,
+        );
         try self.vattribs.append(.{
-            .position = center,
+            .position = transformPoint(center, transform_m),
             .color = opt.common_opt.color,
         });
         while (i < opt.res) : (i += 1) {
             try self.vattribs.append(.{
-                .position = .{
+                .position = transformPoint(.{
                     .x = center.x + half_width * @cos(@intToFloat(f32, i) * angle),
                     .y = center.y + half_height * @sin(@intToFloat(f32, i) * angle),
-                },
+                }, transform_m),
                 .color = opt.common_opt.color,
             });
             const last_index = if (i == opt.res - 1) base_index + 1 else base_index + i + 2;
