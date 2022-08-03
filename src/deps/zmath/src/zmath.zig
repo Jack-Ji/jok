@@ -158,6 +158,10 @@
 // normalize3(v: Vec) Vec
 // normalize4(v: Vec) Vec
 //
+// vecToArr2(v: Vec) [2]f32
+// vecToArr3(v: Vec) [3]f32
+// vecToArr4(v: Vec) [4]f32
+//
 // ------------------------------------------------------------------------------
 // 4. Matrix functions
 // ------------------------------------------------------------------------------
@@ -205,8 +209,8 @@
 // storeMat34(mem: []f32, m: Mat) void
 //
 // matToArr(m: Mat) [16]f32
-// mat43ToArr(m: Mat) [12]f32
-// mat34ToArr(m: Mat) [12]f32
+// matToArr43(m: Mat) [12]f32
+// matToArr34(m: Mat) [12]f32
 //
 // ------------------------------------------------------------------------------
 // 5. Quaternion functions
@@ -470,6 +474,16 @@ test "zmath.loadArr" {
         const simd_reg = loadArr3w(camera_position, 1.0);
         try expect(approxEqAbs(simd_reg, f32x4(1.0, 2.0, 3.0, 1.0), 0.0));
     }
+}
+
+pub inline fn vecToArr2(v: Vec) [2]f32 {
+    return .{ v[0], v[1] };
+}
+pub inline fn vecToArr3(v: Vec) [3]f32 {
+    return .{ v[0], v[1], v[2] };
+}
+pub inline fn vecToArr4(v: Vec) [4]f32 {
+    return .{ v[0], v[1], v[2], v[3] };
 }
 
 // ------------------------------------------------------------------------------
@@ -1867,12 +1881,9 @@ test "zmath.dot2" {
 }
 
 pub inline fn dot3(v0: Vec, v1: Vec) F32x4 {
-    var dot = v0 * v1;
-    var temp = swizzle(dot, .y, .z, .y, .z);
-    dot = F32x4{ dot[0] + temp[0], dot[1], dot[2], dot[2] }; // addss
-    temp = swizzle(temp, .y, .y, .y, .y);
-    dot = F32x4{ dot[0] + temp[0], dot[1], dot[2], dot[2] }; // addss
-    return swizzle(dot, .x, .x, .x, .x);
+    @setFloatMode(.Optimized);
+    const dot = v0 * v1;
+    return f32x4s(dot[0] + dot[1] + dot[2]);
 }
 test "zmath.dot3" {
     const v0 = F32x4{ -1.0, 2.0, 3.0, 1.0 };
@@ -2093,18 +2104,11 @@ fn mulMat(m0: Mat, m1: Mat) Mat {
     var result: Mat = undefined;
     comptime var row: u32 = 0;
     inline while (row < 4) : (row += 1) {
-        var vx = @shuffle(f32, m0[row], undefined, [4]i32{ 0, 0, 0, 0 });
-        var vy = @shuffle(f32, m0[row], undefined, [4]i32{ 1, 1, 1, 1 });
-        var vz = @shuffle(f32, m0[row], undefined, [4]i32{ 2, 2, 2, 2 });
-        var vw = @shuffle(f32, m0[row], undefined, [4]i32{ 3, 3, 3, 3 });
-        vx = vx * m1[0];
-        vy = vy * m1[1];
-        vz = vz * m1[2];
-        vw = vw * m1[3];
-        vx = vx + vz;
-        vy = vy + vw;
-        vx = vx + vy;
-        result[row] = vx;
+        const vx = swizzle(m0[row], .x, .x, .x, .x);
+        const vy = swizzle(m0[row], .y, .y, .y, .y);
+        const vz = swizzle(m0[row], .z, .z, .z, .z);
+        const vw = swizzle(m0[row], .w, .w, .w, .w);
+        result[row] = mulAdd(vx, m1[0], vz * m1[2]) + mulAdd(vy, m1[1], vw * m1[3]);
     }
     return result;
 }
@@ -2724,13 +2728,13 @@ pub inline fn matToArr(m: Mat) [16]f32 {
     return array;
 }
 
-pub inline fn mat43ToArr(m: Mat) [12]f32 {
+pub inline fn matToArr43(m: Mat) [12]f32 {
     var array: [12]f32 = undefined;
     storeMat43(array[0..], m);
     return array;
 }
 
-pub inline fn mat34ToArr(m: Mat) [12]f32 {
+pub inline fn matToArr34(m: Mat) [12]f32 {
     var array: [12]f32 = undefined;
     storeMat34(array[0..], m);
     return array;
