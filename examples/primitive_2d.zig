@@ -13,6 +13,7 @@ const PrimitiveType = enum(c_int) {
     etriangle,
     square,
     circle,
+    line,
 };
 
 var primtype: PrimitiveType = .etriangle;
@@ -26,6 +27,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 
     try imgui.init(ctx);
     try ctx.renderer.setColorRGB(77, 77, 77);
+    try ctx.renderer.setDrawBlendMode(.blend);
 }
 
 pub fn loop(ctx: *jok.Context) anyerror!void {
@@ -61,6 +63,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.radioButton_IntPtr("etriangle", selection, 0);
         _ = imgui.radioButton_IntPtr("square", selection, 1);
         _ = imgui.radioButton_IntPtr("circle", selection, 2);
+        _ = imgui.radioButton_IntPtr("line", selection, 3);
         imgui.separator();
         _ = imgui.colorEdit4("color", &color, null);
         _ = imgui.dragFloat("size", &size, .{});
@@ -91,6 +94,13 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         },
         .circle => {
             try gfx.primitive.drawCircle(draw_pos, size, .{ .common_opt = common_draw_opt });
+        },
+        .line => {
+            try gfx.primitive.drawLine(
+                .{ .x = draw_pos.x - size, .y = draw_pos.y - size },
+                .{ .x = draw_pos.x + size, .y = draw_pos.y + size },
+                .{ .common_opt = common_draw_opt, .thickness = size / 10 },
+            );
         },
     }
     try gfx.primitive.drawCircle(

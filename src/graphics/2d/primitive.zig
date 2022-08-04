@@ -63,6 +63,15 @@ pub fn drawRectangle(rect: sdl.RectangleF, opt: CommonDrawOption) !void {
     try rd.?.addRectangle(rect, opt);
 }
 
+/// Draw line
+pub const LineOption = struct {
+    common_opt: CommonDrawOption = .{},
+    thickness: f32 = 2,
+};
+pub fn drawLine(from: sdl.PointF, to: sdl.PointF, opt: LineOption) !void {
+    try rd.?.addLine(from, to, opt);
+}
+
 /// Draw circle
 pub fn drawCircle(center: sdl.PointF, radius: f32, opt: EllipseOption) !void {
     try rd.?.addEllipse(center, radius, radius, opt);
@@ -71,7 +80,7 @@ pub fn drawCircle(center: sdl.PointF, radius: f32, opt: EllipseOption) !void {
 /// Draw ecllipse
 pub const EllipseOption = struct {
     common_opt: CommonDrawOption = .{},
-    res: u32 = 25,
+    segments: u32 = 25,
 };
 pub fn drawEllipse(center: sdl.PointF, half_width: f32, half_height: f32, opt: EllipseOption) !void {
     try rd.?.addEllipse(center, half_width, half_height, opt);
@@ -173,6 +182,53 @@ const Renderer = struct {
         });
     }
 
+    /// Add a line
+    fn addLine(
+        self: *Renderer,
+        from: sdl.PointF,
+        to: sdl.PointF,
+        opt: LineOption,
+    ) !void {
+        const base_index = @intCast(u32, self.vattribs.items.len);
+        const transform_m = getTransformMatrix(
+            opt.common_opt.anchor_pos orelse sdl.PointF{ .x = (from.x + to.x) / 2.0, .y = (from.y + to.y) / 3.0 },
+            opt.common_opt.rotate_degree,
+        );
+
+        // Calculate normal vector
+        var dx = to.x - from.x;
+        var dy = to.y - from.y;
+        if (dx == 0 or dy == 0) return;
+        const a = 1 / math.sqrt(dx * dx + dy * dy);
+        dx = dx * a * opt.thickness * 0.5;
+        dy = dy * a * opt.thickness * 0.5;
+
+        try self.vattribs.append(.{
+            .position = transformPoint(.{ .x = from.x - dy, .y = from.y + dx }, transform_m),
+            .color = opt.common_opt.color,
+        });
+        try self.vattribs.append(.{
+            .position = transformPoint(.{ .x = to.x - dy, .y = to.y + dx }, transform_m),
+            .color = opt.common_opt.color,
+        });
+        try self.vattribs.append(.{
+            .position = transformPoint(.{ .x = to.x + dy, .y = to.y - dx }, transform_m),
+            .color = opt.common_opt.color,
+        });
+        try self.vattribs.append(.{
+            .position = transformPoint(.{ .x = from.x + dy, .y = from.y - dx }, transform_m),
+            .color = opt.common_opt.color,
+        });
+        try self.vindices.appendSlice(&.{
+            base_index,
+            base_index + 1,
+            base_index + 2,
+            base_index,
+            base_index + 2,
+            base_index + 3,
+        });
+    }
+
     /// Add a ellipse
     fn addEllipse(
         self: *Renderer,
@@ -183,7 +239,7 @@ const Renderer = struct {
     ) !void {
         var i: u32 = 0;
         const base_index = @intCast(u32, self.vattribs.items.len);
-        const angle = math.tau / @intToFloat(f32, opt.res);
+        const angle = math.tau / @intToFloat(f32, opt.segments);
         const transform_m = getTransformMatrix(
             opt.common_opt.anchor_pos orelse center,
             opt.common_opt.rotate_degree,
@@ -192,7 +248,7 @@ const Renderer = struct {
             .position = transformPoint(center, transform_m),
             .color = opt.common_opt.color,
         });
-        while (i < opt.res) : (i += 1) {
+        while (i < opt.segments) : (i += 1) {
             try self.vattribs.append(.{
                 .position = transformPoint(.{
                     .x = center.x + half_width * @cos(@intToFloat(f32, i) * angle),
@@ -200,7 +256,7 @@ const Renderer = struct {
                 }, transform_m),
                 .color = opt.common_opt.color,
             });
-            const last_index = if (i == opt.res - 1) base_index + 1 else base_index + i + 2;
+            const last_index = if (i == opt.segments - 1) base_index + 1 else base_index + i + 2;
             try self.vindices.appendSlice(&.{
                 base_index,
                 base_index + i + 1,
