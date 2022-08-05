@@ -186,14 +186,14 @@ pub fn main() anyerror!void {
             var buf: [128]u8 = undefined;
             const txt = std.fmt.bufPrintZ(
                 &buf,
-                "{s} | FPS: {d:.1}, {s} | AVG-CPU: {d:.1}ms | RENDERER: {s} | MEM: {d:.2}kb",
+                "{s} | FPS: {d:.1}, {s} | AVG-CPU: {d:.1}ms | RENDERER: {s} | MEM: {:.3}",
                 .{
                     config.title,
                     ctx.fps,
                     config.fps_limit.str(),
                     ctx.average_cpu_time,
                     ctx.getRendererName(),
-                    if (gpa) |a| @intToFloat(f64, a.total_requested_bytes) / 1024.0 else 0,
+                    std.fmt.fmtIntSizeBin(if (gpa) |a| a.total_requested_bytes else 0),
                 },
             ) catch unreachable;
             sdl.c.SDL_SetWindowTitle(ctx.window.ptr, txt.ptr);

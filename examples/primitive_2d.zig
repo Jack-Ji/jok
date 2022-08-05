@@ -17,7 +17,7 @@ const PrimitiveType = enum(c_int) {
 };
 
 var primtype: PrimitiveType = .etriangle;
-var color: [4]f32 = .{ 1.0, 1.0, 1.0, 1.0 };
+var color: [4]f32 = .{ 1.0, 1.0, 1.0, 0.5 };
 var size: f32 = 15;
 var rotate_angle: f32 = 0;
 var rotate_anchor: [2]f32 = .{ 500, 500 };
