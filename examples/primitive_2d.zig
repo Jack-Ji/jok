@@ -19,6 +19,7 @@ const PrimitiveType = enum(c_int) {
 var primtype: PrimitiveType = .etriangle;
 var color: [4]f32 = .{ 1.0, 1.0, 1.0, 0.5 };
 var size: f32 = 15;
+var thickness: f32 = 0;
 var rotate_angle: f32 = 0;
 var rotate_anchor: [2]f32 = .{ 500, 500 };
 
@@ -67,6 +68,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         imgui.separator();
         _ = imgui.colorEdit4("color", &color, null);
         _ = imgui.dragFloat("size", &size, .{});
+        _ = imgui.dragFloat("thickness", &thickness, .{ .v_max = 100 });
         _ = imgui.dragFloat("rotate_angle", &rotate_angle, .{});
         _ = imgui.dragFloat2("rotate_anchor", &rotate_anchor, .{});
     }
@@ -76,6 +78,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     const draw_pos = sdl.PointF{ .x = @intToFloat(f32, ms.x), .y = @intToFloat(f32, ms.y) };
     const anchor_pos = sdl.PointF{ .x = rotate_anchor[0], .y = rotate_anchor[1] };
     const common_draw_opt = primitive.CommonDrawOption{
+        .thickness = thickness,
         .rotate_degree = rotate_angle,
         .anchor_pos = anchor_pos,
         .color = .{
@@ -99,7 +102,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             try gfx.primitive.drawLine(
                 .{ .x = draw_pos.x - size, .y = draw_pos.y - size },
                 .{ .x = draw_pos.x + size, .y = draw_pos.y + size },
-                .{ .common_opt = common_draw_opt, .thickness = size / 10 },
+                common_draw_opt,
             );
         },
     }
