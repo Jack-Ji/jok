@@ -58,10 +58,10 @@ pub fn main() anyerror!void {
         window_flags.borderless = true;
     }
     if (config.enable_minimized) {
-        window_flags.minimized = true;
+        window_flags.dim = .minimized;
     }
     if (config.enable_maximized) {
-        window_flags.maximized = true;
+        window_flags.dim = .maximized;
     }
     var ctx: context.Context = .{
         .window = try sdl.createWindow(
