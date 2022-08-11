@@ -50,7 +50,11 @@ pub fn drawTriangle(p0: sdl.PointF, p1: sdl.PointF, p2: sdl.PointF, opt: CommonD
 }
 
 /// Draw square
-pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: CommonDrawOption) !void {
+pub const RectDrawOption = struct {
+    common: CommonDrawOption = .{},
+    round: ?f32 = null,
+};
+pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: RectDrawOption) !void {
     try rd.?.addRectangle(.{
         .x = center.x - half_size,
         .y = center.y - half_size,
@@ -60,7 +64,7 @@ pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: CommonDrawOption) !vo
 }
 
 /// Draw rectangle
-pub fn drawRectangle(rect: sdl.RectangleF, opt: CommonDrawOption) !void {
+pub fn drawRectangle(rect: sdl.RectangleF, opt: RectDrawOption) !void {
     try rd.?.addRectangle(rect, opt);
 }
 
@@ -69,18 +73,23 @@ pub fn drawLine(from: sdl.PointF, to: sdl.PointF, opt: CommonDrawOption) !void {
     try rd.?.addLine(from, to, opt);
 }
 
+/// Draw arc
+pub const CurveDrawOption = struct {
+    common: CommonDrawOption = .{},
+    segments: ?u32 = null,
+};
+pub fn drawArc(center: sdl.PointF, radius: f32, from_radian: f32, to_radian: f32, opt: CurveDrawOption) !void {
+    try rd.?.addEllipse(center, radius, radius, from_radian, to_radian, opt);
+}
+
 /// Draw circle
-pub fn drawCircle(center: sdl.PointF, radius: f32, opt: EllipseOption) !void {
-    try rd.?.addEllipse(center, radius, radius, opt);
+pub fn drawCircle(center: sdl.PointF, radius: f32, opt: CurveDrawOption) !void {
+    try rd.?.addEllipse(center, radius, radius, 0, math.tau, opt);
 }
 
 /// Draw ecllipse
-pub const EllipseOption = struct {
-    common_opt: CommonDrawOption = .{},
-    segments: ?u32 = null,
-};
-pub fn drawEllipse(center: sdl.PointF, half_width: f32, half_height: f32, opt: EllipseOption) !void {
-    try rd.?.addEllipse(center, half_width, half_height, opt);
+pub fn drawEllipse(center: sdl.PointF, half_width: f32, half_height: f32, opt: CurveDrawOption) !void {
+    try rd.?.addEllipse(center, half_width, half_height, 0, math.tau, opt);
 }
 
 /// 2D primitive renderer
@@ -127,6 +136,7 @@ const Renderer = struct {
         self: *Renderer,
         inner_base_index: u32,
         outer_base_index: u32,
+        is_loop: bool,
     ) !void {
         assert(inner_base_index < outer_base_index);
         const npoints = @intCast(u32, self.vattribs.items.len - outer_base_index);
@@ -134,15 +144,27 @@ const Renderer = struct {
         var i: u32 = 0;
         while (i < npoints) : (i += 1) {
             const idx = @intCast(u32, i);
-            const next_idx = if (i + 1 == npoints) 0 else idx + 1;
-            try self.vindices.appendSlice(&.{
-                inner_base_index + idx,
-                outer_base_index + idx,
-                outer_base_index + next_idx,
-                inner_base_index + idx,
-                outer_base_index + next_idx,
-                inner_base_index + next_idx,
-            });
+            if (is_loop) {
+                const next_idx = if (i + 1 == npoints) 0 else idx + 1;
+                try self.vindices.appendSlice(&.{
+                    inner_base_index + idx,
+                    outer_base_index + idx,
+                    outer_base_index + next_idx,
+                    inner_base_index + idx,
+                    outer_base_index + next_idx,
+                    inner_base_index + next_idx,
+                });
+            } else if (i < npoints - 1) {
+                const next_idx = idx + 1;
+                try self.vindices.appendSlice(&.{
+                    inner_base_index + idx,
+                    outer_base_index + idx,
+                    outer_base_index + next_idx,
+                    inner_base_index + idx,
+                    outer_base_index + next_idx,
+                    inner_base_index + next_idx,
+                });
+            }
         }
     }
 
@@ -188,34 +210,35 @@ const Renderer = struct {
             try self.vattribs.append(.{ .position = transformPoint(p0, transform_m), .color = opt.color });
             try self.vattribs.append(.{ .position = transformPoint(p1, transform_m), .color = opt.color });
             try self.vattribs.append(.{ .position = transformPoint(p2, transform_m), .color = opt.color });
-            try self.addStripe(inner_base_index, outer_base_index);
+            try self.addStripe(inner_base_index, outer_base_index, true);
         }
     }
 
     /// Add a rectangle
-    fn addRectangle(self: *Renderer, rect: sdl.RectangleF, opt: CommonDrawOption) !void {
+    fn addRectangle(self: *Renderer, rect: sdl.RectangleF, opt: RectDrawOption) !void {
         const center = sdl.PointF{ .x = (rect.x + rect.width) / 2.0, .y = (rect.y + rect.height) / 3.0 };
+        const common = opt.common;
         const transform_m = getTransformMatrix(
-            opt.anchor_pos orelse center,
-            opt.rotate_degree,
+            common.anchor_pos orelse center,
+            common.rotate_degree,
         );
-        if (opt.thickness == 0) {
+        if (common.thickness == 0) {
             const base_index = @intCast(u32, self.vattribs.items.len);
             try self.vattribs.append(.{
                 .position = transformPoint(.{ .x = rect.x, .y = rect.y }, transform_m),
-                .color = opt.color,
+                .color = common.color,
             });
             try self.vattribs.append(.{
                 .position = transformPoint(.{ .x = rect.x + rect.width, .y = rect.y }, transform_m),
-                .color = opt.color,
+                .color = common.color,
             });
             try self.vattribs.append(.{
                 .position = transformPoint(.{ .x = rect.x + rect.width, .y = rect.y + rect.height }, transform_m),
-                .color = opt.color,
+                .color = common.color,
             });
             try self.vattribs.append(.{
                 .position = transformPoint(.{ .x = rect.x, .y = rect.y + rect.height }, transform_m),
-                .color = opt.color,
+                .color = common.color,
             });
             try self.vindices.appendSlice(&.{
                 base_index,
@@ -230,21 +253,21 @@ const Renderer = struct {
             const outer_p1 = sdl.PointF{ .x = rect.x + rect.width, .y = rect.y };
             const outer_p2 = sdl.PointF{ .x = rect.x + rect.width, .y = rect.y + rect.height };
             const outer_p3 = sdl.PointF{ .x = rect.x, .y = rect.y + rect.height };
-            const inner_p0 = sdl.PointF{ .x = rect.x + opt.thickness, .y = rect.y + opt.thickness };
-            const inner_p1 = sdl.PointF{ .x = rect.x + rect.width - opt.thickness, .y = rect.y + opt.thickness };
-            const inner_p2 = sdl.PointF{ .x = rect.x + rect.width - opt.thickness, .y = rect.y + rect.height - opt.thickness };
-            const inner_p3 = sdl.PointF{ .x = rect.x + opt.thickness, .y = rect.y + rect.height - opt.thickness };
+            const inner_p0 = sdl.PointF{ .x = rect.x + common.thickness, .y = rect.y + common.thickness };
+            const inner_p1 = sdl.PointF{ .x = rect.x + rect.width - common.thickness, .y = rect.y + common.thickness };
+            const inner_p2 = sdl.PointF{ .x = rect.x + rect.width - common.thickness, .y = rect.y + rect.height - common.thickness };
+            const inner_p3 = sdl.PointF{ .x = rect.x + common.thickness, .y = rect.y + rect.height - common.thickness };
             const inner_base_index = @intCast(u32, self.vattribs.items.len);
-            try self.vattribs.append(.{ .position = transformPoint(inner_p0, transform_m), .color = opt.color });
-            try self.vattribs.append(.{ .position = transformPoint(inner_p1, transform_m), .color = opt.color });
-            try self.vattribs.append(.{ .position = transformPoint(inner_p2, transform_m), .color = opt.color });
-            try self.vattribs.append(.{ .position = transformPoint(inner_p3, transform_m), .color = opt.color });
+            try self.vattribs.append(.{ .position = transformPoint(inner_p0, transform_m), .color = common.color });
+            try self.vattribs.append(.{ .position = transformPoint(inner_p1, transform_m), .color = common.color });
+            try self.vattribs.append(.{ .position = transformPoint(inner_p2, transform_m), .color = common.color });
+            try self.vattribs.append(.{ .position = transformPoint(inner_p3, transform_m), .color = common.color });
             const outer_base_index = @intCast(u32, self.vattribs.items.len);
-            try self.vattribs.append(.{ .position = transformPoint(outer_p0, transform_m), .color = opt.color });
-            try self.vattribs.append(.{ .position = transformPoint(outer_p1, transform_m), .color = opt.color });
-            try self.vattribs.append(.{ .position = transformPoint(outer_p2, transform_m), .color = opt.color });
-            try self.vattribs.append(.{ .position = transformPoint(outer_p3, transform_m), .color = opt.color });
-            try self.addStripe(inner_base_index, outer_base_index);
+            try self.vattribs.append(.{ .position = transformPoint(outer_p0, transform_m), .color = common.color });
+            try self.vattribs.append(.{ .position = transformPoint(outer_p1, transform_m), .color = common.color });
+            try self.vattribs.append(.{ .position = transformPoint(outer_p2, transform_m), .color = common.color });
+            try self.vattribs.append(.{ .position = transformPoint(outer_p3, transform_m), .color = common.color });
+            try self.addStripe(inner_base_index, outer_base_index, true);
         }
     }
 
@@ -302,64 +325,77 @@ const Renderer = struct {
         center: sdl.PointF,
         half_width: f32,
         half_height: f32,
-        opt: EllipseOption,
+        from_radian: f32,
+        to_radian: f32,
+        opt: CurveDrawOption,
     ) !void {
+        assert(to_radian >= from_radian);
         const transform_m = getTransformMatrix(
-            opt.common_opt.anchor_pos orelse center,
-            opt.common_opt.rotate_degree,
+            opt.common.anchor_pos orelse center,
+            opt.common.rotate_degree,
         );
         const half_big = math.max(half_width, half_height);
         const half_small = math.min(half_width, half_height);
+        const total_angle = math.min(to_radian - from_radian, math.tau);
+        const is_loop = math.approxEqRel(f32, total_angle, math.tau, math.f32_epsilon);
         const segments = opt.segments orelse
-            math.max(@floatToInt(u32, (2 * math.pi * half_small + 4 * (half_big - half_small)) / 30), 25);
-        if (opt.common_opt.thickness == 0) {
+            math.max(@floatToInt(u32, total_angle / math.tau * (math.tau * half_small + 4 * (half_big - half_small)) / 30), 25);
+        const segment_angle = total_angle / @intToFloat(f32, segments);
+        if (opt.common.thickness == 0) {
             const base_index = @intCast(u32, self.vattribs.items.len);
-            const angle = math.tau / @intToFloat(f32, segments);
             try self.vattribs.append(.{
                 .position = transformPoint(center, transform_m),
-                .color = opt.common_opt.color,
+                .color = opt.common.color,
             });
             var i: u32 = 0;
-            while (i < segments) : (i += 1) {
+            while (i <= segments) : (i += 1) {
                 try self.vattribs.append(.{
                     .position = transformPoint(.{
-                        .x = center.x + half_width * @cos(@intToFloat(f32, i) * angle),
-                        .y = center.y + half_height * @sin(@intToFloat(f32, i) * angle),
+                        .x = center.x + half_width * @cos(@intToFloat(f32, i) * segment_angle + from_radian),
+                        .y = center.y + half_height * @sin(@intToFloat(f32, i) * segment_angle + from_radian),
                     }, transform_m),
-                    .color = opt.common_opt.color,
+                    .color = opt.common.color,
                 });
-                const last_index = if (i == segments - 1) base_index + 1 else base_index + i + 2;
-                try self.vindices.appendSlice(&.{
-                    base_index,
-                    base_index + i + 1,
-                    last_index,
-                });
+                if (is_loop) {
+                    const last_index = if (i == segments) base_index + 1 else base_index + i + 2;
+                    try self.vindices.appendSlice(&.{
+                        base_index,
+                        base_index + i + 1,
+                        last_index,
+                    });
+                } else if (i < segments) {
+                    const last_index = base_index + i + 2;
+                    try self.vindices.appendSlice(&.{
+                        base_index,
+                        base_index + i + 1,
+                        last_index,
+                    });
+                }
             }
         } else {
-            const angle = math.tau / @intToFloat(f32, segments);
             const inner_base_index = @intCast(u32, self.vattribs.items.len);
             var i: u32 = 0;
-            while (i < segments) : (i += 1) {
+            while (i <= segments) : (i += 1) {
                 try self.vattribs.append(.{
                     .position = transformPoint(.{
-                        .x = center.x + (half_width - opt.common_opt.thickness) * @cos(@intToFloat(f32, i) * angle),
-                        .y = center.y + (half_height - opt.common_opt.thickness) * @sin(@intToFloat(f32, i) * angle),
+                        .x = center.x + (half_width - opt.common.thickness) * @cos(@intToFloat(f32, i) * segment_angle + from_radian),
+                        .y = center.y + (half_height - opt.common.thickness) * @sin(@intToFloat(f32, i) * segment_angle + from_radian),
                     }, transform_m),
-                    .color = opt.common_opt.color,
+                    .color = opt.common.color,
                 });
             }
             const outer_base_index = @intCast(u32, self.vattribs.items.len);
             i = 0;
-            while (i < segments) : (i += 1) {
+            while (i <= segments) : (i += 1) {
                 try self.vattribs.append(.{
                     .position = transformPoint(.{
-                        .x = center.x + half_width * @cos(@intToFloat(f32, i) * angle),
-                        .y = center.y + half_height * @sin(@intToFloat(f32, i) * angle),
+                        .x = center.x + half_width * @cos(@intToFloat(f32, i) * segment_angle + from_radian),
+                        .y = center.y + half_height * @sin(@intToFloat(f32, i) * segment_angle + from_radian),
                     }, transform_m),
-                    .color = opt.common_opt.color,
+                    .color = opt.common.color,
                 });
             }
-            try self.addStripe(inner_base_index, outer_base_index);
+            try self.addStripe(inner_base_index, outer_base_index, is_loop);
         }
     }
 

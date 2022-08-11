@@ -1,5 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
+const math = std.math;
 const builtin = @import("builtin");
 const sdl = @import("sdl");
 const jok = @import("jok");
@@ -13,6 +14,7 @@ const PrimitiveType = enum(c_int) {
     etriangle,
     square,
     circle,
+    arc,
     line,
 };
 
@@ -64,7 +66,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.radioButton_IntPtr("etriangle", selection, 0);
         _ = imgui.radioButton_IntPtr("square", selection, 1);
         _ = imgui.radioButton_IntPtr("circle", selection, 2);
-        _ = imgui.radioButton_IntPtr("line", selection, 3);
+        _ = imgui.radioButton_IntPtr("arc", selection, 3);
+        _ = imgui.radioButton_IntPtr("line", selection, 4);
         imgui.separator();
         _ = imgui.colorEdit4("color", &color, null);
         _ = imgui.dragFloat("size", &size, .{ .v_max = 1000 });
@@ -93,10 +96,13 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             try gfx.primitive.drawEquilateralTriangle(draw_pos, size, common_draw_opt);
         },
         .square => {
-            try gfx.primitive.drawSquare(draw_pos, size, common_draw_opt);
+            try gfx.primitive.drawSquare(draw_pos, size, .{ .common = common_draw_opt });
         },
         .circle => {
-            try gfx.primitive.drawCircle(draw_pos, size, .{ .common_opt = common_draw_opt });
+            try gfx.primitive.drawCircle(draw_pos, size, .{ .common = common_draw_opt });
+        },
+        .arc => {
+            try gfx.primitive.drawArc(draw_pos, size, math.pi / 4.0, math.pi, .{ .common = common_draw_opt });
         },
         .line => {
             try gfx.primitive.drawLine(
@@ -109,7 +115,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     try gfx.primitive.drawCircle(
         .{ .x = rotate_anchor[0], .y = rotate_anchor[1] },
         3,
-        .{ .common_opt = .{ .color = sdl.Color.cyan } },
+        .{ .common = .{ .color = sdl.Color.cyan } },
     );
 }
 
