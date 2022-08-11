@@ -67,7 +67,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.radioButton_IntPtr("line", selection, 3);
         imgui.separator();
         _ = imgui.colorEdit4("color", &color, null);
-        _ = imgui.dragFloat("size", &size, .{});
+        _ = imgui.dragFloat("size", &size, .{ .v_max = 1000 });
         _ = imgui.dragFloat("thickness", &thickness, .{ .v_max = 100 });
         _ = imgui.dragFloat("rotate_angle", &rotate_angle, .{});
         _ = imgui.dragFloat2("rotate_anchor", &rotate_anchor, .{});

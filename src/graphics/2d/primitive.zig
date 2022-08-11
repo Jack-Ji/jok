@@ -77,7 +77,7 @@ pub fn drawCircle(center: sdl.PointF, radius: f32, opt: EllipseOption) !void {
 /// Draw ecllipse
 pub const EllipseOption = struct {
     common_opt: CommonDrawOption = .{},
-    segments: u32 = 25,
+    segments: ?u32 = null,
 };
 pub fn drawEllipse(center: sdl.PointF, half_width: f32, half_height: f32, opt: EllipseOption) !void {
     try rd.?.addEllipse(center, half_width, half_height, opt);
@@ -308,15 +308,19 @@ const Renderer = struct {
             opt.common_opt.anchor_pos orelse center,
             opt.common_opt.rotate_degree,
         );
+        const half_big = math.max(half_width, half_height);
+        const half_small = math.min(half_width, half_height);
+        const segments = opt.segments orelse
+            math.max(@floatToInt(u32, (2 * math.pi * half_small + 4 * (half_big - half_small)) / 30), 25);
         if (opt.common_opt.thickness == 0) {
             const base_index = @intCast(u32, self.vattribs.items.len);
-            const angle = math.tau / @intToFloat(f32, opt.segments);
+            const angle = math.tau / @intToFloat(f32, segments);
             try self.vattribs.append(.{
                 .position = transformPoint(center, transform_m),
                 .color = opt.common_opt.color,
             });
             var i: u32 = 0;
-            while (i < opt.segments) : (i += 1) {
+            while (i < segments) : (i += 1) {
                 try self.vattribs.append(.{
                     .position = transformPoint(.{
                         .x = center.x + half_width * @cos(@intToFloat(f32, i) * angle),
@@ -324,7 +328,7 @@ const Renderer = struct {
                     }, transform_m),
                     .color = opt.common_opt.color,
                 });
-                const last_index = if (i == opt.segments - 1) base_index + 1 else base_index + i + 2;
+                const last_index = if (i == segments - 1) base_index + 1 else base_index + i + 2;
                 try self.vindices.appendSlice(&.{
                     base_index,
                     base_index + i + 1,
@@ -332,10 +336,10 @@ const Renderer = struct {
                 });
             }
         } else {
-            const angle = math.tau / @intToFloat(f32, opt.segments);
+            const angle = math.tau / @intToFloat(f32, segments);
             const inner_base_index = @intCast(u32, self.vattribs.items.len);
             var i: u32 = 0;
-            while (i < opt.segments) : (i += 1) {
+            while (i < segments) : (i += 1) {
                 try self.vattribs.append(.{
                     .position = transformPoint(.{
                         .x = center.x + (half_width - opt.common_opt.thickness) * @cos(@intToFloat(f32, i) * angle),
@@ -346,7 +350,7 @@ const Renderer = struct {
             }
             const outer_base_index = @intCast(u32, self.vattribs.items.len);
             i = 0;
-            while (i < opt.segments) : (i += 1) {
+            while (i < segments) : (i += 1) {
                 try self.vattribs.append(.{
                     .position = transformPoint(.{
                         .x = center.x + half_width * @cos(@intToFloat(f32, i) * angle),
