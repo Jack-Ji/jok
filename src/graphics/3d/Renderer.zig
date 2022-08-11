@@ -811,25 +811,17 @@ pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
 
 /// Draw the wireframe
 pub fn drawWireframe(self: Self, renderer: sdl.Renderer) !void {
+    const vs = self.vertices.items;
     var i: usize = 2;
-    while (i < self.vertices.items.len) : (i += 3) {
-        try renderer.drawLineF(
-            self.vertices.items[i - 2].position.x,
-            self.vertices.items[i - 2].position.y,
-            self.vertices.items[i - 1].position.x,
-            self.vertices.items[i - 1].position.y,
-        );
-        try renderer.drawLineF(
-            self.vertices.items[i - 1].position.x,
-            self.vertices.items[i - 1].position.y,
-            self.vertices.items[i].position.x,
-            self.vertices.items[i].position.y,
-        );
-        try renderer.drawLineF(
-            self.vertices.items[i].position.x,
-            self.vertices.items[i].position.y,
-            self.vertices.items[i - 2].position.x,
-            self.vertices.items[i - 2].position.y,
-        );
+    while (i < self.indices.items.len) : (i += 3) {
+        const idx1 = self.indices.items[i - 2];
+        const idx2 = self.indices.items[i - 1];
+        const idx3 = self.indices.items[i];
+        assert(idx1 < vs.len);
+        assert(idx2 < vs.len);
+        assert(idx3 < vs.len);
+        try renderer.drawLineF(vs[idx1].position.x, vs[idx1].position.y, vs[idx2].position.x, vs[idx2].position.y);
+        try renderer.drawLineF(vs[idx2].position.x, vs[idx2].position.y, vs[idx3].position.x, vs[idx3].position.y);
+        try renderer.drawLineF(vs[idx3].position.x, vs[idx3].position.y, vs[idx1].position.x, vs[idx1].position.y);
     }
 }
