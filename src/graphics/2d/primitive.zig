@@ -83,6 +83,10 @@ pub fn drawArc(center: sdl.PointF, radius: f32, from_radian: f32, to_radian: f32
     try rd.?.addEllipse(center, radius, radius, from_radian, to_radian, opt);
 }
 
+pub fn drawEllipseArc(center: sdl.PointF, half_width: f32, half_height: f32, from_radian: f32, to_radian: f32, opt: CurveDrawOption) !void {
+    try rd.?.addEllipse(center, half_width, half_height, from_radian, to_radian, opt);
+}
+
 /// Draw circle
 pub fn drawCircle(center: sdl.PointF, radius: f32, opt: CurveDrawOption) !void {
     try rd.?.addEllipse(center, radius, radius, 0, math.tau, opt);
