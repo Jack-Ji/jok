@@ -53,6 +53,7 @@ pub fn drawTriangle(p0: sdl.PointF, p1: sdl.PointF, p2: sdl.PointF, opt: CommonD
 pub const RectDrawOption = struct {
     common: CommonDrawOption = .{},
     round: ?f32 = null,
+    segments: ?u32 = null,
 };
 pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: RectDrawOption) !void {
     try rd.?.addRectangle(.{
@@ -216,7 +217,31 @@ const Renderer = struct {
 
     /// Add a rectangle
     fn addRectangle(self: *Renderer, rect: sdl.RectangleF, opt: RectDrawOption) !void {
-        const center = sdl.PointF{ .x = (rect.x + rect.width) / 2.0, .y = (rect.y + rect.height) / 3.0 };
+        const S = struct {
+            inline fn addRound(
+                attribs: *std.ArrayList(sdl.Vertex),
+                center: sdl.PointF,
+                radius: f32,
+                segments: u32,
+                from_angle: f32,
+                transform: zmath.Mat,
+                color: sdl.Color,
+            ) !void {
+                const segment_angle = math.pi / 2.0 / @intToFloat(f32, segments);
+                var i: u32 = 0;
+                while (i <= segments) : (i += 1) {
+                    try attribs.append(.{
+                        .position = transformPoint(.{
+                            .x = center.x + radius * @cos(@intToFloat(f32, i) * segment_angle + from_angle),
+                            .y = center.y + radius * @sin(@intToFloat(f32, i) * segment_angle + from_angle),
+                        }, transform),
+                        .color = color,
+                    });
+                }
+            }
+        };
+
+        const center = sdl.PointF{ .x = rect.x + rect.width / 2.0, .y = rect.y + rect.height / 3.0 };
         const common = opt.common;
         const transform_m = getTransformMatrix(
             common.anchor_pos orelse center,
@@ -224,50 +249,299 @@ const Renderer = struct {
         );
         if (common.thickness == 0) {
             const base_index = @intCast(u32, self.vattribs.items.len);
-            try self.vattribs.append(.{
-                .position = transformPoint(.{ .x = rect.x, .y = rect.y }, transform_m),
-                .color = common.color,
-            });
-            try self.vattribs.append(.{
-                .position = transformPoint(.{ .x = rect.x + rect.width, .y = rect.y }, transform_m),
-                .color = common.color,
-            });
-            try self.vattribs.append(.{
-                .position = transformPoint(.{ .x = rect.x + rect.width, .y = rect.y + rect.height }, transform_m),
-                .color = common.color,
-            });
-            try self.vattribs.append(.{
-                .position = transformPoint(.{ .x = rect.x, .y = rect.y + rect.height }, transform_m),
-                .color = common.color,
-            });
-            try self.vindices.appendSlice(&.{
-                base_index,
-                base_index + 1,
-                base_index + 2,
-                base_index,
-                base_index + 2,
-                base_index + 3,
-            });
+            var r = opt.round orelse 0;
+            if (r > 0) {
+                const segments = opt.segments orelse math.max(@floatToInt(u32, (0.25 * math.tau * r) / 20), 18);
+                try self.vattribs.append(.{
+                    .position = transformPoint(center, transform_m),
+                    .color = common.color,
+                });
+
+                try self.vattribs.append(.{
+                    .position = transformPoint(.{ .x = rect.x + r, .y = rect.y }, transform_m),
+                    .color = common.color,
+                });
+                try self.vattribs.append(.{
+                    .position = transformPoint(.{ .x = rect.x + rect.width - r, .y = rect.y }, transform_m),
+                    .color = common.color,
+                });
+                try S.addRound(
+                    &self.vattribs,
+                    .{ .x = rect.x + rect.width - r, .y = rect.y + r },
+                    r,
+                    segments,
+                    math.pi * 1.5,
+                    transform_m,
+                    common.color,
+                );
+
+                try self.vattribs.append(.{
+                    .position = transformPoint(.{ .x = rect.x + rect.width, .y = rect.y + r }, transform_m),
+                    .color = common.color,
+                });
+                try self.vattribs.append(.{
+                    .position = transformPoint(.{ .x = rect.x + rect.width, .y = rect.y + rect.height - r }, transform_m),
+                    .color = common.color,
+                });
+                try S.addRound(
+                    &self.vattribs,
+                    .{ .x = rect.x + rect.width - r, .y = rect.y + rect.height - r },
+                    r,
+                    segments,
+                    0,
+                    transform_m,
+                    common.color,
+                );
+
+                try self.vattribs.append(.{
+                    .position = transformPoint(.{ .x = rect.x + rect.width - r, .y = rect.y + rect.height }, transform_m),
+                    .color = common.color,
+                });
+                try self.vattribs.append(.{
+                    .position = transformPoint(.{ .x = rect.x + r, .y = rect.y + rect.height }, transform_m),
+                    .color = common.color,
+                });
+                try S.addRound(
+                    &self.vattribs,
+                    .{ .x = rect.x + r, .y = rect.y + rect.height - r },
+                    r,
+                    segments,
+                    math.pi * 0.5,
+                    transform_m,
+                    common.color,
+                );
+
+                try self.vattribs.append(.{
+                    .position = transformPoint(.{ .x = rect.x, .y = rect.y + rect.height - r }, transform_m),
+                    .color = common.color,
+                });
+                try self.vattribs.append(.{
+                    .position = transformPoint(.{ .x = rect.x, .y = rect.y + r }, transform_m),
+                    .color = common.color,
+                });
+                try S.addRound(
+                    &self.vattribs,
+                    .{ .x = rect.x + r, .y = rect.y + r },
+                    r,
+                    segments,
+                    math.pi,
+                    transform_m,
+                    common.color,
+                );
+
+                var i = base_index + 1;
+                while (i < @intCast(u32, self.vattribs.items.len)) : (i += 1) {
+                    if (i < @intCast(u32, self.vattribs.items.len - 1)) {
+                        try self.vindices.appendSlice(&.{ base_index, i, i + 1 });
+                    } else {
+                        try self.vindices.appendSlice(&.{ base_index, i, base_index + 1 });
+                    }
+                }
+            } else {
+                try self.vattribs.append(.{
+                    .position = transformPoint(.{ .x = rect.x, .y = rect.y }, transform_m),
+                    .color = common.color,
+                });
+                try self.vattribs.append(.{
+                    .position = transformPoint(.{ .x = rect.x + rect.width, .y = rect.y }, transform_m),
+                    .color = common.color,
+                });
+                try self.vattribs.append(.{
+                    .position = transformPoint(.{ .x = rect.x + rect.width, .y = rect.y + rect.height }, transform_m),
+                    .color = common.color,
+                });
+                try self.vattribs.append(.{
+                    .position = transformPoint(.{ .x = rect.x, .y = rect.y + rect.height }, transform_m),
+                    .color = common.color,
+                });
+                try self.vindices.appendSlice(&.{
+                    base_index,
+                    base_index + 1,
+                    base_index + 2,
+                    base_index,
+                    base_index + 2,
+                    base_index + 3,
+                });
+            }
         } else {
-            const outer_p0 = sdl.PointF{ .x = rect.x, .y = rect.y };
-            const outer_p1 = sdl.PointF{ .x = rect.x + rect.width, .y = rect.y };
-            const outer_p2 = sdl.PointF{ .x = rect.x + rect.width, .y = rect.y + rect.height };
-            const outer_p3 = sdl.PointF{ .x = rect.x, .y = rect.y + rect.height };
-            const inner_p0 = sdl.PointF{ .x = rect.x + common.thickness, .y = rect.y + common.thickness };
-            const inner_p1 = sdl.PointF{ .x = rect.x + rect.width - common.thickness, .y = rect.y + common.thickness };
-            const inner_p2 = sdl.PointF{ .x = rect.x + rect.width - common.thickness, .y = rect.y + rect.height - common.thickness };
-            const inner_p3 = sdl.PointF{ .x = rect.x + common.thickness, .y = rect.y + rect.height - common.thickness };
-            const inner_base_index = @intCast(u32, self.vattribs.items.len);
-            try self.vattribs.append(.{ .position = transformPoint(inner_p0, transform_m), .color = common.color });
-            try self.vattribs.append(.{ .position = transformPoint(inner_p1, transform_m), .color = common.color });
-            try self.vattribs.append(.{ .position = transformPoint(inner_p2, transform_m), .color = common.color });
-            try self.vattribs.append(.{ .position = transformPoint(inner_p3, transform_m), .color = common.color });
-            const outer_base_index = @intCast(u32, self.vattribs.items.len);
-            try self.vattribs.append(.{ .position = transformPoint(outer_p0, transform_m), .color = common.color });
-            try self.vattribs.append(.{ .position = transformPoint(outer_p1, transform_m), .color = common.color });
-            try self.vattribs.append(.{ .position = transformPoint(outer_p2, transform_m), .color = common.color });
-            try self.vattribs.append(.{ .position = transformPoint(outer_p3, transform_m), .color = common.color });
-            try self.addStripe(inner_base_index, outer_base_index, true);
+            var r = opt.round orelse 0;
+            if (r > 0) {
+                const segments = opt.segments orelse math.max(@floatToInt(u32, (0.25 * math.tau * r) / 20), 18);
+
+                // inner points
+                const inner_base_index = @intCast(u32, self.vattribs.items.len);
+                {
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + r + common.thickness, .y = rect.y + common.thickness }, transform_m),
+                        .color = common.color,
+                    });
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + rect.width - r - common.thickness, .y = rect.y + common.thickness }, transform_m),
+                        .color = common.color,
+                    });
+                    try S.addRound(
+                        &self.vattribs,
+                        .{ .x = rect.x + rect.width - r - common.thickness, .y = rect.y + common.thickness + r },
+                        r,
+                        segments,
+                        math.pi * 1.5,
+                        transform_m,
+                        common.color,
+                    );
+
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + rect.width - common.thickness, .y = rect.y + r + common.thickness }, transform_m),
+                        .color = common.color,
+                    });
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + rect.width - common.thickness, .y = rect.y + rect.height - r - common.thickness }, transform_m),
+                        .color = common.color,
+                    });
+                    try S.addRound(
+                        &self.vattribs,
+                        .{ .x = rect.x + rect.width - common.thickness - r, .y = rect.y + rect.height - r - common.thickness },
+                        r,
+                        segments,
+                        0,
+                        transform_m,
+                        common.color,
+                    );
+
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + rect.width - r - common.thickness, .y = rect.y + rect.height - common.thickness }, transform_m),
+                        .color = common.color,
+                    });
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + r + common.thickness, .y = rect.y + rect.height - common.thickness }, transform_m),
+                        .color = common.color,
+                    });
+                    try S.addRound(
+                        &self.vattribs,
+                        .{ .x = rect.x + r + common.thickness, .y = rect.y + rect.height - common.thickness - r },
+                        r,
+                        segments,
+                        math.pi * 0.5,
+                        transform_m,
+                        common.color,
+                    );
+
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + common.thickness, .y = rect.y + rect.height - r - common.thickness }, transform_m),
+                        .color = common.color,
+                    });
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + common.thickness, .y = rect.y + r + common.thickness }, transform_m),
+                        .color = common.color,
+                    });
+                    try S.addRound(
+                        &self.vattribs,
+                        .{ .x = rect.x + common.thickness + r, .y = rect.y + r + common.thickness },
+                        r,
+                        segments,
+                        math.pi,
+                        transform_m,
+                        common.color,
+                    );
+                }
+
+                // outer points
+                const outer_base_index = @intCast(u32, self.vattribs.items.len);
+                {
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + r, .y = rect.y }, transform_m),
+                        .color = common.color,
+                    });
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + rect.width - r, .y = rect.y }, transform_m),
+                        .color = common.color,
+                    });
+                    try S.addRound(
+                        &self.vattribs,
+                        .{ .x = rect.x + rect.width - r, .y = rect.y + r },
+                        r,
+                        segments,
+                        math.pi * 1.5,
+                        transform_m,
+                        common.color,
+                    );
+
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + rect.width, .y = rect.y + r }, transform_m),
+                        .color = common.color,
+                    });
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + rect.width, .y = rect.y + rect.height - r }, transform_m),
+                        .color = common.color,
+                    });
+                    try S.addRound(
+                        &self.vattribs,
+                        .{ .x = rect.x + rect.width - r, .y = rect.y + rect.height - r },
+                        r,
+                        segments,
+                        0,
+                        transform_m,
+                        common.color,
+                    );
+
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + rect.width - r, .y = rect.y + rect.height }, transform_m),
+                        .color = common.color,
+                    });
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x + r, .y = rect.y + rect.height }, transform_m),
+                        .color = common.color,
+                    });
+                    try S.addRound(
+                        &self.vattribs,
+                        .{ .x = rect.x + r, .y = rect.y + rect.height - r },
+                        r,
+                        segments,
+                        math.pi * 0.5,
+                        transform_m,
+                        common.color,
+                    );
+
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x, .y = rect.y + rect.height - r }, transform_m),
+                        .color = common.color,
+                    });
+                    try self.vattribs.append(.{
+                        .position = transformPoint(.{ .x = rect.x, .y = rect.y + r }, transform_m),
+                        .color = common.color,
+                    });
+                    try S.addRound(
+                        &self.vattribs,
+                        .{ .x = rect.x + r, .y = rect.y + r },
+                        r,
+                        segments,
+                        math.pi,
+                        transform_m,
+                        common.color,
+                    );
+                }
+
+                try self.addStripe(inner_base_index, outer_base_index, true);
+            } else {
+                const outer_p0 = sdl.PointF{ .x = rect.x, .y = rect.y };
+                const outer_p1 = sdl.PointF{ .x = rect.x + rect.width, .y = rect.y };
+                const outer_p2 = sdl.PointF{ .x = rect.x + rect.width, .y = rect.y + rect.height };
+                const outer_p3 = sdl.PointF{ .x = rect.x, .y = rect.y + rect.height };
+                const inner_p0 = sdl.PointF{ .x = rect.x + common.thickness, .y = rect.y + common.thickness };
+                const inner_p1 = sdl.PointF{ .x = rect.x + rect.width - common.thickness, .y = rect.y + common.thickness };
+                const inner_p2 = sdl.PointF{ .x = rect.x + rect.width - common.thickness, .y = rect.y + rect.height - common.thickness };
+                const inner_p3 = sdl.PointF{ .x = rect.x + common.thickness, .y = rect.y + rect.height - common.thickness };
+                const inner_base_index = @intCast(u32, self.vattribs.items.len);
+                try self.vattribs.append(.{ .position = transformPoint(inner_p0, transform_m), .color = common.color });
+                try self.vattribs.append(.{ .position = transformPoint(inner_p1, transform_m), .color = common.color });
+                try self.vattribs.append(.{ .position = transformPoint(inner_p2, transform_m), .color = common.color });
+                try self.vattribs.append(.{ .position = transformPoint(inner_p3, transform_m), .color = common.color });
+                const outer_base_index = @intCast(u32, self.vattribs.items.len);
+                try self.vattribs.append(.{ .position = transformPoint(outer_p0, transform_m), .color = common.color });
+                try self.vattribs.append(.{ .position = transformPoint(outer_p1, transform_m), .color = common.color });
+                try self.vattribs.append(.{ .position = transformPoint(outer_p2, transform_m), .color = common.color });
+                try self.vattribs.append(.{ .position = transformPoint(outer_p3, transform_m), .color = common.color });
+                try self.addStripe(inner_base_index, outer_base_index, true);
+            }
         }
     }
 
@@ -339,7 +613,7 @@ const Renderer = struct {
         const total_angle = math.min(to_radian - from_radian, math.tau);
         const is_loop = math.approxEqRel(f32, total_angle, math.tau, math.f32_epsilon);
         const segments = opt.segments orelse
-            math.max(@floatToInt(u32, total_angle / math.tau * (math.tau * half_small + 4 * (half_big - half_small)) / 30), 25);
+            math.max(@floatToInt(u32, total_angle / math.tau * (math.tau * half_small + 4 * (half_big - half_small)) / 20), 25);
         const segment_angle = total_angle / @intToFloat(f32, segments);
         if (opt.common.thickness == 0) {
             const base_index = @intCast(u32, self.vattribs.items.len);

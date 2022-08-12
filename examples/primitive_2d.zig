@@ -96,7 +96,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             try gfx.primitive.drawEquilateralTriangle(draw_pos, size, common_draw_opt);
         },
         .square => {
-            try gfx.primitive.drawSquare(draw_pos, size, .{ .common = common_draw_opt });
+            try gfx.primitive.drawSquare(draw_pos, size, .{ .common = common_draw_opt, .round = size / 2 });
         },
         .circle => {
             try gfx.primitive.drawCircle(draw_pos, size, .{ .common = common_draw_opt });
