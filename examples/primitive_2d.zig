@@ -14,7 +14,7 @@ const PrimitiveType = enum(c_int) {
     etriangle,
     square,
     circle,
-    fan,
+    arc,
     line,
 };
 
@@ -66,7 +66,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.radioButton_IntPtr("etriangle", selection, 0);
         _ = imgui.radioButton_IntPtr("square", selection, 1);
         _ = imgui.radioButton_IntPtr("circle", selection, 2);
-        _ = imgui.radioButton_IntPtr("fan", selection, 3);
+        _ = imgui.radioButton_IntPtr("arc", selection, 3);
         _ = imgui.radioButton_IntPtr("line", selection, 4);
         imgui.separator();
         _ = imgui.colorEdit4("color", &color, null);
@@ -101,8 +101,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         .circle => {
             try gfx.primitive.drawCircle(draw_pos, size, .{ .common = common_draw_opt });
         },
-        .fan => {
-            try gfx.primitive.drawFan(draw_pos, size, math.pi / 4.0, math.pi, .{ .common = common_draw_opt });
+        .arc => {
+            try gfx.primitive.drawArc(draw_pos, size, math.pi / 4.0, math.pi, .{ .common = common_draw_opt });
         },
         .line => {
             try gfx.primitive.drawLine(

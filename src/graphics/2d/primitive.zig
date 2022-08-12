@@ -75,25 +75,25 @@ pub fn drawLine(from: sdl.PointF, to: sdl.PointF, opt: CommonDrawOption) !void {
 }
 
 /// Draw fan
-pub const EllipseDrawOption = struct {
+pub const CurveDrawOption = struct {
     common: CommonDrawOption = .{},
     segments: ?u32 = null,
 };
-pub fn drawFan(center: sdl.PointF, radius: f32, from_radian: f32, to_radian: f32, opt: EllipseDrawOption) !void {
+pub fn drawArc(center: sdl.PointF, radius: f32, from_radian: f32, to_radian: f32, opt: CurveDrawOption) !void {
     try rd.?.addEllipse(center, radius, radius, from_radian, to_radian, opt);
 }
 
-pub fn drawEllipseFan(center: sdl.PointF, half_width: f32, half_height: f32, from_radian: f32, to_radian: f32, opt: EllipseDrawOption) !void {
+pub fn drawEllipseArc(center: sdl.PointF, half_width: f32, half_height: f32, from_radian: f32, to_radian: f32, opt: CurveDrawOption) !void {
     try rd.?.addEllipse(center, half_width, half_height, from_radian, to_radian, opt);
 }
 
 /// Draw circle
-pub fn drawCircle(center: sdl.PointF, radius: f32, opt: EllipseDrawOption) !void {
+pub fn drawCircle(center: sdl.PointF, radius: f32, opt: CurveDrawOption) !void {
     try rd.?.addEllipse(center, radius, radius, 0, math.tau, opt);
 }
 
 /// Draw ecllipse
-pub fn drawEllipse(center: sdl.PointF, half_width: f32, half_height: f32, opt: EllipseDrawOption) !void {
+pub fn drawEllipse(center: sdl.PointF, half_width: f32, half_height: f32, opt: CurveDrawOption) !void {
     try rd.?.addEllipse(center, half_width, half_height, 0, math.tau, opt);
 }
 
@@ -605,7 +605,7 @@ const Renderer = struct {
         half_height: f32,
         from_radian: f32,
         to_radian: f32,
-        opt: EllipseDrawOption,
+        opt: CurveDrawOption,
     ) !void {
         assert(to_radian >= from_radian);
         const transform_m = getTransformMatrix(
