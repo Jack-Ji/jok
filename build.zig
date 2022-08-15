@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const sdlsdk = @import("src/deps/sdl/Sdk.zig");
-const miniaudio = @import("src/deps/miniaudio/build.zig");
+const zaudio = @import("src/deps/zaudio/build.zig");
 const stb = @import("src/deps/stb/build.zig");
 const imgui = @import("src/deps/imgui/build.zig");
 const chipmunk = @import("src/deps/chipmunk/build.zig");
@@ -87,7 +87,7 @@ pub fn createGame(
     mode: std.builtin.Mode,
     opt: BuildOptions,
 ) *std.build.LibExeObjStep {
-    const exe = b.addExecutable(name, comptime thisDir() ++ "/src/app.zig");
+    const exe = b.addExecutable(name, thisDir() ++ "/src/app.zig");
     const exe_options = b.addOptions();
     exe.addOptions("build_options", exe_options);
     exe.setTarget(target);
@@ -96,7 +96,7 @@ pub fn createGame(
     // Link must dependencies
     const sdl = sdlsdk.init(exe.builder);
     sdl.link(exe, .dynamic);
-    miniaudio.link(exe);
+    zaudio.link(exe);
     stb.link(exe);
 
     // Link optional dependencies
@@ -114,7 +114,7 @@ pub fn createGame(
     // Add packages
     const jok = std.build.Pkg{
         .name = "jok",
-        .source = .{ .path = comptime thisDir() ++ "/src/jok.zig" },
+        .source = .{ .path = thisDir() ++ "/src/jok.zig" },
         .dependencies = &[_]std.build.Pkg{
             sdl.getWrapperPackage("sdl"),
             zmesh_opt.getPkg(),
@@ -134,5 +134,5 @@ pub fn createGame(
 }
 
 fn thisDir() []const u8 {
-    return std.fs.path.dirname(@src().file) orelse ".";
+    return comptime std.fs.path.dirname(@src().file) orelse ".";
 }

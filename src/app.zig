@@ -5,7 +5,7 @@ const context = @import("context.zig");
 const jok = @import("jok.zig");
 const config = jok.config;
 const event = jok.event;
-const audio = jok.audio;
+const zaudio = jok.zaudio;
 const p3d = jok.gfx.@"3d".primitive;
 const p2d = jok.gfx.@"2d".primitive;
 
@@ -141,9 +141,9 @@ pub fn main() anyerror!void {
     ctx.is_software = ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0);
     defer ctx.renderer.destroy();
 
-    // Allocate audio engine
-    ctx.audio = try audio.Engine.init(ctx.default_allocator, .{});
-    defer ctx.audio.deinit();
+    // Allocate zaudio engine
+    ctx.audio = try zaudio.createEngine(ctx.default_allocator, null);
+    defer ctx.audio.destroy(ctx.default_allocator);
 
     // Init builtin primitive renderers
     if (config.enable_3d_primitive) p3d.init(ctx.default_allocator);

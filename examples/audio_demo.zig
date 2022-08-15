@@ -1,34 +1,35 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
+const zaudio = jok.zaudio;
 
-var music: *jok.audio.Sound = undefined;
-var sfx1: *jok.audio.Sound = undefined;
-var sfx2: *jok.audio.Sound = undefined;
+var music: zaudio.Sound = undefined;
+var sfx1: zaudio.Sound = undefined;
+var sfx2: zaudio.Sound = undefined;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
     music = try ctx.audio.createSoundFromFile(
+        ctx.default_allocator,
         "assets/audios/Edge-of-Ocean_Looping.mp3",
-        null,
         .{},
     );
     music.setLooping(true);
-    music.start();
+    try music.start();
 
     sfx1 = try ctx.audio.createSoundFromFile(
+        ctx.default_allocator,
         "assets/audios/SynthChime9.mp3",
-        null,
         .{},
     );
     sfx1.setPanMode(.pan);
     sfx1.setPan(-1);
 
     sfx2 = try ctx.audio.createSoundFromFile(
+        ctx.default_allocator,
         "assets/audios/Bells3.mp3",
-        null,
         .{},
     );
     sfx2.setPanMode(.pan);
@@ -51,14 +52,14 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             .mouse_event => |me| {
                 if (me.data == .button and me.data.button.double_clicked) {
                     if (me.data.button.btn == .left) {
-                        sfx1.stop();
-                        sfx1.seekTo(.{ .pcm_frames = 0 });
-                        sfx1.start();
+                        try sfx1.stop();
+                        try sfx1.seekToPcmFrame(0);
+                        try sfx1.start();
                     }
                     if (me.data.button.btn == .right) {
-                        sfx2.stop();
-                        sfx2.seekTo(.{ .pcm_frames = 0 });
-                        sfx2.start();
+                        try sfx2.stop();
+                        try sfx2.seekToPcmFrame(0);
+                        try sfx2.start();
                     }
                 }
             },
@@ -97,6 +98,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 }
 
 pub fn quit(ctx: *jok.Context) void {
-    _ = ctx;
     std.log.info("game quit", .{});
+    music.destroy(ctx.default_allocator);
+    sfx1.destroy(ctx.default_allocator);
+    sfx2.destroy(ctx.default_allocator);
 }

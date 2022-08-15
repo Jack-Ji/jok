@@ -10,14 +10,14 @@ pub const event = @import("event.zig");
 /// Graphics module
 pub const gfx = @import("graphics.zig");
 
-/// Misc util functions
-pub const utils = @import("utils.zig");
-
 /// Audio module
-pub const audio = deps.miniaudio;
+pub const zaudio = deps.zaudio;
 
 /// Linear algebra math module
 pub const zmath = deps.zmath;
 
 /// Vendor libraries
 pub const deps = @import("deps/deps.zig");
+
+/// Misc util functions
+pub const utils = @import("utils.zig");
