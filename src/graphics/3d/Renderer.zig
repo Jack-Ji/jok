@@ -810,7 +810,14 @@ pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
 }
 
 /// Draw the wireframe
-pub fn drawWireframe(self: Self, renderer: sdl.Renderer) !void {
+pub fn drawWireframe(self: *Self, renderer: sdl.Renderer) !void {
+    if (self.indices.items.len == 0) return;
+
+    const vp = renderer.getViewport();
+    const x_min = @intToFloat(f32, vp.x - 1);
+    const x_max = @intToFloat(f32, vp.x + vp.width);
+    const y_min = @intToFloat(f32, vp.y - 1);
+    const y_max = @intToFloat(f32, vp.y + vp.height);
     const vs = self.vertices.items;
     var i: usize = 2;
     while (i < self.indices.items.len) : (i += 3) {
@@ -820,8 +827,23 @@ pub fn drawWireframe(self: Self, renderer: sdl.Renderer) !void {
         assert(idx1 < vs.len);
         assert(idx2 < vs.len);
         assert(idx3 < vs.len);
-        try renderer.drawLineF(vs[idx1].position.x, vs[idx1].position.y, vs[idx2].position.x, vs[idx2].position.y);
-        try renderer.drawLineF(vs[idx2].position.x, vs[idx2].position.y, vs[idx3].position.x, vs[idx3].position.y);
-        try renderer.drawLineF(vs[idx3].position.x, vs[idx3].position.y, vs[idx1].position.x, vs[idx1].position.y);
+        try renderer.drawLineF(
+            math.clamp(vs[idx1].position.x, x_min, x_max),
+            math.clamp(vs[idx1].position.y, y_min, y_max),
+            math.clamp(vs[idx2].position.x, x_min, x_max),
+            math.clamp(vs[idx2].position.y, y_min, y_max),
+        );
+        try renderer.drawLineF(
+            math.clamp(vs[idx2].position.x, x_min, x_max),
+            math.clamp(vs[idx2].position.y, y_min, y_max),
+            math.clamp(vs[idx3].position.x, x_min, x_max),
+            math.clamp(vs[idx3].position.y, y_min, y_max),
+        );
+        try renderer.drawLineF(
+            math.clamp(vs[idx3].position.x, x_min, x_max),
+            math.clamp(vs[idx3].position.y, y_min, y_max),
+            math.clamp(vs[idx1].position.x, x_min, x_max),
+            math.clamp(vs[idx1].position.y, y_min, y_max),
+        );
     }
 }
