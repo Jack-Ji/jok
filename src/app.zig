@@ -6,8 +6,6 @@ const jok = @import("jok.zig");
 const config = jok.config;
 const event = jok.event;
 const zaudio = jok.zaudio;
-const p3d = jok.gfx.@"3d".primitive;
-const p2d = jok.gfx.@"2d".primitive;
 
 // Import game object's declarations
 const game = @import("game");
@@ -145,14 +143,6 @@ pub fn main() anyerror!void {
     ctx.audio = try zaudio.createEngine(ctx.default_allocator, null);
     defer ctx.audio.destroy(ctx.default_allocator);
 
-    // Init builtin primitive renderers
-    if (config.enable_3d_primitive) p3d.init(ctx.default_allocator);
-    if (config.enable_2d_primitive) p2d.init(ctx.default_allocator);
-    defer {
-        if (config.enable_3d_primitive) p3d.deinit();
-        if (config.enable_2d_primitive) p2d.deinit();
-    }
-
     // Init before loop
     try game.init(&ctx);
     defer game.quit(&ctx);
@@ -161,10 +151,6 @@ pub fn main() anyerror!void {
     context.perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
     ctx.last_perf_counter = sdl.c.SDL_GetPerformanceCounter();
     while (!ctx.quit) {
-        // Clear batched data of builtin primitive renders
-        if (config.enable_3d_primitive) p3d.clear();
-        if (config.enable_2d_primitive) p2d.clear();
-
         // Run game loop
         game.loop(&ctx) catch |e| {
             context.log.err("got error in loop: {}", .{e});
@@ -173,10 +159,6 @@ pub fn main() anyerror!void {
                 break;
             }
         };
-
-        // Send draw commands with builtin primitive renderers
-        if (config.enable_3d_primitive) try p3d.flush(ctx.renderer);
-        if (config.enable_2d_primitive) try p2d.flush(ctx.renderer);
 
         // Sync with gpu and present rendering result
         ctx.present(config.fps_limit);

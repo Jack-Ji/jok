@@ -7,7 +7,7 @@ const sdl = @import("sdl");
 var rd: ?Renderer = null;
 
 /// Create default primitive renderer
-pub fn init(allocator: std.mem.Allocator) void {
+pub fn init(allocator: std.mem.Allocator) !void {
     rd = Renderer.init(allocator);
 }
 

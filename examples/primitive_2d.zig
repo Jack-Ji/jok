@@ -29,6 +29,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
     try imgui.init(ctx);
+    try primitive.init(ctx.default_allocator);
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.setDrawBlendMode(.blend);
 }
@@ -58,9 +59,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     }
 
     try ctx.renderer.clear();
-    imgui.beginFrame();
-    defer imgui.endFrame();
 
+    imgui.beginFrame();
     if (imgui.begin("Control Panel", null, null)) {
         var selection: *c_int = @ptrCast(*c_int, &primtype);
         _ = imgui.radioButton_IntPtr("etriangle", selection, 0);
@@ -76,6 +76,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.dragFloat2("rotate_anchor", &rotate_anchor, .{});
     }
     imgui.end();
+    imgui.endFrame();
 
     var ms = ctx.getMouseState();
     const draw_pos = sdl.PointF{ .x = @intToFloat(f32, ms.x), .y = @intToFloat(f32, ms.y) };
@@ -91,32 +92,34 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             .a = @floatToInt(u8, color[3] * 255),
         },
     };
+    primitive.clear();
     switch (primtype) {
         .etriangle => {
-            try gfx.primitive.drawEquilateralTriangle(draw_pos, size, common_draw_opt);
+            try primitive.drawEquilateralTriangle(draw_pos, size, common_draw_opt);
         },
         .square => {
-            try gfx.primitive.drawSquare(draw_pos, size, .{ .common = common_draw_opt, .round = size / 2 });
+            try primitive.drawSquare(draw_pos, size, .{ .common = common_draw_opt, .round = size / 2 });
         },
         .circle => {
-            try gfx.primitive.drawCircle(draw_pos, size, .{ .common = common_draw_opt });
+            try primitive.drawCircle(draw_pos, size, .{ .common = common_draw_opt });
         },
         .arc => {
-            try gfx.primitive.drawArc(draw_pos, size, math.pi / 4.0, math.pi, .{ .common = common_draw_opt });
+            try primitive.drawArc(draw_pos, size, math.pi / 4.0, math.pi, .{ .common = common_draw_opt });
         },
         .line => {
-            try gfx.primitive.drawLine(
+            try primitive.drawLine(
                 .{ .x = draw_pos.x - size, .y = draw_pos.y - size },
                 .{ .x = draw_pos.x + size, .y = draw_pos.y + size },
                 common_draw_opt,
             );
         },
     }
-    try gfx.primitive.drawCircle(
+    try primitive.drawCircle(
         .{ .x = rotate_anchor[0], .y = rotate_anchor[1] },
         3,
         .{ .common = .{ .color = sdl.Color.cyan } },
     );
+    try primitive.flush(ctx.renderer);
 }
 
 pub fn quit(ctx: *jok.Context) void {
@@ -124,4 +127,5 @@ pub fn quit(ctx: *jok.Context) void {
     std.log.info("game quit", .{});
 
     imgui.deinit();
+    primitive.deinit();
 }
