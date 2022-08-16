@@ -550,6 +550,7 @@ pub inline fn isNearEqual(
     return temp <= epsilon;
 }
 test "zmath.isNearEqual" {
+  if (builtin.target.os.tag == .macos and builtin.zig_backend != .stage1) return error.SkipZigTest;
     {
         const v0 = f32x4(1.0, 2.0, -3.0, 4.001);
         const v1 = f32x4(1.0, 2.1, 3.0, 4.0);
@@ -590,6 +591,7 @@ pub inline fn isNan(
     return v != v;
 }
 test "zmath.isNan" {
+    if (builtin.zig_backend != .stage1) return error.SkipZigTest;
     {
         const v0 = F32x4{ math.inf_f32, math.nan_f32, math.qnan_f32, 7.0 };
         const b = isNan(v0);
@@ -1398,6 +1400,7 @@ pub inline fn mod(v0: anytype, v1: anytype) @TypeOf(v0, v1) {
     return v0 - v1 * trunc(v0 / v1);
 }
 test "zmath.mod" {
+  if (builtin.target.os.tag == .macos and builtin.zig_backend != .stage1) return error.SkipZigTest;
     try expect(approxEqAbs(mod(splat(F32x4, 3.1), splat(F32x4, 1.7)), splat(F32x4, 1.4), 0.0005));
     try expect(approxEqAbs(mod(splat(F32x4, -3.0), splat(F32x4, 2.0)), splat(F32x4, -1.0), 0.0005));
     try expect(approxEqAbs(mod(splat(F32x4, -3.0), splat(F32x4, -2.0)), splat(F32x4, -1.0), 0.0005));
@@ -1957,6 +1960,7 @@ pub inline fn length4(v: Vec) F32x4 {
     return sqrt(dot4(v, v));
 }
 test "zmath.length3" {
+    if (builtin.target.os.tag == .macos and builtin.zig_backend != .stage1) return error.SkipZigTest;
     {
         var v = length3(F32x4{ 1.0, -2.0, 3.0, 1000.0 });
         try expect(approxEqAbs(v, splat(F32x4, math.sqrt(14.0)), 0.001));
@@ -1985,6 +1989,7 @@ pub inline fn normalize4(v: Vec) Vec {
     return v * splat(F32x4, 1.0) / sqrt(dot4(v, v));
 }
 test "zmath.normalize3" {
+    if (builtin.zig_backend != .stage1) return error.SkipZigTest;
     {
         const v0 = F32x4{ 1.0, -2.0, 3.0, 1000.0 };
         var v = normalize3(v0);
@@ -1998,6 +2003,7 @@ test "zmath.normalize3" {
     }
 }
 test "zmath.normalize4" {
+    if (builtin.zig_backend != .stage1) return error.SkipZigTest;
     {
         const v0 = F32x4{ 1.0, -2.0, 3.0, 10.0 };
         var v = normalize4(v0);

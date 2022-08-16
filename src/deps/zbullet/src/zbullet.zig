@@ -1,6 +1,7 @@
 // zbullet v0.2
 // Zig bindings for Bullet Physics SDK
 
+const builtin = @import("builtin");
 const std = @import("std");
 const Mutex = std.Thread.Mutex;
 const expect = std.testing.expect;
@@ -17,9 +18,19 @@ pub const Body = *align(@sizeOf(usize)) BodyImpl;
 pub const Constraint = *align(@sizeOf(usize)) ConstraintImpl;
 pub const Point2PointConstraint = *align(@sizeOf(usize)) Point2PointConstraintImpl;
 
+pub const AllocFn = if (builtin.zig_backend == .stage1)
+    fn (size: usize, alignment: i32) callconv(.C) ?*anyopaque
+else
+    *const fn (size: usize, alignment: i32) callconv(.C) ?*anyopaque;
+
+pub const FreeFn = if (builtin.zig_backend == .stage1)
+    fn (ptr: ?*anyopaque) callconv(.C) void
+else
+    *const fn (ptr: ?*anyopaque) callconv(.C) void;
+
 extern fn cbtAlignedAllocSetCustomAligned(
-    alloc: ?fn (size: usize, alignment: i32) callconv(.C) ?*anyopaque,
-    free: ?fn (ptr: ?*anyopaque) callconv(.C) void,
+    alloc: ?AllocFn,
+    free: ?FreeFn,
 ) void;
 
 var allocator: ?std.mem.Allocator = null;
@@ -436,7 +447,7 @@ pub fn initBoxShape(half_extents: *const [3]f32) BoxShape {
 }
 
 const BoxShapeImpl = opaque {
-    usingnamespace ShapeFunctions(BoxShape);
+    pub usingnamespace ShapeFunctions(BoxShape);
 
     fn alloc() BoxShape {
         return @ptrCast(BoxShape, ShapeImpl.alloc(.box));
@@ -459,7 +470,7 @@ pub fn initSphereShape(radius: f32) SphereShape {
 }
 
 const SphereShapeImpl = opaque {
-    usingnamespace ShapeFunctions(SphereShape);
+    pub usingnamespace ShapeFunctions(SphereShape);
 
     fn alloc() SphereShape {
         return @ptrCast(SphereShape, ShapeImpl.alloc(.sphere));
@@ -482,7 +493,7 @@ pub fn initCapsuleShape(radius: f32, height: f32, upaxis: Axis) CapsuleShape {
 }
 
 const CapsuleShapeImpl = opaque {
-    usingnamespace ShapeFunctions(CapsuleShape);
+    pub usingnamespace ShapeFunctions(CapsuleShape);
 
     fn alloc() CapsuleShape {
         return @ptrCast(CapsuleShape, ShapeImpl.alloc(.capsule));
@@ -516,7 +527,7 @@ pub fn initCylinderShape(
 }
 
 const CylinderShapeImpl = opaque {
-    usingnamespace ShapeFunctions(CylinderShape);
+    pub usingnamespace ShapeFunctions(CylinderShape);
 
     fn alloc() CylinderShape {
         return @ptrCast(CylinderShape, ShapeImpl.alloc(.cylinder));
@@ -557,7 +568,7 @@ pub fn initCompoundShape(
 }
 
 const CompoundShapeImpl = opaque {
-    usingnamespace ShapeFunctions(CompoundShape);
+    pub usingnamespace ShapeFunctions(CompoundShape);
 
     fn alloc() CompoundShape {
         return @ptrCast(CompoundShape, ShapeImpl.alloc(.compound));
@@ -573,7 +584,7 @@ const CompoundShapeImpl = opaque {
     pub const addChild = cbtShapeCompoundAddChild;
     extern fn cbtShapeCompoundAddChild(
         cshape: CompoundShape,
-        local_transform: *[12]f32,
+        local_transform: *const [12]f32,
         child_shape: Shape,
     ) void;
 
@@ -604,7 +615,7 @@ pub fn initTriangleMeshShape() TriangleMeshShape {
 }
 
 const TriangleMeshShapeImpl = opaque {
-    usingnamespace ShapeFunctions(TriangleMeshShape);
+    pub usingnamespace ShapeFunctions(TriangleMeshShape);
 
     pub fn finish(trimesh: TriangleMeshShape) void {
         trimesh.createEnd();
@@ -777,6 +788,7 @@ const BodyImpl = opaque {
 };
 
 pub const ConstraintType = enum(c_int) {
+    _dummy = 0, // TODO: Self-hosted bug.
     point2point = 3,
 };
 
@@ -858,7 +870,7 @@ pub fn allocPoint2PointConstraint() Point2PointConstraint {
 }
 
 const Point2PointConstraintImpl = opaque {
-    usingnamespace ConstraintFunctions(Point2PointConstraint);
+    pub usingnamespace ConstraintFunctions(Point2PointConstraint);
 
     fn alloc() Point2PointConstraint {
         return @ptrCast(Point2PointConstraint, ConstraintImpl.alloc(.point2point));
@@ -918,26 +930,49 @@ pub const DebugMode = packed struct {
 };
 
 pub const DebugDraw = extern struct {
-    drawLine1: fn (
+    const DrawLine1Fn = if (builtin.zig_backend == .stage1) fn (
         ?*anyopaque,
         *const [3]f32,
         *const [3]f32,
         *const [3]f32,
-    ) callconv(.C) void,
-    drawLine2: ?fn (
+    ) callconv(.C) void else *const fn (
+        ?*anyopaque,
+        *const [3]f32,
+        *const [3]f32,
+        *const [3]f32,
+    ) callconv(.C) void;
+
+    const DrawLine2Fn = if (builtin.zig_backend == .stage1) fn (
         ?*anyopaque,
         *const [3]f32,
         *const [3]f32,
         *const [3]f32,
         *const [3]f32,
-    ) callconv(.C) void,
-    drawContactPoint: ?fn (
+    ) callconv(.C) void else *const fn (
+        ?*anyopaque,
+        *const [3]f32,
+        *const [3]f32,
+        *const [3]f32,
+        *const [3]f32,
+    ) callconv(.C) void;
+
+    const DrawContactPointFn = if (builtin.zig_backend == .stage1) fn (
         ?*anyopaque,
         *const [3]f32,
         *const [3]f32,
         f32,
         *const [3]f32,
-    ) callconv(.C) void,
+    ) callconv(.C) void else *const fn (
+        ?*anyopaque,
+        *const [3]f32,
+        *const [3]f32,
+        f32,
+        *const [3]f32,
+    ) callconv(.C) void;
+
+    drawLine1: DrawLine1Fn,
+    drawLine2: ?DrawLine2Fn,
+    drawContactPoint: ?DrawContactPointFn,
     context: ?*anyopaque,
 };
 
