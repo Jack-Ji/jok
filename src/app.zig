@@ -5,7 +5,6 @@ const context = @import("context.zig");
 const jok = @import("jok.zig");
 const config = jok.config;
 const event = jok.event;
-const zaudio = jok.zaudio;
 
 // Import game object's declarations
 const game = @import("game");
@@ -138,10 +137,6 @@ pub fn main() anyerror!void {
     const rdinfo = try ctx.renderer.getInfo();
     ctx.is_software = ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0);
     defer ctx.renderer.destroy();
-
-    // Allocate zaudio engine
-    ctx.audio = try zaudio.createEngine(ctx.default_allocator, null);
-    defer ctx.audio.destroy(ctx.default_allocator);
 
     // Init before loop
     try game.init(&ctx);

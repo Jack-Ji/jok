@@ -1,11 +1,11 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const sdlsdk = @import("src/deps/sdl/Sdk.zig");
-const zaudio = @import("src/deps/zaudio/build.zig");
 const stb = @import("src/deps/stb/build.zig");
 const imgui = @import("src/deps/imgui/build.zig");
 const chipmunk = @import("src/deps/chipmunk/build.zig");
 const nfd = @import("src/deps/nfd/build.zig");
+const zaudio = @import("src/deps/zaudio/build.zig");
 const zmesh = @import("src/deps/zmesh/build.zig");
 const znoise = @import("src/deps/znoise/build.zig");
 const zbullet = @import("src/deps/zbullet/build.zig");
@@ -37,7 +37,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "primitive_2d", .opt = .{ .link_imgui = true } },
         .{ .name = "sprite_benchmark", .opt = .{} },
         .{ .name = "font_demo", .opt = .{} },
-        .{ .name = "audio_demo", .opt = .{} },
+        .{ .name = "audio_demo", .opt = .{ .link_zaudio = true } },
         .{ .name = "audio_synthesize_demo", .opt = .{} },
         .{ .name = "basic_3d", .opt = .{ .link_zmesh = true } },
         .{ .name = "benchmark_3d", .opt = .{ .link_zmesh = true } },
@@ -70,6 +70,7 @@ pub const BuildOptions = struct {
     link_imgui: bool = false,
     link_chipmunk: bool = false,
     link_nfd: bool = false,
+    link_zaudio: bool = false,
     link_zmesh: bool = false,
     link_znoise: bool = false,
     link_zbullet: bool = false,
@@ -96,7 +97,6 @@ pub fn createGame(
     // Link must dependencies
     const sdl = sdlsdk.init(exe.builder);
     sdl.link(exe, .dynamic);
-    zaudio.link(exe);
     stb.link(exe);
 
     // Link optional dependencies
@@ -105,6 +105,7 @@ pub fn createGame(
     if (opt.link_imgui) imgui.link(exe);
     if (opt.link_chipmunk) chipmunk.link(exe);
     if (opt.link_nfd) nfd.link(exe);
+    if (opt.link_zaudio) zaudio.link(exe);
     if (opt.link_zmesh) zmesh.link(exe, zmesh_opt);
     if (opt.link_znoise) znoise.link(exe);
     if (opt.link_zbullet) zbullet.link(exe);

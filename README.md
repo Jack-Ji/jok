@@ -67,7 +67,7 @@ which is given by defining some constants using predefined names (they're all pr
 Checkout `src\config.zig` to see available options.
 
 ## What's supported platforms?
-Theoretically anywhere SDL2/miniaudio can run. But I'm focusing on PC platforms for now.
+Theoretically anywhere SDL2 can run. But I'm focusing on PC platforms for now.
 Some optional vendor libraries are confined to certain platforms, use at your own needs.
 
 ## Why would we joke about it?

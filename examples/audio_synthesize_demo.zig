@@ -4,6 +4,7 @@ const builtin = @import("builtin");
 const sdl = @import("sdl");
 const jok = @import("jok");
 const gfx = jok.gfx.@"2d";
+const primitive = gfx.primitive;
 
 var audio_device: sdl.AudioDevice = undefined;
 var audio_spec: sdl.AudioSpecResponse = undefined;
@@ -49,6 +50,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     phase_step = frequency * std.math.tau / @intToFloat(f32, audio_spec.sample_rate);
     audio_device.pause(false);
 
+    try primitive.init(ctx.default_allocator);
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
@@ -89,11 +91,13 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.clear();
 
     var ms = ctx.getMouseState();
-    try gfx.primitive.drawCircle(
+    primitive.clear();
+    try primitive.drawCircle(
         .{ .x = @intToFloat(f32, ms.x), .y = @intToFloat(f32, ms.y) },
         10,
         .{},
     );
+    try primitive.flush(ctx.renderer);
 
     _ = try gfx.font.debugDraw(
         ctx.renderer,
@@ -129,5 +133,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
+    primitive.deinit();
     std.log.info("game quit", .{});
 }

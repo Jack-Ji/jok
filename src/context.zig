@@ -3,7 +3,6 @@ const sdl = @import("sdl");
 const config = @import("config.zig");
 const jok = @import("jok.zig");
 const event = jok.event;
-const zaudio = jok.zaudio;
 
 pub const log = std.log.scoped(.jok);
 
@@ -20,9 +19,6 @@ pub const Context = struct {
     /// Renderer
     renderer: sdl.Renderer = undefined,
     is_software: bool = false,
-
-    /// Audio engine
-    audio: zaudio.Engine = undefined,
 
     /// Quit switch
     quit: bool = false,

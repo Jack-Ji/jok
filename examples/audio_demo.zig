@@ -3,6 +3,7 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const zaudio = jok.zaudio;
 
+var engine: zaudio.Engine = undefined;
 var music: zaudio.Sound = undefined;
 var sfx1: zaudio.Sound = undefined;
 var sfx2: zaudio.Sound = undefined;
@@ -11,7 +12,8 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
-    music = try ctx.audio.createSoundFromFile(
+    engine = try zaudio.createEngine(ctx.default_allocator, null);
+    music = try engine.createSoundFromFile(
         ctx.default_allocator,
         "assets/audios/Edge-of-Ocean_Looping.mp3",
         .{},
@@ -19,7 +21,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     music.setLooping(true);
     try music.start();
 
-    sfx1 = try ctx.audio.createSoundFromFile(
+    sfx1 = try engine.createSoundFromFile(
         ctx.default_allocator,
         "assets/audios/SynthChime9.mp3",
         .{},
@@ -27,7 +29,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     sfx1.setPanMode(.pan);
     sfx1.setPan(-1);
 
-    sfx2 = try ctx.audio.createSoundFromFile(
+    sfx2 = try engine.createSoundFromFile(
         ctx.default_allocator,
         "assets/audios/Bells3.mp3",
         .{},
@@ -102,4 +104,5 @@ pub fn quit(ctx: *jok.Context) void {
     music.destroy(ctx.default_allocator);
     sfx1.destroy(ctx.default_allocator);
     sfx2.destroy(ctx.default_allocator);
+    engine.destroy(ctx.default_allocator);
 }
