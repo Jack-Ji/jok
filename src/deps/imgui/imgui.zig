@@ -1,7 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../../jok.zig");
-const event = jok.event;
 const sdl = @import("sdl");
 const sdlrenderer_impl = @import("sdlrenderer_impl.zig");
 const sdl_impl = @import("sdl_impl.zig");
@@ -63,7 +62,7 @@ pub fn deinit() void {
 }
 
 /// Process i/o event
-pub fn processEvent(e: event.Event) bool {
+pub fn processEvent(e: sdl.Event) bool {
     assert(imgui_ctx != null);
     return sdl_impl.processEvent(e);
 }

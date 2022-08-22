@@ -47,22 +47,20 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     while (ctx.pollEvent()) |e| {
         switch (e) {
-            .keyboard_event => |key| {
-                if (key.trigger_type == .up) {
-                    switch (key.scan_code) {
-                        .escape => ctx.kill(),
-                        .f2 => try sheet.saveToFiles("sheet"),
-                        .left => camera.move(-10, 0, bounds),
-                        .right => camera.move(10, 0, bounds),
-                        .up => camera.move(0, -10, bounds),
-                        .down => camera.move(0, 10, bounds),
-                        .z => camera.setZoom(std.math.min(2, camera.zoom + 0.1), bounds),
-                        .x => camera.setZoom(std.math.max(0.1, camera.zoom - 0.1), bounds),
-                        else => {},
-                    }
+            .key_up => |key| {
+                switch (key.scancode) {
+                    .escape => ctx.kill(),
+                    .f2 => try sheet.saveToFiles("sheet"),
+                    .left => camera.move(-10, 0, bounds),
+                    .right => camera.move(10, 0, bounds),
+                    .up => camera.move(0, -10, bounds),
+                    .down => camera.move(0, 10, bounds),
+                    .z => camera.setZoom(std.math.min(2, camera.zoom + 0.1), bounds),
+                    .x => camera.setZoom(std.math.max(0.1, camera.zoom - 0.1), bounds),
+                    else => {},
                 }
             },
-            .quit_event => ctx.kill(),
+            .quit => ctx.kill(),
             else => {},
         }
     }

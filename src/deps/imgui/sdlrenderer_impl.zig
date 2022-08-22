@@ -137,70 +137,62 @@ pub fn render(data: *c.ImDrawData) void {
         var cmd_i: u32 = 0;
         while (cmd_i < @intCast(u32, cmd_list.CmdBuffer.Size)) : (cmd_i += 1) {
             const pcmd = @ptrCast(*c.ImDrawCmd, &cmd_list.CmdBuffer.Data[cmd_i]);
-            if (pcmd.UserCallback) |cb| {
-                // User callback, registered via ImDrawList::AddCallback()
-                // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
-                if (cb == @intToPtr(c.ImDrawCallback, std.math.maxInt(usize))) {
-                    setupRenderState();
-                } else {
-                    cb(cmd_list, pcmd);
-                }
-            } else {
-                // Project scissor/clipping rectangles into framebuffer space
-                var clip_min = c.ImVec2{
-                    .x = (pcmd.ClipRect.x - clip_off.x) * clip_scale.x,
-                    .y = (pcmd.ClipRect.y - clip_off.y) * clip_scale.y,
-                };
-                var clip_max = c.ImVec2{
-                    .x = (pcmd.ClipRect.z - clip_off.x) * clip_scale.x,
-                    .y = (pcmd.ClipRect.w - clip_off.y) * clip_scale.y,
-                };
-                if (clip_min.x < 0.0) clip_min.x = 0.0;
-                if (clip_min.y < 0.0) clip_min.y = 0.0;
-                if (clip_max.x > @intToFloat(f32, fb_width))
-                    clip_max.x = @intToFloat(f32, fb_width);
-                if (clip_max.y > @intToFloat(f32, fb_height))
-                    clip_max.y = @intToFloat(f32, fb_height);
-                if (clip_max.x <= clip_min.x or clip_max.y <= clip_min.y)
-                    continue;
+            assert(pcmd.UserCallback == null);
 
-                bd.renderer.setClipRect(sdl.Rectangle{
-                    .x = @floatToInt(c_int, clip_min.x),
-                    .y = @floatToInt(c_int, clip_min.y),
-                    .width = @floatToInt(c_int, clip_max.x - clip_min.x),
-                    .height = @floatToInt(c_int, clip_max.y - clip_min.y),
-                }) catch unreachable;
+            // Project scissor/clipping rectangles into framebuffer space
+            var clip_min = c.ImVec2{
+                .x = (pcmd.ClipRect.x - clip_off.x) * clip_scale.x,
+                .y = (pcmd.ClipRect.y - clip_off.y) * clip_scale.y,
+            };
+            var clip_max = c.ImVec2{
+                .x = (pcmd.ClipRect.z - clip_off.x) * clip_scale.x,
+                .y = (pcmd.ClipRect.w - clip_off.y) * clip_scale.y,
+            };
+            if (clip_min.x < 0.0) clip_min.x = 0.0;
+            if (clip_min.y < 0.0) clip_min.y = 0.0;
+            if (clip_max.x > @intToFloat(f32, fb_width))
+                clip_max.x = @intToFloat(f32, fb_width);
+            if (clip_max.y > @intToFloat(f32, fb_height))
+                clip_max.y = @intToFloat(f32, fb_height);
+            if (clip_max.x <= clip_min.x or clip_max.y <= clip_min.y)
+                continue;
 
-                const xy = @ptrCast(
-                    [*]f32,
-                    @ptrCast([*c]u8, vtx_buffer + pcmd.VtxOffset) + @offsetOf(c.ImDrawVert, "pos"),
-                );
-                const uv = @ptrCast(
-                    [*]f32,
-                    @ptrCast([*c]u8, vtx_buffer + pcmd.VtxOffset) + @offsetOf(c.ImDrawVert, "uv"),
-                );
-                const color = @ptrCast(
-                    [*]sdl.c.SDL_Color,
-                    @ptrCast([*c]u8, vtx_buffer + pcmd.VtxOffset) + @offsetOf(c.ImDrawVert, "col"),
-                );
+            bd.renderer.setClipRect(sdl.Rectangle{
+                .x = @floatToInt(c_int, clip_min.x),
+                .y = @floatToInt(c_int, clip_min.y),
+                .width = @floatToInt(c_int, clip_max.x - clip_min.x),
+                .height = @floatToInt(c_int, clip_max.y - clip_min.y),
+            }) catch unreachable;
 
-                // Bind texture, Draw
-                const tex = @ptrCast(*sdl.c.SDL_Texture, pcmd.TextureId);
-                _ = sdl.c.SDL_RenderGeometryRaw(
-                    bd.renderer.ptr,
-                    tex,
-                    xy,
-                    @sizeOf(c.ImDrawVert),
-                    color,
-                    @sizeOf(c.ImDrawVert),
-                    uv,
-                    @sizeOf(c.ImDrawVert),
-                    cmd_list.VtxBuffer.Size - @intCast(c_int, pcmd.VtxOffset),
-                    @ptrCast([*]c_int, idx_buffer + pcmd.IdxOffset),
-                    @intCast(c_int, pcmd.ElemCount),
-                    @sizeOf(c.ImDrawIdx),
-                );
-            }
+            const xy = @ptrCast(
+                [*]f32,
+                @ptrCast([*c]u8, vtx_buffer + pcmd.VtxOffset) + @offsetOf(c.ImDrawVert, "pos"),
+            );
+            const uv = @ptrCast(
+                [*]f32,
+                @ptrCast([*c]u8, vtx_buffer + pcmd.VtxOffset) + @offsetOf(c.ImDrawVert, "uv"),
+            );
+            const color = @ptrCast(
+                [*]sdl.c.SDL_Color,
+                @ptrCast([*c]u8, vtx_buffer + pcmd.VtxOffset) + @offsetOf(c.ImDrawVert, "col"),
+            );
+
+            // Bind texture, Draw
+            const tex = @ptrCast(*sdl.c.SDL_Texture, pcmd.TextureId);
+            _ = sdl.c.SDL_RenderGeometryRaw(
+                bd.renderer.ptr,
+                tex,
+                xy,
+                @sizeOf(c.ImDrawVert),
+                color,
+                @sizeOf(c.ImDrawVert),
+                uv,
+                @sizeOf(c.ImDrawVert),
+                cmd_list.VtxBuffer.Size - @intCast(c_int, pcmd.VtxOffset),
+                @ptrCast([*]c_int, idx_buffer + pcmd.IdxOffset),
+                @intCast(c_int, pcmd.ElemCount),
+                @sizeOf(c.ImDrawIdx),
+            );
         }
     }
 

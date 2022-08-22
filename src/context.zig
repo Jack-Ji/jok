@@ -2,7 +2,6 @@ const std = @import("std");
 const sdl = @import("sdl");
 const config = @import("config.zig");
 const jok = @import("jok.zig");
-const event = jok.event;
 
 pub const log = std.log.scoped(.jok);
 
@@ -102,14 +101,9 @@ pub const Context = struct {
     }
 
     /// Poll event
-    pub fn pollEvent(self: *Context) ?event.Event {
+    pub fn pollEvent(self: *Context) ?sdl.Event {
         _ = self;
-        while (sdl.pollEvent()) |e| {
-            if (event.Event.init(e)) |ze| {
-                return ze;
-            }
-        }
-        return null;
+        return sdl.pollEvent();
     }
 
     /// Toggle resizable
@@ -199,8 +193,8 @@ pub const Context = struct {
     /// Get key status
     pub fn isKeyPressed(self: Context, key: sdl.Scancode) bool {
         _ = self;
-        const state = sdl.c.SDL_GetKeyboardState(null);
-        return state[@enumToInt(key)] == 1;
+        const kb_state = sdl.getKeyboardState();
+        return kb_state.isPressed(key);
     }
 
     /// Get mouse state

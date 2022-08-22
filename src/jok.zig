@@ -4,9 +4,6 @@ pub const config = @import("config.zig");
 /// Context of application
 pub const Context = @import("context.zig").Context;
 
-/// System events
-pub const event = @import("event.zig");
-
 /// Graphics module
 pub const gfx = @import("graphics.zig");
 

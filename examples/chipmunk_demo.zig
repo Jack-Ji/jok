@@ -99,9 +99,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         },
     });
     _ = try world.addObject(.{
-        .body = .{
-            .global_static = 1,
-        },
+        .body = .global_static,
         .shapes = &[_]cp.World.ObjectOption.ShapeProperty{
             .{
                 .segment = .{
@@ -116,9 +114,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         },
     });
     _ = try world.addObject(.{
-        .body = .{
-            .global_static = 1,
-        },
+        .body = .global_static,
         .shapes = &[_]cp.World.ObjectOption.ShapeProperty{
             .{
                 .segment = .{
@@ -154,15 +150,13 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 pub fn loop(ctx: *jok.Context) anyerror!void {
     while (ctx.pollEvent()) |e| {
         switch (e) {
-            .keyboard_event => |key| {
-                if (key.trigger_type == .up) {
-                    switch (key.scan_code) {
-                        .escape => ctx.kill(),
-                        else => {},
-                    }
+            .key_up => |key| {
+                switch (key.scancode) {
+                    .escape => ctx.kill(),
+                    else => {},
                 }
             },
-            .quit_event => ctx.kill(),
+            .quit => ctx.kill(),
             else => {},
         }
     }

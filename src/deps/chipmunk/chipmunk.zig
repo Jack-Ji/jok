@@ -25,7 +25,6 @@ pub const Object = struct {
 };
 
 pub const World = struct {
-
     /// Memory allocator
     allocator: std.mem.Allocator,
 
@@ -54,7 +53,7 @@ pub const World = struct {
     };
     pub const InitOption = struct {
         fixed_dt: f32 = 1.0 / 60.0,
-        gravity: c.cpVect = c.cpVzero,
+        gravity: c.cpVect = c.cpvzero,
         dumping: f32 = 1.0,
         iteration: u32 = 10,
         user_data: c.cpDataPointer = null,
@@ -176,7 +175,7 @@ pub const World = struct {
             static: struct {
                 position: c.cpVect,
             },
-            global_static: u8,
+            global_static,
         };
         pub const ShapeProperty = union(enum) {
             pub const Weight = union(enum) {
@@ -215,7 +214,7 @@ pub const World = struct {
             },
         };
 
-        body: BodyProperty = .{.global_static},
+        body: BodyProperty = .global_static,
         shapes: []const ShapeProperty,
         filter: Filter = .{},
         never_rotate: bool = false,

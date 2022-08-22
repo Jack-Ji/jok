@@ -57,18 +57,16 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 pub fn loop(ctx: *jok.Context) anyerror!void {
     while (ctx.pollEvent()) |e| {
         switch (e) {
-            .keyboard_event => |key| {
-                if (key.trigger_type == .up) {
-                    switch (key.scan_code) {
-                        .escape => ctx.kill(),
-                        else => {},
-                    }
+            .key_up => |key| {
+                switch (key.scancode) {
+                    .escape => ctx.kill(),
+                    else => {},
                 }
             },
-            .mouse_event => |me| {
+            .mouse_motion => |me| {
                 const fb = ctx.getFramebufferSize();
                 frequency = jok.utils.mapf(
-                    @intToFloat(f32, me.data.motion.x),
+                    @intToFloat(f32, me.x),
                     0,
                     @intToFloat(f32, fb.w),
                     40,
@@ -76,14 +74,14 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
                 );
                 phase_step = frequency * std.math.tau / @intToFloat(f32, audio_spec.sample_rate);
                 amplitude = jok.utils.mapf(
-                    @intToFloat(f32, me.data.motion.y),
+                    @intToFloat(f32, me.y),
                     0,
                     @intToFloat(f32, fb.h),
                     1.0,
                     0,
                 );
             },
-            .quit_event => ctx.kill(),
+            .quit => ctx.kill(),
             else => {},
         }
     }

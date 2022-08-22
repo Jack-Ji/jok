@@ -35,25 +35,17 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 }
 
 pub fn loop(ctx: *jok.Context) anyerror!void {
-    var clicked = false;
     while (ctx.pollEvent()) |e| {
         _ = imgui.processEvent(e);
 
         switch (e) {
-            .keyboard_event => |key| {
-                if (key.trigger_type == .up) {
-                    switch (key.scan_code) {
-                        .escape => ctx.kill(),
-                        else => {},
-                    }
+            .key_up => |key| {
+                switch (key.scancode) {
+                    .escape => ctx.kill(),
+                    else => {},
                 }
             },
-            .mouse_event => |me| {
-                if (me.data != .button or
-                    me.data.button.btn != .left) continue;
-                if (me.data.button.clicked) clicked = true;
-            },
-            .quit_event => ctx.kill(),
+            .quit => ctx.kill(),
             else => {},
         }
     }

@@ -737,6 +737,8 @@ inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
 /// Test whether a point is in triangle
 /// Using Barycentric Technique, checkout link https://blackpawn.com/texts/pointinpoly
 inline fn isPointInTriangle(tri: [3][2]f32, point: [2]f32) bool {
+    @setEvalBranchQuota(10000);
+
     const v0 = zmath.f32x4(
         tri[2][0] - tri[0][0],
         tri[2][1] - tri[0][1],
@@ -779,7 +781,9 @@ pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
 
     if (!self.sorted) {
         // Sort triangles by depth, from farthest to closest
-        const indices = @bitCast([][3]u32, self.indices.items)[0..@divTrunc(self.indices.items.len, 3)];
+        var indices: [][3]u32 = undefined;
+        indices.ptr = @ptrCast([*][3]u32, self.indices.items.ptr);
+        indices.len = @divTrunc(self.indices.items.len, 3);
         std.sort.sort(
             [3]u32,
             indices,

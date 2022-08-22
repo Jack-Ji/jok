@@ -123,7 +123,7 @@ pub fn savePixelsToFile(
             stb.image.stbi_write_png_compression_level =
                 @intCast(c_int, option.png_compress_level);
             result = stb.image.stbi_write_png(
-                path,
+                path.ptr,
                 @intCast(c_int, width),
                 @intCast(c_int, height),
                 @intCast(c_int, channels),
@@ -133,7 +133,7 @@ pub fn savePixelsToFile(
         },
         .bmp => {
             result = stb.image.stbi_write_bmp(
-                path,
+                path.ptr,
                 @intCast(c_int, width),
                 @intCast(c_int, height),
                 @intCast(c_int, channels),
@@ -144,7 +144,7 @@ pub fn savePixelsToFile(
             stb.image.stbi_write_tga_with_rle =
                 if (option.tga_rle_compress) 1 else 0;
             result = stb.image.stbi_write_tga(
-                path,
+                path.ptr,
                 @intCast(c_int, width),
                 @intCast(c_int, height),
                 @intCast(c_int, channels),
@@ -153,7 +153,7 @@ pub fn savePixelsToFile(
         },
         .jpg => {
             result = stb.image.stbi_write_jpg(
-                path,
+                path.ptr,
                 @intCast(c_int, width),
                 @intCast(c_int, height),
                 @intCast(c_int, channels),

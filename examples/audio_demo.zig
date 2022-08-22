@@ -41,31 +41,28 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 pub fn loop(ctx: *jok.Context) anyerror!void {
     while (ctx.pollEvent()) |e| {
         switch (e) {
-            .keyboard_event => |key| {
-                if (key.trigger_type == .up) {
-                    switch (key.scan_code) {
-                        .escape => ctx.kill(),
-                        .z => music.setVolume(music.getVolume() - 0.1),
-                        .x => music.setVolume(music.getVolume() + 0.1),
-                        else => {},
-                    }
+            .key_up => |key| {
+                switch (key.scancode) {
+                    .escape => ctx.kill(),
+                    .z => music.setVolume(music.getVolume() - 0.1),
+                    .x => music.setVolume(music.getVolume() + 0.1),
+                    else => {},
                 }
             },
-            .mouse_event => |me| {
-                if (me.data == .button and me.data.button.double_clicked) {
-                    if (me.data.button.btn == .left) {
-                        try sfx1.stop();
-                        try sfx1.seekToPcmFrame(0);
-                        try sfx1.start();
-                    }
-                    if (me.data.button.btn == .right) {
-                        try sfx2.stop();
-                        try sfx2.seekToPcmFrame(0);
-                        try sfx2.start();
-                    }
+            .mouse_button_up => |me| {
+                if (me.clicks < 2) continue;
+                if (me.button == .left) {
+                    try sfx1.stop();
+                    try sfx1.seekToPcmFrame(0);
+                    try sfx1.start();
+                }
+                if (me.button == .right) {
+                    try sfx2.stop();
+                    try sfx2.seekToPcmFrame(0);
+                    try sfx2.start();
                 }
             },
-            .quit_event => ctx.kill(),
+            .quit => ctx.kill(),
             else => {},
         }
     }

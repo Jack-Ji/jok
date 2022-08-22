@@ -4,7 +4,6 @@ const sdl = @import("sdl");
 const context = @import("context.zig");
 const jok = @import("jok.zig");
 const config = jok.config;
-const event = jok.event;
 
 // Import game object's declarations
 const game = @import("game");

@@ -40,7 +40,7 @@ pub const styleColorsClassic = c.igStyleColorsClassic;
 //    returned true. Begin and BeginChild are the only odd ones out. Will be fixed in a future update.]
 // - Note that the bottom of window stack always contains a window called "Debug".
 pub fn begin(name: [:0]const u8, p_open: ?*bool, flags: ?c.ImGuiWindowFlags) bool {
-    return c.igBegin(name, p_open, flags orelse 0);
+    return c.igBegin(name.ptr, p_open, flags orelse 0);
 }
 pub const end = c.igEnd;
 
@@ -351,7 +351,7 @@ pub const bulletText = c.igBulletText;
 // - Most widgets return true when the value has been changed or when pressed/selected
 // - You may also use one of the many IsItemXXX functions (e.g. IsItemActive, IsItemHovered, etc.) to query widget state.
 pub fn button(label: [:0]const u8, size: ?c.ImVec2) bool {
-    return c.igButton(label, size orelse vec2_zero);
+    return c.igButton(label.ptr, size orelse vec2_zero);
 }
 pub fn smallButton(label: [:0]const u8) bool {
     return c.igSmallButton(label);
@@ -382,19 +382,19 @@ pub fn imageButton(user_texture_id: c.ImTextureID, size: c.ImVec2, option: Image
     return c.igImageButton(user_texture_id, size, option.uv0, option.uv1, option.frame_padding, option.bg_col, option.tint_col);
 }
 pub fn checkbox(label: [:0]const u8, v: *bool) bool {
-    return c.igCheckbox(label, v);
+    return c.igCheckbox(label.ptr, v);
 }
 pub fn checkboxFlags_IntPtr(label: [:0]const u8, flags: *c_int, flags_value: c_int) bool {
-    return c.igCheckboxFlags_IntPtr(label, flags, flags_value);
+    return c.igCheckboxFlags_IntPtr(label.ptr, flags, flags_value);
 }
 pub fn checkboxFlags_UintPtr(label: [:0]const u8, flags: [*c]c_uint, flags_value: c_uint) bool {
-    return c.igCheckboxFlags_UintPtr(label, flags, flags_value);
+    return c.igCheckboxFlags_UintPtr(label.ptr, flags, flags_value);
 }
 pub fn radioButton_Bool(label: [:0]const u8, active: bool) bool {
-    return c.igRadioButton_Bool(label, active);
+    return c.igRadioButton_Bool(label.ptr, active);
 }
 pub fn radioButton_IntPtr(label: [:0]const u8, v: *c_int, v_button: c_int) bool {
-    return c.igRadioButton_IntPtr(label, v, v_button);
+    return c.igRadioButton_IntPtr(label.ptr, v, v_button);
 }
 pub const ProgressBarOption = struct {
     size_arg: c.ImVec2 = .{ .x = math.f32_min, .y = 0 },
@@ -409,17 +409,17 @@ pub const bullet = c.igBullet;
 // - The BeginCombo()/EndCombo() api allows you to manage your contents and selection state however you want it, by creating e.g. Selectable() items.
 // - The old Combo() api are helpers over BeginCombo()/EndCombo() which are kept available for convenience purpose. This is analogous to how ListBox are created.
 pub fn beginCombo(label: [:0]const u8, preview_value: [:0]const u8, flags: ?c.ImGuiComboFlags) bool {
-    return c.igBeginCombo(label, preview_value, flags orelse 0);
+    return c.igBeginCombo(label.ptr, preview_value.ptr, flags orelse 0);
 }
 pub const endCombo = c.igEndCombo;
 pub fn combo_Str_arr(label: [:0]const u8, current_item: *c_int, items: []const [*c]const u8, popup_max_height_in_items: ?c_int) bool {
-    return c.igCombo_Str_arr(label, current_item, items.ptr, items.len, popup_max_height_in_items orelse -1);
+    return c.igCombo_Str_arr(label.ptr, current_item, items.ptr, items.len, popup_max_height_in_items orelse -1);
 }
 pub fn combo_Str(label: [:0]const u8, current_item: *c_int, items_separated_by_zeros: [:0]const u8, popup_max_height_in_items: ?c_int) bool {
-    return c.igCombo_Str(label, current_item, items_separated_by_zeros, popup_max_height_in_items orelse -1);
+    return c.igCombo_Str(label.ptr, current_item, items_separated_by_zeros.ptr, popup_max_height_in_items orelse -1);
 }
 pub fn combo_FnBoolPtr(label: [:0]const u8, current_item: *c_int, items_getter: fn (?*anyopaque, c_int, [*c][*c]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: c_int, popup_max_height_in_items: ?c_int) bool {
-    return c.igCombo_FnBoolPtr(label, current_item, items_getter, data, items_count, popup_max_height_in_items orelse -1);
+    return c.igCombo_FnBoolPtr(label.ptr, current_item, items_getter, data, items_count, popup_max_height_in_items orelse -1);
 }
 
 // Widgets: Drag Sliders
@@ -441,16 +441,16 @@ pub const DragFloatOption = struct {
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn dragFloat(label: [:0]const u8, v: *f32, option: DragFloatOption) bool {
-    return c.igDragFloat(label, v, option.v_speed, option.v_min, option.v_max, option.format, option.flags);
+    return c.igDragFloat(label.ptr, v, option.v_speed, option.v_min, option.v_max, option.format.ptr, option.flags);
 }
 pub fn dragFloat2(label: [:0]const u8, v: *[2]f32, option: DragFloatOption) bool {
-    return c.igDragFloat2(label, v, option.v_speed, option.v_min, option.v_max, option.format, option.flags);
+    return c.igDragFloat2(label.ptr, v, option.v_speed, option.v_min, option.v_max, option.format.ptr, option.flags);
 }
 pub fn dragFloat3(label: [:0]const u8, v: *[3]f32, option: DragFloatOption) bool {
-    return c.igDragFloat3(label, v, option.v_speed, option.v_min, option.v_max, option.format, option.flags);
+    return c.igDragFloat3(label.ptr, v, option.v_speed, option.v_min, option.v_max, option.format.ptr, option.flags);
 }
 pub fn dragFloat4(label: [:0]const u8, v: *[4]f32, option: DragFloatOption) bool {
-    return c.igDragFloat4(label, v, option.v_speed, option.v_min, option.v_max, option.format, option.flags);
+    return c.igDragFloat4(label.ptr, v, option.v_speed, option.v_min, option.v_max, option.format.ptr, option.flags);
 }
 pub const DragFloatRangeOption = struct {
     v_speed: f32 = 1,
@@ -461,7 +461,7 @@ pub const DragFloatRangeOption = struct {
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn dragFloatRange2(label: [:0]const u8, v_current_min: *f32, v_current_max: *f32, option: DragFloatRangeOption) bool {
-    return c.igDragFloatRange2(label, v_current_min, v_current_max, option.v_speed, option.v_min, option.v_max, option.format, option.format_max, option.flags);
+    return c.igDragFloatRange2(label.ptr, v_current_min, v_current_max, option.v_speed, option.v_min, option.v_max, option.format.ptr, option.format_max, option.flags);
 }
 pub const DragIntOption = struct {
     v_speed: f32 = 1,
@@ -471,16 +471,16 @@ pub const DragIntOption = struct {
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn dragInt(label: [:0]const u8, v: *c_int, option: DragIntOption) bool {
-    return c.igDragInt(label, v, option.v_speed, option.v_min, option.v_max, option.format, option.flags);
+    return c.igDragInt(label.ptr, v, option.v_speed, option.v_min, option.v_max, option.format.ptr, option.flags);
 }
 pub fn dragInt2(label: [:0]const u8, v: *c_int, option: DragIntOption) bool {
-    return c.igDragInt2(label, v, option.v_speed, option.v_min, option.v_max, option.format, option.flags);
+    return c.igDragInt2(label.ptr, v, option.v_speed, option.v_min, option.v_max, option.format.ptr, option.flags);
 }
 pub fn dragInt3(label: [:0]const u8, v: *c_int, option: DragIntOption) bool {
-    return c.igDragInt3(label, v, option.v_speed, option.v_min, option.v_max, option.format, option.flags);
+    return c.igDragInt3(label.ptr, v, option.v_speed, option.v_min, option.v_max, option.format.ptr, option.flags);
 }
 pub fn dragInt4(label: [:0]const u8, v: *c_int, option: DragIntOption) bool {
-    return c.igDragInt4(label, v, option.v_speed, option.v_min, option.v_max, option.format, option.flags);
+    return c.igDragInt4(label.ptr, v, option.v_speed, option.v_min, option.v_max, option.format.ptr, option.flags);
 }
 pub const DragIntRangeOption = struct {
     v_speed: f32 = 1,
@@ -491,7 +491,7 @@ pub const DragIntRangeOption = struct {
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn dragIntRange2(label: [:0]const u8, v_current_min: *c_int, v_current_max: *c_int, option: DragIntRangeOption) bool {
-    return c.igDragIntRange2(label, v_current_min, v_current_max, option.v_speed, option.v_min, option.v_max, option.format, option.format_max, option.flags);
+    return c.igDragIntRange2(label.ptr, v_current_min, v_current_max, option.v_speed, option.v_min, option.v_max, option.format.ptr, option.format_max, option.flags);
 }
 pub const DragScalarOption = struct {
     v_speed: f32 = 1,
@@ -501,10 +501,10 @@ pub const DragScalarOption = struct {
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn dragScalar(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, option: DragScalarOption) bool {
-    return c.igDragScalar(label, data_type, p_data, option.v_speed, option.p_min, option.p_max, option.format, option.flags);
+    return c.igDragScalar(label.ptr, data_type, p_data, option.v_speed, option.p_min, option.p_max, option.format.ptr, option.flags);
 }
 pub fn dragScalarN(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, components: c_int, option: DragScalarOption) bool {
-    return c.igDragScalarN(label, data_type, p_data, components, option.v_speed, option.p_min, option.p_max, option.format, option.flags);
+    return c.igDragScalarN(label.ptr, data_type, p_data, components, option.v_speed, option.p_min, option.p_max, option.format.ptr, option.flags);
 }
 
 // Widgets: Regular Sliders
@@ -518,16 +518,16 @@ pub const SliderFloatOption = struct {
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn sliderFloat(label: [:0]const u8, v: *f32, v_min: f32, v_max: f32, option: SliderFloatOption) bool {
-    return c.igSliderFloat(label, v, v_min, v_max, option.format, option.flags);
+    return c.igSliderFloat(label.ptr, v, v_min, v_max, option.format.ptr, option.flags);
 }
 pub fn sliderFloat2(label: [:0]const u8, v: *[2]f32, v_min: f32, v_max: f32, option: SliderFloatOption) bool {
-    return c.igSliderFloat2(label, v, v_min, v_max, option.format, option.flags);
+    return c.igSliderFloat2(label.ptr, v, v_min, v_max, option.format.ptr, option.flags);
 }
 pub fn sliderFloat3(label: [:0]const u8, v: *[2]f32, v_min: f32, v_max: f32, option: SliderFloatOption) bool {
-    return c.igSliderFloat3(label, v, v_min, v_max, option.format, option.flags);
+    return c.igSliderFloat3(label.ptr, v, v_min, v_max, option.format.ptr, option.flags);
 }
 pub fn sliderFloat4(label: [:0]const u8, v: *[3]f32, v_min: f32, v_max: f32, option: SliderFloatOption) bool {
-    return c.igSliderFloat4(label, v, v_min, v_max, option.format, option.flags);
+    return c.igSliderFloat4(label.ptr, v, v_min, v_max, option.format.ptr, option.flags);
 }
 pub const SliderAngleOption = struct {
     v_degrees_min: f32 = -360.0,
@@ -536,54 +536,54 @@ pub const SliderAngleOption = struct {
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn sliderAngle(label: [:0]const u8, v_rad: *f32, option: SliderAngleOption) bool {
-    return c.igSliderAngle(label, v_rad, option.v_degrees_min, option.v_degrees_max, option.format, option.flags);
+    return c.igSliderAngle(label.ptr, v_rad, option.v_degrees_min, option.v_degrees_max, option.format.ptr, option.flags);
 }
 pub const SliderIntOption = struct {
     format: [:0]const u8 = "%d",
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn sliderInt(label: [:0]const u8, v: *c_int, v_min: c_int, v_max: c_int, option: SliderIntOption) bool {
-    return c.igSliderInt(label, v, v_min, v_max, option.format, option.flags);
+    return c.igSliderInt(label.ptr, v, v_min, v_max, option.format.ptr, option.flags);
 }
 pub fn sliderInt2(label: [:0]const u8, v: *c_int, v_min: c_int, v_max: c_int, option: SliderIntOption) bool {
-    return c.igSliderInt2(label, v, v_min, v_max, option.format, option.flags);
+    return c.igSliderInt2(label.ptr, v, v_min, v_max, option.format.ptr, option.flags);
 }
 pub fn sliderInt3(label: [:0]const u8, v: *c_int, v_min: c_int, v_max: c_int, option: SliderIntOption) bool {
-    return c.igSliderInt3(label, v, v_min, v_max, option.format, option.flags);
+    return c.igSliderInt3(label.ptr, v, v_min, v_max, option.format.ptr, option.flags);
 }
 pub fn sliderInt4(label: [:0]const u8, v: *c_int, v_min: c_int, v_max: c_int, option: SliderIntOption) bool {
-    return c.igSliderInt4(label, v, v_min, v_max, option.format, option.flags);
+    return c.igSliderInt4(label.ptr, v, v_min, v_max, option.format.ptr, option.flags);
 }
 pub const SliderScalarOption = struct {
     format: ?[:0]const u8 = null,
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn sliderScalar(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, p_min: *const anyopaque, p_max: *const anyopaque, option: SliderScalarOption) bool {
-    return c.igSliderScalar(label, data_type, p_data, p_min, p_max, option.format, option.flags);
+    return c.igSliderScalar(label.ptr, data_type, p_data, p_min, p_max, option.format.ptr, option.flags);
 }
 pub fn sliderScalarN(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, components: c_int, p_min: *const anyopaque, p_max: *const anyopaque, option: SliderScalarOption) bool {
-    return c.igSliderScalarN(label, data_type, p_data, components, p_min, p_max, option.format, option.flags);
+    return c.igSliderScalarN(label.ptr, data_type, p_data, components, p_min, p_max, option.format.ptr, option.flags);
 }
 pub const VSliderFloatOption = struct {
     format: [:0]const u8 = "%.3f",
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn vSliderFloat(label: [:0]const u8, size: c.ImVec2, v: *f32, v_min: f32, v_max: f32, option: VSliderFloatOption) bool {
-    return c.igVSliderFloat(label, size, v, v_min, v_max, option.format, option.flags);
+    return c.igVSliderFloat(label.ptr, size, v, v_min, v_max, option.format.ptr, option.flags);
 }
 pub const VSliderIntOption = struct {
     format: [:0]const u8 = "%d",
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn vSliderInt(label: [:0]const u8, size: c.ImVec2, v: *c_int, v_min: c_int, v_max: c_int, option: VSliderIntOption) bool {
-    return c.igVSliderInt(label, size, v, v_min, v_max, option.format, option.flags);
+    return c.igVSliderInt(label.ptr, size, v, v_min, v_max, option.format.ptr, option.flags);
 }
 pub const VSliderScalarOption = struct {
     format: ?[:0]const u8 = null,
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn vSliderScalar(label: [:0]const u8, size: c.ImVec2, data_type: c.ImGuiDataType, p_data: *anyopaque, p_min: *const anyopaque, p_max: *const anyopaque, option: VSliderScalarOption) bool {
-    return c.igVSliderScalar(label, size, data_type, p_data, p_min, p_max, option.format, option.flags);
+    return c.igVSliderScalar(label.ptr, size, data_type, p_data, p_min, p_max, option.format.ptr, option.flags);
 }
 
 // Widgets: Input with Keyboard
@@ -595,7 +595,7 @@ pub const InputTextOption = struct {
     user_data: ?*anyopaque = null,
 };
 pub fn inputText(label: [:0]const u8, buf: []u8, option: InputTextOption) bool {
-    return c.igInputText(label, buf.ptr, buf.len, option.flags, option.callback, option.user_data);
+    return c.igInputText(label.ptr, buf.ptr, buf.len, option.flags, option.callback, option.user_data);
 }
 pub const InputTextMultilineOption = struct {
     size: c.ImVec2 = vec2_zero,
@@ -604,10 +604,10 @@ pub const InputTextMultilineOption = struct {
     user_data: ?*anyopaque = null,
 };
 pub fn inputTextMultiline(label: [:0]const u8, buf: []u8, option: InputTextMultilineOption) bool {
-    return c.igInputTextMultiline(label, buf.ptr, buf.len, option.size, option.flags, option.callback, option.user_data);
+    return c.igInputTextMultiline(label.ptr, buf.ptr, buf.len, option.size, option.flags, option.callback, option.user_data);
 }
 pub fn inputTextWithHint(label: [:0]const u8, hint: [:0]const u8, buf: []u8, option: InputTextOption) bool {
-    return c.igInputTextWithHint(label, hint, buf.ptr, buf.len, option.flags, option.callback, option.user_data);
+    return c.igInputTextWithHint(label.ptr, hint, buf.ptr, buf.len, option.flags, option.callback, option.user_data);
 }
 pub const InputFloatOption = struct {
     step: f32 = 0,
@@ -616,20 +616,20 @@ pub const InputFloatOption = struct {
     flags: c.ImGuiInputTextFlags = 0,
 };
 pub fn inputFloat(label: [:0]const u8, v: *f32, option: InputFloatOption) bool {
-    return c.igInputFloat(label, v, option.step, option.step_fast, option.format, option.flags);
+    return c.igInputFloat(label.ptr, v, option.step, option.step_fast, option.format.ptr, option.flags);
 }
 pub const InputFloatsOption = struct {
     format: [:0]const u8 = "%.3f",
     flags: c.ImGuiInputTextFlags = 0,
 };
 pub fn inputFloat2(label: [:0]const u8, v: *[2]f32, option: InputFloatsOption) bool {
-    return c.igInputFloat2(label, v, option.format, option.flags);
+    return c.igInputFloat2(label.ptr, v, option.format.ptr, option.flags);
 }
 pub fn inputFloat3(label: [:0]const u8, v: *[3]f32, option: InputFloatsOption) bool {
-    return c.igInputFloat3(label, v, option.format, option.flags);
+    return c.igInputFloat3(label.ptr, v, option.format.ptr, option.flags);
 }
 pub fn inputFloat4(label: [:0]const u8, v: *[4]f32, option: InputFloatsOption) bool {
-    return c.igInputFloat4(label, v, option.format, option.flags);
+    return c.igInputFloat4(label.ptr, v, option.format.ptr, option.flags);
 }
 pub const InputIntOption = struct {
     step: c_int = 1,
@@ -637,16 +637,16 @@ pub const InputIntOption = struct {
     flags: c.ImGuiInputTextFlags = 0,
 };
 pub fn inputInt(label: [:0]const u8, v: *c_int, option: InputIntOption) bool {
-    return c.igInputInt(label, v, option.step, option.step_fast, option.flags);
+    return c.igInputInt(label.ptr, v, option.step, option.step_fast, option.flags);
 }
 pub fn inputInt2(label: [:0]const u8, v: *[2]c_int, flags: ?c.ImGuiInputTextFlags) bool {
-    return c.igInputInt2(label, v, flags orelse 0);
+    return c.igInputInt2(label.ptr, v, flags orelse 0);
 }
 pub fn inputInt3(label: [:0]const u8, v: *[3]c_int, flags: ?c.ImGuiInputTextFlags) bool {
-    return c.igInputInt3(label, v, flags orelse 0);
+    return c.igInputInt3(label.ptr, v, flags orelse 0);
 }
 pub fn inputInt4(label: [:0]const u8, v: *[4]c_int, flags: ?c.ImGuiInputTextFlags) bool {
-    return c.igInputInt4(label, v, flags orelse 0);
+    return c.igInputInt4(label.ptr, v, flags orelse 0);
 }
 pub const InputDoubleOption = struct {
     step: f64 = 0,
@@ -655,7 +655,7 @@ pub const InputDoubleOption = struct {
     flags: c.ImGuiInputTextFlags = 0,
 };
 pub fn inputDouble(label: [:0]const u8, v: *f64, option: InputDoubleOption) bool {
-    return c.igInputDouble(label, v, option.step, option.step_fast, option.format, option.flags);
+    return c.igInputDouble(label.ptr, v, option.step, option.step_fast, option.format.ptr, option.flags);
 }
 pub const InputScalarOption = struct {
     p_step: ?*const anyopaque = null,
@@ -664,26 +664,26 @@ pub const InputScalarOption = struct {
     flags: c.ImGuiInputTextFlags = 0,
 };
 pub fn inputScalar(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, option: InputScalarOption) bool {
-    return c.igInputScalar(label, data_type, p_data, option.p_step, option.p_step_fast, option.format, option.flags);
+    return c.igInputScalar(label.ptr, data_type, p_data, option.p_step, option.p_step_fast, option.format.ptr, option.flags);
 }
 pub fn inputScalarN(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, components: c_int, option: InputScalarOption) bool {
-    return c.igInputScalarN(label, data_type, p_data, components, option.p_step, option.p_step_fast, option.format, option.flags);
+    return c.igInputScalarN(label.ptr, data_type, p_data, components, option.p_step, option.p_step_fast, option.format.ptr, option.flags);
 }
 
 // Widgets: Color Editor/Picker (tip: the ColorEdit* functions have a little color square that can be left-clicked to open a picker, and right-clicked to open an option menu.)
 // - Note that in C++ a 'float v[X]' function argument is the _same_ as 'float* v', the array syntax is just a way to document the number of elements that are expected to be accessible.
 // - You can pass the address of a first float element out of a contiguous structure, e.g. &myvector.x
 pub fn colorEdit3(label: [:0]const u8, col: *[3]f32, flags: ?c.ImGuiColorEditFlags) bool {
-    return c.igColorEdit3(label, col, flags orelse 0);
+    return c.igColorEdit3(label.ptr, col, flags orelse 0);
 }
 pub fn colorEdit4(label: [:0]const u8, col: *[4]f32, flags: ?c.ImGuiColorEditFlags) bool {
-    return c.igColorEdit4(label, col, flags orelse 0);
+    return c.igColorEdit4(label.ptr, col, flags orelse 0);
 }
 pub fn colorPicker3(label: [:0]const u8, col: *[3]f32, flags: ?c.ImGuiColorEditFlags) bool {
-    return c.igColorPicker3(label, col, flags orelse 0);
+    return c.igColorPicker3(label.ptr, col, flags orelse 0);
 }
 pub fn colorPicker4(label: [:0]const u8, col: *[4]f32, flags: ?c.ImGuiColorEditFlags, ref_col: ?*[4]f32) bool {
-    return c.igColorPicker4(label, col, flags orelse 0, ref_col);
+    return c.igColorPicker4(label.ptr, col, flags orelse 0, ref_col);
 }
 pub const ColorButtonOption = struct {
     flags: c.ImGuiColorEditFlags = 0,
@@ -715,10 +715,10 @@ pub fn treePush_Ptr(ptr_id: *const anyopaque) void {
 pub const treePop = c.igTreePop;
 pub const getTreeNodeToLabelSpacing = c.igGetTreeNodeToLabelSpacing;
 pub fn collapsingHeader_TreeNodeFlags(label: [:0]const u8, flags: ?c.ImGuiTreeNodeFlags) bool {
-    return c.igCollapsingHeader_TreeNodeFlags(label, flags orelse 0);
+    return c.igCollapsingHeader_TreeNodeFlags(label.ptr, flags orelse 0);
 }
 pub fn collapsingHeader_BoolPtr(label: [:0]const u8, p_visible: *bool, flags: ?c.ImGuiTreeNodeFlags) bool {
-    return c.igCollapsingHeader_BoolPtr(label, p_visible, flags orelse 0);
+    return c.igCollapsingHeader_BoolPtr(label.ptr, p_visible, flags orelse 0);
 }
 pub fn setNextItemOpen(is_open: bool, cond: ?c.ImGuiCond) void {
     return c.igSetNextItemOpen(is_open, cond orelse 0);
@@ -733,14 +733,14 @@ pub const SelectableOption = struct {
     size: c.ImVec2 = vec2_zero,
 };
 pub fn selectable_Bool(label: [:0]const u8, option: SelectableOption) bool {
-    return c.igSelectable_Bool(label, option.selected, option.flags, option.size);
+    return c.igSelectable_Bool(label.ptr, option.selected, option.flags, option.size);
 }
 pub const SelectablePtrOption = struct {
     flags: c.ImGuiSelectableFlags,
     size: c.ImVec2,
 };
 pub fn selectable_BoolPtr(label: [:0]const u8, p_selected: *bool, option: SelectablePtrOption) bool {
-    return c.igSelectable_BoolPtr(label, p_selected, option.flags, option.size);
+    return c.igSelectable_BoolPtr(label.ptr, p_selected, option.flags, option.size);
 }
 
 // Widgets: List Boxes
@@ -750,14 +750,14 @@ pub fn selectable_BoolPtr(label: [:0]const u8, p_selected: *bool, option: Select
 // - Choose frame width:   size.x > 0.0f: custom  /  size.x < 0.0f or -FLT_MIN: right-align   /  size.x = 0.0f (default): use current ItemWidth
 // - Choose frame height:  size.y > 0.0f: custom  /  size.y < 0.0f or -FLT_MIN: bottom-align  /  size.y = 0.0f (default): arbitrary default height which can fit ~7 items
 pub fn beginListBox(label: [:0]const u8, size: ?c.ImVec2) bool {
-    return c.igBeginListBox(label, size orelse vec2_zero);
+    return c.igBeginListBox(label.ptr, size orelse vec2_zero);
 }
 pub const endListBox = c.igEndListBox;
 pub fn listBox_Str_arr(label: [:0]const u8, current_item: *c_int, items: []const [*c]const u8, height_in_items: ?c_int) bool {
-    return c.igListBox_Str_arr(label, current_item, items.ptr, @intCast(c_int, items.len), height_in_items orelse -1);
+    return c.igListBox_Str_arr(label.ptr, current_item, items.ptr, @intCast(c_int, items.len), height_in_items orelse -1);
 }
 pub fn listBox_FnBoolPtr(label: [:0]const u8, current_item: *c_int, items_getter: fn (?*anyopaque, c_int, [*c][*c]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: c_int, height_in_items: ?c_int) bool {
-    return c.igListBox_FnBoolPtr(label, current_item, items_getter, data, items_count, height_in_items orelse -1);
+    return c.igListBox_FnBoolPtr(label.ptr, current_item, items_getter, data, items_count, height_in_items orelse -1);
 }
 
 // Widgets: Data Plotting
@@ -771,16 +771,16 @@ var PlotOption = struct {
     stride: c_int = @sizeOf(f32),
 };
 pub fn plotLines_FloatPtr(label: [:0]const u8, values: []const f32, option: PlotOption) void {
-    return c.igPlotLines_FloatPtr(label, values.ptr, @intCast(c_int, values.len), option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size, option.stride);
+    return c.igPlotLines_FloatPtr(label.ptr, values.ptr, @intCast(c_int, values.len), option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size, option.stride);
 }
 pub fn plotLines_FnFloatPtr(label: [:0]const u8, values_getter: fn (?*anyopaque, c_int) callconv(.C) f32, data: ?*anyopaque, values_count: c_int, option: PlotOption) void {
-    return c.igPlotLines_FnFloatPtr(label, values_getter, data, values_count, option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size);
+    return c.igPlotLines_FnFloatPtr(label.ptr, values_getter, data, values_count, option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size);
 }
 pub fn plotHistogram_FloatPtr(label: [:0]const u8, values: []const f32, option: PlotOption) void {
-    return c.igPlotHistogram_FloatPtr(label, values.ptr, @intCast(c_int, values.len), option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size, option.stride);
+    return c.igPlotHistogram_FloatPtr(label.ptr, values.ptr, @intCast(c_int, values.len), option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size, option.stride);
 }
 pub fn plotHistogram_FnFloatPtr(label: [:0]const u8, values_getter: fn (?*anyopaque, c_int) callconv(.C) f32, data: ?*anyopaque, values_count: c_int, option: PlotOption) void {
-    return c.igPlotHistogram_FnFloatPtr(label, values_getter, data, values_count, option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size);
+    return c.igPlotHistogram_FnFloatPtr(label.ptr, values_getter, data, values_count, option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size);
 }
 
 // Widgets: Value() Helpers.
@@ -808,7 +808,7 @@ pub const endMenuBar = c.igEndMenuBar;
 pub const beginMainMenuBar = c.igBeginMainMenuBar;
 pub const endMainMenuBar = c.igEndMainMenuBar;
 pub fn beginMenu(label: [:0]const u8, enabled: ?bool) bool {
-    return c.igBeginMenu(label, enabled orelse true);
+    return c.igBeginMenu(label.ptr, enabled orelse true);
 }
 pub const endMenu = c.igEndMenu;
 pub const MenuItemOption = struct {
@@ -817,10 +817,10 @@ pub const MenuItemOption = struct {
     enabled: bool = true,
 };
 pub fn menuItem_Bool(label: [:0]const u8, option: MenuItemOption) bool {
-    return c.igMenuItem_Bool(label, option.shortcut, option.selected, option.enabled);
+    return c.igMenuItem_Bool(label.ptr, option.shortcut, option.selected, option.enabled);
 }
 pub fn menuItem_BoolPtr(label: [:0]const u8, shortcut: [*c]const u8, p_selected: *bool, enabled: ?bool) bool {
-    return c.igMenuItem_BoolPtr(label, shortcut, p_selected, enabled orelse true);
+    return c.igMenuItem_BoolPtr(label.ptr, shortcut, p_selected, enabled orelse true);
 }
 
 // Tooltips
@@ -921,7 +921,7 @@ pub const BeginTableOption = struct {
     inner_width: f32 = 0,
 };
 pub fn beginTable(str_id: [:0]const u8, column: c_int, option: BeginTableOption) bool {
-    return c.igBeginTable(str_id, column, option.flags, option.outer_size, option.inner_width);
+    return c.igBeginTable(str_id.ptr, column, option.flags, option.outer_size, option.inner_width);
 }
 pub const endTable = c.igEndTable;
 pub fn tableNextRow(row_flags: ?c.ImGuiTableRowFlags, min_row_height: ?f32) void {
@@ -933,7 +933,7 @@ pub fn tableSetColumnIndex(column_n: c_int) bool {
 }
 
 // Tables: Headers & Columns declaration
-// - Use TableSetupColumn() to specify label, resizing policy, default width/weight, id, various other flags etc.
+// - Use TableSetupColumn() to specify label.ptr, resizing policy, default width/weight, id, various other flags etc.
 // - Use TableHeadersRow() to create a header row and automatically submit a TableHeader() for each column.
 //   Headers are required to perform: reordering, sorting, and opening the context menu.
 //   The context menu can also be made available in columns body using ImGuiTableFlags_ContextMenuInBody.
@@ -946,7 +946,7 @@ pub const TableSetupColumnOption = struct {
     user_id: c.ImGuiID = 0,
 };
 pub fn tableSetupColumn(label: [:0]const u8, option: TableSetupColumnOption) void {
-    return c.igTableSetupColumn(label, option.flags, option.init_width_or_weight, option.user_id);
+    return c.igTableSetupColumn(label.ptr, option.flags, option.init_width_or_weight, option.user_id);
 }
 pub fn tableSetupScrollFreeze(cols: c_int, rows: c_int) void {
     return c.igTableSetupScrollFreeze(cols, rows);
@@ -1009,11 +1009,11 @@ pub fn beginTabBar(str_id: [:0]const u8, flags: ?c.ImGuiTabBarFlags) bool {
 }
 pub const endTabBar = c.igEndTabBar;
 pub fn beginTabItem(label: [:0]const u8, p_open: ?*bool, flags: ?c.ImGuiTabItemFlags) bool {
-    return c.igBeginTabItem(label, p_open, flags orelse 0);
+    return c.igBeginTabItem(label.ptr, p_open, flags orelse 0);
 }
 pub const endTabItem = c.igEndTabItem;
 pub fn tabItemButton(label: [:0]const u8, flags: ?c.ImGuiTabItemFlags) bool {
-    return c.igTabItemButton(label, flags orelse 0);
+    return c.igTabItemButton(label.ptr, flags orelse 0);
 }
 pub fn setTabItemClosed(tab_or_docked_window_label: [:0]const u8) void {
     return c.igSetTabItemClosed(tab_or_docked_window_label);

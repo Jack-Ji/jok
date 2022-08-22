@@ -1,7 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("../../jok.zig");
-const event = jok.event;
 const sdl = @import("sdl");
 const c = @import("c.zig");
 const string_c = @cImport({
@@ -81,8 +80,8 @@ pub fn init(ctx: *jok.Context) !void {
     io.KeyMap[c.ImGuiKey_Z] = sdl.c.SDL_SCANCODE_Z;
 
     // clipboard callbacks
-    io.SetClipboardTextFn = setClipboardText;
-    io.GetClipboardTextFn = getClipboardText;
+    io.SetClipboardTextFn = if (builtin.zig_backend == .stage1) &setClipboardText else setClipboardText;
+    io.GetClipboardTextFn = if (builtin.zig_backend == .stage1) &getClipboardText else getClipboardText;
     io.ClipboardUserData = null;
 
     // load mouse cursors
@@ -129,42 +128,37 @@ pub fn deinit() void {
 // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
 // Generally you may always pass all inputs to dear c, and hide them from your application based on those two flags.
 // If you have multiple SDL events and some of them are not meant to be used by dear c, you may need to filter events based on their windowID field.
-pub fn processEvent(e: event.Event) bool {
+pub fn processEvent(e: sdl.Event) bool {
     const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     const bd = getBackendData().?;
 
     switch (e) {
-        .mouse_event => |ee| {
-            switch (ee.data) {
-                .button => |button| {
-                    if (button.clicked) {
-                        var idx: i32 = switch (button.btn) {
-                            .left => 0,
-                            .right => 1,
-                            .middle => 2,
-                            else => -1,
-                        };
-                        if (idx >= 0) {
-                            bd.mouse_pressed[@intCast(u32, idx)] = true;
-                        }
-                    }
-                },
-                .wheel => |wheel| {
-                    if (wheel.scroll_x > 0) io.MouseWheelH += 1;
-                    if (wheel.scroll_x < 0) io.MouseWheelH -= 1;
-                    if (wheel.scroll_y > 0) io.MouseWheel += 1;
-                    if (wheel.scroll_y < 0) io.MouseWheel -= 1;
-                },
-                else => {},
+        .mouse_button_up => |me| {
+            if (me.clicks > 0) {
+                var idx: i32 = switch (me.button) {
+                    .left => 0,
+                    .right => 1,
+                    .middle => 2,
+                    else => -1,
+                };
+                if (idx >= 0) {
+                    bd.mouse_pressed[@intCast(u32, idx)] = true;
+                }
             }
         },
-        .text_input_event => |ee| {
+        .mouse_wheel => |me| {
+            if (me.delta_x > 0) io.MouseWheelH += 1;
+            if (me.delta_x < 0) io.MouseWheelH -= 1;
+            if (me.delta_y > 0) io.MouseWheel += 1;
+            if (me.delta_y < 0) io.MouseWheel -= 1;
+        },
+        .text_input => |ee| {
             c.ImGuiIO_AddInputCharactersUTF8(io, &ee.text);
         },
-        .keyboard_event => |ee| {
-            const key = ee.scan_code;
-            const mod_state = sdl.c.SDL_GetModState();
-            io.KeysDown[@intCast(u32, @enumToInt(key))] = (ee.trigger_type == .down);
+        .key_down, .key_up => |ee| {
+            const key = ee.scancode;
+            const mod_state = ee.modifiers.toNative();
+            io.KeysDown[@intCast(u32, @enumToInt(key))] = (ee.key_state == .pressed);
             io.KeyShift = ((mod_state & sdl.c.KMOD_SHIFT) != 0);
             io.KeyCtrl = ((mod_state & sdl.c.KMOD_CTRL) != 0);
             io.KeyAlt = ((mod_state & sdl.c.KMOD_ALT) != 0);

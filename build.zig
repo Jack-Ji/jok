@@ -134,6 +134,6 @@ pub fn createGame(
     return exe;
 }
 
-fn thisDir() []const u8 {
+inline fn thisDir() []const u8 {
     return comptime std.fs.path.dirname(@src().file) orelse ".";
 }

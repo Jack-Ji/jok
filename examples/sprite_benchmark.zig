@@ -59,44 +59,36 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     while (ctx.pollEvent()) |e| {
         switch (e) {
-            .keyboard_event => |key| {
-                if (key.trigger_type == .up) {
-                    switch (key.scan_code) {
-                        .escape => ctx.kill(),
-                        else => {},
-                    }
-                }
-            },
-            .mouse_event => |me| {
-                switch (me.data) {
-                    .button => |click| {
-                        if (click.btn != .left) {
-                            continue;
-                        }
-                        var rd = rand_gen.random();
-                        if (click.clicked) {
-                            const pos = sdl.PointF{
-                                .x = @intToFloat(f32, click.x),
-                                .y = @intToFloat(f32, click.y),
-                            };
-                            var i: u32 = 0;
-                            while (i < 1000) : (i += 1) {
-                                const angle = rd.float(f32) * 2 * std.math.pi;
-                                try characters.append(.{
-                                    .sprite = try sheet.getSpriteByName("ogre"),
-                                    .pos = pos,
-                                    .velocity = .{
-                                        .x = 300 * @cos(angle),
-                                        .y = 300 * @sin(angle),
-                                    },
-                                });
-                            }
-                        }
-                    },
+            .key_up => |key| {
+                switch (key.scancode) {
+                    .escape => ctx.kill(),
                     else => {},
                 }
             },
-            .quit_event => ctx.kill(),
+            .mouse_button_up => |me| {
+                if (me.button != .left) {
+                    continue;
+                }
+                var rd = rand_gen.random();
+                const mouse_state = ctx.getMouseState();
+                const pos = sdl.PointF{
+                    .x = @intToFloat(f32, mouse_state.x),
+                    .y = @intToFloat(f32, mouse_state.y),
+                };
+                var i: u32 = 0;
+                while (i < 1000) : (i += 1) {
+                    const angle = rd.float(f32) * 2 * std.math.pi;
+                    try characters.append(.{
+                        .sprite = try sheet.getSpriteByName("ogre"),
+                        .pos = pos,
+                        .velocity = .{
+                            .x = 300 * @cos(angle),
+                            .y = 300 * @sin(angle),
+                        },
+                    });
+                }
+            },
+            .quit => ctx.kill(),
             else => {},
         }
     }
