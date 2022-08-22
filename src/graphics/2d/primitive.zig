@@ -13,10 +13,12 @@ pub const CommonDrawOption = struct {
 };
 
 var rd: ?Renderer = null;
+var renderer: sdl.Renderer = undefined;
 
 /// Create default primitive renderer
-pub fn init(allocator: std.mem.Allocator) !void {
-    rd = Renderer.init(allocator);
+pub fn init(ctx: *jok.Context) !void {
+    rd = Renderer.init(ctx.default_allocator);
+    renderer = ctx.renderer;
 }
 
 /// Destroy default primitive renderer
@@ -30,7 +32,7 @@ pub fn clear() void {
 }
 
 /// Render data
-pub fn flush(renderer: sdl.Renderer) !void {
+pub fn flush() !void {
     try rd.?.draw(renderer);
 }
 
@@ -678,10 +680,10 @@ const Renderer = struct {
     }
 
     /// Draw batched data
-    fn draw(self: *Renderer, renderer: sdl.Renderer) !void {
+    fn draw(self: *Renderer, _rd: sdl.Renderer) !void {
         if (self.vindices.items.len == 0) return;
 
-        try renderer.drawGeometry(
+        try _rd.drawGeometry(
             null,
             self.vattribs.items,
             self.vindices.items,

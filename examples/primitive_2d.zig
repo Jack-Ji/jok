@@ -29,7 +29,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
     try imgui.init(ctx);
-    try primitive.init(ctx.default_allocator);
+    try primitive.init(ctx);
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.setDrawBlendMode(.blend);
 }
@@ -111,7 +111,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         3,
         .{ .common = .{ .color = sdl.Color.cyan } },
     );
-    try primitive.flush(ctx.renderer);
+    try primitive.flush();
 }
 
 pub fn quit(ctx: *jok.Context) void {
