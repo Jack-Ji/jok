@@ -74,8 +74,18 @@ pub fn clear(self: *Self, retain_memory: bool) void {
 
 /// Lighting options
 pub const LightingOption = struct {
-    sun_pos: [3]f32,
-    sun_color: sdl.Color,
+    ambient_color: sdl.Color = sdl.Color.rgb(50, 50, 50),
+    sun_pos: [3]f32 = .{ 1, 1, 1 },
+    sun_color: sdl.Color = sdl.Color.white,
+
+    // Calculate tint color
+    tint_color_calc_fn: ?*const fn (
+        material_color: sdl.Color,
+        eye_pos: zmath.Vec,
+        vertex_pos: zmath.Vec,
+        normal: zmath.Vec,
+        opt: LightingOption,
+    ) sdl.Color = null,
 };
 
 /// Advanced vertice appending options
@@ -99,6 +109,7 @@ pub fn appendVertex(
     opt: AppendOption,
 ) !void {
     assert(@rem(indices.len, 3) == 0);
+    assert(normals.len == positions.len);
     assert(if (colors) |cs| cs.len == positions.len else true);
     assert(if (texcoords) |ts| ts.len == positions.len else true);
     if (indices.len == 0) return;
@@ -275,39 +286,36 @@ pub fn appendVertex(
         const positions_screen = zmath.mul(ndcs, ndc_to_screen);
 
         // Finally, we can append vertices for rendering
+        const c0 = if (colors) |_| self.clip_colors.items[idx0] else sdl.Color.white;
+        const c1 = if (colors) |_| self.clip_colors.items[idx1] else sdl.Color.white;
+        const c2 = if (colors) |_| self.clip_colors.items[idx2] else sdl.Color.white;
+        const t0 = if (texcoords) |_| self.clip_texcoords.items[idx0] else undefined;
+        const t1 = if (texcoords) |_| self.clip_texcoords.items[idx1] else undefined;
+        const t2 = if (texcoords) |_| self.clip_texcoords.items[idx2] else undefined;
         self.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
             .{
                 .position = .{ .x = positions_screen[0][0], .y = positions_screen[0][1] },
-                .color = calcTintColor(
-                    if (colors) |_| self.clip_colors.items[idx0] else sdl.Color.white,
-                    camera.position,
-                    world_v0,
-                    n0,
-                    opt.lighting,
-                ),
-                .tex_coord = if (texcoords) |_| self.clip_texcoords.items[idx0] else undefined,
+                .color = if (opt.lighting) |p| BLK: {
+                    var calc = if (p.tint_color_calc_fn) |f| f else &calcTintColor;
+                    break :BLK calc(c0, camera.position, world_v0, n0, p);
+                } else c0,
+                .tex_coord = t0,
             },
             .{
                 .position = .{ .x = positions_screen[1][0], .y = positions_screen[1][1] },
-                .color = calcTintColor(
-                    if (colors) |_| self.clip_colors.items[idx1] else sdl.Color.white,
-                    camera.position,
-                    world_v1,
-                    n1,
-                    opt.lighting,
-                ),
-                .tex_coord = if (texcoords) |_| self.clip_texcoords.items[idx1] else undefined,
+                .color = if (opt.lighting) |p| BLK: {
+                    var calc = if (p.tint_color_calc_fn) |f| f else &calcTintColor;
+                    break :BLK calc(c1, camera.position, world_v1, n1, p);
+                } else c1,
+                .tex_coord = t1,
             },
             .{
                 .position = .{ .x = positions_screen[2][0], .y = positions_screen[2][1] },
-                .color = calcTintColor(
-                    if (colors) |_| self.clip_colors.items[idx2] else sdl.Color.white,
-                    camera.position,
-                    world_v2,
-                    n2,
-                    opt.lighting,
-                ),
-                .tex_coord = if (texcoords) |_| self.clip_texcoords.items[idx2] else undefined,
+                .color = if (opt.lighting) |p| BLK: {
+                    var calc = if (p.tint_color_calc_fn) |f| f else &calcTintColor;
+                    break :BLK calc(c2, camera.position, world_v2, n2, p);
+                } else c2,
+                .tex_coord = t2,
             },
         });
         self.indices.appendSliceAssumeCapacity(&[_]u32{
@@ -886,36 +894,39 @@ inline fn isPointInTriangle(tri: [3][2]f32, point: [2]f32) bool {
 }
 
 /// Calculate tint color of vertex according to lighting paramters
-inline fn calcTintColor(
-    c: sdl.Color,
+fn calcTintColor(
+    material_color: sdl.Color,
     eye_pos: zmath.Vec,
     vertex_pos: zmath.Vec,
     normal: zmath.Vec,
-    opt: ?LightingOption,
+    opt: LightingOption,
 ) sdl.Color {
     assert(math.approxEqAbs(f32, eye_pos[3], 1.0, math.f32_epsilon));
     assert(math.approxEqAbs(f32, vertex_pos[3], 1.0, math.f32_epsilon));
     assert(math.approxEqAbs(f32, normal[3], 0, math.f32_epsilon));
-    if (opt == null) return c;
-
-    const lparam = opt.?;
     const tc = 1.0 / 255.0;
-    const orig_color = zmath.f32x4(
-        @intToFloat(f32, c.r) * tc,
-        @intToFloat(f32, c.g) * tc,
-        @intToFloat(f32, c.b) * tc,
+    const raw_color = zmath.f32x4(
+        @intToFloat(f32, material_color.r) * tc,
+        @intToFloat(f32, material_color.g) * tc,
+        @intToFloat(f32, material_color.b) * tc,
+        0,
+    );
+    const ambient_color = raw_color * zmath.f32x4(
+        @intToFloat(f32, opt.ambient_color.r) * tc,
+        @intToFloat(f32, opt.ambient_color.g) * tc,
+        @intToFloat(f32, opt.ambient_color.b) * tc,
         0,
     );
     const sun_color = zmath.f32x4(
-        @intToFloat(f32, lparam.sun_color.r) * tc,
-        @intToFloat(f32, lparam.sun_color.g) * tc,
-        @intToFloat(f32, lparam.sun_color.b) * tc,
+        @intToFloat(f32, opt.sun_color.r) * tc,
+        @intToFloat(f32, opt.sun_color.g) * tc,
+        @intToFloat(f32, opt.sun_color.b) * tc,
         0,
     );
     const sun_dir = zmath.normalize3(zmath.f32x4(
-        lparam.sun_pos[0],
-        lparam.sun_pos[1],
-        lparam.sun_pos[2],
+        opt.sun_pos[0],
+        opt.sun_pos[1],
+        opt.sun_pos[2],
         1,
     ) - vertex_pos);
     const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
@@ -924,12 +935,16 @@ inline fn calcTintColor(
         zmath.dot3(normal, halfway_dir),
         zmath.f32x4(0, 0, 0, 0),
     );
-    const final_color = orig_color * ratios * sun_color;
+    const final_color = zmath.clamp(
+        ambient_color + raw_color * ratios * sun_color,
+        zmath.splat(zmath.Vec, 0),
+        zmath.splat(zmath.Vec, 1),
+    );
     return .{
         .r = @floatToInt(u8, final_color[0] * 255),
         .g = @floatToInt(u8, final_color[1] * 255),
         .b = @floatToInt(u8, final_color[2] * 255),
-        .a = c.a,
+        .a = material_color.a,
     };
 }
 
