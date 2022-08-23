@@ -100,8 +100,8 @@ pub fn appendVertex(
     if (opt.aabb) |ab| {
         const width = ab[3] - ab[0];
         const length = ab[5] - ab[2];
-        assert(width > 0);
-        assert(length > 0);
+        assert(width >= 0);
+        assert(length >= 0);
         const v0 = zmath.f32x4(ab[0], ab[1], ab[2], 1.0);
         const v1 = zmath.f32x4(ab[0], ab[1], ab[2] + length, 1.0);
         const v2 = zmath.f32x4(ab[0] + width, ab[1], ab[2] + length, 1.0);
@@ -821,11 +821,6 @@ pub fn drawWireframe(self: *Self, renderer: sdl.Renderer, color: sdl.Color) !voi
     defer renderer.setColor(old_color) catch unreachable;
     try renderer.setColor(color);
 
-    const vp = renderer.getViewport();
-    const x_min = @intToFloat(f32, vp.x - 1);
-    const x_max = @intToFloat(f32, vp.x + vp.width);
-    const y_min = @intToFloat(f32, vp.y - 1);
-    const y_max = @intToFloat(f32, vp.y + vp.height);
     const vs = self.vertices.items;
     var i: usize = 2;
     while (i < self.indices.items.len) : (i += 3) {
@@ -835,23 +830,8 @@ pub fn drawWireframe(self: *Self, renderer: sdl.Renderer, color: sdl.Color) !voi
         assert(idx1 < vs.len);
         assert(idx2 < vs.len);
         assert(idx3 < vs.len);
-        try renderer.drawLineF(
-            math.clamp(vs[idx1].position.x, x_min, x_max),
-            math.clamp(vs[idx1].position.y, y_min, y_max),
-            math.clamp(vs[idx2].position.x, x_min, x_max),
-            math.clamp(vs[idx2].position.y, y_min, y_max),
-        );
-        try renderer.drawLineF(
-            math.clamp(vs[idx2].position.x, x_min, x_max),
-            math.clamp(vs[idx2].position.y, y_min, y_max),
-            math.clamp(vs[idx3].position.x, x_min, x_max),
-            math.clamp(vs[idx3].position.y, y_min, y_max),
-        );
-        try renderer.drawLineF(
-            math.clamp(vs[idx3].position.x, x_min, x_max),
-            math.clamp(vs[idx3].position.y, y_min, y_max),
-            math.clamp(vs[idx1].position.x, x_min, x_max),
-            math.clamp(vs[idx1].position.y, y_min, y_max),
-        );
+        try renderer.drawLineF(vs[idx1].position.x, vs[idx1].position.y, vs[idx2].position.x, vs[idx2].position.y);
+        try renderer.drawLineF(vs[idx2].position.x, vs[idx2].position.y, vs[idx3].position.x, vs[idx3].position.y);
+        try renderer.drawLineF(vs[idx3].position.x, vs[idx3].position.y, vs[idx1].position.x, vs[idx1].position.y);
     }
 }

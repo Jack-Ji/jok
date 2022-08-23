@@ -11,15 +11,27 @@ const primitive = gfx.primitive;
 const Camera = gfx.Camera;
 
 pub const jok_window_resizable = true;
+pub const jok_window_width = 1600;
+pub const jok_window_height = 900;
 
 const PrimitiveType = enum(c_int) {
     cube,
-    sphere,
+    subdivided_sphere,
+    parametric_sphere,
+    cone,
+    cylinder,
+    disk,
+    torus,
+    icosahedron,
+    dodecahedron,
+    octahedron,
+    tetrahedron,
 };
 
 var primtype: PrimitiveType = .cube;
 var wireframe: bool = false;
 var color: [4]f32 = .{ 1.0, 1.0, 1.0, 0.8 };
+var cull_faces = true;
 var scale: [3]f32 = .{ 1, 1, 1 };
 var rotate: [3]f32 = .{ 0, 0, 0 };
 var translate: [3]f32 = .{ 0, 0, 0 };
@@ -37,7 +49,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
                 .far = 100,
             },
         },
-        [_]f32{ 0, 10, -10 },
+        [_]f32{ 3, 3, 3 },
         [_]f32{ 0, 0, 0 },
         null,
     );
@@ -97,9 +109,19 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     if (imgui.begin("Control Panel", null, null)) {
         var selection: *c_int = @ptrCast(*c_int, &primtype);
         _ = imgui.radioButton_IntPtr("cube", selection, 0);
-        _ = imgui.radioButton_IntPtr("sphere", selection, 1);
+        _ = imgui.radioButton_IntPtr("subdivided_sphere", selection, 1);
+        _ = imgui.radioButton_IntPtr("parametric_sphere", selection, 2);
+        _ = imgui.radioButton_IntPtr("cone", selection, 3);
+        _ = imgui.radioButton_IntPtr("cylinder", selection, 4);
+        _ = imgui.radioButton_IntPtr("disk", selection, 5);
+        _ = imgui.radioButton_IntPtr("torus", selection, 6);
+        _ = imgui.radioButton_IntPtr("icosahedron", selection, 7);
+        _ = imgui.radioButton_IntPtr("dodecahedron", selection, 8);
+        _ = imgui.radioButton_IntPtr("octahedron", selection, 9);
+        _ = imgui.radioButton_IntPtr("tetrahedron", selection, 10);
         imgui.separator();
         _ = imgui.checkbox("wireframe", &wireframe);
+        _ = imgui.checkbox("cull faces", &cull_faces);
         _ = imgui.colorEdit4("color", &color, null);
         _ = imgui.dragFloat3("scale", &scale, .{ .v_max = 10, .v_speed = 0.1 });
         _ = imgui.dragFloat3("rotate", &rotate, .{ .v_max = 10, .v_speed = 0.1 });
@@ -115,6 +137,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             .b = @floatToInt(u8, color[2] * 255),
             .a = @floatToInt(u8, color[3] * 255),
         },
+        .cull_faces = cull_faces,
     };
     const model = zmath.mul(
         zmath.mul(
@@ -129,13 +152,55 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         ),
         zmath.translation(translate[0], translate[1], translate[2]),
     );
+
+    primitive.clear();
+    try primitive.drawPlane(
+        camera,
+        zmath.mul(
+            zmath.mul(
+                zmath.rotationX(math.pi * 0.5),
+                zmath.translation(-0.5, -1.1, -0.5),
+            ),
+            zmath.scaling(10, 1, 10),
+        ),
+        .{ .common = .{ .color = sdl.Color.rgba(100, 100, 100, 200), .cull_faces = false } },
+    );
+    try primitive.flush(.{});
+
     primitive.clear();
     switch (primtype) {
         .cube => {
             try primitive.drawCube(camera, model, common_draw_opt);
         },
-        .sphere => {
+        .subdivided_sphere => {
             try primitive.drawSubdividedSphere(camera, model, .{ .common = common_draw_opt });
+        },
+        .parametric_sphere => {
+            try primitive.drawParametricSphere(camera, model, .{ .common = common_draw_opt });
+        },
+        .cone => {
+            try primitive.drawCone(camera, model, .{ .common = common_draw_opt });
+        },
+        .cylinder => {
+            try primitive.drawCylinder(camera, model, .{ .common = common_draw_opt });
+        },
+        .disk => {
+            try primitive.drawDisk(camera, model, .{ .common = common_draw_opt });
+        },
+        .torus => {
+            try primitive.drawTorus(camera, model, .{ .common = common_draw_opt });
+        },
+        .icosahedron => {
+            try primitive.drawIcosahedron(camera, model, common_draw_opt);
+        },
+        .dodecahedron => {
+            try primitive.drawDodecahedron(camera, model, common_draw_opt);
+        },
+        .octahedron => {
+            try primitive.drawOctahedron(camera, model, common_draw_opt);
+        },
+        .tetrahedron => {
+            try primitive.drawTetrahedron(camera, model, common_draw_opt);
         },
     }
     try primitive.flush(.{ .wireframe = wireframe });
