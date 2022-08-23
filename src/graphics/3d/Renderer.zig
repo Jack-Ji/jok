@@ -75,7 +75,7 @@ pub fn appendVertex(
     self: *Self,
     renderer: sdl.Renderer,
     model: zmath.Mat,
-    camera: *Camera,
+    camera: Camera,
     indices: []const u16,
     positions: []const [3]f32,
     colors: ?[]const sdl.Color,
@@ -814,8 +814,12 @@ pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
 }
 
 /// Draw the wireframe
-pub fn drawWireframe(self: *Self, renderer: sdl.Renderer) !void {
+pub fn drawWireframe(self: *Self, renderer: sdl.Renderer, color: sdl.Color) !void {
     if (self.indices.items.len == 0) return;
+
+    const old_color = try renderer.getColor();
+    defer renderer.setColor(old_color) catch unreachable;
+    try renderer.setColor(color);
 
     const vp = renderer.getViewport();
     const x_min = @intToFloat(f32, vp.x - 1);

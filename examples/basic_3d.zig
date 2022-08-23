@@ -39,6 +39,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         .static,
         false,
     );
+    try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
 pub fn loop(ctx: *jok.Context) anyerror!void {
@@ -82,7 +83,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         }
     }
 
-    try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.clear();
 
     renderer.clear(true);
@@ -96,7 +96,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
                 gfx.zmath.rotationY(0),
             ),
         ),
-        &camera,
+        camera,
         cube.indices,
         cube.positions,
         null,
@@ -121,15 +121,14 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             gfx.zmath.translation(-0.5, -0.5, -0.5),
             gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi / 3.0),
         ),
-        &camera,
+        camera,
         cube.indices,
         cube.positions,
         null,
         null,
         .{},
     );
-    try ctx.renderer.setColor(sdl.Color.green);
-    try renderer.drawWireframe(ctx.renderer);
+    try renderer.drawWireframe(ctx.renderer, sdl.Color.green);
 
     _ = try font.debugDraw(
         ctx.renderer,

@@ -10,32 +10,17 @@ const zmesh = @"3d".zmesh;
 const Camera = @"3d".Camera;
 
 pub const CommonDrawOption = struct {
-    camera: ?*Camera = null,
     color: sdl.Color = sdl.Color.white,
 };
 
 var rd: ?Renderer = null;
 var arena: std.heap.ArenaAllocator = undefined;
-var camera: Camera = undefined;
 var renderer: sdl.Renderer = undefined;
 
 /// Create primitive renderer
 pub fn init(ctx: *jok.Context) !void {
     rd = Renderer.init(ctx.allocator);
     arena = std.heap.ArenaAllocator.init(ctx.allocator);
-    camera = Camera.fromPositionAndTarget(
-        .{
-            .perspective = .{
-                .fov = jok.gfx.utils.degreeToRadian(70),
-                .aspect_ratio = ctx.getAspectRatio(),
-                .near = 0.1,
-                .far = 100,
-            },
-        },
-        [_]f32{ 0, 10, -10 },
-        [_]f32{ 0, 0, 0 },
-        null,
-    );
     renderer = ctx.renderer;
 }
 
@@ -58,22 +43,14 @@ pub const FlushOption = struct {
 };
 pub fn flush(opt: FlushOption) !void {
     if (opt.wireframe) {
-        const old_color = try renderer.getColor();
-        defer renderer.setColor(old_color) catch unreachable;
-        try renderer.setColor(opt.wireframe_color);
-        try rd.?.drawWireframe(renderer);
+        try rd.?.drawWireframe(renderer, opt.wireframe_color);
     } else {
         try rd.?.draw(renderer, opt.texture);
     }
 }
 
-/// Get pointer to builtin camera
-pub fn getCamera() *Camera {
-    return &camera;
-}
-
 /// Draw a cube
-pub fn drawCube(model: zmath.Mat, opt: CommonDrawOption) !void {
+pub fn drawCube(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !void {
     const S = struct {
         var shape: ?zmesh.Shape = null;
         var colors: std.ArrayList(sdl.Color) = undefined;
@@ -93,7 +70,7 @@ pub fn drawCube(model: zmath.Mat, opt: CommonDrawOption) !void {
     try rd.?.appendVertex(
         renderer,
         model,
-        opt.camera orelse &camera,
+        camera,
         S.shape.?.indices,
         S.shape.?.positions,
         S.colors.items,
@@ -103,7 +80,7 @@ pub fn drawCube(model: zmath.Mat, opt: CommonDrawOption) !void {
 }
 
 /// Draw a subdivided sphere
-pub fn drawSubdividedSphere(model: zmath.Mat, sub_num: u32, opt: CommonDrawOption) !void {
+pub fn drawSubdividedSphere(camera: Camera, model: zmath.Mat, sub_num: u32, opt: CommonDrawOption) !void {
     const S = struct {
         var shapes: ?std.AutoHashMap(u32, *zmesh.Shape) = null;
         var colors: std.ArrayList(sdl.Color) = undefined;
@@ -135,7 +112,7 @@ pub fn drawSubdividedSphere(model: zmath.Mat, sub_num: u32, opt: CommonDrawOptio
     try rd.?.appendVertex(
         renderer,
         model,
-        opt.camera orelse &camera,
+        camera,
         shape.indices,
         shape.positions,
         S.colors.items,

@@ -8,6 +8,7 @@ const imgui = jok.deps.imgui;
 const zmath = jok.zmath;
 const gfx = jok.gfx.@"3d";
 const primitive = gfx.primitive;
+const Camera = gfx.Camera;
 
 pub const jok_window_resizable = true;
 
@@ -22,9 +23,24 @@ var color: [4]f32 = .{ 1.0, 1.0, 1.0, 0.8 };
 var scale: [3]f32 = .{ 1, 1, 1 };
 var rotate: [3]f32 = .{ 0, 0, 0 };
 var translate: [3]f32 = .{ 0, 0, 0 };
+var camera: Camera = undefined;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
+
+    camera = Camera.fromPositionAndTarget(
+        .{
+            .perspective = .{
+                .fov = jok.gfx.utils.degreeToRadian(70),
+                .aspect_ratio = ctx.getAspectRatio(),
+                .near = 0.1,
+                .far = 100,
+            },
+        },
+        [_]f32{ 0, 10, -10 },
+        [_]f32{ 0, 0, 0 },
+        null,
+    );
 
     try imgui.init(ctx);
     try primitive.init(ctx);
@@ -35,7 +51,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 pub fn loop(ctx: *jok.Context) anyerror!void {
     // camera movement
     const distance = ctx.delta_tick * 2;
-    var camera = primitive.getCamera();
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -117,10 +132,10 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     primitive.clear();
     switch (primtype) {
         .cube => {
-            try primitive.drawCube(model, common_draw_opt);
+            try primitive.drawCube(camera, model, common_draw_opt);
         },
         .sphere => {
-            try primitive.drawSubdividedSphere(model, 2, common_draw_opt);
+            try primitive.drawSubdividedSphere(camera, model, 2, common_draw_opt);
         },
     }
     try primitive.flush(.{ .wireframe = wireframe });

@@ -121,7 +121,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
                     tr,
                 ),
             ),
-            &camera,
+            camera,
             cube.indices,
             cube.positions,
             null,
