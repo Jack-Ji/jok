@@ -95,7 +95,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         10,
         .{},
     );
-    try primitive.flush();
+    try primitive.flush(.{});
 
     _ = try gfx.font.debugDraw(
         ctx.renderer,

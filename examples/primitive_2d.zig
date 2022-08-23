@@ -111,7 +111,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         3,
         .{ .common = .{ .color = sdl.Color.cyan } },
     );
-    try primitive.flush();
+    try primitive.flush(.{});
 }
 
 pub fn quit(ctx: *jok.Context) void {

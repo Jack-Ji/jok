@@ -32,7 +32,11 @@ pub fn clear() void {
 }
 
 /// Render data
-pub fn flush() !void {
+pub const FlushOption = struct {
+    // TODO
+};
+pub fn flush(opt: FlushOption) !void {
+    _ = opt;
     try rd.?.draw(renderer);
 }
 
