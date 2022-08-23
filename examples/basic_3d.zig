@@ -12,8 +12,6 @@ var tex: sdl.Texture = undefined;
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
-    gfx.zmesh.init(ctx.allocator);
-
     camera = gfx.Camera.fromPositionAndTarget(
         .{
             //.orthographic = .{
@@ -156,7 +154,6 @@ pub fn quit(ctx: *jok.Context) void {
     std.log.info("game quit", .{});
 
     cube.deinit();
-    gfx.zmesh.deinit();
     renderer.deinit();
 }
 

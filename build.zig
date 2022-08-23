@@ -40,8 +40,8 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "font_demo", .opt = .{} },
         .{ .name = "audio_demo", .opt = .{ .link_zaudio = true } },
         .{ .name = "audio_synthesize_demo", .opt = .{} },
-        .{ .name = "basic_3d", .opt = .{ .link_zmesh = true } },
-        .{ .name = "benchmark_3d", .opt = .{ .link_zmesh = true } },
+        .{ .name = "basic_3d", .opt = .{} },
+        .{ .name = "benchmark_3d", .opt = .{} },
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |demo| {
@@ -72,8 +72,6 @@ pub const BuildOptions = struct {
     link_chipmunk: bool = false,
     link_nfd: bool = false,
     link_zaudio: bool = false,
-    link_zmesh: bool = false,
-    link_znoise: bool = false,
     link_zbullet: bool = false,
     link_znetwork: bool = false,
     link_ztracy: bool = false,
@@ -99,16 +97,15 @@ pub fn createGame(
     const sdl = sdlsdk.init(exe.builder);
     sdl.link(exe, .dynamic);
     stb.link(exe);
+    zmesh.link(exe, zmesh.BuildOptionsStep.init(b, .{}));
+    znoise.link(exe);
 
     // Link optional dependencies
-    const zmesh_opt = zmesh.BuildOptionsStep.init(b, .{});
     const ztracy_opt = ztracy.BuildOptionsStep.init(b, .{ .enable_ztracy = opt.enable_tracy });
     if (opt.link_imgui) imgui.link(exe);
     if (opt.link_chipmunk) chipmunk.link(exe);
     if (opt.link_nfd) nfd.link(exe);
     if (opt.link_zaudio) zaudio.link(exe);
-    if (opt.link_zmesh) zmesh.link(exe, zmesh_opt);
-    if (opt.link_znoise) znoise.link(exe);
     if (opt.link_zbullet) zbullet.link(exe);
     if (opt.link_znetwork) znetwork.link(exe);
     if (opt.link_ztracy) ztracy.link(exe, ztracy_opt);
@@ -119,7 +116,6 @@ pub fn createGame(
         .source = .{ .path = thisDir() ++ "/src/jok.zig" },
         .dependencies = &[_]std.build.Pkg{
             sdl.getWrapperPackage("sdl"),
-            zmesh_opt.getPkg(),
         },
     };
     const game = std.build.Pkg{

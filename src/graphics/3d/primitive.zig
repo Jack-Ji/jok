@@ -6,6 +6,7 @@ const sdl = @import("sdl");
 const jok = @import("../../jok.zig");
 const @"3d" = jok.gfx.@"3d";
 const zmath = @"3d".zmath;
+const zmesh = @"3d".zmesh;
 const Camera = @"3d".Camera;
 
 pub const CommonDrawOption = struct {

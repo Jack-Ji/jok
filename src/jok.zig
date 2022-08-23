@@ -13,6 +13,9 @@ pub const zaudio = deps.zaudio;
 /// Linear algebra math module
 pub const zmath = deps.zmath;
 
+/// Noise generator
+pub const znoise = deps.znoise;
+
 /// Vendor libraries
 pub const deps = @import("deps/deps.zig");
 
