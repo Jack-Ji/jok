@@ -35,6 +35,8 @@ var cull_faces = true;
 var scale: [3]f32 = .{ 1, 1, 1 };
 var rotate: [3]f32 = .{ 0, 0, 0 };
 var translate: [3]f32 = .{ 0, 0, 0 };
+var sun_pos: [3]f32 = .{ 2, 2, 2 };
+var sun_color: [3]f32 = .{ 1, 1, 1 };
 var camera: Camera = undefined;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
@@ -126,9 +128,47 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.dragFloat3("scale", &scale, .{ .v_max = 10, .v_speed = 0.1 });
         _ = imgui.dragFloat3("rotate", &rotate, .{ .v_max = 10, .v_speed = 0.1 });
         _ = imgui.dragFloat3("translate", &translate, .{ .v_max = 10, .v_speed = 0.1 });
+        imgui.separator();
+        _ = imgui.dragFloat3("sun position", &sun_pos, .{ .v_max = 2, .v_speed = 0.1 });
+        _ = imgui.dragFloat3("sun color", &sun_color, .{ .v_max = 1, .v_speed = 0.1 });
     }
     imgui.end();
     imgui.endFrame();
+
+    primitive.clear();
+    try primitive.drawPlane(
+        camera,
+        zmath.mul(
+            zmath.mul(
+                zmath.rotationX(math.pi * 0.5),
+                zmath.translation(-0.5, -1.1, -0.5),
+            ),
+            zmath.scaling(10, 1, 10),
+        ),
+        .{
+            .common = .{
+                .color = sdl.Color.rgba(100, 100, 100, 200),
+                .cull_faces = false,
+            },
+        },
+    );
+    try primitive.drawSubdividedSphere(
+        camera,
+        zmath.mul(
+            zmath.scaling(0.1, 0.1, 0.1),
+            zmath.translation(sun_pos[0], sun_pos[1], sun_pos[2]),
+        ),
+        .{
+            .common = .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, sun_color[0] * 255),
+                    @floatToInt(u8, sun_color[1] * 255),
+                    @floatToInt(u8, sun_color[2] * 255),
+                ),
+            },
+        },
+    );
+    try primitive.flush(.{});
 
     const common_draw_opt = primitive.CommonDrawOption{
         .color = .{
@@ -138,6 +178,15 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             .a = @floatToInt(u8, color[3] * 255),
         },
         .cull_faces = cull_faces,
+        .lighting_param = .{
+            .sun_pos = sun_pos,
+            .sun_color = .{
+                .r = @floatToInt(u8, sun_color[0] * 255),
+                .g = @floatToInt(u8, sun_color[1] * 255),
+                .b = @floatToInt(u8, sun_color[2] * 255),
+                .a = 255,
+            },
+        },
     };
     const model = zmath.mul(
         zmath.mul(
@@ -152,21 +201,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         ),
         zmath.translation(translate[0], translate[1], translate[2]),
     );
-
-    primitive.clear();
-    try primitive.drawPlane(
-        camera,
-        zmath.mul(
-            zmath.mul(
-                zmath.rotationX(math.pi * 0.5),
-                zmath.translation(-0.5, -1.1, -0.5),
-            ),
-            zmath.scaling(10, 1, 10),
-        ),
-        .{ .common = .{ .color = sdl.Color.rgba(100, 100, 100, 200), .cull_faces = false } },
-    );
-    try primitive.flush(.{});
-
     primitive.clear();
     switch (primtype) {
         .cube => {

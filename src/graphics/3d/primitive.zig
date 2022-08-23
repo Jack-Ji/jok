@@ -12,6 +12,7 @@ const Camera = @"3d".Camera;
 pub const CommonDrawOption = struct {
     color: sdl.Color = sdl.Color.white,
     cull_faces: bool = true,
+    lighting_param: ?Renderer.LightingOption = null,
 };
 
 var rd: ?Renderer = null;
@@ -76,9 +77,14 @@ pub fn drawCube(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !void {
         camera,
         S.shape.?.indices,
         S.shape.?.positions,
+        S.shape.?.normals.?,
         S.colors.items,
         null,
-        .{ .aabb = S.aabb, .cull_faces = opt.cull_faces },
+        .{
+            .aabb = S.aabb,
+            .cull_faces = opt.cull_faces,
+            .lighting = opt.lighting_param,
+        },
     );
 }
 
@@ -136,9 +142,14 @@ pub fn drawPlane(camera: Camera, model: zmath.Mat, opt: PlaneDrawOption) !void {
         camera,
         mesh.shape.indices,
         mesh.shape.positions,
+        mesh.shape.normals.?,
         S.colors.items,
         null,
-        .{ .aabb = mesh.aabb, .cull_faces = opt.common.cull_faces },
+        .{
+            .aabb = mesh.aabb,
+            .cull_faces = opt.common.cull_faces,
+            .lighting = opt.common.lighting_param,
+        },
     );
 }
 
@@ -196,9 +207,14 @@ pub fn drawParametricSphere(camera: Camera, model: zmath.Mat, opt: ParametricSph
         camera,
         mesh.shape.indices,
         mesh.shape.positions,
+        mesh.shape.normals.?,
         S.colors.items,
         null,
-        .{ .aabb = mesh.aabb, .cull_faces = opt.common.cull_faces },
+        .{
+            .aabb = mesh.aabb,
+            .cull_faces = opt.common.cull_faces,
+            .lighting = opt.common.lighting_param,
+        },
     );
 }
 
@@ -248,9 +264,14 @@ pub fn drawSubdividedSphere(camera: Camera, model: zmath.Mat, opt: SubdividedSph
         camera,
         mesh.shape.indices,
         mesh.shape.positions,
+        mesh.shape.normals.?,
         S.colors.items,
         null,
-        .{ .aabb = mesh.aabb, .cull_faces = opt.common.cull_faces },
+        .{
+            .aabb = mesh.aabb,
+            .cull_faces = opt.common.cull_faces,
+            .lighting = opt.common.lighting_param,
+        },
     );
 }
 
@@ -308,9 +329,14 @@ pub fn drawCone(camera: Camera, model: zmath.Mat, opt: ConeDrawOption) !void {
         camera,
         mesh.shape.indices,
         mesh.shape.positions,
+        mesh.shape.normals.?,
         S.colors.items,
         null,
-        .{ .aabb = mesh.aabb, .cull_faces = opt.common.cull_faces },
+        .{
+            .aabb = mesh.aabb,
+            .cull_faces = opt.common.cull_faces,
+            .lighting = opt.common.lighting_param,
+        },
     );
 }
 
@@ -368,9 +394,14 @@ pub fn drawCylinder(camera: Camera, model: zmath.Mat, opt: CylinderDrawOption) !
         camera,
         mesh.shape.indices,
         mesh.shape.positions,
+        mesh.shape.normals.?,
         S.colors.items,
         null,
-        .{ .aabb = mesh.aabb, .cull_faces = opt.common.cull_faces },
+        .{
+            .aabb = mesh.aabb,
+            .cull_faces = opt.common.cull_faces,
+            .lighting = opt.common.lighting_param,
+        },
     );
 }
 
@@ -439,9 +470,14 @@ pub fn drawDisk(camera: Camera, model: zmath.Mat, opt: DiskDrawOption) !void {
         camera,
         mesh.shape.indices,
         mesh.shape.positions,
+        mesh.shape.normals.?,
         S.colors.items,
         null,
-        .{ .aabb = mesh.aabb, .cull_faces = opt.common.cull_faces },
+        .{
+            .aabb = mesh.aabb,
+            .cull_faces = opt.common.cull_faces,
+            .lighting = opt.common.lighting_param,
+        },
     );
 }
 
@@ -505,9 +541,14 @@ pub fn drawTorus(camera: Camera, model: zmath.Mat, opt: TorusDrawOption) !void {
         camera,
         mesh.shape.indices,
         mesh.shape.positions,
+        mesh.shape.normals.?,
         S.colors.items,
         null,
-        .{ .aabb = mesh.aabb, .cull_faces = opt.common.cull_faces },
+        .{
+            .aabb = mesh.aabb,
+            .cull_faces = opt.common.cull_faces,
+            .lighting = opt.common.lighting_param,
+        },
     );
 }
 
@@ -537,9 +578,14 @@ pub fn drawIcosahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) 
         camera,
         S.shape.?.indices,
         S.shape.?.positions,
+        S.shape.?.normals.?,
         S.colors.items,
         null,
-        .{ .aabb = S.aabb, .cull_faces = opt.cull_faces },
+        .{
+            .aabb = S.aabb,
+            .cull_faces = opt.cull_faces,
+            .lighting = opt.lighting_param,
+        },
     );
 }
 
@@ -569,9 +615,14 @@ pub fn drawDodecahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption)
         camera,
         S.shape.?.indices,
         S.shape.?.positions,
+        S.shape.?.normals.?,
         S.colors.items,
         null,
-        .{ .aabb = S.aabb, .cull_faces = opt.cull_faces },
+        .{
+            .aabb = S.aabb,
+            .cull_faces = opt.cull_faces,
+            .lighting = opt.lighting_param,
+        },
     );
 }
 
@@ -601,9 +652,14 @@ pub fn drawOctahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !
         camera,
         S.shape.?.indices,
         S.shape.?.positions,
+        S.shape.?.normals.?,
         S.colors.items,
         null,
-        .{ .aabb = S.aabb, .cull_faces = opt.cull_faces },
+        .{
+            .aabb = S.aabb,
+            .cull_faces = opt.cull_faces,
+            .lighting = opt.lighting_param,
+        },
     );
 }
 
@@ -633,8 +689,13 @@ pub fn drawTetrahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) 
         camera,
         S.shape.?.indices,
         S.shape.?.positions,
+        S.shape.?.normals.?,
         S.colors.items,
         null,
-        .{ .aabb = S.aabb, .cull_faces = opt.cull_faces },
+        .{
+            .aabb = S.aabb,
+            .cull_faces = opt.cull_faces,
+            .lighting = opt.lighting_param,
+        },
     );
 }

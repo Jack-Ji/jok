@@ -37,6 +37,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     renderer = gfx.Renderer.init(ctx.allocator);
     cube = gfx.zmesh.Shape.initCube();
     cube.computeAabb(&aabb);
+    cube.computeNormals();
     tex = try jok.gfx.utils.createTextureFromFile(
         ctx.renderer,
         "assets/images/image5.jpg",
@@ -124,6 +125,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             camera,
             cube.indices,
             cube.positions,
+            cube.normals.?,
             null,
             &[_][2]f32{
                 .{ 0, 1 },
