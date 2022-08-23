@@ -54,11 +54,13 @@ pub fn drawCube(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !void {
     const S = struct {
         var shape: ?zmesh.Shape = null;
         var colors: std.ArrayList(sdl.Color) = undefined;
+        var aabb: [6]f32 = undefined;
     };
 
     if (S.shape == null) {
         S.shape = zmesh.Shape.initCube();
         S.shape.?.computeNormals();
+        S.shape.?.computeAabb(&S.aabb);
         S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
     }
 
@@ -75,37 +77,43 @@ pub fn drawCube(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !void {
         S.shape.?.positions,
         S.colors.items,
         null,
-        .{},
+        .{ .aabb = S.aabb },
     );
 }
 
 /// Draw a subdivided sphere
 pub fn drawSubdividedSphere(camera: Camera, model: zmath.Mat, sub_num: u32, opt: CommonDrawOption) !void {
     const S = struct {
-        var shapes: ?std.AutoHashMap(u32, *zmesh.Shape) = null;
+        const Mesh = struct {
+            shape: zmesh.Shape,
+            aabb: [6]f32,
+        };
+
+        var meshes: ?std.AutoHashMap(u32, *Mesh) = null;
         var colors: std.ArrayList(sdl.Color) = undefined;
     };
 
-    if (S.shapes == null) {
-        S.shapes = std.AutoHashMap(u32, *zmesh.Shape).init(arena.allocator());
+    if (S.meshes == null) {
+        S.meshes = std.AutoHashMap(u32, *S.Mesh).init(arena.allocator());
         S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 20);
     }
 
-    var shape = BLK: {
+    var mesh = BLK: {
         assert(sub_num > 0);
-        if (S.shapes.?.get(sub_num)) |s| {
+        if (S.meshes.?.get(sub_num)) |s| {
             break :BLK s;
         }
 
-        var s = try arena.allocator().create(zmesh.Shape);
-        s.* = zmesh.Shape.initSubdividedSphere(@intCast(i32, sub_num));
-        s.computeNormals();
-        try S.shapes.?.put(sub_num, s);
-        break :BLK s;
+        var m = try arena.allocator().create(S.Mesh);
+        m.shape = zmesh.Shape.initSubdividedSphere(@intCast(i32, sub_num));
+        m.shape.computeAabb(&m.aabb);
+        m.shape.computeNormals();
+        try S.meshes.?.put(sub_num, m);
+        break :BLK m;
     };
 
     S.colors.clearRetainingCapacity();
-    for (shape.positions) |_| {
+    for (mesh.shape.positions) |_| {
         try S.colors.append(opt.color);
     }
 
@@ -113,10 +121,10 @@ pub fn drawSubdividedSphere(camera: Camera, model: zmath.Mat, sub_num: u32, opt:
         renderer,
         model,
         camera,
-        shape.indices,
-        shape.positions,
+        mesh.shape.indices,
+        mesh.shape.positions,
         S.colors.items,
         null,
-        .{},
+        .{ .aabb = mesh.aabb },
     );
 }
