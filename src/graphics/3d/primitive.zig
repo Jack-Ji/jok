@@ -11,6 +11,7 @@ const Camera = @"3d".Camera;
 
 pub const CommonDrawOption = struct {
     color: sdl.Color = sdl.Color.white,
+    cull_faces: bool = true,
 };
 
 var rd: ?Renderer = null;
@@ -77,12 +78,16 @@ pub fn drawCube(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !void {
         S.shape.?.positions,
         S.colors.items,
         null,
-        .{ .aabb = S.aabb },
+        .{ .aabb = S.aabb, .cull_faces = opt.cull_faces },
     );
 }
 
 /// Draw a subdivided sphere
-pub fn drawSubdividedSphere(camera: Camera, model: zmath.Mat, sub_num: u32, opt: CommonDrawOption) !void {
+pub const SubdividedSphereDrawOption = struct {
+    common: CommonDrawOption,
+    sub_num: u32 = 2,
+};
+pub fn drawSubdividedSphere(camera: Camera, model: zmath.Mat, opt: SubdividedSphereDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -99,22 +104,22 @@ pub fn drawSubdividedSphere(camera: Camera, model: zmath.Mat, sub_num: u32, opt:
     }
 
     var mesh = BLK: {
-        assert(sub_num > 0);
-        if (S.meshes.?.get(sub_num)) |s| {
+        assert(opt.sub_num > 0);
+        if (S.meshes.?.get(opt.sub_num)) |s| {
             break :BLK s;
         }
 
         var m = try arena.allocator().create(S.Mesh);
-        m.shape = zmesh.Shape.initSubdividedSphere(@intCast(i32, sub_num));
+        m.shape = zmesh.Shape.initSubdividedSphere(@intCast(i32, opt.sub_num));
         m.shape.computeAabb(&m.aabb);
         m.shape.computeNormals();
-        try S.meshes.?.put(sub_num, m);
+        try S.meshes.?.put(opt.sub_num, m);
         break :BLK m;
     };
 
     S.colors.clearRetainingCapacity();
     for (mesh.shape.positions) |_| {
-        try S.colors.append(opt.color);
+        try S.colors.append(opt.common.color);
     }
 
     try rd.?.appendVertex(
@@ -125,6 +130,6 @@ pub fn drawSubdividedSphere(camera: Camera, model: zmath.Mat, sub_num: u32, opt:
         mesh.shape.positions,
         S.colors.items,
         null,
-        .{ .aabb = mesh.aabb },
+        .{ .aabb = mesh.aabb, .cull_faces = opt.common.cull_faces },
     );
 }

@@ -135,7 +135,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             try primitive.drawCube(camera, model, common_draw_opt);
         },
         .sphere => {
-            try primitive.drawSubdividedSphere(camera, model, 2, common_draw_opt);
+            try primitive.drawSubdividedSphere(camera, model, .{ .common = common_draw_opt });
         },
     }
     try primitive.flush(.{ .wireframe = wireframe });
