@@ -23,9 +23,12 @@ large_front_triangles: std.ArrayList([3]u32),
 
 /// Temporary storage for clipping
 clip_vertices: std.ArrayList(zmath.Vec),
-clip_normals: std.ArrayList(zmath.Vec),
 clip_colors: std.ArrayList(sdl.Color),
 clip_texcoords: std.ArrayList(sdl.PointF),
+
+/// Vertices in world space
+world_positions: std.ArrayList(zmath.Vec),
+world_normals: std.ArrayList(zmath.Vec),
 
 pub fn init(allocator: std.mem.Allocator) Self {
     return .{
@@ -34,9 +37,10 @@ pub fn init(allocator: std.mem.Allocator) Self {
         .depths = std.ArrayList(f32).init(allocator),
         .large_front_triangles = std.ArrayList([3]u32).init(allocator),
         .clip_vertices = std.ArrayList(zmath.Vec).init(allocator),
-        .clip_normals = std.ArrayList(zmath.Vec).init(allocator),
         .clip_colors = std.ArrayList(sdl.Color).init(allocator),
         .clip_texcoords = std.ArrayList(sdl.PointF).init(allocator),
+        .world_positions = std.ArrayList(zmath.Vec).init(allocator),
+        .world_normals = std.ArrayList(zmath.Vec).init(allocator),
     };
 }
 
@@ -46,9 +50,10 @@ pub fn deinit(self: *Self) void {
     self.depths.deinit();
     self.large_front_triangles.deinit();
     self.clip_vertices.deinit();
-    self.clip_normals.deinit();
     self.clip_colors.deinit();
     self.clip_texcoords.deinit();
+    self.world_positions.deinit();
+    self.world_normals.deinit();
 }
 
 /// Clear mesh data
@@ -159,14 +164,16 @@ pub fn appendVertex(
 
     // Do face-culling and W-pannel clipping
     self.clip_vertices.clearRetainingCapacity();
-    self.clip_normals.clearRetainingCapacity();
     self.clip_colors.clearRetainingCapacity();
     self.clip_texcoords.clearRetainingCapacity();
+    self.world_positions.clearRetainingCapacity();
+    self.world_normals.clearRetainingCapacity();
     const ensure_size = indices.len * 2;
     try self.clip_vertices.ensureTotalCapacityPrecise(ensure_size);
-    try self.clip_normals.ensureTotalCapacityPrecise(ensure_size);
     try self.clip_colors.ensureTotalCapacityPrecise(ensure_size);
     try self.clip_texcoords.ensureTotalCapacityPrecise(ensure_size);
+    try self.world_positions.ensureTotalCapacityPrecise(ensure_size);
+    try self.world_normals.ensureTotalCapacityPrecise(ensure_size);
     var i: usize = 2;
     while (i < indices.len) : (i += 3) {
         const idx0 = indices[i - 2];
@@ -194,13 +201,19 @@ pub fn appendVertex(
         }
 
         // Clip triangles behind camera
+        const world_positions = zmath.mul(zmath.Mat{
+            v0,
+            v1,
+            v2,
+            zmath.f32x4(0.0, 0.0, 0.0, 1.0),
+        }, model);
+        const world_normals = [3]zmath.Vec{ n0, n1, n2 };
         const clip_positions = zmath.mul(zmath.Mat{
             v0,
             v1,
             v2,
             zmath.f32x4(0.0, 0.0, 0.0, 1.0),
         }, mvp);
-        const clip_normals = [3]zmath.Vec{ n0, n1, n2 };
         const clip_colors: ?[3]sdl.Color = if (colors) |cs|
             [3]sdl.Color{ cs[idx0], cs[idx1], cs[idx2] }
         else
@@ -213,7 +226,13 @@ pub fn appendVertex(
             }
         else
             null;
-        self.clipTriangle(clip_positions[0..3], &clip_normals, clip_colors, clip_texcoords);
+        self.clipTriangle(
+            world_positions[0..3],
+            &world_normals,
+            clip_positions[0..3],
+            clip_colors,
+            clip_texcoords,
+        );
     }
     if (self.clip_vertices.items.len == 0) return;
     assert(@rem(self.clip_vertices.items.len, 3) == 0);
@@ -228,15 +247,18 @@ pub fn appendVertex(
         const idx0 = i - 2;
         const idx1 = i - 1;
         const idx2 = i;
-        const v0 = self.clip_vertices.items[idx0];
-        const v1 = self.clip_vertices.items[idx1];
-        const v2 = self.clip_vertices.items[idx2];
-        const n0 = self.clip_normals.items[idx0];
-        const n1 = self.clip_normals.items[idx1];
-        const n2 = self.clip_normals.items[idx2];
-        const ndc0 = v0 / zmath.splat(zmath.Vec, v0[3]);
-        const ndc1 = v1 / zmath.splat(zmath.Vec, v1[3]);
-        const ndc2 = v2 / zmath.splat(zmath.Vec, v2[3]);
+        const clip_v0 = self.clip_vertices.items[idx0];
+        const clip_v1 = self.clip_vertices.items[idx1];
+        const clip_v2 = self.clip_vertices.items[idx2];
+        const world_v0 = self.world_positions.items[idx0];
+        const world_v1 = self.world_positions.items[idx1];
+        const world_v2 = self.world_positions.items[idx2];
+        const n0 = self.world_normals.items[idx0];
+        const n1 = self.world_normals.items[idx1];
+        const n2 = self.world_normals.items[idx2];
+        const ndc0 = clip_v0 / zmath.splat(zmath.Vec, clip_v0[3]);
+        const ndc1 = clip_v1 / zmath.splat(zmath.Vec, clip_v1[3]);
+        const ndc2 = clip_v2 / zmath.splat(zmath.Vec, clip_v2[3]);
 
         // Ignore triangles outside of NDC
         if (isTriangleOutside(ndc0, ndc1, ndc2)) {
@@ -259,7 +281,7 @@ pub fn appendVertex(
                 .color = calcTintColor(
                     if (colors) |_| self.clip_colors.items[idx0] else sdl.Color.white,
                     camera.position,
-                    v0,
+                    world_v0,
                     n0,
                     opt.lighting,
                 ),
@@ -270,7 +292,7 @@ pub fn appendVertex(
                 .color = calcTintColor(
                     if (colors) |_| self.clip_colors.items[idx1] else sdl.Color.white,
                     camera.position,
-                    v1,
+                    world_v1,
                     n1,
                     opt.lighting,
                 ),
@@ -281,7 +303,7 @@ pub fn appendVertex(
                 .color = calcTintColor(
                     if (colors) |_| self.clip_colors.items[idx2] else sdl.Color.white,
                     camera.position,
-                    v2,
+                    world_v2,
                     n2,
                     opt.lighting,
                 ),
@@ -361,21 +383,25 @@ pub fn appendVertex(
 /// We are conceptually clipping away stuff behind camera
 inline fn clipTriangle(
     self: *Self,
-    positions: []const zmath.Vec,
-    normals: []const zmath.Vec,
+    world_positions: []const zmath.Vec,
+    world_normals: []const zmath.Vec,
+    clip_positions: []const zmath.Vec,
     colors: ?[3]sdl.Color,
     texcoords: ?[3]sdl.PointF,
 ) void {
     const clip_plane_w = 0.00001;
-    var v0 = positions[0];
-    var v1 = positions[1];
-    var v2 = positions[2];
-    var n0 = normals[0];
-    var n1 = normals[1];
-    var n2 = normals[2];
-    var d_v0 = v0[3] - clip_plane_w;
-    var d_v1 = v1[3] - clip_plane_w;
-    var d_v2 = v2[3] - clip_plane_w;
+    var world_v0 = world_positions[0];
+    var world_v1 = world_positions[1];
+    var world_v2 = world_positions[2];
+    var clip_v0 = clip_positions[0];
+    var clip_v1 = clip_positions[1];
+    var clip_v2 = clip_positions[2];
+    var n0 = world_normals[0];
+    var n1 = world_normals[1];
+    var n2 = world_normals[2];
+    var d_v0 = clip_v0[3] - clip_plane_w;
+    var d_v1 = clip_v1[3] - clip_plane_w;
+    var d_v2 = clip_v2[3] - clip_plane_w;
     var is_v0_inside = d_v0 >= 0;
     var is_v1_inside = d_v1 >= 0;
     var is_v2_inside = d_v2 >= 0;
@@ -401,8 +427,10 @@ inline fn clipTriangle(
 
     // Rearrange order of vertices, make sure first vertex is inside
     if (!is_v0_inside and is_v1_inside) {
-        std.mem.swap(zmath.Vec, &v0, &v1);
-        std.mem.swap(zmath.Vec, &v1, &v2);
+        std.mem.swap(zmath.Vec, &clip_v0, &clip_v1);
+        std.mem.swap(zmath.Vec, &clip_v1, &clip_v2);
+        std.mem.swap(zmath.Vec, &world_v0, &world_v1);
+        std.mem.swap(zmath.Vec, &world_v1, &world_v2);
         std.mem.swap(zmath.Vec, &n0, &n1);
         std.mem.swap(zmath.Vec, &n1, &n2);
         std.mem.swap(f32, &d_v0, &d_v1);
@@ -418,8 +446,10 @@ inline fn clipTriangle(
             std.mem.swap(sdl.PointF, &t1, &t2);
         }
     } else if (!is_v0_inside and !is_v1_inside) {
-        std.mem.swap(zmath.Vec, &v1, &v2);
-        std.mem.swap(zmath.Vec, &v0, &v1);
+        std.mem.swap(zmath.Vec, &clip_v1, &clip_v2);
+        std.mem.swap(zmath.Vec, &clip_v0, &clip_v1);
+        std.mem.swap(zmath.Vec, &world_v1, &world_v2);
+        std.mem.swap(zmath.Vec, &world_v0, &world_v1);
         std.mem.swap(zmath.Vec, &n1, &n2);
         std.mem.swap(zmath.Vec, &n0, &n1);
         std.mem.swap(f32, &d_v1, &d_v2);
@@ -438,28 +468,32 @@ inline fn clipTriangle(
 
     // Append first vertex
     assert(is_v0_inside);
-    self.clip_vertices.appendAssumeCapacity(v0);
-    self.clip_normals.appendAssumeCapacity(n0);
+    self.clip_vertices.appendAssumeCapacity(clip_v0);
+    self.world_positions.appendAssumeCapacity(world_v0);
+    self.world_normals.appendAssumeCapacity(n0);
     if (colors) |_| self.clip_colors.appendAssumeCapacity(c0);
     if (texcoords) |_| self.clip_texcoords.appendAssumeCapacity(t0);
 
     // Clip next 2 vertices, depending on their positions
     if (is_v1_inside) {
-        self.clip_vertices.appendAssumeCapacity(v1);
-        self.clip_normals.appendAssumeCapacity(n1);
+        self.clip_vertices.appendAssumeCapacity(clip_v1);
+        self.world_positions.appendAssumeCapacity(world_v1);
+        self.world_normals.appendAssumeCapacity(n1);
         if (colors) |_| self.clip_colors.appendAssumeCapacity(c1);
         if (texcoords) |_| self.clip_texcoords.appendAssumeCapacity(t1);
 
         if (is_v2_inside) {
-            self.clip_vertices.appendAssumeCapacity(v2);
-            self.clip_normals.appendAssumeCapacity(n2);
+            self.clip_vertices.appendAssumeCapacity(clip_v2);
+            self.world_positions.appendAssumeCapacity(world_v2);
+            self.world_normals.appendAssumeCapacity(n2);
             if (colors) |_| self.clip_colors.appendAssumeCapacity(c2);
             if (texcoords) |_| self.clip_texcoords.appendAssumeCapacity(t2);
         } else {
             // First triangle
             var lerp = d_v1 / (d_v1 - d_v2);
             assert(lerp >= 0 and lerp <= 1);
-            var lerp_position = zmath.lerp(v1, v2, lerp);
+            var lerp_world_position = zmath.lerp(world_v1, world_v2, lerp);
+            var lerp_clip_position = zmath.lerp(clip_v1, clip_v2, lerp);
             var lerp_normal = zmath.normalize3(zmath.lerp(n1, n2, lerp));
             var lerp_color: ?sdl.Color = if (colors) |_| sdl.Color.rgba(
                 @floatToInt(u8, @intToFloat(f32, c1.r) + (@intToFloat(f32, c2.r) - @intToFloat(f32, c1.r)) * lerp),
@@ -471,23 +505,27 @@ inline fn clipTriangle(
                 .x = t1.x + (t2.x - t1.x) * lerp,
                 .y = t1.y + (t2.y - t1.y) * lerp,
             } else null;
-            self.clip_vertices.appendAssumeCapacity(lerp_position);
-            self.clip_normals.appendAssumeCapacity(lerp_normal);
+            self.clip_vertices.appendAssumeCapacity(lerp_clip_position);
+            self.world_positions.appendAssumeCapacity(lerp_world_position);
+            self.world_normals.appendAssumeCapacity(lerp_normal);
             if (lerp_color) |c| self.clip_colors.appendAssumeCapacity(c);
             if (lerp_texcoord) |t| self.clip_texcoords.appendAssumeCapacity(t);
 
             // Second triangle
-            self.clip_vertices.appendAssumeCapacity(v0);
-            self.clip_normals.appendAssumeCapacity(n0);
+            self.clip_vertices.appendAssumeCapacity(clip_v0);
+            self.world_positions.appendAssumeCapacity(world_v0);
+            self.world_normals.appendAssumeCapacity(n0);
             if (colors) |_| self.clip_colors.appendAssumeCapacity(c0);
             if (texcoords) |_| self.clip_texcoords.appendAssumeCapacity(t0);
-            self.clip_vertices.appendAssumeCapacity(lerp_position);
-            self.clip_normals.appendAssumeCapacity(lerp_normal);
+            self.clip_vertices.appendAssumeCapacity(lerp_clip_position);
+            self.world_positions.appendAssumeCapacity(lerp_world_position);
+            self.world_normals.appendAssumeCapacity(lerp_normal);
             if (lerp_color) |c| self.clip_colors.appendAssumeCapacity(c);
             if (lerp_texcoord) |t| self.clip_texcoords.appendAssumeCapacity(t);
             lerp = d_v0 / (d_v0 - d_v2);
             assert(lerp >= 0 and lerp <= 1);
-            lerp_position = zmath.lerp(v0, v2, lerp);
+            lerp_world_position = zmath.lerp(world_v0, world_v2, lerp);
+            lerp_clip_position = zmath.lerp(clip_v0, clip_v2, lerp);
             lerp_normal = zmath.normalize3(zmath.lerp(n0, n2, lerp));
             lerp_color = if (colors) |_| sdl.Color.rgba(
                 @floatToInt(u8, @intToFloat(f32, c0.r) + (@intToFloat(f32, c2.r) - @intToFloat(f32, c0.r)) * lerp),
@@ -499,15 +537,17 @@ inline fn clipTriangle(
                 .x = t0.x + (t2.x - t0.x) * lerp,
                 .y = t0.y + (t2.y - t0.y) * lerp,
             } else null;
-            self.clip_vertices.appendAssumeCapacity(lerp_position);
-            self.clip_normals.appendAssumeCapacity(lerp_normal);
+            self.clip_vertices.appendAssumeCapacity(lerp_clip_position);
+            self.world_positions.appendAssumeCapacity(lerp_world_position);
+            self.world_normals.appendAssumeCapacity(lerp_normal);
             if (lerp_color) |c| self.clip_colors.appendAssumeCapacity(c);
             if (lerp_texcoord) |t| self.clip_texcoords.appendAssumeCapacity(t);
         }
     } else {
         var lerp = d_v0 / (d_v0 - d_v1);
         assert(lerp >= 0 and lerp <= 1);
-        var lerp_position = zmath.lerp(v0, v1, lerp);
+        var lerp_world_position = zmath.lerp(world_v0, world_v1, lerp);
+        var lerp_clip_position = zmath.lerp(clip_v0, clip_v1, lerp);
         var lerp_normal = zmath.normalize3(zmath.lerp(n0, n1, lerp));
         var lerp_color: ?sdl.Color = if (colors) |_| sdl.Color.rgba(
             @floatToInt(u8, @intToFloat(f32, c0.r) + (@intToFloat(f32, c1.r) - @intToFloat(f32, c0.r)) * lerp),
@@ -519,8 +559,9 @@ inline fn clipTriangle(
             .x = t0.x + (t1.x - t0.x) * lerp,
             .y = t0.y + (t1.y - t0.y) * lerp,
         } else null;
-        self.clip_vertices.appendAssumeCapacity(lerp_position);
-        self.clip_normals.appendAssumeCapacity(lerp_normal);
+        self.clip_vertices.appendAssumeCapacity(lerp_clip_position);
+        self.world_positions.appendAssumeCapacity(lerp_world_position);
+        self.world_normals.appendAssumeCapacity(lerp_normal);
         if (lerp_color) |c| self.clip_colors.appendAssumeCapacity(c);
         if (lerp_texcoord) |t| self.clip_texcoords.appendAssumeCapacity(t);
 
@@ -528,7 +569,8 @@ inline fn clipTriangle(
             // First triangle
             lerp = d_v1 / (d_v1 - d_v2);
             assert(lerp >= 0 and lerp <= 1);
-            lerp_position = zmath.lerp(v1, v2, lerp);
+            lerp_world_position = zmath.lerp(world_v1, world_v2, lerp);
+            lerp_clip_position = zmath.lerp(clip_v1, clip_v2, lerp);
             lerp_normal = zmath.normalize3(zmath.lerp(n1, n2, lerp));
             lerp_color = if (colors) |_| sdl.Color.rgba(
                 @floatToInt(u8, @intToFloat(f32, c1.r) + (@intToFloat(f32, c2.r) - @intToFloat(f32, c1.r)) * lerp),
@@ -540,28 +582,33 @@ inline fn clipTriangle(
                 .x = t1.x + (t2.x - t1.x) * lerp,
                 .y = t1.y + (t2.y - t1.y) * lerp,
             } else null;
-            self.clip_vertices.appendAssumeCapacity(lerp_position);
-            self.clip_normals.appendAssumeCapacity(lerp_normal);
+            self.clip_vertices.appendAssumeCapacity(lerp_clip_position);
+            self.world_positions.appendAssumeCapacity(lerp_world_position);
+            self.world_normals.appendAssumeCapacity(lerp_normal);
             if (lerp_color) |c| self.clip_colors.appendAssumeCapacity(c);
             if (lerp_texcoord) |t| self.clip_texcoords.appendAssumeCapacity(t);
 
             // Second triangle
-            self.clip_vertices.appendAssumeCapacity(v0);
-            self.clip_normals.appendAssumeCapacity(n0);
+            self.clip_vertices.appendAssumeCapacity(clip_v0);
+            self.world_positions.appendAssumeCapacity(world_v0);
+            self.world_normals.appendAssumeCapacity(n0);
             if (colors) |_| self.clip_colors.appendAssumeCapacity(c0);
             if (texcoords) |_| self.clip_texcoords.appendAssumeCapacity(t0);
-            self.clip_vertices.appendAssumeCapacity(lerp_position);
-            self.clip_normals.appendAssumeCapacity(lerp_normal);
+            self.clip_vertices.appendAssumeCapacity(lerp_clip_position);
+            self.world_positions.appendAssumeCapacity(lerp_world_position);
+            self.world_normals.appendAssumeCapacity(lerp_normal);
             if (lerp_color) |c| self.clip_colors.appendAssumeCapacity(c);
             if (lerp_texcoord) |t| self.clip_texcoords.appendAssumeCapacity(t);
-            self.clip_vertices.appendAssumeCapacity(v2);
-            self.clip_normals.appendAssumeCapacity(n2);
+            self.clip_vertices.appendAssumeCapacity(clip_v2);
+            self.world_positions.appendAssumeCapacity(world_v2);
+            self.world_normals.appendAssumeCapacity(n2);
             if (colors) |_| self.clip_colors.appendAssumeCapacity(c2);
             if (texcoords) |_| self.clip_texcoords.appendAssumeCapacity(t2);
         } else {
             lerp = d_v0 / (d_v0 - d_v2);
             assert(lerp >= 0 and lerp <= 1);
-            lerp_position = zmath.lerp(v0, v2, lerp);
+            lerp_world_position = zmath.lerp(world_v0, world_v2, lerp);
+            lerp_clip_position = zmath.lerp(clip_v0, clip_v2, lerp);
             lerp_normal = zmath.normalize3(zmath.lerp(n0, n2, lerp));
             lerp_color = if (colors) |_| sdl.Color.rgba(
                 @floatToInt(u8, @intToFloat(f32, c0.r) + (@intToFloat(f32, c2.r) - @intToFloat(f32, c0.r)) * lerp),
@@ -573,8 +620,9 @@ inline fn clipTriangle(
                 .x = t0.x + (t2.x - t0.x) * lerp,
                 .y = t0.y + (t2.y - t0.y) * lerp,
             } else null;
-            self.clip_vertices.appendAssumeCapacity(lerp_position);
-            self.clip_normals.appendAssumeCapacity(lerp_normal);
+            self.clip_vertices.appendAssumeCapacity(lerp_clip_position);
+            self.world_positions.appendAssumeCapacity(lerp_world_position);
+            self.world_normals.appendAssumeCapacity(lerp_normal);
             if (lerp_color) |c| self.clip_colors.appendAssumeCapacity(c);
             if (lerp_texcoord) |t| self.clip_texcoords.appendAssumeCapacity(t);
         }
@@ -845,6 +893,9 @@ inline fn calcTintColor(
     normal: zmath.Vec,
     opt: ?LightingOption,
 ) sdl.Color {
+    assert(math.approxEqAbs(f32, eye_pos[3], 1.0, math.f32_epsilon));
+    assert(math.approxEqAbs(f32, vertex_pos[3], 1.0, math.f32_epsilon));
+    assert(math.approxEqAbs(f32, normal[3], 0, math.f32_epsilon));
     if (opt == null) return c;
 
     const lparam = opt.?;
@@ -865,7 +916,7 @@ inline fn calcTintColor(
         lparam.sun_pos[0],
         lparam.sun_pos[1],
         lparam.sun_pos[2],
-        0,
+        1,
     ) - vertex_pos);
     const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
     const halfway_dir = zmath.normalize3(eye_dir + sun_dir);
