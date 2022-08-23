@@ -76,10 +76,10 @@ pub fn main() anyerror!void {
     });
     var gpa: ?AllocatorType = null;
     if (config.allocator) |a| {
-        ctx.default_allocator = a;
+        ctx.allocator = a;
     } else {
         gpa = AllocatorType{};
-        ctx.default_allocator = gpa.?.allocator();
+        ctx.allocator = gpa.?.allocator();
     }
     defer {
         if (gpa) |*a| {

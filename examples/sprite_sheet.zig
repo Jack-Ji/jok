@@ -14,7 +14,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     // create sprite sheet
     const size = ctx.getFramebufferSize();
     sheet = try gfx.SpriteSheet.fromPicturesInDir(
-        ctx.default_allocator,
+        ctx.allocator,
         ctx.renderer,
         "assets/images",
         size.w,
@@ -24,12 +24,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         .{},
     );
     //sheet = try gfx.SpriteSheet.fromSheetFiles(
-    //    ctx.default_allocator,
+    //    ctx.allocator,
     //    ctx.renderer,
     //    "sheet",
     //);
     sb = try gfx.SpriteBatch.init(
-        ctx.default_allocator,
+        ctx,
         10,
         1000,
     );
@@ -94,7 +94,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
         .depth = 0.6,
     });
-    try sb.end(ctx.renderer);
+    try sb.end();
 
     var result = try gfx.font.debugDraw(
         ctx.renderer,

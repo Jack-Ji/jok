@@ -1,6 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
+const jok = @import("../../jok.zig");
 const Sprite = @import("Sprite.zig");
 const SpriteSheet = @import("SpriteSheet.zig");
 const Camera = @import("Camera.zig");
@@ -51,6 +52,9 @@ const BatchData = struct {
 /// Memory allocator
 allocator: std.mem.Allocator,
 
+/// Graphics Renderer
+renderer: sdl.Renderer,
+
 /// All batch data
 batches: []BatchData,
 
@@ -68,25 +72,26 @@ depth_sort: DepthSortMethod = .none,
 
 /// Create sprite-batch
 pub fn init(
-    allocator: std.mem.Allocator,
+    ctx: *jok.Context,
     max_sheet_num: u32,
     max_sprites_per_drawcall: u32,
 ) !*Self {
-    var self = try allocator.create(Self);
-    errdefer allocator.destroy(self);
-    const batches = try allocator.alloc(BatchData, max_sheet_num);
-    errdefer allocator.free(batches);
+    var self = try ctx.allocator.create(Self);
+    errdefer ctx.allocator.destroy(self);
+    const batches = try ctx.allocator.alloc(BatchData, max_sheet_num);
+    errdefer ctx.allocator.free(batches);
     self.* = Self{
-        .allocator = allocator,
+        .allocator = ctx.allocator,
+        .renderer = ctx.renderer,
         .batches = batches,
-        .search_tree = std.AutoHashMap(*SpriteSheet, u32).init(allocator),
+        .search_tree = std.AutoHashMap(*SpriteSheet, u32).init(ctx.allocator),
         .max_sprites_per_drawcall = max_sprites_per_drawcall,
     };
     for (self.batches) |*b| {
         b.sheet = null;
-        b.sprites_data = std.ArrayList(BatchData.SpriteData).initCapacity(allocator, 1000) catch unreachable;
-        b.vattrib = std.ArrayList(sdl.Vertex).initCapacity(allocator, 4000) catch unreachable;
-        b.vindices = std.ArrayList(u32).initCapacity(allocator, 6000) catch unreachable;
+        b.sprites_data = std.ArrayList(BatchData.SpriteData).initCapacity(ctx.allocator, 1000) catch unreachable;
+        b.vattrib = std.ArrayList(sdl.Vertex).initCapacity(ctx.allocator, 4000) catch unreachable;
+        b.vindices = std.ArrayList(u32).initCapacity(ctx.allocator, 6000) catch unreachable;
     }
     return self;
 }
@@ -151,7 +156,7 @@ fn descendCompare(self: *Self, lhs: BatchData.SpriteData, rhs: BatchData.SpriteD
 }
 
 /// Send batched data to gpu, issue draw command
-pub fn end(self: *Self, renderer: sdl.Renderer) !void {
+pub fn end(self: *Self) !void {
     const size = self.search_tree.count();
     if (size == 0) return;
 
@@ -205,7 +210,7 @@ pub fn end(self: *Self, renderer: sdl.Renderer) !void {
             .additive => try b.sheet.?.tex.setBlendMode(.add),
             .overwrite => try b.sheet.?.tex.setBlendMode(.none),
         }
-        try renderer.drawGeometry(
+        try self.renderer.drawGeometry(
             b.sheet.?.tex,
             b.vattrib.items,
             b.vindices.items,

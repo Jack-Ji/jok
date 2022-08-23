@@ -10,7 +10,7 @@ pub var perf_counter_freq: f64 = undefined;
 /// Application context
 pub const Context = struct {
     /// Default allocator
-    default_allocator: std.mem.Allocator = undefined,
+    allocator: std.mem.Allocator = undefined,
 
     /// Internal window
     window: sdl.Window,

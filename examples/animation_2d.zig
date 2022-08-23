@@ -14,7 +14,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     // create sprite sheet
     const size = ctx.getFramebufferSize();
     sheet = try gfx.SpriteSheet.fromPicturesInDir(
-        ctx.default_allocator,
+        ctx.allocator,
         ctx.renderer,
         "assets/images",
         size.w,
@@ -24,16 +24,16 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         .{},
     );
     sb = try gfx.SpriteBatch.init(
-        ctx.default_allocator,
+        ctx,
         10,
         1000,
     );
-    as = try gfx.AnimationSystem.init(ctx.default_allocator);
+    as = try gfx.AnimationSystem.init(ctx.allocator);
     const player = try sheet.getSpriteByName("player");
     try as.add(
         "player_left_right",
         try gfx.AnimationSystem.Animation.init(
-            ctx.default_allocator,
+            ctx.allocator,
             &[_]gfx.Sprite{
                 player.getSubSprite(4 * 16, 0, 16, 16),
                 player.getSubSprite(3 * 16, 0, 16, 16),
@@ -47,7 +47,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try as.add(
         "player_up",
         try gfx.AnimationSystem.Animation.init(
-            ctx.default_allocator,
+            ctx.allocator,
             &[_]gfx.Sprite{
                 player.getSubSprite(7 * 16, 0, 16, 16),
                 player.getSubSprite(6 * 16, 0, 16, 16),
@@ -61,7 +61,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try as.add(
         "player_down",
         try gfx.AnimationSystem.Animation.init(
-            ctx.default_allocator,
+            ctx.allocator,
             &[_]gfx.Sprite{
                 player.getSubSprite(1 * 16, 0, 16, 16),
                 player.getSubSprite(0 * 16, 0, 16, 16),
@@ -145,7 +145,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         },
         S.force_replay,
     );
-    try sb.end(ctx.renderer);
+    try sb.end();
 
     _ = try gfx.font.debugDraw(
         ctx.renderer,

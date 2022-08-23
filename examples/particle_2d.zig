@@ -30,7 +30,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 
     rd = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
     sheet = try gfx.SpriteSheet.init(
-        ctx.default_allocator,
+        ctx.allocator,
         ctx.renderer,
         &[_]gfx.SpriteSheet.ImageSource{
             .{
@@ -46,11 +46,11 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         false,
     );
     sb = try gfx.SpriteBatch.init(
-        ctx.default_allocator,
+        ctx,
         1,
         10000,
     );
-    ps = try gfx.ParticleSystem.init(ctx.default_allocator);
+    ps = try gfx.ParticleSystem.init(ctx.allocator);
     emitter1.sprite = try sheet.getSpriteByName("particle");
     emitter2.sprite = try sheet.getSpriteByName("particle");
     try ps.addEffect(
@@ -96,7 +96,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     ps.update(ctx.delta_tick);
     sb.begin(.{ .blend_method = .additive });
     try ps.draw(sb);
-    try sb.end(ctx.renderer);
+    try sb.end();
 }
 
 pub fn quit(ctx: *jok.Context) void {

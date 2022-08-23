@@ -14,7 +14,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 
     const size = ctx.getFramebufferSize();
 
-    world = try cp.World.init(ctx.default_allocator, .{
+    world = try cp.World.init(ctx.allocator, .{
         .gravity = .{ .x = 0, .y = 600 },
     });
 

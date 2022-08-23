@@ -15,7 +15,7 @@ var rotation_axises: std.ArrayList(gfx.zmath.Vec) = undefined;
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
-    gfx.zmesh.init(ctx.default_allocator);
+    gfx.zmesh.init(ctx.allocator);
 
     camera = gfx.Camera.fromPositionAndTarget(
         .{
@@ -36,7 +36,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         [_]f32{ 0, 0, 0 },
         null,
     );
-    renderer = gfx.Renderer.init(ctx.default_allocator);
+    renderer = gfx.Renderer.init(ctx.allocator);
     cube = gfx.zmesh.Shape.initCube();
     cube.computeAabb(&aabb);
     tex = try jok.gfx.utils.createTextureFromFile(
@@ -47,8 +47,8 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     );
 
     var rng = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
-    translations = std.ArrayList(gfx.zmath.Mat).init(ctx.default_allocator);
-    rotation_axises = std.ArrayList(gfx.zmath.Vec).init(ctx.default_allocator);
+    translations = std.ArrayList(gfx.zmath.Mat).init(ctx.allocator);
+    rotation_axises = std.ArrayList(gfx.zmath.Vec).init(ctx.allocator);
     var i: u32 = 0;
     while (i < 10000) : (i += 1) {
         try translations.append(gfx.zmath.translation(

@@ -25,7 +25,7 @@ pub fn init(ctx: *jok.Context) !void {
         std.debug.panic("already initialized!", .{});
     }
 
-    var bd = try ctx.default_allocator.create(RendererData);
+    var bd = try ctx.allocator.create(RendererData);
     io.BackendRendererUserData = bd;
     io.BackendRendererName = "imgui_impl_sdlrenderer";
     io.BackendFlags |= c.ImGuiBackendFlags_RendererHasVtxOffset;
@@ -44,7 +44,7 @@ pub fn deinit() void {
     }
     io.BackendRendererUserData = null;
     io.BackendRendererName = null;
-    app_context.default_allocator.destroy(bd);
+    app_context.allocator.destroy(bd);
 }
 
 fn setupRenderState() void {

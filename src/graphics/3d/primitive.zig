@@ -18,9 +18,9 @@ var rd: ?Renderer = null;
 var camera: Camera = undefined;
 var renderer: sdl.Renderer = undefined;
 
-/// Create default primitive renderer
+/// Create primitive renderer
 pub fn init(ctx: *jok.Context) !void {
-    rd = Renderer.init(ctx.default_allocator);
+    rd = Renderer.init(ctx.allocator);
     camera = Camera.fromPositionAndTarget(
         .{
             .perspective = .{
@@ -37,7 +37,7 @@ pub fn init(ctx: *jok.Context) !void {
     renderer = ctx.renderer;
 }
 
-/// Destroy default primitive renderer
+/// Destroy primitive renderer
 pub fn deinit() void {
     rd.?.deinit();
 }

@@ -15,13 +15,13 @@ pub const CommonDrawOption = struct {
 var rd: ?Renderer = null;
 var renderer: sdl.Renderer = undefined;
 
-/// Create default primitive renderer
+/// Create primitive renderer
 pub fn init(ctx: *jok.Context) !void {
-    rd = Renderer.init(ctx.default_allocator);
+    rd = Renderer.init(ctx.allocator);
     renderer = ctx.renderer;
 }
 
-/// Destroy default primitive renderer
+/// Destroy primitive renderer
 pub fn deinit() void {
     rd.?.deinit();
 }

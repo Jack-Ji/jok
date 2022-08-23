@@ -12,7 +12,7 @@ var tex: sdl.Texture = undefined;
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
-    gfx.zmesh.init(ctx.default_allocator);
+    gfx.zmesh.init(ctx.allocator);
 
     camera = gfx.Camera.fromPositionAndTarget(
         .{
@@ -33,7 +33,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         [_]f32{ 0, 0, 0 },
         null,
     );
-    renderer = gfx.Renderer.init(ctx.default_allocator);
+    renderer = gfx.Renderer.init(ctx.allocator);
     cube = gfx.zmesh.Shape.initCube();
     tex = try jok.gfx.utils.createTextureFromFile(
         ctx.renderer,

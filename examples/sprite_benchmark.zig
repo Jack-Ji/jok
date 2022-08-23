@@ -25,7 +25,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 
     // create sprite sheet
     sheet = try gfx.SpriteSheet.init(
-        ctx.default_allocator,
+        ctx.allocator,
         ctx.renderer,
         &[_]gfx.SpriteSheet.ImageSource{
             .{
@@ -41,12 +41,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         false,
     );
     sb = try gfx.SpriteBatch.init(
-        ctx.default_allocator,
+        ctx,
         10,
         1000000,
     );
     characters = try std.ArrayList(Actor).initCapacity(
-        ctx.default_allocator,
+        ctx.allocator,
         1000000,
     );
     rand_gen = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
@@ -115,7 +115,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             .pos = c.pos,
         });
     }
-    try sb.end(ctx.renderer);
+    try sb.end();
 
     _ = try gfx.font.debugDraw(
         ctx.renderer,

@@ -43,7 +43,7 @@ pub fn init(ctx: *jok.Context) !void {
         }
     }
 
-    const bd = try ctx.default_allocator.create(BackendData);
+    const bd = try ctx.allocator.create(BackendData);
     bd.window = ctx.window.ptr;
     bd.time = 0;
     bd.mouse_pressed = [_]bool{false} ** bd.mouse_pressed.len;
@@ -120,7 +120,7 @@ pub fn deinit() void {
 
     io.BackendPlatformUserData = null;
     io.BackendPlatformName = null;
-    app_context.default_allocator.destroy(bd);
+    app_context.allocator.destroy(bd);
 }
 
 // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear c wants to use your inputs.
