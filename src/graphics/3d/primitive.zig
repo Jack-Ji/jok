@@ -18,16 +18,19 @@ pub const CommonDrawOption = struct {
 var rd: ?Renderer = null;
 var arena: std.heap.ArenaAllocator = undefined;
 var renderer: sdl.Renderer = undefined;
+var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 
 /// Create primitive renderer
 pub fn init(ctx: *jok.Context) !void {
     rd = Renderer.init(ctx.allocator);
     arena = std.heap.ArenaAllocator.init(ctx.allocator);
     renderer = ctx.renderer;
+    all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
 }
 
 /// Destroy primitive renderer
 pub fn deinit() void {
+    for (all_shapes.items) |s| s.deinit();
     rd.?.deinit();
     arena.deinit();
 }
@@ -63,6 +66,7 @@ pub fn drawCube(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
         S.shape = zmesh.Shape.initCube();
         S.shape.?.computeNormals();
         S.shape.?.computeAabb(&S.aabb);
+        all_shapes.append(S.shape.?) catch unreachable;
         S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
     }
 
@@ -126,6 +130,7 @@ pub fn drawPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
         m.shape = zmesh.Shape.initPlane(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
         m.shape.computeAabb(&m.aabb);
         m.shape.computeNormals();
+        all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
     };
@@ -190,6 +195,7 @@ pub fn drawParametricSphere(model: zmath.Mat, camera: Camera, opt: ParametricSph
         m.shape = zmesh.Shape.initParametricSphere(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
         m.shape.computeAabb(&m.aabb);
         m.shape.computeNormals();
+        all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
     };
@@ -246,6 +252,7 @@ pub fn drawSubdividedSphere(model: zmath.Mat, camera: Camera, opt: SubdividedSph
         m.shape = zmesh.Shape.initSubdividedSphere(@intCast(i32, opt.sub_num));
         m.shape.computeAabb(&m.aabb);
         m.shape.computeNormals();
+        all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(opt.sub_num, m);
         break :BLK m;
     };
@@ -310,6 +317,7 @@ pub fn drawCone(model: zmath.Mat, camera: Camera, opt: ConeDrawOption) !void {
         m.shape = zmesh.Shape.initCone(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
         m.shape.computeAabb(&m.aabb);
         m.shape.computeNormals();
+        all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
     };
@@ -374,6 +382,7 @@ pub fn drawCylinder(model: zmath.Mat, camera: Camera, opt: CylinderDrawOption) !
         m.shape = zmesh.Shape.initCylinder(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
         m.shape.computeAabb(&m.aabb);
         m.shape.computeNormals();
+        all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
     };
@@ -449,6 +458,7 @@ pub fn drawDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
         m.shape = zmesh.Shape.initDisk(opt.radius, @intCast(i32, opt.slices), &opt.center, &opt.normal);
         m.shape.computeAabb(&m.aabb);
         m.shape.computeNormals();
+        all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
     };
@@ -519,6 +529,7 @@ pub fn drawTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
         m.shape = zmesh.Shape.initTorus(@intCast(i32, opt.slices), @intCast(i32, opt.stacks), opt.radius);
         m.shape.computeAabb(&m.aabb);
         m.shape.computeNormals();
+        all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
     };
@@ -556,6 +567,7 @@ pub fn drawIcosahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) 
         S.shape = zmesh.Shape.initIcosahedron();
         S.shape.?.computeNormals();
         S.shape.?.computeAabb(&S.aabb);
+        all_shapes.append(S.shape.?) catch unreachable;
         S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
     }
 
@@ -592,6 +604,7 @@ pub fn drawDodecahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption)
         S.shape = zmesh.Shape.initDodecahedron();
         S.shape.?.computeNormals();
         S.shape.?.computeAabb(&S.aabb);
+        all_shapes.append(S.shape.?) catch unreachable;
         S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
     }
 
@@ -628,6 +641,7 @@ pub fn drawOctahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !
         S.shape = zmesh.Shape.initOctahedron();
         S.shape.?.computeNormals();
         S.shape.?.computeAabb(&S.aabb);
+        all_shapes.append(S.shape.?) catch unreachable;
         S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
     }
 
@@ -664,56 +678,7 @@ pub fn drawTetrahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) 
         S.shape = zmesh.Shape.initTetrahedron();
         S.shape.?.computeNormals();
         S.shape.?.computeAabb(&S.aabb);
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
-    }
-
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(S.shape.?.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.color, S.shape.?.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        S.shape.?.indices,
-        S.shape.?.positions,
-        S.shape.?.normals.?,
-        S.colors.items,
-        null,
-        .{
-            .aabb = S.aabb,
-            .cull_faces = opt.cull_faces,
-            .lighting = opt.lighting_param,
-        },
-    );
-}
-
-/// Draw a custom generated plane
-pub const ParametricDrawOption = struct {
-    common: CommonDrawOption,
-    slices: u32,
-    stacks: u32,
-    uv_to_pos_fn: zmesh.Shape.UvToPositionFn,
-    userdata: ?*anyopaque = null,
-};
-pub fn drawParametric(model: zmath.Mat, camera: Camera, opt: ParametricDrawOption) !void {
-    const S = struct {
-        var shape: ?zmesh.Shape = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
-        var aabb: [6]f32 = undefined;
-    };
-
-    if (S.shape == null) {
-        assert(opt.slices > 0);
-        assert(opt.stacks > 0);
-        S.shape = zmesh.Shape.initParametric(
-            opt.uv_to_pos_fn,
-            @intCast(i32, opt.slices),
-            @intCast(i32, opt.stacks),
-            opt.userdata,
-        );
-        S.shape.?.computeNormals();
-        S.shape.?.computeAabb(&S.aabb);
+        all_shapes.append(S.shape.?) catch unreachable;
         S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
     }
 

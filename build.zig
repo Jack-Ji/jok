@@ -36,6 +36,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "animation_2d", .opt = .{} },
         .{ .name = "primitive_2d", .opt = .{ .link_imgui = true } },
         .{ .name = "primitive_3d", .opt = .{ .link_imgui = true } },
+        .{ .name = "terran_generation", .opt = .{ .link_imgui = true } },
         .{ .name = "sprite_benchmark", .opt = .{} },
         .{ .name = "font_demo", .opt = .{} },
         .{ .name = "audio_demo", .opt = .{ .link_zaudio = true } },

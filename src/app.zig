@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 const sdl = @import("sdl");
 const context = @import("context.zig");
 const jok = @import("jok.zig");
+const deps = jok.deps;
 const config = jok.config;
 
 // Import game object's declarations
@@ -35,6 +36,18 @@ comptime {
         .Void => {},
         else => @compileError("`quit` must return void"),
     }
+}
+
+/// Initialize builtin deps
+fn initDeps(ctx: *context.Context) !void {
+    const zmesh = deps.zmesh;
+    zmesh.init(ctx.allocator);
+}
+
+/// Deinitialize builtin deps
+fn deinitDeps() void {
+    const zmesh = deps.zmesh;
+    zmesh.deinit();
 }
 
 /// Entrance point, never return until application is killed
@@ -136,6 +149,10 @@ pub fn main() anyerror!void {
     const rdinfo = try ctx.renderer.getInfo();
     ctx.is_software = ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0);
     defer ctx.renderer.destroy();
+
+    // Init builtin deps
+    try initDeps(&ctx);
+    defer deinitDeps();
 
     // Init before loop
     try game.init(&ctx);
