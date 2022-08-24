@@ -93,8 +93,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             gfx.zmath.translation(-0.5, -0.5, -0.5),
             gfx.zmath.mul(
                 gfx.zmath.scaling(0.5, 0.5, 0.5),
-                //gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi),
-                gfx.zmath.rotationY(0),
+                gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi),
             ),
         ),
         camera,

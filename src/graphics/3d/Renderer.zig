@@ -218,7 +218,18 @@ pub fn appendMesh(
             v2,
             zmath.f32x4(0.0, 0.0, 0.0, 1.0),
         }, model);
-        const world_normals = [3]zmath.Vec{ n0, n1, n2 };
+        var world_normals = zmath.mul(zmath.Mat{
+            n0,
+            n1,
+            n2,
+            zmath.f32x4(0.0, 0.0, 0.0, 0.0),
+        }, zmath.transpose(zmath.inverse(model)));
+        world_normals[0] = zmath.normalize3(world_normals[0]);
+        world_normals[1] = zmath.normalize3(world_normals[1]);
+        world_normals[2] = zmath.normalize3(world_normals[2]);
+        world_normals[0][3] = 0;
+        world_normals[1][3] = 0;
+        world_normals[2][3] = 0;
         const clip_positions = zmath.mul(zmath.Mat{
             v0,
             v1,
@@ -239,7 +250,7 @@ pub fn appendMesh(
             null;
         self.clipTriangle(
             world_positions[0..3],
-            &world_normals,
+            world_normals[0..3],
             clip_positions[0..3],
             clip_colors,
             clip_texcoords,
