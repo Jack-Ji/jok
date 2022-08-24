@@ -147,7 +147,7 @@ pub fn drawPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
         mesh.shape.positions,
         mesh.shape.normals.?,
         S.colors.items,
-        null,
+        mesh.shape.texcoords.?,
         .{
             .aabb = mesh.aabb,
             .cull_faces = opt.common.cull_faces,
