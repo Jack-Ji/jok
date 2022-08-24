@@ -95,8 +95,8 @@ pub const AppendOption = struct {
     lighting: ?LightingOption = null,
 };
 
-/// Append vertex data
-pub fn appendVertex(
+/// Append mesh data
+pub fn appendMesh(
     self: *Self,
     renderer: sdl.Renderer,
     model: zmath.Mat,

@@ -137,7 +137,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     primitive.clear();
     try primitive.drawPlane(
-        camera,
         zmath.mul(
             zmath.mul(
                 zmath.rotationX(math.pi * 0.5),
@@ -145,6 +144,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             ),
             zmath.scaling(10, 1, 10),
         ),
+        camera,
         .{
             .common = .{
                 .color = sdl.Color.rgba(100, 100, 100, 200),
@@ -153,11 +153,11 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         },
     );
     try primitive.drawSubdividedSphere(
-        camera,
         zmath.mul(
             zmath.scaling(0.1, 0.1, 0.1),
             zmath.translation(sun_pos[0], sun_pos[1], sun_pos[2]),
         ),
+        camera,
         .{
             .common = .{
                 .color = sdl.Color.rgb(
@@ -204,37 +204,37 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     primitive.clear();
     switch (primtype) {
         .cube => {
-            try primitive.drawCube(camera, model, common_draw_opt);
+            try primitive.drawCube(model, camera, common_draw_opt);
         },
         .subdivided_sphere => {
-            try primitive.drawSubdividedSphere(camera, model, .{ .common = common_draw_opt });
+            try primitive.drawSubdividedSphere(model, camera, .{ .common = common_draw_opt });
         },
         .parametric_sphere => {
-            try primitive.drawParametricSphere(camera, model, .{ .common = common_draw_opt });
+            try primitive.drawParametricSphere(model, camera, .{ .common = common_draw_opt });
         },
         .cone => {
-            try primitive.drawCone(camera, model, .{ .common = common_draw_opt });
+            try primitive.drawCone(model, camera, .{ .common = common_draw_opt });
         },
         .cylinder => {
-            try primitive.drawCylinder(camera, model, .{ .common = common_draw_opt });
+            try primitive.drawCylinder(model, camera, .{ .common = common_draw_opt });
         },
         .disk => {
-            try primitive.drawDisk(camera, model, .{ .common = common_draw_opt });
+            try primitive.drawDisk(model, camera, .{ .common = common_draw_opt });
         },
         .torus => {
-            try primitive.drawTorus(camera, model, .{ .common = common_draw_opt });
+            try primitive.drawTorus(model, camera, .{ .common = common_draw_opt });
         },
         .icosahedron => {
-            try primitive.drawIcosahedron(camera, model, common_draw_opt);
+            try primitive.drawIcosahedron(model, camera, common_draw_opt);
         },
         .dodecahedron => {
-            try primitive.drawDodecahedron(camera, model, common_draw_opt);
+            try primitive.drawDodecahedron(model, camera, common_draw_opt);
         },
         .octahedron => {
-            try primitive.drawOctahedron(camera, model, common_draw_opt);
+            try primitive.drawOctahedron(model, camera, common_draw_opt);
         },
         .tetrahedron => {
-            try primitive.drawTetrahedron(camera, model, common_draw_opt);
+            try primitive.drawTetrahedron(model, camera, common_draw_opt);
         },
     }
     try primitive.flush(.{ .wireframe = wireframe });

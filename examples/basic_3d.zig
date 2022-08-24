@@ -87,7 +87,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.clear();
 
     renderer.clear(true);
-    try renderer.appendVertex(
+    try renderer.appendMesh(
         ctx.renderer,
         gfx.zmath.mul(
             gfx.zmath.translation(-0.5, -0.5, -0.5),
@@ -117,7 +117,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     try renderer.draw(ctx.renderer, tex);
 
     renderer.clear(true);
-    try renderer.appendVertex(
+    try renderer.appendMesh(
         ctx.renderer,
         gfx.zmath.mul(
             gfx.zmath.translation(-0.5, -0.5, -0.5),

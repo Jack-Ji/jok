@@ -52,7 +52,7 @@ pub fn flush(opt: FlushOption) !void {
 }
 
 /// Draw a cube
-pub fn drawCube(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !void {
+pub fn drawCube(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         var shape: ?zmesh.Shape = null;
         var colors: std.ArrayList(sdl.Color) = undefined;
@@ -67,11 +67,10 @@ pub fn drawCube(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !void {
     }
 
     S.colors.clearRetainingCapacity();
-    for (S.shape.?.positions) |_| {
-        try S.colors.append(opt.color);
-    }
+    S.colors.ensureTotalCapacity(S.shape.?.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.color, S.shape.?.positions.len);
 
-    try rd.?.appendVertex(
+    try rd.?.appendMesh(
         renderer,
         model,
         camera,
@@ -94,7 +93,7 @@ pub const PlaneDrawOption = struct {
     slices: u32 = 20,
     stacks: u32 = 20,
 };
-pub fn drawPlane(camera: Camera, model: zmath.Mat, opt: PlaneDrawOption) !void {
+pub fn drawPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -132,11 +131,10 @@ pub fn drawPlane(camera: Camera, model: zmath.Mat, opt: PlaneDrawOption) !void {
     };
 
     S.colors.clearRetainingCapacity();
-    for (mesh.shape.positions) |_| {
-        try S.colors.append(opt.common.color);
-    }
+    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
 
-    try rd.?.appendVertex(
+    try rd.?.appendMesh(
         renderer,
         model,
         camera,
@@ -159,7 +157,7 @@ pub const ParametricSphereDrawOption = struct {
     slices: u32 = 20,
     stacks: u32 = 20,
 };
-pub fn drawParametricSphere(camera: Camera, model: zmath.Mat, opt: ParametricSphereDrawOption) !void {
+pub fn drawParametricSphere(model: zmath.Mat, camera: Camera, opt: ParametricSphereDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -197,11 +195,10 @@ pub fn drawParametricSphere(camera: Camera, model: zmath.Mat, opt: ParametricSph
     };
 
     S.colors.clearRetainingCapacity();
-    for (mesh.shape.positions) |_| {
-        try S.colors.append(opt.common.color);
-    }
+    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
 
-    try rd.?.appendVertex(
+    try rd.?.appendMesh(
         renderer,
         model,
         camera,
@@ -223,7 +220,7 @@ pub const SubdividedSphereDrawOption = struct {
     common: CommonDrawOption,
     sub_num: u32 = 2,
 };
-pub fn drawSubdividedSphere(camera: Camera, model: zmath.Mat, opt: SubdividedSphereDrawOption) !void {
+pub fn drawSubdividedSphere(model: zmath.Mat, camera: Camera, opt: SubdividedSphereDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -254,11 +251,10 @@ pub fn drawSubdividedSphere(camera: Camera, model: zmath.Mat, opt: SubdividedSph
     };
 
     S.colors.clearRetainingCapacity();
-    for (mesh.shape.positions) |_| {
-        try S.colors.append(opt.common.color);
-    }
+    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
 
-    try rd.?.appendVertex(
+    try rd.?.appendMesh(
         renderer,
         model,
         camera,
@@ -281,7 +277,7 @@ pub const ConeDrawOption = struct {
     slices: u32 = 20,
     stacks: u32 = 1,
 };
-pub fn drawCone(camera: Camera, model: zmath.Mat, opt: ConeDrawOption) !void {
+pub fn drawCone(model: zmath.Mat, camera: Camera, opt: ConeDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -319,11 +315,10 @@ pub fn drawCone(camera: Camera, model: zmath.Mat, opt: ConeDrawOption) !void {
     };
 
     S.colors.clearRetainingCapacity();
-    for (mesh.shape.positions) |_| {
-        try S.colors.append(opt.common.color);
-    }
+    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
 
-    try rd.?.appendVertex(
+    try rd.?.appendMesh(
         renderer,
         model,
         camera,
@@ -346,7 +341,7 @@ pub const CylinderDrawOption = struct {
     slices: u32 = 20,
     stacks: u32 = 1,
 };
-pub fn drawCylinder(camera: Camera, model: zmath.Mat, opt: CylinderDrawOption) !void {
+pub fn drawCylinder(model: zmath.Mat, camera: Camera, opt: CylinderDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -384,11 +379,10 @@ pub fn drawCylinder(camera: Camera, model: zmath.Mat, opt: CylinderDrawOption) !
     };
 
     S.colors.clearRetainingCapacity();
-    for (mesh.shape.positions) |_| {
-        try S.colors.append(opt.common.color);
-    }
+    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
 
-    try rd.?.appendVertex(
+    try rd.?.appendMesh(
         renderer,
         model,
         camera,
@@ -413,7 +407,7 @@ pub const DiskDrawOption = struct {
     center: [3]f32 = .{ 0, 0, 0 },
     normal: [3]f32 = .{ 0, 0, 1 },
 };
-pub fn drawDisk(camera: Camera, model: zmath.Mat, opt: DiskDrawOption) !void {
+pub fn drawDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -460,11 +454,10 @@ pub fn drawDisk(camera: Camera, model: zmath.Mat, opt: DiskDrawOption) !void {
     };
 
     S.colors.clearRetainingCapacity();
-    for (mesh.shape.positions) |_| {
-        try S.colors.append(opt.common.color);
-    }
+    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
 
-    try rd.?.appendVertex(
+    try rd.?.appendMesh(
         renderer,
         model,
         camera,
@@ -488,7 +481,7 @@ pub const TorusDrawOption = struct {
     slices: u32 = 10,
     stacks: u32 = 20,
 };
-pub fn drawTorus(camera: Camera, model: zmath.Mat, opt: TorusDrawOption) !void {
+pub fn drawTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -531,11 +524,10 @@ pub fn drawTorus(camera: Camera, model: zmath.Mat, opt: TorusDrawOption) !void {
     };
 
     S.colors.clearRetainingCapacity();
-    for (mesh.shape.positions) |_| {
-        try S.colors.append(opt.common.color);
-    }
+    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
 
-    try rd.?.appendVertex(
+    try rd.?.appendMesh(
         renderer,
         model,
         camera,
@@ -553,7 +545,7 @@ pub fn drawTorus(camera: Camera, model: zmath.Mat, opt: TorusDrawOption) !void {
 }
 
 /// Draw a icosahedron
-pub fn drawIcosahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !void {
+pub fn drawIcosahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         var shape: ?zmesh.Shape = null;
         var colors: std.ArrayList(sdl.Color) = undefined;
@@ -568,11 +560,10 @@ pub fn drawIcosahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) 
     }
 
     S.colors.clearRetainingCapacity();
-    for (S.shape.?.positions) |_| {
-        try S.colors.append(opt.color);
-    }
+    S.colors.ensureTotalCapacity(S.shape.?.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.color, S.shape.?.positions.len);
 
-    try rd.?.appendVertex(
+    try rd.?.appendMesh(
         renderer,
         model,
         camera,
@@ -590,7 +581,7 @@ pub fn drawIcosahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) 
 }
 
 /// Draw a dodecahedron
-pub fn drawDodecahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !void {
+pub fn drawDodecahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         var shape: ?zmesh.Shape = null;
         var colors: std.ArrayList(sdl.Color) = undefined;
@@ -605,11 +596,10 @@ pub fn drawDodecahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption)
     }
 
     S.colors.clearRetainingCapacity();
-    for (S.shape.?.positions) |_| {
-        try S.colors.append(opt.color);
-    }
+    S.colors.ensureTotalCapacity(S.shape.?.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.color, S.shape.?.positions.len);
 
-    try rd.?.appendVertex(
+    try rd.?.appendMesh(
         renderer,
         model,
         camera,
@@ -627,7 +617,7 @@ pub fn drawDodecahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption)
 }
 
 /// Draw a octahedron
-pub fn drawOctahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !void {
+pub fn drawOctahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         var shape: ?zmesh.Shape = null;
         var colors: std.ArrayList(sdl.Color) = undefined;
@@ -642,11 +632,10 @@ pub fn drawOctahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !
     }
 
     S.colors.clearRetainingCapacity();
-    for (S.shape.?.positions) |_| {
-        try S.colors.append(opt.color);
-    }
+    S.colors.ensureTotalCapacity(S.shape.?.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.color, S.shape.?.positions.len);
 
-    try rd.?.appendVertex(
+    try rd.?.appendMesh(
         renderer,
         model,
         camera,
@@ -664,7 +653,7 @@ pub fn drawOctahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !
 }
 
 /// Draw a tetrahedron
-pub fn drawTetrahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) !void {
+pub fn drawTetrahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         var shape: ?zmesh.Shape = null;
         var colors: std.ArrayList(sdl.Color) = undefined;
@@ -679,11 +668,60 @@ pub fn drawTetrahedron(camera: Camera, model: zmath.Mat, opt: CommonDrawOption) 
     }
 
     S.colors.clearRetainingCapacity();
-    for (S.shape.?.positions) |_| {
-        try S.colors.append(opt.color);
+    S.colors.ensureTotalCapacity(S.shape.?.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.color, S.shape.?.positions.len);
+
+    try rd.?.appendMesh(
+        renderer,
+        model,
+        camera,
+        S.shape.?.indices,
+        S.shape.?.positions,
+        S.shape.?.normals.?,
+        S.colors.items,
+        null,
+        .{
+            .aabb = S.aabb,
+            .cull_faces = opt.cull_faces,
+            .lighting = opt.lighting_param,
+        },
+    );
+}
+
+/// Draw a custom generated plane
+pub const ParametricDrawOption = struct {
+    common: CommonDrawOption,
+    slices: u32,
+    stacks: u32,
+    uv_to_pos_fn: zmesh.Shape.UvToPositionFn,
+    userdata: ?*anyopaque = null,
+};
+pub fn drawParametric(model: zmath.Mat, camera: Camera, opt: ParametricDrawOption) !void {
+    const S = struct {
+        var shape: ?zmesh.Shape = null;
+        var colors: std.ArrayList(sdl.Color) = undefined;
+        var aabb: [6]f32 = undefined;
+    };
+
+    if (S.shape == null) {
+        assert(opt.slices > 0);
+        assert(opt.stacks > 0);
+        S.shape = zmesh.Shape.initParametric(
+            opt.uv_to_pos_fn,
+            @intCast(i32, opt.slices),
+            @intCast(i32, opt.stacks),
+            opt.userdata,
+        );
+        S.shape.?.computeNormals();
+        S.shape.?.computeAabb(&S.aabb);
+        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
     }
 
-    try rd.?.appendVertex(
+    S.colors.clearRetainingCapacity();
+    S.colors.ensureTotalCapacity(S.shape.?.positions.len) catch unreachable;
+    S.colors.appendNTimesAssumeCapacity(opt.color, S.shape.?.positions.len);
+
+    try rd.?.appendMesh(
         renderer,
         model,
         camera,

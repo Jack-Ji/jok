@@ -110,7 +110,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     renderer.clear(true);
     for (translations.items) |tr, i| {
-        try renderer.appendVertex(
+        try renderer.appendMesh(
             ctx.renderer,
             gfx.zmath.mul(
                 gfx.zmath.translation(-0.5, -0.5, -0.5),
