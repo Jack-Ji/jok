@@ -77,6 +77,7 @@ Welcome to old golden time of 90s. Or, you can choose other more powerful/modern
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
+* [stb headers](https://github.com/nothings/stb) (MIT license)
 * [zig-gamedev](https://github.com/michal-z/zig-gamedev) (MIT license)
 * [dear-imgui](https://github.com/ocornut/imgui) (MIT license)
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
