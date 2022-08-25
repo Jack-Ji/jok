@@ -17,8 +17,5 @@ pub const zmesh = jok.deps.zmesh;
 /// 3d Camera
 pub const Camera = @import("3d/Camera.zig");
 
-/// 3d renderer
-pub const Renderer = @import("3d/Renderer.zig");
-
 /// 3d primitive drawing
 pub const primitive = @import("3d/primitive.zig");

@@ -3,14 +3,24 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const gfx = jok.gfx.@"3d";
 const font = jok.gfx.@"2d".font;
+const primitive = gfx.primitive;
 
 var camera: gfx.Camera = undefined;
-var renderer: gfx.Renderer = undefined;
 var cube: gfx.zmesh.Shape = undefined;
 var aabb: [6]f32 = undefined;
 var tex: sdl.Texture = undefined;
 var translations: std.ArrayList(gfx.zmath.Mat) = undefined;
 var rotation_axises: std.ArrayList(gfx.zmath.Vec) = undefined;
+var texcoords = [_][2]f32{
+    .{ 0, 1 },
+    .{ 0, 0 },
+    .{ 1, 0 },
+    .{ 1, 1 },
+    .{ 1, 1 },
+    .{ 0, 1 },
+    .{ 0, 0 },
+    .{ 1, 0 },
+};
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -34,10 +44,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         [_]f32{ 0, 0, 0 },
         null,
     );
-    renderer = gfx.Renderer.init(ctx.allocator);
     cube = gfx.zmesh.Shape.initCube();
     cube.computeAabb(&aabb);
     cube.computeNormals();
+    cube.texcoords = texcoords[0..];
+    try primitive.init(ctx);
+
     tex = try jok.gfx.utils.createTextureFromFile(
         ctx.renderer,
         "assets/images/image5.jpg",
@@ -108,10 +120,10 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.clear();
 
-    renderer.clear(true);
+    primitive.clear();
     for (translations.items) |tr, i| {
-        try renderer.appendMesh(
-            ctx.renderer,
+        try primitive.drawShape(
+            cube,
             gfx.zmath.mul(
                 gfx.zmath.translation(-0.5, -0.5, -0.5),
                 gfx.zmath.mul(
@@ -123,24 +135,11 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
                 ),
             ),
             camera,
-            cube.indices,
-            cube.positions,
-            cube.normals.?,
-            null,
-            &[_][2]f32{
-                .{ 0, 1 },
-                .{ 0, 0 },
-                .{ 1, 0 },
-                .{ 1, 1 },
-                .{ 1, 1 },
-                .{ 0, 1 },
-                .{ 0, 0 },
-                .{ 1, 0 },
-            },
-            .{ .aabb = aabb, .cull_faces = true },
+            aabb,
+            .{},
         );
     }
-    try renderer.draw(ctx.renderer, tex);
+    try primitive.flush(.{ .texture = tex });
 
     _ = try font.debugDraw(
         ctx.renderer,
@@ -155,7 +154,7 @@ pub fn quit(ctx: *jok.Context) void {
     std.log.info("game quit", .{});
 
     cube.deinit();
-    renderer.deinit();
+    primitive.deinit();
     translations.deinit();
     rotation_axises.deinit();
 }

@@ -3,11 +3,21 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const gfx = jok.gfx.@"3d";
 const font = jok.gfx.@"2d".font;
+const primitive = gfx.primitive;
 
 var camera: gfx.Camera = undefined;
-var renderer: gfx.Renderer = undefined;
 var cube: gfx.zmesh.Shape = undefined;
 var tex: sdl.Texture = undefined;
+var texcoords = [_][2]f32{
+    .{ 0, 1 },
+    .{ 0, 0 },
+    .{ 1, 0 },
+    .{ 1, 1 },
+    .{ 1, 1 },
+    .{ 0, 1 },
+    .{ 0, 0 },
+    .{ 1, 0 },
+};
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -31,15 +41,16 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         [_]f32{ 0, 0, 0 },
         null,
     );
-    renderer = gfx.Renderer.init(ctx.allocator);
     cube = gfx.zmesh.Shape.initCube();
     cube.computeNormals();
+    cube.texcoords = texcoords[0..];
     tex = try jok.gfx.utils.createTextureFromFile(
         ctx.renderer,
         "assets/images/image5.jpg",
         .static,
         false,
     );
+    try primitive.init(ctx);
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
@@ -86,9 +97,9 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.clear();
 
-    renderer.clear(true);
-    try renderer.appendMesh(
-        ctx.renderer,
+    primitive.clear();
+    try primitive.drawShape(
+        cube,
         gfx.zmath.mul(
             gfx.zmath.translation(-0.5, -0.5, -0.5),
             gfx.zmath.mul(
@@ -97,40 +108,23 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             ),
         ),
         camera,
-        cube.indices,
-        cube.positions,
-        cube.normals.?,
         null,
-        &[_][2]f32{
-            .{ 0, 1 },
-            .{ 0, 0 },
-            .{ 1, 0 },
-            .{ 1, 1 },
-            .{ 1, 1 },
-            .{ 0, 1 },
-            .{ 0, 0 },
-            .{ 1, 0 },
-        },
         .{},
     );
-    try renderer.draw(ctx.renderer, tex);
+    try primitive.flush(.{ .texture = tex });
 
-    renderer.clear(true);
-    try renderer.appendMesh(
-        ctx.renderer,
+    primitive.clear();
+    try primitive.drawShape(
+        cube,
         gfx.zmath.mul(
             gfx.zmath.translation(-0.5, -0.5, -0.5),
             gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi / 3.0),
         ),
         camera,
-        cube.indices,
-        cube.positions,
-        cube.normals.?,
-        null,
         null,
         .{},
     );
-    try renderer.drawWireframe(ctx.renderer, sdl.Color.green);
+    try primitive.flush(.{ .wireframe = true });
 
     _ = try font.debugDraw(
         ctx.renderer,
@@ -155,6 +149,6 @@ pub fn quit(ctx: *jok.Context) void {
     std.log.info("game quit", .{});
 
     cube.deinit();
-    renderer.deinit();
+    primitive.deinit();
 }
 

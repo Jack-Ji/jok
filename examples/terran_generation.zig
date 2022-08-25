@@ -11,7 +11,6 @@ const gfx = jok.gfx.@"3d";
 const zmesh = gfx.zmesh;
 const primitive = gfx.primitive;
 const Camera = gfx.Camera;
-const Renderer = gfx.Renderer;
 
 pub const jok_window_resizable = true;
 pub const jok_window_width = 1600;
@@ -22,7 +21,6 @@ var sun_pos: [3]f32 = .{ 0, 10, 0 };
 var sun_color: [3]f32 = .{ 1, 1, 1 };
 var camera: Camera = undefined;
 var shape: zmesh.Shape = undefined;
-var rd: Renderer = undefined;
 
 var noise_gen = znoise.FnlGenerator{
     .fractal_type = .fbm,
@@ -63,7 +61,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     shape.invert(0, 0);
     shape.scale(20, 20, 20);
     shape.computeNormals();
-    rd = Renderer.init(ctx.allocator);
 
     try imgui.init(ctx);
     try primitive.init(ctx);
@@ -125,18 +122,14 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     imgui.end();
     imgui.endFrame();
 
-    rd.clear(true);
-    try rd.appendMesh(
-        ctx.renderer,
+    primitive.clear();
+    try primitive.drawShape(
+        shape,
         zmath.identity(),
         camera,
-        shape.indices,
-        shape.positions,
-        shape.normals.?,
-        null,
         null,
         .{
-            .lighting = .{
+            .lighting_param = .{
                 .sun_pos = sun_pos,
                 .sun_color = .{
                     .r = @floatToInt(u8, sun_color[0] * 255),
@@ -148,11 +141,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             .cull_faces = false,
         },
     );
-    if (wireframe) {
-        try rd.drawWireframe(ctx.renderer, sdl.Color.green);
-    } else {
-        try rd.draw(ctx.renderer, null);
-    }
+    try primitive.flush(.{ .wireframe = wireframe });
 
     primitive.clear();
     try primitive.drawSubdividedSphere(
@@ -178,7 +167,6 @@ pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 
-    rd.deinit();
     shape.deinit();
     imgui.deinit();
     primitive.deinit();

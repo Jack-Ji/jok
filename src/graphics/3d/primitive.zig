@@ -54,11 +54,41 @@ pub fn flush(opt: FlushOption) !void {
     }
 }
 
+/// Draw a shape
+pub fn drawShape(shape: zmesh.Shape, model: zmath.Mat, camera: Camera, aabb: ?[6]f32, opt: CommonDrawOption) !void {
+    const S = struct {
+        var colors: ?std.ArrayList(sdl.Color) = null;
+    };
+
+    if (S.colors == null) {
+        S.colors = std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 1000) catch unreachable;
+    }
+
+    S.colors.?.clearRetainingCapacity();
+    S.colors.?.ensureTotalCapacity(shape.positions.len) catch unreachable;
+    S.colors.?.appendNTimesAssumeCapacity(opt.color, shape.positions.len);
+
+    try rd.?.appendMesh(
+        renderer,
+        model,
+        camera,
+        shape.indices,
+        shape.positions,
+        shape.normals.?,
+        S.colors.?.items,
+        shape.texcoords,
+        .{
+            .aabb = aabb,
+            .cull_faces = opt.cull_faces,
+            .lighting = opt.lighting_param,
+        },
+    );
+}
+
 /// Draw a cube
 pub fn drawCube(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         var shape: ?zmesh.Shape = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
         var aabb: [6]f32 = undefined;
     };
 
@@ -67,28 +97,9 @@ pub fn drawCube(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
         S.shape.?.computeNormals();
         S.shape.?.computeAabb(&S.aabb);
         all_shapes.append(S.shape.?) catch unreachable;
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
     }
 
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(S.shape.?.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.color, S.shape.?.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        S.shape.?.indices,
-        S.shape.?.positions,
-        S.shape.?.normals.?,
-        S.colors.items,
-        null,
-        .{
-            .aabb = S.aabb,
-            .cull_faces = opt.cull_faces,
-            .lighting = opt.lighting_param,
-        },
-    );
+    try drawShape(S.shape.?, model, camera, S.aabb, opt);
 }
 
 /// Draw a plane
@@ -105,7 +116,6 @@ pub fn drawPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
         };
 
         var meshes: ?std.StringHashMap(*Mesh) = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
         var buf: [32]u8 = undefined;
 
         fn getKey(_opt: PlaneDrawOption) []u8 {
@@ -115,7 +125,6 @@ pub fn drawPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
 
     if (S.meshes == null) {
         S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 20);
     }
 
     var mesh = BLK: {
@@ -135,25 +144,7 @@ pub fn drawPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
         break :BLK m;
     };
 
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        mesh.shape.indices,
-        mesh.shape.positions,
-        mesh.shape.normals.?,
-        S.colors.items,
-        mesh.shape.texcoords.?,
-        .{
-            .aabb = mesh.aabb,
-            .cull_faces = opt.common.cull_faces,
-            .lighting = opt.common.lighting_param,
-        },
-    );
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a parametric sphere
@@ -170,7 +161,6 @@ pub fn drawParametricSphere(model: zmath.Mat, camera: Camera, opt: ParametricSph
         };
 
         var meshes: ?std.StringHashMap(*Mesh) = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
         var buf: [32]u8 = undefined;
 
         fn getKey(_opt: ParametricSphereDrawOption) []u8 {
@@ -180,7 +170,6 @@ pub fn drawParametricSphere(model: zmath.Mat, camera: Camera, opt: ParametricSph
 
     if (S.meshes == null) {
         S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 20);
     }
 
     var mesh = BLK: {
@@ -200,25 +189,7 @@ pub fn drawParametricSphere(model: zmath.Mat, camera: Camera, opt: ParametricSph
         break :BLK m;
     };
 
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        mesh.shape.indices,
-        mesh.shape.positions,
-        mesh.shape.normals.?,
-        S.colors.items,
-        null,
-        .{
-            .aabb = mesh.aabb,
-            .cull_faces = opt.common.cull_faces,
-            .lighting = opt.common.lighting_param,
-        },
-    );
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a subdivided sphere
@@ -234,12 +205,10 @@ pub fn drawSubdividedSphere(model: zmath.Mat, camera: Camera, opt: SubdividedSph
         };
 
         var meshes: ?std.AutoHashMap(u32, *Mesh) = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
     };
 
     if (S.meshes == null) {
         S.meshes = std.AutoHashMap(u32, *S.Mesh).init(arena.allocator());
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 20);
     }
 
     var mesh = BLK: {
@@ -257,25 +226,7 @@ pub fn drawSubdividedSphere(model: zmath.Mat, camera: Camera, opt: SubdividedSph
         break :BLK m;
     };
 
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        mesh.shape.indices,
-        mesh.shape.positions,
-        mesh.shape.normals.?,
-        S.colors.items,
-        null,
-        .{
-            .aabb = mesh.aabb,
-            .cull_faces = opt.common.cull_faces,
-            .lighting = opt.common.lighting_param,
-        },
-    );
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a cone
@@ -292,7 +243,6 @@ pub fn drawCone(model: zmath.Mat, camera: Camera, opt: ConeDrawOption) !void {
         };
 
         var meshes: ?std.StringHashMap(*Mesh) = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
         var buf: [32]u8 = undefined;
 
         fn getKey(_opt: ConeDrawOption) []u8 {
@@ -302,7 +252,6 @@ pub fn drawCone(model: zmath.Mat, camera: Camera, opt: ConeDrawOption) !void {
 
     if (S.meshes == null) {
         S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 20);
     }
 
     var mesh = BLK: {
@@ -322,25 +271,7 @@ pub fn drawCone(model: zmath.Mat, camera: Camera, opt: ConeDrawOption) !void {
         break :BLK m;
     };
 
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        mesh.shape.indices,
-        mesh.shape.positions,
-        mesh.shape.normals.?,
-        S.colors.items,
-        null,
-        .{
-            .aabb = mesh.aabb,
-            .cull_faces = opt.common.cull_faces,
-            .lighting = opt.common.lighting_param,
-        },
-    );
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a cylinder
@@ -357,7 +288,6 @@ pub fn drawCylinder(model: zmath.Mat, camera: Camera, opt: CylinderDrawOption) !
         };
 
         var meshes: ?std.StringHashMap(*Mesh) = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
         var buf: [32]u8 = undefined;
 
         fn getKey(_opt: CylinderDrawOption) []u8 {
@@ -367,7 +297,6 @@ pub fn drawCylinder(model: zmath.Mat, camera: Camera, opt: CylinderDrawOption) !
 
     if (S.meshes == null) {
         S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 20);
     }
 
     var mesh = BLK: {
@@ -387,25 +316,7 @@ pub fn drawCylinder(model: zmath.Mat, camera: Camera, opt: CylinderDrawOption) !
         break :BLK m;
     };
 
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        mesh.shape.indices,
-        mesh.shape.positions,
-        mesh.shape.normals.?,
-        S.colors.items,
-        null,
-        .{
-            .aabb = mesh.aabb,
-            .cull_faces = opt.common.cull_faces,
-            .lighting = opt.common.lighting_param,
-        },
-    );
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a disk
@@ -424,7 +335,6 @@ pub fn drawDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
         };
 
         var meshes: ?std.StringHashMap(*Mesh) = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
         var buf: [64]u8 = undefined;
 
         fn getKey(_opt: DiskDrawOption) []u8 {
@@ -443,7 +353,6 @@ pub fn drawDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
 
     if (S.meshes == null) {
         S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 20);
     }
 
     var mesh = BLK: {
@@ -463,25 +372,7 @@ pub fn drawDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
         break :BLK m;
     };
 
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        mesh.shape.indices,
-        mesh.shape.positions,
-        mesh.shape.normals.?,
-        S.colors.items,
-        null,
-        .{
-            .aabb = mesh.aabb,
-            .cull_faces = opt.common.cull_faces,
-            .lighting = opt.common.lighting_param,
-        },
-    );
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a torus
@@ -499,7 +390,6 @@ pub fn drawTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
         };
 
         var meshes: ?std.StringHashMap(*Mesh) = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
         var buf: [64]u8 = undefined;
 
         fn getKey(_opt: TorusDrawOption) []u8 {
@@ -513,7 +403,6 @@ pub fn drawTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
 
     if (S.meshes == null) {
         S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 20);
     }
 
     var mesh = BLK: {
@@ -534,32 +423,13 @@ pub fn drawTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
         break :BLK m;
     };
 
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(mesh.shape.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.common.color, mesh.shape.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        mesh.shape.indices,
-        mesh.shape.positions,
-        mesh.shape.normals.?,
-        S.colors.items,
-        null,
-        .{
-            .aabb = mesh.aabb,
-            .cull_faces = opt.common.cull_faces,
-            .lighting = opt.common.lighting_param,
-        },
-    );
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a icosahedron
 pub fn drawIcosahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         var shape: ?zmesh.Shape = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
         var aabb: [6]f32 = undefined;
     };
 
@@ -568,35 +438,15 @@ pub fn drawIcosahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) 
         S.shape.?.computeNormals();
         S.shape.?.computeAabb(&S.aabb);
         all_shapes.append(S.shape.?) catch unreachable;
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
     }
 
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(S.shape.?.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.color, S.shape.?.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        S.shape.?.indices,
-        S.shape.?.positions,
-        S.shape.?.normals.?,
-        S.colors.items,
-        null,
-        .{
-            .aabb = S.aabb,
-            .cull_faces = opt.cull_faces,
-            .lighting = opt.lighting_param,
-        },
-    );
+    try drawShape(S.shape.?, model, camera, S.aabb, opt);
 }
 
 /// Draw a dodecahedron
 pub fn drawDodecahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         var shape: ?zmesh.Shape = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
         var aabb: [6]f32 = undefined;
     };
 
@@ -605,35 +455,15 @@ pub fn drawDodecahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption)
         S.shape.?.computeNormals();
         S.shape.?.computeAabb(&S.aabb);
         all_shapes.append(S.shape.?) catch unreachable;
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
     }
 
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(S.shape.?.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.color, S.shape.?.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        S.shape.?.indices,
-        S.shape.?.positions,
-        S.shape.?.normals.?,
-        S.colors.items,
-        null,
-        .{
-            .aabb = S.aabb,
-            .cull_faces = opt.cull_faces,
-            .lighting = opt.lighting_param,
-        },
-    );
+    try drawShape(S.shape.?, model, camera, S.aabb, opt);
 }
 
 /// Draw a octahedron
 pub fn drawOctahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         var shape: ?zmesh.Shape = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
         var aabb: [6]f32 = undefined;
     };
 
@@ -642,35 +472,15 @@ pub fn drawOctahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !
         S.shape.?.computeNormals();
         S.shape.?.computeAabb(&S.aabb);
         all_shapes.append(S.shape.?) catch unreachable;
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
     }
 
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(S.shape.?.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.color, S.shape.?.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        S.shape.?.indices,
-        S.shape.?.positions,
-        S.shape.?.normals.?,
-        S.colors.items,
-        null,
-        .{
-            .aabb = S.aabb,
-            .cull_faces = opt.cull_faces,
-            .lighting = opt.lighting_param,
-        },
-    );
+    try drawShape(S.shape.?, model, camera, S.aabb, opt);
 }
 
 /// Draw a tetrahedron
 pub fn drawTetrahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         var shape: ?zmesh.Shape = null;
-        var colors: std.ArrayList(sdl.Color) = undefined;
         var aabb: [6]f32 = undefined;
     };
 
@@ -679,26 +489,7 @@ pub fn drawTetrahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) 
         S.shape.?.computeNormals();
         S.shape.?.computeAabb(&S.aabb);
         all_shapes.append(S.shape.?) catch unreachable;
-        S.colors = try std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 8);
     }
 
-    S.colors.clearRetainingCapacity();
-    S.colors.ensureTotalCapacity(S.shape.?.positions.len) catch unreachable;
-    S.colors.appendNTimesAssumeCapacity(opt.color, S.shape.?.positions.len);
-
-    try rd.?.appendMesh(
-        renderer,
-        model,
-        camera,
-        S.shape.?.indices,
-        S.shape.?.positions,
-        S.shape.?.normals.?,
-        S.colors.items,
-        null,
-        .{
-            .aabb = S.aabb,
-            .cull_faces = opt.cull_faces,
-            .lighting = opt.lighting_param,
-        },
-    );
+    try drawShape(S.shape.?, model, camera, S.aabb, opt);
 }
