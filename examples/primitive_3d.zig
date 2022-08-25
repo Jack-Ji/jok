@@ -139,8 +139,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     try primitive.drawPlane(
         zmath.mul(
             zmath.mul(
-                zmath.rotationX(math.pi * 0.5),
-                zmath.translation(-0.5, -1.1, -0.5),
+                zmath.rotationX(-math.pi * 0.5),
+                zmath.translation(-0.5, -1.1, 0.5),
             ),
             zmath.scaling(10, 1, 10),
         ),
@@ -148,7 +148,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         .{
             .common = .{
                 .color = sdl.Color.rgba(100, 100, 100, 200),
-                .cull_faces = false,
             },
         },
     );
