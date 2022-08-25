@@ -37,7 +37,7 @@ var scale: [3]f32 = .{ 1, 1, 1 };
 var rotate: [3]f32 = .{ 0, 0, 0 };
 var translate: [3]f32 = .{ 0, 0, 0 };
 var sun_pos: [3]f32 = .{ 2, 2, 2 };
-var sun_color: [3]f32 = .{ 1, 1, 1 };
+var sun_color: [4]f32 = .{ 1, 1, 1, 1 };
 var camera: Camera = undefined;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
@@ -131,7 +131,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.dragFloat3("translate", &translate, .{ .v_max = 10, .v_speed = 0.1 });
         imgui.separator();
         _ = imgui.dragFloat3("sun position", &sun_pos, .{ .v_max = 2, .v_speed = 0.1 });
-        _ = imgui.dragFloat3("sun color", &sun_color, .{ .v_max = 1, .v_speed = 0.1 });
+        _ = imgui.colorEdit4("sun color", &sun_color, null);
     }
     imgui.end();
     imgui.endFrame();

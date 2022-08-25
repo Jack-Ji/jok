@@ -74,7 +74,7 @@ pub fn clear(self: *Self, retain_memory: bool) void {
 
 /// Lighting options
 pub const LightingOption = struct {
-    ambient_color: sdl.Color = sdl.Color.rgb(50, 50, 50),
+    ambient_color: sdl.Color = sdl.Color.rgb(60, 60, 60),
     sun_pos: [3]f32 = .{ 1, 1, 1 },
     sun_color: sdl.Color = sdl.Color.white,
 
