@@ -8,6 +8,7 @@ const imgui = jok.deps.imgui;
 const zmath = jok.zmath;
 const gfx = jok.gfx.@"3d";
 const primitive = gfx.primitive;
+const font = jok.gfx.@"2d".font;
 const Camera = gfx.Camera;
 
 pub const jok_window_resizable = true;
@@ -177,7 +178,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             .a = @floatToInt(u8, color[3] * 255),
         },
         .cull_faces = cull_faces,
-        .lighting_param = .{
+        .lighting = .{
             .sun_pos = sun_pos,
             .sun_color = .{
                 .r = @floatToInt(u8, sun_color[0] * 255),
@@ -237,6 +238,23 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         },
     }
     try primitive.flush(.{ .wireframe = wireframe });
+
+    _ = try font.debugDraw(
+        ctx.renderer,
+        .{ .pos = .{ .x = 200, .y = 10 } },
+        "Press WSAD and up/down/left/right to move camera around the view",
+        .{},
+    );
+    _ = try font.debugDraw(
+        ctx.renderer,
+        .{ .pos = .{ .x = 200, .y = 28 } },
+        "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
+        .{
+            // zig fmt: off
+            camera.position[0],camera.position[1],camera.position[2],
+            camera.dir[0],camera.dir[1],camera.dir[2],
+        },
+    );
 }
 
 pub fn quit(ctx: *jok.Context) void {
