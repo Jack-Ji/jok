@@ -39,6 +39,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "primitive_3d", .opt = .{ .link_imgui = true } },
         .{ .name = "terran_generation", .opt = .{ .link_imgui = true } },
         .{ .name = "affline_texture", .opt = .{ .link_imgui = true } },
+        .{ .name = "solar_system", .opt = .{ .link_imgui = true } },
         .{ .name = "font_demo", .opt = .{} },
         .{ .name = "audio_demo", .opt = .{ .link_zaudio = true } },
         .{ .name = "audio_synthesize_demo", .opt = .{} },
