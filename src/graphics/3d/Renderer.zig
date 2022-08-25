@@ -95,8 +95,8 @@ pub const AppendOption = struct {
     lighting: ?LightingOption = null,
 };
 
-/// Append mesh data
-pub fn appendMesh(
+/// Append shape data
+pub fn appendShape(
     self: *Self,
     renderer: sdl.Renderer,
     model: zmath.Mat,

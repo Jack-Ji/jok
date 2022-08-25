@@ -68,7 +68,7 @@ pub fn drawShape(shape: zmesh.Shape, model: zmath.Mat, camera: Camera, aabb: ?[6
     S.colors.?.ensureTotalCapacity(shape.positions.len) catch unreachable;
     S.colors.?.appendNTimesAssumeCapacity(opt.color, shape.positions.len);
 
-    try rd.?.appendMesh(
+    try rd.?.appendShape(
         renderer,
         model,
         camera,
