@@ -66,7 +66,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try earth_orbit.addChild(moon_orbit);
     try moon_orbit.addChild(moon);
 
-    try ctx.renderer.setColorRGB(0, 0, 0);
+    try ctx.renderer.setColorRGB(80, 80, 80);
 }
 
 pub fn loop(ctx: *jok.Context) anyerror!void {

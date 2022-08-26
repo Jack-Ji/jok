@@ -74,9 +74,10 @@ pub fn clear(self: *Self, retain_memory: bool) void {
 
 /// Lighting options
 pub const LightingOption = struct {
-    ambient_color: sdl.Color = sdl.Color.rgb(60, 60, 60),
+    ambient_strength: f32 = 0.1,
     sun_pos: [3]f32 = .{ 1, 1, 1 },
     sun_color: sdl.Color = sdl.Color.white,
+    shininess: f32 = 4,
 
     // Calculate tint color
     tint_color_calc_fn: ?*const fn (
@@ -222,7 +223,7 @@ pub fn appendShape(
             n0,
             n1,
             n2,
-            zmath.f32x4(0.0, 0.0, 0.0, 0.0),
+            zmath.f32x4s(0),
         }, zmath.transpose(zmath.inverse(model)));
         world_normals[0] = zmath.normalize3(world_normals[0]);
         world_normals[1] = zmath.normalize3(world_normals[1]);
@@ -922,12 +923,6 @@ fn calcTintColor(
         @intToFloat(f32, material_color.b),
         0,
     ) * ts;
-    const ambient_color = raw_color * zmath.f32x4(
-        @intToFloat(f32, opt.ambient_color.r),
-        @intToFloat(f32, opt.ambient_color.g),
-        @intToFloat(f32, opt.ambient_color.b),
-        0,
-    ) * ts;
     const sun_color = zmath.f32x4(
         @intToFloat(f32, opt.sun_color.r),
         @intToFloat(f32, opt.sun_color.g),
@@ -940,16 +935,30 @@ fn calcTintColor(
         opt.sun_pos[2],
         1,
     ) - vertex_pos);
-    const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
-    const halfway_dir = zmath.normalize3(eye_dir + sun_dir);
-    const ratios = zmath.max(
-        zmath.dot3(normal, halfway_dir),
-        zmath.f32x4(0, 0, 0, 0),
-    );
+
+    // Calculate ambient ratio
+    const ambient = zmath.f32x4s(opt.ambient_strength) * sun_color;
+
+    // Calculate diffuse ratio
+    const dns = zmath.dot3(normal, sun_dir);
+    var diffuse = zmath.max(dns, zmath.f32x4s(0)) * sun_color;
+
+    // Calculate reflect ratio (Blinn-Phong model)
+    var spec = zmath.f32x4s(0);
+    if (dns[0] > 0) {
+        const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
+        const halfway_dir = zmath.normalize3(eye_dir + sun_dir);
+        const s = math.pow(f32, zmath.max(
+            zmath.dot3(normal, halfway_dir),
+            zmath.f32x4s(0),
+        )[0], opt.shininess);
+        spec = zmath.f32x4s(s) * sun_color;
+    }
+
     const final_color = zmath.clamp(
-        ambient_color + raw_color * ratios * sun_color,
-        zmath.splat(zmath.Vec, 0),
-        zmath.splat(zmath.Vec, 1),
+        raw_color * (ambient + diffuse + spec),
+        zmath.f32x4s(0),
+        zmath.f32x4s(1),
     );
     return .{
         .r = @floatToInt(u8, final_color[0] * 255),
