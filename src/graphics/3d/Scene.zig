@@ -152,7 +152,7 @@ pub const Object = struct {
 
 allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
-renderer: sdl.TriangleRenderer,
+renderer: sdl.Renderer,
 rd: TriangleRenderer,
 root: *Object,
 colors: std.ArrayList(sdl.Color),
@@ -162,6 +162,7 @@ pub fn init(ctx: *jok.Context) !*Self {
     errdefer ctx.allocator.destroy(self);
     self.allocator = ctx.allocator;
     self.arena = std.heap.ArenaAllocator.init(ctx.allocator);
+    errdefer self.arena.deinit();
     self.renderer = ctx.renderer;
     self.rd = TriangleRenderer.init(self.arena.allocator());
     self.root = try Object.init(self.arena.allocator(), .{ .position = .{} });
