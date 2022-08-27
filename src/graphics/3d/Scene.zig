@@ -152,7 +152,6 @@ pub const Object = struct {
 
 allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
-renderer: sdl.Renderer,
 rd: TriangleRenderer,
 root: *Object,
 colors: std.ArrayList(sdl.Color),
@@ -163,8 +162,7 @@ pub fn init(ctx: *jok.Context) !*Self {
     self.allocator = ctx.allocator;
     self.arena = std.heap.ArenaAllocator.init(ctx.allocator);
     errdefer self.arena.deinit();
-    self.renderer = ctx.renderer;
-    self.rd = TriangleRenderer.init(self.arena.allocator());
+    self.rd = TriangleRenderer.init(ctx);
     self.root = try Object.init(self.arena.allocator(), .{ .position = .{} });
     errdefer self.root.deinit(false);
     self.colors = try std.ArrayList(sdl.Color).initCapacity(self.arena.allocator(), 1000);
@@ -172,9 +170,8 @@ pub fn init(ctx: *jok.Context) !*Self {
 }
 
 pub fn deinit(self: *Self, destroy_objects: bool) void {
-    if (destroy_objects) {
-        self.root.deinit(true);
-    }
+    self.root.deinit(destroy_objects);
+    self.rd.deinit();
     self.arena.deinit();
     self.allocator.destroy(self);
 }
@@ -191,9 +188,9 @@ pub fn render(self: *Self, camera: Camera, opt: RenderOption) !void {
     self.rd.clear(true);
     try self.addObjectToRenderer(camera, self.root, opt);
     if (opt.wireframe) {
-        try self.rd.drawWireframe(self.renderer, opt.wireframe_color);
+        try self.rd.drawWireframe(opt.wireframe_color);
     } else {
-        try self.rd.draw(self.renderer, opt.texture);
+        try self.rd.draw(opt.texture);
     }
 }
 
@@ -206,7 +203,6 @@ fn addObjectToRenderer(self: *Self, camera: Camera, o: *Object, opt: RenderOptio
             self.colors.appendNTimesAssumeCapacity(m.color, m.shape.positions.len);
 
             try self.rd.appendShape(
-                self.renderer,
                 o.transform,
                 camera,
                 m.shape.indices,

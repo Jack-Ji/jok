@@ -17,18 +17,16 @@ pub const CommonDrawOption = struct {
 
 var rd: ?TriangleRenderer = null;
 var arena: std.heap.ArenaAllocator = undefined;
-var renderer: sdl.Renderer = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 
-/// Create primitive renderer
+/// Initialize primitive module
 pub fn init(ctx: *jok.Context) !void {
-    rd = TriangleRenderer.init(ctx.allocator);
+    rd = TriangleRenderer.init(ctx);
     arena = std.heap.ArenaAllocator.init(ctx.allocator);
-    renderer = ctx.renderer;
     all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
 }
 
-/// Destroy primitive renderer
+/// Destroy primitive module
 pub fn deinit() void {
     for (all_shapes.items) |s| s.deinit();
     rd.?.deinit();
@@ -48,9 +46,9 @@ pub const FlushOption = struct {
 };
 pub fn flush(opt: FlushOption) !void {
     if (opt.wireframe) {
-        try rd.?.drawWireframe(renderer, opt.wireframe_color);
+        try rd.?.drawWireframe(opt.wireframe_color);
     } else {
-        try rd.?.draw(renderer, opt.texture);
+        try rd.?.draw(opt.texture);
     }
 }
 
@@ -69,7 +67,6 @@ pub fn drawShape(shape: zmesh.Shape, model: zmath.Mat, camera: Camera, aabb: ?[6
     S.colors.?.appendNTimesAssumeCapacity(opt.color, shape.positions.len);
 
     try rd.?.appendShape(
-        renderer,
         model,
         camera,
         shape.indices,
