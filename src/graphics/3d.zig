@@ -25,7 +25,7 @@ pub const TriangleRenderer = @import("3d/TriangleRenderer.zig");
 /// 3d camera
 pub const Camera = @import("3d/Camera.zig");
 
-/// 3d scene (three.js like)
+/// 3d scene (Clone of three.js's scene. Learn detail from https://threejs.org/manual/#en/scenegraph)
 pub const Scene = @import("3d/Scene.zig");
 
 /// 3d primitive drawing
