@@ -409,7 +409,7 @@ inline fn clipTriangle(
     colors: ?[3]sdl.Color,
     texcoords: ?[3]sdl.PointF,
 ) void {
-    const clip_plane_w = 0.00001;
+    const clip_plane_w = 0.0001;
     var world_v0 = world_positions[0];
     var world_v1 = world_positions[1];
     var world_v2 = world_positions[2];

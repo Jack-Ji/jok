@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
-const Renderer = @import("Renderer.zig");
+const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
 const sdl = @import("sdl");
 const jok = @import("../../jok.zig");
@@ -152,8 +152,8 @@ pub const Object = struct {
 
 allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
-renderer: sdl.Renderer,
-rd: Renderer,
+renderer: sdl.TriangleRenderer,
+rd: TriangleRenderer,
 root: *Object,
 colors: std.ArrayList(sdl.Color),
 
@@ -163,7 +163,7 @@ pub fn init(ctx: *jok.Context) !*Self {
     self.allocator = ctx.allocator;
     self.arena = std.heap.ArenaAllocator.init(ctx.allocator);
     self.renderer = ctx.renderer;
-    self.rd = Renderer.init(self.arena.allocator());
+    self.rd = TriangleRenderer.init(self.arena.allocator());
     self.root = try Object.init(self.arena.allocator(), .{ .position = .{} });
     errdefer self.root.deinit(false);
     self.colors = try std.ArrayList(sdl.Color).initCapacity(self.arena.allocator(), 1000);
@@ -184,7 +184,7 @@ pub const RenderOption = struct {
     wireframe: bool = false,
     wireframe_color: sdl.Color = sdl.Color.green,
     cull_faces: bool = true,
-    lighting: ?Renderer.LightingOption = null,
+    lighting: ?TriangleRenderer.LightingOption = null,
 };
 pub fn render(self: *Self, camera: Camera, opt: RenderOption) !void {
     self.rd.clear(true);

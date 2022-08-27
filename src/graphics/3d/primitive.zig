@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
-const Renderer = @import("Renderer.zig");
+const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
 const sdl = @import("sdl");
 const jok = @import("../../jok.zig");
@@ -12,17 +12,17 @@ const zmesh = @"3d".zmesh;
 pub const CommonDrawOption = struct {
     color: sdl.Color = sdl.Color.white,
     cull_faces: bool = true,
-    lighting: ?Renderer.LightingOption = null,
+    lighting: ?TriangleRenderer.LightingOption = null,
 };
 
-var rd: ?Renderer = null;
+var rd: ?TriangleRenderer = null;
 var arena: std.heap.ArenaAllocator = undefined;
 var renderer: sdl.Renderer = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 
 /// Create primitive renderer
 pub fn init(ctx: *jok.Context) !void {
-    rd = Renderer.init(ctx.allocator);
+    rd = TriangleRenderer.init(ctx.allocator);
     arena = std.heap.ArenaAllocator.init(ctx.allocator);
     renderer = ctx.renderer;
     all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
