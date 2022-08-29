@@ -115,10 +115,16 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.clear();
 
-    try scene.render(camera, .{
-        .lighting = .{
-            .sun_pos = .{ 0, 0, 0 },
+    var lighting_opt = gfx.TriangleRenderer.LightingOption{};
+    lighting_opt.lights[0] = gfx.TriangleRenderer.Light{
+        .point = .{
+            .position = zmath.f32x4s(0),
+            .attenuation_linear = 0,
+            .attenuation_quadratic = 0,
         },
+    };
+    try scene.render(camera, .{
+        .lighting = lighting_opt,
     });
 
     _ = try font.debugDraw(

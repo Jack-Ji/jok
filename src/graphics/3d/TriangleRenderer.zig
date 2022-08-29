@@ -82,22 +82,22 @@ pub const Light = union(enum) {
         ambient: zmath.Vec = zmath.f32x4s(0.1),
         diffuse: zmath.Vec = zmath.f32x4s(0.5),
         specular: zmath.Vec = zmath.f32x4s(0.2),
-        direction: zmath.Vec3 = zmath.f32x4(-1, -1, 0, 0),
+        direction: zmath.Vec = zmath.f32x4(-1, -1, 0, 0),
     },
     point: struct {
         ambient: zmath.Vec = zmath.f32x4s(0.1),
         diffuse: zmath.Vec = zmath.f32x4s(0.5),
         specular: zmath.Vec = zmath.f32x4s(0.3),
-        position: zmath.Vec3 = zmath.f32x4(1, 1, 1),
+        position: zmath.Vec = zmath.f32x4(1, 1, 1, 1),
         constant: f32 = 1.0,
-        attenuation_linear: f32 = 1.09,
-        attenuation_quadratic: f32 = 1.03,
+        attenuation_linear: f32 = 0.5,
+        attenuation_quadratic: f32 = 0.3,
     },
 };
 pub const LightingOption = struct {
     const max_light_num = 32;
-    lights: [max_light_num]Light = undefined,
-    lights_num: u32 = 0,
+    lights: [max_light_num]Light = [_]Light{.{ .directional = .{} }} ** max_light_num,
+    lights_num: u32 = 1,
     shininess: f32 = 4,
 
     // Calculate color of light source
@@ -936,6 +936,7 @@ fn calcLightColor(
     const S = struct {
         inline fn calcColor(
             raw_color: zmath.Vec,
+            shininess: f32,
             light_dir: zmath.Vec,
             eye_dir: zmath.Vec,
             _normal: zmath.Vec,
@@ -950,9 +951,9 @@ fn calcLightColor(
                 // Calculate reflect ratio (Blinn-Phong model)
                 const halfway_dir = zmath.normalize3(eye_dir + light_dir);
                 const s = math.pow(f32, zmath.max(
-                    zmath.dot3(normal, halfway_dir),
+                    zmath.dot3(_normal, halfway_dir),
                     zmath.f32x4s(0),
-                )[0], opt.shininess);
+                )[0], shininess);
                 specular = zmath.f32x4s(s) * _specular;
             }
             return raw_color * (_ambient + diffuse + specular);
@@ -979,6 +980,7 @@ fn calcLightColor(
                 const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
                 final_color += S.calcColor(
                     raw_color,
+                    opt.shininess,
                     light_dir,
                     eye_dir,
                     normal,
@@ -991,13 +993,12 @@ fn calcLightColor(
                 const light_dir = zmath.normalize3(light.position - vertex_pos);
                 const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
                 const distance = zmath.length3(light.position - vertex_pos);
-                const attenuation = zmath.f32x4s(
-                    1.0 / (light.constant +
-                        light.attenuation_linear * distance +
-                        light.attenuation_quadratic * distance * distance),
-                );
+                const attenuation = zmath.f32x4s(1.0) / (zmath.f32x4s(light.constant) +
+                    zmath.f32x4s(light.attenuation_linear) * distance +
+                    zmath.f32x4s(light.attenuation_quadratic) * distance * distance);
                 final_color += S.calcColor(
                     raw_color,
+                    opt.shininess,
                     light_dir,
                     eye_dir,
                     normal,
