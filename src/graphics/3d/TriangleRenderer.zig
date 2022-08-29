@@ -1027,8 +1027,7 @@ fn calcLightColor(
                     zmath.f32x4s(light.attenuation_quadratic) * distance * distance);
                 const light_dir = zmath.normalize3(light.position - vertex_pos);
                 const theta = zmath.dot3(light_dir, zmath.normalize3(-light.direction))[0];
-                assert(light.inner_cutoff >= 0 and light.inner_cutoff <= 1);
-                assert(light.outer_cutoff >= 0 and light.outer_cutoff <= 1);
+                assert(light.inner_cutoff > light.outer_cutoff);
                 const epsilon = light.inner_cutoff - light.outer_cutoff;
                 assert(epsilon > 0);
                 const intensity = zmath.f32x4s(math.clamp((theta - light.outer_cutoff) / epsilon, 0.0, 1.0));
