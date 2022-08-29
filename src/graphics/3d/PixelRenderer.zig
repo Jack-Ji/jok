@@ -8,8 +8,11 @@ const zmath = @"3d".zmath;
 const Camera = @"3d".Camera;
 const Self = @This();
 
-/// sdl renderer
+// sdl renderer
 rd: sdl.Renderer,
+
+// pixels for rasterization
+pixels: []u32,
 
 pub fn init(ctx: *jok.Context) Self {
     return .{
@@ -17,12 +20,10 @@ pub fn init(ctx: *jok.Context) Self {
     };
 }
 
-fn pixel(self: Self, rd: sdl.Renderer, p: sdl.Point) !void {
-    _ = self;
-    try rd.drawPoint(@as(i32, p.x), @as(i32, p.y));
+fn pixel(self: Self, p: sdl.Point) !void {
+    try self.rd.drawPoint(@as(i32, p.x), @as(i32, p.y));
 }
 
-fn line(self: Self, rd: sdl.Renderer, pos1: sdl.Point, pos2: sdl.Point) !void {
-    _ = self;
-    try rd.drawLine(@as(i32, pos1.x), @as(i32, pos1.y), @as(i32, pos2.x), @as(i32, pos2.y));
+fn line(self: Self, p1: sdl.Point, p2: sdl.Point) !void {
+    try self.rd.drawLine(@as(i32, p1.x), @as(i32, p1.y), @as(i32, p2.x), @as(i32, p2.y));
 }

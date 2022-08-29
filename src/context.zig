@@ -9,37 +9,37 @@ pub var perf_counter_freq: f64 = undefined;
 
 /// Application context
 pub const Context = struct {
-    /// Default allocator
+    // Default allocator
     allocator: std.mem.Allocator = undefined,
 
-    /// Internal window
+    // Internal window
     window: sdl.Window,
 
-    /// Renderer
+    // Renderer
     renderer: sdl.Renderer = undefined,
     is_software: bool = false,
 
-    /// Quit switch
+    // Quit switch
     quit: bool = false,
 
-    /// Resizable mode
+    // Resizable mode
     resizable: bool = undefined,
 
-    /// Fullscreen mode
+    // Fullscreen mode
     fullscreen: bool = undefined,
 
-    /// Relative mouse mode
+    // Relative mouse mode
     relative_mouse: bool = undefined,
 
-    /// Residue of fps capping
+    // Residue of fps capping
     fps_limit_residue: u64 = 0,
 
-    /// Number of seconds since launch/last-frame
+    // Number of seconds since launch/last-frame
     tick: f64 = 0,
     delta_tick: f32 = 0,
     last_perf_counter: u64 = 0,
 
-    /// Frames stats
+    // Frames stats
     fps: f32 = 0,
     average_cpu_time: f32 = 0,
     frame_counter: u32 = 0,

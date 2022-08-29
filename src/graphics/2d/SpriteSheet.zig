@@ -49,19 +49,19 @@ pub const SpriteRect = struct {
     height: f32,
 };
 
-/// Used allocator
+// Used allocator
 allocator: std.mem.Allocator,
 
-/// Packed pixels
+// Packed pixels
 packed_pixels: ?ImagePixels = null,
 
-/// Packed texture
+// Packed texture
 tex: sdl.Texture,
 
-/// Sprite rectangles
+// Sprite rectangles
 rects: []SpriteRect,
 
-/// Sprite search-tree
+// Sprite search-tree
 search_tree: std.StringHashMap(u32),
 
 /// Create sprite-sheet

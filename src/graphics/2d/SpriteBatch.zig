@@ -49,25 +49,25 @@ const BatchData = struct {
     vindices: std.ArrayList(u32),
 };
 
-/// Memory allocator
+// Memory allocator
 allocator: std.mem.Allocator,
 
-/// Graphics Renderer
+// Graphics Renderer
 renderer: sdl.Renderer,
 
-/// All batch data
+// All batch data
 batches: []BatchData,
 
-/// Sprite-sheet search tree
+// Sprite-sheet search tree
 search_tree: std.AutoHashMap(*SpriteSheet, u32),
 
-/// Maximum limit
+// Maximum limit
 max_sprites_per_drawcall: u32,
 
-///  blend method
+//  blend method
 blend_method: BlendMethod = .blend,
 
-///  sort method
+//  sort method
 depth_sort: DepthSortMethod = .none,
 
 /// Create sprite-batch

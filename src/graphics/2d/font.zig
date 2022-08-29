@@ -10,16 +10,16 @@ const truetype = jok.deps.stb.truetype;
 pub const Font = struct {
     const Self = @This();
 
-    /// Memory allocator
+    // Memory allocator
     allocator: std.mem.Allocator,
 
-    /// Font file's data
+    // Font file's data
     font_data: ?[]const u8,
 
-    /// Internal font information
+    // Internal font information
     font_info: truetype.stbtt_fontinfo,
 
-    /// Accept 20M font file at most
+    // Accept 20M font file at most
     const max_font_size = 20 * (1 << 20);
 
     /// Init Font instance with truetype file

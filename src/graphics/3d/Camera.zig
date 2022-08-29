@@ -31,25 +31,25 @@ const MoveDirection = enum {
     down,
 };
 
-/// Viewing frustrum
+// Viewing frustrum
 frustrum: ViewFrustrum = undefined,
 
-/// Up vector of the world
+// Up vector of the world
 world_up: zmath.Vec = undefined,
 
-/// Position of camera
+// Position of camera
 position: zmath.Vec = undefined,
 
-/// Direction of camera
+// Direction of camera
 dir: zmath.Vec = undefined,
 
-/// Up of camera
+// Up of camera
 up: zmath.Vec = undefined,
 
-/// Right of camera
+// Right of camera
 right: zmath.Vec = undefined,
 
-/// Euler angle of camera
+// Euler angle of camera
 pitch: f32 = undefined,
 yaw: f32 = undefined,
 roll: f32 = undefined,

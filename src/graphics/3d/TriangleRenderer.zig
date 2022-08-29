@@ -8,28 +8,28 @@ const zmath = @"3d".zmath;
 const Camera = @"3d".Camera;
 const Self = @This();
 
-/// sdl renderer
+// sdl renderer
 rd: sdl.Renderer,
 
-/// Triangle vertices
+// Triangle vertices
 indices: std.ArrayList(u32),
 sorted: bool = false,
 
-/// Triangle vertices
+// Triangle vertices
 vertices: std.ArrayList(sdl.Vertex),
 
-/// Depth of vertices
+// Depth of vertices
 depths: std.ArrayList(f32),
 
-/// Large triangles directly in front of camera
+// Large triangles directly in front of camera
 large_front_triangles: std.ArrayList([3]u32),
 
-/// Temporary storage for clipping
+// Temporary storage for clipping
 clip_vertices: std.ArrayList(zmath.Vec),
 clip_colors: std.ArrayList(sdl.Color),
 clip_texcoords: std.ArrayList(sdl.PointF),
 
-/// Vertices in world space
+// Vertices in world space
 world_positions: std.ArrayList(zmath.Vec),
 world_normals: std.ArrayList(zmath.Vec),
 

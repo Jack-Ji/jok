@@ -5,10 +5,10 @@ const Sprite = @import("Sprite.zig");
 const SpriteBatch = @import("SpriteBatch.zig");
 const Self = @This();
 
-/// Memory allocator
+// Memory allocator
 allocator: std.mem.Allocator,
 
-/// Animations
+// Animations
 animations: std.StringHashMap(Animation),
 
 pub fn init(allocator: std.mem.Allocator) !*Self {

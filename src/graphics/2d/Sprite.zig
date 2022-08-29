@@ -7,15 +7,15 @@ const gfx = jok.gfx;
 const zmath = jok.zmath;
 const Self = @This();
 
-/// Size of sprite
+// Size of sprite
 width: f32,
 height: f32,
 
-/// Tex-coords of sprite
+// Tex-coords of sprite
 uv0: sdl.PointF,
 uv1: sdl.PointF,
 
-/// Reference to sprite-sheet
+// Reference to sprite-sheet
 sheet: *SpriteSheet,
 
 /// Get sub-sprite by offsets/size

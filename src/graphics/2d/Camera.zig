@@ -4,14 +4,14 @@ const sdl = @import("sdl");
 const jok = @import("../../jok.zig");
 const Self = @This();
 
-/// Position of camera's center
+// Position of camera's center
 pos: sdl.PointF,
 
-/// Half-size of camera
+// Half-size of camera
 orig_half_size: sdl.PointF,
 half_size: sdl.PointF,
 
-/// Zoom value
+// Zoom value
 zoom: f32,
 
 pub fn init(pos: sdl.PointF, half_size: sdl.PointF) Self {

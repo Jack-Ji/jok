@@ -8,10 +8,10 @@ const Self = @This();
 
 const default_effects_capacity = 10;
 
-/// Memory allocator
+// Memory allocator
 allocator: std.mem.Allocator,
 
-/// Particle effects
+// Particle effects
 effects: std.ArrayList(Effect),
 
 /// Create particle effect system/manager
