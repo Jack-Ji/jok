@@ -80,14 +80,14 @@ pub fn clear(self: *Self, retain_memory: bool) void {
 pub const Light = union(enum) {
     directional: struct {
         ambient: zmath.Vec = zmath.f32x4s(0.1),
-        diffuse: zmath.Vec = zmath.f32x4s(0.5),
-        specular: zmath.Vec = zmath.f32x4s(0.2),
-        direction: zmath.Vec = zmath.f32x4(-1, -1, 0, 0),
+        diffuse: zmath.Vec = zmath.f32x4s(0.8),
+        specular: zmath.Vec = zmath.f32x4s(0.5),
+        direction: zmath.Vec = zmath.f32x4(0, -1, -1, 0),
     },
     point: struct {
         ambient: zmath.Vec = zmath.f32x4s(0.1),
-        diffuse: zmath.Vec = zmath.f32x4s(0.5),
-        specular: zmath.Vec = zmath.f32x4s(0.3),
+        diffuse: zmath.Vec = zmath.f32x4s(0.8),
+        specular: zmath.Vec = zmath.f32x4s(0.5),
         position: zmath.Vec = zmath.f32x4(1, 1, 1, 1),
         constant: f32 = 1.0,
         attenuation_linear: f32 = 0.5,
