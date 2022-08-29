@@ -14,12 +14,7 @@ pub const v_backward = zmath.f32x4(0, 0, -1, 0);
 /// 3d Mesh (loading/writing/optimization/generation)
 pub const zmesh = jok.deps.zmesh;
 
-/// 3d pixel renderer (using SDL2 to accelerate pixel rendering)
-/// More control of fragment detail, but slower
-pub const PixelRenderer = @import("3d/PixelRenderer.zig");
-
 /// 3d triangle renderer (using SDL2 to accelerate triangle rendering)
-/// Less control of fragment detail, but way faster
 pub const TriangleRenderer = @import("3d/TriangleRenderer.zig");
 
 /// 3d camera
