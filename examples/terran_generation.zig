@@ -18,8 +18,8 @@ pub const jok_window_width = 1600;
 pub const jok_window_height = 900;
 
 var wireframe: bool = false;
-var sun_pos: [3]f32 = .{ 0, 10, 0 };
-var sun_color: [3]f32 = .{ 1, 1, 1 };
+var light_pos: [3]f32 = .{ 0, 10, 0 };
+var light_color: [3]f32 = .{ 1, 1, 1 };
 var camera: Camera = undefined;
 var shape: zmesh.Shape = undefined;
 
@@ -117,12 +117,19 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     imgui.beginFrame();
     if (imgui.begin("Control Panel", null, null)) {
         _ = imgui.checkbox("wireframe", &wireframe);
-        _ = imgui.dragFloat3("sun position", &sun_pos, .{ .v_max = 20, .v_speed = 0.1 });
-        _ = imgui.dragFloat3("sun color", &sun_color, .{ .v_max = 1, .v_speed = 0.1 });
+        _ = imgui.dragFloat3("light position", &light_pos, .{ .v_max = 20, .v_speed = 0.1 });
     }
     imgui.end();
     imgui.endFrame();
 
+    var lighting_opt = gfx.TriangleRenderer.LightingOption{};
+    lighting_opt.lights[0] = .{
+        .point = .{
+            .position = zmath.f32x4(light_pos[0], light_pos[1], light_pos[2], 1),
+            .attenuation_linear = 0.002,
+            .attenuation_quadratic = 0.0002,
+        },
+    };
     primitive.clear();
     try primitive.drawShape(
         shape,
@@ -130,15 +137,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         camera,
         null,
         .{
-            .lighting = .{
-                .sun_pos = sun_pos,
-                .sun_color = .{
-                    .r = @floatToInt(u8, sun_color[0] * 255),
-                    .g = @floatToInt(u8, sun_color[1] * 255),
-                    .b = @floatToInt(u8, sun_color[2] * 255),
-                    .a = 255,
-                },
-            },
+            .lighting = lighting_opt,
             .cull_faces = false,
         },
     );
@@ -148,17 +147,11 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     try primitive.drawSubdividedSphere(
         zmath.mul(
             zmath.scaling(0.2, 0.2, 0.2),
-            zmath.translation(sun_pos[0], sun_pos[1], sun_pos[2]),
+            zmath.translation(light_pos[0], light_pos[1], light_pos[2]),
         ),
         camera,
         .{
-            .common = .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, sun_color[0] * 255),
-                    @floatToInt(u8, sun_color[1] * 255),
-                    @floatToInt(u8, sun_color[2] * 255),
-                ),
-            },
+            .common = .{},
         },
     );
     try primitive.flush(.{});
