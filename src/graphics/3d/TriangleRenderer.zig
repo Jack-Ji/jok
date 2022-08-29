@@ -77,14 +77,31 @@ pub fn clear(self: *Self, retain_memory: bool) void {
 }
 
 /// Lighting options
+pub const Light = union(enum) {
+    directional: struct {
+        ambient: zmath.Vec = zmath.f32x4s(0.1),
+        diffuse: zmath.Vec = zmath.f32x4s(0.5),
+        specular: zmath.Vec = zmath.f32x4s(0.2),
+        direction: zmath.Vec3 = zmath.f32x4(-1, -1, 0, 0),
+    },
+    point: struct {
+        ambient: zmath.Vec = zmath.f32x4s(0.1),
+        diffuse: zmath.Vec = zmath.f32x4s(0.5),
+        specular: zmath.Vec = zmath.f32x4s(0.3),
+        position: zmath.Vec3 = zmath.f32x4(1, 1, 1),
+        constant: f32 = 1.0,
+        attenuation_linear: f32 = 1.09,
+        attenuation_quadratic: f32 = 1.03,
+    },
+};
 pub const LightingOption = struct {
-    ambient_strength: f32 = 0.1,
-    sun_pos: [3]f32 = .{ 1, 1, 1 },
-    sun_color: sdl.Color = sdl.Color.white,
+    const max_light_num = 32;
+    lights: [max_light_num]Light = undefined,
+    lights_num: u32 = 0,
     shininess: f32 = 4,
 
-    // Calculate tint color
-    tint_color_calc_fn: ?*const fn (
+    // Calculate color of light source
+    light_calc_fn: ?*const fn (
         material_color: sdl.Color,
         eye_pos: zmath.Vec,
         vertex_pos: zmath.Vec,
@@ -311,7 +328,7 @@ pub fn appendShape(
             .{
                 .position = .{ .x = positions_screen[0][0], .y = positions_screen[0][1] },
                 .color = if (opt.lighting) |p| BLK: {
-                    var calc = if (p.tint_color_calc_fn) |f| f else &calcTintColor;
+                    var calc = if (p.light_calc_fn) |f| f else &calcLightColor;
                     break :BLK calc(c0, camera.position, world_v0, n0, p);
                 } else c0,
                 .tex_coord = t0,
@@ -319,7 +336,7 @@ pub fn appendShape(
             .{
                 .position = .{ .x = positions_screen[1][0], .y = positions_screen[1][1] },
                 .color = if (opt.lighting) |p| BLK: {
-                    var calc = if (p.tint_color_calc_fn) |f| f else &calcTintColor;
+                    var calc = if (p.light_calc_fn) |f| f else &calcLightColor;
                     break :BLK calc(c1, camera.position, world_v1, n1, p);
                 } else c1,
                 .tex_coord = t1,
@@ -327,7 +344,7 @@ pub fn appendShape(
             .{
                 .position = .{ .x = positions_screen[2][0], .y = positions_screen[2][1] },
                 .color = if (opt.lighting) |p| BLK: {
-                    var calc = if (p.tint_color_calc_fn) |f| f else &calcTintColor;
+                    var calc = if (p.light_calc_fn) |f| f else &calcLightColor;
                     break :BLK calc(c2, camera.position, world_v2, n2, p);
                 } else c2,
                 .tex_coord = t2,
@@ -909,13 +926,40 @@ inline fn isPointInTriangle(tri: [3][2]f32, point: [2]f32) bool {
 }
 
 /// Calculate tint color of vertex according to lighting paramters
-fn calcTintColor(
+fn calcLightColor(
     material_color: sdl.Color,
     eye_pos: zmath.Vec,
     vertex_pos: zmath.Vec,
     normal: zmath.Vec,
     opt: LightingOption,
 ) sdl.Color {
+    const S = struct {
+        inline fn calcColor(
+            raw_color: zmath.Vec,
+            light_dir: zmath.Vec,
+            eye_dir: zmath.Vec,
+            _normal: zmath.Vec,
+            _ambient: zmath.Vec,
+            _diffuse: zmath.Vec,
+            _specular: zmath.Vec,
+        ) zmath.Vec {
+            const dns = zmath.dot3(_normal, light_dir);
+            var diffuse = zmath.max(dns, zmath.f32x4s(0)) * _diffuse;
+            var specular = zmath.f32x4s(0);
+            if (dns[0] > 0) {
+                // Calculate reflect ratio (Blinn-Phong model)
+                const halfway_dir = zmath.normalize3(eye_dir + light_dir);
+                const s = math.pow(f32, zmath.max(
+                    zmath.dot3(normal, halfway_dir),
+                    zmath.f32x4s(0),
+                )[0], opt.shininess);
+                specular = zmath.f32x4s(s) * _specular;
+            }
+            return raw_color * (_ambient + diffuse + specular);
+        }
+    };
+
+    if (opt.lights_num == 0) return material_color;
     assert(math.approxEqAbs(f32, eye_pos[3], 1.0, math.f32_epsilon));
     assert(math.approxEqAbs(f32, vertex_pos[3], 1.0, math.f32_epsilon));
     assert(math.approxEqAbs(f32, normal[3], 0, math.f32_epsilon));
@@ -926,40 +970,47 @@ fn calcTintColor(
         @intToFloat(f32, material_color.b),
         0,
     ) * ts;
-    const sun_color = zmath.f32x4(
-        @intToFloat(f32, opt.sun_color.r),
-        @intToFloat(f32, opt.sun_color.g),
-        @intToFloat(f32, opt.sun_color.b),
-        0,
-    ) * ts;
-    const sun_dir = zmath.normalize3(zmath.f32x4(
-        opt.sun_pos[0],
-        opt.sun_pos[1],
-        opt.sun_pos[2],
-        1,
-    ) - vertex_pos);
 
-    // Calculate ambient ratio
-    const ambient = zmath.f32x4s(opt.ambient_strength) * sun_color;
-
-    // Calculate diffuse ratio
-    const dns = zmath.dot3(normal, sun_dir);
-    var diffuse = zmath.max(dns, zmath.f32x4s(0)) * sun_color;
-
-    // Calculate reflect ratio (Blinn-Phong model)
-    var spec = zmath.f32x4s(0);
-    if (dns[0] > 0) {
-        const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
-        const halfway_dir = zmath.normalize3(eye_dir + sun_dir);
-        const s = math.pow(f32, zmath.max(
-            zmath.dot3(normal, halfway_dir),
-            zmath.f32x4s(0),
-        )[0], opt.shininess);
-        spec = zmath.f32x4s(s) * sun_color;
+    var final_color = zmath.f32x4s(0);
+    for (opt.lights[0..opt.lights_num]) |ul| {
+        switch (ul) {
+            .directional => |light| {
+                const light_dir = zmath.normalize3(-light.direction);
+                const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
+                final_color += S.calcColor(
+                    raw_color,
+                    light_dir,
+                    eye_dir,
+                    normal,
+                    light.ambient,
+                    light.diffuse,
+                    light.specular,
+                );
+            },
+            .point => |light| {
+                const light_dir = zmath.normalize3(light.position - vertex_pos);
+                const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
+                const distance = zmath.length3(light.position - vertex_pos);
+                const attenuation = zmath.f32x4s(
+                    1.0 / (light.constant +
+                        light.attenuation_linear * distance +
+                        light.attenuation_quadratic * distance * distance),
+                );
+                final_color += S.calcColor(
+                    raw_color,
+                    light_dir,
+                    eye_dir,
+                    normal,
+                    light.ambient,
+                    light.diffuse,
+                    light.specular,
+                ) * attenuation;
+            },
+        }
     }
 
-    const final_color = zmath.clamp(
-        raw_color * (ambient + diffuse + spec),
+    final_color = zmath.clamp(
+        final_color,
         zmath.f32x4s(0),
         zmath.f32x4s(1),
     );
