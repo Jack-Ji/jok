@@ -93,6 +93,18 @@ pub const Light = union(enum) {
         attenuation_linear: f32 = 0.5,
         attenuation_quadratic: f32 = 0.3,
     },
+    spot: struct {
+        ambient: zmath.Vec = zmath.f32x4s(0.1),
+        diffuse: zmath.Vec = zmath.f32x4s(0.9),
+        specular: zmath.Vec = zmath.f32x4s(0.8),
+        position: zmath.Vec = zmath.f32x4(3, 3, 3, 1),
+        direction: zmath.Vec = zmath.f32x4(-1, -1, -1, 0),
+        constant: f32 = 1.0,
+        attenuation_linear: f32 = 0.01,
+        attenuation_quadratic: f32 = 0.001,
+        inner_cutoff: f32 = 0.95,
+        outer_cutoff: f32 = 0.85,
+    },
 };
 pub const LightingOption = struct {
     const max_light_num = 32;
@@ -1005,6 +1017,30 @@ fn calcLightColor(
                     light.ambient,
                     light.diffuse,
                     light.specular,
+                ) * attenuation;
+            },
+            .spot => |light| {
+                const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
+                const distance = zmath.length3(light.position - vertex_pos);
+                const attenuation = zmath.f32x4s(1.0) / (zmath.f32x4s(light.constant) +
+                    zmath.f32x4s(light.attenuation_linear) * distance +
+                    zmath.f32x4s(light.attenuation_quadratic) * distance * distance);
+                const light_dir = zmath.normalize3(light.position - vertex_pos);
+                const theta = zmath.dot3(light_dir, zmath.normalize3(-light.direction))[0];
+                assert(light.inner_cutoff >= 0 and light.inner_cutoff <= 1);
+                assert(light.outer_cutoff >= 0 and light.outer_cutoff <= 1);
+                const epsilon = light.inner_cutoff - light.outer_cutoff;
+                assert(epsilon > 0);
+                const intensity = zmath.f32x4s(math.clamp((theta - light.outer_cutoff) / epsilon, 0.0, 1.0));
+                final_color += S.calcColor(
+                    raw_color,
+                    opt.shininess,
+                    light_dir,
+                    eye_dir,
+                    normal,
+                    light.ambient,
+                    light.diffuse * intensity,
+                    light.specular * intensity,
                 ) * attenuation;
             },
         }
