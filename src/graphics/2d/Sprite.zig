@@ -83,7 +83,7 @@ pub fn appendDrawData(
     if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
     if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
     const m_scale = zmath.scaling(self.width * opt.scale_w, self.height * opt.scale_h, 1);
-    const m_rotate = zmath.rotationZ(gfx.utils.degreeToRadian(opt.rotate_degree));
+    const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
     const m_translate = zmath.translation(opt.pos.x, opt.pos.y, 0);
     const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
     const basic_coords = zmath.loadMat(&[_]f32{

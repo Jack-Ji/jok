@@ -11,7 +11,6 @@ const primitive = gfx.primitive;
 const font = jok.gfx.@"2d".font;
 const Camera = gfx.Camera;
 
-pub const jok_window_resizable = true;
 pub const jok_window_width = 1600;
 pub const jok_window_height = 900;
 
@@ -44,7 +43,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     camera = Camera.fromPositionAndTarget(
         .{
             .perspective = .{
-                .fov = jok.gfx.utils.degreeToRadian(70),
+                .fov = jok.utils.math.degreeToRadian(70),
                 .aspect_ratio = ctx.getAspectRatio(),
                 .near = 0.1,
                 .far = 100,

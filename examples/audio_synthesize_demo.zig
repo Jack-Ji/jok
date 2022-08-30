@@ -65,7 +65,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             },
             .mouse_motion => |me| {
                 const fb = ctx.getFramebufferSize();
-                frequency = jok.utils.mapf(
+                frequency = jok.utils.math.mapf(
                     @intToFloat(f32, me.x),
                     0,
                     @intToFloat(f32, fb.w),
@@ -73,7 +73,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
                     2000,
                 );
                 phase_step = frequency * std.math.tau / @intToFloat(f32, audio_spec.sample_rate);
-                amplitude = jok.utils.mapf(
+                amplitude = jok.utils.math.mapf(
                     @intToFloat(f32, me.y),
                     0,
                     @intToFloat(f32, fb.h),

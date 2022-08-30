@@ -166,13 +166,3 @@ pub fn savePixelsToFile(
         return error.EncodeTextureFailed;
     }
 }
-
-/// Convert radian to degree
-pub inline fn radianToDegree(r: f32) f32 {
-    return r * 180.0 / std.math.pi;
-}
-
-/// Convert degree to radian
-pub inline fn degreeToRadian(d: f32) f32 {
-    return d * std.math.pi / 180.0;
-}
