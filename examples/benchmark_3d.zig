@@ -2,15 +2,18 @@ const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
 const gfx = jok.gfx.@"3d";
+const zmath = gfx.zmath;
 const font = jok.gfx.@"2d".font;
 const primitive = gfx.primitive;
+
+pub const jok_fps_limit = jok.config.FpsLimit.none;
 
 var camera: gfx.Camera = undefined;
 var cube: gfx.zmesh.Shape = undefined;
 var aabb: [6]f32 = undefined;
 var tex: sdl.Texture = undefined;
-var translations: std.ArrayList(gfx.zmath.Mat) = undefined;
-var rotation_axises: std.ArrayList(gfx.zmath.Vec) = undefined;
+var translations: std.ArrayList(zmath.Mat) = undefined;
+var rotation_axises: std.ArrayList(zmath.Vec) = undefined;
 var texcoords = [_][2]f32{
     .{ 0, 1 },
     .{ 0, 0 },
@@ -58,16 +61,16 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     );
 
     var rng = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
-    translations = std.ArrayList(gfx.zmath.Mat).init(ctx.allocator);
-    rotation_axises = std.ArrayList(gfx.zmath.Vec).init(ctx.allocator);
+    translations = std.ArrayList(zmath.Mat).init(ctx.allocator);
+    rotation_axises = std.ArrayList(zmath.Vec).init(ctx.allocator);
     var i: u32 = 0;
     while (i < 10000) : (i += 1) {
-        try translations.append(gfx.zmath.translation(
+        try translations.append(zmath.translation(
             -5 + rng.random().float(f32) * 10,
             -5 + rng.random().float(f32) * 10,
             -5 + rng.random().float(f32) * 10,
         ));
-        try rotation_axises.append(gfx.zmath.f32x4(
+        try rotation_axises.append(zmath.f32x4(
             -1 + rng.random().float(f32) * 2,
             -1 + rng.random().float(f32) * 2,
             -1 + rng.random().float(f32) * 2,
@@ -124,12 +127,12 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     for (translations.items) |tr, i| {
         try primitive.drawShape(
             cube,
-            gfx.zmath.mul(
-                gfx.zmath.translation(-0.5, -0.5, -0.5),
-                gfx.zmath.mul(
-                    gfx.zmath.mul(
-                        gfx.zmath.scaling(0.1, 0.1, 0.1),
-                        gfx.zmath.matFromAxisAngle(rotation_axises.items[i], std.math.pi / 3.0 * @floatCast(f32, ctx.tick)),
+            zmath.mul(
+                zmath.translation(-0.5, -0.5, -0.5),
+                zmath.mul(
+                    zmath.mul(
+                        zmath.scaling(0.1, 0.1, 0.1),
+                        zmath.matFromAxisAngle(rotation_axises.items[i], std.math.pi / 3.0 * @floatCast(f32, ctx.tick)),
                     ),
                     tr,
                 ),

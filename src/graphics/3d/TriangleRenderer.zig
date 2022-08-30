@@ -412,6 +412,7 @@ pub fn appendShape(
                 {
                     // The triangle is already covered
                     is_suitable_front = false;
+                    break;
                 }
                 idx += 1;
             }
