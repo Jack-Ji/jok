@@ -26,6 +26,7 @@ const PrimitiveType = enum(c_int) {
     dodecahedron,
     octahedron,
     tetrahedron,
+    hemisphere,
 };
 
 var primtype: PrimitiveType = .cube;
@@ -117,6 +118,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.radioButton_IntPtr("dodecahedron", selection, 8);
         _ = imgui.radioButton_IntPtr("octahedron", selection, 9);
         _ = imgui.radioButton_IntPtr("tetrahedron", selection, 10);
+        _ = imgui.radioButton_IntPtr("hemisphere", selection, 11);
         imgui.separator();
         _ = imgui.checkbox("wireframe", &wireframe);
         _ = imgui.checkbox("cull faces", &cull_faces);
@@ -169,39 +171,18 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         },
     );
     switch (primtype) {
-        .cube => {
-            try primitive.drawCube(model, camera, common_draw_opt);
-        },
-        .subdivided_sphere => {
-            try primitive.drawSubdividedSphere(model, camera, .{ .common = common_draw_opt });
-        },
-        .parametric_sphere => {
-            try primitive.drawParametricSphere(model, camera, .{ .common = common_draw_opt });
-        },
-        .cone => {
-            try primitive.drawCone(model, camera, .{ .common = common_draw_opt });
-        },
-        .cylinder => {
-            try primitive.drawCylinder(model, camera, .{ .common = common_draw_opt });
-        },
-        .disk => {
-            try primitive.drawDisk(model, camera, .{ .common = common_draw_opt });
-        },
-        .torus => {
-            try primitive.drawTorus(model, camera, .{ .common = common_draw_opt });
-        },
-        .icosahedron => {
-            try primitive.drawIcosahedron(model, camera, common_draw_opt);
-        },
-        .dodecahedron => {
-            try primitive.drawDodecahedron(model, camera, common_draw_opt);
-        },
-        .octahedron => {
-            try primitive.drawOctahedron(model, camera, common_draw_opt);
-        },
-        .tetrahedron => {
-            try primitive.drawTetrahedron(model, camera, common_draw_opt);
-        },
+        .cube => try primitive.drawCube(model, camera, common_draw_opt),
+        .subdivided_sphere => try primitive.drawSubdividedSphere(model, camera, .{ .common = common_draw_opt }),
+        .parametric_sphere => try primitive.drawParametricSphere(model, camera, .{ .common = common_draw_opt }),
+        .cone => try primitive.drawCone(model, camera, .{ .common = common_draw_opt }),
+        .cylinder => try primitive.drawCylinder(model, camera, .{ .common = common_draw_opt }),
+        .disk => try primitive.drawDisk(model, camera, .{ .common = common_draw_opt }),
+        .torus => try primitive.drawTorus(model, camera, .{ .common = common_draw_opt }),
+        .icosahedron => try primitive.drawIcosahedron(model, camera, common_draw_opt),
+        .dodecahedron => try primitive.drawDodecahedron(model, camera, common_draw_opt),
+        .octahedron => try primitive.drawOctahedron(model, camera, common_draw_opt),
+        .tetrahedron => try primitive.drawTetrahedron(model, camera, common_draw_opt),
+        .hemisphere => try primitive.drawHemisphere(model, camera, .{ .common = common_draw_opt }),
     }
     try primitive.flush(.{ .wireframe = wireframe });
 

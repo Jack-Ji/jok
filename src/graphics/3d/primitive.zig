@@ -226,6 +226,51 @@ pub fn drawSubdividedSphere(model: zmath.Mat, camera: Camera, opt: SubdividedSph
     try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
+/// Draw a parametric sphere
+pub const HemisphereDrawOption = struct {
+    common: CommonDrawOption,
+    slices: u32 = 20,
+    stacks: u32 = 20,
+};
+pub fn drawHemisphere(model: zmath.Mat, camera: Camera, opt: HemisphereDrawOption) !void {
+    const S = struct {
+        const Mesh = struct {
+            shape: zmesh.Shape,
+            aabb: [6]f32,
+        };
+
+        var meshes: ?std.StringHashMap(*Mesh) = null;
+        var buf: [32]u8 = undefined;
+
+        fn getKey(_opt: HemisphereDrawOption) []u8 {
+            return std.fmt.bufPrint(&buf, "{d}-{d}", .{ _opt.slices, _opt.stacks }) catch unreachable;
+        }
+    };
+
+    if (S.meshes == null) {
+        S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
+    }
+
+    var mesh = BLK: {
+        assert(opt.slices > 0);
+        assert(opt.stacks > 0);
+        const key = S.getKey(opt);
+        if (S.meshes.?.get(key)) |s| {
+            break :BLK s;
+        }
+
+        var m = try arena.allocator().create(S.Mesh);
+        m.shape = zmesh.Shape.initHemisphere(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
+        m.shape.computeAabb(&m.aabb);
+        m.shape.computeNormals();
+        all_shapes.append(m.shape) catch unreachable;
+        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
+        break :BLK m;
+    };
+
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
+}
+
 /// Draw a cone
 pub const ConeDrawOption = struct {
     common: CommonDrawOption,
@@ -376,7 +421,7 @@ pub fn drawDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
 pub const TorusDrawOption = struct {
     common: CommonDrawOption,
     radius: f32 = 0.2,
-    slices: u32 = 10,
+    slices: u32 = 20,
     stacks: u32 = 20,
 };
 pub fn drawTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
