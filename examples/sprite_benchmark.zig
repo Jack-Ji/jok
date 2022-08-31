@@ -25,8 +25,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 
     // create sprite sheet
     sheet = try gfx.SpriteSheet.init(
-        ctx.allocator,
-        ctx.renderer,
+        ctx,
         &[_]gfx.SpriteSheet.ImageSource{
             .{
                 .name = "ogre",

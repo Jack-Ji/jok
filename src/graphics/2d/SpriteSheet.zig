@@ -66,8 +66,7 @@ search_tree: std.StringHashMap(u32),
 
 /// Create sprite-sheet
 pub fn init(
-    allocator: std.mem.Allocator,
-    renderer: sdl.Renderer,
+    ctx: *jok.Context,
     sources: []const ImageSource,
     width: u32,
     height: u32,
@@ -80,22 +79,22 @@ pub fn init(
         pixels: ImagePixels,
     };
 
-    var pixels = try allocator.alloc(u8, width * height * 4);
-    errdefer allocator.free(pixels);
+    var pixels = try ctx.allocator.alloc(u8, width * height * 4);
+    errdefer ctx.allocator.free(pixels);
     std.mem.set(u8, pixels, 0);
 
-    var tree = std.StringHashMap(u32).init(allocator);
-    var rects = try allocator.alloc(SpriteRect, sources.len);
-    errdefer allocator.free(rects);
+    var tree = std.StringHashMap(u32).init(ctx.allocator);
+    var rects = try ctx.allocator.alloc(SpriteRect, sources.len);
+    errdefer ctx.allocator.free(rects);
 
-    var stb_rects = try allocator.alloc(stb_rect_pack.stbrp_rect, sources.len);
-    defer allocator.free(stb_rects);
+    var stb_rects = try ctx.allocator.alloc(stb_rect_pack.stbrp_rect, sources.len);
+    defer ctx.allocator.free(stb_rects);
 
-    var stb_nodes = try allocator.alloc(stb_rect_pack.stbrp_node, width);
-    defer allocator.free(stb_nodes);
+    var stb_nodes = try ctx.allocator.alloc(stb_rect_pack.stbrp_node, width);
+    defer ctx.allocator.free(stb_nodes);
 
-    var images = try allocator.alloc(ImageData, sources.len);
-    defer allocator.free(images);
+    var images = try ctx.allocator.alloc(ImageData, sources.len);
+    defer ctx.allocator.free(images);
 
     // Load images' data
     for (sources) |s, i| {
@@ -196,7 +195,7 @@ pub fn init(
         }
     }
     var tex = try gfx.utils.createTextureFromPixels(
-        renderer,
+        ctx.renderer,
         pixels,
         gfx.utils.getFormatByEndian(),
         .static,
@@ -209,21 +208,21 @@ pub fn init(
     // Fill search tree, abort if name collision happens
     for (sources) |s, i| {
         try tree.putNoClobber(
-            try std.fmt.allocPrint(allocator, "{s}", .{s.name}),
+            try std.fmt.allocPrint(ctx.allocator, "{s}", .{s.name}),
             @intCast(u32, i),
         );
     }
 
-    var self = try allocator.create(Self);
+    var self = try ctx.allocator.create(Self);
     self.* = .{
-        .allocator = allocator,
+        .allocator = ctx.allocator,
         .packed_pixels = if (keep_packed_pixels) ImagePixels{
             .width = width,
             .height = height,
             .data = pixels,
             .format = gfx.utils.getFormatByEndian(),
         } else blk: {
-            allocator.free(pixels);
+            ctx.allocator.free(pixels);
             break :blk null;
         },
         .tex = tex,
@@ -239,8 +238,7 @@ pub const DirScanOption = struct {
     accept_jpg: bool = true,
 };
 pub fn fromPicturesInDir(
-    allocator: std.mem.Allocator,
-    renderer: sdl.Renderer,
+    ctx: *jok.Context,
     dir_path: []const u8,
     width: u32,
     height: u32,
@@ -252,10 +250,12 @@ pub fn fromPicturesInDir(
     var dir = try curdir.openIterableDir(dir_path, .{ .no_follow = true });
     defer dir.close();
 
-    var images = try std.ArrayList(ImageSource).initCapacity(allocator, 10);
+    var images = try std.ArrayList(ImageSource).initCapacity(ctx.allocator, 10);
     defer images.deinit();
 
     // Collect pictures
+    var arena = std.heap.ArenaAllocator.init(ctx.allocator);
+    defer arena.deinit();
     var it = dir.iterate();
     while (try it.next()) |entry| {
         if (entry.kind != .File) continue;
@@ -265,12 +265,12 @@ pub fn fromPicturesInDir(
         {
             try images.append(.{
                 .name = try std.fmt.allocPrint(
-                    allocator,
+                    arena.allocator(),
                     "{s}",
                     .{entry.name[0 .. entry.name.len - 4]},
                 ),
                 .image = .{
-                    .file_path = try std.fs.path.joinZ(allocator, &[_][]const u8{
+                    .file_path = try std.fs.path.joinZ(arena.allocator(), &[_][]const u8{
                         dir_path,
                         entry.name,
                     }),
@@ -278,24 +278,18 @@ pub fn fromPicturesInDir(
             });
         }
     }
-    defer {
-        for (images.items) |img| {
-            allocator.free(img.name);
-            allocator.free(img.image.file_path);
-        }
-    }
 
-    return try Self.init(allocator, renderer, images.items, width, height, gap, keep_packed_pixels);
+    return try Self.init(ctx, images.items, width, height, gap, keep_packed_pixels);
 }
 
 /// Create from previous written sheet files (a picture and a json file)
-pub fn fromSheetFiles(allocator: std.mem.Allocator, renderer: sdl.Renderer, path: []const u8) !*Self {
+pub fn fromSheetFiles(ctx: *jok.Context, path: []const u8) !*Self {
     var path_buf: [128]u8 = undefined;
 
     // Load texture
     const image_path = try std.fmt.bufPrintZ(&path_buf, "{s}.png", .{path});
     var tex = try gfx.utils.createTextureFromFile(
-        renderer,
+        ctx.renderer,
         image_path,
         .static,
         false,
@@ -305,18 +299,18 @@ pub fn fromSheetFiles(allocator: std.mem.Allocator, renderer: sdl.Renderer, path
 
     // Load sprites info
     const json_path = try std.fmt.bufPrint(&path_buf, "{s}.json", .{path});
-    var json_content = try std.fs.cwd().readFileAlloc(allocator, json_path, 1 << 30);
-    defer allocator.free(json_content);
-    var parser = json.Parser.init(allocator, false);
+    var json_content = try std.fs.cwd().readFileAlloc(ctx.allocator, json_path, 1 << 30);
+    defer ctx.allocator.free(json_content);
+    var parser = json.Parser.init(ctx.allocator, false);
     defer parser.deinit();
     var json_tree = try parser.parse(json_content);
     defer json_tree.deinit();
     if (json_tree.root != .Object) return error.InvalidJson;
     const rect_count = json_tree.root.Object.count();
     assert(rect_count > 0);
-    var rects = try allocator.alloc(SpriteRect, rect_count);
-    errdefer allocator.free(rects);
-    var search_tree = std.StringHashMap(u32).init(allocator);
+    var rects = try ctx.allocator.alloc(SpriteRect, rect_count);
+    errdefer ctx.allocator.free(rects);
+    var search_tree = std.StringHashMap(u32).init(ctx.allocator);
     errdefer search_tree.deinit();
     var it = json_tree.root.Object.iterator();
     var i: u32 = 0;
@@ -332,15 +326,15 @@ pub fn fromSheetFiles(allocator: std.mem.Allocator, renderer: sdl.Renderer, path
             .height = @floatCast(f32, info.get("height").?.Float),
         };
         try search_tree.putNoClobber(
-            try std.fmt.allocPrint(allocator, "{s}", .{name}),
+            try std.fmt.allocPrint(ctx.allocator, "{s}", .{name}),
             i,
         );
     }
 
     // Allocate and init SpriteSheet
-    var sp = try allocator.create(Self);
+    var sp = try ctx.allocator.create(Self);
     sp.* = Self{
-        .allocator = allocator,
+        .allocator = ctx.allocator,
         .tex = tex,
         .rects = rects,
         .search_tree = search_tree,
@@ -354,13 +348,12 @@ pub const SpriteInfo = struct {
     rect: sdl.RectangleF,
 };
 pub fn fromSinglePicture(
-    allocator: std.mem.Allocator,
-    renderer: sdl.Renderer,
+    ctx: *jok.Context,
     path: [:0]const u8,
     sprites: []const SpriteInfo,
 ) !*Self {
     var tex = try gfx.utils.createTextureFromFile(
-        renderer,
+        ctx.renderer,
         path,
         .static,
         false,
@@ -372,9 +365,9 @@ pub fn fromSinglePicture(
     const tex_width = @intToFloat(f32, info.width);
     const tex_height = @intToFloat(f32, info.height);
 
-    var tree = std.StringHashMap(u32).init(allocator);
-    var rects = try allocator.alloc(SpriteRect, sprites.len);
-    errdefer allocator.free(rects);
+    var tree = std.StringHashMap(u32).init(ctx.allocator);
+    var rects = try ctx.allocator.alloc(SpriteRect, sprites.len);
+    errdefer ctx.allocator.free(rects);
 
     // Fill search tree, abort if name collision happens
     for (sprites) |sp, i| {
@@ -388,14 +381,14 @@ pub fn fromSinglePicture(
         sp.t1 = (sp.rect.y + sp.rect.height) / tex_height;
         rects[i] = sr;
         try tree.putNoClobber(
-            try std.fmt.allocPrint(allocator, "{s}", .{sp.name}),
+            try std.fmt.allocPrint(ctx.allocator, "{s}", .{sp.name}),
             @intCast(u32, i),
         );
     }
 
-    var self = try allocator.create(Self);
+    var self = try ctx.allocator.create(Self);
     self.* = .{
-        .allocator = allocator,
+        .allocator = ctx.allocator,
         .tex = tex,
         .rects = rects,
         .search_tree = tree,

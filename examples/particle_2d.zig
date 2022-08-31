@@ -30,8 +30,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 
     rd = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
     sheet = try gfx.SpriteSheet.init(
-        ctx.allocator,
-        ctx.renderer,
+        ctx,
         &[_]gfx.SpriteSheet.ImageSource{
             .{
                 .name = "particle",

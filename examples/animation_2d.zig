@@ -14,8 +14,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     // create sprite sheet
     const size = ctx.getFramebufferSize();
     sheet = try gfx.SpriteSheet.fromPicturesInDir(
-        ctx.allocator,
-        ctx.renderer,
+        ctx,
         "assets/images",
         size.w,
         size.h,
