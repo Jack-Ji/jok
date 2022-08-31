@@ -27,6 +27,7 @@ const PrimitiveType = enum(c_int) {
     octahedron,
     tetrahedron,
     hemisphere,
+    rock,
 };
 
 var primtype: PrimitiveType = .cube;
@@ -119,6 +120,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.radioButton_IntPtr("octahedron", selection, 9);
         _ = imgui.radioButton_IntPtr("tetrahedron", selection, 10);
         _ = imgui.radioButton_IntPtr("hemisphere", selection, 11);
+        _ = imgui.radioButton_IntPtr("rock", selection, 12);
         imgui.separator();
         _ = imgui.checkbox("wireframe", &wireframe);
         _ = imgui.checkbox("cull faces", &cull_faces);
@@ -183,6 +185,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         .octahedron => try primitive.drawOctahedron(model, camera, common_draw_opt),
         .tetrahedron => try primitive.drawTetrahedron(model, camera, common_draw_opt),
         .hemisphere => try primitive.drawHemisphere(model, camera, .{ .common = common_draw_opt }),
+        .rock => try primitive.drawRock(model, camera, .{ .common = common_draw_opt }),
     }
     try primitive.flush(.{ .wireframe = wireframe });
 
