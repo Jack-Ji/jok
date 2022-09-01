@@ -179,9 +179,11 @@ pub fn main() anyerror!void {
             var buf: [128]u8 = undefined;
             const txt = std.fmt.bufPrintZ(
                 &buf,
-                "{s} | FPS: {d:.1}, {s} | AVG-CPU: {d:.1}ms | RENDERER: {s} | MEM: {:.3}",
+                "{s} | {d}x{d} | FPS: {d:.1}, {s} | AVG-CPU: {d:.1}ms | RENDERER: {s} | MEM: {:.3}",
                 .{
                     config.title,
+                    ctx.getWindowSize().w,
+                    ctx.getWindowSize().h,
                     ctx.fps,
                     config.fps_limit.str(),
                     ctx.average_cpu_time,
