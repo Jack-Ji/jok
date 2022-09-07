@@ -1,0 +1,779 @@
+const std = @import("std");
+const math = std.math;
+const sdl = @import("sdl");
+const jok = @import("jok");
+const imgui = jok.deps.imgui;
+const nfd = jok.deps.nfd;
+const gfx = jok.gfx.@"2d";
+const primitive = gfx.primitive;
+
+pub const jok_window_width = 1200;
+pub const jok_window_height = 800;
+
+// Image positions
+const xshift = 50;
+const yshift = 50;
+const length = 70;
+const anchor = 0;
+const p1x = anchor + xshift;
+const p1y = anchor + yshift;
+const p2x = anchor + length + xshift;
+const p2y = anchor + yshift;
+const p3x = anchor + length + xshift;
+const p3y = anchor + length + yshift;
+const p4x = anchor + xshift;
+const p4y = anchor + length + yshift;
+const rr = 8;
+
+// Simulation parameters
+var number_r: u32 = 500;
+var number_g: u32 = 500;
+var number_w: u32 = 500;
+var number_b: u32 = 500;
+var power_rr: f32 = 0;
+var power_rg: f32 = 0;
+var power_rw: f32 = 0;
+var power_rb: f32 = 0;
+var power_gr: f32 = 0;
+var power_gg: f32 = 0;
+var power_gw: f32 = 0;
+var power_gb: f32 = 0;
+var power_wr: f32 = 0;
+var power_wg: f32 = 0;
+var power_ww: f32 = 0;
+var power_wb: f32 = 0;
+var power_br: f32 = 0;
+var power_bg: f32 = 0;
+var power_bw: f32 = 0;
+var power_bb: f32 = 0;
+var v_rr: f32 = 180;
+var v_rg: f32 = 180;
+var v_rw: f32 = 180;
+var v_rb: f32 = 180;
+var v_gr: f32 = 180;
+var v_gg: f32 = 180;
+var v_gw: f32 = 180;
+var v_gb: f32 = 180;
+var v_wr: f32 = 180;
+var v_wg: f32 = 180;
+var v_ww: f32 = 180;
+var v_wb: f32 = 180;
+var v_br: f32 = 180;
+var v_bg: f32 = 180;
+var v_bw: f32 = 180;
+var v_bb: f32 = 180;
+var viscosity: f32 = 0.5;
+var force_variance: f32 = 0.8;
+var radius_variance: f32 = 0.6;
+var bounded = true;
+var show_model = false;
+
+// Particle groups by color
+var green: ?std.ArrayList(Point) = null;
+var red: ?std.ArrayList(Point) = null;
+var white: ?std.ArrayList(Point) = null;
+var blue: ?std.ArrayList(Point) = null;
+
+// Random generator
+var rand_gen: std.rand.DefaultPrng = undefined;
+var rand: std.rand.Random = undefined;
+
+const Point = struct {
+    // position
+    x: f32 = 0,
+    y: f32 = 0,
+
+    // velocity
+    vx: f32 = 0,
+    vy: f32 = 0,
+
+    // color,
+    color: sdl.Color = sdl.Color.black,
+
+    fn draw(p: Point) !void {
+        try primitive.drawCircle(
+            .{ .x = p.x, .y = p.y },
+            3,
+            .{ .common = .{ .color = p.color } },
+        );
+    }
+};
+
+// Get random number in range [a, b]
+inline fn randomRange(comptime T: type, a: T, b: T) T {
+    switch (T) {
+        f32 => return rand.float(f32) * (b - a) + a,
+        i32 => return rand.intRangeAtMost(i32, a, b),
+        else => unreachable,
+    }
+}
+
+// Draw all points from given group
+inline fn drawPoints(points: std.ArrayList(Point)) !void {
+    for (points.items) |p| {
+        try p.draw();
+    }
+}
+
+// Generate a number of single colored points
+fn createPoints(allocator: std.mem.Allocator, n: u32, r: u8, g: u8, b: u8) !std.ArrayList(Point) {
+    var ps = try std.ArrayList(Point).initCapacity(
+        allocator,
+        @intCast(usize, n),
+    );
+    var i: u32 = 0;
+    while (i < n) : (i += 1) {
+        ps.appendAssumeCapacity(.{
+            .x = randomRange(f32, 200, 1000),
+            .y = randomRange(f32, 50, 750),
+            .color = sdl.Color.rgb(r, g, b),
+        });
+    }
+    return ps;
+}
+
+// Interaction between 2 particle groups
+fn interaction(
+    g1: std.ArrayList(Point),
+    g2: std.ArrayList(Point),
+    _g: f32,
+    radius: f32,
+) void {
+    // Gravity coefficient
+    var g = _g / -100;
+
+    // Loop through first group of points
+    for (g1.items) |*p1| {
+        // Force acting on particle
+        var fx: f32 = 0;
+        var fy: f32 = 0;
+
+        // Loop through second group of points
+        for (g2.items) |*p2| {
+            // Calculate distance between points
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            const r = math.sqrt(dx * dx + dy * dy);
+
+            // Calculate force in given bounds
+            if (r < radius and r > 0) {
+                fx += dx / r;
+                fy += dy / r;
+            }
+        }
+
+        // Calculate new velocity
+        p1.vx = (p1.vx + (fx * g)) * (1.0 - viscosity);
+        p1.vy = (p1.vy + (fy * g)) * (1.0 - viscosity);
+
+        // Update position based on velocity
+        p1.x += p1.vx;
+        p1.y += p1.vy;
+
+        // Checking for canvas bounds
+        if (bounded) {
+            if (p1.x < 0) {
+                p1.vx *= -1;
+                p1.x = 0;
+            }
+            if (p1.x > jok_window_width) {
+                p1.vx *= -1;
+                p1.x = jok_window_width;
+            }
+            if (p1.y < 0) {
+                p1.vy *= -1;
+                p1.y = 0;
+            }
+            if (p1.y > jok_window_height) {
+                p1.vy *= -1;
+                p1.y = jok_window_height;
+            }
+        }
+    }
+}
+
+// Generate new sets of points
+fn restart(allocator: std.mem.Allocator) !void {
+    if (green) |g| {
+        g.deinit();
+        green = null;
+    }
+    if (red) |g| {
+        g.deinit();
+        red = null;
+    }
+    if (white) |g| {
+        g.deinit();
+        white = null;
+    }
+    if (blue) |g| {
+        g.deinit();
+        blue = null;
+    }
+
+    if (number_g > 0) {
+        green = try createPoints(allocator, number_g, 100, 250, 10);
+    }
+    if (number_r > 0) {
+        red = try createPoints(allocator, number_r, 250, 10, 100);
+    }
+    if (number_w > 0) {
+        white = try createPoints(allocator, number_w, 250, 250, 250);
+    }
+    if (number_b > 0) {
+        blue = try createPoints(allocator, number_b, 100, 100, 250);
+    }
+}
+
+// Generate initial simulation paramters
+fn randomnizeSimulation() void {
+    // GREEN
+    power_gg = randomRange(f32, -100, 100) * force_variance;
+    power_gr = randomRange(f32, -100, 100) * force_variance;
+    power_gw = randomRange(f32, -100, 100) * force_variance;
+    power_gb = randomRange(f32, -100, 100) * force_variance;
+    v_gg = randomRange(f32, 10, 500) * radius_variance;
+    v_gr = randomRange(f32, 10, 500) * radius_variance;
+    v_gw = randomRange(f32, 10, 500) * radius_variance;
+    v_gb = randomRange(f32, 10, 500) * radius_variance;
+
+    // RED
+    power_rg = randomRange(f32, -100, 100) * force_variance;
+    power_rr = randomRange(f32, -100, 100) * force_variance;
+    power_rw = randomRange(f32, -100, 100) * force_variance;
+    power_rb = randomRange(f32, -100, 100) * force_variance;
+    v_rg = randomRange(f32, 10, 500) * radius_variance;
+    v_rr = randomRange(f32, 10, 500) * radius_variance;
+    v_rw = randomRange(f32, 10, 500) * radius_variance;
+    v_rb = randomRange(f32, 10, 500) * radius_variance;
+
+    // WHITE
+    power_wg = randomRange(f32, -100, 100) * force_variance;
+    power_wr = randomRange(f32, -100, 100) * force_variance;
+    power_ww = randomRange(f32, -100, 100) * force_variance;
+    power_wb = randomRange(f32, -100, 100) * force_variance;
+    v_wg = randomRange(f32, 10, 500) * radius_variance;
+    v_wr = randomRange(f32, 10, 500) * radius_variance;
+    v_ww = randomRange(f32, 10, 500) * radius_variance;
+    v_wb = randomRange(f32, 10, 500) * radius_variance;
+
+    // BLUE
+    power_bg = randomRange(f32, -100, 100) * force_variance;
+    power_br = randomRange(f32, -100, 100) * force_variance;
+    power_bw = randomRange(f32, -100, 100) * force_variance;
+    power_bb = randomRange(f32, -100, 100) * force_variance;
+    v_bg = randomRange(f32, 10, 500) * radius_variance;
+    v_br = randomRange(f32, 10, 500) * radius_variance;
+    v_bw = randomRange(f32, 10, 500) * radius_variance;
+    v_bb = randomRange(f32, 10, 500) * radius_variance;
+}
+
+fn saveSettings() !void {
+    var path = try nfd.saveFileDialog("txt", "model.txt");
+    if (path) |p| {
+        defer p.deinit();
+
+        var buf: [64]u8 = undefined;
+        var realpath = p.path;
+        if (!std.mem.endsWith(u8, p.path, ".txt")) {
+            realpath = try std.fmt.bufPrintZ(&buf, "{s}.txt", .{p.path});
+        }
+
+        var f = try std.fs.cwd().createFile(realpath, .{});
+        defer f.close();
+
+        try std.fmt.format(
+            f.writer(),
+            "{d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5}",
+            .{
+                number_r, number_g, number_w, number_b,
+                power_rr, power_rg, power_rw, power_rb,
+                power_gr, power_gg, power_gw, power_gb,
+                power_wr, power_wg, power_ww, power_wb,
+                power_br, power_bg, power_bw, power_bb,
+            },
+        );
+        try std.fmt.format(
+            f.writer(),
+            " {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5}",
+            .{
+                v_rr,      v_rg, v_rw, v_rb,
+                v_gr,      v_gg, v_gw, v_gb,
+                v_wr,      v_wg, v_ww, v_wb,
+                v_br,      v_bg, v_bw, v_bb,
+                viscosity,
+            },
+        );
+    }
+}
+
+fn loadSettings(allocator: std.mem.Allocator) !void {
+    var path = try nfd.openFileDialog("txt", null);
+    if (path) |p| {
+        defer p.deinit();
+
+        var content = try std.fs.cwd().readFileAlloc(allocator, p.path, 1024);
+        defer allocator.free(content);
+
+        var floats = try std.ArrayList(f32).initCapacity(allocator, 37);
+        defer floats.deinit();
+        var it = std.mem.split(u8, content, " ");
+        while (it.next()) |t| {
+            try floats.append(try std.fmt.parseFloat(f32, t));
+        }
+
+        if (floats.items.len != 37) {
+            std.log.err("Invalid format", .{});
+            return;
+        }
+
+        number_r = @floatToInt(u32, floats.items[0]);
+        number_g = @floatToInt(u32, floats.items[1]);
+        number_w = @floatToInt(u32, floats.items[2]);
+        number_b = @floatToInt(u32, floats.items[3]);
+        power_rr = floats.items[4];
+        power_rg = floats.items[5];
+        power_rw = floats.items[6];
+        power_rb = floats.items[7];
+        power_gr = floats.items[8];
+        power_gg = floats.items[9];
+        power_gw = floats.items[10];
+        power_gb = floats.items[11];
+        power_wr = floats.items[12];
+        power_wg = floats.items[13];
+        power_ww = floats.items[14];
+        power_wb = floats.items[15];
+        power_br = floats.items[16];
+        power_bg = floats.items[17];
+        power_bw = floats.items[18];
+        power_bb = floats.items[19];
+        v_rr = floats.items[20];
+        v_rg = floats.items[21];
+        v_rw = floats.items[22];
+        v_rb = floats.items[23];
+        v_gr = floats.items[24];
+        v_gg = floats.items[25];
+        v_gw = floats.items[26];
+        v_gb = floats.items[27];
+        v_wr = floats.items[28];
+        v_wg = floats.items[29];
+        v_ww = floats.items[30];
+        v_wb = floats.items[31];
+        v_br = floats.items[32];
+        v_bg = floats.items[33];
+        v_bw = floats.items[34];
+        v_bb = floats.items[35];
+        viscosity = floats.items[36];
+
+        try restart(allocator);
+    }
+}
+
+fn renderGui(ctx: *jok.Context) !void {
+    if (imgui.begin("Settings", null, null)) {
+        if (imgui.button("START/RESTART", null)) {
+            try restart(ctx.allocator);
+        }
+        if (imgui.button("Randomize", null)) {
+            randomnizeSimulation();
+            try restart(ctx.allocator);
+        }
+        if (imgui.button("Save Model", null)) {
+            try saveSettings();
+        }
+        if (imgui.button("Load Model", null)) {
+            try loadSettings(ctx.allocator);
+        }
+        _ = imgui.sliderFloat("Viscosity/Friction", &viscosity, 0, 1, .{});
+        _ = imgui.checkbox("Bounded", &bounded);
+        _ = imgui.checkbox("Show Model", &show_model);
+
+        imgui.separator();
+        _ = imgui.sliderInt("GREEN:", @ptrCast(*c_int, &number_g), 0, 3000, .{});
+        _ = imgui.sliderFloat("green x green:", &power_gg, -100, 100, .{});
+        _ = imgui.sliderFloat("green x red:", &power_gr, -100, 100, .{});
+        _ = imgui.sliderFloat("green x white:", &power_gw, -100, 100, .{});
+        _ = imgui.sliderFloat("green x blue:", &power_gb, -100, 100, .{});
+        _ = imgui.sliderFloat("radius g x g:", &v_gg, 10, 500, .{});
+        _ = imgui.sliderFloat("radius g x r:", &v_gr, 10, 500, .{});
+        _ = imgui.sliderFloat("radius g x w:", &v_gw, 10, 500, .{});
+        _ = imgui.sliderFloat("radius g x b:", &v_gb, 10, 500, .{});
+
+        imgui.separator();
+        _ = imgui.sliderInt("RED:", @ptrCast(*c_int, &number_r), 0, 3000, .{});
+        _ = imgui.sliderFloat("red x green:", &power_rg, -100, 100, .{});
+        _ = imgui.sliderFloat("red x red:", &power_rr, -100, 100, .{});
+        _ = imgui.sliderFloat("red x white:", &power_rw, -100, 100, .{});
+        _ = imgui.sliderFloat("red x blue:", &power_rb, -100, 100, .{});
+        _ = imgui.sliderFloat("radius r x g:", &v_rg, 10, 500, .{});
+        _ = imgui.sliderFloat("radius r x r:", &v_rr, 10, 500, .{});
+        _ = imgui.sliderFloat("radius r x w:", &v_rw, 10, 500, .{});
+        _ = imgui.sliderFloat("radius r x b:", &v_rb, 10, 500, .{});
+
+        imgui.separator();
+        _ = imgui.sliderInt("WHITE:", @ptrCast(*c_int, &number_w), 0, 3000, .{});
+        _ = imgui.sliderFloat("white x green:", &power_wg, -100, 100, .{});
+        _ = imgui.sliderFloat("white x red:", &power_wr, -100, 100, .{});
+        _ = imgui.sliderFloat("white x white:", &power_ww, -100, 100, .{});
+        _ = imgui.sliderFloat("white x blue:", &power_wb, -100, 100, .{});
+        _ = imgui.sliderFloat("radius w x g:", &v_wg, 10, 500, .{});
+        _ = imgui.sliderFloat("radius w x r:", &v_wr, 10, 500, .{});
+        _ = imgui.sliderFloat("radius w x w:", &v_ww, 10, 500, .{});
+        _ = imgui.sliderFloat("radius w x b:", &v_wb, 10, 500, .{});
+
+        imgui.separator();
+        _ = imgui.sliderInt("BLUE:", @ptrCast(*c_int, &number_b), 0, 3000, .{});
+        _ = imgui.sliderFloat("blue x green:", &power_bg, -100, 100, .{});
+        _ = imgui.sliderFloat("blue x red:", &power_br, -100, 100, .{});
+        _ = imgui.sliderFloat("blue x white:", &power_bw, -100, 100, .{});
+        _ = imgui.sliderFloat("blue x blue:", &power_bb, -100, 100, .{});
+        _ = imgui.sliderFloat("radius b x g:", &v_bg, 10, 500, .{});
+        _ = imgui.sliderFloat("radius b x r:", &v_br, 10, 500, .{});
+        _ = imgui.sliderFloat("radius b x w:", &v_bw, 10, 500, .{});
+        _ = imgui.sliderFloat("radius b x b:", &v_bb, 10, 500, .{});
+    }
+    imgui.end();
+}
+
+fn renderSimulation(ctx: *jok.Context) !void {
+    _ = ctx;
+
+    // Simulation step forward
+    if (number_w > 0) {
+        interaction(white.?, green.?, power_wg, v_wg);
+        interaction(white.?, red.?, power_wr, v_wr);
+        interaction(white.?, white.?, power_ww, v_ww);
+        interaction(white.?, blue.?, power_wb, v_wb);
+    }
+    if (number_r > 0) {
+        interaction(red.?, green.?, power_rg, v_rg);
+        interaction(red.?, red.?, power_rr, v_rr);
+        interaction(red.?, white.?, power_rw, v_rw);
+        interaction(red.?, blue.?, power_rb, v_rb);
+    }
+    if (number_g > 0) {
+        interaction(green.?, green.?, power_gg, v_gg);
+        interaction(green.?, red.?, power_gr, v_gr);
+        interaction(green.?, white.?, power_gw, v_gw);
+        interaction(green.?, blue.?, power_gb, v_gb);
+    }
+    if (number_b > 0) {
+        interaction(blue.?, green.?, power_bg, v_bg);
+        interaction(blue.?, red.?, power_br, v_br);
+        interaction(blue.?, white.?, power_bw, v_bw);
+        interaction(blue.?, blue.?, power_bb, v_bb);
+    }
+
+    primitive.clear();
+    if (number_w > 0) try drawPoints(white.?);
+    if (number_r > 0) try drawPoints(red.?);
+    if (number_g > 0) try drawPoints(green.?);
+    if (number_b > 0) try drawPoints(blue.?);
+    primitive.flush(.{}) catch unreachable;
+
+    // Draw model
+    if (show_model) {
+        primitive.clear();
+        defer primitive.flush(.{}) catch unreachable;
+
+        try primitive.drawCircle(
+            .{ .x = xshift, .y = yshift },
+            150,
+            .{ .common = .{ .color = sdl.Color.black } },
+        );
+
+        try primitive.drawLine(
+            .{ .x = p1x, .y = p1y - 10 },
+            .{ .x = p2x, .y = p2y - 10 },
+            .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, 150 - power_gr),
+                    @floatToInt(u8, 150 + power_gr),
+                    150,
+                ),
+                .thickness = 5,
+            },
+        );
+        try primitive.drawLine(
+            .{ .x = p1x, .y = p1y + 10 },
+            .{ .x = p2x, .y = p2y + 10 },
+            .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, 150 - power_rg),
+                    @floatToInt(u8, 150 + power_rg),
+                    150,
+                ),
+                .thickness = 5,
+            },
+        );
+        try primitive.drawLine(
+            .{ .x = p3x, .y = p3y - 10 },
+            .{ .x = p1x, .y = p1y - 10 },
+            .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, 150 - power_gw),
+                    @floatToInt(u8, 150 + power_gw),
+                    150,
+                ),
+                .thickness = 5,
+            },
+        );
+        try primitive.drawLine(
+            .{ .x = p3x, .y = p3y + 10 },
+            .{ .x = p1x, .y = p1y + 10 },
+            .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, 150 - power_wg),
+                    @floatToInt(u8, 150 + power_wg),
+                    150,
+                ),
+                .thickness = 5,
+            },
+        );
+
+        try primitive.drawLine(
+            .{ .x = p4x - 10, .y = p4y },
+            .{ .x = p1x - 10, .y = p1y },
+            .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, 150 - power_gb),
+                    @floatToInt(u8, 150 + power_gb),
+                    150,
+                ),
+                .thickness = 5,
+            },
+        );
+        try primitive.drawLine(
+            .{ .x = p4x + 10, .y = p4y },
+            .{ .x = p1x + 10, .y = p1y },
+            .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, 150 - power_bg),
+                    @floatToInt(u8, 150 + power_bg),
+                    150,
+                ),
+                .thickness = 5,
+            },
+        );
+
+        try primitive.drawLine(
+            .{ .x = p2x - 10, .y = p2y },
+            .{ .x = p3x - 10, .y = p3y },
+            .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, 150 - power_rw),
+                    @floatToInt(u8, 150 + power_rw),
+                    150,
+                ),
+                .thickness = 5,
+            },
+        );
+        try primitive.drawLine(
+            .{ .x = p2x + 10, .y = p2y },
+            .{ .x = p3x + 10, .y = p3y },
+            .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, 150 - power_wr),
+                    @floatToInt(u8, 150 + power_wr),
+                    150,
+                ),
+                .thickness = 5,
+            },
+        );
+
+        try primitive.drawLine(
+            .{ .x = p2x, .y = p2y - 10 },
+            .{ .x = p4x, .y = p4y - 10 },
+            .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, 150 - power_rb),
+                    @floatToInt(u8, 150 + power_rb),
+                    150,
+                ),
+                .thickness = 5,
+            },
+        );
+        try primitive.drawLine(
+            .{ .x = p2x, .y = p2y + 10 },
+            .{ .x = p4x, .y = p4y + 10 },
+            .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, 150 - power_br),
+                    @floatToInt(u8, 150 + power_br),
+                    150,
+                ),
+                .thickness = 5,
+            },
+        );
+
+        try primitive.drawLine(
+            .{ .x = p3x, .y = p3y - 10 },
+            .{ .x = p4x, .y = p4y - 10 },
+            .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, 150 - power_wb),
+                    @floatToInt(u8, 150 + power_wb),
+                    150,
+                ),
+                .thickness = 5,
+            },
+        );
+        try primitive.drawLine(
+            .{ .x = p3x, .y = p3y + 10 },
+            .{ .x = p4x, .y = p4y + 10 },
+            .{
+                .color = sdl.Color.rgb(
+                    @floatToInt(u8, 150 - power_bw),
+                    @floatToInt(u8, 150 + power_bw),
+                    150,
+                ),
+                .thickness = 5,
+            },
+        );
+
+        try primitive.drawCircle(
+            .{ .x = p1x - 20, .y = p1y - 20 },
+            rr + 20,
+            .{
+                .common = .{
+                    .color = sdl.Color.rgb(
+                        @floatToInt(u8, 150 - power_gg),
+                        @floatToInt(u8, 150 + power_gg),
+                        150,
+                    ),
+                    .thickness = 2,
+                },
+            },
+        );
+        try primitive.drawCircle(
+            .{ .x = p2x + 20, .y = p2y - 20 },
+            rr + 20,
+            .{
+                .common = .{
+                    .color = sdl.Color.rgb(
+                        @floatToInt(u8, 150 - power_rr),
+                        @floatToInt(u8, 150 + power_rr),
+                        150,
+                    ),
+                    .thickness = 2,
+                },
+            },
+        );
+        try primitive.drawCircle(
+            .{ .x = p3x + 20, .y = p3y + 20 },
+            rr + 20,
+            .{
+                .common = .{
+                    .color = sdl.Color.rgb(
+                        @floatToInt(u8, 150 - power_ww),
+                        @floatToInt(u8, 150 + power_ww),
+                        150,
+                    ),
+                    .thickness = 2,
+                },
+            },
+        );
+        try primitive.drawCircle(
+            .{ .x = p4x - 20, .y = p4y + 20 },
+            rr + 20,
+            .{
+                .common = .{
+                    .color = sdl.Color.rgb(
+                        @floatToInt(u8, 150 - power_bb),
+                        @floatToInt(u8, 150 + power_bb),
+                        150,
+                    ),
+                    .thickness = 2,
+                },
+            },
+        );
+
+        try primitive.drawCircle(
+            .{ .x = p1x, .y = p1y },
+            rr,
+            .{
+                .common = .{
+                    .color = sdl.Color.rgb(100, 250, 10),
+                },
+            },
+        );
+        try primitive.drawCircle(
+            .{ .x = p2x, .y = p2y },
+            rr,
+            .{
+                .common = .{
+                    .color = sdl.Color.rgb(250, 10, 100),
+                },
+            },
+        );
+        try primitive.drawCircle(
+            .{ .x = p3x, .y = p3y },
+            rr,
+            .{
+                .common = .{
+                    .color = sdl.Color.rgb(250, 250, 250),
+                },
+            },
+        );
+        try primitive.drawCircle(
+            .{ .x = p4x, .y = p4y },
+            rr,
+            .{
+                .common = .{
+                    .color = sdl.Color.rgb(100, 100, 250),
+                },
+            },
+        );
+    }
+}
+
+pub fn init(ctx: *jok.Context) anyerror!void {
+    std.log.info("game init", .{});
+
+    rand_gen = std.rand.DefaultPrng.init(
+        @intCast(u64, std.time.timestamp()),
+    );
+    rand = rand_gen.random();
+
+    try restart(ctx.allocator);
+
+    try primitive.init(ctx);
+    try imgui.init(ctx);
+}
+
+pub fn loop(ctx: *jok.Context) anyerror!void {
+    while (ctx.pollEvent()) |e| {
+        _ = imgui.processEvent(e);
+        switch (e) {
+            .key_up => |key| {
+                switch (key.scancode) {
+                    .escape => ctx.kill(),
+                    else => {},
+                }
+            },
+            .quit => ctx.kill(),
+            else => {},
+        }
+    }
+
+    try ctx.renderer.clear();
+
+    imgui.beginFrame();
+    defer imgui.endFrame();
+
+    try renderGui(ctx);
+    try renderSimulation(ctx);
+}
+
+pub fn quit(ctx: *jok.Context) void {
+    _ = ctx;
+    std.log.info("game quit", .{});
+
+    if (green) |g| g.deinit();
+    if (red) |g| g.deinit();
+    if (white) |g| g.deinit();
+    if (blue) |g| g.deinit();
+
+    primitive.deinit();
+    imgui.deinit();
+}
