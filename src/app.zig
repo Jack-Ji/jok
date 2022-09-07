@@ -179,7 +179,7 @@ pub fn main() anyerror!void {
             var buf: [128]u8 = undefined;
             const txt = std.fmt.bufPrintZ(
                 &buf,
-                "{s} | {d}x{d} | FPS: {d:.1}, {s} | AVG-CPU: {d:.1}ms | RENDERER: {s} | MEM: {:.3}",
+                "{s} | {d}x{d} | FPS: {d:.1}, {s} | AVG-CPU: {d:.1}ms | RENDERER: {s} | MEM: {:.3} | BUILD-MODE: {s}",
                 .{
                     config.title,
                     ctx.getWindowSize().w,
@@ -189,6 +189,7 @@ pub fn main() anyerror!void {
                     ctx.average_cpu_time,
                     ctx.getRendererName(),
                     std.fmt.fmtIntSizeBin(if (gpa) |a| a.total_requested_bytes else 0),
+                    if (builtin.mode == .Debug) "debug" else "release",
                 },
             ) catch unreachable;
             sdl.c.SDL_SetWindowTitle(ctx.window.ptr, txt.ptr);
