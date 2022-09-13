@@ -12,9 +12,8 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
-    engine = try zaudio.createEngine(ctx.allocator, null);
+    engine = try zaudio.createEngine(null);
     music = try engine.createSoundFromFile(
-        ctx.allocator,
         "assets/audios/Edge-of-Ocean_Looping.mp3",
         .{},
     );
@@ -22,7 +21,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try music.start();
 
     sfx1 = try engine.createSoundFromFile(
-        ctx.allocator,
         "assets/audios/SynthChime9.mp3",
         .{},
     );
@@ -30,7 +28,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     sfx1.setPan(-1);
 
     sfx2 = try engine.createSoundFromFile(
-        ctx.allocator,
         "assets/audios/Bells3.mp3",
         .{},
     );
@@ -97,9 +94,10 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 }
 
 pub fn quit(ctx: *jok.Context) void {
+    _ = ctx;
     std.log.info("game quit", .{});
-    music.destroy(ctx.allocator);
-    sfx1.destroy(ctx.allocator);
-    sfx2.destroy(ctx.allocator);
-    engine.destroy(ctx.allocator);
+    music.destroy();
+    sfx1.destroy();
+    sfx2.destroy();
+    engine.destroy();
 }
