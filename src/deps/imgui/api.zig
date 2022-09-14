@@ -1314,11 +1314,15 @@ pub const DrawList = struct {
     pub fn popTextureID(self: DrawList) void {
         return c.ImDrawList_PopTextureID(self._dl);
     }
-    pub fn getClipRectMin(pOut: [*c]c.ImVec2, self: DrawList) void {
-        return c.ImDrawList_GetClipRectMin(pOut, self._dl);
+    pub fn getClipRectMin(self: DrawList) c.ImVec2 {
+        var rect: c.ImVec2 = undefined;
+        c.ImDrawList_GetClipRectMin(&rect, self._dl);
+        return rect;
     }
-    pub fn getClipRectMax(pOut: [*c]c.ImVec2, self: DrawList) void {
-        return c.ImDrawList_GetClipRectMax(pOut, self._dl);
+    pub fn getClipRectMax(self: DrawList) c.ImVec2 {
+        var rect: c.ImVec2 = undefined;
+        c.ImDrawList_GetClipRectMax(&rect, self._dl);
+        return rect;
     }
     pub fn addLine(self: DrawList, p1: c.ImVec2, p2: c.ImVec2, col: c.ImU32, thickness: f32) void {
         return c.ImDrawList_AddLine(self._dl, p1, p2, col, thickness);
