@@ -35,7 +35,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     sphere.computeNormals();
 
     // Init solar system
-    scene = try Scene.init(ctx);
+    scene = try Scene.init(ctx, null);
     earth_orbit = try Scene.Object.init(ctx.allocator, .{ .position = .{} });
     moon_orbit = try Scene.Object.init(ctx.allocator, .{ .position = .{} });
     sun = try Scene.Object.init(ctx.allocator, .{
@@ -123,6 +123,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             .attenuation_quadratic = 0,
         },
     };
+
+    scene.clear();
     try scene.render(camera, .{
         .lighting = lighting_opt,
     });

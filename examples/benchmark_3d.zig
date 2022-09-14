@@ -51,7 +51,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     cube.computeAabb(&aabb);
     cube.computeNormals();
     cube.texcoords = texcoords[0..];
-    try primitive.init(ctx);
+    try primitive.init(ctx, null);
 
     tex = try jok.gfx.utils.createTextureFromFile(
         ctx.renderer,

@@ -45,7 +45,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     );
 
     try imgui.init(ctx);
-    try primitive.init(ctx);
+    try primitive.init(ctx, null);
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.setDrawBlendMode(.blend);
 }

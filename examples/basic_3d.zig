@@ -50,7 +50,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         .static,
         false,
     );
-    try primitive.init(ctx);
+    try primitive.init(ctx, null);
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 

@@ -13,15 +13,20 @@ pub const CommonDrawOption = struct {
     color: sdl.Color = sdl.Color.white,
     cull_faces: bool = true,
     lighting: ?TriangleRenderer.LightingOption = null,
+    weld_threshold: ?f32 = null,
 };
 
+var own_rd: bool = false;
 var rd: ?TriangleRenderer = null;
 var arena: std.heap.ArenaAllocator = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 
 /// Initialize primitive module
-pub fn init(ctx: *jok.Context) !void {
-    rd = TriangleRenderer.init(ctx);
+pub fn init(ctx: *jok.Context, _rd: ?TriangleRenderer) !void {
+    rd = _rd orelse BLK: {
+        own_rd = true;
+        break :BLK TriangleRenderer.init(ctx);
+    };
     arena = std.heap.ArenaAllocator.init(ctx.allocator);
     all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
 }
@@ -29,7 +34,7 @@ pub fn init(ctx: *jok.Context) !void {
 /// Destroy primitive module
 pub fn deinit() void {
     for (all_shapes.items) |s| s.deinit();
-    rd.?.deinit();
+    if (own_rd) rd.?.deinit();
     arena.deinit();
 }
 
@@ -85,18 +90,47 @@ pub fn drawShape(shape: zmesh.Shape, model: zmath.Mat, camera: Camera, aabb: ?[6
 /// Draw a cube
 pub fn drawCube(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
-        var shape: ?zmesh.Shape = null;
-        var aabb: [6]f32 = undefined;
+        const Mesh = struct {
+            shape: zmesh.Shape,
+            aabb: [6]f32,
+        };
+
+        var meshes: ?std.StringHashMap(*Mesh) = null;
+        var buf: [32]u8 = undefined;
+
+        fn getKey(_opt: CommonDrawOption) []u8 {
+            return std.fmt.bufPrint(
+                &buf,
+                "{?:.5}",
+                .{_opt.weld_threshold},
+            ) catch unreachable;
+        }
     };
 
-    if (S.shape == null) {
-        S.shape = zmesh.Shape.initCube();
-        S.shape.?.computeNormals();
-        S.shape.?.computeAabb(&S.aabb);
-        all_shapes.append(S.shape.?) catch unreachable;
+    if (S.meshes == null) {
+        S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
     }
 
-    try drawShape(S.shape.?, model, camera, S.aabb, opt);
+    var mesh = BLK: {
+        const key = S.getKey(opt);
+        if (S.meshes.?.get(key)) |s| {
+            break :BLK s;
+        }
+
+        var m = try arena.allocator().create(S.Mesh);
+        m.shape = zmesh.Shape.initCube();
+        m.shape.unweld();
+        if (opt.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
+        m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
+        all_shapes.append(m.shape) catch unreachable;
+        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
+        break :BLK m;
+    };
+
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt);
 }
 
 /// Draw a plane
@@ -116,7 +150,11 @@ pub fn drawPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
         var buf: [32]u8 = undefined;
 
         fn getKey(_opt: PlaneDrawOption) []u8 {
-            return std.fmt.bufPrint(&buf, "{d}-{d}", .{ _opt.slices, _opt.stacks }) catch unreachable;
+            return std.fmt.bufPrint(
+                &buf,
+                "{?:.5}-{d}-{d}",
+                .{ _opt.common.weld_threshold, _opt.slices, _opt.stacks },
+            ) catch unreachable;
         }
     };
 
@@ -134,8 +172,12 @@ pub fn drawPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
 
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initPlane(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
-        m.shape.computeAabb(&m.aabb);
+        m.shape.unweld();
+        if (opt.common.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
         m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -161,7 +203,11 @@ pub fn drawParametricSphere(model: zmath.Mat, camera: Camera, opt: ParametricSph
         var buf: [32]u8 = undefined;
 
         fn getKey(_opt: ParametricSphereDrawOption) []u8 {
-            return std.fmt.bufPrint(&buf, "{d}-{d}", .{ _opt.slices, _opt.stacks }) catch unreachable;
+            return std.fmt.bufPrint(
+                &buf,
+                "{?:.5}-{d}-{d}",
+                .{ _opt.common.weld_threshold, _opt.slices, _opt.stacks },
+            ) catch unreachable;
         }
     };
 
@@ -179,8 +225,12 @@ pub fn drawParametricSphere(model: zmath.Mat, camera: Camera, opt: ParametricSph
 
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initParametricSphere(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
-        m.shape.computeAabb(&m.aabb);
+        m.shape.unweld();
+        if (opt.common.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
         m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -201,25 +251,39 @@ pub fn drawSubdividedSphere(model: zmath.Mat, camera: Camera, opt: SubdividedSph
             aabb: [6]f32,
         };
 
-        var meshes: ?std.AutoHashMap(u32, *Mesh) = null;
+        var meshes: ?std.StringHashMap(*Mesh) = null;
+        var buf: [32]u8 = undefined;
+
+        fn getKey(_opt: SubdividedSphereDrawOption) []u8 {
+            return std.fmt.bufPrint(
+                &buf,
+                "{?:.5}-{d}",
+                .{ _opt.common.weld_threshold, _opt.sub_num },
+            ) catch unreachable;
+        }
     };
 
     if (S.meshes == null) {
-        S.meshes = std.AutoHashMap(u32, *S.Mesh).init(arena.allocator());
+        S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
     }
 
     var mesh = BLK: {
         assert(opt.sub_num > 0);
-        if (S.meshes.?.get(opt.sub_num)) |s| {
+        const key = S.getKey(opt);
+        if (S.meshes.?.get(key)) |s| {
             break :BLK s;
         }
 
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initSubdividedSphere(@intCast(i32, opt.sub_num));
-        m.shape.computeAabb(&m.aabb);
+        m.shape.unweld();
+        if (opt.common.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
         m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
         all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(opt.sub_num, m);
+        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
     };
 
@@ -243,7 +307,11 @@ pub fn drawHemisphere(model: zmath.Mat, camera: Camera, opt: HemisphereDrawOptio
         var buf: [32]u8 = undefined;
 
         fn getKey(_opt: HemisphereDrawOption) []u8 {
-            return std.fmt.bufPrint(&buf, "{d}-{d}", .{ _opt.slices, _opt.stacks }) catch unreachable;
+            return std.fmt.bufPrint(
+                &buf,
+                "{?:.5}-{d}-{d}",
+                .{ _opt.common.weld_threshold, _opt.slices, _opt.stacks },
+            ) catch unreachable;
         }
     };
 
@@ -261,8 +329,12 @@ pub fn drawHemisphere(model: zmath.Mat, camera: Camera, opt: HemisphereDrawOptio
 
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initHemisphere(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
-        m.shape.computeAabb(&m.aabb);
+        m.shape.unweld();
+        if (opt.common.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
         m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -288,7 +360,11 @@ pub fn drawCone(model: zmath.Mat, camera: Camera, opt: ConeDrawOption) !void {
         var buf: [32]u8 = undefined;
 
         fn getKey(_opt: ConeDrawOption) []u8 {
-            return std.fmt.bufPrint(&buf, "{d}-{d}", .{ _opt.slices, _opt.stacks }) catch unreachable;
+            return std.fmt.bufPrint(
+                &buf,
+                "{?:.5}-{d}-{d}",
+                .{ _opt.common.weld_threshold, _opt.slices, _opt.stacks },
+            ) catch unreachable;
         }
     };
 
@@ -306,8 +382,12 @@ pub fn drawCone(model: zmath.Mat, camera: Camera, opt: ConeDrawOption) !void {
 
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initCone(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
-        m.shape.computeAabb(&m.aabb);
+        m.shape.unweld();
+        if (opt.common.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
         m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -333,7 +413,11 @@ pub fn drawCylinder(model: zmath.Mat, camera: Camera, opt: CylinderDrawOption) !
         var buf: [32]u8 = undefined;
 
         fn getKey(_opt: CylinderDrawOption) []u8 {
-            return std.fmt.bufPrint(&buf, "{d}-{d}", .{ _opt.slices, _opt.stacks }) catch unreachable;
+            return std.fmt.bufPrint(
+                &buf,
+                "{?:.5}-{d}-{d}",
+                .{ _opt.common.weld_threshold, _opt.slices, _opt.stacks },
+            ) catch unreachable;
         }
     };
 
@@ -351,8 +435,12 @@ pub fn drawCylinder(model: zmath.Mat, camera: Camera, opt: CylinderDrawOption) !
 
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initCylinder(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
-        m.shape.computeAabb(&m.aabb);
+        m.shape.unweld();
+        if (opt.common.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
         m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -382,12 +470,11 @@ pub fn drawDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
         fn getKey(_opt: DiskDrawOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
-                "{d:.3}-{d}-({d:.3}/{d:.3}/{d:.3})-({d:.3}/{d:.3}/{d:.3})",
+                "{?:.5}-{d:.3}-{d}-({d:.3}/{d:.3}/{d:.3})-({d:.3}/{d:.3}/{d:.3})",
                 .{
-                    _opt.radius,    _opt.slices,
-                    _opt.center[0], _opt.center[1],
-                    _opt.center[2], _opt.normal[0],
-                    _opt.normal[1], _opt.normal[2],
+                    _opt.common.weld_threshold, _opt.radius,    _opt.slices,
+                    _opt.center[0],             _opt.center[1], _opt.center[2],
+                    _opt.normal[0],             _opt.normal[1], _opt.normal[2],
                 },
             ) catch unreachable;
         }
@@ -407,8 +494,12 @@ pub fn drawDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
 
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initDisk(opt.radius, @intCast(i32, opt.slices), &opt.center, &opt.normal);
-        m.shape.computeAabb(&m.aabb);
+        m.shape.unweld();
+        if (opt.common.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
         m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -437,8 +528,8 @@ pub fn drawTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
         fn getKey(_opt: TorusDrawOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
-                "{d:.3}-{d}-{d}",
-                .{ _opt.radius, _opt.slices, _opt.stacks },
+                "{?:.5}-{d:.3}-{d}-{d}",
+                .{ _opt.common.weld_threshold, _opt.radius, _opt.slices, _opt.stacks },
             ) catch unreachable;
         }
     };
@@ -458,8 +549,12 @@ pub fn drawTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
 
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initTorus(@intCast(i32, opt.slices), @intCast(i32, opt.stacks), opt.radius);
-        m.shape.computeAabb(&m.aabb);
+        m.shape.unweld();
+        if (opt.common.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
         m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -471,69 +566,185 @@ pub fn drawTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
 /// Draw a icosahedron
 pub fn drawIcosahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
-        var shape: ?zmesh.Shape = null;
-        var aabb: [6]f32 = undefined;
+        const Mesh = struct {
+            shape: zmesh.Shape,
+            aabb: [6]f32,
+        };
+
+        var meshes: ?std.StringHashMap(*Mesh) = null;
+        var buf: [32]u8 = undefined;
+
+        fn getKey(_opt: CommonDrawOption) []u8 {
+            return std.fmt.bufPrint(
+                &buf,
+                "{?:.5}",
+                .{_opt.weld_threshold},
+            ) catch unreachable;
+        }
     };
 
-    if (S.shape == null) {
-        S.shape = zmesh.Shape.initIcosahedron();
-        S.shape.?.computeNormals();
-        S.shape.?.computeAabb(&S.aabb);
-        all_shapes.append(S.shape.?) catch unreachable;
+    if (S.meshes == null) {
+        S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
     }
 
-    try drawShape(S.shape.?, model, camera, S.aabb, opt);
+    var mesh = BLK: {
+        const key = S.getKey(opt);
+        if (S.meshes.?.get(key)) |s| {
+            break :BLK s;
+        }
+
+        var m = try arena.allocator().create(S.Mesh);
+        m.shape = zmesh.Shape.initIcosahedron();
+        m.shape.unweld();
+        if (opt.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
+        m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
+        all_shapes.append(m.shape) catch unreachable;
+        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
+        break :BLK m;
+    };
+
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt);
 }
 
 /// Draw a dodecahedron
 pub fn drawDodecahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
-        var shape: ?zmesh.Shape = null;
-        var aabb: [6]f32 = undefined;
+        const Mesh = struct {
+            shape: zmesh.Shape,
+            aabb: [6]f32,
+        };
+
+        var meshes: ?std.StringHashMap(*Mesh) = null;
+        var buf: [32]u8 = undefined;
+
+        fn getKey(_opt: CommonDrawOption) []u8 {
+            return std.fmt.bufPrint(
+                &buf,
+                "{?:.5}",
+                .{_opt.weld_threshold},
+            ) catch unreachable;
+        }
     };
 
-    if (S.shape == null) {
-        S.shape = zmesh.Shape.initDodecahedron();
-        S.shape.?.computeNormals();
-        S.shape.?.computeAabb(&S.aabb);
-        all_shapes.append(S.shape.?) catch unreachable;
+    if (S.meshes == null) {
+        S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
     }
 
-    try drawShape(S.shape.?, model, camera, S.aabb, opt);
+    var mesh = BLK: {
+        const key = S.getKey(opt);
+        if (S.meshes.?.get(key)) |s| {
+            break :BLK s;
+        }
+
+        var m = try arena.allocator().create(S.Mesh);
+        m.shape = zmesh.Shape.initDodecahedron();
+        m.shape.unweld();
+        if (opt.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
+        m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
+        all_shapes.append(m.shape) catch unreachable;
+        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
+        break :BLK m;
+    };
+
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt);
 }
 
 /// Draw a octahedron
 pub fn drawOctahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
-        var shape: ?zmesh.Shape = null;
-        var aabb: [6]f32 = undefined;
+        const Mesh = struct {
+            shape: zmesh.Shape,
+            aabb: [6]f32,
+        };
+
+        var meshes: ?std.StringHashMap(*Mesh) = null;
+        var buf: [32]u8 = undefined;
+
+        fn getKey(_opt: CommonDrawOption) []u8 {
+            return std.fmt.bufPrint(
+                &buf,
+                "{?:.5}",
+                .{_opt.weld_threshold},
+            ) catch unreachable;
+        }
     };
 
-    if (S.shape == null) {
-        S.shape = zmesh.Shape.initOctahedron();
-        S.shape.?.computeNormals();
-        S.shape.?.computeAabb(&S.aabb);
-        all_shapes.append(S.shape.?) catch unreachable;
+    if (S.meshes == null) {
+        S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
     }
 
-    try drawShape(S.shape.?, model, camera, S.aabb, opt);
+    var mesh = BLK: {
+        const key = S.getKey(opt);
+        if (S.meshes.?.get(key)) |s| {
+            break :BLK s;
+        }
+
+        var m = try arena.allocator().create(S.Mesh);
+        m.shape = zmesh.Shape.initOctahedron();
+        m.shape.unweld();
+        if (opt.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
+        m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
+        all_shapes.append(m.shape) catch unreachable;
+        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
+        break :BLK m;
+    };
+
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt);
 }
 
 /// Draw a tetrahedron
 pub fn drawTetrahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
-        var shape: ?zmesh.Shape = null;
-        var aabb: [6]f32 = undefined;
+        const Mesh = struct {
+            shape: zmesh.Shape,
+            aabb: [6]f32,
+        };
+
+        var meshes: ?std.StringHashMap(*Mesh) = null;
+        var buf: [32]u8 = undefined;
+
+        fn getKey(_opt: CommonDrawOption) []u8 {
+            return std.fmt.bufPrint(
+                &buf,
+                "{?:.5}",
+                .{_opt.weld_threshold},
+            ) catch unreachable;
+        }
     };
 
-    if (S.shape == null) {
-        S.shape = zmesh.Shape.initTetrahedron();
-        S.shape.?.computeNormals();
-        S.shape.?.computeAabb(&S.aabb);
-        all_shapes.append(S.shape.?) catch unreachable;
+    if (S.meshes == null) {
+        S.meshes = std.StringHashMap(*S.Mesh).init(arena.allocator());
     }
 
-    try drawShape(S.shape.?, model, camera, S.aabb, opt);
+    var mesh = BLK: {
+        const key = S.getKey(opt);
+        if (S.meshes.?.get(key)) |s| {
+            break :BLK s;
+        }
+
+        var m = try arena.allocator().create(S.Mesh);
+        m.shape = zmesh.Shape.initTetrahedron();
+        m.shape.unweld();
+        if (opt.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
+        m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
+        all_shapes.append(m.shape) catch unreachable;
+        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
+        break :BLK m;
+    };
+
+    try drawShape(mesh.shape, model, camera, mesh.aabb, opt);
 }
 
 /// Draw a rock
@@ -553,7 +764,11 @@ pub fn drawRock(model: zmath.Mat, camera: Camera, opt: RockDrawOption) !void {
         var buf: [32]u8 = undefined;
 
         fn getKey(_opt: RockDrawOption) []u8 {
-            return std.fmt.bufPrint(&buf, "{d}-{d}", .{ _opt.seed, _opt.sub_num }) catch unreachable;
+            return std.fmt.bufPrint(
+                &buf,
+                "{?:.5}-{d}-{d}",
+                .{ _opt.common.weld_threshold, _opt.seed, _opt.sub_num },
+            ) catch unreachable;
         }
     };
 
@@ -570,8 +785,12 @@ pub fn drawRock(model: zmath.Mat, camera: Camera, opt: RockDrawOption) !void {
 
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initRock(@intCast(i32, opt.seed), @intCast(i32, opt.sub_num));
-        m.shape.computeAabb(&m.aabb);
+        m.shape.unweld();
+        if (opt.common.weld_threshold) |w| {
+            m.shape.weld(w, null);
+        }
         m.shape.computeNormals();
+        m.shape.computeAabb(&m.aabb);
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;

@@ -152,17 +152,21 @@ pub const Object = struct {
 
 allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
+own_rd: bool,
 rd: TriangleRenderer,
 root: *Object,
 colors: std.ArrayList(sdl.Color),
 
-pub fn init(ctx: *jok.Context) !*Self {
+pub fn init(ctx: *jok.Context, _rd: ?TriangleRenderer) !*Self {
     var self = try ctx.allocator.create(Self);
     errdefer ctx.allocator.destroy(self);
     self.allocator = ctx.allocator;
     self.arena = std.heap.ArenaAllocator.init(ctx.allocator);
     errdefer self.arena.deinit();
-    self.rd = TriangleRenderer.init(ctx);
+    self.rd = _rd orelse BLK: {
+        self.own_rd = true;
+        break :BLK TriangleRenderer.init(ctx);
+    };
     self.root = try Object.init(self.arena.allocator(), .{ .position = .{} });
     errdefer self.root.deinit(false);
     self.colors = try std.ArrayList(sdl.Color).initCapacity(self.arena.allocator(), 1000);
@@ -176,6 +180,11 @@ pub fn deinit(self: *Self, destroy_objects: bool) void {
     self.allocator.destroy(self);
 }
 
+/// Clear scene
+pub fn clear(self: *Self) void {
+    self.rd.clear(true);
+}
+
 /// Update and render the scene
 pub const RenderOption = struct {
     texture: ?sdl.Texture = null,
@@ -185,7 +194,6 @@ pub const RenderOption = struct {
     lighting: ?TriangleRenderer.LightingOption = null,
 };
 pub fn render(self: *Self, camera: Camera, opt: RenderOption) !void {
-    self.rd.clear(true);
     try self.addObjectToRenderer(camera, self.root, opt);
     if (opt.wireframe) {
         try self.rd.drawWireframe(opt.wireframe_color);

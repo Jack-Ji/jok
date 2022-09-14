@@ -31,6 +31,7 @@ const PrimitiveType = enum(c_int) {
 };
 
 var primtype: PrimitiveType = .cube;
+var welding: bool = false;
 var wireframe: bool = false;
 var color: [4]f32 = .{ 1.0, 1.0, 1.0, 1.0 };
 var cull_faces = true;
@@ -57,7 +58,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     );
 
     try imgui.init(ctx);
-    try primitive.init(ctx);
+    try primitive.init(ctx, null);
 }
 
 pub fn loop(ctx: *jok.Context) anyerror!void {
@@ -106,6 +107,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.clear();
 
     imgui.beginFrame();
+    defer imgui.endFrame();
     if (imgui.begin("Control Panel", null, null)) {
         var selection: *c_int = @ptrCast(*c_int, &primtype);
         _ = imgui.radioButton_IntPtr("cube", selection, 0);
@@ -122,6 +124,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.radioButton_IntPtr("hemisphere", selection, 11);
         _ = imgui.radioButton_IntPtr("rock", selection, 12);
         imgui.separator();
+        _ = imgui.checkbox("welding", &welding);
         _ = imgui.checkbox("wireframe", &wireframe);
         _ = imgui.checkbox("cull faces", &cull_faces);
         _ = imgui.colorEdit4("color", &color, null);
@@ -130,7 +133,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.dragFloat3("translate", &translate, .{ .v_max = 10, .v_speed = 0.1 });
     }
     imgui.end();
-    imgui.endFrame();
 
     const common_draw_opt = primitive.CommonDrawOption{
         .color = .{
@@ -141,6 +143,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         },
         .cull_faces = cull_faces,
         .lighting = .{},
+        .weld_threshold = if (welding) 0.001 else null,
     };
     const model = zmath.mul(
         zmath.mul(
