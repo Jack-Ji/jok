@@ -75,7 +75,9 @@ pub fn isWindowFocused(flags: ?c.ImGuiFocusedFlags) bool {
 pub fn isWindowHovered(flags: ?c.ImGuiHoveredFlags) bool {
     return c.igIsWindowHovered(flags orelse 0);
 }
-pub const getWindowDrawList = c.igGetWindowDrawList;
+pub fn getWindowDrawList() DrawList {
+    return .{ ._dl = c.igGetWindowDrawList() };
+}
 pub fn getWindowPos(pOut: *c.ImVec2) void {
     return c.igGetWindowPos(pOut);
 }
@@ -1122,8 +1124,12 @@ pub fn isRectVisible_Vec2(rect_min: c.ImVec2, rect_max: c.ImVec2) bool {
 }
 pub const getTime = c.igGetTime;
 pub const getFrameCount = c.igGetFrameCount;
-pub const getBackgroundDrawList = c.igGetBackgroundDrawList_Nil;
-pub const getForegroundDrawList = c.igGetForegroundDrawList_Nil;
+pub fn getBackgroundDrawList() DrawList {
+    return .{ ._dl = c.igGetBackgroundDrawList_Nil() };
+}
+pub fn getForegroundDrawList() DrawList {
+    return .{ ._dl = c.igGetForegroundDrawList_Nil() };
+}
 pub const getDrawListSharedData = c.igGetDrawListSharedData;
 pub fn getStyleColorName(idx: c.ImGuiCol) [*c]const u8 {
     return c.igGetStyleColorName(idx);
@@ -1279,45 +1285,46 @@ pub fn memFree(ptr: ?*anyopaque) void {
     return c.igMemFree(ptr);
 }
 
-/// draw list
+// Draw list
 pub const DrawList = struct {
-    pub fn init(shared_data: *const c.ImDrawListSharedData) *c.ImDrawList {
-        return @ptrCast(*c.ImDrawList, c.ImDrawList_ImDrawList(shared_data));
-    }
-    pub fn deinit(self: *c.ImDrawList) void {
-        return c.ImDrawList_destroy(self);
-    }
+    _dl: *c.ImDrawList,
+
     pub fn pushClipRect(
-        self: *c.ImDrawList,
+        self: DrawList,
         clip_rect_min: c.ImVec2,
         clip_rect_max: c.ImVec2,
         intersect_with_current_clip_rect: bool,
     ) void {
-        return c.ImDrawList_PushClipRect(self, clip_rect_min, clip_rect_max, intersect_with_current_clip_rect);
+        return c.ImDrawList_PushClipRect(
+            self._dl,
+            clip_rect_min,
+            clip_rect_max,
+            intersect_with_current_clip_rect,
+        );
     }
-    pub fn pushClipRectFullScreen(self: *c.ImDrawList) void {
-        return c.ImDrawList_PushClipRectFullScreen(self);
+    pub fn pushClipRectFullScreen(self: DrawList) void {
+        return c.ImDrawList_PushClipRectFullScreen(self._dl);
     }
-    pub fn popClipRect(self: *c.ImDrawList) void {
-        return c.ImDrawList_PopClipRect(self);
+    pub fn popClipRect(self: DrawList) void {
+        return c.ImDrawList_PopClipRect(self._dl);
     }
-    pub fn pushTextureID(self: *c.ImDrawList, texture_id: c.ImTextureID) void {
-        return c.ImDrawList_PushTextureID(self, texture_id);
+    pub fn pushTextureID(self: DrawList, texture_id: c.ImTextureID) void {
+        return c.ImDrawList_PushTextureID(self._dl, texture_id);
     }
-    pub fn popTextureID(self: *c.ImDrawList) void {
-        return c.ImDrawList_PopTextureID(self);
+    pub fn popTextureID(self: DrawList) void {
+        return c.ImDrawList_PopTextureID(self._dl);
     }
-    pub fn getClipRectMin(pOut: [*c]c.ImVec2, self: *c.ImDrawList) void {
-        return c.ImDrawList_GetClipRectMin(pOut, self);
+    pub fn getClipRectMin(pOut: [*c]c.ImVec2, self: DrawList) void {
+        return c.ImDrawList_GetClipRectMin(pOut, self._dl);
     }
-    pub fn getClipRectMax(pOut: [*c]c.ImVec2, self: *c.ImDrawList) void {
-        return c.ImDrawList_GetClipRectMax(pOut, self);
+    pub fn getClipRectMax(pOut: [*c]c.ImVec2, self: DrawList) void {
+        return c.ImDrawList_GetClipRectMax(pOut, self._dl);
     }
-    pub fn addLine(self: *c.ImDrawList, p1: c.ImVec2, p2: c.ImVec2, col: c.ImU32, thickness: f32) void {
-        return c.ImDrawList_AddLine(self, p1, p2, col, thickness);
+    pub fn addLine(self: DrawList, p1: c.ImVec2, p2: c.ImVec2, col: c.ImU32, thickness: f32) void {
+        return c.ImDrawList_AddLine(self._dl, p1, p2, col, thickness);
     }
     pub fn addRect(
-        self: *c.ImDrawList,
+        self: DrawList,
         p_min: c.ImVec2,
         p_max: c.ImVec2,
         col: c.ImU32,
@@ -1325,20 +1332,20 @@ pub const DrawList = struct {
         flags: c.ImDrawFlags,
         thickness: f32,
     ) void {
-        return c.ImDrawList_AddRect(self, p_min, p_max, col, rounding, flags, thickness);
+        return c.ImDrawList_AddRect(self._dl, p_min, p_max, col, rounding, flags, thickness);
     }
     pub fn addRectFilled(
-        self: *c.ImDrawList,
+        self: DrawList,
         p_min: c.ImVec2,
         p_max: c.ImVec2,
         col: c.ImU32,
         rounding: f32,
         flags: c.ImDrawFlags,
     ) void {
-        return c.ImDrawList_AddRectFilled(self, p_min, p_max, col, rounding, flags);
+        return c.ImDrawList_AddRectFilled(self._dl, p_min, p_max, col, rounding, flags);
     }
     pub fn addRectFilledMultiColor(
-        self: *c.ImDrawList,
+        self: DrawList,
         p_min: c.ImVec2,
         p_max: c.ImVec2,
         col_upr_left: c.ImU32,
@@ -1346,10 +1353,10 @@ pub const DrawList = struct {
         col_bot_right: c.ImU32,
         col_bot_left: c.ImU32,
     ) void {
-        return c.ImDrawList_AddRectFilledMultiColor(self, p_min, p_max, col_upr_left, col_upr_right, col_bot_right, col_bot_left);
+        return c.ImDrawList_AddRectFilledMultiColor(self._dl, p_min, p_max, col_upr_left, col_upr_right, col_bot_right, col_bot_left);
     }
     pub fn addQuad(
-        self: *c.ImDrawList,
+        self: DrawList,
         p1: c.ImVec2,
         p2: c.ImVec2,
         p3: c.ImVec2,
@@ -1357,86 +1364,86 @@ pub const DrawList = struct {
         col: c.ImU32,
         thickness: f32,
     ) void {
-        return c.ImDrawList_AddQuad(self, p1, p2, p3, p4, col, thickness);
+        return c.ImDrawList_AddQuad(self._dl, p1, p2, p3, p4, col, thickness);
     }
     pub fn addQuadFilled(
-        self: *c.ImDrawList,
+        self: DrawList,
         p1: c.ImVec2,
         p2: c.ImVec2,
         p3: c.ImVec2,
         p4: c.ImVec2,
         col: c.ImU32,
     ) void {
-        return c.ImDrawList_AddQuadFilled(self, p1, p2, p3, p4, col);
+        return c.ImDrawList_AddQuadFilled(self._dl, p1, p2, p3, p4, col);
     }
     pub fn addTriangle(
-        self: *c.ImDrawList,
+        self: DrawList,
         p1: c.ImVec2,
         p2: c.ImVec2,
         p3: c.ImVec2,
         col: c.ImU32,
         thickness: f32,
     ) void {
-        return c.ImDrawList_AddTriangle(self, p1, p2, p3, col, thickness);
+        return c.ImDrawList_AddTriangle(self._dl, p1, p2, p3, col, thickness);
     }
     pub fn addTriangleFilled(
-        self: *c.ImDrawList,
+        self: DrawList,
         p1: c.ImVec2,
         p2: c.ImVec2,
         p3: c.ImVec2,
         col: c.ImU32,
     ) void {
-        return c.ImDrawList_AddTriangleFilled(self, p1, p2, p3, col);
+        return c.ImDrawList_AddTriangleFilled(self._dl, p1, p2, p3, col);
     }
     pub fn addCircle(
-        self: *c.ImDrawList,
+        self: DrawList,
         center: c.ImVec2,
         radius: f32,
         col: c.ImU32,
         num_segments: c_int,
         thickness: f32,
     ) void {
-        return c.ImDrawList_AddCircle(self, center, radius, col, num_segments, thickness);
+        return c.ImDrawList_AddCircle(self._dl, center, radius, col, num_segments, thickness);
     }
     pub fn addCircleFilled(
-        self: *c.ImDrawList,
+        self: DrawList,
         center: c.ImVec2,
         radius: f32,
         col: c.ImU32,
         num_segments: c_int,
     ) void {
-        return c.ImDrawList_AddCircleFilled(self, center, radius, col, num_segments);
+        return c.ImDrawList_AddCircleFilled(self._dl, center, radius, col, num_segments);
     }
     pub fn addNgon(
-        self: *c.ImDrawList,
+        self: DrawList,
         center: c.ImVec2,
         radius: f32,
         col: c.ImU32,
         num_segments: c_int,
         thickness: f32,
     ) void {
-        return c.ImDrawList_AddNgon(self, center, radius, col, num_segments, thickness);
+        return c.ImDrawList_AddNgon(self._dl, center, radius, col, num_segments, thickness);
     }
     pub fn addNgonFilled(
-        self: *c.ImDrawList,
+        self: DrawList,
         center: c.ImVec2,
         radius: f32,
         col: c.ImU32,
         num_segments: c_int,
     ) void {
-        return c.ImDrawList_AddNgonFilled(self, center, radius, col, num_segments);
+        return c.ImDrawList_AddNgonFilled(self._dl, center, radius, col, num_segments);
     }
     pub fn addText_Vec2(
-        self: *c.ImDrawList,
+        self: DrawList,
         pos: c.ImVec2,
         col: c.ImU32,
         text_begin: [*c]const u8,
         text_end: [*c]const u8,
     ) void {
-        return c.ImDrawList_AddText_Vec2(self, pos, col, text_begin, text_end);
+        return c.ImDrawList_AddText_Vec2(self._dl, pos, col, text_begin, text_end);
     }
     pub fn addText_FontPtr(
-        self: *c.ImDrawList,
+        self: DrawList,
         font: [*c]const c.ImFont,
         font_size: f32,
         pos: c.ImVec2,
@@ -1447,7 +1454,7 @@ pub const DrawList = struct {
         cpu_fine_clip_rect: [*c]const c.ImVec4,
     ) void {
         return c.ImDrawList_AddText_FontPtr(
-            self,
+            self._dl,
             font,
             font_size,
             pos,
@@ -1459,25 +1466,25 @@ pub const DrawList = struct {
         );
     }
     pub fn addPolyline(
-        self: *c.ImDrawList,
+        self: DrawList,
         points: [*c]const c.ImVec2,
         num_points: c_int,
         col: c.ImU32,
         flags: c.ImDrawFlags,
         thickness: f32,
     ) void {
-        return c.ImDrawList_AddPolyline(self, points, num_points, col, flags, thickness);
+        return c.ImDrawList_AddPolyline(self._dl, points, num_points, col, flags, thickness);
     }
     pub fn addConvexPolyFilled(
-        self: *c.ImDrawList,
+        self: DrawList,
         points: [*c]const c.ImVec2,
         num_points: c_int,
         col: c.ImU32,
     ) void {
-        return c.ImDrawList_AddConvexPolyFilled(self, points, num_points, col);
+        return c.ImDrawList_AddConvexPolyFilled(self._dl, points, num_points, col);
     }
     pub fn addBezierCubic(
-        self: *c.ImDrawList,
+        self: DrawList,
         p1: c.ImVec2,
         p2: c.ImVec2,
         p3: c.ImVec2,
@@ -1486,10 +1493,10 @@ pub const DrawList = struct {
         thickness: f32,
         num_segments: c_int,
     ) void {
-        return c.ImDrawList_AddBezierCubic(self, p1, p2, p3, p4, col, thickness, num_segments);
+        return c.ImDrawList_AddBezierCubic(self._dl, p1, p2, p3, p4, col, thickness, num_segments);
     }
     pub fn addBezierQuadratic(
-        self: *c.ImDrawList,
+        self: DrawList,
         p1: c.ImVec2,
         p2: c.ImVec2,
         p3: c.ImVec2,
@@ -1497,10 +1504,10 @@ pub const DrawList = struct {
         thickness: f32,
         num_segments: c_int,
     ) void {
-        return c.ImDrawList_AddBezierQuadratic(self, p1, p2, p3, col, thickness, num_segments);
+        return c.ImDrawList_AddBezierQuadratic(self._dl, p1, p2, p3, col, thickness, num_segments);
     }
     pub fn addImage(
-        self: *c.ImDrawList,
+        self: DrawList,
         user_texture_id: c.ImTextureID,
         p_min: c.ImVec2,
         p_max: c.ImVec2,
@@ -1508,10 +1515,10 @@ pub const DrawList = struct {
         uv_max: c.ImVec2,
         col: c.ImU32,
     ) void {
-        return c.ImDrawList_AddImage(self, user_texture_id, p_min, p_max, uv_min, uv_max, col);
+        return c.ImDrawList_AddImage(self._dl, user_texture_id, p_min, p_max, uv_min, uv_max, col);
     }
     pub fn addImageQuad(
-        self: *c.ImDrawList,
+        self: DrawList,
         user_texture_id: c.ImTextureID,
         p1: c.ImVec2,
         p2: c.ImVec2,
@@ -1524,7 +1531,7 @@ pub const DrawList = struct {
         col: c.ImU32,
     ) void {
         return c.ImDrawList_AddImageQuad(
-            self,
+            self._dl,
             user_texture_id,
             p1,
             p2,
@@ -1538,7 +1545,7 @@ pub const DrawList = struct {
         );
     }
     pub fn addImageRounded(
-        self: *c.ImDrawList,
+        self: DrawList,
         user_texture_id: c.ImTextureID,
         p_min: c.ImVec2,
         p_max: c.ImVec2,
@@ -1549,7 +1556,7 @@ pub const DrawList = struct {
         flags: c.ImDrawFlags,
     ) void {
         return c.ImDrawList_AddImageRounded(
-            self,
+            self._dl,
             user_texture_id,
             p_min,
             p_max,
@@ -1560,102 +1567,102 @@ pub const DrawList = struct {
             flags,
         );
     }
-    pub fn pathClear(self: *c.ImDrawList) void {
-        return c.ImDrawList_PathClear(self);
+    pub fn pathClear(self: DrawList) void {
+        return c.ImDrawList_PathClear(self._dl);
     }
-    pub fn pathLineTo(self: *c.ImDrawList, pos: c.ImVec2) void {
-        return c.ImDrawList_PathLineTo(self, pos);
+    pub fn pathLineTo(self: DrawList, pos: c.ImVec2) void {
+        return c.ImDrawList_PathLineTo(self._dl, pos);
     }
-    pub fn pathLineToMergeDuplicate(self: *c.ImDrawList, pos: c.ImVec2) void {
-        return c.ImDrawList_PathLineToMergeDuplicate(self, pos);
+    pub fn pathLineToMergeDuplicate(self: DrawList, pos: c.ImVec2) void {
+        return c.ImDrawList_PathLineToMergeDuplicate(self._dl, pos);
     }
-    pub fn pathFillConvex(self: *c.ImDrawList, col: c.ImU32) void {
-        return c.ImDrawList_PathFillConvex(self, col);
+    pub fn pathFillConvex(self: DrawList, col: c.ImU32) void {
+        return c.ImDrawList_PathFillConvex(self._dl, col);
     }
-    pub fn pathStroke(self: *c.ImDrawList, col: c.ImU32, flags: c.ImDrawFlags, thickness: f32) void {
-        return c.ImDrawList_PathStroke(self, col, flags, thickness);
+    pub fn pathStroke(self: DrawList, col: c.ImU32, flags: c.ImDrawFlags, thickness: f32) void {
+        return c.ImDrawList_PathStroke(self._dl, col, flags, thickness);
     }
     pub fn pathArcTo(
-        self: *c.ImDrawList,
+        self: DrawList,
         center: c.ImVec2,
         radius: f32,
         a_min: f32,
         a_max: f32,
         num_segments: c_int,
     ) void {
-        return c.ImDrawList_PathArcTo(self, center, radius, a_min, a_max, num_segments);
+        return c.ImDrawList_PathArcTo(self._dl, center, radius, a_min, a_max, num_segments);
     }
     pub fn pathArcToFast(
-        self: *c.ImDrawList,
+        self: DrawList,
         center: c.ImVec2,
         radius: f32,
         a_min_of_12: c_int,
         a_max_of_12: c_int,
     ) void {
-        return c.ImDrawList_PathArcToFast(self, center, radius, a_min_of_12, a_max_of_12);
+        return c.ImDrawList_PathArcToFast(self._dl, center, radius, a_min_of_12, a_max_of_12);
     }
     pub fn pathBezierCubicCurveTo(
-        self: *c.ImDrawList,
+        self: DrawList,
         p2: c.ImVec2,
         p3: c.ImVec2,
         p4: c.ImVec2,
         num_segments: c_int,
     ) void {
-        return c.ImDrawList_PathBezierCubicCurveTo(self, p2, p3, p4, num_segments);
+        return c.ImDrawList_PathBezierCubicCurveTo(self._dl, p2, p3, p4, num_segments);
     }
     pub fn pathBezierQuadraticCurveTo(
-        self: *c.ImDrawList,
+        self: DrawList,
         p2: c.ImVec2,
         p3: c.ImVec2,
         num_segments: c_int,
     ) void {
-        return c.ImDrawList_PathBezierQuadraticCurveTo(self, p2, p3, num_segments);
+        return c.ImDrawList_PathBezierQuadraticCurveTo(self._dl, p2, p3, num_segments);
     }
     pub fn pathRect(
-        self: *c.ImDrawList,
+        self: DrawList,
         rect_min: c.ImVec2,
         rect_max: c.ImVec2,
         rounding: f32,
         flags: c.ImDrawFlags,
     ) void {
-        return c.ImDrawList_PathRect(self, rect_min, rect_max, rounding, flags);
+        return c.ImDrawList_PathRect(self._dl, rect_min, rect_max, rounding, flags);
     }
     pub fn addCallback(
-        self: *c.ImDrawList,
+        self: DrawList,
         callback: c.ImDrawCallback,
         callback_data: ?*anyopaque,
     ) void {
-        return c.ImDrawList_AddCallback(self, callback, callback_data);
+        return c.ImDrawList_AddCallback(self._dl, callback, callback_data);
     }
-    pub fn addDrawCmd(self: *c.ImDrawList) void {
-        return c.ImDrawList_AddDrawCmd(self);
+    pub fn addDrawCmd(self: DrawList) void {
+        return c.ImDrawList_AddDrawCmd(self._dl);
     }
-    pub fn cloneOutput(self: *c.ImDrawList) *c.ImDrawList {
-        return c.ImDrawList_CloneOutput(self);
+    pub fn cloneOutput(self: DrawList) *c.ImDrawList {
+        return c.ImDrawList_CloneOutput(self._dl);
     }
-    pub fn channelsSplit(self: *c.ImDrawList, count: c_int) void {
-        return c.ImDrawList_ChannelsSplit(self, count);
+    pub fn channelsSplit(self: DrawList, count: c_int) void {
+        return c.ImDrawList_ChannelsSplit(self._dl, count);
     }
-    pub fn channelsMerge(self: *c.ImDrawList) void {
-        return c.ImDrawList_ChannelsMerge(self);
+    pub fn channelsMerge(self: DrawList) void {
+        return c.ImDrawList_ChannelsMerge(self._dl);
     }
-    pub fn channelsSetCurrent(self: *c.ImDrawList, n: c_int) void {
-        return c.ImDrawList_ChannelsSetCurrent(self, n);
+    pub fn channelsSetCurrent(self: DrawList, n: c_int) void {
+        return c.ImDrawList_ChannelsSetCurrent(self._dl, n);
     }
-    pub fn primReserve(self: *c.ImDrawList, idx_count: c_int, vtx_count: c_int) void {
-        return c.ImDrawList_PrimReserve(self, idx_count, vtx_count);
+    pub fn primReserve(self: DrawList, idx_count: c_int, vtx_count: c_int) void {
+        return c.ImDrawList_PrimReserve(self._dl, idx_count, vtx_count);
     }
-    pub fn primUnreserve(self: *c.ImDrawList, idx_count: c_int, vtx_count: c_int) void {
-        return c.ImDrawList_PrimUnreserve(self, idx_count, vtx_count);
+    pub fn primUnreserve(self: DrawList, idx_count: c_int, vtx_count: c_int) void {
+        return c.ImDrawList_PrimUnreserve(self._dl, idx_count, vtx_count);
     }
-    pub fn primRect(self: *c.ImDrawList, a: c.ImVec2, b: c.ImVec2, col: c.ImU32) void {
-        return c.ImDrawList_PrimRect(self, a, b, col);
+    pub fn primRect(self: DrawList, a: c.ImVec2, b: c.ImVec2, col: c.ImU32) void {
+        return c.ImDrawList_PrimRect(self._dl, a, b, col);
     }
-    pub fn primRectUV(self: *c.ImDrawList, a: c.ImVec2, b: c.ImVec2, uv_a: c.ImVec2, uv_b: c.ImVec2, col: c.ImU32) void {
-        return c.ImDrawList_PrimRectUV(self, a, b, uv_a, uv_b, col);
+    pub fn primRectUV(self: DrawList, a: c.ImVec2, b: c.ImVec2, uv_a: c.ImVec2, uv_b: c.ImVec2, col: c.ImU32) void {
+        return c.ImDrawList_PrimRectUV(self._dl, a, b, uv_a, uv_b, col);
     }
     pub fn primQuadUV(
-        self: *c.ImDrawList,
+        self: DrawList,
         a: c.ImVec2,
         b: c.ImVec2,
         _c: c.ImVec2,
@@ -1666,43 +1673,43 @@ pub const DrawList = struct {
         uv_d: c.ImVec2,
         col: c.ImU32,
     ) void {
-        return c.ImDrawList_PrimQuadUV(self, a, b, _c, d, uv_a, uv_b, uv_c, uv_d, col);
+        return c.ImDrawList_PrimQuadUV(self._dl, a, b, _c, d, uv_a, uv_b, uv_c, uv_d, col);
     }
-    pub fn primWriteVtx(self: *c.ImDrawList, pos: c.ImVec2, uv: c.ImVec2, col: c.ImU32) void {
-        return c.ImDrawList_PrimWriteVtx(self, pos, uv, col);
+    pub fn primWriteVtx(self: DrawList, pos: c.ImVec2, uv: c.ImVec2, col: c.ImU32) void {
+        return c.ImDrawList_PrimWriteVtx(self._dl, pos, uv, col);
     }
-    pub fn primWriteIdx(self: *c.ImDrawList, idx: c.ImDrawIdx) void {
-        return c.ImDrawList_PrimWriteIdx(self, idx);
+    pub fn primWriteIdx(self: DrawList, idx: c.ImDrawIdx) void {
+        return c.ImDrawList_PrimWriteIdx(self._dl, idx);
     }
-    pub fn primVtx(self: *c.ImDrawList, pos: c.ImVec2, uv: c.ImVec2, col: c.ImU32) void {
-        return c.ImDrawList_PrimVtx(self, pos, uv, col);
+    pub fn primVtx(self: DrawList, pos: c.ImVec2, uv: c.ImVec2, col: c.ImU32) void {
+        return c.ImDrawList_PrimVtx(self._dl, pos, uv, col);
     }
-    pub fn resetForNewFrame(self: *c.ImDrawList) void {
-        return c.ImDrawList__ResetForNewFrame(self);
+    pub fn resetForNewFrame(self: DrawList) void {
+        return c.ImDrawList__ResetForNewFrame(self._dl);
     }
-    pub fn clearFreeMemory(self: *c.ImDrawList) void {
-        return c.ImDrawList__ClearFreeMemory(self);
+    pub fn clearFreeMemory(self: DrawList) void {
+        return c.ImDrawList__ClearFreeMemory(self._dl);
     }
-    pub fn popUnusedDrawCmd(self: *c.ImDrawList) void {
-        return c.ImDrawList__PopUnusedDrawCmd(self);
+    pub fn popUnusedDrawCmd(self: DrawList) void {
+        return c.ImDrawList__PopUnusedDrawCmd(self._dl);
     }
-    pub fn tryMergeDrawCmds(self: *c.ImDrawList) void {
-        return c.ImDrawList__TryMergeDrawCmds(self);
+    pub fn tryMergeDrawCmds(self: DrawList) void {
+        return c.ImDrawList__TryMergeDrawCmds(self._dl);
     }
-    pub fn onChangedClipRect(self: *c.ImDrawList) void {
-        return c.ImDrawList__OnChangedClipRect(self);
+    pub fn onChangedClipRect(self: DrawList) void {
+        return c.ImDrawList__OnChangedClipRect(self._dl);
     }
-    pub fn onChangedTextureID(self: *c.ImDrawList) void {
-        return c.ImDrawList__OnChangedTextureID(self);
+    pub fn onChangedTextureID(self: DrawList) void {
+        return c.ImDrawList__OnChangedTextureID(self._dl);
     }
-    pub fn onChangedVtxOffset(self: *c.ImDrawList) void {
-        return c.ImDrawList__OnChangedVtxOffset(self);
+    pub fn onChangedVtxOffset(self: DrawList) void {
+        return c.ImDrawList__OnChangedVtxOffset(self._dl);
     }
-    pub fn calcCircleAutoSegmentCount(self: *c.ImDrawList, radius: f32) c_int {
-        return c.ImDrawList__CalcCircleAutoSegmentCount(self, radius);
+    pub fn calcCircleAutoSegmentCount(self: DrawList, radius: f32) c_int {
+        return c.ImDrawList__CalcCircleAutoSegmentCount(self._dl, radius);
     }
     pub fn pathArcToFastEx(
-        self: *c.ImDrawList,
+        self: DrawList,
         center: c.ImVec2,
         radius: f32,
         a_min_sample: c_int,
@@ -1710,7 +1717,7 @@ pub const DrawList = struct {
         a_step: c_int,
     ) void {
         return c.ImDrawList__PathArcToFastEx(
-            self,
+            self._dl,
             center,
             radius,
             a_min_sample,
@@ -1719,7 +1726,7 @@ pub const DrawList = struct {
         );
     }
     pub fn pathArcToN(
-        self: *c.ImDrawList,
+        self: DrawList,
         center: c.ImVec2,
         radius: f32,
         a_min: f32,
@@ -1727,7 +1734,7 @@ pub const DrawList = struct {
         num_segments: c_int,
     ) void {
         return c.ImDrawList__PathArcToN(
-            self,
+            self._dl,
             center,
             radius,
             a_min,
@@ -1737,7 +1744,7 @@ pub const DrawList = struct {
     }
 };
 
-/// ImGui Helpers
+// ImGui Helpers
 pub const helpers = struct {
     // Helpers: Hashing
     pub fn hashData(data: [*]const anyopaque, data_size: usize, seed: c.ImU32) c.ImGuiID {
