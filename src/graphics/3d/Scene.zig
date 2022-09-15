@@ -192,13 +192,14 @@ pub const RenderOption = struct {
     wireframe_color: sdl.Color = sdl.Color.green,
     cull_faces: bool = true,
     lighting: ?TriangleRenderer.LightingOption = null,
+    renderer: ?sdl.Renderer = null,
 };
 pub fn render(self: *Self, camera: Camera, opt: RenderOption) !void {
     try self.addObjectToRenderer(camera, self.root, opt);
     if (opt.wireframe) {
-        try self.rd.drawWireframe(opt.wireframe_color);
+        try self.rd.drawWireframe(opt.wireframe_color, opt.renderer);
     } else {
-        try self.rd.draw(opt.texture);
+        try self.rd.draw(opt.texture, opt.renderer);
     }
 }
 
