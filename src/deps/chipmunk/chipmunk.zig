@@ -457,7 +457,6 @@ const PhysicsDebug = struct {
         fill_color: c.cpSpaceDebugColor,
         data: c.cpDataPointer,
     ) callconv(.C) void {
-        _ = angle;
         _ = outline_color;
         var debug = @ptrCast(*PhysicsDebug, @alignCast(@alignOf(*PhysicsDebug), data));
         // Zig fmt: off

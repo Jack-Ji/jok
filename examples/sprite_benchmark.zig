@@ -18,7 +18,6 @@ var rand_gen: std.rand.DefaultPrng = undefined;
 var delta_tick: f32 = 0;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
-    _ = ctx;
     std.log.info("game init", .{});
 
     const size = ctx.getFramebufferSize();

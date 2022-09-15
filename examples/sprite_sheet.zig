@@ -8,7 +8,6 @@ var sb: *gfx.SpriteBatch = undefined;
 var camera: gfx.Camera = undefined;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
-    _ = ctx;
     std.log.info("game init", .{});
 
     // create sprite sheet

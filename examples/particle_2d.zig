@@ -25,7 +25,6 @@ const emitter2 = gfx.ParticleSystem.Effect.FireEmitter(
 );
 
 pub fn init(ctx: *jok.Context) anyerror!void {
-    _ = ctx;
     std.log.info("game init", .{});
 
     rd = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));

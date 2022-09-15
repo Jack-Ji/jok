@@ -5,7 +5,6 @@ const jok = @import("jok");
 var tex: sdl.Texture = undefined;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
-    _ = ctx;
     std.log.info("game init", .{});
 
     tex = try jok.gfx.utils.createTextureFromFile(
