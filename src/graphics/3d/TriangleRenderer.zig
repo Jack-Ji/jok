@@ -1067,7 +1067,7 @@ fn compareTriangleDepths(self: *Self, lhs: [3]u32, rhs: [3]u32) bool {
 }
 
 /// Draw the meshes, fill triangles, using texture if possible
-pub fn draw(self: *Self, tex: ?sdl.Texture) !void {
+pub fn draw(self: *Self, tex: ?sdl.Texture, _rd: ?sdl.Renderer) !void {
     if (self.indices.items.len == 0) return;
 
     if (!self.sorted) {
@@ -1084,7 +1084,8 @@ pub fn draw(self: *Self, tex: ?sdl.Texture) !void {
         self.sorted = true;
     }
 
-    try self.rd.drawGeometry(
+    var rd = _rd orelse self.rd;
+    try rd.drawGeometry(
         tex,
         self.vertices.items,
         self.indices.items,
@@ -1092,7 +1093,7 @@ pub fn draw(self: *Self, tex: ?sdl.Texture) !void {
 
     // Debug: draw front triangles
     //for (self.large_front_triangles.items) |tri| {
-    //    try self.rd.drawGeometry(
+    //    try rd.drawGeometry(
     //        null,
     //        &[3]sdl.Vertex{
     //            self.vertices.items[tri[0]],
@@ -1105,12 +1106,13 @@ pub fn draw(self: *Self, tex: ?sdl.Texture) !void {
 }
 
 /// Draw the wireframe
-pub fn drawWireframe(self: *Self, color: sdl.Color) !void {
+pub fn drawWireframe(self: *Self, color: sdl.Color, _rd: ?sdl.Renderer) !void {
     if (self.indices.items.len == 0) return;
 
-    const old_color = try self.rd.getColor();
-    defer self.rd.setColor(old_color) catch unreachable;
-    try self.rd.setColor(color);
+    var rd = _rd orelse self.rd;
+    const old_color = try rd.getColor();
+    defer rd.setColor(old_color) catch unreachable;
+    try rd.setColor(color);
 
     const vs = self.vertices.items;
     var i: usize = 2;
@@ -1121,8 +1123,8 @@ pub fn drawWireframe(self: *Self, color: sdl.Color) !void {
         assert(idx1 < vs.len);
         assert(idx2 < vs.len);
         assert(idx3 < vs.len);
-        try self.rd.drawLineF(vs[idx1].position.x, vs[idx1].position.y, vs[idx2].position.x, vs[idx2].position.y);
-        try self.rd.drawLineF(vs[idx2].position.x, vs[idx2].position.y, vs[idx3].position.x, vs[idx3].position.y);
-        try self.rd.drawLineF(vs[idx3].position.x, vs[idx3].position.y, vs[idx1].position.x, vs[idx1].position.y);
+        try rd.drawLineF(vs[idx1].position.x, vs[idx1].position.y, vs[idx2].position.x, vs[idx2].position.y);
+        try rd.drawLineF(vs[idx2].position.x, vs[idx2].position.y, vs[idx3].position.x, vs[idx3].position.y);
+        try rd.drawLineF(vs[idx3].position.x, vs[idx3].position.y, vs[idx1].position.x, vs[idx1].position.y);
     }
 }

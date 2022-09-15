@@ -33,11 +33,10 @@ pub fn clear() void {
 
 /// Render data
 pub const FlushOption = struct {
-    // TODO
+    renderer: ?sdl.Renderer = null,
 };
 pub fn flush(opt: FlushOption) !void {
-    _ = opt;
-    try rd.?.draw(renderer);
+    try rd.?.draw(opt.renderer orelse renderer);
 }
 
 /// Draw equilateral triangle

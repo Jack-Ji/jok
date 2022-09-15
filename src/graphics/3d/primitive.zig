@@ -48,12 +48,13 @@ pub const FlushOption = struct {
     texture: ?sdl.Texture = null,
     wireframe: bool = false,
     wireframe_color: sdl.Color = sdl.Color.green,
+    renderer: ?sdl.Renderer = null,
 };
 pub fn flush(opt: FlushOption) !void {
     if (opt.wireframe) {
-        try rd.?.drawWireframe(opt.wireframe_color);
+        try rd.?.drawWireframe(opt.wireframe_color, opt.renderer);
     } else {
-        try rd.?.draw(opt.texture);
+        try rd.?.draw(opt.texture, opt.renderer);
     }
 }
 
