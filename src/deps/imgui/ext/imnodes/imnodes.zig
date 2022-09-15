@@ -217,14 +217,14 @@ pub fn loadEditorStateFromIniString(editor: *c.ImNodesEditorContext, data: []con
     return c.imnodes_LoadEditorStateFromIniString(editor, data.ptr, data.len);
 }
 pub fn saveCurrentEditorStateToIniFile(file_name: [:0]const u8) void {
-    return c.imnodes_SaveCurrentEditorStateToIniFile(file_name);
+    return c.imnodes_SaveCurrentEditorStateToIniFile(file_name.ptr);
 }
 pub fn saveEditorStateToIniFile(editor: *const c.ImNodesEditorContext, file_name: [:0]const u8) void {
-    return c.imnodes_SaveEditorStateToIniFile(editor, file_name);
+    return c.imnodes_SaveEditorStateToIniFile(editor, file_name.ptr);
 }
 pub fn loadCurrentEditorStateFromIniFile(file_name: [:0]const u8) void {
-    return c.imnodes_LoadCurrentEditorStateFromIniFile(file_name);
+    return c.imnodes_LoadCurrentEditorStateFromIniFile(file_name.ptr);
 }
 pub fn loadEditorStateFromIniFile(editor: *c.ImNodesEditorContext, file_name: [:0]const u8) void {
-    return c.imnodes_LoadEditorStateFromIniFile(editor, file_name);
+    return c.imnodes_LoadEditorStateFromIniFile(editor, file_name.ptr);
 }

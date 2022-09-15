@@ -16,10 +16,10 @@ pub const showStackToolWindow = c.igShowStackToolWindow;
 pub const showAboutWindow = c.igShowAboutWindow;
 pub const showStyleEditor = c.igShowStyleEditor;
 pub fn showStyleSelector(label: [:0]const u8) bool {
-    return c.igShowStyleSelector(label);
+    return c.igShowStyleSelector(label.ptr);
 }
 pub fn showFontSelector(label: [:0]const u8) void {
-    return c.igShowFontSelector(label);
+    return c.igShowFontSelector(label.ptr);
 }
 pub const showUserGuide = c.igShowUserGuide;
 pub const getVersion = c.igGetVersion;
@@ -58,7 +58,7 @@ pub const BeginChildOption = struct {
     flags: c.ImGuiWindowFlags = 0,
 };
 pub fn beginChild_Str(str_id: [:0]const u8, option: BeginChildOption) bool {
-    return c.igBeginChild_Str(str_id, option.size, option.border, option.flags);
+    return c.igBeginChild_Str(str_id.ptr, option.size, option.border, option.flags);
 }
 pub fn beginChild_ID(id: c.ImGuiID, option: BeginChildOption) bool {
     return c.igBeginChild_ID(id, option.size, option.border, option.flags);
@@ -130,16 +130,16 @@ pub fn setWindowFontScale(scale: f32) void {
     return c.igSetWindowFontScale(scale);
 }
 pub fn setWindowPos_Str(name: [:0]const u8, pos: c.ImVec2, cond: c.ImGuiCond) void {
-    return c.igSetWindowPos_Str(name, pos, cond);
+    return c.igSetWindowPos_Str(name.ptr, pos, cond);
 }
 pub fn setWindowSize_Str(name: [:0]const u8, size: c.ImVec2, cond: c.ImGuiCond) void {
-    return c.igSetWindowSize_Str(name, size, cond);
+    return c.igSetWindowSize_Str(name.ptr, size, cond);
 }
 pub fn setWindowCollapsed_Str(name: [:0]const u8, collapsed: bool, cond: c.ImGuiCond) void {
-    return c.igSetWindowCollapsed_Str(name, collapsed, cond);
+    return c.igSetWindowCollapsed_Str(name.ptr, collapsed, cond);
 }
 pub fn setWindowFocus_Str(name: [:0]const u8) void {
-    return c.igSetWindowFocus_Str(name);
+    return c.igSetWindowFocus_Str(name.ptr);
 }
 
 // Content region
@@ -317,7 +317,7 @@ pub const getFrameHeightWithSpacing = c.igGetFrameHeightWithSpacing;
 // - In this header file we use the "label"/"name" terminology to denote a string that will be displayed + used as an ID,
 //   whereas "str_id" denote a string that is only used as an ID and not normally displayed.
 pub fn pushID_Str(str_id: [:0]const u8) void {
-    return c.igPushID_Str(str_id);
+    return c.igPushID_Str(str_id.ptr);
 }
 pub fn pushID_Ptr(ptr_id: *const anyopaque) void {
     return c.igPushID_Ptr(ptr_id);
@@ -327,7 +327,7 @@ pub fn pushID_Int(int_id: c_int) void {
 }
 pub const popID = c.igPopID;
 pub fn getID_Str(str_id: [:0]const u8) c.ImGuiID {
-    return c.igGetID_Str(str_id);
+    return c.igGetID_Str(str_id.ptr);
 }
 pub fn getID_Ptr(ptr_id: *const anyopaque) c.ImGuiID {
     return c.igGetID_Ptr(ptr_id);
@@ -341,9 +341,14 @@ pub const text = c.igText;
 pub fn ztext(comptime fmt: []const u8, args: anytype) void {
     var buf = [_]u8{0} ** 128;
     var info = std.fmt.bufPrintZ(&buf, fmt, args) catch unreachable;
-    text(info);
+    text(info.ptr);
 }
 pub const textColored = c.igTextColored;
+pub fn ztextColored(col: c.ImVec4, comptime fmt: []const u8, args: anytype) void {
+    var buf = [_]u8{0} ** 128;
+    var info = std.fmt.bufPrintZ(&buf, fmt, args) catch unreachable;
+    textColored(col, info.ptr);
+}
 pub const textDisabled = c.igTextDisabled;
 pub const textWrapped = c.igTextWrapped;
 pub const labelText = c.igLabelText;
@@ -356,13 +361,13 @@ pub fn button(label: [:0]const u8, size: ?c.ImVec2) bool {
     return c.igButton(label.ptr, size orelse vec2_zero);
 }
 pub fn smallButton(label: [:0]const u8) bool {
-    return c.igSmallButton(label);
+    return c.igSmallButton(label.ptr);
 }
 pub fn invisibleButton(str_id: [:0]const u8, size: c.ImVec2, flags: ?c.ImGuiButtonFlags) bool {
-    return c.igInvisibleButton(str_id, size, flags orelse 0);
+    return c.igInvisibleButton(str_id.ptr, size, flags orelse 0);
 }
 pub fn arrowButton(str_id: [:0]const u8, dir: c.ImGuiDir) bool {
-    return c.igArrowButton(str_id, dir);
+    return c.igArrowButton(str_id.ptr, dir);
 }
 pub const ImageOption = struct {
     uv0: c.ImVec2 = vec2_zero,
@@ -503,10 +508,10 @@ pub const DragScalarOption = struct {
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn dragScalar(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, option: DragScalarOption) bool {
-    return c.igDragScalar(label.ptr, data_type, p_data, option.v_speed, option.p_min, option.p_max, option.format.ptr, option.flags);
+    return c.igDragScalar(label.ptr, data_type, p_data, option.v_speed, option.p_min, option.p_max, if (option.format) |fmt| fmt.ptr else null, option.flags);
 }
 pub fn dragScalarN(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, components: c_int, option: DragScalarOption) bool {
-    return c.igDragScalarN(label.ptr, data_type, p_data, components, option.v_speed, option.p_min, option.p_max, option.format.ptr, option.flags);
+    return c.igDragScalarN(label.ptr, data_type, p_data, components, option.v_speed, option.p_min, option.p_max, if (option.format) |fmt| fmt.ptr else null, option.flags);
 }
 
 // Widgets: Regular Sliders
@@ -561,31 +566,31 @@ pub const SliderScalarOption = struct {
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn sliderScalar(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, p_min: *const anyopaque, p_max: *const anyopaque, option: SliderScalarOption) bool {
-    return c.igSliderScalar(label.ptr, data_type, p_data, p_min, p_max, option.format.ptr, option.flags);
+    return c.igSliderScalar(label.ptr, data_type, p_data, p_min, p_max, if (option.format) |fmt| fmt.ptr else null, option.flags);
 }
 pub fn sliderScalarN(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, components: c_int, p_min: *const anyopaque, p_max: *const anyopaque, option: SliderScalarOption) bool {
-    return c.igSliderScalarN(label.ptr, data_type, p_data, components, p_min, p_max, option.format.ptr, option.flags);
+    return c.igSliderScalarN(label.ptr, data_type, p_data, components, p_min, p_max, if (option.format) |fmt| fmt.ptr else null, option.flags);
 }
 pub const VSliderFloatOption = struct {
     format: [:0]const u8 = "%.3f",
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn vSliderFloat(label: [:0]const u8, size: c.ImVec2, v: *f32, v_min: f32, v_max: f32, option: VSliderFloatOption) bool {
-    return c.igVSliderFloat(label.ptr, size, v, v_min, v_max, option.format.ptr, option.flags);
+    return c.igVSliderFloat(label.ptr, size, v, v_min, v_max, if (option.format) |fmt| fmt.ptr else null, option.flags);
 }
 pub const VSliderIntOption = struct {
     format: [:0]const u8 = "%d",
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn vSliderInt(label: [:0]const u8, size: c.ImVec2, v: *c_int, v_min: c_int, v_max: c_int, option: VSliderIntOption) bool {
-    return c.igVSliderInt(label.ptr, size, v, v_min, v_max, option.format.ptr, option.flags);
+    return c.igVSliderInt(label.ptr, size, v, v_min, v_max, if (option.format) |fmt| fmt.ptr else null, option.flags);
 }
 pub const VSliderScalarOption = struct {
     format: ?[:0]const u8 = null,
     flags: c.ImGuiSliderFlags = 0,
 };
 pub fn vSliderScalar(label: [:0]const u8, size: c.ImVec2, data_type: c.ImGuiDataType, p_data: *anyopaque, p_min: *const anyopaque, p_max: *const anyopaque, option: VSliderScalarOption) bool {
-    return c.igVSliderScalar(label.ptr, size, data_type, p_data, p_min, p_max, option.format.ptr, option.flags);
+    return c.igVSliderScalar(label.ptr, size, data_type, p_data, p_min, p_max, if (option.format) |fmt| fmt.ptr else null, option.flags);
 }
 
 // Widgets: Input with Keyboard
@@ -609,7 +614,7 @@ pub fn inputTextMultiline(label: [:0]const u8, buf: []u8, option: InputTextMulti
     return c.igInputTextMultiline(label.ptr, buf.ptr, buf.len, option.size, option.flags, option.callback, option.user_data);
 }
 pub fn inputTextWithHint(label: [:0]const u8, hint: [:0]const u8, buf: []u8, option: InputTextOption) bool {
-    return c.igInputTextWithHint(label.ptr, hint, buf.ptr, buf.len, option.flags, option.callback, option.user_data);
+    return c.igInputTextWithHint(label.ptr, hint.ptr, buf.ptr, buf.len, option.flags, option.callback, option.user_data);
 }
 pub const InputFloatOption = struct {
     step: f32 = 0,
@@ -625,7 +630,7 @@ pub const InputFloatsOption = struct {
     flags: c.ImGuiInputTextFlags = 0,
 };
 pub fn inputFloat2(label: [:0]const u8, v: *[2]f32, option: InputFloatsOption) bool {
-    return c.igInputFloat2(label.ptr, v, option.format.ptr, option.flags);
+    return c.igInputFloat2(label.ptr, v, if (option.format) |fmt| fmt.ptr else null, option.flags);
 }
 pub fn inputFloat3(label: [:0]const u8, v: *[3]f32, option: InputFloatsOption) bool {
     return c.igInputFloat3(label.ptr, v, option.format.ptr, option.flags);
@@ -657,7 +662,7 @@ pub const InputDoubleOption = struct {
     flags: c.ImGuiInputTextFlags = 0,
 };
 pub fn inputDouble(label: [:0]const u8, v: *f64, option: InputDoubleOption) bool {
-    return c.igInputDouble(label.ptr, v, option.step, option.step_fast, option.format.ptr, option.flags);
+    return c.igInputDouble(label.ptr, v, option.step, option.step_fast, if (option.format) |fmt| fmt.ptr else null, option.flags);
 }
 pub const InputScalarOption = struct {
     p_step: ?*const anyopaque = null,
@@ -666,10 +671,10 @@ pub const InputScalarOption = struct {
     flags: c.ImGuiInputTextFlags = 0,
 };
 pub fn inputScalar(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, option: InputScalarOption) bool {
-    return c.igInputScalar(label.ptr, data_type, p_data, option.p_step, option.p_step_fast, option.format.ptr, option.flags);
+    return c.igInputScalar(label.ptr, data_type, p_data, option.p_step, option.p_step_fast, if (option.format) |fmt| fmt.ptr else null, option.flags);
 }
 pub fn inputScalarN(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, components: c_int, option: InputScalarOption) bool {
-    return c.igInputScalarN(label.ptr, data_type, p_data, components, option.p_step, option.p_step_fast, option.format.ptr, option.flags);
+    return c.igInputScalarN(label.ptr, data_type, p_data, components, option.p_step, option.p_step_fast, if (option.format) |fmt| fmt.ptr else null, option.flags);
 }
 
 // Widgets: Color Editor/Picker (tip: the ColorEdit* functions have a little color square that can be left-clicked to open a picker, and right-clicked to open an option menu.)
@@ -692,7 +697,7 @@ pub const ColorButtonOption = struct {
     size: c.ImVec2 = vec2_zero,
 };
 pub fn colorButton(desc_id: [:0]const u8, col: c.ImVec4, option: ColorButtonOption) bool {
-    return c.igColorButton(desc_id, col, option.flags, option.size);
+    return c.igColorButton(desc_id.ptr, col, option.flags, option.size);
 }
 pub fn setColorEditOptions(flags: c.ImGuiColorEditFlags) void {
     return c.igSetColorEditOptions(flags);
@@ -701,7 +706,7 @@ pub fn setColorEditOptions(flags: c.ImGuiColorEditFlags) void {
 // Widgets: Trees
 // - TreeNode functions return true when the node is open, in which case you need to also call TreePop() when you are finished displaying the tree node contents.
 pub fn treeNode_Str(label: [:0]const u8) bool {
-    return c.igTreeNode_Str(label);
+    return c.igTreeNode_Str(label.ptr);
 }
 pub const treeNode_StrStr = c.igTreeNode_StrStr;
 pub const treeNode_Ptr = c.igTreeNode_Ptr;
@@ -709,7 +714,7 @@ pub const treeNodeEx_Str = c.igTreeNodeEx_Str;
 pub const treeNodeEx_StrStr = c.igTreeNodeEx_StrStr;
 pub const treeNodeEx_Ptr = c.igTreeNodeEx_Ptr;
 pub fn treePush_Str(str_id: [:0]const u8) void {
-    return c.igTreePush_Str(str_id);
+    return c.igTreePush_Str(str_id.ptr);
 }
 pub fn treePush_Ptr(ptr_id: *const anyopaque) void {
     return c.igTreePush_Ptr(ptr_id);
@@ -773,7 +778,7 @@ var PlotOption = struct {
     stride: c_int = @sizeOf(f32),
 };
 pub fn plotLines_FloatPtr(label: [:0]const u8, values: []const f32, option: PlotOption) void {
-    return c.igPlotLines_FloatPtr(label.ptr, values.ptr, @intCast(c_int, values.len), option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size, option.stride);
+    return c.igPlotLines_FloatPtr(label.ptr, values.ptr, @intCast(c_int, values.len), option.values_offset, if (option.overlay_text) |txt| txt.ptr else null, option.scale_min, option.scale_max, option.graph_size, option.stride);
 }
 pub fn plotLines_FnFloatPtr(label: [:0]const u8, values_getter: fn (?*anyopaque, c_int) callconv(.C) f32, data: ?*anyopaque, values_count: c_int, option: PlotOption) void {
     return c.igPlotLines_FnFloatPtr(label.ptr, values_getter, data, values_count, option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size);
@@ -797,7 +802,7 @@ pub fn value_Uint(prefix: [*c]const u8, v: c_uint) void {
     return c.igValue_Uint(prefix, v);
 }
 pub fn value_Float(prefix: [*c]const u8, v: f32, float_format: ?[:0]const u8) void {
-    return c.igValue_Float(prefix, v, float_format);
+    return c.igValue_Float(prefix, v, if (float_format) |fmt| fmt.ptr else null);
 }
 
 // Widgets: Menus
@@ -844,10 +849,10 @@ pub const setTooltip = c.igSetTooltip;
 //  - BeginPopup(): query popup state, if open start appending into the window. Call EndPopup() afterwards. ImGuiWindowFlags are forwarded to the window.
 //  - BeginPopupModal(): block every interactions behind the window, cannot be closed by user, add a dimming background, has a title bar.
 pub fn beginPopup(str_id: [:0]const u8, flags: ?c.ImGuiWindowFlags) bool {
-    return c.igBeginPopup(str_id, flags orelse 0);
+    return c.igBeginPopup(str_id.ptr, flags orelse 0);
 }
 pub fn beginPopupModal(name: [:0]const u8, p_open: ?*bool, flags: ?c.ImGuiWindowFlags) bool {
-    return c.igBeginPopupModal(name, p_open, flags orelse 0);
+    return c.igBeginPopupModal(name.ptr, p_open, flags orelse 0);
 }
 pub const endPopup = c.igEndPopup;
 
@@ -859,13 +864,13 @@ pub const endPopup = c.igEndPopup;
 //  - Use ImGuiPopupFlags_NoOpenOverExistingPopup to avoid opening a popup if there's already one at the same level. This is equivalent to e.g. testing for !IsAnyPopupOpen() prior to OpenPopup().
 //  - Use IsWindowAppearing() after BeginPopup() to tell if a window just opened.
 pub fn openPopup_Str(str_id: [:0]const u8, popup_flags: ?c.ImGuiPopupFlags) void {
-    return c.igOpenPopup_Str(str_id, popup_flags orelse 0);
+    return c.igOpenPopup_Str(str_id.ptr, popup_flags orelse 0);
 }
 pub fn openPopup_ID(id: c.ImGuiID, popup_flags: ?c.ImGuiPopupFlags) void {
     return c.igOpenPopup_ID(id, popup_flags orelse 0);
 }
 pub fn openPopupOnItemClick(str_id: ?[:0]const u8, popup_flags: ?c.ImGuiPopupFlags) void {
-    return c.igOpenPopupOnItemClick(str_id, popup_flags orelse 1);
+    return c.igOpenPopupOnItemClick(if (str_id) |id| id.ptr else null, popup_flags orelse 1);
 }
 pub const closeCurrentPopup = c.igCloseCurrentPopup;
 
@@ -875,13 +880,13 @@ pub const closeCurrentPopup = c.igCloseCurrentPopup;
 //  - IMPORTANT: Notice that BeginPopupContextXXX takes ImGuiPopupFlags just like OpenPopup() and unlike BeginPopup(). For full consistency, we may add ImGuiWindowFlags to the BeginPopupContextXXX functions in the future.
 //  - IMPORTANT: we exceptionally default their flags to 1 (== ImGuiPopupFlags_MouseButtonRight) for backward compatibility with older API taking 'int mouse_button = 1' parameter, so if you add other flags remember to re-add the ImGuiPopupFlags_MouseButtonRight.
 pub fn beginPopupContextItem(str_id: ?[:0]const u8, popup_flags: ?c.ImGuiPopupFlags) bool {
-    return c.igBeginPopupContextItem(str_id, popup_flags orelse 0);
+    return c.igBeginPopupContextItem(if (str_id) |id| id.ptr else null, popup_flags orelse 0);
 }
 pub fn beginPopupContextWindow(str_id: ?[:0]const u8, popup_flags: ?c.ImGuiPopupFlags) bool {
-    return c.igBeginPopupContextWindow(str_id, popup_flags orelse 0);
+    return c.igBeginPopupContextWindow(if (str_id) |id| id.ptr else null, popup_flags orelse 0);
 }
 pub fn beginPopupContextVoid(str_id: ?[:0]const u8, popup_flags: ?c.ImGuiPopupFlags) bool {
-    return c.igBeginPopupContextVoid(str_id, popup_flags orelse 0);
+    return c.igBeginPopupContextVoid(if (str_id) |id| id.ptr else null, popup_flags orelse 0);
 }
 
 // Popups: query functions
@@ -889,7 +894,7 @@ pub fn beginPopupContextVoid(str_id: ?[:0]const u8, popup_flags: ?c.ImGuiPopupFl
 //  - IsPopupOpen() with ImGuiPopupFlags_AnyPopupId: return true if any popup is open at the current BeginPopup() level of the popup stack.
 //  - IsPopupOpen() with ImGuiPopupFlags_AnyPopupId + ImGuiPopupFlags_AnyPopupLevel: return true if any popup is open.
 pub fn isPopupOpen_Str(str_id: [:0]const u8, flags: ?c.ImGuiPopupFlags) bool {
-    return c.igIsPopupOpen_Str(str_id, flags orelse 0);
+    return c.igIsPopupOpen_Str(str_id.ptr, flags orelse 0);
 }
 
 // Tables
@@ -955,7 +960,7 @@ pub fn tableSetupScrollFreeze(cols: c_int, rows: c_int) void {
 }
 pub const tableHeadersRow = c.igTableHeadersRow;
 pub fn tableHeader(label: [:0]const u8) void {
-    return c.igTableHeader(label);
+    return c.igTableHeader(label.ptr);
 }
 
 // Tables: Sorting
@@ -987,7 +992,7 @@ pub fn tableSetBgColor(target: c.ImGuiTableBgTarget, color: c.ImU32, column_n: ?
 // Legacy Columns API (prefer using Tables!)
 // - You can also use SameLine(pos_x) to mimic simplified columns.
 pub fn columns(count: c_int, id: ?[:0]const u8, border: ?bool) void {
-    return c.igColumns(count, id, border orelse true);
+    return c.igColumns(count, if (id) |_id| _id.ptr else null, border orelse true);
 }
 pub const nextColumn = c.igNextColumn;
 pub const getColumnIndex = c.igGetColumnIndex;
@@ -1007,7 +1012,7 @@ pub const getColumnsCount = c.igGetColumnsCount;
 
 // Tab Bars, Tabs
 pub fn beginTabBar(str_id: [:0]const u8, flags: ?c.ImGuiTabBarFlags) bool {
-    return c.igBeginTabBar(str_id, flags orelse 0);
+    return c.igBeginTabBar(str_id.ptr, flags orelse 0);
 }
 pub const endTabBar = c.igEndTabBar;
 pub fn beginTabItem(label: [:0]const u8, p_open: ?*bool, flags: ?c.ImGuiTabItemFlags) bool {
@@ -1018,7 +1023,7 @@ pub fn tabItemButton(label: [:0]const u8, flags: ?c.ImGuiTabItemFlags) bool {
     return c.igTabItemButton(label.ptr, flags orelse 0);
 }
 pub fn setTabItemClosed(tab_or_docked_window_label: [:0]const u8) void {
-    return c.igSetTabItemClosed(tab_or_docked_window_label);
+    return c.igSetTabItemClosed(tab_or_docked_window_label.ptr);
 }
 
 // Logging/Capture
@@ -1027,7 +1032,7 @@ pub fn logToTTY(auto_open_depth: ?c_int) void {
     return c.igLogToTTY(auto_open_depth orelse -1);
 }
 pub fn logToFile(auto_open_depth: ?c_int, filename: ?[:0]const u8) void {
-    return c.igLogToFile(auto_open_depth orelse -1, filename);
+    return c.igLogToFile(auto_open_depth orelse -1, if (filename) |f| f.ptr else null);
 }
 pub fn logToClipboard(auto_open_depth: ?c_int) void {
     return c.igLogToClipboard(auto_open_depth orelse -1);
@@ -1045,12 +1050,12 @@ pub fn beginDragDropSource(flags: ?c.ImGuiDragDropFlags) bool {
     return c.igBeginDragDropSource(flags orelse 0);
 }
 pub fn setDragDropPayload(@"type": [:0]const u8, data: *const anyopaque, sz: usize, cond: ?c.ImGuiCond) bool {
-    return c.igSetDragDropPayload(@"type", data, sz, cond orelse 0);
+    return c.igSetDragDropPayload(@"type".ptr, data, sz, cond orelse 0);
 }
 pub const endDragDropSource = c.igEndDragDropSource;
 pub const beginDragDropTarget = c.igBeginDragDropTarget;
 pub fn acceptDragDropPayload(@"type": [:0]const u8, flags: ?c.ImGuiDragDropFlags) [*c]const c.ImGuiPayload {
-    return c.igAcceptDragDropPayload(@"type", flags orelse 0);
+    return c.igAcceptDragDropPayload(@"type".ptr, flags orelse 0);
 }
 pub const endDragDropTarget = c.igEndDragDropTarget;
 pub const getDragDropPayload = c.igGetDragDropPayload;
@@ -1242,7 +1247,7 @@ pub fn captureMouseFromApp(want_capture_mouse_value: ?bool) void {
 // - Also see the LogToClipboard() function to capture GUI into clipboard, or easily output text data to the clipboard.
 pub const getClipboardText = c.igGetClipboardText;
 pub fn setClipboardText(_text: [:0]const u8) void {
-    return c.igSetClipboardText(_text);
+    return c.igSetClipboardText(_text.ptr);
 }
 
 // Settings/.Ini Utilities
@@ -1250,13 +1255,13 @@ pub fn setClipboardText(_text: [:0]const u8) void {
 // - Set io.IniFilename to NULL to load/save manually. Read io.WantSaveIniSettings description about handling .ini saving manually.
 // - Important: default value "imgui.ini" is relative to current working dir! Most apps will want to lock this to an absolute path (e.g. same path as executables).
 pub fn loadIniSettingsFromDisk(ini_filename: [:0]const u8) void {
-    return c.igLoadIniSettingsFromDisk(ini_filename);
+    return c.igLoadIniSettingsFromDisk(ini_filename.ptr);
 }
 pub fn loadIniSettingsFromMemory(ini_data: []const u8) void {
     return c.igLoadIniSettingsFromMemory(ini_data.ptr, ini_data.len);
 }
 pub fn saveIniSettingsToDisk(ini_filename: [:0]const u8) void {
-    return c.igSaveIniSettingsToDisk(ini_filename);
+    return c.igSaveIniSettingsToDisk(ini_filename.ptr);
 }
 pub fn saveIniSettingsToMemory(out_ini_size: ?*usize) [*c]const u8 {
     return c.igSaveIniSettingsToMemory(out_ini_size);
@@ -1265,7 +1270,7 @@ pub fn saveIniSettingsToMemory(out_ini_size: ?*usize) [*c]const u8 {
 // Debug Utilities
 // - This is used by the IMGUI_CHECKVERSION() macro.
 pub fn debugCheckVersionAndDataLayout(version_str: [:0]const u8, sz_io: usize, sz_style: usize, sz_vec2: usize, sz_vec4: usize, sz_drawvert: usize, sz_drawidx: usize) bool {
-    return c.igDebugCheckVersionAndDataLayout(version_str, sz_io, sz_style, sz_vec2, sz_vec4, sz_drawvert, sz_drawidx);
+    return c.igDebugCheckVersionAndDataLayout(version_str.ptr, sz_io, sz_style, sz_vec2, sz_vec4, sz_drawvert, sz_drawidx);
 }
 
 // Memory Allocators
@@ -1813,16 +1818,16 @@ pub const helpers = struct {
     }
     pub const formatString = c.igImFormatString;
     pub fn parseFormatFindStart(format: [:0]const u8) [*c]const u8 {
-        return c.igImParseFormatFindStart(format);
+        return c.igImParseFormatFindStart(format.ptr);
     }
     pub fn parseFormatFindEnd(format: [:0]const u8) [*c]const u8 {
-        return c.igImParseFormatFindEnd(format);
+        return c.igImParseFormatFindEnd(format.ptr);
     }
     pub fn parseFormatTrimDecorations(format: [:0]const u8, buf: [*c]u8, buf_size: usize) [*c]const u8 {
-        return c.igImParseFormatTrimDecorations(format, buf, buf_size);
+        return c.igImParseFormatTrimDecorations(format.ptr, buf, buf_size);
     }
     pub fn parseFormatPrecision(format: [:0]const u8, default_value: c_int) c_int {
-        return c.igImParseFormatPrecision(format, default_value);
+        return c.igImParseFormatPrecision(format.ptr, default_value);
     }
     pub fn charIsBlankA(_c: u8) bool {
         return c.igImCharIsBlankA(_c);

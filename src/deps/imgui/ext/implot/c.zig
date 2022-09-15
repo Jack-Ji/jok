@@ -1378,7 +1378,7 @@ pub extern fn ImPlot_FormatDate(t: ImPlotTime, buffer: [*c]u8, size: c_int, fmt:
 pub extern fn ImPlot_FormatDateTime(t: ImPlotTime, buffer: [*c]u8, size: c_int, fmt: ImPlotDateTimeFmt) c_int;
 pub extern fn ImPlot_ShowDatePicker(id: [*c]const u8, level: [*c]c_int, t: [*c]ImPlotTime, t1: [*c]const ImPlotTime, t2: [*c]const ImPlotTime) bool;
 pub extern fn ImPlot_ShowTimePicker(id: [*c]const u8, t: [*c]ImPlotTime) bool;
-pub const ImPlotPoint_getter = ?fn (?*anyopaque, c_int, [*c]ImPlotPoint) callconv(.C) ?*anyopaque;
+pub const ImPlotPoint_getter = ?*const fn (?*anyopaque, c_int, [*c]ImPlotPoint) callconv(.C) ?*anyopaque;
 pub extern fn ImPlot_PlotLineG(label_id: [*c]const u8, getter: ImPlotPoint_getter, data: ?*anyopaque, count: c_int) void;
 pub extern fn ImPlot_PlotScatterG(label_id: [*c]const u8, getter: ImPlotPoint_getter, data: ?*anyopaque, count: c_int) void;
 pub extern fn ImPlot_PlotShadedG(label_id: [*c]const u8, getter1: ImPlotPoint_getter, data1: ?*anyopaque, getter2: ImPlotPoint_getter, data2: ?*anyopaque, count: c_int) void;

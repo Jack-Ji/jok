@@ -313,14 +313,14 @@ pub const ItemGroup = struct {
     pub fn getItemCount(self: *c.ImPlotItemGroup) c_int {
         return c.ImPlotItemGroup_GetItemCount(self);
     }
-    pub fn getItemID(self: *c.ImPlotItemGroup, label_id: [*c]const u8) imgui.ImGuiID {
-        return c.ImPlotItemGroup_GetItemID(self, label_id);
+    pub fn getItemID(self: *c.ImPlotItemGroup, label_id: [:0]const u8) imgui.ImGuiID {
+        return c.ImPlotItemGroup_GetItemID(self, label_id.ptr);
     }
     pub fn getItem_ID(self: *c.ImPlotItemGroup, id: imgui.ImGuiID) *c.ImPlotItem {
         return c.ImPlotItemGroup_GetItem_ID(self, id);
     }
-    pub fn getItem_Str(self: *c.ImPlotItemGroup, label_id: [*c]const u8) *c.ImPlotItem {
-        return c.ImPlotItemGroup_GetItem_Str(self, label_id);
+    pub fn getItem_Str(self: *c.ImPlotItemGroup, label_id: [:0]const u8) *c.ImPlotItem {
+        return c.ImPlotItemGroup_GetItem_Str(self, label_id.ptr);
     }
     pub fn getOrAddItem(self: *c.ImPlotItemGroup, id: imgui.ImGuiID) *c.ImPlotItem {
         return c.ImPlotItemGroup_GetOrAddItem(self, id);
@@ -494,7 +494,19 @@ pub const BeginPlotOption = struct {
     y3_label: [*c]const u8 = null,
 };
 pub fn beginPlot(title_id: [:0]const u8, option: BeginPlotOption) bool {
-    return c.ImPlot_BeginPlot(title_id, option.x_label, option.y_label, option.size, option.flags, option.x_flags, option.y_flags, option.y2_flags, option.y3_flags, option.y2_label, option.y3_label);
+    return c.ImPlot_BeginPlot(
+        title_id.ptr,
+        option.x_label,
+        option.y_label,
+        option.size,
+        option.flags,
+        option.x_flags,
+        option.y_flags,
+        option.y2_flags,
+        option.y3_flags,
+        option.y2_label,
+        option.y3_label,
+    );
 }
 
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
@@ -557,7 +569,7 @@ pub const BeginSubplotsOption = struct {
     col_ratios: [*c]f32 = null,
 };
 pub fn beginSubplots(title_id: [:0]const u8, rows: c_int, cols: c_int, size: imgui.ImVec2, option: BeginSubplotsOption) bool {
-    return c.ImPlot_BeginSubplots(title_id, rows, cols, size, option.flags, option.row_ratios, option.col_ratios);
+    return c.ImPlot_BeginSubplots(title_id.ptr, rows, cols, size, option.flags, option.row_ratios, option.col_ratios);
 }
 
 // Only call EndSubplots() if BeginSubplots() returns true! Typically called at the end
@@ -636,7 +648,7 @@ pub fn plotLine_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const 
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         values,
         @intCast(c_int, count),
         option.xscale,
@@ -660,7 +672,7 @@ pub fn plotLine_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         @intCast(c_int, count),
@@ -669,7 +681,7 @@ pub fn plotLine_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T
     );
 }
 pub fn plotLineG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*anyopaque, count: c_int) void {
-    return c.ImPlot_PlotLineG(label_id, getter, data, count);
+    return c.ImPlot_PlotLineG(label_id.ptr, getter, data, count);
 }
 
 // Plots a standard 2D scatter plot. Default marker is ImPlotMarker_Circle.
@@ -694,7 +706,7 @@ pub fn plotScatter_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]con
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         values,
         @intCast(c_int, count),
         option.xscale,
@@ -718,7 +730,7 @@ pub fn plotScatter_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]cons
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         @intCast(c_int, count),
@@ -727,7 +739,7 @@ pub fn plotScatter_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]cons
     );
 }
 pub fn plotScatterG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*anyopaque, count: c_int) void {
-    return c.ImPlot_PlotScatterG(label_id, getter, data, count);
+    return c.ImPlot_PlotScatterG(label_id.ptr, getter, data, count);
 }
 
 // Plots a a stairstep graph. The y value is continued constantly from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i].
@@ -752,7 +764,7 @@ pub fn plotStairs_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]cons
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         values,
         @intCast(c_int, count),
         option.xscale,
@@ -776,7 +788,7 @@ pub fn plotStairs_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         @intCast(c_int, count),
@@ -785,7 +797,7 @@ pub fn plotStairs_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const
     );
 }
 pub fn plotStairsG(label_id: [:0]const u8, getter: ?fn (?*anyopaque, c_int) callconv(.C) c.ImPlotPoint, data: ?*anyopaque, count: c_int) void {
-    return c.ImPlot_PlotStairsG(label_id, getter, data, count);
+    return c.ImPlot_PlotStairsG(label_id.ptr, getter, data, count);
 }
 
 // Plots a shaded (filled) region between two lines, or a line and a horizontal reference. Set y_ref to +/-INFINITY for infinite fill extents.
@@ -811,7 +823,7 @@ pub fn plotShaded_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]cons
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         values,
         @intCast(c_int, count),
         option.y_ref,
@@ -836,7 +848,7 @@ pub fn plotShaded_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         @intCast(c_int, count),
@@ -860,7 +872,7 @@ pub fn plotShaded_PtrPtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]co
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys1,
         ys2,
@@ -870,7 +882,7 @@ pub fn plotShaded_PtrPtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]co
     );
 }
 pub fn plotShadedG(label_id: [:0]const u8, getter1: c.ImPlotPoint_getter, data1: ?*anyopaque, getter2: c.ImPlotPoint_getter, data2: ?*anyopaque, count: c_int) void {
-    return c.ImPlot_PlotShadedG(label_id, getter1, data1, getter2, data2, count);
+    return c.ImPlot_PlotShadedG(label_id.ptr, getter1, data1, getter2, data2, count);
 }
 
 // Plots a vertical bar graph. #width and #shift are in X units.
@@ -895,7 +907,7 @@ pub fn plotBars_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const 
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         values,
         @intCast(c_int, count),
         option.width,
@@ -919,7 +931,7 @@ pub fn plotBars_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         @intCast(c_int, count),
@@ -929,7 +941,7 @@ pub fn plotBars_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T
     );
 }
 pub fn plotBarsG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*anyopaque, count: c_int, width: f64) void {
-    return c.ImPlot_PlotBarsG(label_id, getter, data, count, width);
+    return c.ImPlot_PlotBarsG(label_id.ptr, getter, data, count, width);
 }
 
 // Plots a horizontal bar graph. #height and #shift are in Y units.
@@ -954,7 +966,7 @@ pub fn plotBarsH_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         values,
         @intCast(c_int, count),
         option.height,
@@ -978,7 +990,7 @@ pub fn plotBarsH_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const 
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         @intCast(c_int, count),
@@ -988,7 +1000,7 @@ pub fn plotBarsH_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const 
     );
 }
 pub fn plotBarsHG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*anyopaque, count: c_int, height: f64) void {
-    return c.ImPlot_PlotBarsHG(label_id, getter, data, count, height);
+    return c.ImPlot_PlotBarsHG(label_id.ptr, getter, data, count, height);
 }
 
 // Plots vertical error bar. The label_id should be the same as the label_id of the associated line or bar plot.
@@ -1011,7 +1023,7 @@ pub fn plotErrorBars_PtrPtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         err,
@@ -1035,7 +1047,7 @@ pub fn plotErrorBars_PtrPtrPtrPtr(label_id: [:0]const u8, comptime T: type, xs: 
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         neg,
@@ -1066,7 +1078,7 @@ pub fn plotErrorBarsH_PtrPtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         err,
@@ -1090,7 +1102,7 @@ pub fn plotErrorBarsH_PtrPtrPtrPtr(label_id: [:0]const u8, comptime T: type, xs:
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         neg,
@@ -1124,7 +1136,7 @@ pub fn plotStems_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         values,
         @intCast(c_int, count),
         option.y_ref,
@@ -1149,7 +1161,7 @@ pub fn plotStems_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const 
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         @intCast(c_int, count),
@@ -1179,7 +1191,7 @@ pub fn plotVLines_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]cons
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         values,
         @intCast(c_int, count),
         option.y_ref,
@@ -1204,7 +1216,7 @@ pub fn plotHLines_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]cons
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         values,
         @intCast(c_int, count),
         option.y_ref,
@@ -1236,7 +1248,7 @@ pub fn plotPieChart(label_id: [:0]const u8, comptime T: type, values: [*c]const 
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         values,
         @intCast(c_int, count),
         x,
@@ -1271,7 +1283,7 @@ pub fn plotHeatmap(label_id: [:0]const u8, comptime T: type, values: [*]const T,
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         values,
         @intCast(c_int, rows),
         @intCast(c_int, cols),
@@ -1309,7 +1321,7 @@ pub fn plotHistogram(label_id: [:0]const u8, comptime T: type, values: [*c]const
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         values,
         @intCast(c_int, count),
         option.bins,
@@ -1346,7 +1358,7 @@ pub fn plotHistogram2D(label_id: [:0]const u8, comptime T: type, xs: [*c]const T
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         @intCast(c_int, count),
@@ -1378,7 +1390,7 @@ pub fn plotDigital(label_id: [:0]const u8, comptime T: type, xs: [*c]const T, ys
         else => unreachable,
     };
     plotFn(
-        label_id,
+        label_id.ptr,
         xs,
         ys,
         @intCast(c_int, count),
@@ -1386,8 +1398,8 @@ pub fn plotDigital(label_id: [:0]const u8, comptime T: type, xs: [*c]const T, ys
         option.stride orelse @sizeOf(T) * 2,
     );
 }
-pub fn plotDigitalG(label_id: [*c]const u8, getter: c.ImPlotPoint_getter, data: ?*anyopaque, count: c_int) void {
-    return c.ImPlot_PlotDigitalG(label_id, getter, data, count);
+pub fn plotDigitalG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*anyopaque, count: c_int) void {
+    return c.ImPlot_PlotDigitalG(label_id.ptr, getter, data, count);
 }
 
 // Plots an axis-aligned image. #bounds_min/bounds_max are in plot coordinates (y-up) and #uv0/uv1 are in texture coordinates (y-down).
@@ -1398,7 +1410,7 @@ pub const PlotImageOption = struct {
 };
 pub fn plotImage(label_id: [:0]const u8, user_texture_id: imgui.ImTextureID, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint, option: PlotImageOption) void {
     return c.ImPlot_PlotImage(
-        label_id,
+        label_id.ptr,
         user_texture_id,
         bounds_min,
         bounds_max,
@@ -1419,7 +1431,7 @@ pub fn plotText(text: [:0]const u8, x: f64, y: f64, option: PlotTextOption) void
 
 // Plots a dummy item (i.e. adds a legend entry colored by ImPlotCol_Line)
 pub fn plotDummy(label_id: [:0]const u8) void {
-    return c.ImPlot_PlotDummy(label_id);
+    return c.ImPlot_PlotDummy(label_id.ptr);
 }
 
 //-----------------------------------------------------------------------------
@@ -1669,12 +1681,12 @@ pub fn setMousePosLocation(location: c.ImPlotLocation) void {
 }
 // Returns true if a plot item legend entry is hovered.
 pub fn isLegendEntryHovered(label_id: [:0]const u8) bool {
-    return c.ImPlot_IsLegendEntryHovered(label_id);
+    return c.ImPlot_IsLegendEntryHovered(label_id.ptr);
 }
 
 // Begin a popup for a legend entry.
 pub fn beginLegendPopup(label_id: [:0]const u8, mouse_button: ?imgui.ImGuiMouseButton) bool {
-    return c.ImPlot_BeginLegendPopup(label_id, mouse_button orelse 1);
+    return c.ImPlot_BeginLegendPopup(label_id.ptr, mouse_button orelse 1);
 }
 // End a popup for a legend entry.
 pub fn endLegendPopup() void {
@@ -1734,7 +1746,7 @@ pub fn beginDragDropSourceY(option: BeginDragDropSourceYOption) bool {
 }
 // Turns an item in the current plot's legend into drag and drop source. Don't forget to call EndDragDropSource!
 pub fn beginDragDropSourceItem(label_id: [:0]const u8, flags: ?imgui.ImGuiDragDropFlags) bool {
-    return c.ImPlot_BeginDragDropSourceItem(label_id, flags orelse 0);
+    return c.ImPlot_BeginDragDropSourceItem(label_id.ptr, flags orelse 0);
 }
 // Ends a drag and drop source (currently just an alias for ImGui::EndDragDropSource).
 pub fn endDragDropSource() void {
@@ -2366,17 +2378,17 @@ pub const internal = struct {
     pub fn showSubplotsContextMenu(subplot: *c.ImPlotSubplot) void {
         return c.ImPlot_ShowSubplotsContextMenu(subplot);
     }
-    pub fn beginItem(label_id: [*c]const u8, recolor_from: c.ImPlotCol) bool {
-        return c.ImPlot_BeginItem(label_id, recolor_from);
+    pub fn beginItem(label_id: [:0]const u8, recolor_from: c.ImPlotCol) bool {
+        return c.ImPlot_BeginItem(label_id.ptr, recolor_from);
     }
     pub fn endItem() void {
         return c.ImPlot_EndItem();
     }
-    pub fn registerOrGetItem(label_id: [*c]const u8, just_created: [*c]bool) *c.ImPlotItem {
-        return c.ImPlot_RegisterOrGetItem(label_id, just_created);
+    pub fn registerOrGetItem(label_id: [:0]const u8, just_created: [*c]bool) *c.ImPlotItem {
+        return c.ImPlot_RegisterOrGetItem(label_id.ptr, just_created);
     }
-    pub fn getItem(label_id: [*c]const u8) *c.ImPlotItem {
-        return c.ImPlot_GetItem(label_id);
+    pub fn getItem(label_id: [:0]const u8) *c.ImPlotItem {
+        return c.ImPlot_GetItem(label_id.ptr);
     }
     pub fn getCurrentItem() *c.ImPlotItem {
         return c.ImPlot_GetCurrentItem();
