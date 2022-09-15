@@ -20,11 +20,6 @@ pub fn buildTests(
     target: std.zig.CrossTarget,
 ) *std.build.LibExeObjStep {
     const tests = b.addTest(thisDir() ++ "/src/zbullet.zig");
-    const zmath = std.build.Pkg{
-        .name = "zmath",
-        .source = .{ .path = thisDir() ++ "/../zmath/src/zmath.zig" },
-    };
-    tests.addPackage(zmath);
     tests.setBuildMode(build_mode);
     tests.setTarget(target);
     link(tests);
@@ -38,8 +33,8 @@ fn buildLibrary(exe: *std.build.LibExeObjStep) *std.build.LibExeObjStep {
     lib.setTarget(exe.target);
     lib.addIncludeDir(thisDir() ++ "/libs/cbullet");
     lib.addIncludeDir(thisDir() ++ "/libs/bullet");
-    lib.linkSystemLibrary("c");
-    lib.linkSystemLibrary("c++");
+    lib.linkSystemLibraryName("c");
+    lib.linkSystemLibraryName("c++");
 
     // TODO: Use the old damping method for now otherwise there is a hang in powf().
     const flags = &.{
