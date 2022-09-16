@@ -18,6 +18,8 @@ var texcoords = [_][2]f32{
     .{ 0, 0 },
     .{ 1, 0 },
 };
+var skybox_textures: [6]sdl.Texture = undefined;
+var skybox_rd: gfx.SkyboxRenderer = undefined;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -50,6 +52,45 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         .static,
         false,
     );
+
+    skybox_textures[0] = try jok.gfx.utils.createTextureFromFile(
+        ctx.renderer,
+        "assets/images/skybox/right.jpg",
+        .static,
+        true,
+    );
+    skybox_textures[1] = try jok.gfx.utils.createTextureFromFile(
+        ctx.renderer,
+        "assets/images/skybox/left.jpg",
+        .static,
+        true,
+    );
+    skybox_textures[2] = try jok.gfx.utils.createTextureFromFile(
+        ctx.renderer,
+        "assets/images/skybox/top.jpg",
+        .static,
+        true,
+    );
+    skybox_textures[3] = try jok.gfx.utils.createTextureFromFile(
+        ctx.renderer,
+        "assets/images/skybox/bottom.jpg",
+        .static,
+        true,
+    );
+    skybox_textures[4] = try jok.gfx.utils.createTextureFromFile(
+        ctx.renderer,
+        "assets/images/skybox/front.jpg",
+        .static,
+        true,
+    );
+    skybox_textures[5] = try jok.gfx.utils.createTextureFromFile(
+        ctx.renderer,
+        "assets/images/skybox/back.jpg",
+        .static,
+        true,
+    );
+    skybox_rd = gfx.SkyboxRenderer.init(ctx.allocator, .{});
+
     try primitive.init(ctx, null);
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
@@ -96,6 +137,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     }
 
     try ctx.renderer.clear();
+
+    try skybox_rd.render(ctx.renderer, camera, skybox_textures, null);
 
     primitive.clear();
     try primitive.addShape(
@@ -150,5 +193,5 @@ pub fn quit(ctx: *jok.Context) void {
 
     cube.deinit();
     primitive.deinit();
+    skybox_rd.deinit();
 }
-

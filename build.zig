@@ -43,7 +43,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "font_demo", .opt = .{} },
         .{ .name = "audio_demo", .opt = .{ .link_zaudio = true } },
         .{ .name = "audio_synthesize_demo", .opt = .{} },
-        .{ .name = "basic_3d", .opt = .{} },
+        .{ .name = "skybox", .opt = .{} },
         .{ .name = "benchmark_3d", .opt = .{} },
         .{ .name = "particle_life", .opt = .{ .link_imgui = true, .link_nfd = true } },
     };
