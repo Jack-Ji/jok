@@ -1,6 +1,7 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
+const imgui = jok.deps.imgui;
 const gfx = jok.gfx.@"3d";
 const font = jok.gfx.@"2d".font;
 const primitive = gfx.primitive;
@@ -20,9 +21,12 @@ var texcoords = [_][2]f32{
 };
 var skybox_textures: [6]sdl.Texture = undefined;
 var skybox_rd: gfx.SkyboxRenderer = undefined;
+var skybox_tint_color: sdl.Color = sdl.Color.white;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
+
+    try imgui.init(ctx);
 
     camera = gfx.Camera.fromPositionAndTarget(
         .{
@@ -138,7 +142,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.clear();
 
-    try skybox_rd.render(ctx.renderer, camera, skybox_textures, null);
+    try skybox_rd.render(ctx.renderer, camera, skybox_textures, skybox_tint_color);
 
     primitive.clear();
     try primitive.addShape(
@@ -185,6 +189,22 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             camera.dir[0],camera.dir[1],camera.dir[2],
         },
     );
+
+    imgui.beginFrame();
+    defer imgui.endFrame();
+    if (imgui.begin("Tint Color", null, null)) {
+        var cs: [3]f32 = .{
+            @intToFloat(f32, skybox_tint_color.r) / 255, 
+            @intToFloat(f32, skybox_tint_color.g) / 255, 
+            @intToFloat(f32, skybox_tint_color.b) / 255, 
+        };
+        if (imgui.colorEdit3("Tint Color", &cs, null)) {
+            skybox_tint_color.r = @floatToInt(u8, cs[0] * 255);
+            skybox_tint_color.g = @floatToInt(u8, cs[1] * 255);
+            skybox_tint_color.b = @floatToInt(u8, cs[2] * 255);
+        }
+    }
+    imgui.end();
 }
 
 pub fn quit(ctx: *jok.Context) void {
@@ -194,4 +214,5 @@ pub fn quit(ctx: *jok.Context) void {
     cube.deinit();
     primitive.deinit();
     skybox_rd.deinit();
+    imgui.deinit();
 }
