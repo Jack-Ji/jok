@@ -92,7 +92,7 @@ const Point = struct {
     color: sdl.Color = sdl.Color.black,
 
     fn draw(p: Point) !void {
-        try primitive.drawCircle(
+        try primitive.addCircle(
             .{ .x = p.x, .y = p.y },
             3,
             .{ .common = .{ .color = p.color } },
@@ -437,8 +437,6 @@ fn renderGui(ctx: *jok.Context) !void {
 }
 
 fn renderSimulation(ctx: *jok.Context) !void {
-    _ = ctx;
-
     // Simulation step forward
     if (number_w > 0) {
         interaction(white.?, green.?, power_wg, v_wg);
@@ -470,20 +468,20 @@ fn renderSimulation(ctx: *jok.Context) !void {
     if (number_r > 0) try drawPoints(red.?);
     if (number_g > 0) try drawPoints(green.?);
     if (number_b > 0) try drawPoints(blue.?);
-    primitive.flush(.{}) catch unreachable;
+    primitive.render(ctx.renderer, .{}) catch unreachable;
 
     // Draw model
     if (show_model) {
         primitive.clear();
-        defer primitive.flush(.{}) catch unreachable;
+        defer primitive.render(ctx.renderer, .{}) catch unreachable;
 
-        try primitive.drawCircle(
+        try primitive.addCircle(
             .{ .x = xshift, .y = yshift },
             150,
             .{ .common = .{ .color = sdl.Color.black } },
         );
 
-        try primitive.drawLine(
+        try primitive.addLine(
             .{ .x = p1x, .y = p1y - 10 },
             .{ .x = p2x, .y = p2y - 10 },
             .{
@@ -495,7 +493,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 .thickness = 5,
             },
         );
-        try primitive.drawLine(
+        try primitive.addLine(
             .{ .x = p1x, .y = p1y + 10 },
             .{ .x = p2x, .y = p2y + 10 },
             .{
@@ -507,7 +505,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 .thickness = 5,
             },
         );
-        try primitive.drawLine(
+        try primitive.addLine(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p1x, .y = p1y - 10 },
             .{
@@ -519,7 +517,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 .thickness = 5,
             },
         );
-        try primitive.drawLine(
+        try primitive.addLine(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p1x, .y = p1y + 10 },
             .{
@@ -532,7 +530,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
             },
         );
 
-        try primitive.drawLine(
+        try primitive.addLine(
             .{ .x = p4x - 10, .y = p4y },
             .{ .x = p1x - 10, .y = p1y },
             .{
@@ -544,7 +542,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 .thickness = 5,
             },
         );
-        try primitive.drawLine(
+        try primitive.addLine(
             .{ .x = p4x + 10, .y = p4y },
             .{ .x = p1x + 10, .y = p1y },
             .{
@@ -557,7 +555,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
             },
         );
 
-        try primitive.drawLine(
+        try primitive.addLine(
             .{ .x = p2x - 10, .y = p2y },
             .{ .x = p3x - 10, .y = p3y },
             .{
@@ -569,7 +567,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 .thickness = 5,
             },
         );
-        try primitive.drawLine(
+        try primitive.addLine(
             .{ .x = p2x + 10, .y = p2y },
             .{ .x = p3x + 10, .y = p3y },
             .{
@@ -582,7 +580,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
             },
         );
 
-        try primitive.drawLine(
+        try primitive.addLine(
             .{ .x = p2x, .y = p2y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
             .{
@@ -594,7 +592,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 .thickness = 5,
             },
         );
-        try primitive.drawLine(
+        try primitive.addLine(
             .{ .x = p2x, .y = p2y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
             .{
@@ -607,7 +605,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
             },
         );
 
-        try primitive.drawLine(
+        try primitive.addLine(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
             .{
@@ -619,7 +617,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 .thickness = 5,
             },
         );
-        try primitive.drawLine(
+        try primitive.addLine(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
             .{
@@ -632,7 +630,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
             },
         );
 
-        try primitive.drawCircle(
+        try primitive.addCircle(
             .{ .x = p1x - 20, .y = p1y - 20 },
             rr + 20,
             .{
@@ -646,7 +644,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 },
             },
         );
-        try primitive.drawCircle(
+        try primitive.addCircle(
             .{ .x = p2x + 20, .y = p2y - 20 },
             rr + 20,
             .{
@@ -660,7 +658,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 },
             },
         );
-        try primitive.drawCircle(
+        try primitive.addCircle(
             .{ .x = p3x + 20, .y = p3y + 20 },
             rr + 20,
             .{
@@ -674,7 +672,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 },
             },
         );
-        try primitive.drawCircle(
+        try primitive.addCircle(
             .{ .x = p4x - 20, .y = p4y + 20 },
             rr + 20,
             .{
@@ -689,7 +687,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
             },
         );
 
-        try primitive.drawCircle(
+        try primitive.addCircle(
             .{ .x = p1x, .y = p1y },
             rr,
             .{
@@ -698,7 +696,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 },
             },
         );
-        try primitive.drawCircle(
+        try primitive.addCircle(
             .{ .x = p2x, .y = p2y },
             rr,
             .{
@@ -707,7 +705,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 },
             },
         );
-        try primitive.drawCircle(
+        try primitive.addCircle(
             .{ .x = p3x, .y = p3y },
             rr,
             .{
@@ -716,7 +714,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
                 },
             },
         );
-        try primitive.drawCircle(
+        try primitive.addCircle(
             .{ .x = p4x, .y = p4y },
             rr,
             .{

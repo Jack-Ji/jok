@@ -153,19 +153,19 @@ pub const Object = struct {
 allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
 own_rd: bool,
-rd: TriangleRenderer,
+tri_rd: TriangleRenderer,
 root: *Object,
 colors: std.ArrayList(sdl.Color),
 
-pub fn init(ctx: *jok.Context, _rd: ?TriangleRenderer) !*Self {
-    var self = try ctx.allocator.create(Self);
-    errdefer ctx.allocator.destroy(self);
-    self.allocator = ctx.allocator;
-    self.arena = std.heap.ArenaAllocator.init(ctx.allocator);
+pub fn init(allocator: std.mem.Allocator, _rd: ?TriangleRenderer) !*Self {
+    var self = try allocator.create(Self);
+    errdefer allocator.destroy(self);
+    self.allocator = allocator;
+    self.arena = std.heap.ArenaAllocator.init(allocator);
     errdefer self.arena.deinit();
-    self.rd = _rd orelse BLK: {
+    self.tri_rd = _rd orelse BLK: {
         self.own_rd = true;
-        break :BLK TriangleRenderer.init(ctx);
+        break :BLK TriangleRenderer.init(allocator);
     };
     self.root = try Object.init(self.arena.allocator(), .{ .position = .{} });
     errdefer self.root.deinit(false);
@@ -175,14 +175,14 @@ pub fn init(ctx: *jok.Context, _rd: ?TriangleRenderer) !*Self {
 
 pub fn deinit(self: *Self, destroy_objects: bool) void {
     self.root.deinit(destroy_objects);
-    self.rd.deinit();
+    self.tri_rd.deinit();
     self.arena.deinit();
     self.allocator.destroy(self);
 }
 
 /// Clear scene
 pub fn clear(self: *Self) void {
-    self.rd.clear(true);
+    self.tri_rd.clear(true);
 }
 
 /// Update and render the scene
@@ -192,18 +192,17 @@ pub const RenderOption = struct {
     wireframe_color: sdl.Color = sdl.Color.green,
     cull_faces: bool = true,
     lighting: ?TriangleRenderer.LightingOption = null,
-    renderer: ?sdl.Renderer = null,
 };
-pub fn render(self: *Self, camera: Camera, opt: RenderOption) !void {
-    try self.addObjectToRenderer(camera, self.root, opt);
+pub fn render(self: *Self, renderer: sdl.Renderer, camera: Camera, opt: RenderOption) !void {
+    try self.addObjectToRenderer(renderer, camera, self.root, opt);
     if (opt.wireframe) {
-        try self.rd.drawWireframe(opt.wireframe_color, opt.renderer);
+        try self.tri_rd.drawWireframe(renderer, opt.wireframe_color);
     } else {
-        try self.rd.draw(opt.texture, opt.renderer);
+        try self.tri_rd.draw(renderer, opt.texture);
     }
 }
 
-fn addObjectToRenderer(self: *Self, camera: Camera, o: *Object, opt: RenderOption) !void {
+fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *Object, opt: RenderOption) !void {
     switch (o.uo) {
         .position => {},
         .mesh => |m| {
@@ -211,7 +210,8 @@ fn addObjectToRenderer(self: *Self, camera: Camera, o: *Object, opt: RenderOptio
             try self.colors.ensureTotalCapacity(m.shape.positions.len);
             self.colors.appendNTimesAssumeCapacity(m.color, m.shape.positions.len);
 
-            try self.rd.appendShape(
+            try self.tri_rd.appendShape(
+                renderer,
                 o.transform,
                 camera,
                 m.shape.indices,
@@ -228,5 +228,5 @@ fn addObjectToRenderer(self: *Self, camera: Camera, o: *Object, opt: RenderOptio
         },
     }
 
-    for (o.children.items) |c| try self.addObjectToRenderer(camera, c, opt);
+    for (o.children.items) |c| try self.addObjectToRenderer(renderer, camera, c, opt);
 }

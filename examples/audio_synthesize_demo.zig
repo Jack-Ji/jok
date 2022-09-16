@@ -90,12 +90,12 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     var ms = ctx.getMouseState();
     primitive.clear();
-    try primitive.drawCircle(
+    try primitive.addCircle(
         .{ .x = @intToFloat(f32, ms.x), .y = @intToFloat(f32, ms.y) },
         10,
         .{},
     );
-    try primitive.flush(.{});
+    try primitive.render(ctx.renderer, .{});
 
     _ = try gfx.font.debugDraw(
         ctx.renderer,

@@ -125,7 +125,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     primitive.clear();
     for (translations.items) |tr, i| {
-        try primitive.drawShape(
+        try primitive.addShape(
             cube,
             zmath.mul(
                 zmath.translation(-0.5, -0.5, -0.5),
@@ -139,10 +139,10 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             ),
             camera,
             aabb,
-            .{},
+            .{ .renderer = ctx.renderer },
         );
     }
-    try primitive.flush(.{ .texture = tex });
+    try primitive.render(ctx.renderer, .{ .texture = tex });
 
     _ = try font.debugDraw(
         ctx.renderer,

@@ -131,30 +131,31 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         },
     };
     primitive.clear();
-    try primitive.drawShape(
+    try primitive.addShape(
         shape,
         zmath.identity(),
         camera,
         null,
         .{
+            .renderer = ctx.renderer,
             .lighting = lighting_opt,
             .cull_faces = false,
         },
     );
-    try primitive.flush(.{ .wireframe = wireframe });
+    try primitive.render(ctx.renderer, .{ .wireframe = wireframe });
 
     primitive.clear();
-    try primitive.drawSubdividedSphere(
+    try primitive.addSubdividedSphere(
         zmath.mul(
             zmath.scaling(0.2, 0.2, 0.2),
             zmath.translation(light_pos[0], light_pos[1], light_pos[2]),
         ),
         camera,
         .{
-            .common = .{},
+            .common = .{ .renderer = ctx.renderer },
         },
     );
-    try primitive.flush(.{});
+    try primitive.render(ctx.renderer, .{});
 
     _ = try font.debugDraw(
         ctx.renderer,

@@ -13,12 +13,10 @@ pub const CommonDrawOption = struct {
 };
 
 var rd: ?Renderer = null;
-var renderer: sdl.Renderer = undefined;
 
 /// Create primitive renderer
 pub fn init(ctx: *jok.Context) !void {
     rd = Renderer.init(ctx.allocator);
-    renderer = ctx.renderer;
 }
 
 /// Destroy primitive renderer
@@ -32,15 +30,16 @@ pub fn clear() void {
 }
 
 /// Render data
-pub const FlushOption = struct {
-    renderer: ?sdl.Renderer = null,
+pub const RenderOption = struct {
+    // TODO
 };
-pub fn flush(opt: FlushOption) !void {
-    try rd.?.draw(opt.renderer orelse renderer);
+pub fn render(renderer: sdl.Renderer, opt: RenderOption) !void {
+    _ = opt;
+    try rd.?.draw(renderer);
 }
 
 /// Draw equilateral triangle
-pub fn drawEquilateralTriangle(center: sdl.PointF, side_len: f32, opt: CommonDrawOption) !void {
+pub fn addEquilateralTriangle(center: sdl.PointF, side_len: f32, opt: CommonDrawOption) !void {
     const height = math.sqrt(@as(f32, 3)) / 2.0 * side_len;
     const size = height * 2 / 3;
     const p0 = sdl.PointF{ .x = center.x, .y = center.y - size };
@@ -50,7 +49,7 @@ pub fn drawEquilateralTriangle(center: sdl.PointF, side_len: f32, opt: CommonDra
 }
 
 /// Draw triangle
-pub fn drawTriangle(p0: sdl.PointF, p1: sdl.PointF, p2: sdl.PointF, opt: CommonDrawOption) !void {
+pub fn addTriangle(p0: sdl.PointF, p1: sdl.PointF, p2: sdl.PointF, opt: CommonDrawOption) !void {
     try rd.?.addTriangle(p0, p1, p2, opt);
 }
 
@@ -60,7 +59,7 @@ pub const RectDrawOption = struct {
     round: ?f32 = null,
     segments: ?u32 = null,
 };
-pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: RectDrawOption) !void {
+pub fn addSquare(center: sdl.PointF, half_size: f32, opt: RectDrawOption) !void {
     try rd.?.addRectangle(.{
         .x = center.x - half_size,
         .y = center.y - half_size,
@@ -70,12 +69,12 @@ pub fn drawSquare(center: sdl.PointF, half_size: f32, opt: RectDrawOption) !void
 }
 
 /// Draw rectangle
-pub fn drawRectangle(rect: sdl.RectangleF, opt: RectDrawOption) !void {
+pub fn addRectangle(rect: sdl.RectangleF, opt: RectDrawOption) !void {
     try rd.?.addRectangle(rect, opt);
 }
 
 /// Draw line
-pub fn drawLine(from: sdl.PointF, to: sdl.PointF, opt: CommonDrawOption) !void {
+pub fn addLine(from: sdl.PointF, to: sdl.PointF, opt: CommonDrawOption) !void {
     try rd.?.addLine(from, to, opt);
 }
 
@@ -84,21 +83,21 @@ pub const CurveDrawOption = struct {
     common: CommonDrawOption = .{},
     segments: ?u32 = null,
 };
-pub fn drawArc(center: sdl.PointF, radius: f32, from_radian: f32, to_radian: f32, opt: CurveDrawOption) !void {
+pub fn addArc(center: sdl.PointF, radius: f32, from_radian: f32, to_radian: f32, opt: CurveDrawOption) !void {
     try rd.?.addEllipse(center, radius, radius, from_radian, to_radian, opt);
 }
 
-pub fn drawEllipseArc(center: sdl.PointF, half_width: f32, half_height: f32, from_radian: f32, to_radian: f32, opt: CurveDrawOption) !void {
+pub fn addEllipseArc(center: sdl.PointF, half_width: f32, half_height: f32, from_radian: f32, to_radian: f32, opt: CurveDrawOption) !void {
     try rd.?.addEllipse(center, half_width, half_height, from_radian, to_radian, opt);
 }
 
 /// Draw circle
-pub fn drawCircle(center: sdl.PointF, radius: f32, opt: CurveDrawOption) !void {
+pub fn addCircle(center: sdl.PointF, radius: f32, opt: CurveDrawOption) !void {
     try rd.?.addEllipse(center, radius, radius, 0, math.tau, opt);
 }
 
 /// Draw ecllipse
-pub fn drawEllipse(center: sdl.PointF, half_width: f32, half_height: f32, opt: CurveDrawOption) !void {
+pub fn addEllipse(center: sdl.PointF, half_width: f32, half_height: f32, opt: CurveDrawOption) !void {
     try rd.?.addEllipse(center, half_width, half_height, 0, math.tau, opt);
 }
 
@@ -683,10 +682,10 @@ const Renderer = struct {
     }
 
     /// Draw batched data
-    fn draw(self: *Renderer, _rd: sdl.Renderer) !void {
+    fn draw(self: *Renderer, renderer: sdl.Renderer) !void {
         if (self.vindices.items.len == 0) return;
 
-        try _rd.drawGeometry(
+        try renderer.drawGeometry(
             null,
             self.vattribs.items,
             self.vindices.items,

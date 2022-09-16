@@ -98,7 +98,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.clear();
 
     primitive.clear();
-    try primitive.drawShape(
+    try primitive.addShape(
         cube,
         gfx.zmath.mul(
             gfx.zmath.translation(-0.5, -0.5, -0.5),
@@ -109,12 +109,12 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         ),
         camera,
         null,
-        .{},
+        .{ .renderer = ctx.renderer },
     );
-    try primitive.flush(.{ .texture = tex });
+    try primitive.render(ctx.renderer, .{ .texture = tex });
 
     primitive.clear();
-    try primitive.drawShape(
+    try primitive.addShape(
         cube,
         gfx.zmath.mul(
             gfx.zmath.translation(-0.5, -0.5, -0.5),
@@ -122,9 +122,9 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         ),
         camera,
         null,
-        .{},
+        .{ .renderer = ctx.renderer },
     );
-    try primitive.flush(.{ .wireframe = true });
+    try primitive.render(ctx.renderer, .{ .wireframe = true });
 
     _ = try font.debugDraw(
         ctx.renderer,

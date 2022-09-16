@@ -17,6 +17,9 @@ pub const zmesh = jok.deps.zmesh;
 /// 3d triangle renderer (using SDL2 to accelerate triangle rendering)
 pub const TriangleRenderer = @import("3d/TriangleRenderer.zig");
 
+/// skybox renderer
+//pub const SkyboxRenderer = @import("3d/SkyboxRenderer.zig");
+
 /// 3d camera
 pub const Camera = @import("3d/Camera.zig");
 

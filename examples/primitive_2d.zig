@@ -87,31 +87,31 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     primitive.clear();
     switch (primtype) {
         .etriangle => {
-            try primitive.drawEquilateralTriangle(draw_pos, size, common_draw_opt);
+            try primitive.addEquilateralTriangle(draw_pos, size, common_draw_opt);
         },
         .square => {
-            try primitive.drawSquare(draw_pos, size, .{ .common = common_draw_opt, .round = size / 2 });
+            try primitive.addSquare(draw_pos, size, .{ .common = common_draw_opt, .round = size / 2 });
         },
         .circle => {
-            try primitive.drawCircle(draw_pos, size, .{ .common = common_draw_opt });
+            try primitive.addCircle(draw_pos, size, .{ .common = common_draw_opt });
         },
         .arc => {
-            try primitive.drawArc(draw_pos, size, math.pi / 4.0, math.pi, .{ .common = common_draw_opt });
+            try primitive.addArc(draw_pos, size, math.pi / 4.0, math.pi, .{ .common = common_draw_opt });
         },
         .line => {
-            try primitive.drawLine(
+            try primitive.addLine(
                 .{ .x = draw_pos.x - size, .y = draw_pos.y - size },
                 .{ .x = draw_pos.x + size, .y = draw_pos.y + size },
                 common_draw_opt,
             );
         },
     }
-    try primitive.drawCircle(
+    try primitive.addCircle(
         .{ .x = rotate_anchor[0], .y = rotate_anchor[1] },
         3,
         .{ .common = .{ .color = sdl.Color.cyan } },
     );
-    try primitive.flush(.{});
+    try primitive.render(ctx.renderer, .{});
 }
 
 pub fn quit(ctx: *jok.Context) void {

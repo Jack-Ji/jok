@@ -107,7 +107,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     imgui.endFrame();
 
     primitive.clear();
-    try primitive.drawPlane(
+    try primitive.addPlane(
         zmath.mul(
             zmath.mul(
                 zmath.rotationX(math.pi * 0.5),
@@ -118,14 +118,15 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         camera,
         .{
             .common = .{
+                .renderer = ctx.renderer,
                 .cull_faces = false,
             },
             .slices = slices,
             .stacks = stacks,
         },
     );
-    try primitive.flush(.{ .texture = tex });
-    if (wireframe) try primitive.flush(.{
+    try primitive.render(ctx.renderer, .{ .texture = tex });
+    if (wireframe) try primitive.render(ctx.renderer, .{
         .wireframe = true,
         .wireframe_color = .{ .r = 0, .g = 255, .b = 0, .a = 100 },
     });

@@ -8,9 +8,6 @@ const zmath = @"3d".zmath;
 const Camera = @"3d".Camera;
 const Self = @This();
 
-// sdl renderer
-rd: sdl.Renderer,
-
 // Triangle vertices
 indices: std.ArrayList(u32),
 sorted: bool = false,
@@ -33,18 +30,17 @@ clip_texcoords: std.ArrayList(sdl.PointF),
 world_positions: std.ArrayList(zmath.Vec),
 world_normals: std.ArrayList(zmath.Vec),
 
-pub fn init(ctx: *jok.Context) Self {
+pub fn init(allocator: std.mem.Allocator) Self {
     return .{
-        .rd = ctx.renderer,
-        .indices = std.ArrayList(u32).init(ctx.allocator),
-        .vertices = std.ArrayList(sdl.Vertex).init(ctx.allocator),
-        .depths = std.ArrayList(f32).init(ctx.allocator),
-        .large_front_triangles = std.ArrayList([3]u32).init(ctx.allocator),
-        .clip_vertices = std.ArrayList(zmath.Vec).init(ctx.allocator),
-        .clip_colors = std.ArrayList(sdl.Color).init(ctx.allocator),
-        .clip_texcoords = std.ArrayList(sdl.PointF).init(ctx.allocator),
-        .world_positions = std.ArrayList(zmath.Vec).init(ctx.allocator),
-        .world_normals = std.ArrayList(zmath.Vec).init(ctx.allocator),
+        .indices = std.ArrayList(u32).init(allocator),
+        .vertices = std.ArrayList(sdl.Vertex).init(allocator),
+        .depths = std.ArrayList(f32).init(allocator),
+        .large_front_triangles = std.ArrayList([3]u32).init(allocator),
+        .clip_vertices = std.ArrayList(zmath.Vec).init(allocator),
+        .clip_colors = std.ArrayList(sdl.Color).init(allocator),
+        .clip_texcoords = std.ArrayList(sdl.PointF).init(allocator),
+        .world_positions = std.ArrayList(zmath.Vec).init(allocator),
+        .world_normals = std.ArrayList(zmath.Vec).init(allocator),
     };
 }
 
@@ -132,6 +128,7 @@ pub const AppendOption = struct {
 /// Append shape data
 pub fn appendShape(
     self: *Self,
+    renderer: sdl.Renderer,
     model: zmath.Mat,
     camera: Camera,
     indices: []const u16,
@@ -146,7 +143,7 @@ pub fn appendShape(
     assert(if (colors) |cs| cs.len == positions.len else true);
     assert(if (texcoords) |ts| ts.len == positions.len else true);
     if (indices.len == 0) return;
-    const vp = self.rd.getViewport();
+    const vp = renderer.getViewport();
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
         0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
         0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
@@ -1067,7 +1064,7 @@ fn compareTriangleDepths(self: *Self, lhs: [3]u32, rhs: [3]u32) bool {
 }
 
 /// Draw the meshes, fill triangles, using texture if possible
-pub fn draw(self: *Self, tex: ?sdl.Texture, _rd: ?sdl.Renderer) !void {
+pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
     if (self.indices.items.len == 0) return;
 
     if (!self.sorted) {
@@ -1084,8 +1081,7 @@ pub fn draw(self: *Self, tex: ?sdl.Texture, _rd: ?sdl.Renderer) !void {
         self.sorted = true;
     }
 
-    var rd = _rd orelse self.rd;
-    try rd.drawGeometry(
+    try renderer.drawGeometry(
         tex,
         self.vertices.items,
         self.indices.items,
@@ -1093,7 +1089,7 @@ pub fn draw(self: *Self, tex: ?sdl.Texture, _rd: ?sdl.Renderer) !void {
 
     // Debug: draw front triangles
     //for (self.large_front_triangles.items) |tri| {
-    //    try rd.drawGeometry(
+    //    try renderer.drawGeometry(
     //        null,
     //        &[3]sdl.Vertex{
     //            self.vertices.items[tri[0]],
@@ -1106,13 +1102,12 @@ pub fn draw(self: *Self, tex: ?sdl.Texture, _rd: ?sdl.Renderer) !void {
 }
 
 /// Draw the wireframe
-pub fn drawWireframe(self: *Self, color: sdl.Color, _rd: ?sdl.Renderer) !void {
+pub fn drawWireframe(self: *Self, renderer: sdl.Renderer, color: sdl.Color) !void {
     if (self.indices.items.len == 0) return;
 
-    var rd = _rd orelse self.rd;
-    const old_color = try rd.getColor();
-    defer rd.setColor(old_color) catch unreachable;
-    try rd.setColor(color);
+    const old_color = try renderer.getColor();
+    defer renderer.setColor(old_color) catch unreachable;
+    try renderer.setColor(color);
 
     const vs = self.vertices.items;
     var i: usize = 2;
@@ -1123,8 +1118,8 @@ pub fn drawWireframe(self: *Self, color: sdl.Color, _rd: ?sdl.Renderer) !void {
         assert(idx1 < vs.len);
         assert(idx2 < vs.len);
         assert(idx3 < vs.len);
-        try rd.drawLineF(vs[idx1].position.x, vs[idx1].position.y, vs[idx2].position.x, vs[idx2].position.y);
-        try rd.drawLineF(vs[idx2].position.x, vs[idx2].position.y, vs[idx3].position.x, vs[idx3].position.y);
-        try rd.drawLineF(vs[idx3].position.x, vs[idx3].position.y, vs[idx1].position.x, vs[idx1].position.y);
+        try renderer.drawLineF(vs[idx1].position.x, vs[idx1].position.y, vs[idx2].position.x, vs[idx2].position.y);
+        try renderer.drawLineF(vs[idx2].position.x, vs[idx2].position.y, vs[idx3].position.x, vs[idx3].position.y);
+        try renderer.drawLineF(vs[idx3].position.x, vs[idx3].position.y, vs[idx1].position.x, vs[idx1].position.y);
     }
 }

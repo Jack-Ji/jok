@@ -10,6 +10,7 @@ const zmath = @"3d".zmath;
 const zmesh = @"3d".zmesh;
 
 pub const CommonDrawOption = struct {
+    renderer: sdl.Renderer,
     color: sdl.Color = sdl.Color.white,
     cull_faces: bool = true,
     lighting: ?TriangleRenderer.LightingOption = null,
@@ -17,15 +18,15 @@ pub const CommonDrawOption = struct {
 };
 
 var own_rd: bool = false;
-var rd: ?TriangleRenderer = null;
+var tri_renderer: ?TriangleRenderer = null;
 var arena: std.heap.ArenaAllocator = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 
 /// Initialize primitive module
 pub fn init(ctx: *jok.Context, _rd: ?TriangleRenderer) !void {
-    rd = _rd orelse BLK: {
+    tri_renderer = _rd orelse BLK: {
         own_rd = true;
-        break :BLK TriangleRenderer.init(ctx);
+        break :BLK TriangleRenderer.init(ctx.allocator);
     };
     arena = std.heap.ArenaAllocator.init(ctx.allocator);
     all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
@@ -34,32 +35,37 @@ pub fn init(ctx: *jok.Context, _rd: ?TriangleRenderer) !void {
 /// Destroy primitive module
 pub fn deinit() void {
     for (all_shapes.items) |s| s.deinit();
-    if (own_rd) rd.?.deinit();
+    if (own_rd) tri_renderer.?.deinit();
     arena.deinit();
 }
 
 /// Clear primitive
 pub fn clear() void {
-    rd.?.clear(true);
+    tri_renderer.?.clear(true);
 }
 
 /// Render data
-pub const FlushOption = struct {
+pub const RenderOption = struct {
     texture: ?sdl.Texture = null,
     wireframe: bool = false,
     wireframe_color: sdl.Color = sdl.Color.green,
-    renderer: ?sdl.Renderer = null,
 };
-pub fn flush(opt: FlushOption) !void {
+pub fn render(renderer: sdl.Renderer, opt: RenderOption) !void {
     if (opt.wireframe) {
-        try rd.?.drawWireframe(opt.wireframe_color, opt.renderer);
+        try tri_renderer.?.drawWireframe(renderer, opt.wireframe_color);
     } else {
-        try rd.?.draw(opt.texture, opt.renderer);
+        try tri_renderer.?.draw(renderer, opt.texture);
     }
 }
 
 /// Draw a shape
-pub fn drawShape(shape: zmesh.Shape, model: zmath.Mat, camera: Camera, aabb: ?[6]f32, opt: CommonDrawOption) !void {
+pub fn addShape(
+    shape: zmesh.Shape,
+    model: zmath.Mat,
+    camera: Camera,
+    aabb: ?[6]f32,
+    opt: CommonDrawOption,
+) !void {
     const S = struct {
         var colors: ?std.ArrayList(sdl.Color) = null;
     };
@@ -72,7 +78,8 @@ pub fn drawShape(shape: zmesh.Shape, model: zmath.Mat, camera: Camera, aabb: ?[6
     S.colors.?.ensureTotalCapacity(shape.positions.len) catch unreachable;
     S.colors.?.appendNTimesAssumeCapacity(opt.color, shape.positions.len);
 
-    try rd.?.appendShape(
+    try tri_renderer.?.appendShape(
+        opt.renderer,
         model,
         camera,
         shape.indices,
@@ -89,7 +96,7 @@ pub fn drawShape(shape: zmesh.Shape, model: zmath.Mat, camera: Camera, aabb: ?[6
 }
 
 /// Draw a cube
-pub fn drawCube(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
+pub fn addCube(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -131,7 +138,7 @@ pub fn drawCube(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt);
 }
 
 /// Draw a plane
@@ -140,7 +147,7 @@ pub const PlaneDrawOption = struct {
     slices: u32 = 10,
     stacks: u32 = 10,
 };
-pub fn drawPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
+pub fn addPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -184,7 +191,7 @@ pub fn drawPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a parametric sphere
@@ -193,7 +200,7 @@ pub const ParametricSphereDrawOption = struct {
     slices: u32 = 15,
     stacks: u32 = 15,
 };
-pub fn drawParametricSphere(model: zmath.Mat, camera: Camera, opt: ParametricSphereDrawOption) !void {
+pub fn addParametricSphere(model: zmath.Mat, camera: Camera, opt: ParametricSphereDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -237,7 +244,7 @@ pub fn drawParametricSphere(model: zmath.Mat, camera: Camera, opt: ParametricSph
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a subdivided sphere
@@ -245,7 +252,7 @@ pub const SubdividedSphereDrawOption = struct {
     common: CommonDrawOption,
     sub_num: u32 = 2,
 };
-pub fn drawSubdividedSphere(model: zmath.Mat, camera: Camera, opt: SubdividedSphereDrawOption) !void {
+pub fn addSubdividedSphere(model: zmath.Mat, camera: Camera, opt: SubdividedSphereDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -288,7 +295,7 @@ pub fn drawSubdividedSphere(model: zmath.Mat, camera: Camera, opt: SubdividedSph
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a parametric sphere
@@ -297,7 +304,7 @@ pub const HemisphereDrawOption = struct {
     slices: u32 = 15,
     stacks: u32 = 15,
 };
-pub fn drawHemisphere(model: zmath.Mat, camera: Camera, opt: HemisphereDrawOption) !void {
+pub fn addHemisphere(model: zmath.Mat, camera: Camera, opt: HemisphereDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -341,7 +348,7 @@ pub fn drawHemisphere(model: zmath.Mat, camera: Camera, opt: HemisphereDrawOptio
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a cone
@@ -350,7 +357,7 @@ pub const ConeDrawOption = struct {
     slices: u32 = 15,
     stacks: u32 = 1,
 };
-pub fn drawCone(model: zmath.Mat, camera: Camera, opt: ConeDrawOption) !void {
+pub fn addCone(model: zmath.Mat, camera: Camera, opt: ConeDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -394,7 +401,7 @@ pub fn drawCone(model: zmath.Mat, camera: Camera, opt: ConeDrawOption) !void {
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a cylinder
@@ -403,7 +410,7 @@ pub const CylinderDrawOption = struct {
     slices: u32 = 20,
     stacks: u32 = 1,
 };
-pub fn drawCylinder(model: zmath.Mat, camera: Camera, opt: CylinderDrawOption) !void {
+pub fn addCylinder(model: zmath.Mat, camera: Camera, opt: CylinderDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -447,7 +454,7 @@ pub fn drawCylinder(model: zmath.Mat, camera: Camera, opt: CylinderDrawOption) !
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a disk
@@ -458,7 +465,7 @@ pub const DiskDrawOption = struct {
     center: [3]f32 = .{ 0, 0, 0 },
     normal: [3]f32 = .{ 0, 0, 1 },
 };
-pub fn drawDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
+pub fn addDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -506,7 +513,7 @@ pub fn drawDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a torus
@@ -516,7 +523,7 @@ pub const TorusDrawOption = struct {
     slices: u32 = 15,
     stacks: u32 = 20,
 };
-pub fn drawTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
+pub fn addTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -561,11 +568,11 @@ pub fn drawTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
 
 /// Draw a icosahedron
-pub fn drawIcosahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
+pub fn addIcosahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -607,11 +614,11 @@ pub fn drawIcosahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) 
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt);
 }
 
 /// Draw a dodecahedron
-pub fn drawDodecahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
+pub fn addDodecahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -653,11 +660,11 @@ pub fn drawDodecahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption)
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt);
 }
 
 /// Draw a octahedron
-pub fn drawOctahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
+pub fn addOctahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -699,11 +706,11 @@ pub fn drawOctahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt);
 }
 
 /// Draw a tetrahedron
-pub fn drawTetrahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
+pub fn addTetrahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -745,7 +752,7 @@ pub fn drawTetrahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) 
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt);
 }
 
 /// Draw a rock
@@ -754,7 +761,7 @@ pub const RockDrawOption = struct {
     seed: i32 = 3,
     sub_num: u32 = 1,
 };
-pub fn drawRock(model: zmath.Mat, camera: Camera, opt: RockDrawOption) !void {
+pub fn addRock(model: zmath.Mat, camera: Camera, opt: RockDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -797,5 +804,5 @@ pub fn drawRock(model: zmath.Mat, camera: Camera, opt: RockDrawOption) !void {
         break :BLK m;
     };
 
-    try drawShape(mesh.shape, model, camera, mesh.aabb, opt.common);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt.common);
 }
