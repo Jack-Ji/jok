@@ -126,15 +126,3 @@ pub const fps_limit: FpsLimit = if (@hasDecl(game, "jok_fps_limit"))
     game.jok_fps_limit
 else
     .auto;
-
-/// 3D primitive rendering
-pub const enable_3d_primitive = if (@hasDecl(game, "jok_3d_primitive"))
-    game.jok_3d_primitive
-else
-    true;
-
-/// 2D primitive rendering
-pub const enable_2d_primitive = if (@hasDecl(game, "jok_2d_primitive"))
-    game.jok_2d_primitive
-else
-    true;
