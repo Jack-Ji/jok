@@ -9,7 +9,6 @@ const zaudio = @import("src/deps/zaudio/build.zig");
 const zmesh = @import("src/deps/zmesh/build.zig");
 const znoise = @import("src/deps/znoise/build.zig");
 const zbullet = @import("src/deps/zbullet/build.zig");
-const znetwork = @import("src/deps/znetwork/build.zig");
 const ztracy = @import("src/deps/ztracy/build.zig");
 
 pub fn build(b: *std.build.Builder) void {
@@ -77,7 +76,6 @@ pub const BuildOptions = struct {
     link_nfd: bool = false,
     link_zaudio: bool = false,
     link_zbullet: bool = false,
-    link_znetwork: bool = false,
     link_ztracy: bool = false,
     enable_tracy: bool = false,
 };
@@ -111,7 +109,6 @@ pub fn createGame(
     if (opt.link_nfd) nfd.link(exe);
     if (opt.link_zaudio) zaudio.link(exe);
     if (opt.link_zbullet) zbullet.link(exe);
-    if (opt.link_znetwork) znetwork.link(exe);
     if (opt.link_ztracy) ztracy.link(exe, ztracy_opt);
 
     // Add packages
