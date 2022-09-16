@@ -69,17 +69,17 @@ pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: [3]f32, target: [3]f32
     var angles = zmath.dot3(crossdir, camera.right);
     const cos_pitch = zmath.dot3(camera.world_up, camera.up);
     if (angles[0] < 0) {
-        camera.pitch = math.acos(cos_pitch[0]);
+        camera.pitch = math.acos(math.clamp(cos_pitch[0], -1, 1));
     } else {
-        camera.pitch = -math.acos(cos_pitch[0]);
+        camera.pitch = -math.acos(math.clamp(cos_pitch[0], -1, 1));
     }
     crossdir = zmath.cross3(camera.right, @"3d".v_right);
     angles = zmath.dot3(crossdir, camera.world_up);
     const cos_yaw = zmath.dot3(camera.right, @"3d".v_right);
     if (angles[0] < 0) {
-        camera.yaw = math.acos(cos_yaw[0]);
+        camera.yaw = math.acos(math.clamp(cos_yaw[0], -1, 1));
     } else {
-        camera.yaw = -math.acos(cos_yaw[0]);
+        camera.yaw = -math.acos(math.clamp(cos_yaw[0], -1, 1));
     }
     camera.roll = 0;
     return camera;
