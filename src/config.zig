@@ -19,6 +19,13 @@ pub const FpsLimit = union(enum) {
     }
 };
 
+/// Mouse mode
+pub const MouseMode = enum {
+    normal,
+    hide,
+    relative,
+};
+
 /// Default memory allocator
 pub const allocator: ?std.mem.Allocator = if (@hasDecl(game, "jok_allocator"))
     game.jok_allocator
@@ -109,20 +116,26 @@ pub const enable_maximized = if (@hasDecl(game, "jok_window_maximized"))
 else
     false;
 
-/// Relative mouse mode switch
-pub const enable_relative_mouse_mode = if (@hasDecl(game, "jok_relative_mouse_mode"))
-    game.jok_relative_mouse_mode
+/// Window always on top
+pub const enable_always_on_top = if (@hasDecl(game, "jok_window_always_on_top"))
+    game.jok_window_always_on_top
 else
     false;
 
-/// Display frame stats on title bar
-pub const enable_framestat_display = if (@hasDecl(game, "jok_framestat_display"))
-    game.jok_framestat_display
+/// Mouse mode
+pub const mouse_mode: MouseMode = if (@hasDecl(game, "jok_mouse_mode"))
+    game.jok_mouse_mode
 else
-    true;
+    .normal;
 
 /// FPS limiting (auto means vsync)
 pub const fps_limit: FpsLimit = if (@hasDecl(game, "jok_fps_limit"))
     game.jok_fps_limit
 else
     .auto;
+
+/// Display frame stats on title bar
+pub const enable_framestat_display = if (@hasDecl(game, "jok_framestat_display"))
+    game.jok_framestat_display
+else
+    true;

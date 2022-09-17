@@ -120,7 +120,18 @@ pub fn main() anyerror!void {
     }
     ctx.toggleResizable(config.enable_resizable);
     ctx.toggleFullscreeen(config.enable_fullscreen);
-    ctx.toggleRelativeMouseMode(config.enable_relative_mouse_mode);
+    ctx.toggleAlwaysOnTop(config.enable_always_on_top);
+
+    // Apply mouse mode
+    switch (config.mouse_mode) {
+        .normal => {},
+        .hide => {
+            _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
+        },
+        .relative => {
+            _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_TRUE);
+        },
+    }
 
     // Create hardware accelerated renderer
     // Fallback to software renderer if allowed

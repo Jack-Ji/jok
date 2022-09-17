@@ -28,8 +28,8 @@ pub const Context = struct {
     // Fullscreen mode
     fullscreen: bool = undefined,
 
-    // Relative mouse mode
-    relative_mouse: bool = undefined,
+    // Whether always on top
+    always_on_top: bool = undefined,
 
     // Residue of fps capping
     fps_limit_residue: u64 = 0,
@@ -132,15 +132,16 @@ pub const Context = struct {
         );
     }
 
-    /// Toggle relative mouse mode
-    pub fn toggleRelativeMouseMode(self: *Context, on_off: ?bool) void {
+    /// Toggle always-on-top
+    pub fn toggleAlwaysOnTop(self: *Context, on_off: ?bool) void {
         if (on_off) |state| {
-            self.relative_mouse = state;
+            self.always_on_top = state;
         } else {
-            self.relative_mouse = !self.relative_mouse;
+            self.always_on_top = !self.always_on_top;
         }
-        _ = sdl.c.SDL_SetRelativeMouseMode(
-            if (self.relative_mouse) sdl.c.SDL_TRUE else sdl.c.SDL_FALSE,
+        _ = sdl.c.SDL_SetWindowAlwaysOnTop(
+            self.window.ptr,
+            if (self.always_on_top) sdl.c.SDL_TRUE else sdl.c.SDL_FALSE,
         );
     }
 
