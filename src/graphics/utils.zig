@@ -110,18 +110,18 @@ pub fn savePixelsToFile(
     height: u32,
     format: sdl.Texture.Format,
     path: [:0]const u8,
-    option: EncodingOption,
+    opt: EncodingOption,
 ) !void {
     var channels = getChannels(format);
     assert(pixels.len == @intCast(usize, width * height * channels));
 
     // Encode file
     var result: c_int = undefined;
-    stb.image.stbi_flip_vertically_on_write(@boolToInt(option.flip_on_write));
-    switch (option.format) {
+    stb.image.stbi_flip_vertically_on_write(@boolToInt(opt.flip_on_write));
+    switch (opt.format) {
         .png => {
             stb.image.stbi_write_png_compression_level =
-                @intCast(c_int, option.png_compress_level);
+                @intCast(c_int, opt.png_compress_level);
             result = stb.image.stbi_write_png(
                 path.ptr,
                 @intCast(c_int, width),
@@ -142,7 +142,7 @@ pub fn savePixelsToFile(
         },
         .tga => {
             stb.image.stbi_write_tga_with_rle =
-                if (option.tga_rle_compress) 1 else 0;
+                if (opt.tga_rle_compress) 1 else 0;
             result = stb.image.stbi_write_tga(
                 path.ptr,
                 @intCast(c_int, width),
@@ -158,11 +158,28 @@ pub fn savePixelsToFile(
                 @intCast(c_int, height),
                 @intCast(c_int, channels),
                 pixels.ptr,
-                @intCast(c_int, @intCast(c_int, std.math.clamp(option.jpg_quality, 1, 100))),
+                @intCast(c_int, @intCast(c_int, std.math.clamp(opt.jpg_quality, 1, 100))),
             );
         },
     }
     if (result == 0) {
         return error.EncodeTextureFailed;
     }
+}
+
+/// Save surface to file
+pub fn saveSurfaceToFile(surface: sdl.Surface, path: [:0]const u8, opt: EncodingOption) !void {
+    const format = @intToEnum(sdl.PixelFormatEnum, surface.ptr.format.*.format);
+    var channels = getChannels(format);
+    const pixels = @ptrCast([*]const u8, surface.ptr.pixels.?);
+    const size = @intCast(usize, surface.ptr.w * surface.ptr.h * channels);
+    assert(surface.ptr.h * surface.ptr.pitch == size);
+    try savePixelsToFile(
+        pixels[0..size],
+        @intCast(u32, surface.ptr.w),
+        @intCast(u32, surface.ptr.h),
+        format,
+        path,
+        opt,
+    );
 }
