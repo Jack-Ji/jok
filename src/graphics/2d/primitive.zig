@@ -6,7 +6,7 @@ const jok = @import("../../jok.zig");
 const zmath = jok.zmath;
 
 pub const CommonDrawOption = struct {
-    thickness: f32 = 0, // zero means filling geometries
+    thickness: f32 = 0, // zero means filling geometries in most cases
     rotate_degree: f32 = 0, // rotating angle around anchor_pos
     anchor_pos: ?sdl.PointF = null, // null means using geometry center
     color: sdl.Color = sdl.Color.white,
@@ -99,6 +99,12 @@ pub fn addCircle(center: sdl.PointF, radius: f32, opt: CurveDrawOption) !void {
 /// Draw ecllipse
 pub fn addEllipse(center: sdl.PointF, half_width: f32, half_height: f32, opt: CurveDrawOption) !void {
     try rd.?.addEllipse(center, half_width, half_height, 0, math.tau, opt);
+}
+
+/// Draw polyline
+pub fn addPolyline(points: []sdl.PointF, opt: CommonDrawOption) !void {
+    if (points.len < 2) return;
+    try rd.?.addPolyline(points, opt);
 }
 
 /// 2D primitive renderer
@@ -679,6 +685,56 @@ const Renderer = struct {
             }
             try self.addStripe(inner_base_index, outer_base_index, is_loop);
         }
+    }
+
+    /// Add a polyline
+    fn addPolyline(self: *Renderer, points: []sdl.PointF, opt: CommonDrawOption) !void {
+        assert(points.len > 1);
+        const transform_m = getTransformMatrix(
+            opt.anchor_pos orelse points[0],
+            opt.rotate_degree,
+        );
+        var half_thickness = zmath.splat(zmath.Vec, math.max(opt.thickness / 2, 1));
+        const inner_base_index = @intCast(u32, self.vattribs.items.len);
+        for (points) |p, i| {
+            const vt = if (i == 0)
+                zmath.normalize2(zmath.f32x4(p.y - points[1].y, points[1].x - p.x, 0, 0)) * half_thickness
+            else if (i < points.len - 1) BLK: {
+                const v1 = zmath.normalize2(zmath.f32x4(p.x - points[i - 1].x, p.y - points[i - 1].y, 0, 0));
+                const v2 = zmath.normalize2(zmath.f32x4(p.x - points[i + 1].x, p.y - points[i + 1].y, 0, 0));
+                const perp1 = zmath.normalize2(zmath.f32x4(p.y - points[i + 1].y, points[i + 1].x - p.x, 0, 0));
+                const perp2 = zmath.normalize2(zmath.f32x4(points[i - 1].y - p.y, p.x - points[i - 1].x, 0, 0));
+                const v1_scale = zmath.splat(zmath.Vec, 1) / zmath.dot2(v1, perp1) * half_thickness;
+                const v2_scale = zmath.splat(zmath.Vec, 1) / zmath.dot2(v2, perp2) * half_thickness;
+                break :BLK v1 * v1_scale + v2 * v2_scale;
+            } else zmath.normalize2(zmath.f32x4(points[i - 1].y - p.y, p.x - points[i - 1].x, 0, 0)) * half_thickness;
+            const v = zmath.f32x4(p.x, p.y, 0, 0) + vt;
+            try self.vattribs.append(.{
+                .position = transformPoint(.{ .x = v[0], .y = v[1] }, transform_m),
+                .color = opt.color,
+            });
+        }
+        half_thickness = half_thickness * zmath.splat(zmath.Vec, -1);
+        const outer_base_index = @intCast(u32, self.vattribs.items.len);
+        for (points) |p, i| {
+            const vt = if (i == 0)
+                zmath.normalize2(zmath.f32x4(p.y - points[1].y, points[1].x - p.x, 0, 0)) * half_thickness
+            else if (i < points.len - 1) BLK: {
+                const v1 = zmath.normalize2(zmath.f32x4(p.x - points[i - 1].x, p.y - points[i - 1].y, 0, 0));
+                const v2 = zmath.normalize2(zmath.f32x4(p.x - points[i + 1].x, p.y - points[i + 1].y, 0, 0));
+                const perp1 = zmath.normalize2(zmath.f32x4(p.y - points[i + 1].y, points[i + 1].x - p.x, 0, 0));
+                const perp2 = zmath.normalize2(zmath.f32x4(points[i - 1].y - p.y, p.x - points[i - 1].x, 0, 0));
+                const v1_scale = zmath.splat(zmath.Vec, 1) / zmath.dot2(v1, perp1) * half_thickness;
+                const v2_scale = zmath.splat(zmath.Vec, 1) / zmath.dot2(v2, perp2) * half_thickness;
+                break :BLK v1 * v1_scale + v2 * v2_scale;
+            } else zmath.normalize2(zmath.f32x4(points[i - 1].y - p.y, p.x - points[i - 1].x, 0, 0)) * half_thickness;
+            const v = zmath.f32x4(p.x, p.y, 0, 0) + vt;
+            try self.vattribs.append(.{
+                .position = transformPoint(.{ .x = v[0], .y = v[1] }, transform_m),
+                .color = opt.color,
+            });
+        }
+        try self.addStripe(inner_base_index, outer_base_index, false);
     }
 
     /// Draw batched data

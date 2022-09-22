@@ -16,6 +16,7 @@ const PrimitiveType = enum(c_int) {
     circle,
     arc,
     line,
+    polyline,
 };
 
 var primtype: PrimitiveType = .etriangle;
@@ -60,6 +61,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.radioButton_IntPtr("circle", selection, 2);
         _ = imgui.radioButton_IntPtr("arc", selection, 3);
         _ = imgui.radioButton_IntPtr("line", selection, 4);
+        _ = imgui.radioButton_IntPtr("polyline", selection, 5);
         imgui.separator();
         _ = imgui.colorEdit4("color", &color, null);
         _ = imgui.dragFloat("size", &size, .{ .v_max = 1000 });
@@ -102,6 +104,23 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
             try primitive.addLine(
                 .{ .x = draw_pos.x - size, .y = draw_pos.y - size },
                 .{ .x = draw_pos.x + size, .y = draw_pos.y + size },
+                common_draw_opt,
+            );
+        },
+        .polyline => {
+            try primitive.addPolyline(
+                &[_]sdl.PointF{
+                    .{ .x = draw_pos.x, .y = draw_pos.y },
+                    .{ .x = draw_pos.x + 50, .y = draw_pos.y + 50 },
+                    .{ .x = draw_pos.x + 60, .y = draw_pos.y + 80 },
+                    .{ .x = draw_pos.x + 20, .y = draw_pos.y + 100 },
+                    .{ .x = draw_pos.x + 10, .y = draw_pos.y + 150 },
+                    .{ .x = draw_pos.x - 80, .y = draw_pos.y + 200 },
+                    .{ .x = draw_pos.x - 50, .y = draw_pos.y + 50 },
+                    .{ .x = draw_pos.x - 60, .y = draw_pos.y + 10 },
+                    .{ .x = draw_pos.x, .y = draw_pos.y },
+                    .{ .x = draw_pos.x + 50, .y = draw_pos.y + 50 },
+                },
                 common_draw_opt,
             );
         },
