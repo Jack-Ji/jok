@@ -185,6 +185,11 @@ pub fn clear(self: *Self) void {
     self.tri_rd.clear(true);
 }
 
+// TODO Action system
+// TODO Sequence Action
+// TODO Parallel Action
+// TODO Event system
+
 /// Update and render the scene
 pub const RenderOption = struct {
     texture: ?sdl.Texture = null,
