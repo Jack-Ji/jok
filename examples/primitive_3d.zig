@@ -6,9 +6,9 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const imgui = jok.deps.imgui;
 const zmath = jok.zmath;
+const font = jok.font;
 const gfx = jok.gfx.@"3d";
 const primitive = gfx.primitive;
-const font = jok.gfx.@"2d".font;
 const Camera = gfx.Camera;
 
 pub const jok_window_width = 1600;

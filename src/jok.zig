@@ -7,6 +7,9 @@ pub const Context = @import("context.zig").Context;
 /// Graphics module
 pub const gfx = @import("graphics.zig");
 
+/// Font module
+pub const font = @import("font.zig");
+
 /// Audio module
 pub const zaudio = deps.zaudio;
 

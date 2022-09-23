@@ -1,6 +1,7 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
+const font = jok.font;
 const zaudio = jok.zaudio;
 
 var engine: zaudio.Engine = undefined;
@@ -66,7 +67,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.clear();
 
-    const font = jok.gfx.@"2d".font;
     _ = try font.debugDraw(
         ctx.renderer,
         .{ .pos = .{ .x = 10, .y = 10 } },

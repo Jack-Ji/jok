@@ -1,9 +1,9 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
+const font = jok.font;
 const gfx = jok.gfx.@"3d";
 const zmath = gfx.zmath;
-const font = jok.gfx.@"2d".font;
 const Scene = gfx.Scene;
 
 var camera: gfx.Camera = undefined;

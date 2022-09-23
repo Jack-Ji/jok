@@ -7,10 +7,10 @@ const jok = @import("jok");
 const imgui = jok.deps.imgui;
 const zmath = jok.zmath;
 const znoise = jok.znoise;
+const font = jok.font;
 const gfx = jok.gfx.@"3d";
 const zmesh = gfx.zmesh;
 const primitive = gfx.primitive;
-const font = jok.gfx.@"2d".font;
 const Camera = gfx.Camera;
 
 pub const jok_window_resizable = true;

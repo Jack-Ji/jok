@@ -2,8 +2,8 @@ const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
 const imgui = jok.deps.imgui;
+const font = jok.font;
 const gfx = jok.gfx.@"3d";
-const font = jok.gfx.@"2d".font;
 const primitive = gfx.primitive;
 
 var camera: gfx.Camera = undefined;

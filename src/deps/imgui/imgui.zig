@@ -49,7 +49,7 @@ pub fn init(ctx: *jok.Context) !void {
     c.ImGuiStyle_ScaleAllSizes(style, pixel_ratio);
 
     // Load clacon as default font
-    _ = try loadFontFromMemory(jok.gfx.@"2d".font.clacon, 16, null);
+    _ = try loadFontFromMemory(jok.font.clacon, 16, null);
 }
 
 /// Release allocated resources

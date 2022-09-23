@@ -1,6 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = @import("sdl");
+const font = jok.font;
 const gfx = jok.gfx.@"2d";
 
 var sheet: *gfx.SpriteSheet = undefined;
@@ -94,19 +95,19 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     });
     try sb.end();
 
-    var result = try gfx.font.debugDraw(
+    var result = try font.debugDraw(
         ctx.renderer,
         .{ .pos = .{ .x = 300, .y = 0 } },
         "press z to zoom out, x to zoom in, current zoom value: {d:.1}",
         .{camera.zoom},
     );
-    result = try gfx.font.debugDraw(
+    result = try font.debugDraw(
         ctx.renderer,
         .{ .pos = .{ .x = 300, .y = result.next_line_ypos } },
         "camera pos: {d:.0},{d:.0}",
         .{ camera.pos.x, camera.pos.y },
     );
-    _ = try gfx.font.debugDraw(
+    _ = try font.debugDraw(
         ctx.renderer,
         .{ .pos = .{ .x = 300, .y = result.next_line_ypos } },
         "camera half-size: {d:.0},{d:.0}",

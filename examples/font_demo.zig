@@ -1,7 +1,7 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
-const gfx = jok.gfx.@"2d";
+const font = jok.font;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
@@ -30,7 +30,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGBA(0, 128, 0, 120);
     try ctx.renderer.setDrawBlendMode(.blend);
 
-    var result = try gfx.font.debugDraw(
+    var result = try font.debugDraw(
         ctx.renderer,
         .{
             .pos = sdl.PointF{ .x = 0, .y = 0 },
@@ -42,7 +42,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     );
     try ctx.renderer.fillRectF(result.area);
 
-    result = try gfx.font.debugDraw(
+    result = try font.debugDraw(
         ctx.renderer,
         .{
             .pos = sdl.PointF{ .x = 0, .y = @intToFloat(f32, size.h) / 2 },
@@ -54,7 +54,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     );
     try ctx.renderer.fillRectF(result.area);
 
-    result = try gfx.font.debugDraw(
+    result = try font.debugDraw(
         ctx.renderer,
         .{
             .pos = sdl.PointF{ .x = result.area.x + result.area.width, .y = @intToFloat(f32, size.h) / 2 },
@@ -66,7 +66,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     );
     try ctx.renderer.fillRectF(result.area);
 
-    result = try gfx.font.debugDraw(
+    result = try font.debugDraw(
         ctx.renderer,
         .{
             .pos = sdl.PointF{ .x = 0, .y = @intToFloat(f32, size.h) },

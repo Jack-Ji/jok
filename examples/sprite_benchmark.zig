@@ -115,7 +115,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     }
     try sb.end();
 
-    _ = try gfx.font.debugDraw(
+    _ = try jok.font.debugDraw(
         ctx.renderer,
         .{ .pos = .{ .x = 0, .y = 0 } },
         "# of sprites: {d}",

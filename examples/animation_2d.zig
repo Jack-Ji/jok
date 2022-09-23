@@ -145,7 +145,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     );
     try sb.end();
 
-    _ = try gfx.font.debugDraw(
+    _ = try jok.font.debugDraw(
         ctx.renderer,
         .{ .pos = .{ .x = 300, .y = 0 } },
         "Press up/down/left/right to move character around",
