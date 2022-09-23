@@ -4,8 +4,7 @@ const builtin = @import("builtin");
 const sdl = @import("sdl");
 const jok = @import("jok");
 const font = jok.font;
-const gfx = jok.gfx.@"2d";
-const primitive = gfx.primitive;
+const primitive = jok.j2d.primitive;
 
 var audio_device: sdl.AudioDevice = undefined;
 var audio_spec: sdl.AudioSpecResponse = undefined;

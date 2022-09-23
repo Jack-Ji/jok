@@ -2,12 +2,12 @@ const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
 const font = jok.font;
-const gfx = jok.gfx.@"3d";
-const zmath = gfx.zmath;
-const Scene = gfx.Scene;
+const j3d = jok.j3d;
+const zmath = j3d.zmath;
+const Scene = j3d.Scene;
 
-var camera: gfx.Camera = undefined;
-var sphere: gfx.zmesh.Shape = undefined;
+var camera: j3d.Camera = undefined;
+var sphere: j3d.zmesh.Shape = undefined;
 var scene: *Scene = undefined;
 var earth_orbit: *Scene.Object = undefined;
 var moon_orbit: *Scene.Object = undefined;
@@ -18,7 +18,7 @@ var moon: *Scene.Object = undefined;
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
-    camera = gfx.Camera.fromPositionAndTarget(
+    camera = j3d.Camera.fromPositionAndTarget(
         .{
             .perspective = .{
                 .fov = std.math.pi / 4.0,
@@ -31,7 +31,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         [_]f32{ 0, 0, 0 },
         null,
     );
-    sphere = gfx.zmesh.Shape.initSubdividedSphere(2);
+    sphere = j3d.zmesh.Shape.initSubdividedSphere(2);
     sphere.computeNormals();
 
     // Init solar system
@@ -115,8 +115,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.clear();
 
-    var lighting_opt = gfx.TriangleRenderer.LightingOption{};
-    lighting_opt.lights[0] = gfx.TriangleRenderer.Light{
+    var lighting_opt = j3d.TriangleRenderer.LightingOption{};
+    lighting_opt.lights[0] = j3d.TriangleRenderer.Light{
         .point = .{
             .position = zmath.f32x4s(0),
             .attenuation_linear = 0,

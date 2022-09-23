@@ -1,7 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
-const jok = @import("../../jok.zig");
 const Self = @This();
 
 // Position of camera's center

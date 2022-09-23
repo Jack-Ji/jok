@@ -2,11 +2,11 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const sdl = @import("sdl");
-const jok = @import("../../jok.zig");
+const jok = @import("../jok.zig");
 const zmesh = jok.deps.zmesh;
-const @"3d" = jok.gfx.@"3d";
-const zmath = @"3d".zmath;
-const Camera = @"3d".Camera;
+const j3d = jok.j3d;
+const zmath = j3d.zmath;
+const Camera = j3d.Camera;
 const Self = @This();
 
 // Box shape: right/left/top/bottom/front/back

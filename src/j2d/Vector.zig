@@ -1,7 +1,6 @@
 const std = @import("std");
 const math = std.math;
-const jok = @import("../../jok.zig");
-const gfx = jok.gfx;
+const jok = @import("../jok.zig");
 const Self = @This();
 
 data: @Vector(2, f32),
@@ -74,7 +73,7 @@ pub fn toArray(self: Self) [2]f32 {
 /// Return the angle (in degrees) between two vectors.
 pub fn getAngle(first_vector: Self, second_vector: Self) f32 {
     const dot_product = dot(norm(first_vector), norm(second_vector));
-    return gfx.utils.radianToDegree(math.acos(dot_product));
+    return jok.utils.math.radianToDegree(math.acos(dot_product));
 }
 
 /// Return the length (magnitude) of given vector.

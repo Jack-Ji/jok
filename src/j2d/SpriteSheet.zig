@@ -4,8 +4,7 @@ const json = std.json;
 const native_endian = @import("builtin").target.cpu.arch.endian();
 const sdl = @import("sdl");
 const Sprite = @import("Sprite.zig");
-const jok = @import("../../jok.zig");
-const gfx = jok.gfx;
+const jok = @import("../jok.zig");
 const stb_rect_pack = jok.deps.stb.rect_pack;
 const stb_image = jok.deps.stb.image;
 const Self = @This();
@@ -118,13 +117,13 @@ pub fn init(
                         .data = image_data[0..@intCast(usize, image_len)],
                         .width = @intCast(u32, image_width),
                         .height = @intCast(u32, image_height),
-                        .format = gfx.utils.getFormatByEndian(),
+                        .format = jok.utils.gfx.getFormatByEndian(),
                     },
                 };
             },
             .pixels => |ps| {
                 assert(ps.data.len > 0 and ps.width > 0 and ps.height > 0);
-                const channels = gfx.utils.getChannels(ps.format);
+                const channels = jok.utils.gfx.getChannels(ps.format);
                 assert(channels == 4);
                 assert(ps.data.len == ps.width * ps.height * channels);
                 images[i] = .{
@@ -194,10 +193,10 @@ pub fn init(
             );
         }
     }
-    var tex = try gfx.utils.createTextureFromPixels(
+    var tex = try jok.utils.gfx.createTextureFromPixels(
         ctx.renderer,
         pixels,
-        gfx.utils.getFormatByEndian(),
+        jok.utils.gfx.getFormatByEndian(),
         .static,
         width,
         height,
@@ -220,7 +219,7 @@ pub fn init(
             .width = width,
             .height = height,
             .data = pixels,
-            .format = gfx.utils.getFormatByEndian(),
+            .format = jok.utils.gfx.getFormatByEndian(),
         } else blk: {
             ctx.allocator.free(pixels);
             break :blk null;
@@ -288,7 +287,7 @@ pub fn fromSheetFiles(ctx: *jok.Context, path: []const u8) !*Self {
 
     // Load texture
     const image_path = try std.fmt.bufPrintZ(&path_buf, "{s}.png", .{path});
-    var tex = try gfx.utils.createTextureFromFile(
+    var tex = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
         image_path,
         .static,
@@ -352,7 +351,7 @@ pub fn fromSinglePicture(
     path: [:0]const u8,
     sprites: []const SpriteInfo,
 ) !*Self {
-    var tex = try gfx.utils.createTextureFromFile(
+    var tex = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
         path,
         .static,
@@ -418,7 +417,7 @@ pub fn saveToFiles(self: Self, path: []const u8) !void {
 
     // Save image file
     const image_path = try std.fmt.bufPrintZ(&path_buf, "{s}.png", .{path});
-    try gfx.utils.savePixelsToFile(
+    try jok.utils.gfx.savePixelsToFile(
         self.packed_pixels.?.data,
         self.packed_pixels.?.width,
         self.packed_pixels.?.height,

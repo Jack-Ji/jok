@@ -2,18 +2,18 @@ const std = @import("std");
 const jok = @import("jok");
 const sdl = @import("sdl");
 const font = jok.font;
-const gfx = jok.gfx.@"2d";
+const j2d = jok.j2d;
 
-var sheet: *gfx.SpriteSheet = undefined;
-var sb: *gfx.SpriteBatch = undefined;
-var camera: gfx.Camera = undefined;
+var sheet: *j2d.SpriteSheet = undefined;
+var sb: *j2d.SpriteBatch = undefined;
+var camera: j2d.Camera = undefined;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
     // create sprite sheet
     const size = ctx.getFramebufferSize();
-    sheet = try gfx.SpriteSheet.fromPicturesInDir(
+    sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
         "assets/images",
         size.w,
@@ -22,22 +22,22 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         true,
         .{},
     );
-    //sheet = try gfx.SpriteSheet.fromSheetFiles(
+    //sheet = try j2d.SpriteSheet.fromSheetFiles(
     //    ctx.allocator,
     //    ctx.renderer,
     //    "sheet",
     //);
-    sb = try gfx.SpriteBatch.init(
+    sb = try j2d.SpriteBatch.init(
         ctx,
         10,
         1000,
     );
 
-    camera = gfx.Camera.fromViewport(ctx.renderer.getViewport());
+    camera = j2d.Camera.fromViewport(ctx.renderer.getViewport());
 }
 
 pub fn loop(ctx: *jok.Context) anyerror!void {
-    const bounds = gfx.Camera.CoordLimit{
+    const bounds = j2d.Camera.CoordLimit{
         .min_x = -10,
         .min_y = -10,
         .max_x = 1200,

@@ -5,8 +5,7 @@ const builtin = @import("builtin");
 const sdl = @import("sdl");
 const jok = @import("jok");
 const imgui = jok.deps.imgui;
-const gfx = jok.gfx.@"2d";
-const primitive = gfx.primitive;
+const primitive = jok.j2d.primitive;
 
 pub const jok_window_resizable = true;
 

@@ -1,18 +1,18 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
-const gfx = jok.gfx.@"2d";
+const j2d = jok.j2d;
 
 pub const jok_fps_limit = jok.config.FpsLimit{ .manual = 120 };
 
 const Actor = struct {
-    sprite: gfx.Sprite,
+    sprite: j2d.Sprite,
     pos: sdl.PointF,
     velocity: sdl.PointF,
 };
 
-var sheet: *gfx.SpriteSheet = undefined;
-var sb: *gfx.SpriteBatch = undefined;
+var sheet: *j2d.SpriteSheet = undefined;
+var sb: *j2d.SpriteBatch = undefined;
 var characters: std.ArrayList(Actor) = undefined;
 var rand_gen: std.rand.DefaultPrng = undefined;
 var delta_tick: f32 = 0;
@@ -23,9 +23,9 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     const size = ctx.getFramebufferSize();
 
     // create sprite sheet
-    sheet = try gfx.SpriteSheet.init(
+    sheet = try j2d.SpriteSheet.init(
         ctx,
-        &[_]gfx.SpriteSheet.ImageSource{
+        &[_]j2d.SpriteSheet.ImageSource{
             .{
                 .name = "ogre",
                 .image = .{
@@ -38,7 +38,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         1,
         false,
     );
-    sb = try gfx.SpriteBatch.init(
+    sb = try j2d.SpriteBatch.init(
         ctx,
         10,
         1000000,

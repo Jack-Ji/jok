@@ -2,8 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
 const SpriteSheet = @import("SpriteSheet.zig");
-const jok = @import("../../jok.zig");
-const gfx = jok.gfx;
+const jok = @import("../jok.zig");
 const zmath = jok.zmath;
 const Self = @This();
 

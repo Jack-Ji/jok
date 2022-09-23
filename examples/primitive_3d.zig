@@ -7,9 +7,8 @@ const jok = @import("jok");
 const imgui = jok.deps.imgui;
 const zmath = jok.zmath;
 const font = jok.font;
-const gfx = jok.gfx.@"3d";
-const primitive = gfx.primitive;
-const Camera = gfx.Camera;
+const primitive = jok.j3d.primitive;
+const Camera = jok.j3d.Camera;
 
 pub const jok_window_width = 1600;
 pub const jok_window_height = 900;

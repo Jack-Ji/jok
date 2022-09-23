@@ -3,11 +3,11 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const imgui = jok.deps.imgui;
 const font = jok.font;
-const gfx = jok.gfx.@"3d";
-const primitive = gfx.primitive;
+const j3d = jok.j3d;
+const primitive = j3d.primitive;
 
-var camera: gfx.Camera = undefined;
-var cube: gfx.zmesh.Shape = undefined;
+var camera: j3d.Camera = undefined;
+var cube: j3d.zmesh.Shape = undefined;
 var tex: sdl.Texture = undefined;
 var texcoords = [_][2]f32{
     .{ 0, 1 },
@@ -20,7 +20,7 @@ var texcoords = [_][2]f32{
     .{ 1, 0 },
 };
 var skybox_textures: [6]sdl.Texture = undefined;
-var skybox_rd: gfx.SkyboxRenderer = undefined;
+var skybox_rd: j3d.SkyboxRenderer = undefined;
 var skybox_tint_color: sdl.Color = sdl.Color.white;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
@@ -28,7 +28,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 
     try imgui.init(ctx);
 
-    camera = gfx.Camera.fromPositionAndTarget(
+    camera = j3d.Camera.fromPositionAndTarget(
         .{
             //.orthographic = .{
             //    .width = 2 * ctx.getAspectRatio(),
@@ -47,53 +47,53 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         [_]f32{ 0, 0, 0 },
         null,
     );
-    cube = gfx.zmesh.Shape.initCube();
+    cube = j3d.zmesh.Shape.initCube();
     cube.computeNormals();
     cube.texcoords = texcoords[0..];
-    tex = try jok.gfx.utils.createTextureFromFile(
+    tex = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
         "assets/images/image5.jpg",
         .static,
         false,
     );
 
-    skybox_textures[0] = try jok.gfx.utils.createTextureFromFile(
+    skybox_textures[0] = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
         "assets/images/skybox/right.jpg",
         .static,
         true,
     );
-    skybox_textures[1] = try jok.gfx.utils.createTextureFromFile(
+    skybox_textures[1] = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
         "assets/images/skybox/left.jpg",
         .static,
         true,
     );
-    skybox_textures[2] = try jok.gfx.utils.createTextureFromFile(
+    skybox_textures[2] = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
         "assets/images/skybox/top.jpg",
         .static,
         true,
     );
-    skybox_textures[3] = try jok.gfx.utils.createTextureFromFile(
+    skybox_textures[3] = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
         "assets/images/skybox/bottom.jpg",
         .static,
         true,
     );
-    skybox_textures[4] = try jok.gfx.utils.createTextureFromFile(
+    skybox_textures[4] = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
         "assets/images/skybox/front.jpg",
         .static,
         true,
     );
-    skybox_textures[5] = try jok.gfx.utils.createTextureFromFile(
+    skybox_textures[5] = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
         "assets/images/skybox/back.jpg",
         .static,
         true,
     );
-    skybox_rd = gfx.SkyboxRenderer.init(ctx.allocator, .{});
+    skybox_rd = j3d.SkyboxRenderer.init(ctx.allocator, .{});
 
     try primitive.init(ctx, null);
     try ctx.renderer.setColorRGB(77, 77, 77);
@@ -147,11 +147,11 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     primitive.clear();
     try primitive.addShape(
         cube,
-        gfx.zmath.mul(
-            gfx.zmath.translation(-0.5, -0.5, -0.5),
-            gfx.zmath.mul(
-                gfx.zmath.scaling(0.5, 0.5, 0.5),
-                gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi),
+        j3d.zmath.mul(
+            j3d.zmath.translation(-0.5, -0.5, -0.5),
+            j3d.zmath.mul(
+                j3d.zmath.scaling(0.5, 0.5, 0.5),
+                j3d.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi),
             ),
         ),
         camera,
@@ -163,9 +163,9 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     primitive.clear();
     try primitive.addShape(
         cube,
-        gfx.zmath.mul(
-            gfx.zmath.translation(-0.5, -0.5, -0.5),
-            gfx.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi / 3.0),
+        j3d.zmath.mul(
+            j3d.zmath.translation(-0.5, -0.5, -0.5),
+            j3d.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi / 3.0),
         ),
         camera,
         null,

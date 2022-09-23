@@ -1,18 +1,18 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = @import("sdl");
-const gfx = jok.gfx.@"2d";
+const j2d = jok.j2d;
 
-var sheet: *gfx.SpriteSheet = undefined;
-var sb: *gfx.SpriteBatch = undefined;
-var as: *gfx.AnimationSystem = undefined;
+var sheet: *j2d.SpriteSheet = undefined;
+var sb: *j2d.SpriteBatch = undefined;
+var as: *j2d.AnimationSystem = undefined;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
     // create sprite sheet
     const size = ctx.getFramebufferSize();
-    sheet = try gfx.SpriteSheet.fromPicturesInDir(
+    sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
         "assets/images",
         size.w,
@@ -21,18 +21,18 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         true,
         .{},
     );
-    sb = try gfx.SpriteBatch.init(
+    sb = try j2d.SpriteBatch.init(
         ctx,
         10,
         1000,
     );
-    as = try gfx.AnimationSystem.init(ctx.allocator);
+    as = try j2d.AnimationSystem.init(ctx.allocator);
     const player = try sheet.getSpriteByName("player");
     try as.add(
         "player_left_right",
-        try gfx.AnimationSystem.Animation.init(
+        try j2d.AnimationSystem.Animation.init(
             ctx.allocator,
-            &[_]gfx.Sprite{
+            &[_]j2d.Sprite{
                 player.getSubSprite(4 * 16, 0, 16, 16),
                 player.getSubSprite(3 * 16, 0, 16, 16),
                 player.getSubSprite(5 * 16, 0, 16, 16),
@@ -44,9 +44,9 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     );
     try as.add(
         "player_up",
-        try gfx.AnimationSystem.Animation.init(
+        try j2d.AnimationSystem.Animation.init(
             ctx.allocator,
-            &[_]gfx.Sprite{
+            &[_]j2d.Sprite{
                 player.getSubSprite(7 * 16, 0, 16, 16),
                 player.getSubSprite(6 * 16, 0, 16, 16),
                 player.getSubSprite(8 * 16, 0, 16, 16),
@@ -58,9 +58,9 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     );
     try as.add(
         "player_down",
-        try gfx.AnimationSystem.Animation.init(
+        try j2d.AnimationSystem.Animation.init(
             ctx.allocator,
-            &[_]gfx.Sprite{
+            &[_]j2d.Sprite{
                 player.getSubSprite(1 * 16, 0, 16, 16),
                 player.getSubSprite(0 * 16, 0, 16, 16),
                 player.getSubSprite(2 * 16, 0, 16, 16),

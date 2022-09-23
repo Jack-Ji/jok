@@ -7,7 +7,7 @@ var tex: sdl.Texture = undefined;
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
-    tex = try jok.gfx.utils.createTextureFromFile(
+    tex = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
         "assets/images/jok.png",
         .static,

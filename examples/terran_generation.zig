@@ -5,13 +5,13 @@ const builtin = @import("builtin");
 const sdl = @import("sdl");
 const jok = @import("jok");
 const imgui = jok.deps.imgui;
+const znoise = jok.deps.znoise;
 const zmath = jok.zmath;
-const znoise = jok.znoise;
 const font = jok.font;
-const gfx = jok.gfx.@"3d";
-const zmesh = gfx.zmesh;
-const primitive = gfx.primitive;
-const Camera = gfx.Camera;
+const j3d = jok.j3d;
+const zmesh = j3d.zmesh;
+const primitive = j3d.primitive;
+const Camera = j3d.Camera;
 
 pub const jok_window_resizable = true;
 pub const jok_window_width = 1600;
@@ -122,7 +122,7 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     imgui.end();
     imgui.endFrame();
 
-    var lighting_opt = gfx.TriangleRenderer.LightingOption{};
+    var lighting_opt = j3d.TriangleRenderer.LightingOption{};
     lighting_opt.lights[0] = .{
         .point = .{
             .position = zmath.f32x4(light_pos[0], light_pos[1], light_pos[2], 1),

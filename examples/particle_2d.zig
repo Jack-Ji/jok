@@ -1,22 +1,22 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
-const gfx = jok.gfx.@"2d";
+const j2d = jok.j2d;
 
 var rd: std.rand.DefaultPrng = undefined;
-var sheet: *gfx.SpriteSheet = undefined;
-var sb: *gfx.SpriteBatch = undefined;
-var ps: *gfx.ParticleSystem = undefined;
+var sheet: *j2d.SpriteSheet = undefined;
+var sb: *j2d.SpriteBatch = undefined;
+var ps: *j2d.ParticleSystem = undefined;
 
 // fire effect
-const emitter1 = gfx.ParticleSystem.Effect.FireEmitter(
+const emitter1 = j2d.ParticleSystem.Effect.FireEmitter(
     50,
     3,
     sdl.Color.red,
     sdl.Color.yellow,
     2.75,
 );
-const emitter2 = gfx.ParticleSystem.Effect.FireEmitter(
+const emitter2 = j2d.ParticleSystem.Effect.FireEmitter(
     50,
     3,
     sdl.Color.red,
@@ -28,9 +28,9 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
     rd = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
-    sheet = try gfx.SpriteSheet.init(
+    sheet = try j2d.SpriteSheet.init(
         ctx,
-        &[_]gfx.SpriteSheet.ImageSource{
+        &[_]j2d.SpriteSheet.ImageSource{
             .{
                 .name = "particle",
                 .image = .{
@@ -43,19 +43,19 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         1,
         false,
     );
-    sb = try gfx.SpriteBatch.init(
+    sb = try j2d.SpriteBatch.init(
         ctx,
         1,
         10000,
     );
-    ps = try gfx.ParticleSystem.init(ctx.allocator);
+    ps = try j2d.ParticleSystem.init(ctx.allocator);
     emitter1.sprite = try sheet.getSpriteByName("particle");
     emitter2.sprite = try sheet.getSpriteByName("particle");
     try ps.addEffect(
         rd.random(),
         8000,
         emitter1.emit,
-        gfx.Vector.new(400, 500),
+        j2d.Vector.new(400, 500),
         60,
         40,
         0.016,
@@ -64,7 +64,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         rd.random(),
         2000,
         emitter2.emit,
-        gfx.Vector.new(200, 500),
+        j2d.Vector.new(200, 500),
         60,
         10,
         0.016,
@@ -72,10 +72,10 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 }
 
 pub fn loop(ctx: *jok.Context) anyerror!void {
-    if (ctx.isKeyPressed(.up)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(gfx.Vector.new(0, -10));
-    if (ctx.isKeyPressed(.down)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(gfx.Vector.new(0, 10));
-    if (ctx.isKeyPressed(.left)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(gfx.Vector.new(-10, 0));
-    if (ctx.isKeyPressed(.right)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(gfx.Vector.new(10, 0));
+    if (ctx.isKeyPressed(.up)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, -10));
+    if (ctx.isKeyPressed(.down)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, 10));
+    if (ctx.isKeyPressed(.left)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(-10, 0));
+    if (ctx.isKeyPressed(.right)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(10, 0));
 
     while (ctx.pollEvent()) |e| {
         switch (e) {

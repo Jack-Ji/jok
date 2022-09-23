@@ -3,7 +3,6 @@ const assert = std.debug.assert;
 const unicode = std.unicode;
 const sdl = @import("sdl");
 const jok = @import("../jok.zig");
-const gfx = jok.gfx;
 const truetype = jok.deps.stb.truetype;
 const Atlas = @This();
 
@@ -82,10 +81,10 @@ pub fn init(
     }
 
     // Create texture
-    var tex = try gfx.utils.createTextureFromPixels(
+    var tex = try jok.utils.gfx.createTextureFromPixels(
         renderer,
         real_pixels,
-        gfx.utils.getFormatByEndian(),
+        jok.utils.gfx.getFormatByEndian(),
         .static,
         atlas_size,
         atlas_size,

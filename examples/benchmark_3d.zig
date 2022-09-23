@@ -2,14 +2,14 @@ const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
 const font = jok.font;
-const gfx = jok.gfx.@"3d";
-const zmath = gfx.zmath;
-const primitive = gfx.primitive;
+const j3d = jok.j3d;
+const zmath = j3d.zmath;
+const primitive = j3d.primitive;
 
 pub const jok_fps_limit = jok.config.FpsLimit.none;
 
-var camera: gfx.Camera = undefined;
-var cube: gfx.zmesh.Shape = undefined;
+var camera: j3d.Camera = undefined;
+var cube: j3d.zmesh.Shape = undefined;
 var aabb: [6]f32 = undefined;
 var tex: sdl.Texture = undefined;
 var translations: std.ArrayList(zmath.Mat) = undefined;
@@ -28,7 +28,7 @@ var texcoords = [_][2]f32{
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
-    camera = gfx.Camera.fromPositionAndTarget(
+    camera = j3d.Camera.fromPositionAndTarget(
         .{
             //.orthographic = .{
             //    .width = 2 * ctx.getAspectRatio(),
@@ -47,13 +47,13 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         [_]f32{ 0, 0, 0 },
         null,
     );
-    cube = gfx.zmesh.Shape.initCube();
+    cube = j3d.zmesh.Shape.initCube();
     cube.computeAabb(&aabb);
     cube.computeNormals();
     cube.texcoords = texcoords[0..];
     try primitive.init(ctx, null);
 
-    tex = try jok.gfx.utils.createTextureFromFile(
+    tex = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
         "assets/images/image5.jpg",
         .static,

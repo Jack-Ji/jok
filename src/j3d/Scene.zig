@@ -4,10 +4,10 @@ const math = std.math;
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
 const sdl = @import("sdl");
-const jok = @import("../../jok.zig");
-const @"3d" = jok.gfx.@"3d";
-const zmath = @"3d".zmath;
-const zmesh = @"3d".zmesh;
+const jok = @import("../jok.zig");
+const j3d = jok.j3d;
+const zmath = j3d.zmath;
+const zmesh = j3d.zmesh;
 const Self = @This();
 
 /// Represent a position in 3d space

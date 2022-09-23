@@ -6,9 +6,9 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const imgui = jok.deps.imgui;
 const zmath = jok.zmath;
-const gfx = jok.gfx.@"3d";
-const primitive = gfx.primitive;
-const Camera = gfx.Camera;
+const j3d = jok.j3d;
+const primitive = j3d.primitive;
+const Camera = j3d.Camera;
 
 pub const jok_window_resizable = true;
 pub const jok_window_width = 1600;
@@ -37,7 +37,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         null,
     );
 
-    tex = try jok.gfx.utils.createTextureFromFile(
+    tex = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
         "assets/images/image5.jpg",
         .static,
