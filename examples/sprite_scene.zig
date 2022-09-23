@@ -35,7 +35,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         .render_opt = .{
             .pos = .{ .x = 400, .y = 300 },
         },
-    });
+    }, null);
     ogre2 = try j2d.Scene.Object.init(ctx.allocator, .{
         .sprite = try sheet.getSpriteByName("ogre"),
         .render_opt = .{
@@ -43,7 +43,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
             .scale_w = 0.5,
             .scale_h = 0.5,
         },
-    });
+    }, null);
     try ogre1.addChild(ogre2);
     try scene.root.addChild(ogre1);
 

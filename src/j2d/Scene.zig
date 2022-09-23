@@ -39,17 +39,19 @@ pub const Object = struct {
     allocator: std.mem.Allocator,
     actor: Actor,
     render_opt: Sprite.DrawOption,
+    depth: f32,
     parent: ?*Object = null,
     children: std.ArrayList(*Object),
 
     /// Create an object
-    pub fn init(allocator: std.mem.Allocator, actor: Actor) !*Object {
+    pub fn init(allocator: std.mem.Allocator, actor: Actor, depth: ?f32) !*Object {
         var o = try allocator.create(Object);
         errdefer allocator.destroy(o);
         o.* = .{
             .allocator = allocator,
             .actor = actor,
             .render_opt = actor.render_opt,
+            .depth = depth orelse 0.5,
             .children = std.ArrayList(*Object).init(allocator),
         };
         return o;
@@ -145,7 +147,7 @@ pub fn init(allocator: std.mem.Allocator, sb: *SpriteBatch) !*Self {
     errdefer self.arena.deinit();
     self.root = try Object.init(self.arena.allocator(), .{
         .render_opt = .{ .pos = .{ .x = 0, .y = 0 } },
-    });
+    }, null);
     errdefer self.root.deinit(false);
     self.sb = sb;
     return self;
@@ -177,6 +179,7 @@ fn submitObject(self: *Self, camera: Camera, o: *Object) !void {
                 .flip_v = o.render_opt.flip_v,
                 .rotate_degree = o.render_opt.rotate_degree,
                 .anchor_point = o.render_opt.anchor_point,
+                .depth = o.depth,
             });
         }
     }
