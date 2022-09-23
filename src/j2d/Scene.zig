@@ -8,18 +8,37 @@ const Sprite = @import("Sprite.zig");
 const SpriteBatch = @import("SpriteBatch.zig");
 const Self = @This();
 
+const RenderCallback = *const fn (s: Sprite, sb: *SpriteBatch, opt: Sprite.DrawOption, custom: ?*anyopaque) anyerror!void;
+
+/// A movable object in 2d space
 pub const Actor = struct {
     sprite: ?Sprite = null,
-    opt: Sprite.DrawOption,
-    render: *const fn (sb: *SpriteBatch, opt: Sprite.DrawOption) void,
+    render_cb: ?RenderCallback = null,
+    custom: ?*anyopaque = null,
+    render_opt: Sprite.DrawOption,
+
+    fn getRenderOptions(actor: Actor, parent_opt: Sprite.DrawOption) Sprite.DrawOption {
+        return .{
+            .pos = .{
+                .x = parent_opt.pos.x + actor.render_opt.pos.x,
+                .y = parent_opt.pos.y + actor.render_opt.pos.y,
+            },
+            .tint_color = actor.render_opt.tint_color,
+            .scale_w = parent_opt.scale_w * actor.render_opt.scale_w,
+            .scale_h = parent_opt.scale_h * actor.render_opt.scale_h,
+            .rotate_degree = parent_opt.rotate_degree + actor.render_opt.rotate_degree,
+            .anchor_point = actor.render_opt.anchor_point,
+            .flip_h = if (parent_opt.flip_h) !actor.render_opt.flip_h else actor.render_opt.flip_h,
+            .flip_v = if (parent_opt.flip_v) !actor.render_opt.flip_v else actor.render_opt.flip_v,
+        };
+    }
 };
 
-/// Represent an object in 2d space
+/// Represent an abstract object in 2d space
 pub const Object = struct {
     allocator: std.mem.Allocator,
-    pos: sdl.PointF,
     actor: Actor,
-    opt: Sprite.DrawOption,
+    render_opt: Sprite.DrawOption,
     parent: ?*Object = null,
     children: std.ArrayList(*Object),
 
@@ -30,7 +49,7 @@ pub const Object = struct {
         o.* = .{
             .allocator = allocator,
             .actor = actor,
-            .opt = actor.opt,
+            .render_opt = actor.render_opt,
             .children = std.ArrayList(*Object).init(allocator),
         };
         return o;
@@ -100,17 +119,17 @@ pub const Object = struct {
     /// Update all objects' render options
     pub fn updateRenderOptions(o: *Object) void {
         assert(o.parent != null);
-        o.transform = o.uo.calcTransform(o.parent.?.transform);
+        o.render_opt = o.actor.getRenderOptions(o.parent.?.render_opt);
         for (o.children.items) |c| {
             c.updateRenderOptions();
         }
     }
 
-    // Change object's transform matrix, and update it's children accordingly
-    //pub fn setTransform(o: *Object, m: zmath.Mat) void {
-    //    o.uo.setTransform(m);
-    //    o.updateTransforms();
-    //}
+    // Change object's rendering option
+    pub fn setRenderOptions(o: *Object, opt: Sprite.DrawOption) void {
+        o.actor.render_opt = opt;
+        o.updateRenderOptions();
+    }
 };
 
 allocator: std.mem.Allocator,
@@ -124,7 +143,9 @@ pub fn init(allocator: std.mem.Allocator, sb: *SpriteBatch) !*Self {
     self.allocator = allocator;
     self.arena = std.heap.ArenaAllocator.init(allocator);
     errdefer self.arena.deinit();
-    self.root = try Object.init(self.arena.allocator(), .{ .position = .{} });
+    self.root = try Object.init(self.arena.allocator(), .{
+        .render_opt = .{ .pos = .{ .x = 0, .y = 0 } },
+    });
     errdefer self.root.deinit(false);
     self.sb = sb;
     return self;
@@ -132,23 +153,33 @@ pub fn init(allocator: std.mem.Allocator, sb: *SpriteBatch) !*Self {
 
 pub fn deinit(self: *Self, destroy_objects: bool) void {
     self.root.deinit(destroy_objects);
-    self.tri_rd.deinit();
     self.arena.deinit();
     self.allocator.destroy(self);
 }
 
-/// Update and render the scene
-pub const RenderOption = struct {
-    texture: ?sdl.Texture = null,
-    wireframe: bool = false,
-    wireframe_color: sdl.Color = sdl.Color.green,
-    cull_faces: bool = true,
-};
-pub fn render(self: *Self, renderer: sdl.Renderer, camera: Camera, opt: RenderOption) !void {
-    try self.addObjectToRenderer(renderer, camera, self.root, opt);
-    if (opt.wireframe) {
-        try self.tri_rd.drawWireframe(renderer, opt.wireframe_color);
-    } else {
-        try self.tri_rd.draw(renderer, opt.texture);
+/// Batch all sprites for rendering
+pub fn draw(self: *Self, camera: Camera) !void {
+    try self.submitObject(camera, self.root);
+}
+
+fn submitObject(self: *Self, camera: Camera, o: *Object) !void {
+    if (o.actor.sprite) |s| {
+        if (o.actor.render_cb) |cb| {
+            try cb(s, self.sb, o.render_opt, o.actor.custom);
+        } else {
+            try self.sb.drawSprite(s, .{
+                .pos = o.render_opt.pos,
+                .camera = camera,
+                .tint_color = o.render_opt.tint_color,
+                .scale_w = o.render_opt.scale_w,
+                .scale_h = o.render_opt.scale_h,
+                .flip_h = o.render_opt.flip_h,
+                .flip_v = o.render_opt.flip_v,
+                .rotate_degree = o.render_opt.rotate_degree,
+                .anchor_point = o.render_opt.anchor_point,
+            });
+        }
     }
+
+    for (o.children.items) |c| try self.submitObject(camera, c);
 }

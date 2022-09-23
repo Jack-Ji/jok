@@ -31,6 +31,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "imgui_demo", .opt = .{ .link_imgui = true } },
         .{ .name = "chipmunk_demo", .opt = .{ .link_chipmunk = true } },
         .{ .name = "sprite_sheet", .opt = .{} },
+        .{ .name = "sprite_scene", .opt = .{} },
         .{ .name = "sprite_benchmark", .opt = .{} },
         .{ .name = "particle_2d", .opt = .{} },
         .{ .name = "animation_2d", .opt = .{} },
