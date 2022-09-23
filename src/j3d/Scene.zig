@@ -24,49 +24,49 @@ pub const Mesh = struct {
     disable_lighting: bool = false,
 };
 
-/// Universal object
-pub const UO = union(enum) {
+/// A movable object in 3d space
+pub const Actor = union(enum) {
     position: Position,
     mesh: Mesh,
 
-    inline fn calcTransform(uo: UO, parent_m: zmath.Mat) zmath.Mat {
-        return switch (uo) {
+    inline fn calcTransform(actor: Actor, parent_m: zmath.Mat) zmath.Mat {
+        return switch (actor) {
             .position => |p| zmath.mul(p.transform, parent_m),
             .mesh => |m| zmath.mul(m.transform, parent_m),
         };
     }
 
-    inline fn setTransform(uo: *UO, _m: zmath.Mat) void {
-        return switch (uo.*) {
+    inline fn setTransform(actor: *Actor, _m: zmath.Mat) void {
+        return switch (actor.*) {
             .position => |*p| p.transform = _m,
             .mesh => |*m| m.transform = _m,
         };
     }
 
-    inline fn getTransform(uo: UO) zmath.Mat {
-        return switch (uo) {
+    inline fn getTransform(actor: Actor) zmath.Mat {
+        return switch (actor) {
             .position => |p| p.transform,
             .mesh => |m| m.transform,
         };
     }
 };
 
-/// Represent an object in 3d space
+/// Represent an abstract object in 3d space
 pub const Object = struct {
     allocator: std.mem.Allocator,
-    uo: UO,
+    actor: Actor,
     transform: zmath.Mat,
     parent: ?*Object,
     children: std.ArrayList(*Object),
 
     /// Create an object
-    pub fn init(allocator: std.mem.Allocator, uo: UO) !*Object {
+    pub fn init(allocator: std.mem.Allocator, actor: Actor) !*Object {
         var o = try allocator.create(Object);
         errdefer allocator.destroy(o);
         o.* = .{
             .allocator = allocator,
-            .uo = uo,
-            .transform = uo.getTransform(),
+            .actor = actor,
+            .transform = actor.getTransform(),
             .parent = null,
             .children = std.ArrayList(*Object).init(allocator),
         };
@@ -137,7 +137,7 @@ pub const Object = struct {
     /// Update all objects' transform matrix in tree
     pub fn updateTransforms(o: *Object) void {
         assert(o.parent != null);
-        o.transform = o.uo.calcTransform(o.parent.?.transform);
+        o.transform = o.actor.calcTransform(o.parent.?.transform);
         for (o.children.items) |c| {
             c.updateTransforms();
         }
@@ -145,7 +145,7 @@ pub const Object = struct {
 
     /// Change object's transform matrix, and update it's children accordingly
     pub fn setTransform(o: *Object, m: zmath.Mat) void {
-        o.uo.setTransform(m);
+        o.actor.setTransform(m);
         o.updateTransforms();
     }
 };
@@ -203,7 +203,7 @@ pub fn render(self: *Self, renderer: sdl.Renderer, camera: Camera, opt: RenderOp
 }
 
 fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *Object, opt: RenderOption) !void {
-    switch (o.uo) {
+    switch (o.actor) {
         .position => {},
         .mesh => |m| {
             self.colors.clearRetainingCapacity();

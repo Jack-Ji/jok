@@ -16,6 +16,9 @@ pub const ParticleSystem = @import("j2d/ParticleSystem.zig");
 /// Animation system
 pub const AnimationSystem = @import("j2d/AnimationSystem.zig");
 
+/// Scene system
+pub const Scene = @import("j2d/Scene.zig");
+
 /// 2d vector
 pub const Vector = @import("j2d/Vector.zig");
 
