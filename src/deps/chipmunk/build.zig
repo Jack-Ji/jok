@@ -14,7 +14,7 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
     lib.setBuildMode(exe.build_mode);
     lib.setTarget(exe.target);
     lib.linkLibC();
-    lib.addIncludeDir(comptime thisDir() ++ "/c/include");
+    lib.addIncludePath(comptime thisDir() ++ "/c/include");
     lib.addCSourceFiles(&.{
         comptime thisDir() ++ "/c/src/chipmunk.c",
         comptime thisDir() ++ "/c/src/cpArbiter.c",

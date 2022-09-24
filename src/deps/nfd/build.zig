@@ -23,7 +23,7 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
         lib.linkSystemLibrary("glib-2.0");
         lib.linkSystemLibrary("gobject-2.0");
     }
-    lib.addIncludeDir(comptime thisDir() ++ "/c/include");
+    lib.addIncludePath(comptime thisDir() ++ "/c/include");
     lib.addCSourceFile(comptime thisDir() ++ "/c/nfd_common.c", flags.items);
     if (exe.target.isDarwin()) {
         lib.addCSourceFile(comptime thisDir() ++ "/c/nfd_cocoa.m", flags.items);

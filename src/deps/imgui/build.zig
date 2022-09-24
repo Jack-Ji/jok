@@ -17,7 +17,7 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
         lib.linkSystemLibrary("imm32");
         lib.linkSystemLibrary("gdi32");
     }
-    lib.addIncludeDir(comptime thisDir() ++ "/c");
+    lib.addIncludePath(comptime thisDir() ++ "/c");
     lib.addCSourceFiles(&.{
         comptime thisDir() ++ "/c/imgui.cpp",
         comptime thisDir() ++ "/c/imgui_demo.cpp",
