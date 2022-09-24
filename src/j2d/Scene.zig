@@ -8,7 +8,13 @@ const Sprite = @import("Sprite.zig");
 const SpriteBatch = @import("SpriteBatch.zig");
 const Self = @This();
 
-const RenderCallback = *const fn (s: Sprite, sb: *SpriteBatch, opt: Sprite.DrawOption, custom: ?*anyopaque) anyerror!void;
+const RenderCallback = *const fn (
+    camera: Camera,
+    s: Sprite,
+    sb: *SpriteBatch,
+    opt: Sprite.DrawOption,
+    custom: ?*anyopaque,
+) anyerror!void;
 
 /// A movable object in 2d space
 pub const Actor = struct {
@@ -172,7 +178,7 @@ pub fn draw(self: *Self, camera: Camera) !void {
 fn submitObject(self: *Self, camera: Camera, o: *Object) !void {
     if (o.actor.sprite) |s| {
         if (o.actor.render_cb) |cb| {
-            try cb(s, self.sb, o.render_opt, o.actor.custom);
+            try cb(camera, s, self.sb, o.render_opt, o.actor.custom);
         } else {
             try self.sb.drawSprite(s, .{
                 .pos = o.render_opt.pos,
