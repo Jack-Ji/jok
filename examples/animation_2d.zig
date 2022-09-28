@@ -34,7 +34,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
             ctx.allocator,
             &[_]j2d.Sprite{
                 player.getSubSprite(4 * 16, 0, 16, 16),
-                player.getSubSprite(3 * 16, 0, 16, 16),
                 player.getSubSprite(5 * 16, 0, 16, 16),
                 player.getSubSprite(3 * 16, 0, 16, 16),
             },
@@ -48,7 +47,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
             ctx.allocator,
             &[_]j2d.Sprite{
                 player.getSubSprite(7 * 16, 0, 16, 16),
-                player.getSubSprite(6 * 16, 0, 16, 16),
                 player.getSubSprite(8 * 16, 0, 16, 16),
                 player.getSubSprite(6 * 16, 0, 16, 16),
             },
@@ -62,7 +60,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
             ctx.allocator,
             &[_]j2d.Sprite{
                 player.getSubSprite(1 * 16, 0, 16, 16),
-                player.getSubSprite(0 * 16, 0, 16, 16),
                 player.getSubSprite(2 * 16, 0, 16, 16),
                 player.getSubSprite(0 * 16, 0, 16, 16),
             },
