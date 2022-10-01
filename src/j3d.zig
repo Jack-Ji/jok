@@ -4,6 +4,7 @@ const jok = @import("jok.zig");
 pub const zmath = jok.deps.zmath;
 
 /// Regularly used math constants
+pub const v_zero = zmath.f32x4(0, 0, 0, 0);
 pub const v_up = zmath.f32x4(0, 1, 0, 0);
 pub const v_down = zmath.f32x4(0, -1, 0, 0);
 pub const v_right = zmath.f32x4(1, 0, 0, 0);
