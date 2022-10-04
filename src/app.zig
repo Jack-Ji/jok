@@ -42,12 +42,18 @@ comptime {
 fn initDeps(ctx: *context.Context) !void {
     const zmesh = deps.zmesh;
     zmesh.init(ctx.allocator);
+
+    const zaudio = deps.zaudio;
+    zaudio.init(ctx.allocator);
 }
 
 /// Deinitialize builtin deps
 fn deinitDeps() void {
     const zmesh = deps.zmesh;
     zmesh.deinit();
+
+    const zaudio = deps.zaudio;
+    zaudio.deinit();
 }
 
 /// Entrance point, never return until application is killed

@@ -41,7 +41,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "affline_texture", .opt = .{ .link_imgui = true } },
         .{ .name = "solar_system", .opt = .{ .link_imgui = true } },
         .{ .name = "font_demo", .opt = .{} },
-        .{ .name = "audio_demo", .opt = .{ .link_zaudio = true } },
+        .{ .name = "audio_demo", .opt = .{} },
         .{ .name = "audio_synthesize_demo", .opt = .{} },
         .{ .name = "skybox", .opt = .{ .link_imgui = true } },
         .{ .name = "benchmark_3d", .opt = .{} },
@@ -75,7 +75,6 @@ pub const BuildOptions = struct {
     link_imgui: bool = false,
     link_chipmunk: bool = false,
     link_nfd: bool = false,
-    link_zaudio: bool = false,
     link_zbullet: bool = false,
     link_ztracy: bool = false,
     enable_tracy: bool = false,
@@ -101,6 +100,7 @@ pub fn createGame(
     sdl.link(exe, .dynamic);
     stb.link(exe);
     zmesh.link(exe, zmesh.BuildOptionsStep.init(b, .{}));
+    zaudio.link(exe);
     znoise.link(exe);
 
     // Link optional dependencies
@@ -108,7 +108,6 @@ pub fn createGame(
     if (opt.link_imgui) imgui.link(exe);
     if (opt.link_chipmunk) chipmunk.link(exe);
     if (opt.link_nfd) nfd.link(exe);
-    if (opt.link_zaudio) zaudio.link(exe);
     if (opt.link_zbullet) zbullet.link(exe);
     if (opt.link_ztracy) ztracy.link(exe, ztracy_opt);
 

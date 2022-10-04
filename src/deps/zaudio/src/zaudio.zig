@@ -2,6 +2,21 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 
+pub fn init(allocator: std.mem.Allocator) void {
+    assert(mem_allocator == null);
+    mem_allocator = allocator;
+    mem_allocations = std.AutoHashMap(usize, usize).init(allocator);
+    mem_allocations.?.ensureTotalCapacity(16) catch @panic("zaudio: out of memory");
+}
+
+pub fn deinit() void {
+    assert(mem_allocator != null);
+    assert(mem_allocations.?.count() == 0);
+    mem_allocations.?.deinit();
+    mem_allocations = null;
+    mem_allocator = null;
+}
+
 pub const SoundFlags = packed struct(u32) {
     stream: bool = false,
     decode: bool = false,
@@ -13,12 +28,78 @@ pub const SoundFlags = packed struct(u32) {
     _padding: u25 = 0,
 };
 
-// TODO: Add all errors.
 pub const Error = error{
     GenericError,
     InvalidArgs,
     InvalidOperation,
     OutOfMemory,
+    OutOfRange,
+    AccessDenied,
+    DoesNotExist,
+    AlreadyExists,
+    TooManyOpenFiles,
+    InvalidFile,
+    TooBig,
+    PathTooLong,
+    NameTooLong,
+    NotDirectory,
+    IsDirectory,
+    DirectoryNotEmpty,
+    AtEnd,
+    NoSpace,
+    Busy,
+    IoError,
+    Interrupt,
+    Unavailable,
+    AlreadyInUse,
+    BadAddress,
+    BadSeek,
+    BadPipe,
+    Deadlock,
+    TooManyLinks,
+    NotImplemented,
+    NoMessage,
+    BadMessage,
+    NoDataAvailable,
+    InvalidData,
+    Timeout,
+    NoNetwork,
+    NotUnique,
+    NotSocket,
+    NoAddress,
+    BadProtocol,
+    ProtocolUnavailable,
+    ProtocolNotSupported,
+    ProtocolFamilyNotSupported,
+    AddressFamilyNotSupported,
+    SocketNotSupported,
+    ConnectionReset,
+    AlreadyConnected,
+    NotConnected,
+    ConnectionRefused,
+    NoHost,
+    InProgress,
+    Cancelled,
+    MemoryAlreadyMapped,
+
+    FormatNotSupported,
+    DeviceTypeNotSupported,
+    ShareModeNotSupported,
+    NoBackend,
+    NoDevice,
+    ApiNotFound,
+    InvalidDeviceConfig,
+    Loop,
+
+    DeviceNotInitialized,
+    DeviceAlreadyInitialized,
+    DeviceNotStarted,
+    DeviceNotStopped,
+
+    FailedToInitBackend,
+    FailedToOpenBackendDevice,
+    FailedToStartBackendDevice,
+    FailedToStopBackendDevice,
 };
 
 const Result = enum(i32) {
@@ -27,6 +108,73 @@ const Result = enum(i32) {
     invalid_args = -2,
     invalid_operation = -3,
     out_of_memory = -4,
+    out_of_range = -5,
+    access_denied = -6,
+    does_not_exist = -7,
+    already_exists = -8,
+    too_many_open_files = -9,
+    invalid_file = -10,
+    too_big = -11,
+    path_too_long = -12,
+    name_too_long = -13,
+    not_directory = -14,
+    is_directory = -15,
+    directory_not_empty = -16,
+    at_end = -17,
+    no_space = -18,
+    busy = -19,
+    io_error = -20,
+    interrupt = -21,
+    unavailable = -22,
+    already_in_use = -23,
+    bad_address = -24,
+    bad_seek = -25,
+    bad_pipe = -26,
+    deadlock = -27,
+    too_many_links = -28,
+    not_implemented = -29,
+    no_message = -30,
+    bad_message = -31,
+    no_data_available = -32,
+    invalid_data = -33,
+    timeout = -34,
+    no_network = -35,
+    not_unique = -36,
+    not_socket = -37,
+    no_address = -38,
+    bad_protocol = -39,
+    protocol_unavailable = -40,
+    protocol_not_supported = -41,
+    protocol_family_not_supported = -42,
+    address_family_not_supported = -43,
+    socket_not_supported = -44,
+    connection_reset = -45,
+    already_connected = -46,
+    not_connected = -47,
+    connection_refused = -48,
+    no_host = -49,
+    in_progress = -50,
+    cancelled = -51,
+    memory_already_mapped = -52,
+
+    format_not_supported = -100,
+    device_type_not_supported = -101,
+    share_mode_not_supported = -102,
+    no_backend = -103,
+    no_device = -104,
+    api_not_found = -105,
+    invalid_device_config = -106,
+    loop = -107,
+
+    device_not_initialized = -200,
+    device_already_initialized = -201,
+    device_not_started = -202,
+    device_not_stopped = -203,
+
+    failed_to_init_backend = -300,
+    failed_to_open_backend_device = -301,
+    failed_to_start_backend_device = -302,
+    failed_to_stop_backend_device = -303,
 };
 
 pub fn maybeError(result: Result) Error!void {
@@ -36,6 +184,73 @@ pub fn maybeError(result: Result) Error!void {
         .invalid_args => Error.InvalidArgs,
         .invalid_operation => Error.InvalidOperation,
         .out_of_memory => Error.OutOfMemory,
+        .out_of_range => error.OutOfRange,
+        .access_denied => error.AccessDenied,
+        .does_not_exist => error.DoesNotExist,
+        .already_exists => error.AlreadyExists,
+        .too_many_open_files => error.TooManyOpenFiles,
+        .invalid_file => error.InvalidFile,
+        .too_big => error.TooBig,
+        .path_too_long => error.PathTooLong,
+        .name_too_long => error.NameTooLong,
+        .not_directory => error.NotDirectory,
+        .is_directory => error.IsDirectory,
+        .directory_not_empty => error.DirectoryNotEmpty,
+        .at_end => error.AtEnd,
+        .no_space => error.NoSpace,
+        .busy => error.Busy,
+        .io_error => error.IoError,
+        .interrupt => error.Interrupt,
+        .unavailable => error.Unavailable,
+        .already_in_use => error.AlreadyInUse,
+        .bad_address => error.BadAddress,
+        .bad_seek => error.BadSeek,
+        .bad_pipe => error.BadPipe,
+        .deadlock => error.Deadlock,
+        .too_many_links => error.TooManyLinks,
+        .not_implemented => error.NotImplemented,
+        .no_message => error.NoMessage,
+        .bad_message => error.BadMessage,
+        .no_data_available => error.NoDataAvailable,
+        .invalid_data => error.InvalidData,
+        .timeout => error.Timeout,
+        .no_network => error.NoNetwork,
+        .not_unique => error.NotUnique,
+        .not_socket => error.NotSocket,
+        .no_address => error.NoAddress,
+        .bad_protocol => error.BadProtocol,
+        .protocol_unavailable => error.ProtocolUnavailable,
+        .protocol_not_supported => error.ProtocolNotSupported,
+        .protocol_family_not_supported => error.ProtocolFamilyNotSupported,
+        .address_family_not_supported => error.AddressFamilyNotSupported,
+        .socket_not_supported => error.SocketNotSupported,
+        .connection_reset => error.ConnectionReset,
+        .already_connected => error.AlreadyConnected,
+        .not_connected => error.NotConnected,
+        .connection_refused => error.ConnectionRefused,
+        .no_host => error.NoHost,
+        .in_progress => error.InProgress,
+        .cancelled => error.Cancelled,
+        .memory_already_mapped => error.MemoryAlreadyMapped,
+
+        .format_not_supported => error.FormatNotSupported,
+        .device_type_not_supported => error.DeviceTypeNotSupported,
+        .share_mode_not_supported => error.ShareModeNotSupported,
+        .no_backend => error.NoBackend,
+        .no_device => error.NoDevice,
+        .api_not_found => error.ApiNotFound,
+        .invalid_device_config => error.InvalidDeviceConfig,
+        .loop => error.Loop,
+
+        .device_not_initialized => error.DeviceNotInitialized,
+        .device_already_initialized => error.DeviceAlreadyInitialized,
+        .device_not_started => error.DeviceNotStarted,
+        .device_not_stopped => error.DeviceNotStopped,
+
+        .failed_to_init_backend => error.FailedToInitBackend,
+        .failed_to_open_backend_device => error.FailedToOpenBackendDevice,
+        .failed_to_start_backend_device => error.FailedToStartBackendDevice,
+        .failed_to_stop_backend_device => error.FailedToStopBackendDevice,
     };
 }
 
@@ -2255,12 +2470,83 @@ const FenceImpl = opaque {
 };
 //--------------------------------------------------------------------------------------------------
 //
+// Memory
+//
+//--------------------------------------------------------------------------------------------------
+var mem_allocator: ?std.mem.Allocator = null;
+var mem_allocations: ?std.AutoHashMap(usize, usize) = null;
+var mem_mutex: std.Thread.Mutex = .{};
+const mem_alignment = 16;
+
+export fn zaudioMalloc(size: usize, _: ?*anyopaque) callconv(.C) ?*anyopaque {
+    mem_mutex.lock();
+    defer mem_mutex.unlock();
+
+    const mem = mem_allocator.?.allocBytes(
+        mem_alignment,
+        size,
+        0,
+        @returnAddress(),
+    ) catch @panic("zaudio: out of memory");
+
+    mem_allocations.?.put(@ptrToInt(mem.ptr), size) catch @panic("zaudio: out of memory");
+
+    return mem.ptr;
+}
+
+export fn zaudioRealloc(ptr: ?*anyopaque, size: usize, _: ?*anyopaque) callconv(.C) ?*anyopaque {
+    mem_mutex.lock();
+    defer mem_mutex.unlock();
+
+    const old_size = if (ptr != null) mem_allocations.?.get(@ptrToInt(ptr.?)).? else 0;
+    const old_mem = if (old_size > 0)
+        @ptrCast([*]u8, ptr)[0..old_size]
+    else
+        @as([*]u8, undefined)[0..0];
+
+    const new_mem = mem_allocator.?.reallocBytes(
+        old_mem,
+        mem_alignment,
+        size,
+        mem_alignment,
+        0,
+        @returnAddress(),
+    ) catch @panic("zaudio: out of memory");
+
+    if (ptr != null) {
+        const removed = mem_allocations.?.remove(@ptrToInt(ptr.?));
+        std.debug.assert(removed);
+    }
+
+    mem_allocations.?.put(@ptrToInt(new_mem.ptr), size) catch @panic("zaudio: out of memory");
+
+    return new_mem.ptr;
+}
+
+export fn zaudioFree(maybe_ptr: ?*anyopaque, _: ?*anyopaque) callconv(.C) void {
+    if (maybe_ptr) |ptr| {
+        mem_mutex.lock();
+        defer mem_mutex.unlock();
+
+        const size = mem_allocations.?.fetchRemove(@ptrToInt(ptr)).?.value;
+        const mem = @ptrCast(
+            [*]align(mem_alignment) u8,
+            @alignCast(mem_alignment, ptr),
+        )[0..size];
+        mem_allocator.?.free(mem);
+    }
+}
+//--------------------------------------------------------------------------------------------------
+//
 // Tests
 //
 //--------------------------------------------------------------------------------------------------
 const expect = std.testing.expect;
 
 test "zaudio.engine.basic" {
+    init(std.testing.allocator);
+    defer deinit();
+
     const engine = try createEngine(null);
     defer engine.destroy();
 
@@ -2302,6 +2588,9 @@ test "zaudio.engine.basic" {
 }
 
 test "zaudio.soundgroup.basic" {
+    init(std.testing.allocator);
+    defer deinit();
+
     const engine = try createEngine(null);
     defer engine.destroy();
 
@@ -2337,6 +2626,9 @@ test "zaudio.soundgroup.basic" {
 }
 
 test "zaudio.fence.basic" {
+    init(std.testing.allocator);
+    defer deinit();
+
     const fence = try createFence();
     defer fence.destroy();
 
@@ -2346,6 +2638,9 @@ test "zaudio.fence.basic" {
 }
 
 test "zaudio.sound.basic" {
+    init(std.testing.allocator);
+    defer deinit();
+
     const engine = try createEngine(null);
     defer engine.destroy();
 
@@ -2383,6 +2678,9 @@ test "zaudio.sound.basic" {
 }
 
 test "zaudio.device.basic" {
+    init(std.testing.allocator);
+    defer deinit();
+
     var config = DeviceConfig.init(.playback);
     config.playback.format = .float32;
     config.playback.channels = 2;
@@ -2402,6 +2700,9 @@ test "zaudio.device.basic" {
 }
 
 test "zaudio.node_graph.basic" {
+    init(std.testing.allocator);
+    defer deinit();
+
     const config = NodeGraphConfig.init(2);
     const node_graph = try createNodeGraph(config);
     defer node_graph.destroy();
