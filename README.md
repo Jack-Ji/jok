@@ -1,5 +1,5 @@
 # jok
-A minimal 2d/3d game framework.
+A minimal 2d/3d game framework for zig.
 
 ## What you need?
 * zig compiler (latest version)
