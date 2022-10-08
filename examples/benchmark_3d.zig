@@ -6,7 +6,7 @@ const j3d = jok.j3d;
 const zmath = j3d.zmath;
 const primitive = j3d.primitive;
 
-pub const jok_fps_limit = jok.config.FpsLimit.none;
+pub const jok_fps_limit: jok.config.FpsLimit = .none;
 
 var camera: j3d.Camera = undefined;
 var cube: j3d.zmesh.Shape = undefined;

@@ -3,8 +3,8 @@ const jok = @import("jok");
 const imgui = jok.deps.imgui;
 const fontawesome = imgui.fontawesome;
 
-pub const jok_window_width = 1600;
-pub const jok_window_height = 900;
+pub const jok_window_width: u32 = 1600;
+pub const jok_window_height: u32 = 900;
 
 var regular_font: *imgui.Font = undefined;
 var solid_font: *imgui.Font = undefined;

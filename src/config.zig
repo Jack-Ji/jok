@@ -6,41 +6,48 @@ const game = @import("game");
 
 // Validate setup configurations
 comptime {
-    const config_names = [_][]const u8{
-        "jok_allocator",
-        "jok_mem_leak_checks",
-        "jok_mem_detail_logs",
-        "jok_software_renderer",
-        "jok_window_title",
-        "jok_window_pos_x",
-        "jok_window_pos_y",
-        "jok_window_width",
-        "jok_window_height",
-        "jok_window_min_size",
-        "jok_window_max_size",
-        "jok_window_resizable",
-        "jok_window_fullscreen",
-        "jok_window_borderless",
-        "jok_window_minimized",
-        "jok_window_maximized",
-        "jok_window_always_on_top",
-        "jok_mouse_mode",
-        "jok_fps_limit",
-        "jok_framestat_display",
+    const config_options = [_]struct { name: []const u8, T: type }{
+        .{ .name = "jok_allocator", .T = std.mem.Allocator },
+        .{ .name = "jok_mem_leak_checks", .T = bool },
+        .{ .name = "jok_mem_detail_logs", .T = bool },
+        .{ .name = "jok_software_renderer", .T = bool },
+        .{ .name = "jok_window_title", .T = [:0]const u8 },
+        .{ .name = "jok_window_pos_x", .T = sdl.WindowPosition },
+        .{ .name = "jok_window_pos_y", .T = sdl.WindowPosition },
+        .{ .name = "jok_window_width", .T = u32 },
+        .{ .name = "jok_window_height", .T = u32 },
+        .{ .name = "jok_window_min_size", .T = sdl.Size },
+        .{ .name = "jok_window_max_size", .T = sdl.Size },
+        .{ .name = "jok_window_resizable", .T = bool },
+        .{ .name = "jok_window_fullscreen", .T = bool },
+        .{ .name = "jok_window_borderless", .T = bool },
+        .{ .name = "jok_window_minimized", .T = bool },
+        .{ .name = "jok_window_maximized", .T = bool },
+        .{ .name = "jok_window_always_on_top", .T = bool },
+        .{ .name = "jok_mouse_mode", .T = MouseMode },
+        .{ .name = "jok_fps_limit", .T = FpsLimit },
+        .{ .name = "jok_framestat_display", .T = bool },
     };
     const game_struct = @typeInfo(game).Struct;
     for (game_struct.decls) |f| {
-        if (!f.is_pub or !std.mem.startsWith(u8, f.name, "jok_")) {
+        if (!std.mem.startsWith(u8, f.name, "jok_")) {
             continue;
         }
-        for (config_names) |n| {
-            if (std.mem.eql(u8, n, f.name)) {
+        if (!f.is_pub) {
+            @compileError("Validation of setup options failed, option `" ++ f.name ++ "` need to be public!");
+        }
+        for (config_options) |o| {
+            if (std.mem.eql(u8, o.name, f.name)) {
+                const FieldType = @TypeOf(@field(game, f.name));
+                if (o.T != FieldType) {
+                    @compileError("Validation of setup options failed, invalid type for option `" ++ f.name ++ "`, expecting " ++ @typeName(o.T) ++ ", get " ++ @typeName(FieldType));
+                }
                 break;
             }
         } else {
-            @compileError("Invalid config option: " ++ f.name ++
+            @compileError("Validation of setup options failed, invalid option name: `" ++ f.name ++ "`" ++
                 \\
-                \\Supported configurations:
+                \\Supported options:
                 \\    jok_allocator (std.mem.Allocator): default memory allocator.
                 \\    jok_mem_leak_checks (bool): whether default memory allocator check memleak when exiting.
                 \\    jok_mem_detail_logs (bool): whether default memory allocator print detailed memory alloc/free logs.

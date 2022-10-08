@@ -10,8 +10,8 @@ const font = jok.font;
 const primitive = jok.j3d.primitive;
 const Camera = jok.j3d.Camera;
 
-pub const jok_window_width = 1600;
-pub const jok_window_height = 900;
+pub const jok_window_width: u32 = 1600;
+pub const jok_window_height: u32 = 900;
 
 const PrimitiveType = enum(c_int) {
     cube,
