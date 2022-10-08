@@ -38,6 +38,17 @@ comptime {
     }
 }
 
+/// Check SDL version
+fn checkSDL() !void {
+    var version: sdl.c.SDL_version = undefined;
+    sdl.c.SDL_GetVersion(&version);
+    context.log.info("Using SDL {}.{}.{}", .{ version.major, version.minor, version.patch });
+    if (version.major < 2 or (version.minor == 0 and version.patch < 18)) {
+        context.log.err("Need SDL least version >= 2.0.18", .{});
+        return sdl.makeError();
+    }
+}
+
 /// Initialize builtin deps
 fn initDeps(ctx: *context.Context) !void {
     const zmesh = deps.zmesh;
@@ -59,6 +70,7 @@ fn deinitDeps() void {
 /// Entrance point, never return until application is killed
 pub fn main() anyerror!void {
     // Initialize SDL library
+    try checkSDL();
     var sdl_flags = sdl.InitFlags.everything;
     try sdl.init(sdl_flags);
     defer sdl.quit();
