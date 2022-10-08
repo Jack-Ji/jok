@@ -4,6 +4,68 @@ const sdl = @import("sdl");
 const jok = @import("jok.zig");
 const game = @import("game");
 
+// Validate setup configurations
+comptime {
+    const config_names = [_][]const u8{
+        "jok_allocator",
+        "jok_mem_leak_checks",
+        "jok_mem_detail_logs",
+        "jok_software_renderer",
+        "jok_window_title",
+        "jok_window_pos_x",
+        "jok_window_pos_y",
+        "jok_window_width",
+        "jok_window_height",
+        "jok_window_min_size",
+        "jok_window_max_size",
+        "jok_window_resizable",
+        "jok_window_fullscreen",
+        "jok_window_borderless",
+        "jok_window_minimized",
+        "jok_window_maximized",
+        "jok_window_always_on_top",
+        "jok_mouse_mode",
+        "jok_fps_limit",
+        "jok_framestat_display",
+    };
+    const game_struct = @typeInfo(game).Struct;
+    for (game_struct.decls) |f| {
+        if (!f.is_pub or !std.mem.startsWith(u8, f.name, "jok_")) {
+            continue;
+        }
+        for (config_names) |n| {
+            if (std.mem.eql(u8, n, f.name)) {
+                break;
+            }
+        } else {
+            @compileError("Invalid config option: " ++ f.name ++
+                \\
+                \\Supported configurations:
+                \\    jok_allocator (std.mem.Allocator): default memory allocator.
+                \\    jok_mem_leak_checks (bool): whether default memory allocator check memleak when exiting.
+                \\    jok_mem_detail_logs (bool): whether default memory allocator print detailed memory alloc/free logs.
+                \\    jok_software_renderer (bool): whether fallback to software renderer.
+                \\    jok_window_title ([:0]const u8): title of window.
+                \\    jok_window_pos_x (sdl.WindowPosition): horizontal position of window.
+                \\    jok_window_pos_y (sdl.WindowPosition): vertical position of window.
+                \\    jok_window_width (u32): width of window.
+                \\    jok_window_height (u32): height of window.
+                \\    jok_window_min_size (sdl.Size).: minimum size of window.
+                \\    jok_window_max_size (sdl.Size): maximum size of window.
+                \\    jok_window_resizable (bool): whether window is resizable.
+                \\    jok_window_fullscreen (bool): whether use fullscreen mode.
+                \\    jok_window_borderless (bool): whether window is borderless.
+                \\    jok_window_minimized (bool): whether window is minimized when startup.
+                \\    jok_window_maximized (bool): whether window is maximized when startup.
+                \\    jok_window_always_on_top (bool): whether window is locked to most front layer.
+                \\    jok_mouse_mode (config.MouseMode): mouse mode setting.
+                \\    jok_fps_limit (config.FpsLimit): fps limit setting.
+                \\    jok_framestat_display (bool): whether refresh and display frame statistics on title-bar of window. 
+            );
+        }
+    }
+}
+
 /// Graphics flushing method
 pub const FpsLimit = union(enum) {
     none, // No limit, draw as fast as we can
@@ -42,17 +104,17 @@ pub const enable_mem_detail_logs = if (@hasDecl(game, "jok_mem_detail_logs"))
 else
     false;
 
-/// Window's title
-pub const title: [:0]const u8 = if (@hasDecl(game, "jok_title"))
-    game.jok_title
-else
-    "jok";
-
 /// Whether fallback to software renderer
 pub const enable_software_renderer: bool = if (@hasDecl(game, "jok_software_renderer"))
     game.jok_software_renderer
 else
     true;
+
+/// Window's title
+pub const title: [:0]const u8 = if (@hasDecl(game, "jok_window_title"))
+    game.jok_window_title
+else
+    "jok";
 
 /// Position of window
 pub const pos_x: sdl.WindowPosition = if (@hasDecl(game, "jok_window_pos_x"))
