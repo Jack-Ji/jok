@@ -42,14 +42,21 @@ Now in your code you may import and use jok:
 const std = @import("std");
 const jok = @import("jok");
 
-pub const jok_window_width: u32 = 100;
-pub const jok_window_height: u32 = 50;
+pub const jok_window_width: u32 = 400;
+pub const jok_window_height: u32 = 300;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     // your init code
 }
 
 pub fn loop(ctx: *jok.Context) anyerror!void {
+    while (ctx.pollEvent()) |e| {
+        switch (e) {
+            .quit => ctx.kill(),
+            else => {},
+        }
+    }
+
     // your game loop
 }
 
