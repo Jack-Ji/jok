@@ -1,0 +1,3 @@
+[submodule "src/deps/sdl"]
+	path = src/deps/sdl
+	url = https://www.github.com/jack-ji/sdl.zig
