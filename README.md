@@ -42,8 +42,8 @@ Now in your code you may import and use jok:
 const std = @import("std");
 const jok = @import("jok");
 
-pub const jok_window_width = 100;
-pub const jok_window_height = 50;
+pub const jok_window_width: u32 = 100;
+pub const jok_window_height: u32 = 50;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     // your init code
