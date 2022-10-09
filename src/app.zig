@@ -8,7 +8,6 @@ const config = jok.config;
 
 // Import game object's declarations
 const game = @import("game");
-usingnamespace @import("game");
 
 // Validate exposed game api
 comptime {

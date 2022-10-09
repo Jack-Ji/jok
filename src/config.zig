@@ -1,4 +1,3 @@
-//! Application configurations
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok.zig");
@@ -40,7 +39,8 @@ comptime {
             if (std.mem.eql(u8, o.name, f.name)) {
                 const FieldType = @TypeOf(@field(game, f.name));
                 if (o.T != FieldType) {
-                    @compileError("Validation of setup options failed, invalid type for option `" ++ f.name ++ "`, expecting " ++ @typeName(o.T) ++ ", get " ++ @typeName(FieldType));
+                    @compileError("Validation of setup options failed, invalid type for option `" ++
+                        f.name ++ "`, expecting " ++ @typeName(o.T) ++ ", get " ++ @typeName(FieldType));
                 }
                 break;
             }
