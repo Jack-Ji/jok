@@ -189,7 +189,8 @@ pub fn main() anyerror!void {
 
     // Game loop
     context.perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
-    ctx.last_perf_counter = sdl.c.SDL_GetPerformanceCounter();
+    ctx.last_perf_counter1 = sdl.c.SDL_GetPerformanceCounter();
+    ctx.last_perf_counter2 = sdl.c.SDL_GetPerformanceCounter();
     while (!ctx.quit) {
         // Run game loop
         game.loop(&ctx) catch |e| {

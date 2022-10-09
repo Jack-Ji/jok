@@ -33,17 +33,47 @@ pub const Context = struct {
 
     // Residue of fps capping
     fps_limit_residue: u64 = 0,
+    last_perf_counter1: u64 = 0,
 
     // Number of seconds since launch/last-frame
     tick: f64 = 0,
     delta_tick: f32 = 0,
-    last_perf_counter: u64 = 0,
+    last_perf_counter2: u64 = 0,
 
     // Frames stats
     fps: f32 = 0,
     average_cpu_time: f32 = 0,
     frame_counter: u32 = 0,
     last_fps_refresh_time: f64 = 0,
+
+    /// Flush graphics contents
+    pub inline fn present(self: *Context, comptime fps_limit: config.FpsLimit) void {
+        var counter_threshold: u64 = switch (fps_limit) {
+            .none => 0,
+            .auto => if (self.is_software) @divTrunc(@floatToInt(u64, perf_counter_freq), 30) else 0,
+            .manual => |fps| @floatToInt(u64, perf_counter_freq) / @intCast(u64, fps),
+        };
+        if (counter_threshold > 0) {
+            if (self.fps_limit_residue >= counter_threshold) {
+                self.fps_limit_residue -= counter_threshold;
+            } else {
+                counter_threshold -= self.fps_limit_residue;
+                while ((sdl.c.SDL_GetPerformanceCounter() - self.last_perf_counter1) < counter_threshold) {
+                    sdl.delay(1);
+                }
+                self.fps_limit_residue = sdl.c.SDL_GetPerformanceCounter() - self.last_perf_counter1 - counter_threshold;
+            }
+            self.last_perf_counter1 = sdl.c.SDL_GetPerformanceCounter();
+        }
+        self.renderer.present();
+        const counter = sdl.c.SDL_GetPerformanceCounter();
+        self.delta_tick = @floatCast(
+            f32,
+            @intToFloat(f64, counter - self.last_perf_counter2) / perf_counter_freq,
+        );
+        self.last_perf_counter2 = counter;
+        self.tick += self.delta_tick;
+    }
 
     /// Update frame stats
     pub inline fn updateFrameStats(self: *Context) bool {
@@ -60,34 +90,6 @@ pub const Context = struct {
             return true;
         }
         return false;
-    }
-
-    /// Flush graphics contents
-    pub inline fn present(self: *Context, comptime fps_limit: config.FpsLimit) void {
-        var counter_threshold: u64 = switch (fps_limit) {
-            .none => 0,
-            .auto => if (self.is_software) @divTrunc(@floatToInt(u64, perf_counter_freq), 30) else 0,
-            .manual => |fps| @floatToInt(u64, perf_counter_freq) / @intCast(u64, fps),
-        };
-        if (counter_threshold > 0) {
-            if (self.fps_limit_residue >= counter_threshold) {
-                self.fps_limit_residue -= counter_threshold;
-            } else {
-                counter_threshold -= self.fps_limit_residue;
-                while ((sdl.c.SDL_GetPerformanceCounter() - self.last_perf_counter) < counter_threshold) {
-                    sdl.delay(1);
-                }
-                self.fps_limit_residue = sdl.c.SDL_GetPerformanceCounter() - self.last_perf_counter - counter_threshold;
-            }
-        }
-        const counter = sdl.c.SDL_GetPerformanceCounter();
-        self.delta_tick = @floatCast(
-            f32,
-            @intToFloat(f64, counter - self.last_perf_counter) / perf_counter_freq,
-        );
-        self.last_perf_counter = counter;
-        self.tick += self.delta_tick;
-        self.renderer.present();
     }
 
     /// Get renderer's name
