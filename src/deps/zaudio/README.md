@@ -25,12 +25,12 @@ Provided structs:
   - [x] `DataSourceNode`
   - [x] `SplitterNode`
   - [x] `BiquadNode`
-  - [x] `LpfNode`
-  - [x] `HpfNode`
+  - [x] `LpfNode // Low-Pass Filter`
+  - [x] `HpfNode // High-Pass Filter`
   - [x] `NotchNode`
   - [x] `PeakNode`
-  - [x] `LoshelfNode`
-  - [x] `HishelfNode`
+  - [x] `LoshelfNode // Low Shelf Filter`
+  - [x] `HishelfNode // High Shelf Filter`
   - [x] `DelayNode`
   - [x] custom nodes
 
@@ -62,10 +62,9 @@ pub fn main() !void {
     zaudio.init(allocator);
     defer zaudio.deinit();
 
-    const engine = try zaudio.createEngine(allocator, null);
+    const engine = try zaudio.createEngine(null);
 
     const music = try engine.createSoundFromFile(
-        allocator,
         content_dir ++ "Broke For Free - Night Owl.mp3",
         .{ .flags = .{ .stream = true } },
     );
