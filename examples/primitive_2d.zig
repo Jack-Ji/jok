@@ -28,7 +28,6 @@ var rotate_anchor: [2]f32 = .{ 500, 500 };
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
-    try imgui.init(ctx);
     try primitive.init(ctx);
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.setDrawBlendMode(.blend);
@@ -52,7 +51,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.clear();
 
-    imgui.beginFrame();
     if (imgui.begin("Control Panel", null, null)) {
         var selection: *c_int = @ptrCast(*c_int, &primtype);
         _ = imgui.radioButton_IntPtr("etriangle", selection, 0);
@@ -69,7 +67,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         _ = imgui.dragFloat2("rotate_anchor", &rotate_anchor, .{});
     }
     imgui.end();
-    imgui.endFrame();
 
     var ms = ctx.getMouseState();
     const draw_pos = sdl.PointF{ .x = @intToFloat(f32, ms.x), .y = @intToFloat(f32, ms.y) };
@@ -136,6 +133,5 @@ pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 
-    imgui.deinit();
     primitive.deinit();
 }

@@ -26,8 +26,6 @@ var skybox_tint_color: sdl.Color = sdl.Color.white;
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
-    try imgui.init(ctx);
-
     camera = j3d.Camera.fromPositionAndTarget(
         .{
             //.orthographic = .{
@@ -190,8 +188,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         },
     );
 
-    imgui.beginFrame();
-    defer imgui.endFrame();
     if (imgui.begin("Tint Color", null, null)) {
         var cs: [3]f32 = .{
             @intToFloat(f32, skybox_tint_color.r) / 255, 
@@ -214,5 +210,4 @@ pub fn quit(ctx: *jok.Context) void {
     cube.deinit();
     primitive.deinit();
     skybox_rd.deinit();
-    imgui.deinit();
 }

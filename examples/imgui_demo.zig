@@ -2019,10 +2019,8 @@ const codepoint_names = [_][:0]const u8{
 };
 
 pub fn init(ctx: *jok.Context) anyerror!void {
+    _ = ctx;
     std.log.info("game init", .{});
-
-    // init imgui
-    try imgui.init(ctx);
 
     regular_font = try imgui.loadFontAwesome(30, true, true);
     solid_font = try imgui.loadFontAwesome(30, false, true);
@@ -2080,8 +2078,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     };
 
     try ctx.renderer.clear();
-    imgui.beginFrame();
-    defer imgui.endFrame();
 
     var mouse_state = ctx.getMouseState();
     imgui.setNextWindowPos(.{
@@ -2162,6 +2158,4 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-
-    imgui.deinit();
 }

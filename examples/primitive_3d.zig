@@ -56,7 +56,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         null,
     );
 
-    try imgui.init(ctx);
     try primitive.init(ctx, null);
 }
 
@@ -105,8 +104,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.clear();
 
-    imgui.beginFrame();
-    defer imgui.endFrame();
     if (imgui.begin("Control Panel", null, null)) {
         var selection: *c_int = @ptrCast(*c_int, &primtype);
         _ = imgui.radioButton_IntPtr("cube", selection, 0);
@@ -215,6 +212,5 @@ pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 
-    imgui.deinit();
     primitive.deinit();
 }

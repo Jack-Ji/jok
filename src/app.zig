@@ -5,6 +5,9 @@ const context = @import("context.zig");
 const jok = @import("jok.zig");
 const deps = jok.deps;
 const config = jok.config;
+const zaudio = deps.zaudio;
+const imgui = deps.imgui;
+const bos = @import("build_options");
 
 // Import game object's declarations
 const game = @import("game");
@@ -44,9 +47,9 @@ fn checkSys() !void {
     sdl.c.SDL_GetVersion(&sdl_version);
     const ram_size = sdl.c.SDL_GetSystemRAM();
 
-    // Check system info
+    // Print system info
     context.log.info(
-        \\Check basic information:
+        \\System info:
         \\    Build Mode  : {s}
         \\    Zig Version : {d}.{d}.{d}
         \\    CPU         : {s}
@@ -81,8 +84,13 @@ fn initDeps(ctx: *context.Context) !void {
     const zmesh = deps.zmesh;
     zmesh.init(ctx.allocator);
 
-    const zaudio = deps.zaudio;
-    zaudio.init(ctx.allocator);
+    if (bos.use_imgui) {
+        try imgui.init(ctx);
+    }
+
+    if (bos.use_zaudio) {
+        zaudio.init(ctx.allocator);
+    }
 }
 
 /// Deinitialize builtin deps
@@ -90,8 +98,13 @@ fn deinitDeps() void {
     const zmesh = deps.zmesh;
     zmesh.deinit();
 
-    const zaudio = deps.zaudio;
-    zaudio.deinit();
+    if (bos.use_imgui) {
+        imgui.deinit();
+    }
+
+    if (bos.use_zaudio) {
+        zaudio.deinit();
+    }
 }
 
 /// Entrance point, never return until application is killed
@@ -215,12 +228,15 @@ pub fn main() anyerror!void {
     try game.init(&ctx);
     defer game.quit(&ctx);
 
-    // Game loop
+    // Init time vars
     context.perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
     ctx.last_perf_counter1 = sdl.c.SDL_GetPerformanceCounter();
     ctx.last_perf_counter2 = sdl.c.SDL_GetPerformanceCounter();
+
+    // Game loop
     while (!ctx.quit) {
         // Run game loop
+        if (bos.use_imgui) imgui.beginFrame();
         game.loop(&ctx) catch |e| {
             context.log.err("got error in loop: {}", .{e});
             if (@errorReturnTrace()) |trace| {
@@ -228,6 +244,7 @@ pub fn main() anyerror!void {
                 break;
             }
         };
+        if (bos.use_imgui) imgui.endFrame();
 
         // Sync with gpu and present rendering result
         ctx.present(config.fps_limit);

@@ -5,9 +5,9 @@ const stb = @import("src/deps/stb/build.zig");
 const imgui = @import("src/deps/imgui/build.zig");
 const chipmunk = @import("src/deps/chipmunk/build.zig");
 const nfd = @import("src/deps/nfd/build.zig");
-const zaudio = @import("src/deps/zaudio/build.zig");
 const zmesh = @import("src/deps/zmesh/build.zig");
 const znoise = @import("src/deps/znoise/build.zig");
+const zaudio = @import("src/deps/zaudio/build.zig");
 const zbullet = @import("src/deps/zbullet/build.zig");
 const ztracy = @import("src/deps/ztracy/build.zig");
 
@@ -39,13 +39,13 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "primitive_3d", .opt = .{ .link_imgui = true } },
         .{ .name = "terran_generation", .opt = .{ .link_imgui = true } },
         .{ .name = "affline_texture", .opt = .{ .link_imgui = true } },
-        .{ .name = "solar_system", .opt = .{ .link_imgui = true } },
+        .{ .name = "solar_system", .opt = .{} },
         .{ .name = "font_demo", .opt = .{} },
-        .{ .name = "audio_demo", .opt = .{} },
-        .{ .name = "audio_synthesize_demo", .opt = .{} },
         .{ .name = "skybox", .opt = .{ .link_imgui = true } },
         .{ .name = "benchmark_3d", .opt = .{} },
         .{ .name = "particle_life", .opt = .{ .link_imgui = true, .link_nfd = true } },
+        .{ .name = "zaudio_demo", .opt = .{ .link_zaudio = true } },
+        .{ .name = "audio_synthesize_demo", .opt = .{} },
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |demo| {
@@ -75,9 +75,9 @@ pub const BuildOptions = struct {
     link_imgui: bool = false,
     link_chipmunk: bool = false,
     link_nfd: bool = false,
+    link_zaudio: bool = false,
     link_zbullet: bool = false,
     link_ztracy: bool = false,
-    enable_tracy: bool = false,
 };
 
 /// Create game executable
@@ -95,21 +95,50 @@ pub fn createGame(
     exe.setTarget(target);
     exe.setBuildMode(mode);
 
-    // Link must dependencies
+    // Link must-have dependencies
     const sdl = sdlsdk.init(exe.builder);
     sdl.link(exe, .dynamic);
     stb.link(exe);
     zmesh.link(exe, zmesh.BuildOptionsStep.init(b, .{}));
-    zaudio.link(exe);
     znoise.link(exe);
 
     // Link optional dependencies
-    const ztracy_opt = ztracy.BuildOptionsStep.init(b, .{ .enable_ztracy = opt.enable_tracy });
-    if (opt.link_imgui) imgui.link(exe);
-    if (opt.link_chipmunk) chipmunk.link(exe);
-    if (opt.link_nfd) nfd.link(exe);
-    if (opt.link_zbullet) zbullet.link(exe);
-    if (opt.link_ztracy) ztracy.link(exe, ztracy_opt);
+    if (opt.link_imgui) {
+        imgui.link(exe);
+        exe_options.addOption(bool, "use_imgui", true);
+    } else {
+        exe_options.addOption(bool, "use_imgui", false);
+    }
+    if (opt.link_chipmunk) {
+        chipmunk.link(exe);
+        exe_options.addOption(bool, "use_chipmunk", true);
+    } else {
+        exe_options.addOption(bool, "use_chipmunk", false);
+    }
+    if (opt.link_nfd) {
+        nfd.link(exe);
+        exe_options.addOption(bool, "use_nfd", true);
+    } else {
+        exe_options.addOption(bool, "use_nfd", false);
+    }
+    if (opt.link_zaudio) {
+        zaudio.link(exe);
+        exe_options.addOption(bool, "use_zaudio", true);
+    } else {
+        exe_options.addOption(bool, "use_zaudio", false);
+    }
+    if (opt.link_zbullet) {
+        zbullet.link(exe);
+        exe_options.addOption(bool, "use_zbullet", true);
+    } else {
+        exe_options.addOption(bool, "use_zbullet", false);
+    }
+    if (opt.link_ztracy) {
+        ztracy.link(exe, ztracy.BuildOptionsStep.init(b, .{}));
+        exe_options.addOption(bool, "use_ztracy", true);
+    } else {
+        exe_options.addOption(bool, "use_ztracy", false);
+    }
 
     // Add packages
     const jok = std.build.Pkg{
