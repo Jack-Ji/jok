@@ -103,24 +103,24 @@ fn initModules(ctx: *context.Context) !void {
 
 /// Deinitialize modules
 fn deinitModules() void {
-    const zmesh = deps.zmesh;
-    zmesh.deinit();
-
-    if (bos.use_imgui) {
-        imgui.deinit();
-    }
-
-    if (bos.use_zaudio) {
-        zaudio.deinit();
+    if (config.enable_default_3d_primitive) {
+        jok.j3d.primitive.deinit();
     }
 
     if (config.enable_default_2d_primitive) {
         jok.j2d.primitive.deinit();
     }
 
-    if (config.enable_default_3d_primitive) {
-        jok.j3d.primitive.deinit();
+    if (bos.use_zaudio) {
+        zaudio.deinit();
     }
+
+    if (bos.use_imgui) {
+        imgui.deinit();
+    }
+
+    const zmesh = deps.zmesh;
+    zmesh.deinit();
 }
 
 /// Entrance point, never return until application is killed
