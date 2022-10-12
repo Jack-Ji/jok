@@ -4,28 +4,20 @@ const jok = @import("jok");
 const font = jok.font;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
-    _ = ctx;
     std.log.info("game init", .{});
-}
-
-pub fn loop(ctx: *jok.Context) anyerror!void {
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    else => {},
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
-    }
-
-    const size = ctx.getFramebufferSize();
 
     try ctx.renderer.setColorRGB(100, 100, 100);
-    try ctx.renderer.clear();
+}
+
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    _ = ctx;
+    _ = e;
+}
+
+pub fn update(ctx: *jok.Context) anyerror!void {
+    defer ctx.renderer.setColorRGB(100, 100, 100) catch unreachable;
+
+    const size = ctx.getFramebufferSize();
 
     try ctx.renderer.setColorRGBA(0, 128, 0, 120);
     try ctx.renderer.setDrawBlendMode(.blend);

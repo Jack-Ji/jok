@@ -1,4 +1,5 @@
 const std = @import("std");
+const sdl = @import("sdl");
 const jok = @import("jok");
 const imgui = jok.deps.imgui;
 const fontawesome = imgui.fontawesome;
@@ -2051,22 +2052,12 @@ fn printIcons(column_size: usize) void {
     }
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
-    while (ctx.pollEvent()) |e| {
-        _ = imgui.processEvent(e);
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    _ = ctx;
+    _ = e;
+}
 
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    else => {},
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
-    }
-
+pub fn update(ctx: *jok.Context) anyerror!void {
     imgui.beginFrame();
     defer imgui.endFrame();
 
@@ -2079,8 +2070,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         var show_nodes_demo_window = true;
         var clear_color = [3]f32{ 0.45, 0.55, 0.6 };
     };
-
-    try ctx.renderer.clear();
 
     var mouse_state = ctx.getMouseState();
     imgui.setNextWindowPos(.{

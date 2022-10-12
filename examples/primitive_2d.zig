@@ -32,24 +32,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setDrawBlendMode(.blend);
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
-    while (ctx.pollEvent()) |e| {
-        _ = imgui.processEvent(e);
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    _ = ctx;
+    _ = e;
+}
 
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    else => {},
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
-    }
-
-    try ctx.renderer.clear();
-
+pub fn update(ctx: *jok.Context) anyerror!void {
     imgui.beginFrame();
     defer imgui.endFrame();
     if (imgui.begin("Control Panel", null, null)) {

@@ -71,26 +71,17 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     );
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    _ = ctx;
+    _ = e;
+}
+
+pub fn update(ctx: *jok.Context) anyerror!void {
     if (ctx.isKeyPressed(.up)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, -10));
     if (ctx.isKeyPressed(.down)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, 10));
     if (ctx.isKeyPressed(.left)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(-10, 0));
     if (ctx.isKeyPressed(.right)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(10, 0));
 
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    else => {},
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
-    }
-
-    try ctx.renderer.clear();
     ps.update(ctx.delta_tick);
     sb.begin(.{ .blend_method = .additive });
     try ps.draw(sb);

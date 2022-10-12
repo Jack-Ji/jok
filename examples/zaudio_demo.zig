@@ -36,37 +36,34 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     sfx2.setPan(1);
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    .z => music.setVolume(music.getVolume() - 0.1),
-                    .x => music.setVolume(music.getVolume() + 0.1),
-                    else => {},
-                }
-            },
-            .mouse_button_up => |me| {
-                if (me.clicks < 2) continue;
-                if (me.button == .left) {
-                    try sfx1.stop();
-                    try sfx1.seekToPcmFrame(0);
-                    try sfx1.start();
-                }
-                if (me.button == .right) {
-                    try sfx2.stop();
-                    try sfx2.seekToPcmFrame(0);
-                    try sfx2.start();
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    _ = ctx;
+    switch (e) {
+        .key_up => |key| {
+            switch (key.scancode) {
+                .z => music.setVolume(music.getVolume() - 0.1),
+                .x => music.setVolume(music.getVolume() + 0.1),
+                else => {},
+            }
+        },
+        .mouse_button_up => |me| {
+            if (me.clicks < 2) return;
+            if (me.button == .left) {
+                try sfx1.stop();
+                try sfx1.seekToPcmFrame(0);
+                try sfx1.start();
+            }
+            if (me.button == .right) {
+                try sfx2.stop();
+                try sfx2.seekToPcmFrame(0);
+                try sfx2.start();
+            }
+        },
+        else => {},
     }
+}
 
-    try ctx.renderer.clear();
-
+pub fn update(ctx: *jok.Context) anyerror!void {
     _ = try font.debugDraw(
         ctx.renderer,
         .{ .pos = .{ .x = 10, .y = 10 } },

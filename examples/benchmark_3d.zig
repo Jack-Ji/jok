@@ -76,9 +76,16 @@ pub fn init(ctx: *jok.Context) anyerror!void {
             0,
         ));
     }
+
+    try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    _ = ctx;
+    _ = e;
+}
+
+pub fn update(ctx: *jok.Context) anyerror!void {
     // camera movement
     const distance = ctx.delta_tick * 2;
     if (ctx.isKeyPressed(.w)) {
@@ -105,22 +112,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     if (ctx.isKeyPressed(.down)) {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
-
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    else => {},
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
-    }
-
-    try ctx.renderer.setColorRGB(77, 77, 77);
-    try ctx.renderer.clear();
 
     primitive.clear();
     for (translations.items) |tr, i| {

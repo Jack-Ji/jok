@@ -67,9 +67,16 @@ pub fn init(ctx: *jok.Context) anyerror!void {
             false,
         ),
     );
+
+    try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    _ = ctx;
+    _ = e;
+}
+
+pub fn update(ctx: *jok.Context) anyerror!void {
     const S = struct {
         const velocity = 100;
         var animation: []const u8 = "player_down";
@@ -101,22 +108,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
     } else {
         S.force_replay = false;
     }
-
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    else => {},
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
-    }
-
-    try ctx.renderer.setColorRGB(77, 77, 77);
-    try ctx.renderer.clear();
 
     sb.begin(.{});
     try sb.drawSprite(

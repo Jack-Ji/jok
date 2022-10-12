@@ -49,15 +49,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     // your init code
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .quit => ctx.kill(),
-            else => {},
-        }
-    }
+pub fn event(ctx: *jok.Context) anyerror!void {
+    // your event processing code
+}
 
-    // your game loop
+pub fn update(ctx: *jok.Context) anyerror!void {
+    // your game update code
 }
 
 pub fn quit(ctx: *jok.Context) void {
@@ -67,7 +64,7 @@ pub fn quit(ctx: *jok.Context) void {
 
 Noticed yet? That's right, you don't need to write main function, `jok` got your back.
 The game is deemed as a separate package to `jok`'s runtime as a matter of fact. 
-Your responsibility is to provide 3 pub functions: `init/loop/quit`, that's all (pretty much).
+Your responsibility is to provide 4 pub functions: `init/event/loop/quit`, that's all (pretty much).
 
 Of course, you can customize some setup settings, such as width/height/title/position of window,
 which is given by defining some constants using predefined names (they're all prefixed with `jok_`).

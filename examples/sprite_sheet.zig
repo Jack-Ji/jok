@@ -34,9 +34,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     );
 
     camera = j2d.Camera.fromViewport(ctx.renderer.getViewport());
+
+    try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    _ = ctx;
     const bounds = j2d.Camera.CoordLimit{
         .min_x = -10,
         .min_y = -10,
@@ -44,28 +47,24 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         .max_y = 700,
     };
 
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    .f2 => try sheet.saveToFiles("sheet"),
-                    .left => camera.move(-10, 0, bounds),
-                    .right => camera.move(10, 0, bounds),
-                    .up => camera.move(0, -10, bounds),
-                    .down => camera.move(0, 10, bounds),
-                    .z => camera.setZoom(std.math.min(2, camera.zoom + 0.1), bounds),
-                    .x => camera.setZoom(std.math.max(0.1, camera.zoom - 0.1), bounds),
-                    else => {},
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
+    switch (e) {
+        .key_up => |key| {
+            switch (key.scancode) {
+                .f2 => try sheet.saveToFiles("sheet"),
+                .left => camera.move(-10, 0, bounds),
+                .right => camera.move(10, 0, bounds),
+                .up => camera.move(0, -10, bounds),
+                .down => camera.move(0, 10, bounds),
+                .z => camera.setZoom(std.math.min(2, camera.zoom + 0.1), bounds),
+                .x => camera.setZoom(std.math.max(0.1, camera.zoom - 0.1), bounds),
+                else => {},
+            }
+        },
+        else => {},
     }
+}
 
-    try ctx.renderer.setColorRGB(77, 77, 77);
-    try ctx.renderer.clear();
+pub fn update(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.copy(
         sheet.tex,
         camera.translateRectangle(sdl.Rectangle{ .x = 0, .y = 0, .width = 200, .height = 200 }),

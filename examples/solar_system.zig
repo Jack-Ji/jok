@@ -69,7 +69,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(80, 80, 80);
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    _ = ctx;
+    _ = e;
+}
+
+pub fn update(ctx: *jok.Context) anyerror!void {
     // camera movement
     const distance = ctx.delta_tick * 2;
     if (ctx.isKeyPressed(.w)) {
@@ -97,23 +102,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
 
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    else => {},
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
-    }
-
     earth_orbit.setTransform(zmath.mul(zmath.translation(2, 0, 0), zmath.rotationY(@floatCast(f32, ctx.tick))));
     moon_orbit.setTransform(zmath.mul(zmath.translation(0.3, 0, 0), zmath.rotationY(@floatCast(f32, ctx.tick * 12))));
-
-    try ctx.renderer.clear();
 
     var lighting_opt = j3d.TriangleRenderer.LightingOption{};
     lighting_opt.lights[0] = j3d.TriangleRenderer.Light{

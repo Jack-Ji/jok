@@ -1,4 +1,5 @@
 const std = @import("std");
+const sdl = @import("sdl");
 const jok = @import("jok");
 const cp = jok.deps.chipmunk;
 
@@ -147,21 +148,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     });
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    else => {},
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
-    }
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    _ = ctx;
+    _ = e;
+}
 
-    try ctx.renderer.clear();
+pub fn update(ctx: *jok.Context) anyerror!void {
     world.update(ctx.delta_tick);
     try world.debugDraw(ctx.renderer);
 }

@@ -28,6 +28,8 @@ comptime {
         .{ .name = "jok_framestat_display", .T = bool },
         .{ .name = "jok_enable_default_2d_primitive", .T = bool },
         .{ .name = "jok_enable_default_3d_primitive", .T = bool },
+        .{ .name = "jok_exit_on_recv_esc", .T = bool },
+        .{ .name = "jok_exit_on_recv_quit", .T = bool },
     };
     const game_struct = @typeInfo(game).Struct;
     for (game_struct.decls) |f| {
@@ -72,6 +74,8 @@ comptime {
                 \\    jok_framestat_display (bool): whether refresh and display frame statistics on title-bar of window. 
                 \\    jok_enable_default_2d_primitive (bool): whether init j2d.primitive with default option.
                 \\    jok_enable_default_3d_primitive (bool): whether init j3d.primitive with default option.
+                \\    jok_exit_on_recv_esc (bool): whether exit game when get esc event.
+                \\    jok_exit_on_recv_quit (bool): whether exit game when get quit event.
             );
         }
     }
@@ -222,5 +226,17 @@ else
 /// Init j3d.primitive with default renderer
 pub const enable_default_3d_primitive = if (@hasDecl(game, "jok_enable_default_3d_primitive"))
     game.jok_enable_default_3d_primitive
+else
+    true;
+
+/// Exit game when get esc event
+pub const exit_on_recv_esc = if (@hasDecl(game, "jok_exit_on_recv_esc"))
+    game.jok_exit_on_recv_esc
+else
+    true;
+
+/// Exit game when get quit event
+pub const exit_on_recv_quit = if (@hasDecl(game, "jok_exit_on_recv_quit"))
+    game.jok_exit_on_recv_esc
 else
     true;

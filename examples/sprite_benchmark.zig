@@ -52,44 +52,37 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
-    delta_tick = (delta_tick + ctx.delta_tick) / 2;
-
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    else => {},
-                }
-            },
-            .mouse_button_up => |me| {
-                if (me.button != .left) {
-                    continue;
-                }
-                var rd = rand_gen.random();
-                const mouse_state = ctx.getMouseState();
-                const pos = sdl.PointF{
-                    .x = @intToFloat(f32, mouse_state.x),
-                    .y = @intToFloat(f32, mouse_state.y),
-                };
-                var i: u32 = 0;
-                while (i < 1000) : (i += 1) {
-                    const angle = rd.float(f32) * 2 * std.math.pi;
-                    try characters.append(.{
-                        .sprite = try sheet.getSpriteByName("ogre"),
-                        .pos = pos,
-                        .velocity = .{
-                            .x = 300 * @cos(angle),
-                            .y = 300 * @sin(angle),
-                        },
-                    });
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    switch (e) {
+        .mouse_button_up => |me| {
+            if (me.button != .left) {
+                return;
+            }
+            var rd = rand_gen.random();
+            const mouse_state = ctx.getMouseState();
+            const pos = sdl.PointF{
+                .x = @intToFloat(f32, mouse_state.x),
+                .y = @intToFloat(f32, mouse_state.y),
+            };
+            var i: u32 = 0;
+            while (i < 1000) : (i += 1) {
+                const angle = rd.float(f32) * 2 * std.math.pi;
+                try characters.append(.{
+                    .sprite = try sheet.getSpriteByName("ogre"),
+                    .pos = pos,
+                    .velocity = .{
+                        .x = 300 * @cos(angle),
+                        .y = 300 * @sin(angle),
+                    },
+                });
+            }
+        },
+        else => {},
     }
+}
+
+pub fn update(ctx: *jok.Context) anyerror!void {
+    delta_tick = (delta_tick + ctx.delta_tick) / 2;
 
     const size = ctx.getFramebufferSize();
     for (characters.items) |*c| {
@@ -106,7 +99,6 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         c.pos.y += c.velocity.y * ctx.delta_tick;
     }
 
-    try ctx.renderer.clear();
     sb.begin(.{});
     for (characters.items) |c| {
         try sb.drawSprite(c.sprite, .{

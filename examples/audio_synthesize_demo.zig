@@ -53,40 +53,31 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    else => {},
-                }
-            },
-            .mouse_motion => |me| {
-                const fb = ctx.getFramebufferSize();
-                frequency = jok.utils.math.mapf(
-                    @intToFloat(f32, me.x),
-                    0,
-                    @intToFloat(f32, fb.w),
-                    40,
-                    2000,
-                );
-                phase_step = frequency * std.math.tau / @intToFloat(f32, audio_spec.sample_rate);
-                amplitude = jok.utils.math.mapf(
-                    @intToFloat(f32, me.y),
-                    0,
-                    @intToFloat(f32, fb.h),
-                    1.0,
-                    0,
-                );
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    switch (e) {
+        .mouse_motion => |me| {
+            const fb = ctx.getFramebufferSize();
+            frequency = jok.utils.math.mapf(
+                @intToFloat(f32, me.x),
+                0,
+                @intToFloat(f32, fb.w),
+                40,
+                2000,
+            );
+            phase_step = frequency * std.math.tau / @intToFloat(f32, audio_spec.sample_rate);
+            amplitude = jok.utils.math.mapf(
+                @intToFloat(f32, me.y),
+                0,
+                @intToFloat(f32, fb.h),
+                1.0,
+                0,
+            );
+        },
+        else => {},
     }
+}
 
-    try ctx.renderer.clear();
-
+pub fn update(ctx: *jok.Context) anyerror!void {
     var ms = ctx.getMouseState();
     primitive.clear();
     try primitive.addCircle(

@@ -15,11 +15,14 @@ const game = @import("game");
 
 // Validate exposed game api
 comptime {
-    if (!@hasDecl(game, "init") or !@hasDecl(game, "loop") or !@hasDecl(game, "loop")) {
+    if (!@hasDecl(game, "init") or !@hasDecl(game, "event") or
+        !@hasDecl(game, "update") or !@hasDecl(game, "update"))
+    {
         @compileError(
-            \\You must provide following 3 public api in your game code:
+            \\You must provide following 4 public api in your game code:
             \\    pub fn init(ctx: *jok.Context) anyerror!void
-            \\    pub fn loop(ctx: *jok.Context) anyerror!void
+            \\    pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void
+            \\    pub fn update(ctx: *jok.Context) anyerror!void
             \\    pub fn quit(ctx: *jok.Context) void
         );
     }
@@ -29,11 +32,17 @@ comptime {
         },
         else => @compileError("`init` must return anyerror!void"),
     }
-    switch (@typeInfo(@typeInfo(@TypeOf(game.loop)).Fn.return_type.?)) {
+    switch (@typeInfo(@typeInfo(@TypeOf(game.event)).Fn.return_type.?)) {
         .ErrorUnion => |info| if (info.payload != void) {
-            @compileError("`loop` must return anyerror!void");
+            @compileError("`event` must return anyerror!void");
         },
-        else => @compileError("`loop` must return anyerror!void"),
+        else => @compileError("`init` must return anyerror!void"),
+    }
+    switch (@typeInfo(@typeInfo(@TypeOf(game.update)).Fn.return_type.?)) {
+        .ErrorUnion => |info| if (info.payload != void) {
+            @compileError("`update` must return anyerror!void");
+        },
+        else => @compileError("`update` must return anyerror!void"),
     }
     switch (@typeInfo(@typeInfo(@TypeOf(game.quit)).Fn.return_type.?)) {
         .Void => {},
@@ -239,7 +248,7 @@ pub fn main() anyerror!void {
     try initModules(&ctx);
     defer deinitModules();
 
-    // Init before loop
+    // Init before update
     try game.init(&ctx);
     defer game.quit(&ctx);
 
@@ -248,11 +257,35 @@ pub fn main() anyerror!void {
     ctx.last_perf_counter1 = sdl.c.SDL_GetPerformanceCounter();
     ctx.last_perf_counter2 = sdl.c.SDL_GetPerformanceCounter();
 
-    // Game loop
+    // Game update
     while (!ctx.quit) {
-        // Run game loop
-        game.loop(&ctx) catch |e| {
-            context.log.err("got error in loop: {}", .{e});
+        // Event processing
+        while (ctx.pollEvent()) |e| {
+            if (bos.use_imgui) {
+                _ = imgui.processEvent(e);
+            }
+
+            if (e == .key_up and e.key_up.scancode == .escape and
+                config.exit_on_recv_esc)
+            {
+                ctx.kill();
+            } else if (e == .quit and config.exit_on_recv_quit) {
+                ctx.kill();
+            } else {
+                game.event(&ctx, e) catch |err| {
+                    context.log.err("got error in `event`: {}", .{err});
+                    if (@errorReturnTrace()) |trace| {
+                        std.debug.dumpStackTrace(trace.*);
+                        break;
+                    }
+                };
+            }
+        }
+
+        // Update game status
+        ctx.renderer.clear() catch unreachable;
+        game.update(&ctx) catch |e| {
+            context.log.err("got error in `update`: {}", .{e});
             if (@errorReturnTrace()) |trace| {
                 std.debug.dumpStackTrace(trace.*);
                 break;

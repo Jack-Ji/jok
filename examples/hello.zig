@@ -14,24 +14,15 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         false,
     );
     try tex.setBlendMode(.blend);
+    try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    else => {},
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
-    }
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    _ = ctx;
+    _ = e;
+}
 
-    try ctx.renderer.setColorRGB(77, 77, 77);
-    try ctx.renderer.clear();
+pub fn update(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.copy(
         tex,
         null,

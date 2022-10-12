@@ -48,24 +48,15 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try scene.root.addChild(ogre1);
 
     camera = j2d.Camera.fromViewport(ctx.renderer.getViewport());
+    try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn loop(ctx: *jok.Context) anyerror!void {
-    while (ctx.pollEvent()) |e| {
-        switch (e) {
-            .key_up => |key| {
-                switch (key.scancode) {
-                    .escape => ctx.kill(),
-                    else => {},
-                }
-            },
-            .quit => ctx.kill(),
-            else => {},
-        }
-    }
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+    _ = ctx;
+    _ = e;
+}
 
-    try ctx.renderer.setColorRGB(77, 77, 77);
-    try ctx.renderer.clear();
+pub fn update(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.copy(
         sheet.tex,
         sdl.Rectangle{ .x = 0, .y = 0, .width = 200, .height = 200 },
