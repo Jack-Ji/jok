@@ -51,7 +51,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     cube.computeAabb(&aabb);
     cube.computeNormals();
     cube.texcoords = texcoords[0..];
-    try primitive.init(ctx, null);
 
     tex = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
@@ -157,7 +156,6 @@ pub fn quit(ctx: *jok.Context) void {
     std.log.info("game quit", .{});
 
     cube.deinit();
-    primitive.deinit();
     translations.deinit();
     rotation_axises.deinit();
 }

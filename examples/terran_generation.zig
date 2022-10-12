@@ -63,7 +63,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     shape.scale(20, 20, 20);
     shape.computeNormals();
 
-    try primitive.init(ctx, null);
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.setDrawBlendMode(.blend);
 }
@@ -113,6 +112,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.clear();
 
+    imgui.beginFrame();
+    defer imgui.endFrame();
     if (imgui.begin("Control Panel", null, null)) {
         _ = imgui.checkbox("wireframe", &wireframe);
         _ = imgui.dragFloat3("light position", &light_pos, .{ .v_max = 20, .v_speed = 0.1 });
@@ -177,5 +178,4 @@ pub fn quit(ctx: *jok.Context) void {
     std.log.info("game quit", .{});
 
     shape.deinit();
-    primitive.deinit();
 }

@@ -28,7 +28,6 @@ var rotate_anchor: [2]f32 = .{ 500, 500 };
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
 
-    try primitive.init(ctx);
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.setDrawBlendMode(.blend);
 }
@@ -51,6 +50,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.clear();
 
+    imgui.beginFrame();
+    defer imgui.endFrame();
     if (imgui.begin("Control Panel", null, null)) {
         var selection: *c_int = @ptrCast(*c_int, &primtype);
         _ = imgui.radioButton_IntPtr("etriangle", selection, 0);
@@ -132,6 +133,4 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-
-    primitive.deinit();
 }

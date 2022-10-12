@@ -79,8 +79,8 @@ fn checkSys() !void {
     }
 }
 
-/// Initialize builtin deps
-fn initDeps(ctx: *context.Context) !void {
+/// Initialize modules
+fn initModules(ctx: *context.Context) !void {
     const zmesh = deps.zmesh;
     zmesh.init(ctx.allocator);
 
@@ -91,10 +91,18 @@ fn initDeps(ctx: *context.Context) !void {
     if (bos.use_zaudio) {
         zaudio.init(ctx.allocator);
     }
+
+    if (config.enable_default_2d_primitive) {
+        try jok.j2d.primitive.init(ctx);
+    }
+
+    if (config.enable_default_3d_primitive) {
+        try jok.j3d.primitive.init(ctx, null);
+    }
 }
 
-/// Deinitialize builtin deps
-fn deinitDeps() void {
+/// Deinitialize modules
+fn deinitModules() void {
     const zmesh = deps.zmesh;
     zmesh.deinit();
 
@@ -104,6 +112,14 @@ fn deinitDeps() void {
 
     if (bos.use_zaudio) {
         zaudio.deinit();
+    }
+
+    if (config.enable_default_2d_primitive) {
+        jok.j2d.primitive.deinit();
+    }
+
+    if (config.enable_default_3d_primitive) {
+        jok.j3d.primitive.deinit();
     }
 }
 
@@ -220,9 +236,9 @@ pub fn main() anyerror!void {
     ctx.is_software = ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0);
     defer ctx.renderer.destroy();
 
-    // Init builtin deps
-    try initDeps(&ctx);
-    defer deinitDeps();
+    // Init modules
+    try initModules(&ctx);
+    defer deinitModules();
 
     // Init before loop
     try game.init(&ctx);
@@ -236,7 +252,6 @@ pub fn main() anyerror!void {
     // Game loop
     while (!ctx.quit) {
         // Run game loop
-        if (bos.use_imgui) imgui.beginFrame();
         game.loop(&ctx) catch |e| {
             context.log.err("got error in loop: {}", .{e});
             if (@errorReturnTrace()) |trace| {
@@ -244,7 +259,6 @@ pub fn main() anyerror!void {
                 break;
             }
         };
-        if (bos.use_imgui) imgui.endFrame();
 
         // Sync with gpu and present rendering result
         ctx.present(config.fps_limit);

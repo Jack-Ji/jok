@@ -25,7 +25,8 @@ comptime {
         .{ .name = "jok_window_always_on_top", .T = bool },
         .{ .name = "jok_mouse_mode", .T = MouseMode },
         .{ .name = "jok_fps_limit", .T = FpsLimit },
-        .{ .name = "jok_framestat_display", .T = bool },
+        .{ .name = "jok_enable_default_2d_primitive", .T = bool },
+        .{ .name = "jok_enable_default_3d_primitive", .T = bool },
     };
     const game_struct = @typeInfo(game).Struct;
     for (game_struct.decls) |f| {
@@ -68,6 +69,8 @@ comptime {
                 \\    jok_mouse_mode (config.MouseMode): mouse mode setting.
                 \\    jok_fps_limit (config.FpsLimit): fps limit setting.
                 \\    jok_framestat_display (bool): whether refresh and display frame statistics on title-bar of window. 
+                \\    jok_enable_default_2d_primitive (bool): whether init j2d.primitive with default option.
+                \\    jok_enable_default_3d_primitive (bool): whether init j3d.primitive with default option.
             );
         }
     }
@@ -206,5 +209,17 @@ else
 /// Display frame stats on title bar
 pub const enable_framestat_display = if (@hasDecl(game, "jok_framestat_display"))
     game.jok_framestat_display
+else
+    true;
+
+/// Init j2d.primitive with default renderer
+pub const enable_default_2d_primitive = if (@hasDecl(game, "jok_enable_default_2d_primitive"))
+    game.jok_enable_default_2d_primitive
+else
+    true;
+
+/// Init j3d.primitive with default renderer
+pub const enable_default_3d_primitive = if (@hasDecl(game, "jok_enable_default_3d_primitive"))
+    game.jok_enable_default_3d_primitive
 else
     true;

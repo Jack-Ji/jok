@@ -734,8 +734,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     rand = rand_gen.random();
 
     try restart(ctx.allocator);
-
-    try primitive.init(ctx);
 }
 
 pub fn loop(ctx: *jok.Context) anyerror!void {
@@ -755,6 +753,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.clear();
 
+    imgui.beginFrame();
+    defer imgui.endFrame();
     try renderGui(ctx);
     try renderSimulation(ctx);
 }
@@ -767,6 +767,4 @@ pub fn quit(ctx: *jok.Context) void {
     if (red) |g| g.deinit();
     if (white) |g| g.deinit();
     if (blue) |g| g.deinit();
-
-    primitive.deinit();
 }

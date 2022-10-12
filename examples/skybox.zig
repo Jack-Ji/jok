@@ -93,7 +93,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     );
     skybox_rd = j3d.SkyboxRenderer.init(ctx.allocator, .{});
 
-    try primitive.init(ctx, null);
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
@@ -188,6 +187,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         },
     );
 
+    imgui.beginFrame();
+    defer imgui.endFrame();
     if (imgui.begin("Tint Color", null, null)) {
         var cs: [3]f32 = .{
             @intToFloat(f32, skybox_tint_color.r) / 255, 
@@ -208,6 +209,5 @@ pub fn quit(ctx: *jok.Context) void {
     std.log.info("game quit", .{});
 
     cube.deinit();
-    primitive.deinit();
     skybox_rd.deinit();
 }

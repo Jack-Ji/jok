@@ -2067,6 +2067,9 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
         }
     }
 
+    imgui.beginFrame();
+    defer imgui.endFrame();
+
     const S = struct {
         var f: f32 = 0.0;
         var counter: i32 = 0;

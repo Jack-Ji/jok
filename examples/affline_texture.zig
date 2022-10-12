@@ -44,7 +44,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         true,
     );
 
-    try primitive.init(ctx, null);
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.setDrawBlendMode(.blend);
 }
@@ -94,6 +93,8 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
     try ctx.renderer.clear();
 
+    imgui.beginFrame();
+    defer imgui.endFrame();
     if (imgui.begin("Control Panel", null, null)) {
         _ = imgui.checkbox("wireframe", &wireframe);
         _ = imgui.inputInt("slices", @ptrCast(*c_int, &slices), .{});
@@ -132,6 +133,4 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-
-    primitive.deinit();
 }

@@ -50,7 +50,6 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     phase_step = frequency * std.math.tau / @intToFloat(f32, audio_spec.sample_rate);
     audio_device.pause(false);
 
-    try primitive.init(ctx);
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
@@ -131,6 +130,5 @@ pub fn loop(ctx: *jok.Context) anyerror!void {
 
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
-    primitive.deinit();
     std.log.info("game quit", .{});
 }
