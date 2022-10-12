@@ -5,6 +5,7 @@ const context = @import("context.zig");
 const jok = @import("jok.zig");
 const deps = jok.deps;
 const config = jok.config;
+const zmesh = deps.zmesh;
 const zaudio = deps.zaudio;
 const imgui = deps.imgui;
 const bos = @import("build_options");
@@ -81,7 +82,6 @@ fn checkSys() !void {
 
 /// Initialize modules
 fn initModules(ctx: *context.Context) !void {
-    const zmesh = deps.zmesh;
     zmesh.init(ctx.allocator);
 
     if (bos.use_imgui) {
@@ -119,7 +119,6 @@ fn deinitModules() void {
         imgui.deinit();
     }
 
-    const zmesh = deps.zmesh;
     zmesh.deinit();
 }
 
