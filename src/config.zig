@@ -25,6 +25,7 @@ comptime {
         .{ .name = "jok_window_always_on_top", .T = bool },
         .{ .name = "jok_mouse_mode", .T = MouseMode },
         .{ .name = "jok_fps_limit", .T = FpsLimit },
+        .{ .name = "jok_framestat_display", .T = bool },
         .{ .name = "jok_enable_default_2d_primitive", .T = bool },
         .{ .name = "jok_enable_default_3d_primitive", .T = bool },
     };
