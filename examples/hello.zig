@@ -23,6 +23,10 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
 }
 
 pub fn update(ctx: *jok.Context) anyerror!void {
+    _ = ctx;
+}
+
+pub fn draw(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.copy(
         tex,
         null,

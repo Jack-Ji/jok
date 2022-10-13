@@ -89,7 +89,9 @@ pub fn update(ctx: *jok.Context) anyerror!void {
     if (ctx.isKeyPressed(.down)) {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
+}
 
+pub fn draw(ctx: *jok.Context) anyerror!void {
     imgui.beginFrame();
     defer imgui.endFrame();
     if (imgui.begin("Control Panel", null, null)) {

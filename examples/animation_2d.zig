@@ -6,6 +6,11 @@ const j2d = jok.j2d;
 var sheet: *j2d.SpriteSheet = undefined;
 var sb: *j2d.SpriteBatch = undefined;
 var as: *j2d.AnimationSystem = undefined;
+const velocity = 100;
+var animation: []const u8 = "player_down";
+var pos = sdl.PointF{ .x = 200, .y = 200 };
+var flip_h = false;
+var force_replay = false;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -77,38 +82,32 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
 }
 
 pub fn update(ctx: *jok.Context) anyerror!void {
-    const S = struct {
-        const velocity = 100;
-        var animation: []const u8 = "player_down";
-        var pos = sdl.PointF{ .x = 200, .y = 200 };
-        var flip_h = false;
-        var force_replay = false;
-    };
-
     if (ctx.isKeyPressed(.up)) {
-        S.pos.y -= S.velocity * ctx.delta_tick;
-        S.animation = "player_up";
-        S.flip_h = false;
-        S.force_replay = true;
+        pos.y -= velocity * ctx.delta_tick;
+        animation = "player_up";
+        flip_h = false;
+        force_replay = true;
     } else if (ctx.isKeyPressed(.down)) {
-        S.pos.y += S.velocity * ctx.delta_tick;
-        S.animation = "player_down";
-        S.flip_h = false;
-        S.force_replay = true;
+        pos.y += velocity * ctx.delta_tick;
+        animation = "player_down";
+        flip_h = false;
+        force_replay = true;
     } else if (ctx.isKeyPressed(.right)) {
-        S.pos.x += S.velocity * ctx.delta_tick;
-        S.animation = "player_left_right";
-        S.flip_h = true;
-        S.force_replay = true;
+        pos.x += velocity * ctx.delta_tick;
+        animation = "player_left_right";
+        flip_h = true;
+        force_replay = true;
     } else if (ctx.isKeyPressed(.left)) {
-        S.pos.x -= S.velocity * ctx.delta_tick;
-        S.animation = "player_left_right";
-        S.flip_h = false;
-        S.force_replay = true;
+        pos.x -= velocity * ctx.delta_tick;
+        animation = "player_left_right";
+        flip_h = false;
+        force_replay = true;
     } else {
-        S.force_replay = false;
+        force_replay = false;
     }
+}
 
+pub fn draw(ctx: *jok.Context) anyerror!void {
     sb.begin(.{});
     try sb.drawSprite(
         try sheet.getSpriteByName("player"),
@@ -120,16 +119,16 @@ pub fn update(ctx: *jok.Context) anyerror!void {
         },
     );
     try as.play(
-        S.animation,
+        animation,
         ctx.delta_tick,
         sb,
         .{
-            .pos = S.pos,
-            .flip_h = S.flip_h,
+            .pos = pos,
+            .flip_h = flip_h,
             .scale_w = 5,
             .scale_h = 5,
         },
-        S.force_replay,
+        force_replay,
     );
     try sb.end();
 

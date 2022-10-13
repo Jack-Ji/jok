@@ -742,6 +742,10 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
 }
 
 pub fn update(ctx: *jok.Context) anyerror!void {
+    _ = ctx;
+}
+
+pub fn draw(ctx: *jok.Context) anyerror!void {
     imgui.beginFrame();
     defer imgui.endFrame();
     try renderGui(ctx);

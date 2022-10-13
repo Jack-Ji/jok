@@ -83,6 +83,11 @@ pub fn update(ctx: *jok.Context) anyerror!void {
     if (ctx.isKeyPressed(.right)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(10, 0));
 
     ps.update(ctx.delta_tick);
+}
+
+pub fn draw(ctx: *jok.Context) anyerror!void {
+    _ = ctx;
+
     sb.begin(.{ .blend_method = .additive });
     try ps.draw(sb);
     try sb.end();

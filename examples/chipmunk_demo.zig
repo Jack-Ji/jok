@@ -155,6 +155,9 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
 
 pub fn update(ctx: *jok.Context) anyerror!void {
     world.update(ctx.delta_tick);
+}
+
+pub fn draw(ctx: *jok.Context) anyerror!void {
     try world.debugDraw(ctx.renderer);
 }
 

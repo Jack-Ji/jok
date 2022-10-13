@@ -112,7 +112,9 @@ pub fn update(ctx: *jok.Context) anyerror!void {
     if (ctx.isKeyPressed(.down)) {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
+}
 
+pub fn draw(ctx: *jok.Context) anyerror!void {
     primitive.clear();
     for (translations.items) |tr, i| {
         try primitive.addShape(

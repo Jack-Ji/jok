@@ -3,7 +3,7 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const j2d = jok.j2d;
 
-pub const jok_fps_limit = jok.config.FpsLimit{ .manual = 120 };
+pub const jok_fps_limit: jok.config.FpsLimit = .none;
 
 const Actor = struct {
     sprite: j2d.Sprite,
@@ -98,7 +98,9 @@ pub fn update(ctx: *jok.Context) anyerror!void {
         c.pos.x += c.velocity.x * ctx.delta_tick;
         c.pos.y += c.velocity.y * ctx.delta_tick;
     }
+}
 
+pub fn draw(ctx: *jok.Context) anyerror!void {
     sb.begin(.{});
     for (characters.items) |c| {
         try sb.drawSprite(c.sprite, .{

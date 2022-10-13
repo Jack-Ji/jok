@@ -15,6 +15,10 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
 }
 
 pub fn update(ctx: *jok.Context) anyerror!void {
+    _ = ctx;
+}
+
+pub fn draw(ctx: *jok.Context) anyerror!void {
     defer ctx.renderer.setColorRGB(100, 100, 100) catch unreachable;
 
     const size = ctx.getFramebufferSize();

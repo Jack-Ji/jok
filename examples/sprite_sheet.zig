@@ -65,6 +65,10 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
 }
 
 pub fn update(ctx: *jok.Context) anyerror!void {
+    _ = ctx;
+}
+
+pub fn draw(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.copy(
         sheet.tex,
         camera.translateRectangle(sdl.Rectangle{ .x = 0, .y = 0, .width = 200, .height = 200 }),

@@ -15,14 +15,18 @@ const game = @import("game");
 
 // Validate exposed game api
 comptime {
-    if (!@hasDecl(game, "init") or !@hasDecl(game, "event") or
-        !@hasDecl(game, "update") or !@hasDecl(game, "update"))
+    if (!@hasDecl(game, "init") or
+        !@hasDecl(game, "event") or
+        !@hasDecl(game, "update") or
+        !@hasDecl(game, "draw") or
+        !@hasDecl(game, "quit"))
     {
         @compileError(
-            \\You must provide following 4 public api in your game code:
+            \\You must provide following 5 public api in your game code:
             \\    pub fn init(ctx: *jok.Context) anyerror!void
             \\    pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void
             \\    pub fn update(ctx: *jok.Context) anyerror!void
+            \\    pub fn draw(ctx: *jok.Context) anyerror!void
             \\    pub fn quit(ctx: *jok.Context) void
         );
     }
@@ -43,6 +47,12 @@ comptime {
             @compileError("`update` must return anyerror!void");
         },
         else => @compileError("`update` must return anyerror!void"),
+    }
+    switch (@typeInfo(@typeInfo(@TypeOf(game.draw)).Fn.return_type.?)) {
+        .ErrorUnion => |info| if (info.payload != void) {
+            @compileError("`draw` must return anyerror!void");
+        },
+        else => @compileError("`draw` must return anyerror!void"),
     }
     switch (@typeInfo(@typeInfo(@TypeOf(game.quit)).Fn.return_type.?)) {
         .Void => {},
@@ -253,9 +263,8 @@ pub fn main() anyerror!void {
     defer game.quit(&ctx);
 
     // Init time vars
-    context.perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
-    ctx.last_perf_counter1 = sdl.c.SDL_GetPerformanceCounter();
-    ctx.last_perf_counter2 = sdl.c.SDL_GetPerformanceCounter();
+    ctx._perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
+    ctx._last_perf_counter = sdl.c.SDL_GetPerformanceCounter();
 
     // Game update
     while (!ctx.quit) {
@@ -282,18 +291,8 @@ pub fn main() anyerror!void {
             }
         }
 
-        // Update game status
-        ctx.renderer.clear() catch unreachable;
-        game.update(&ctx) catch |e| {
-            context.log.err("got error in `update`: {}", .{e});
-            if (@errorReturnTrace()) |trace| {
-                std.debug.dumpStackTrace(trace.*);
-                break;
-            }
-        };
-
-        // Sync with gpu and present rendering result
-        ctx.present(config.fps_limit);
+        // Run internal loop
+        ctx.internalLoop(config.fps_limit, game.update, game.draw);
 
         // Update frame stats and display
         if (ctx.updateFrameStats() and config.enable_framestat_display) {

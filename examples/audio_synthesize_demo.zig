@@ -78,6 +78,10 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
 }
 
 pub fn update(ctx: *jok.Context) anyerror!void {
+    _ = ctx;
+}
+
+pub fn draw(ctx: *jok.Context) anyerror!void {
     var ms = ctx.getMouseState();
     primitive.clear();
     try primitive.addCircle(

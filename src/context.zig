@@ -1,11 +1,10 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const sdl = @import("sdl");
 const config = @import("config.zig");
 const jok = @import("jok.zig");
 
 pub const log = std.log.scoped(.jok);
-
-pub var perf_counter_freq: f64 = undefined;
 
 /// Application context
 pub const Context = struct {
@@ -31,62 +30,127 @@ pub const Context = struct {
     // Whether always on top
     always_on_top: bool = undefined,
 
-    // Residue of fps capping
-    fps_limit_residue: u64 = 0,
-    last_perf_counter1: u64 = 0,
-
-    // Number of seconds since launch/last-frame
+    // Elapsed time of game (seconds)
     tick: f64 = 0,
+
+    // Delta time between update/draw (seconds)
     delta_tick: f32 = 0,
-    last_perf_counter2: u64 = 0,
 
     // Frames stats
     fps: f32 = 0,
     average_cpu_time: f32 = 0,
-    frame_counter: u32 = 0,
-    last_fps_refresh_time: f64 = 0,
 
-    /// Flush graphics contents
-    pub inline fn present(self: *Context, comptime fps_limit: config.FpsLimit) void {
-        var counter_threshold: u64 = switch (fps_limit) {
+    _last_perf_counter: u64 = 0,
+    _accumulated_perf_counter: u64 = 0,
+    _perf_counter_freq: f64 = 0,
+
+    _frame_count: u32 = 0,
+    _last_fps_refresh_time: f64 = 0,
+
+    /// Internal game loop
+    pub inline fn internalLoop(
+        self: *Context,
+        comptime fps_limit: config.FpsLimit,
+        comptime updateFn: *const fn (ctx: *jok.Context) anyerror!void,
+        comptime drawFn: *const fn (ctx: *jok.Context) anyerror!void,
+    ) void {
+        const fps_counter_threshold: u64 = switch (fps_limit) {
             .none => 0,
-            .auto => if (self.is_software) @divTrunc(@floatToInt(u64, perf_counter_freq), 30) else 0,
-            .manual => |fps| @floatToInt(u64, perf_counter_freq) / @intCast(u64, fps),
+            .auto => if (self.is_software) @divTrunc(@floatToInt(u64, self._perf_counter_freq), 30) else 0,
+            .manual => |fps| @floatToInt(u64, self._perf_counter_freq) / @intCast(u64, fps),
         };
-        if (counter_threshold > 0) {
-            if (self.fps_limit_residue >= counter_threshold) {
-                self.fps_limit_residue -= counter_threshold;
-            } else {
-                counter_threshold -= self.fps_limit_residue;
-                while ((sdl.c.SDL_GetPerformanceCounter() - self.last_perf_counter1) < counter_threshold) {
-                    sdl.delay(1);
+        const max_accumulated = @floatToInt(u64, self._perf_counter_freq * 0.5);
+
+        // Update game
+        if (fps_counter_threshold > 0) {
+            while (true) {
+                const counter = sdl.c.SDL_GetPerformanceCounter();
+                self._accumulated_perf_counter += counter - self._last_perf_counter;
+                self._last_perf_counter = counter;
+                if (self._accumulated_perf_counter < fps_counter_threshold) {
+                    const sleep_ms = @floatToInt(
+                        u32,
+                        @intToFloat(f64, (fps_counter_threshold - self._accumulated_perf_counter) * 1000) / self._perf_counter_freq,
+                    );
+                    sdl.delay(sleep_ms);
+                } else {
+                    break;
                 }
-                self.fps_limit_residue = sdl.c.SDL_GetPerformanceCounter() - self.last_perf_counter1 - counter_threshold;
             }
-            self.last_perf_counter1 = sdl.c.SDL_GetPerformanceCounter();
+
+            if (self._accumulated_perf_counter > max_accumulated)
+                self._accumulated_perf_counter = max_accumulated;
+
+            // Perform as many update as we can
+            var step_count: u32 = 0;
+            const fps_delta_tick = @floatCast(
+                f32,
+                @intToFloat(f64, fps_counter_threshold) / self._perf_counter_freq,
+            );
+            while (self._accumulated_perf_counter >= fps_counter_threshold) {
+                step_count += 1;
+                self._accumulated_perf_counter -= fps_counter_threshold;
+                self.delta_tick = fps_delta_tick;
+                self.tick += self.delta_tick;
+
+                updateFn(self) catch |e| {
+                    log.err("got error in `update`: {}", .{e});
+                    if (@errorReturnTrace()) |trace| {
+                        std.debug.dumpStackTrace(trace.*);
+                        self.kill();
+                        return;
+                    }
+                };
+            }
+            assert(step_count > 0);
+
+            // Set delta time between `draw`
+            self.delta_tick = @intToFloat(f32, step_count) * fps_delta_tick;
+        } else {
+            // Perform one update
+            const counter = sdl.c.SDL_GetPerformanceCounter();
+            self.delta_tick = @floatCast(
+                f32,
+                @intToFloat(f64, counter - self._last_perf_counter) / self._perf_counter_freq,
+            );
+            self._last_perf_counter = counter;
+            self.tick += self.delta_tick;
+
+            updateFn(self) catch |e| {
+                log.err("got error in `update`: {}", .{e});
+                if (@errorReturnTrace()) |trace| {
+                    std.debug.dumpStackTrace(trace.*);
+                    self.kill();
+                    return;
+                }
+            };
         }
+
+        // Do rendering
+        self.renderer.clear() catch unreachable;
+        drawFn(self) catch |e| {
+            log.err("got error in `draw`: {}", .{e});
+            if (@errorReturnTrace()) |trace| {
+                std.debug.dumpStackTrace(trace.*);
+                self.kill();
+                return;
+            }
+        };
         self.renderer.present();
-        const counter = sdl.c.SDL_GetPerformanceCounter();
-        self.delta_tick = @floatCast(
-            f32,
-            @intToFloat(f64, counter - self.last_perf_counter2) / perf_counter_freq,
-        );
-        self.last_perf_counter2 = counter;
-        self.tick += self.delta_tick;
     }
 
     /// Update frame stats
     pub inline fn updateFrameStats(self: *Context) bool {
-        self.frame_counter += 1;
-        if ((self.tick - self.last_fps_refresh_time) >= 1.0) {
-            const t = self.tick - self.last_fps_refresh_time;
+        self._frame_count += 1;
+        if ((self.tick - self._last_fps_refresh_time) >= 1.0) {
+            const t = self.tick - self._last_fps_refresh_time;
             self.fps = @floatCast(
                 f32,
-                @intToFloat(f64, self.frame_counter) / t,
+                @intToFloat(f64, self._frame_count) / t,
             );
             self.average_cpu_time = (1.0 / self.fps) * 1000.0;
-            self.last_fps_refresh_time = self.tick;
-            self.frame_counter = 0;
+            self._last_fps_refresh_time = self.tick;
+            self._frame_count = 0;
             return true;
         }
         return false;

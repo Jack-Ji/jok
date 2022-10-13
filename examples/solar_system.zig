@@ -104,7 +104,9 @@ pub fn update(ctx: *jok.Context) anyerror!void {
 
     earth_orbit.setTransform(zmath.mul(zmath.translation(2, 0, 0), zmath.rotationY(@floatCast(f32, ctx.tick))));
     moon_orbit.setTransform(zmath.mul(zmath.translation(0.3, 0, 0), zmath.rotationY(@floatCast(f32, ctx.tick * 12))));
+}
 
+pub fn draw(ctx: *jok.Context) anyerror!void {
     var lighting_opt = j3d.TriangleRenderer.LightingOption{};
     lighting_opt.lights[0] = j3d.TriangleRenderer.Light{
         .point = .{
