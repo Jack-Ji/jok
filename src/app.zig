@@ -97,6 +97,10 @@ fn checkSys() !void {
         context.log.err("Need SDL least version >= 2.0.18", .{});
         return sdl.makeError();
     }
+
+    if (config.exit_on_recv_esc) {
+        context.log.info("Press ESC to exit game", .{});
+    }
 }
 
 /// Initialize modules

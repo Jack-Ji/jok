@@ -239,4 +239,4 @@ else
 pub const exit_on_recv_quit = if (@hasDecl(game, "jok_exit_on_recv_quit"))
     game.jok_exit_on_recv_esc
 else
-    true;
+    false;

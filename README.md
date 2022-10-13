@@ -50,7 +50,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     // your init code
 }
 
-pub fn event(ctx: *jok.Context: e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
     // your event processing code
 }
 
