@@ -9,8 +9,6 @@ const zmesh = deps.zmesh;
 const zaudio = deps.zaudio;
 const imgui = deps.imgui;
 const bos = @import("build_options");
-
-// Import game object's declarations
 const game = @import("game");
 
 // Validate exposed game api
@@ -144,6 +142,9 @@ fn deinitModules() void {
 
     zmesh.deinit();
 }
+
+/// Logging level, used by std.log
+pub const log_level = config.log_level;
 
 pub fn main() anyerror!void {
     try checkSys();

@@ -6,6 +6,7 @@ const game = @import("game");
 // Validate setup configurations
 comptime {
     const config_options = [_]struct { name: []const u8, T: type }{
+        .{ .name = "jok_log_level", .T = std.log.Level },
         .{ .name = "jok_allocator", .T = std.mem.Allocator },
         .{ .name = "jok_mem_leak_checks", .T = bool },
         .{ .name = "jok_mem_detail_logs", .T = bool },
@@ -52,6 +53,7 @@ comptime {
             @compileError("Validation of setup options failed, invalid option name: `" ++ f.name ++ "`" ++
                 \\
                 \\Supported options:
+                \\    jok_log_level (std.log.Level): logging level.
                 \\    jok_allocator (std.mem.Allocator): default memory allocator.
                 \\    jok_mem_leak_checks (bool): whether default memory allocator check memleak when exiting.
                 \\    jok_mem_detail_logs (bool): whether default memory allocator print detailed memory alloc/free logs.
@@ -102,6 +104,12 @@ pub const MouseMode = enum {
     hide,
     relative,
 };
+
+/// Logging level
+pub const log_level: std.log.Level = if (@hasDecl(game, "jok_log_level"))
+    game.jok_log_level
+else
+    std.log.default_level;
 
 /// Default memory allocator
 pub const allocator: ?std.mem.Allocator = if (@hasDecl(game, "jok_allocator"))
