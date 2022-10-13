@@ -267,8 +267,8 @@ pub fn main() anyerror!void {
     defer game.quit(&ctx);
 
     // Init common time-related vars
-    ctx._perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
-    ctx._last_perf_counter = sdl.c.SDL_GetPerformanceCounter();
+    ctx._pc_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
+    ctx._last_pc = sdl.c.SDL_GetPerformanceCounter();
 
     // Game loop
     while (!ctx.quit) {

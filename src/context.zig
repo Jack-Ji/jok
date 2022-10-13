@@ -40,9 +40,9 @@ pub const Context = struct {
     fps: f32 = 0,
     average_cpu_time: f32 = 0,
 
-    _last_perf_counter: u64 = 0,
-    _accumulated_perf_counter: u64 = 0,
-    _perf_counter_freq: f64 = 0,
+    _last_pc: u64 = 0,
+    _accumulated_pc: u64 = 0,
+    _pc_freq: f64 = 0,
 
     _frame_count: u32 = 0,
     _last_fps_refresh_time: f64 = 0,
@@ -54,23 +54,23 @@ pub const Context = struct {
         comptime updateFn: *const fn (ctx: *jok.Context) anyerror!void,
         comptime drawFn: *const fn (ctx: *jok.Context) anyerror!void,
     ) void {
-        const fps_counter_threshold: u64 = switch (fps_limit) {
+        const fps_pc_threshold: u64 = switch (fps_limit) {
             .none => 0,
-            .auto => if (self.is_software) @divTrunc(@floatToInt(u64, self._perf_counter_freq), 30) else 0,
-            .manual => |fps| @floatToInt(u64, self._perf_counter_freq) / @intCast(u64, fps),
+            .auto => if (self.is_software) @divTrunc(@floatToInt(u64, self._pc_freq), 30) else 0,
+            .manual => |fps| @floatToInt(u64, self._pc_freq) / @intCast(u64, fps),
         };
-        const max_accumulated = @floatToInt(u64, self._perf_counter_freq * 0.5);
+        const max_accumulated = @floatToInt(u64, self._pc_freq * 0.5);
 
         // Update game
-        if (fps_counter_threshold > 0) {
+        if (fps_pc_threshold > 0) {
             while (true) {
-                const counter = sdl.c.SDL_GetPerformanceCounter();
-                self._accumulated_perf_counter += counter - self._last_perf_counter;
-                self._last_perf_counter = counter;
-                if (self._accumulated_perf_counter < fps_counter_threshold) {
+                const pc = sdl.c.SDL_GetPerformanceCounter();
+                self._accumulated_pc += pc - self._last_pc;
+                self._last_pc = pc;
+                if (self._accumulated_pc < fps_pc_threshold) {
                     const sleep_ms = @floatToInt(
                         u32,
-                        @intToFloat(f64, (fps_counter_threshold - self._accumulated_perf_counter) * 1000) / self._perf_counter_freq,
+                        @intToFloat(f64, (fps_pc_threshold - self._accumulated_pc) * 1000) / self._pc_freq,
                     );
                     sdl.delay(sleep_ms);
                 } else {
@@ -78,18 +78,18 @@ pub const Context = struct {
                 }
             }
 
-            if (self._accumulated_perf_counter > max_accumulated)
-                self._accumulated_perf_counter = max_accumulated;
+            if (self._accumulated_pc > max_accumulated)
+                self._accumulated_pc = max_accumulated;
 
-            // Perform as many update as we can
+            // Perform as many update as we can, with fixed step
             var step_count: u32 = 0;
             const fps_delta_tick = @floatCast(
                 f32,
-                @intToFloat(f64, fps_counter_threshold) / self._perf_counter_freq,
+                @intToFloat(f64, fps_pc_threshold) / self._pc_freq,
             );
-            while (self._accumulated_perf_counter >= fps_counter_threshold) {
+            while (self._accumulated_pc >= fps_pc_threshold) {
                 step_count += 1;
-                self._accumulated_perf_counter -= fps_counter_threshold;
+                self._accumulated_pc -= fps_pc_threshold;
                 self.delta_tick = fps_delta_tick;
                 self.tick += self.delta_tick;
 
@@ -108,12 +108,12 @@ pub const Context = struct {
             self.delta_tick = @intToFloat(f32, step_count) * fps_delta_tick;
         } else {
             // Perform one update
-            const counter = sdl.c.SDL_GetPerformanceCounter();
+            const pc = sdl.c.SDL_GetPerformanceCounter();
             self.delta_tick = @floatCast(
                 f32,
-                @intToFloat(f64, counter - self._last_perf_counter) / self._perf_counter_freq,
+                @intToFloat(f64, pc - self._last_pc) / self._pc_freq,
             );
-            self._last_perf_counter = counter;
+            self._last_pc = pc;
             self.tick += self.delta_tick;
 
             updateFn(self) catch |e| {
