@@ -145,7 +145,6 @@ fn deinitModules() void {
     zmesh.deinit();
 }
 
-/// Entrance point, never return until application is killed
 pub fn main() anyerror!void {
     try checkSys();
 
@@ -262,15 +261,15 @@ pub fn main() anyerror!void {
     try initModules(&ctx);
     defer deinitModules();
 
-    // Init before update
+    // Init game object
     try game.init(&ctx);
     defer game.quit(&ctx);
 
-    // Init time vars
+    // Init common time-related vars
     ctx._perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
     ctx._last_perf_counter = sdl.c.SDL_GetPerformanceCounter();
 
-    // Game update
+    // Game loop
     while (!ctx.quit) {
         // Event processing
         while (ctx.pollEvent()) |e| {
@@ -295,7 +294,7 @@ pub fn main() anyerror!void {
             }
         }
 
-        // Run internal loop
+        // Internal loop
         ctx.internalLoop(config.fps_limit, game.update, game.draw);
 
         // Update frame stats and display
