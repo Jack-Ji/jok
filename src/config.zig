@@ -7,6 +7,8 @@ const game = @import("game");
 comptime {
     const config_options = [_]struct { name: []const u8, T: type }{
         .{ .name = "jok_log_level", .T = std.log.Level },
+        .{ .name = "jok_fps_limit", .T = FpsLimit },
+        .{ .name = "jok_framestat_display", .T = bool },
         .{ .name = "jok_allocator", .T = std.mem.Allocator },
         .{ .name = "jok_mem_leak_checks", .T = bool },
         .{ .name = "jok_mem_detail_logs", .T = bool },
@@ -25,10 +27,8 @@ comptime {
         .{ .name = "jok_window_maximized", .T = bool },
         .{ .name = "jok_window_always_on_top", .T = bool },
         .{ .name = "jok_mouse_mode", .T = MouseMode },
-        .{ .name = "jok_fps_limit", .T = FpsLimit },
-        .{ .name = "jok_framestat_display", .T = bool },
-        .{ .name = "jok_enable_default_2d_primitive", .T = bool },
-        .{ .name = "jok_enable_default_3d_primitive", .T = bool },
+        .{ .name = "jok_default_2d_primitive", .T = bool },
+        .{ .name = "jok_default_3d_primitive", .T = bool },
         .{ .name = "jok_exit_on_recv_esc", .T = bool },
         .{ .name = "jok_exit_on_recv_quit", .T = bool },
     };
@@ -54,6 +54,8 @@ comptime {
                 \\
                 \\Supported options:
                 \\    jok_log_level (std.log.Level): logging level.
+                \\    jok_fps_limit (config.FpsLimit): fps limit setting.
+                \\    jok_framestat_display (bool): whether refresh and display frame statistics on title-bar of window. 
                 \\    jok_allocator (std.mem.Allocator): default memory allocator.
                 \\    jok_mem_leak_checks (bool): whether default memory allocator check memleak when exiting.
                 \\    jok_mem_detail_logs (bool): whether default memory allocator print detailed memory alloc/free logs.
@@ -72,10 +74,8 @@ comptime {
                 \\    jok_window_maximized (bool): whether window is maximized when startup.
                 \\    jok_window_always_on_top (bool): whether window is locked to most front layer.
                 \\    jok_mouse_mode (config.MouseMode): mouse mode setting.
-                \\    jok_fps_limit (config.FpsLimit): fps limit setting.
-                \\    jok_framestat_display (bool): whether refresh and display frame statistics on title-bar of window. 
-                \\    jok_enable_default_2d_primitive (bool): whether init j2d.primitive with default option.
-                \\    jok_enable_default_3d_primitive (bool): whether init j3d.primitive with default option.
+                \\    jok_default_2d_primitive (bool): whether init j2d.primitive with default option.
+                \\    jok_default_3d_primitive (bool): whether init j3d.primitive with default option.
                 \\    jok_exit_on_recv_esc (bool): whether exit game when get esc event.
                 \\    jok_exit_on_recv_quit (bool): whether exit game when get quit event.
             );
@@ -110,6 +110,18 @@ pub const log_level: std.log.Level = if (@hasDecl(game, "jok_log_level"))
     game.jok_log_level
 else
     std.log.default_level;
+
+/// FPS limiting (auto means vsync)
+pub const fps_limit: FpsLimit = if (@hasDecl(game, "jok_fps_limit"))
+    game.jok_fps_limit
+else
+    .auto;
+
+/// Display frame stats on title bar
+pub const enable_framestat_display = if (@hasDecl(game, "jok_framestat_display"))
+    game.jok_framestat_display
+else
+    true;
 
 /// Default memory allocator
 pub const allocator: ?std.mem.Allocator = if (@hasDecl(game, "jok_allocator"))
@@ -213,27 +225,15 @@ pub const mouse_mode: MouseMode = if (@hasDecl(game, "jok_mouse_mode"))
 else
     .normal;
 
-/// FPS limiting (auto means vsync)
-pub const fps_limit: FpsLimit = if (@hasDecl(game, "jok_fps_limit"))
-    game.jok_fps_limit
-else
-    .auto;
-
-/// Display frame stats on title bar
-pub const enable_framestat_display = if (@hasDecl(game, "jok_framestat_display"))
-    game.jok_framestat_display
-else
-    true;
-
 /// Init j2d.primitive with default renderer
-pub const enable_default_2d_primitive = if (@hasDecl(game, "jok_enable_default_2d_primitive"))
-    game.jok_enable_default_2d_primitive
+pub const enable_default_2d_primitive = if (@hasDecl(game, "jok_default_2d_primitive"))
+    game.jok_default_2d_primitive
 else
     true;
 
 /// Init j3d.primitive with default renderer
-pub const enable_default_3d_primitive = if (@hasDecl(game, "jok_enable_default_3d_primitive"))
-    game.jok_enable_default_3d_primitive
+pub const enable_default_3d_primitive = if (@hasDecl(game, "jok_default_3d_primitive"))
+    game.jok_default_3d_primitive
 else
     true;
 
