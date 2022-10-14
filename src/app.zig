@@ -273,7 +273,7 @@ pub fn main() anyerror!void {
     // Game loop
     while (!ctx.quit) {
         // Event processing
-        while (ctx.pollEvent()) |e| {
+        while (sdl.pollEvent()) |e| {
             if (bos.use_imgui) {
                 _ = imgui.processEvent(e);
             }

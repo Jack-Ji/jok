@@ -166,12 +166,6 @@ pub const Context = struct {
         self.quit = true;
     }
 
-    /// Poll event
-    pub fn pollEvent(self: *Context) ?sdl.Event {
-        _ = self;
-        return sdl.pollEvent();
-    }
-
     /// Toggle resizable
     pub fn toggleResizable(self: *Context, on_off: ?bool) void {
         if (on_off) |state| {
