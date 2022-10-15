@@ -132,7 +132,7 @@ pub fn addCube(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -185,7 +185,7 @@ pub fn addPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -238,7 +238,7 @@ pub fn addParametricSphere(model: zmath.Mat, camera: Camera, opt: ParametricSphe
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -289,7 +289,7 @@ pub fn addSubdividedSphere(model: zmath.Mat, camera: Camera, opt: SubdividedSphe
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -342,7 +342,7 @@ pub fn addHemisphere(model: zmath.Mat, camera: Camera, opt: HemisphereDrawOption
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -395,7 +395,7 @@ pub fn addCone(model: zmath.Mat, camera: Camera, opt: ConeDrawOption) !void {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -448,7 +448,7 @@ pub fn addCylinder(model: zmath.Mat, camera: Camera, opt: CylinderDrawOption) !v
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -507,7 +507,7 @@ pub fn addDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -562,7 +562,7 @@ pub fn addTorus(model: zmath.Mat, camera: Camera, opt: TorusDrawOption) !void {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -608,7 +608,7 @@ pub fn addIcosahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -654,7 +654,7 @@ pub fn addDodecahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) 
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -700,7 +700,7 @@ pub fn addOctahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !v
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -746,7 +746,7 @@ pub fn addTetrahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
@@ -798,7 +798,7 @@ pub fn addRock(model: zmath.Mat, camera: Camera, opt: RockDrawOption) !void {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
-        m.shape.computeAabb(&m.aabb);
+        m.aabb = m.shape.computeAabb();
         all_shapes.append(m.shape) catch unreachable;
         try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
         break :BLK m;
