@@ -6,6 +6,22 @@ A minimal 2d/3d game framework for zig.
 * SDL library
 * Any code editor you like
 
+## Features
+* 2D Camera
+* 2D Sprite batched rendering
+* 2D Sprite Sheet generation/save/load
+* 2D Animation System
+* 2D Particle System
+* 2D primitive rendering (line/rectangle/ellipse/circle/triangle/polyline etc)
+* 2D Scene management
+* 3D Camera
+* 3D Skybox rendering
+* 3D object batched rendering
+* 3D primitive rendering (plane/sphere/hemisphere/cone/cylinder etc)
+* 3D Scene management
+* Font rendering/loading
+* Sound/Music playing/mixing
+
 ## How to start?
 Copy `jok` folder or clone repo (recursively) into `libs` subdirectory of the root of your project.
 Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig).
