@@ -9,9 +9,9 @@ A minimal 2d/3d game framework for zig.
 ## Features
 * 2D camera
 * 2D sprite batched rendering
-* 2D sprite Sheet generation/save/load
-* 2D animation System
-* 2D particle System
+* 2D sprite sheet generation/save/load
+* 2D animation system
+* 2D particle system
 * 2D primitive rendering (line/rectangle/ellipse/circle/triangle/polyline etc)
 * 2D scene management
 * 3D camera
