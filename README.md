@@ -7,20 +7,21 @@ A minimal 2d/3d game framework for zig.
 * Any code editor you like
 
 ## Features
-* 2D Camera
-* 2D Sprite batched rendering
-* 2D Sprite Sheet generation/save/load
-* 2D Animation System
-* 2D Particle System
+* 2D camera
+* 2D sprite batched rendering
+* 2D sprite Sheet generation/save/load
+* 2D animation System
+* 2D particle System
 * 2D primitive rendering (line/rectangle/ellipse/circle/triangle/polyline etc)
-* 2D Scene management
-* 3D Camera
-* 3D Skybox rendering
+* 2D scene management
+* 3D camera
+* 3D skybox rendering
 * 3D object batched rendering
 * 3D primitive rendering (plane/sphere/hemisphere/cone/cylinder etc)
-* 3D Scene management
+* 3D scene management
 * Font rendering/loading
 * Sound/Music playing/mixing
+* Fully integrated ImGui and it's popular extensions (implot and imnode)
 
 ## How to start?
 Copy `jok` folder or clone repo (recursively) into `libs` subdirectory of the root of your project.
