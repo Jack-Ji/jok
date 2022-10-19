@@ -1,7 +1,7 @@
 set ZMODULES=../zig-gamedev/libs
 
-rm -rf src/deps/zaudio
-cp -r %ZMODULES%/zaudio src/deps
+rm -rf src/deps/zaudio/src
+cp -r %ZMODULES%/zaudio/src src/deps/zaudio
 
 rm -rf src/deps/zbullet
 cp -r %ZMODULES%/zbullet src/deps
