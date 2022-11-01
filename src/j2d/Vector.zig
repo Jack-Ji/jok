@@ -123,13 +123,13 @@ pub fn mul(first_vector: Self, second_vector: Self) Self {
 
 /// Construct vector from the max components in two vectors
 pub fn max(first_vector: Self, second_vector: Self) Self {
-    const result = @maximum(first_vector.data, second_vector.data);
+    const result = @max(first_vector.data, second_vector.data);
     return .{ .data = result };
 }
 
 /// Construct vector from the min components in two vectors
 pub fn min(first_vector: Self, second_vector: Self) Self {
-    const result = @minimum(first_vector.data, second_vector.data);
+    const result = @min(first_vector.data, second_vector.data);
     return .{ .data = result };
 }
 

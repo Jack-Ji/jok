@@ -48,9 +48,9 @@ pub fn init(ctx: *jok.Context) anyerror!void {
         null,
     );
     cube = j3d.zmesh.Shape.initCube();
-    cube.computeAabb(&aabb);
     cube.computeNormals();
     cube.texcoords = texcoords[0..];
+    aabb = cube.computeAabb();
 
     tex = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
