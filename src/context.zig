@@ -158,7 +158,7 @@ pub const Context = struct {
 
     /// Get renderer's name
     pub inline fn getRendererName(self: *Context) []const u8 {
-        return if (self.is_software) "soft" else "hard";
+        return if (self.is_software) "software" else "hardware";
     }
 
     /// Kill app
