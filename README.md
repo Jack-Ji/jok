@@ -97,7 +97,8 @@ Theoretically anywhere SDL2 can run. But I'm focusing on PC platforms for now.
 Some optional vendor libraries are confined to certain platforms, use at your own needs.
 
 ## Watch out!
-It's way too minimal (perhaps), you can't write shaders ([might change in the future](https://gist.github.com/icculus/f731224bef3906e4c5e8cbed6f98bb08)). 
+It's way too minimal (perhaps), you can't write shaders (It doesn't mean performance is bad! Checkout
+benchmark example `sprite_benchmark/benchmark_3d`. [And the situation might change in the future.](https://gist.github.com/icculus/f731224bef3906e4c5e8cbed6f98bb08)).
 If you want to achieve something fancy, you ought to resort to some clever art tricks or algorithms.
 Welcome to old golden time of 90s. Or, you can choose other more powerful/modern libraries/engines.
 
