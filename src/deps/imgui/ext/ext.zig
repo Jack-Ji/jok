@@ -1,5 +1,5 @@
 /// implot
-pub const plot = @import("./implot/implot.zig");
+pub const plot = @import("implot/implot.zig");
 
 /// imnodes
-pub const nodes = @import("./imnodes/imnodes.zig");
+pub const nodes = @import("imnodes/imnodes.zig");
