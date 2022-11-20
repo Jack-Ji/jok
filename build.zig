@@ -102,43 +102,31 @@ pub fn createGame(
     zmesh.link(exe, zmesh.BuildOptionsStep.init(b, .{}));
     znoise.link(exe);
 
-    // Link optional dependencies
+    // Link optional dependencies and set comptime flags
     if (opt.link_imgui) {
         imgui.link(exe);
-        exe_options.addOption(bool, "use_imgui", true);
-    } else {
-        exe_options.addOption(bool, "use_imgui", false);
     }
     if (opt.link_chipmunk) {
         chipmunk.link(exe);
-        exe_options.addOption(bool, "use_chipmunk", true);
-    } else {
-        exe_options.addOption(bool, "use_chipmunk", false);
     }
     if (opt.link_nfd) {
         nfd.link(exe);
-        exe_options.addOption(bool, "use_nfd", true);
-    } else {
-        exe_options.addOption(bool, "use_nfd", false);
     }
     if (opt.link_zaudio) {
         zaudio.link(exe);
-        exe_options.addOption(bool, "use_zaudio", true);
-    } else {
-        exe_options.addOption(bool, "use_zaudio", false);
     }
     if (opt.link_zbullet) {
         zbullet.link(exe);
-        exe_options.addOption(bool, "use_zbullet", true);
-    } else {
-        exe_options.addOption(bool, "use_zbullet", false);
     }
     if (opt.link_ztracy) {
         ztracy.link(exe, ztracy.BuildOptionsStep.init(b, .{}));
-        exe_options.addOption(bool, "use_ztracy", true);
-    } else {
-        exe_options.addOption(bool, "use_ztracy", false);
     }
+    exe_options.addOption(bool, "use_imgui", opt.link_imgui);
+    exe_options.addOption(bool, "use_chipmunk", opt.link_chipmunk);
+    exe_options.addOption(bool, "use_nfd", opt.link_nfd);
+    exe_options.addOption(bool, "use_zaudio", opt.link_zaudio);
+    exe_options.addOption(bool, "use_zbullet", opt.link_zbullet);
+    exe_options.addOption(bool, "use_ztracy", opt.link_ztracy);
 
     // Add packages
     const jok = std.build.Pkg{
