@@ -33,7 +33,7 @@ pub fn draw(ctx: *jok.Context) anyerror!void {
             .ypos_type = .top,
             .color = sdl.Color.cyan,
         },
-        "你好！ABCDEFGHIJKL abcdefghijkl",
+        "ABCDEFGHIJKL abcdefghijkl",
         .{},
     );
     try ctx.renderer.fillRectF(result.area);
@@ -70,7 +70,7 @@ pub fn draw(ctx: *jok.Context) anyerror!void {
             .color = sdl.Color.red,
             .font_size = 32,
         },
-        "你好！ABCDEFGHIJKL abcdefghijkl",
+        "ABCDEFGHIJKL abcdefghijkl",
         .{},
     );
     try ctx.renderer.fillRectF(result.area);
