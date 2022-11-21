@@ -1,5 +1,6 @@
 const std = @import("std");
 const math = std.math;
+const expectEqual = std.testing.expectEqual;
 const jok = @import("../jok.zig");
 const Self = @This();
 
@@ -20,7 +21,7 @@ pub fn y(self: Self) f32 {
 
 /// Set all components to the same given value.
 pub fn set(val: f32) Self {
-    const result = @splat(f32, val);
+    const result = @splat(2, val);
     return .{ .data = result };
 }
 
@@ -41,7 +42,7 @@ pub fn up() Self {
 
 /// Shorthand for (0, 1).
 pub fn down() Self {
-    return up().negate();
+    return Self.new(0, 1);
 }
 
 /// Shorthand for (1, 0).
@@ -51,7 +52,7 @@ pub fn right() Self {
 
 /// Shorthand for (-1, 0).
 pub fn left() Self {
-    return right().negate();
+    return Self.new(-1, 0);
 }
 
 /// Negate the given vector.
@@ -61,7 +62,7 @@ pub fn negate(self: Self) Self {
 
 /// Construct new vector from slice.
 pub fn fromSlice(slice: []const f32) Self {
-    const result = slice[0..f32].*;
+    const result = slice[0..2].*;
     return .{ .data = result };
 }
 
@@ -94,7 +95,7 @@ pub fn norm(self: Self) Self {
     if (l == 0) {
         return self;
     }
-    const result = self.data / @splat(f32, l);
+    const result = self.data / @splat(2, l);
     return .{ .data = result };
 }
 
@@ -150,6 +151,109 @@ pub fn lerp(first_vector: Self, second_vector: Self, t: f32) Self {
     const from = first_vector.data;
     const to = second_vector.data;
 
-    const result = from + (to - from) * @splat(f32, t);
+    const result = from + (to - from) * @splat(2, t);
     return .{ .data = result };
+}
+
+test "Vectors.eql" {
+    const a = Self.new(1, 2);
+    const b = Self.new(1, 2);
+    const c = Self.new(1.5, 2);
+
+    try expectEqual(Self.eql(a, b), true);
+    try expectEqual(Self.eql(a, c), false);
+}
+
+test "Vectors.set" {
+    const a = Self.new(2.5, 2.5);
+    const b = Self.set(2.5);
+    try expectEqual(a, b);
+}
+
+test "Vectors.add" {
+    const a = Self.one();
+    const b = Self.one();
+    try expectEqual(a.add(b), Self.set(2));
+}
+
+test "Vectors.negate" {
+    const a = Self.set(5);
+    const a_negated = Self.set(-5);
+    try expectEqual(a.negate(), a_negated);
+}
+
+test "Vectors.getAngle" {
+    const a = Self.right();
+    const b = Self.up();
+    const c = Self.left();
+    const d = Self.one();
+
+    try expectEqual(math.approxEqAbs(f32, a.getAngle(a), 0, 0.0001), true);
+    try expectEqual(math.approxEqAbs(f32, a.getAngle(b), 90, 0.0001), true);
+    try expectEqual(math.approxEqAbs(f32, a.getAngle(c), 180, 0.0001), true);
+    try expectEqual(math.approxEqAbs(f32, a.getAngle(d), 45, 0.0001), true);
+}
+
+test "Vectors.toArray" {
+    const a = Self.up().toArray();
+    const b = [_]f32{ 0, -1 };
+
+    try std.testing.expectEqualSlices(f32, &a, &b);
+}
+
+test "Vectors.length" {
+    const a = Self.new(1.5, 2.6);
+    try expectEqual(a.length(), 3.00166606);
+}
+
+test "Vectors.distance" {
+    const a = Self.zero();
+    const b = Self.left();
+    const c = Self.new(0, 5);
+
+    try expectEqual(a.distance(b), 1);
+    try expectEqual(a.distance(c), 5);
+}
+
+test "Vectors.normalize" {
+    const a = Self.new(1.5, 2.6);
+    const a_normalized = Self.new(0.499722480, 0.866185605);
+    try expectEqual(a.norm(), a_normalized);
+}
+
+test "Vectors.scale" {
+    const a = Self.new(1, 2);
+    const a_scaled = Self.new(5, 10);
+    try expectEqual(a.scale(5), a_scaled);
+}
+
+test "Vectors.dot" {
+    const a = Self.new(1.5, 2.6);
+    const b = Self.new(2.5, 3.45);
+    try expectEqual(a.dot(b), 12.7200002);
+}
+
+test "Vectors.lerp" {
+    const a = Self.new(-10, 0);
+    const b = Self.set(10);
+    try expectEqual(Self.lerp(a, b, 0.5), Self.new(0, 5));
+}
+
+test "Vectors.min" {
+    const a = Self.new(10, -2);
+    const b = Self.new(-10, 5);
+    const minimum = Self.new(-10, -2);
+    try expectEqual(Self.min(a, b), minimum);
+}
+
+test "Vectors.max" {
+    const a = Self.new(10, -2);
+    const b = Self.new(-10, 5);
+    const maximum = Self.new(10, 5);
+    try expectEqual(Self.max(a, b), maximum);
+}
+
+test "Vectors.fromSlice" {
+    const slice = [_]f32{ 2, 4 };
+    try expectEqual(Self.fromSlice(&slice), Self.new(2, 4));
 }

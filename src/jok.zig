@@ -24,3 +24,8 @@ pub const deps = @import("deps/deps.zig");
 
 /// Misc util functions
 pub const utils = @import("utils.zig");
+
+// Tests
+test "all" {
+    _ = @import("j2d/Vector.zig");
+}
