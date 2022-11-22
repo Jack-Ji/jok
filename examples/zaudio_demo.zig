@@ -4,16 +4,16 @@ const jok = @import("jok");
 const font = jok.font;
 const zaudio = jok.zaudio;
 
-var engine: zaudio.Engine = undefined;
-var music: zaudio.Sound = undefined;
-var sfx1: zaudio.Sound = undefined;
-var sfx2: zaudio.Sound = undefined;
+var engine: *zaudio.Engine = undefined;
+var music: *zaudio.Sound = undefined;
+var sfx1: *zaudio.Sound = undefined;
+var sfx2: *zaudio.Sound = undefined;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
-    engine = try zaudio.createEngine(null);
+    engine = try zaudio.Engine.create(null);
     music = try engine.createSoundFromFile(
         "assets/audios/Edge-of-Ocean_Looping.mp3",
         .{},
