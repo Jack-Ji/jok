@@ -109,3 +109,8 @@ Welcome to old golden time of 90s. Or, you can choose other more powerful/modern
 * [dear-imgui](https://github.com/ocornut/imgui) (MIT license)
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
 * [nativefiledialog](https://github.com/mlabbe/nativefiledialog) (zlib license)
+
+## Built-in Fonts
+* [Fontawesome](https://fontawesome.com/) (Font Awesome Free License)
+* [Classic Console Neue](http://webdraft.hu/fonts/classic-console/) (MIT license)
+
