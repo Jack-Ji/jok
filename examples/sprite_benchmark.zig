@@ -61,13 +61,12 @@ pub fn update(ctx: *jok.Context) anyerror!void {
     const mouse = ctx.getMouseState();
     if (mouse.buttons.getPressed(.left)) {
         var rd = rand_gen.random();
-        const mouse_state = ctx.getMouseState();
         const pos = sdl.PointF{
-            .x = @intToFloat(f32, mouse_state.x),
-            .y = @intToFloat(f32, mouse_state.y),
+            .x = @intToFloat(f32, mouse.x),
+            .y = @intToFloat(f32, mouse.y),
         };
         var i: u32 = 0;
-        while (i < 100) : (i += 1) {
+        while (i < 10) : (i += 1) {
             const angle = rd.float(f32) * 2 * std.math.pi;
             try characters.append(.{
                 .sprite = try sheet.getSpriteByName("ogre"),
