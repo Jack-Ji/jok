@@ -9,7 +9,6 @@ const string_c = @cImport({
 
 extern fn SDL_free(mem: ?*anyopaque) void;
 var performance_frequency: u64 = undefined;
-var app_context: *jok.Context = undefined;
 
 const BackendData = struct {
     window: *sdl.c.SDL_Window,
@@ -20,7 +19,7 @@ const BackendData = struct {
     mouse_can_use_global_state: bool,
 };
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     if (io.BackendPlatformUserData != null) {
         std.debug.panic("already initialized!", .{});
@@ -103,10 +102,9 @@ pub fn init(ctx: *jok.Context) !void {
     _ = sdl.c.SDL_SetHint(sdl.c.SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
 
     performance_frequency = sdl.c.SDL_GetPerformanceFrequency();
-    app_context = ctx;
 }
 
-pub fn deinit() void {
+pub fn deinit(ctx: jok.Context) void {
     const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     const bd = getBackendData().?;
 
@@ -120,7 +118,7 @@ pub fn deinit() void {
 
     io.BackendPlatformUserData = null;
     io.BackendPlatformName = null;
-    app_context.allocator.destroy(bd);
+    ctx.allocator.destroy(bd);
 }
 
 // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear c wants to use your inputs.

@@ -12,7 +12,7 @@ pub const Context = struct {
     allocator: std.mem.Allocator = undefined,
 
     // Internal window
-    window: sdl.Window,
+    window: sdl.Window = undefined,
 
     // Renderer
     renderer: sdl.Renderer = undefined,

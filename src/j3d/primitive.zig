@@ -23,7 +23,7 @@ var arena: std.heap.ArenaAllocator = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 
 /// Initialize primitive module
-pub fn init(ctx: *jok.Context, _rd: ?TriangleRenderer) !void {
+pub fn init(ctx: jok.Context, _rd: ?TriangleRenderer) !void {
     tri_renderer = _rd orelse BLK: {
         own_rd = true;
         break :BLK TriangleRenderer.init(ctx.allocator);
