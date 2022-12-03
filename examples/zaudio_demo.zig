@@ -49,12 +49,10 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
         .mouse_button_up => |me| {
             if (me.clicks < 2) return;
             if (me.button == .left) {
-                try sfx1.stop();
                 try sfx1.seekToPcmFrame(0);
                 try sfx1.start();
             }
             if (me.button == .right) {
-                try sfx2.stop();
                 try sfx2.seekToPcmFrame(0);
                 try sfx2.start();
             }
