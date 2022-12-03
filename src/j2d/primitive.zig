@@ -15,7 +15,7 @@ pub const CommonDrawOption = struct {
 var rd: ?Renderer = null;
 
 /// Create primitive renderer
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     rd = Renderer.init(ctx.allocator);
 }
 

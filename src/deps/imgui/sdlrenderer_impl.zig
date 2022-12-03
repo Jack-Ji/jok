@@ -4,8 +4,6 @@ const jok = @import("../../jok.zig");
 const sdl = @import("sdl");
 const c = @import("c.zig");
 
-var app_context: *jok.Context = undefined;
-
 const RendererData = struct {
     renderer: sdl.Renderer,
     font_texture: ?sdl.Texture,
@@ -19,7 +17,7 @@ fn getBackendData() *RendererData {
     );
 }
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     if (io.BackendRendererUserData != null) {
         std.debug.panic("already initialized!", .{});
@@ -31,10 +29,9 @@ pub fn init(ctx: *jok.Context) !void {
     io.BackendFlags |= c.ImGuiBackendFlags_RendererHasVtxOffset;
     bd.renderer = ctx.renderer;
     bd.font_texture = null;
-    app_context = ctx;
 }
 
-pub fn deinit() void {
+pub fn deinit(ctx: jok.Context) void {
     const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     const bd = getBackendData();
     if (bd.font_texture) |tex| {
@@ -44,7 +41,7 @@ pub fn deinit() void {
     }
     io.BackendRendererUserData = null;
     io.BackendRendererName = null;
-    app_context.allocator.destroy(bd);
+    ctx.allocator.destroy(bd);
 }
 
 fn setupRenderState() void {

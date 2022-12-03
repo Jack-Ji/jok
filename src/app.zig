@@ -101,58 +101,88 @@ fn checkSys() !void {
     }
 }
 
-/// Initialize modules
-fn initModules(ctx: *context.Context) !void {
-    zmesh.init(ctx.allocator);
+/// Global context
+var ctx: context.Context = .{};
 
-    if (bos.use_imgui) {
-        try imgui.init(ctx);
+/// Internal memory allocation
+var mem_allocations: std.AutoHashMap(usize, usize) = undefined;
+var mem_mutex: std.Thread.Mutex = .{};
+const mem_alignment = 16;
+
+/// Custom memory functions for SDL
+fn sdlMemAlloc(size: usize) callconv(.C) ?*anyopaque {
+    mem_mutex.lock();
+    defer mem_mutex.unlock();
+
+    const mem_slice = ctx.allocator.allocBytes(
+        mem_alignment,
+        size,
+        0,
+        @returnAddress(),
+    ) catch @panic("jok: out of memory");
+    mem_allocations.put(@ptrToInt(mem_slice.ptr), size) catch @panic("jok: out of memory");
+    return mem_slice.ptr;
+}
+fn sdlMemCalloc(nmemb: usize, size: usize) callconv(.C) ?*anyopaque {
+    mem_mutex.lock();
+    defer mem_mutex.unlock();
+
+    const mem_slice = ctx.allocator.allocBytes(
+        mem_alignment,
+        size * nmemb,
+        0,
+        @returnAddress(),
+    ) catch @panic("jok: out of memory");
+    std.mem.set(u8, mem_slice, 0);
+    mem_allocations.put(@ptrToInt(mem_slice.ptr), size) catch @panic("jok: out of memory");
+    return mem_slice.ptr;
+}
+fn sdlMemRealloc(mem: ?*anyopaque, size: usize) callconv(.C) ?*anyopaque {
+    if (mem) |ptr| {
+        mem_mutex.lock();
+        defer mem_mutex.unlock();
+
+        const old_size = mem_allocations.fetchRemove(@ptrToInt(ptr)).?.value;
+        const old_mem_slice = @ptrCast(
+            [*]align(mem_alignment) u8,
+            @alignCast(mem_alignment, ptr),
+        )[0..old_size];
+        const mem_slice = ctx.allocator.realloc(old_mem_slice, size) catch @panic("jok: out of memory");
+        mem_allocations.put(@ptrToInt(mem_slice.ptr), size) catch @panic("jok: out of memory");
+        return mem_slice.ptr;
+    } else {
+        return sdlMemAlloc(size);
     }
+}
+fn sdlMemFree(mem: ?*anyopaque) callconv(.C) void {
+    if (mem) |ptr| {
+        mem_mutex.lock();
+        defer mem_mutex.unlock();
 
-    if (bos.use_zaudio) {
-        zaudio.init(ctx.allocator);
-    }
-
-    if (config.enable_default_2d_primitive) {
-        try jok.j2d.primitive.init(ctx);
-    }
-
-    if (config.enable_default_3d_primitive) {
-        try jok.j3d.primitive.init(ctx, null);
+        const size = mem_allocations.fetchRemove(@ptrToInt(ptr)).?.value;
+        const mem_slice = @ptrCast(
+            [*]align(mem_alignment) u8,
+            @alignCast(mem_alignment, ptr),
+        )[0..size];
+        ctx.allocator.free(mem_slice);
     }
 }
 
-/// Deinitialize modules
-fn deinitModules() void {
-    if (config.enable_default_3d_primitive) {
-        jok.j3d.primitive.deinit();
-    }
+/// Initialize SDL
+fn initSDL() !void {
+    // Set SDL memory allocator
+    mem_allocations = std.AutoHashMap(usize, usize).init(ctx.allocator);
+    try mem_allocations.ensureTotalCapacity(32);
+    sdl.c.SDL_SetMemoryFunctions(
+        &sdlMemAlloc,
+        &sdlMemCalloc,
+        &sdlMemRealloc,
+        &sdlMemFree,
+    );
 
-    if (config.enable_default_2d_primitive) {
-        jok.j2d.primitive.deinit();
-    }
-
-    if (bos.use_zaudio) {
-        zaudio.deinit();
-    }
-
-    if (bos.use_imgui) {
-        imgui.deinit();
-    }
-
-    zmesh.deinit();
-}
-
-/// Logging level, used by std.log
-pub const log_level = config.log_level;
-
-pub fn main() anyerror!void {
-    try checkSys();
-
-    // Initialize SDL library
+    // Initialize SDL sub-systems
     var sdl_flags = sdl.InitFlags.everything;
     try sdl.init(sdl_flags);
-    defer sdl.quit();
 
     // Create window
     var window_flags = sdl.WindowFlags{
@@ -169,38 +199,14 @@ pub fn main() anyerror!void {
     if (config.enable_maximized) {
         window_flags.dim = .maximized;
     }
-    var ctx: context.Context = .{
-        .window = try sdl.createWindow(
-            config.title,
-            config.pos_x,
-            config.pos_y,
-            config.width,
-            config.height,
-            window_flags,
-        ),
-    };
-    const AllocatorType = std.heap.GeneralPurposeAllocator(.{
-        .safety = if (config.enable_mem_leak_checks) true else false,
-        .verbose_log = if (config.enable_mem_detail_logs) true else false,
-        .enable_memory_limit = true,
-    });
-    var gpa: ?AllocatorType = null;
-    if (config.allocator) |a| {
-        ctx.allocator = a;
-    } else {
-        gpa = AllocatorType{};
-        ctx.allocator = gpa.?.allocator();
-    }
-    defer {
-        if (gpa) |*a| {
-            if (a.deinit()) {
-                @panic("memory leaks happened!");
-            }
-        }
-        ctx.window.destroy();
-    }
-
-    // Apply window options
+    ctx.window = try sdl.createWindow(
+        config.title,
+        config.pos_x,
+        config.pos_y,
+        config.width,
+        config.height,
+        window_flags,
+    );
     if (config.min_size) |size| {
         sdl.c.SDL_SetWindowMinimumSize(
             ctx.window.ptr,
@@ -256,10 +262,106 @@ pub fn main() anyerror!void {
     };
     const rdinfo = try ctx.renderer.getInfo();
     ctx.is_software = ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0);
-    defer ctx.renderer.destroy();
+}
+
+/// Deinitialize SDL
+fn deinitSDL() void {
+    ctx.renderer.destroy();
+    ctx.window.destroy();
+    sdl.quit();
+
+    // Release leftover memory (probably some leaks in SDL)
+    var leftover_mem_size: usize = 0;
+    var it = mem_allocations.iterator();
+    while (it.next()) |p| {
+        const mem_slice = @ptrCast(
+            [*]align(mem_alignment) u8,
+            @alignCast(mem_alignment, @intToPtr(*anyopaque, p.key_ptr.*)),
+        )[0..p.value_ptr.*];
+        ctx.allocator.free(mem_slice);
+        leftover_mem_size += mem_slice.len;
+    }
+    if (leftover_mem_size > 0)
+        context.log.warn("SDL leaked some memory @_@, size: {:.3} ", .{std.fmt.fmtIntSizeBin(leftover_mem_size)});
+    mem_allocations.deinit();
+}
+
+/// Initialize modules
+fn initModules() !void {
+    zmesh.init(ctx.allocator);
+
+    if (bos.use_imgui) {
+        try imgui.init(ctx);
+    }
+
+    if (bos.use_zaudio) {
+        zaudio.init(ctx.allocator);
+    }
+
+    if (config.enable_default_2d_primitive) {
+        try jok.j2d.primitive.init(ctx);
+    }
+
+    if (config.enable_default_3d_primitive) {
+        try jok.j3d.primitive.init(ctx, null);
+    }
+}
+
+/// Deinitialize modules
+fn deinitModules() void {
+    if (config.enable_default_3d_primitive) {
+        jok.j3d.primitive.deinit();
+    }
+
+    if (config.enable_default_2d_primitive) {
+        jok.j2d.primitive.deinit();
+    }
+
+    if (bos.use_zaudio) {
+        zaudio.deinit();
+    }
+
+    if (bos.use_imgui) {
+        imgui.deinit(ctx);
+    }
+
+    zmesh.deinit();
+}
+
+/// Logging level, used by std.log
+pub const log_level = config.log_level;
+
+pub fn main() anyerror!void {
+    // Check system
+    try checkSys();
+
+    // Initialize memory allocator
+    const AllocatorType = std.heap.GeneralPurposeAllocator(.{
+        .safety = if (config.enable_mem_leak_checks) true else false,
+        .verbose_log = if (config.enable_mem_detail_logs) true else false,
+        .enable_memory_limit = true,
+    });
+    var gpa: ?AllocatorType = null;
+    if (config.allocator) |a| {
+        ctx.allocator = a;
+    } else {
+        gpa = AllocatorType{};
+        ctx.allocator = gpa.?.allocator();
+    }
+    defer {
+        if (gpa) |*a| {
+            if (a.deinit()) {
+                @panic("jok: memory leaks happened!");
+            }
+        }
+    }
+
+    // Initialize SDL library
+    try initSDL();
+    defer deinitSDL();
 
     // Init modules
-    try initModules(&ctx);
+    try initModules();
     defer deinitModules();
 
     // Init game object

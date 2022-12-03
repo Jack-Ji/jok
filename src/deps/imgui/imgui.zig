@@ -27,7 +27,7 @@ var plot_ctx: ?*ext.plot.ImPlotContext = null;
 var nodes_ctx: ?*ext.nodes.ImNodesContext = null;
 
 /// Initialize sdl2 backend
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     imgui_ctx = c.igCreateContext(null);
     assert(imgui_ctx != null);
     try sdl_impl.init(ctx);
@@ -53,12 +53,12 @@ pub fn init(ctx: *jok.Context) !void {
 }
 
 /// Release allocated resources
-pub fn deinit() void {
+pub fn deinit(ctx: jok.Context) void {
     assert(imgui_ctx != null);
     ext.nodes.destroyContext(nodes_ctx.?);
     ext.plot.destroyContext(plot_ctx.?);
-    sdlrenderer_impl.deinit();
-    sdl_impl.deinit();
+    sdlrenderer_impl.deinit(ctx);
+    sdl_impl.deinit(ctx);
 }
 
 /// Process i/o event
