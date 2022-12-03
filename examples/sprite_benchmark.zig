@@ -53,37 +53,34 @@ pub fn init(ctx: *jok.Context) anyerror!void {
 }
 
 pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
-    switch (e) {
-        .mouse_button_up => |me| {
-            if (me.button != .left) {
-                return;
-            }
-            var rd = rand_gen.random();
-            const mouse_state = ctx.getMouseState();
-            const pos = sdl.PointF{
-                .x = @intToFloat(f32, mouse_state.x),
-                .y = @intToFloat(f32, mouse_state.y),
-            };
-            var i: u32 = 0;
-            while (i < 1000) : (i += 1) {
-                const angle = rd.float(f32) * 2 * std.math.pi;
-                try characters.append(.{
-                    .sprite = try sheet.getSpriteByName("ogre"),
-                    .pos = pos,
-                    .velocity = .{
-                        .x = 300 * @cos(angle),
-                        .y = 300 * @sin(angle),
-                    },
-                });
-            }
-        },
-        else => {},
-    }
+    _ = ctx;
+    _ = e;
 }
 
 pub fn update(ctx: *jok.Context) anyerror!void {
-    delta_tick = (delta_tick + ctx.delta_tick) / 2;
+    const mouse = ctx.getMouseState();
+    if (mouse.buttons.getPressed(.left)) {
+        var rd = rand_gen.random();
+        const mouse_state = ctx.getMouseState();
+        const pos = sdl.PointF{
+            .x = @intToFloat(f32, mouse_state.x),
+            .y = @intToFloat(f32, mouse_state.y),
+        };
+        var i: u32 = 0;
+        while (i < 100) : (i += 1) {
+            const angle = rd.float(f32) * 2 * std.math.pi;
+            try characters.append(.{
+                .sprite = try sheet.getSpriteByName("ogre"),
+                .pos = pos,
+                .velocity = .{
+                    .x = 300 * @cos(angle),
+                    .y = 300 * @sin(angle),
+                },
+            });
+        }
+    }
 
+    delta_tick = (delta_tick + ctx.delta_tick) / 2;
     const size = ctx.getFramebufferSize();
     for (characters.items) |*c| {
         const curpos = c.pos;
