@@ -133,7 +133,7 @@ fn sdlMemCalloc(nmemb: usize, size: usize) callconv(.C) ?*anyopaque {
         0,
         @returnAddress(),
     ) catch @panic("jok: out of memory");
-    std.mem.set(u8, mem_slice, 0);
+    @memset(mem_slice.ptr, 0, mem_slice.len);
     mem_allocations.put(@ptrToInt(mem_slice.ptr), size) catch @panic("jok: out of memory");
     return mem_slice.ptr;
 }
