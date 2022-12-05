@@ -114,11 +114,10 @@ fn sdlMemAlloc(size: usize) callconv(.C) ?*anyopaque {
     mem_mutex.lock();
     defer mem_mutex.unlock();
 
-    const mem_slice = ctx.allocator.allocBytes(
+    const mem_slice = ctx.allocator.alignedAlloc(
+        u8,
         mem_alignment,
         size,
-        0,
-        @returnAddress(),
     ) catch @panic("jok: out of memory");
     mem_allocations.put(@ptrToInt(mem_slice.ptr), size) catch @panic("jok: out of memory");
     return mem_slice.ptr;
@@ -127,11 +126,10 @@ fn sdlMemCalloc(nmemb: usize, size: usize) callconv(.C) ?*anyopaque {
     mem_mutex.lock();
     defer mem_mutex.unlock();
 
-    const mem_slice = ctx.allocator.allocBytes(
+    const mem_slice = ctx.allocator.alignedAlloc(
+        u8,
         mem_alignment,
         size * nmemb,
-        0,
-        @returnAddress(),
     ) catch @panic("jok: out of memory");
     @memset(mem_slice.ptr, 0, mem_slice.len);
     mem_allocations.put(@ptrToInt(mem_slice.ptr), size) catch @panic("jok: out of memory");

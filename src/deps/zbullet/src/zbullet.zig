@@ -34,17 +34,16 @@ export fn zbulletAlloc(size: usize, alignment: i32) callconv(.C) ?*anyopaque {
     mutex.lock();
     defer mutex.unlock();
 
-    var slice = allocator.?.allocBytes(
-        @intCast(u29, alignment),
+    const ptr = allocator.?.rawAlloc(
         size,
-        0,
+        std.math.log2_int(u29, @intCast(u29, alignment)),
         @returnAddress(),
-    ) catch @panic("zbullet: out of memory");
+    );
+    if (ptr == null) @panic("zbullet: out of memory");
 
-    allocations.?.put(@ptrToInt(slice.ptr), size) catch
-        @panic("zbullet: out of memory");
+    allocations.?.put(@ptrToInt(ptr.?), size) catch @panic("zbullet: out of memory");
 
-    return slice.ptr;
+    return ptr;
 }
 
 export fn zbulletFree(ptr: ?*anyopaque) callconv(.C) void {
@@ -53,8 +52,8 @@ export fn zbulletFree(ptr: ?*anyopaque) callconv(.C) void {
         defer mutex.unlock();
 
         const size = allocations.?.fetchRemove(@ptrToInt(ptr.?)).?.value;
-        const slice = @ptrCast([*]u8, ptr.?)[0..size];
-        allocator.?.free(slice);
+        const mem = @ptrCast([*]u8, ptr.?)[0..size];
+        allocator.?.free(mem);
     }
 }
 
