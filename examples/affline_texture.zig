@@ -11,13 +11,13 @@ const primitive = j3d.primitive;
 const Camera = j3d.Camera;
 
 pub const jok_window_resizable = true;
-pub const jok_window_width: u32 = 1600;
-pub const jok_window_height: u32 = 900;
+pub const jok_window_width: u32 = 800;
+pub const jok_window_height: u32 = 600;
 
 var wireframe: bool = true;
 var camera: Camera = undefined;
-var slices: u32 = 1;
-var stacks: u32 = 1;
+var slices: i32 = 1;
+var stacks: i32 = 1;
 var tex: sdl.Texture = undefined;
 
 pub fn init(ctx: *jok.Context) anyerror!void {
@@ -83,12 +83,13 @@ pub fn update(ctx: *jok.Context) anyerror!void {
 }
 
 pub fn draw(ctx: *jok.Context) anyerror!void {
-    imgui.beginFrame();
-    defer imgui.endFrame();
-    if (imgui.begin("Control Panel", null, null)) {
-        _ = imgui.checkbox("wireframe", &wireframe);
-        _ = imgui.inputInt("slices", @ptrCast(*c_int, &slices), .{});
-        _ = imgui.inputInt("stacks", @ptrCast(*c_int, &stacks), .{});
+    imgui.sdl.newFrame(ctx.*);
+    defer imgui.sdl.draw();
+
+    if (imgui.begin("Control Panel", .{})) {
+        _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
+        _ = imgui.inputInt("slices", .{ .v = &slices });
+        _ = imgui.inputInt("stacks", .{ .v = &stacks });
         slices = math.clamp(slices, 1, 100);
         stacks = math.clamp(stacks, 1, 100);
     }
@@ -109,8 +110,8 @@ pub fn draw(ctx: *jok.Context) anyerror!void {
                 .renderer = ctx.renderer,
                 .cull_faces = false,
             },
-            .slices = slices,
-            .stacks = stacks,
+            .slices = @intCast(u32, slices),
+            .stacks = @intCast(u32, stacks),
         },
     );
     try primitive.render(ctx.renderer, .{ .texture = tex });

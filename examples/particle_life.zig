@@ -26,10 +26,10 @@ const p4y = anchor + length + yshift;
 const rr = 8;
 
 // Simulation parameters
-var number_r: u32 = 500;
-var number_g: u32 = 500;
-var number_w: u32 = 500;
-var number_b: u32 = 500;
+var number_r: i32 = 500;
+var number_g: i32 = 500;
+var number_w: i32 = 500;
+var number_b: i32 = 500;
 var power_rr: f32 = 0;
 var power_rg: f32 = 0;
 var power_rw: f32 = 0;
@@ -116,12 +116,12 @@ inline fn drawPoints(points: std.ArrayList(Point)) !void {
 }
 
 // Generate a number of single colored points
-fn createPoints(allocator: std.mem.Allocator, n: u32, r: u8, g: u8, b: u8) !std.ArrayList(Point) {
+fn createPoints(allocator: std.mem.Allocator, n: i32, r: u8, g: u8, b: u8) !std.ArrayList(Point) {
     var ps = try std.ArrayList(Point).initCapacity(
         allocator,
         @intCast(usize, n),
     );
-    var i: u32 = 0;
+    var i: i32 = 0;
     while (i < n) : (i += 1) {
         ps.appendAssumeCapacity(.{
             .x = randomRange(f32, 200, 1000),
@@ -327,10 +327,10 @@ fn loadSettings(allocator: std.mem.Allocator) !void {
             return;
         }
 
-        number_r = @floatToInt(u32, floats.items[0]);
-        number_g = @floatToInt(u32, floats.items[1]);
-        number_w = @floatToInt(u32, floats.items[2]);
-        number_b = @floatToInt(u32, floats.items[3]);
+        number_r = @floatToInt(i32, floats.items[0]);
+        number_g = @floatToInt(i32, floats.items[1]);
+        number_w = @floatToInt(i32, floats.items[2]);
+        number_b = @floatToInt(i32, floats.items[3]);
         power_rr = floats.items[4];
         power_rg = floats.items[5];
         power_rw = floats.items[6];
@@ -370,67 +370,178 @@ fn loadSettings(allocator: std.mem.Allocator) !void {
 }
 
 fn renderGui(ctx: *jok.Context) !void {
-    if (imgui.begin("Settings", null, null)) {
-        if (imgui.button("START/RESTART", null)) {
+    if (imgui.begin("Settings", .{})) {
+        if (imgui.button("START/RESTART", .{})) {
             try restart(ctx.allocator);
         }
-        if (imgui.button("Randomize", null)) {
+        if (imgui.button("Randomize", .{})) {
             randomnizeSimulation();
             try restart(ctx.allocator);
         }
-        if (imgui.button("Save Model", null)) {
+        if (imgui.button("Save Model", .{})) {
             try saveSettings();
         }
-        if (imgui.button("Load Model", null)) {
+        if (imgui.button("Load Model", .{})) {
             try loadSettings(ctx.allocator);
         }
-        _ = imgui.sliderFloat("Viscosity/Friction", &viscosity, 0, 1, .{});
-        _ = imgui.checkbox("Bounded", &bounded);
-        _ = imgui.checkbox("Show Model", &show_model);
+        _ = imgui.sliderFloat(
+            "Viscosity/Friction",
+            .{ .v = &viscosity, .min = 0, .max = 1 },
+        );
+        _ = imgui.checkbox("Bounded", .{ .v = &bounded });
+        _ = imgui.checkbox("Show Model", .{ .v = &show_model });
 
         imgui.separator();
-        _ = imgui.sliderInt("GREEN:", @ptrCast(*c_int, &number_g), 0, 3000, .{});
-        _ = imgui.sliderFloat("green x green:", &power_gg, -100, 100, .{});
-        _ = imgui.sliderFloat("green x red:", &power_gr, -100, 100, .{});
-        _ = imgui.sliderFloat("green x white:", &power_gw, -100, 100, .{});
-        _ = imgui.sliderFloat("green x blue:", &power_gb, -100, 100, .{});
-        _ = imgui.sliderFloat("radius g x g:", &v_gg, 10, 500, .{});
-        _ = imgui.sliderFloat("radius g x r:", &v_gr, 10, 500, .{});
-        _ = imgui.sliderFloat("radius g x w:", &v_gw, 10, 500, .{});
-        _ = imgui.sliderFloat("radius g x b:", &v_gb, 10, 500, .{});
+        _ = imgui.sliderInt(
+            "GREEN:",
+            .{ .v = &number_g, .min = 0, .max = 3000 },
+        );
+        _ = imgui.sliderFloat(
+            "green x green:",
+            .{ .v = &power_gg, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "green x red:",
+            .{ .v = &power_gr, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "green x white:",
+            .{ .v = &power_gw, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "green x blue:",
+            .{ .v = &power_gb, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "radius g x g:",
+            .{ .v = &v_gg, .min = 10, .max = 500 },
+        );
+        _ = imgui.sliderFloat(
+            "radius g x r:",
+            .{ .v = &v_gr, .min = 10, .max = 500 },
+        );
+        _ = imgui.sliderFloat(
+            "radius g x w:",
+            .{ .v = &v_gw, .min = 10, .max = 500 },
+        );
+        _ = imgui.sliderFloat(
+            "radius g x b:",
+            .{ .v = &v_gb, .min = 10, .max = 500 },
+        );
 
         imgui.separator();
-        _ = imgui.sliderInt("RED:", @ptrCast(*c_int, &number_r), 0, 3000, .{});
-        _ = imgui.sliderFloat("red x green:", &power_rg, -100, 100, .{});
-        _ = imgui.sliderFloat("red x red:", &power_rr, -100, 100, .{});
-        _ = imgui.sliderFloat("red x white:", &power_rw, -100, 100, .{});
-        _ = imgui.sliderFloat("red x blue:", &power_rb, -100, 100, .{});
-        _ = imgui.sliderFloat("radius r x g:", &v_rg, 10, 500, .{});
-        _ = imgui.sliderFloat("radius r x r:", &v_rr, 10, 500, .{});
-        _ = imgui.sliderFloat("radius r x w:", &v_rw, 10, 500, .{});
-        _ = imgui.sliderFloat("radius r x b:", &v_rb, 10, 500, .{});
+        _ = imgui.sliderInt(
+            "RED:",
+            .{ .v = &number_r, .min = 0, .max = 3000 },
+        );
+        _ = imgui.sliderFloat(
+            "red x green:",
+            .{ .v = &power_rg, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "red x red:",
+            .{ .v = &power_rr, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "red x white:",
+            .{ .v = &power_rw, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "red x blue:",
+            .{ .v = &power_rb, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "radius r x g:",
+            .{ .v = &v_rg, .min = 10, .max = 500 },
+        );
+        _ = imgui.sliderFloat(
+            "radius r x r:",
+            .{ .v = &v_rr, .min = 10, .max = 500 },
+        );
+        _ = imgui.sliderFloat(
+            "radius r x w:",
+            .{ .v = &v_rw, .min = 10, .max = 500 },
+        );
+        _ = imgui.sliderFloat(
+            "radius r x b:",
+            .{ .v = &v_rb, .min = 10, .max = 500 },
+        );
 
         imgui.separator();
-        _ = imgui.sliderInt("WHITE:", @ptrCast(*c_int, &number_w), 0, 3000, .{});
-        _ = imgui.sliderFloat("white x green:", &power_wg, -100, 100, .{});
-        _ = imgui.sliderFloat("white x red:", &power_wr, -100, 100, .{});
-        _ = imgui.sliderFloat("white x white:", &power_ww, -100, 100, .{});
-        _ = imgui.sliderFloat("white x blue:", &power_wb, -100, 100, .{});
-        _ = imgui.sliderFloat("radius w x g:", &v_wg, 10, 500, .{});
-        _ = imgui.sliderFloat("radius w x r:", &v_wr, 10, 500, .{});
-        _ = imgui.sliderFloat("radius w x w:", &v_ww, 10, 500, .{});
-        _ = imgui.sliderFloat("radius w x b:", &v_wb, 10, 500, .{});
+        _ = imgui.sliderInt(
+            "WHITE:",
+            .{ .v = &number_w, .min = 0, .max = 3000 },
+        );
+        _ = imgui.sliderFloat(
+            "white x green:",
+            .{ .v = &power_wg, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "white x red:",
+            .{ .v = &power_wr, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "white x white:",
+            .{ .v = &power_ww, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "white x blue:",
+            .{ .v = &power_wb, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "radius w x g:",
+            .{ .v = &v_wg, .min = 10, .max = 500 },
+        );
+        _ = imgui.sliderFloat(
+            "radius w x r:",
+            .{ .v = &v_wr, .min = 10, .max = 500 },
+        );
+        _ = imgui.sliderFloat(
+            "radius w x w:",
+            .{ .v = &v_ww, .min = 10, .max = 500 },
+        );
+        _ = imgui.sliderFloat(
+            "radius w x b:",
+            .{ .v = &v_wb, .min = 10, .max = 500 },
+        );
 
         imgui.separator();
-        _ = imgui.sliderInt("BLUE:", @ptrCast(*c_int, &number_b), 0, 3000, .{});
-        _ = imgui.sliderFloat("blue x green:", &power_bg, -100, 100, .{});
-        _ = imgui.sliderFloat("blue x red:", &power_br, -100, 100, .{});
-        _ = imgui.sliderFloat("blue x white:", &power_bw, -100, 100, .{});
-        _ = imgui.sliderFloat("blue x blue:", &power_bb, -100, 100, .{});
-        _ = imgui.sliderFloat("radius b x g:", &v_bg, 10, 500, .{});
-        _ = imgui.sliderFloat("radius b x r:", &v_br, 10, 500, .{});
-        _ = imgui.sliderFloat("radius b x w:", &v_bw, 10, 500, .{});
-        _ = imgui.sliderFloat("radius b x b:", &v_bb, 10, 500, .{});
+        _ = imgui.sliderInt(
+            "BLUE:",
+            .{ .v = &number_b, .min = 0, .max = 3000 },
+        );
+        _ = imgui.sliderFloat(
+            "blue x green:",
+            .{ .v = &power_bg, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "blue x red:",
+            .{ .v = &power_br, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "blue x white:",
+            .{ .v = &power_bw, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "blue x blue:",
+            .{ .v = &power_bb, .min = -100, .max = 100 },
+        );
+        _ = imgui.sliderFloat(
+            "radius b x g:",
+            .{ .v = &v_bg, .min = 10, .max = 500 },
+        );
+        _ = imgui.sliderFloat(
+            "radius b x r:",
+            .{ .v = &v_br, .min = 10, .max = 500 },
+        );
+        _ = imgui.sliderFloat(
+            "radius b x w:",
+            .{ .v = &v_bw, .min = 10, .max = 500 },
+        );
+        _ = imgui.sliderFloat(
+            "radius b x b:",
+            .{ .v = &v_bb, .min = 10, .max = 500 },
+        );
     }
     imgui.end();
 }
@@ -746,8 +857,9 @@ pub fn update(ctx: *jok.Context) anyerror!void {
 }
 
 pub fn draw(ctx: *jok.Context) anyerror!void {
-    imgui.beginFrame();
-    defer imgui.endFrame();
+    imgui.sdl.newFrame(ctx.*);
+    defer imgui.sdl.draw();
+
     try renderGui(ctx);
     try renderSimulation(ctx);
 }

@@ -14,8 +14,8 @@ const primitive = j3d.primitive;
 const Camera = j3d.Camera;
 
 pub const jok_window_resizable = true;
-pub const jok_window_width: u32 = 1600;
-pub const jok_window_height: u32 = 900;
+pub const jok_window_width: u32 = 800;
+pub const jok_window_height: u32 = 600;
 
 var wireframe: bool = false;
 var light_pos: [3]f32 = .{ 0, 10, 0 };
@@ -102,11 +102,12 @@ pub fn update(ctx: *jok.Context) anyerror!void {
 }
 
 pub fn draw(ctx: *jok.Context) anyerror!void {
-    imgui.beginFrame();
-    defer imgui.endFrame();
-    if (imgui.begin("Control Panel", null, null)) {
-        _ = imgui.checkbox("wireframe", &wireframe);
-        _ = imgui.dragFloat3("light position", &light_pos, .{ .v_max = 20, .v_speed = 0.1 });
+    imgui.sdl.newFrame(ctx.*);
+    defer imgui.sdl.draw();
+
+    if (imgui.begin("Control Panel", .{})) {
+        _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
+        _ = imgui.dragFloat3("light position", .{ .v = &light_pos, .min = 1, .max = 20, .speed = 0.1 });
     }
     imgui.end();
 

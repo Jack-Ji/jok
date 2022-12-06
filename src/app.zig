@@ -289,7 +289,7 @@ fn initModules() !void {
     zmesh.init(ctx.allocator);
 
     if (bos.use_imgui) {
-        try imgui.init(ctx);
+        imgui.sdl.init(ctx);
     }
 
     if (bos.use_zaudio) {
@@ -320,7 +320,7 @@ fn deinitModules() void {
     }
 
     if (bos.use_imgui) {
-        imgui.deinit(ctx);
+        imgui.sdl.deinit();
     }
 
     zmesh.deinit();
@@ -373,19 +373,20 @@ pub fn main() anyerror!void {
     // Game loop
     while (!ctx.quit) {
         // Event processing
-        while (sdl.pollEvent()) |e| {
+        while (sdl.pollNativeEvent()) |e| {
             if (bos.use_imgui) {
-                _ = imgui.processEvent(e);
+                _ = imgui.sdl.processEvent(e);
             }
 
-            if (e == .key_up and e.key_up.scancode == .escape and
+            const we = sdl.Event.from(e);
+            if (we == .key_up and we.key_up.scancode == .escape and
                 config.exit_on_recv_esc)
             {
                 ctx.kill();
-            } else if (e == .quit and config.exit_on_recv_quit) {
+            } else if (we == .quit and config.exit_on_recv_quit) {
                 ctx.kill();
             } else {
-                game.event(&ctx, e) catch |err| {
+                game.event(&ctx, we) catch |err| {
                     context.log.err("got error in `event`: {}", .{err});
                     if (@errorReturnTrace()) |trace| {
                         std.debug.dumpStackTrace(trace.*);

@@ -9,7 +9,7 @@ const primitive = jok.j2d.primitive;
 
 pub const jok_window_resizable = true;
 
-const PrimitiveType = enum(c_int) {
+const PrimitiveType = enum(i32) {
     etriangle,
     square,
     circle,
@@ -42,22 +42,23 @@ pub fn update(ctx: *jok.Context) anyerror!void {
 }
 
 pub fn draw(ctx: *jok.Context) anyerror!void {
-    imgui.beginFrame();
-    defer imgui.endFrame();
-    if (imgui.begin("Control Panel", null, null)) {
-        var selection: *c_int = @ptrCast(*c_int, &primtype);
-        _ = imgui.radioButton_IntPtr("etriangle", selection, 0);
-        _ = imgui.radioButton_IntPtr("square", selection, 1);
-        _ = imgui.radioButton_IntPtr("circle", selection, 2);
-        _ = imgui.radioButton_IntPtr("arc", selection, 3);
-        _ = imgui.radioButton_IntPtr("line", selection, 4);
-        _ = imgui.radioButton_IntPtr("polyline", selection, 5);
+    imgui.sdl.newFrame(ctx.*);
+    defer imgui.sdl.draw();
+
+    if (imgui.begin("Control Panel", .{})) {
+        var selection: *i32 = @ptrCast(*i32, &primtype);
+        _ = imgui.radioButtonStatePtr("etriangle", .{ .v = selection, .v_button = 0 });
+        _ = imgui.radioButtonStatePtr("square", .{ .v = selection, .v_button = 1 });
+        _ = imgui.radioButtonStatePtr("circle", .{ .v = selection, .v_button = 2 });
+        _ = imgui.radioButtonStatePtr("arc", .{ .v = selection, .v_button = 3 });
+        _ = imgui.radioButtonStatePtr("line", .{ .v = selection, .v_button = 4 });
+        _ = imgui.radioButtonStatePtr("polyline", .{ .v = selection, .v_button = 5 });
         imgui.separator();
-        _ = imgui.colorEdit4("color", &color, null);
-        _ = imgui.dragFloat("size", &size, .{ .v_max = 1000 });
-        _ = imgui.dragFloat("thickness", &thickness, .{ .v_max = 100 });
-        _ = imgui.dragFloat("rotate_angle", &rotate_angle, .{});
-        _ = imgui.dragFloat2("rotate_anchor", &rotate_anchor, .{});
+        _ = imgui.colorEdit4("color", .{ .col = &color });
+        _ = imgui.dragFloat("size", .{ .v = &size, .max = 1000 });
+        _ = imgui.dragFloat("thickness", .{ .v = &thickness, .max = 100 });
+        _ = imgui.dragFloat("rotate_angle", .{ .v = &rotate_angle });
+        _ = imgui.dragFloat2("rotate_anchor", .{ .v = &rotate_anchor });
     }
     imgui.end();
 

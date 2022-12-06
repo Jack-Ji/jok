@@ -21,7 +21,7 @@ A minimal 2d/3d game framework for zig.
 * 3D scene management
 * Font rendering/loading
 * Sound/Music playing/mixing
-* Fully integrated ImGui and it's popular extensions (implot and imnode)
+* Fully integrated Dear-ImGui
 
 ## How to start?
 Copy `jok` folder or clone repo (recursively) into `libs` subdirectory of the root of your project.
@@ -104,13 +104,11 @@ Welcome to old golden time of 90s. Or, you can choose other more powerful/modern
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
-* [stb headers](https://github.com/nothings/stb) (MIT license)
 * [zig-gamedev](https://github.com/michal-z/zig-gamedev) (MIT license)
-* [dear-imgui](https://github.com/ocornut/imgui) (MIT license)
+* [stb headers](https://github.com/nothings/stb) (MIT license)
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
 * [nativefiledialog](https://github.com/mlabbe/nativefiledialog) (zlib license)
 
 ## Built-in Fonts
-* [Fontawesome](https://fontawesome.com/) (Font Awesome Free License)
 * [Classic Console Neue](http://webdraft.hu/fonts/classic-console/) (MIT license)
 

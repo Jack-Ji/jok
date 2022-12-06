@@ -179,15 +179,15 @@ pub fn draw(ctx: *jok.Context) anyerror!void {
         },
     );
 
-    imgui.beginFrame();
-    defer imgui.endFrame();
-    if (imgui.begin("Tint Color", null, null)) {
+    imgui.sdl.newFrame(ctx.*);
+    defer imgui.sdl.draw();
+    if (imgui.begin("Tint Color", .{})) {
         var cs: [3]f32 = .{
             @intToFloat(f32, skybox_tint_color.r) / 255, 
             @intToFloat(f32, skybox_tint_color.g) / 255, 
             @intToFloat(f32, skybox_tint_color.b) / 255, 
         };
-        if (imgui.colorEdit3("Tint Color", &cs, null)) {
+        if (imgui.colorEdit3("Tint Color", .{.col=&cs})) {
             skybox_tint_color.r = @floatToInt(u8, cs[0] * 255);
             skybox_tint_color.g = @floatToInt(u8, cs[1] * 255);
             skybox_tint_color.b = @floatToInt(u8, cs[2] * 255);

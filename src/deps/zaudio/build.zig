@@ -5,6 +5,8 @@ pub const pkg = std.build.Pkg{
     .source = .{ .path = thisDir() ++ "/src/zaudio.zig" },
 };
 
+pub fn build(_: *std.build.Builder) void {}
+
 pub fn link(exe: *std.build.LibExeObjStep) void {
     exe.addIncludePath(thisDir() ++ "/libs/miniaudio");
     exe.linkSystemLibraryName("c");
@@ -12,8 +14,9 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
     const target = (std.zig.system.NativeTargetInfo.detect(exe.target) catch unreachable).target;
 
     if (target.os.tag == .macos) {
-        const system_sdk = @import("system_sdk.zig");
-        system_sdk.include(exe.builder, exe, .{});
+        exe.addFrameworkPath(thisDir() ++ "/../system-sdk/macos12/System/Library/Frameworks");
+        exe.addSystemIncludePath(thisDir() ++ "/../system-sdk/macos12/usr/include");
+        exe.addLibraryPath(thisDir() ++ "/../system-sdk/macos12/usr/lib");
         exe.linkFramework("CoreAudio");
         exe.linkFramework("CoreFoundation");
         exe.linkFramework("AudioUnit");
@@ -30,6 +33,8 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
         "-DMA_NO_ENCODING",
         "-DMA_NO_NULL",
         "-DMA_NO_JACK",
+        "-DMA_NO_DSOUND",
+        "-DMA_NO_WINMM",
         "-std=c99",
         "-fno-sanitize=undefined",
         if (target.os.tag == .macos) "-DMA_NO_RUNTIME_LINKING" else "",

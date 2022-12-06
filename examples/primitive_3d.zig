@@ -10,10 +10,10 @@ const font = jok.font;
 const primitive = jok.j3d.primitive;
 const Camera = jok.j3d.Camera;
 
-pub const jok_window_width: u32 = 1600;
-pub const jok_window_height: u32 = 900;
+pub const jok_window_width: u32 = 800;
+pub const jok_window_height: u32 = 600;
 
-const PrimitiveType = enum(c_int) {
+const PrimitiveType = enum(i32) {
     cube,
     subdivided_sphere,
     parametric_sphere,
@@ -92,31 +92,32 @@ pub fn update(ctx: *jok.Context) anyerror!void {
 }
 
 pub fn draw(ctx: *jok.Context) anyerror!void {
-    imgui.beginFrame();
-    defer imgui.endFrame();
-    if (imgui.begin("Control Panel", null, null)) {
-        var selection: *c_int = @ptrCast(*c_int, &primtype);
-        _ = imgui.radioButton_IntPtr("cube", selection, 0);
-        _ = imgui.radioButton_IntPtr("subdivided_sphere", selection, 1);
-        _ = imgui.radioButton_IntPtr("parametric_sphere", selection, 2);
-        _ = imgui.radioButton_IntPtr("cone", selection, 3);
-        _ = imgui.radioButton_IntPtr("cylinder", selection, 4);
-        _ = imgui.radioButton_IntPtr("disk", selection, 5);
-        _ = imgui.radioButton_IntPtr("torus", selection, 6);
-        _ = imgui.radioButton_IntPtr("icosahedron", selection, 7);
-        _ = imgui.radioButton_IntPtr("dodecahedron", selection, 8);
-        _ = imgui.radioButton_IntPtr("octahedron", selection, 9);
-        _ = imgui.radioButton_IntPtr("tetrahedron", selection, 10);
-        _ = imgui.radioButton_IntPtr("hemisphere", selection, 11);
-        _ = imgui.radioButton_IntPtr("rock", selection, 12);
+    imgui.sdl.newFrame(ctx.*);
+    defer imgui.sdl.draw();
+
+    if (imgui.begin("Control Panel", .{})) {
+        var selection: *i32 = @ptrCast(*i32, &primtype);
+        _ = imgui.radioButtonStatePtr("cube", .{ .v = selection, .v_button = 0 });
+        _ = imgui.radioButtonStatePtr("subdivided_sphere", .{ .v = selection, .v_button = 1 });
+        _ = imgui.radioButtonStatePtr("parametric_sphere", .{ .v = selection, .v_button = 2 });
+        _ = imgui.radioButtonStatePtr("cone", .{ .v = selection, .v_button = 3 });
+        _ = imgui.radioButtonStatePtr("cylinder", .{ .v = selection, .v_button = 4 });
+        _ = imgui.radioButtonStatePtr("disk", .{ .v = selection, .v_button = 5 });
+        _ = imgui.radioButtonStatePtr("torus", .{ .v = selection, .v_button = 6 });
+        _ = imgui.radioButtonStatePtr("icosahedron", .{ .v = selection, .v_button = 7 });
+        _ = imgui.radioButtonStatePtr("dodecahedron", .{ .v = selection, .v_button = 8 });
+        _ = imgui.radioButtonStatePtr("octahedron", .{ .v = selection, .v_button = 9 });
+        _ = imgui.radioButtonStatePtr("tetrahedron", .{ .v = selection, .v_button = 10 });
+        _ = imgui.radioButtonStatePtr("hemisphere", .{ .v = selection, .v_button = 11 });
+        _ = imgui.radioButtonStatePtr("rock", .{ .v = selection, .v_button = 12 });
         imgui.separator();
-        _ = imgui.checkbox("welding", &welding);
-        _ = imgui.checkbox("wireframe", &wireframe);
-        _ = imgui.checkbox("cull faces", &cull_faces);
-        _ = imgui.colorEdit4("color", &color, null);
-        _ = imgui.dragFloat3("scale", &scale, .{ .v_max = 10, .v_speed = 0.1 });
-        _ = imgui.dragFloat3("rotate", &rotate, .{ .v_max = 10, .v_speed = 0.1 });
-        _ = imgui.dragFloat3("translate", &translate, .{ .v_max = 10, .v_speed = 0.1 });
+        _ = imgui.checkbox("welding", .{ .v = &welding });
+        _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
+        _ = imgui.checkbox("cull faces", .{ .v = &cull_faces });
+        _ = imgui.colorEdit4("color", .{ .col = &color });
+        _ = imgui.dragFloat3("scale", .{ .v = &scale, .min = 1, .max = 10, .speed = 0.1 });
+        _ = imgui.dragFloat3("rotate", .{ .v = &rotate, .min = 1, .max = 10, .speed = 0.1 });
+        _ = imgui.dragFloat3("translate", .{ .v = &translate, .min = 1, .max = 10, .speed = 0.1 });
     }
     imgui.end();
 

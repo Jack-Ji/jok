@@ -1,4 +1,4 @@
-# zaudio v0.9 - Cross-platform audio
+# zaudio v0.9.2 - Cross-platform audio
 
 Zig bindings for [miniaudio](https://github.com/mackron/miniaudio) library. Tested on Windows, Linux and macOS but should also work on mobile/web platforms.
 
@@ -18,8 +18,8 @@ Provided structs:
 - [ ] `ResourceManager` (missing methods)
 - [ ] `Log` (missing methods)
 - [x] `DataSource` (missing methods)
-  - [x] `WaveformDataSource`
-  - [x] `NoiseDataSource`
+  - [x] `Waveform`
+  - [x] `Noise`
   - [x] custom data sources
 - [x] `Node`
   - [x] `DataSourceNode`
@@ -36,7 +36,7 @@ Provided structs:
 
 ## Getting started
 
-Copy `zaudio` folder to a `libs` subdirectory of the root of your project.
+Copy `zaudio` and `system-sdk` folders to a `libs` subdirectory of the root of your project.
 
 Then in your `build.zig` add:
 
@@ -62,7 +62,7 @@ pub fn main() !void {
     zaudio.init(allocator);
     defer zaudio.deinit();
 
-    const engine = try zaudio.createEngine(null);
+    const engine = try zaudio.Engine.create(null);
 
     const music = try engine.createSoundFromFile(
         content_dir ++ "Broke For Free - Night Owl.mp3",
