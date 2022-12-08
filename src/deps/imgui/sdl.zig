@@ -15,9 +15,12 @@ pub fn init(ctx: jok.Context) void {
     }
 
     zgui.getStyle().scaleAllSizes(ctx.getPixelRatio());
+
+    zgui.plot.init();
 }
 
 pub fn deinit() void {
+    zgui.plot.deinit();
     ImGui_ImplSDLRenderer_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     zgui.deinit();
