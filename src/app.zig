@@ -132,7 +132,7 @@ fn sdlMemCalloc(nmemb: usize, size: usize) callconv(.C) ?*anyopaque {
         size * nmemb,
     ) catch @panic("jok: out of memory");
     @memset(mem_slice.ptr, 0, mem_slice.len);
-    mem_allocations.put(@ptrToInt(mem_slice.ptr), size) catch @panic("jok: out of memory");
+    mem_allocations.put(@ptrToInt(mem_slice.ptr), size * nmemb) catch @panic("jok: out of memory");
     return mem_slice.ptr;
 }
 fn sdlMemRealloc(mem: ?*anyopaque, size: usize) callconv(.C) ?*anyopaque {
