@@ -23,7 +23,7 @@ var skybox_textures: [6]sdl.Texture = undefined;
 var skybox_rd: j3d.SkyboxRenderer = undefined;
 var skybox_tint_color: sdl.Color = sdl.Color.white;
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     camera = j3d.Camera.fromPositionAndTarget(
@@ -96,12 +96,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     // camera movement
     const distance = ctx.delta_tick * 2;
     if (ctx.isKeyPressed(.w)) {
@@ -130,7 +130,7 @@ pub fn update(ctx: *jok.Context) anyerror!void {
     }
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     try skybox_rd.render(ctx.renderer, camera, skybox_textures, skybox_tint_color);
 
     primitive.clear();

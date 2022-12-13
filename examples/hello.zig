@@ -4,7 +4,7 @@ const jok = @import("jok");
 
 var tex: sdl.Texture = undefined;
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     tex = try jok.utils.gfx.createTextureFromFile(
@@ -17,16 +17,16 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     try ctx.renderer.copy(
         tex,
         null,

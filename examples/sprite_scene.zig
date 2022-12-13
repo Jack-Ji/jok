@@ -10,7 +10,7 @@ var camera: j2d.Camera = undefined;
 var ogre1: *j2d.Scene.Object = undefined;
 var ogre2: *j2d.Scene.Object = undefined;
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     // create sprite sheet
@@ -51,16 +51,16 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     try ctx.renderer.copy(
         sheet.tex,
         sdl.Rectangle{ .x = 0, .y = 0, .width = 200, .height = 200 },

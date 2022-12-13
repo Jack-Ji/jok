@@ -836,7 +836,7 @@ fn renderSimulation(ctx: *jok.Context) !void {
     }
 }
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     rand_gen = std.rand.DefaultPrng.init(
@@ -847,16 +847,16 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try restart(ctx.allocator);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     imgui.sdl.newFrame(ctx.*);
     defer imgui.sdl.draw();
 

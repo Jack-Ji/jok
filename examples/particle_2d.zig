@@ -24,7 +24,7 @@ const emitter2 = j2d.ParticleSystem.Effect.FireEmitter(
     2.75,
 );
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     rd = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
@@ -71,12 +71,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     );
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     if (ctx.isKeyPressed(.up)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, -10));
     if (ctx.isKeyPressed(.down)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, 10));
     if (ctx.isKeyPressed(.left)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(-10, 0));
@@ -85,7 +85,7 @@ pub fn update(ctx: *jok.Context) anyerror!void {
     ps.update(ctx.delta_tick);
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     _ = ctx;
 
     sb.begin(.{ .blend_method = .additive });

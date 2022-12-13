@@ -30,7 +30,7 @@ fn audioCallback(ptr: ?*anyopaque, buf: [*c]u8, size: c_int) callconv(.C) void {
     }
 }
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     const result = try sdl.openAudioDevice(.{
@@ -53,7 +53,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     switch (e) {
         .mouse_motion => |me| {
             const fb = ctx.getFramebufferSize();
@@ -77,11 +77,11 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
     }
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     var ms = ctx.getMouseState();
     primitive.clear();
     try primitive.addCircle(

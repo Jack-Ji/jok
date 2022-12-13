@@ -8,7 +8,7 @@ pub const jok_window_height: u32 = 800;
 
 var tex: sdl.Texture = undefined;
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     tex = try jok.utils.gfx.createTextureFromFile(
@@ -35,16 +35,16 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     }
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     imgui.sdl.newFrame(ctx.*);
     defer imgui.sdl.draw();
 

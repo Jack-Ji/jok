@@ -3,22 +3,22 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const font = jok.font;
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     try ctx.renderer.setColorRGB(100, 100, 100);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     defer ctx.renderer.setColorRGB(100, 100, 100) catch unreachable;
 
     const size = ctx.getFramebufferSize();

@@ -21,36 +21,36 @@ comptime {
     {
         @compileError(
             \\You must provide following 5 public api in your game code:
-            \\    pub fn init(ctx: *jok.Context) anyerror!void
-            \\    pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void
-            \\    pub fn update(ctx: *jok.Context) anyerror!void
-            \\    pub fn draw(ctx: *jok.Context) anyerror!void
+            \\    pub fn init(ctx: *jok.Context) !void
+            \\    pub fn event(ctx: *jok.Context, e: sdl.Event) !void
+            \\    pub fn update(ctx: *jok.Context) !void
+            \\    pub fn draw(ctx: *jok.Context) !void
             \\    pub fn quit(ctx: *jok.Context) void
         );
     }
     switch (@typeInfo(@typeInfo(@TypeOf(game.init)).Fn.return_type.?)) {
         .ErrorUnion => |info| if (info.payload != void) {
-            @compileError("`init` must return anyerror!void");
+            @compileError("`init` must return !void");
         },
-        else => @compileError("`init` must return anyerror!void"),
+        else => @compileError("`init` must return !void"),
     }
     switch (@typeInfo(@typeInfo(@TypeOf(game.event)).Fn.return_type.?)) {
         .ErrorUnion => |info| if (info.payload != void) {
-            @compileError("`event` must return anyerror!void");
+            @compileError("`event` must return !void");
         },
-        else => @compileError("`init` must return anyerror!void"),
+        else => @compileError("`init` must return !void"),
     }
     switch (@typeInfo(@typeInfo(@TypeOf(game.update)).Fn.return_type.?)) {
         .ErrorUnion => |info| if (info.payload != void) {
-            @compileError("`update` must return anyerror!void");
+            @compileError("`update` must return !void");
         },
-        else => @compileError("`update` must return anyerror!void"),
+        else => @compileError("`update` must return !void"),
     }
     switch (@typeInfo(@typeInfo(@TypeOf(game.draw)).Fn.return_type.?)) {
         .ErrorUnion => |info| if (info.payload != void) {
-            @compileError("`draw` must return anyerror!void");
+            @compileError("`draw` must return !void");
         },
-        else => @compileError("`draw` must return anyerror!void"),
+        else => @compileError("`draw` must return !void"),
     }
     switch (@typeInfo(@typeInfo(@TypeOf(game.quit)).Fn.return_type.?)) {
         .Void => {},
@@ -286,6 +286,8 @@ fn deinitSDL() void {
 
 /// Initialize modules
 fn initModules() !void {
+    try initSDL();
+
     zmesh.init(ctx.allocator);
 
     if (bos.use_imgui) {
@@ -324,12 +326,14 @@ fn deinitModules() void {
     }
 
     zmesh.deinit();
+
+    deinitSDL();
 }
 
 /// Logging level, used by std.log
 pub const log_level = config.log_level;
 
-pub fn main() anyerror!void {
+pub fn main() !void {
     // Check system
     try checkSys();
 
@@ -353,10 +357,6 @@ pub fn main() anyerror!void {
             }
         }
     }
-
-    // Initialize SDL library
-    try initSDL();
-    defer deinitSDL();
 
     // Init modules
     try initModules();

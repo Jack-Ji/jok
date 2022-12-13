@@ -63,19 +63,19 @@ const jok = @import("jok");
 pub const jok_window_width: u32 = 400;
 pub const jok_window_height: u32 = 300;
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     // your init code
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     // your event processing code
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     // your game state updating code
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     // your game rendering code
 }
 
@@ -90,7 +90,7 @@ Your responsibility is to provide 5 pub functions: `init/event/update/draw/quit`
 
 Of course, you can customize some setup settings, such as width/height/title/position of window,
 which is given by defining some constants using predefined names (they're all prefixed with `jok_`).
-Checkout `src\config.zig` to see available options.
+Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig) to see available options.
 
 ## What's supported platforms?
 Theoretically anywhere SDL2 can run. But I'm focusing on PC platforms for now.

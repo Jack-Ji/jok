@@ -8,7 +8,7 @@ var sheet: *j2d.SpriteSheet = undefined;
 var sb: *j2d.SpriteBatch = undefined;
 var camera: j2d.Camera = undefined;
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     // create sprite sheet
@@ -38,7 +38,7 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     _ = ctx;
     const bounds = j2d.Camera.CoordLimit{
         .min_x = -10,
@@ -64,11 +64,11 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
     }
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     try ctx.renderer.copy(
         sheet.tex,
         camera.translateRectangle(sdl.Rectangle{ .x = 0, .y = 0, .width = 200, .height = 200 }),

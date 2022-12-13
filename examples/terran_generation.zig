@@ -36,7 +36,7 @@ fn uvToPos(uv: *const [2]f32, position: *[3]f32, userdata: ?*anyopaque) callconv
     position[2] = uv[1];
 }
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     camera = Camera.fromPositionAndTarget(
@@ -67,12 +67,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setDrawBlendMode(.blend);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     // camera movement
     const distance = ctx.delta_tick * 2;
     if (ctx.isKeyPressed(.w)) {
@@ -101,7 +101,7 @@ pub fn update(ctx: *jok.Context) anyerror!void {
     }
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     imgui.sdl.newFrame(ctx.*);
     defer imgui.sdl.draw();
 

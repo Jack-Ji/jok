@@ -15,7 +15,7 @@ var sun: *Scene.Object = undefined;
 var earth: *Scene.Object = undefined;
 var moon: *Scene.Object = undefined;
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     camera = j3d.Camera.fromPositionAndTarget(
@@ -69,12 +69,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(80, 80, 80);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     // camera movement
     const distance = ctx.delta_tick * 2;
     if (ctx.isKeyPressed(.w)) {
@@ -106,7 +106,7 @@ pub fn update(ctx: *jok.Context) anyerror!void {
     moon_orbit.setTransform(zmath.mul(zmath.translation(0.3, 0, 0), zmath.rotationY(@floatCast(f32, ctx.tick * 12))));
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     var lighting_opt = j3d.TriangleRenderer.LightingOption{};
     lighting_opt.lights[0] = j3d.TriangleRenderer.Light{
         .point = .{

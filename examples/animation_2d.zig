@@ -12,7 +12,7 @@ var pos = sdl.PointF{ .x = 200, .y = 200 };
 var flip_h = false;
 var force_replay = false;
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     // create sprite sheet
@@ -76,12 +76,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     if (ctx.isKeyPressed(.up)) {
         pos.y -= velocity * ctx.delta_tick;
         animation = "player_up";
@@ -107,7 +107,7 @@ pub fn update(ctx: *jok.Context) anyerror!void {
     }
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     sb.begin(.{});
     try sb.drawSprite(
         try sheet.getSpriteByName("player"),

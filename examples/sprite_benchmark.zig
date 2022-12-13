@@ -17,7 +17,7 @@ var characters: std.ArrayList(Actor) = undefined;
 var rand_gen: std.rand.DefaultPrng = undefined;
 var delta_tick: f32 = 0;
 
-pub fn init(ctx: *jok.Context) anyerror!void {
+pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     const size = ctx.getFramebufferSize();
@@ -52,12 +52,12 @@ pub fn init(ctx: *jok.Context) anyerror!void {
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) anyerror!void {
+pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) anyerror!void {
+pub fn update(ctx: *jok.Context) !void {
     const mouse = ctx.getMouseState();
     if (mouse.buttons.getPressed(.left)) {
         var rd = rand_gen.random();
@@ -96,7 +96,7 @@ pub fn update(ctx: *jok.Context) anyerror!void {
     }
 }
 
-pub fn draw(ctx: *jok.Context) anyerror!void {
+pub fn draw(ctx: *jok.Context) !void {
     sb.begin(.{});
     for (characters.items) |c| {
         try sb.drawSprite(c.sprite, .{
