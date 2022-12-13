@@ -5,32 +5,32 @@ const game = @import("game");
 
 // Validate setup configurations
 comptime {
-    const config_options = [_]struct { name: []const u8, T: type }{
-        .{ .name = "jok_log_level", .T = std.log.Level },
-        .{ .name = "jok_fps_limit", .T = FpsLimit },
-        .{ .name = "jok_framestat_display", .T = bool },
-        .{ .name = "jok_allocator", .T = std.mem.Allocator },
-        .{ .name = "jok_mem_leak_checks", .T = bool },
-        .{ .name = "jok_mem_detail_logs", .T = bool },
-        .{ .name = "jok_software_renderer", .T = bool },
-        .{ .name = "jok_window_title", .T = [:0]const u8 },
-        .{ .name = "jok_window_pos_x", .T = sdl.WindowPosition },
-        .{ .name = "jok_window_pos_y", .T = sdl.WindowPosition },
-        .{ .name = "jok_window_width", .T = u32 },
-        .{ .name = "jok_window_height", .T = u32 },
-        .{ .name = "jok_window_min_size", .T = sdl.Size },
-        .{ .name = "jok_window_max_size", .T = sdl.Size },
-        .{ .name = "jok_window_resizable", .T = bool },
-        .{ .name = "jok_window_fullscreen", .T = bool },
-        .{ .name = "jok_window_borderless", .T = bool },
-        .{ .name = "jok_window_minimized", .T = bool },
-        .{ .name = "jok_window_maximized", .T = bool },
-        .{ .name = "jok_window_always_on_top", .T = bool },
-        .{ .name = "jok_mouse_mode", .T = MouseMode },
-        .{ .name = "jok_default_2d_primitive", .T = bool },
-        .{ .name = "jok_default_3d_primitive", .T = bool },
-        .{ .name = "jok_exit_on_recv_esc", .T = bool },
-        .{ .name = "jok_exit_on_recv_quit", .T = bool },
+    const config_options = [_]struct { name: []const u8, T: type, desc: []const u8 }{
+        .{ .name = "jok_log_level", .T = std.log.Level, .desc = "logging level" },
+        .{ .name = "jok_fps_limit", .T = FpsLimit, .desc = "fps limit setting" },
+        .{ .name = "jok_framestat_display", .T = bool, .desc = "whether refresh and display frame statistics on title-bar of window" },
+        .{ .name = "jok_allocator", .T = std.mem.Allocator, .desc = "default memory allocator" },
+        .{ .name = "jok_mem_leak_checks", .T = bool, .desc = "whether default memory allocator check memleak when exiting" },
+        .{ .name = "jok_mem_detail_logs", .T = bool, .desc = "whether default memory allocator print detailed memory alloc/free logs" },
+        .{ .name = "jok_software_renderer", .T = bool, .desc = "whether fallback to software renderer" },
+        .{ .name = "jok_window_title", .T = [:0]const u8, .desc = "title of window" },
+        .{ .name = "jok_window_pos_x", .T = sdl.WindowPosition, .desc = "horizontal position of window" },
+        .{ .name = "jok_window_pos_y", .T = sdl.WindowPosition, .desc = "vertical position of window" },
+        .{ .name = "jok_window_width", .T = u32, .desc = "width of window" },
+        .{ .name = "jok_window_height", .T = u32, .desc = "height of window" },
+        .{ .name = "jok_window_min_size", .T = sdl.Size, .desc = "minimum size of window" },
+        .{ .name = "jok_window_max_size", .T = sdl.Size, .desc = "maximum size of window" },
+        .{ .name = "jok_window_resizable", .T = bool, .desc = "whether window is resizable" },
+        .{ .name = "jok_window_fullscreen", .T = bool, .desc = "whether use fullscreen mode" },
+        .{ .name = "jok_window_borderless", .T = bool, .desc = "whether window is borderless" },
+        .{ .name = "jok_window_minimized", .T = bool, .desc = "whether window is minimized when startup" },
+        .{ .name = "jok_window_maximized", .T = bool, .desc = "whether window is maximized when startup" },
+        .{ .name = "jok_window_always_on_top", .T = bool, .desc = "whether window is locked to most front layer" },
+        .{ .name = "jok_mouse_mode", .T = MouseMode, .desc = "mouse mode setting" },
+        .{ .name = "jok_default_2d_primitive", .T = bool, .desc = "whether init j2d" },
+        .{ .name = "jok_default_3d_primitive", .T = bool, .desc = "whether init j3d" },
+        .{ .name = "jok_exit_on_recv_esc", .T = bool, .desc = "whether exit game when get esc event" },
+        .{ .name = "jok_exit_on_recv_quit", .T = bool, .desc = "whether exit game when get quit event" },
     };
     const game_struct = @typeInfo(game).Struct;
     for (game_struct.decls) |f| {
@@ -50,35 +50,17 @@ comptime {
                 break;
             }
         } else {
-            @compileError("Validation of setup options failed, invalid option name: `" ++ f.name ++ "`" ++
-                \\
-                \\Supported options:
-                \\    jok_log_level (std.log.Level): logging level.
-                \\    jok_fps_limit (config.FpsLimit): fps limit setting.
-                \\    jok_framestat_display (bool): whether refresh and display frame statistics on title-bar of window. 
-                \\    jok_allocator (std.mem.Allocator): default memory allocator.
-                \\    jok_mem_leak_checks (bool): whether default memory allocator check memleak when exiting.
-                \\    jok_mem_detail_logs (bool): whether default memory allocator print detailed memory alloc/free logs.
-                \\    jok_software_renderer (bool): whether fallback to software renderer.
-                \\    jok_window_title ([:0]const u8): title of window.
-                \\    jok_window_pos_x (sdl.WindowPosition): horizontal position of window.
-                \\    jok_window_pos_y (sdl.WindowPosition): vertical position of window.
-                \\    jok_window_width (u32): width of window.
-                \\    jok_window_height (u32): height of window.
-                \\    jok_window_min_size (sdl.Size).: minimum size of window.
-                \\    jok_window_max_size (sdl.Size): maximum size of window.
-                \\    jok_window_resizable (bool): whether window is resizable.
-                \\    jok_window_fullscreen (bool): whether use fullscreen mode.
-                \\    jok_window_borderless (bool): whether window is borderless.
-                \\    jok_window_minimized (bool): whether window is minimized when startup.
-                \\    jok_window_maximized (bool): whether window is maximized when startup.
-                \\    jok_window_always_on_top (bool): whether window is locked to most front layer.
-                \\    jok_mouse_mode (config.MouseMode): mouse mode setting.
-                \\    jok_default_2d_primitive (bool): whether init j2d.primitive with default option.
-                \\    jok_default_3d_primitive (bool): whether init j3d.primitive with default option.
-                \\    jok_exit_on_recv_esc (bool): whether exit game when get esc event.
-                \\    jok_exit_on_recv_quit (bool): whether exit game when get quit event.
-            );
+            var buf: [2048]u8 = undefined;
+            var off: usize = 0;
+            var bs = std.fmt.bufPrint(&buf, "Validation of setup options failed, invalid option name: `" ++ f.name ++ "`", .{}) catch unreachable;
+            off += bs.len;
+            bs = std.fmt.bufPrint(buf[off..], "\nSupported options:", .{}) catch unreachable;
+            off += bs.len;
+            inline for (config_options) |o| {
+                bs = std.fmt.bufPrint(buf[off..], "\n\t" ++ o.name ++ " (" ++ @typeName(o.T) ++ "): " ++ o.desc ++ ".", .{}) catch unreachable;
+                off += bs.len;
+            }
+            @compileError(buf[0..off]);
         }
     }
 }
