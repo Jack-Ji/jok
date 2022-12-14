@@ -47,7 +47,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "zaudio_demo", .opt = .{ .link_zaudio = true } },
         .{ .name = "audio_synthesize_demo", .opt = .{} },
     };
-    const build_examples = b.step("build_examples", "compile and install all examples");
+    const build_examples = b.step("examples", "compile and install all examples");
     inline for (examples) |demo| {
         const exe = createGame(
             b,

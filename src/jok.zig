@@ -22,5 +22,4 @@ pub const utils = @import("utils.zig");
 // All tests
 test "all" {
     _ = @import("j2d/Vector.zig");
-    _ = @import("utils/storage.zig");
 }
