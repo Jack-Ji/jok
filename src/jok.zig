@@ -13,12 +13,6 @@ pub const j3d = @import("j3d.zig");
 /// Font module
 pub const font = @import("font.zig");
 
-/// Audio module
-pub const zaudio = deps.zaudio;
-
-/// Linear algebra math module
-pub const zmath = deps.zmath;
-
 /// Vendor libraries
 pub const deps = @import("deps/deps.zig");
 
