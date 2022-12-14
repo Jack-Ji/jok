@@ -208,15 +208,15 @@ fn initSDL() !void {
     if (config.min_size) |size| {
         sdl.c.SDL_SetWindowMinimumSize(
             ctx.window.ptr,
-            size.w,
-            size.h,
+            size.width,
+            size.height,
         );
     }
     if (config.max_size) |size| {
         sdl.c.SDL_SetWindowMaximumSize(
             ctx.window.ptr,
-            size.w,
-            size.h,
+            size.width,
+            size.height,
         );
     }
     ctx.toggleResizable(config.enable_resizable);
