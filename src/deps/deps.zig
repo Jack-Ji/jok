@@ -28,8 +28,8 @@ pub const zaudio = if (bos.use_zaudio)
 else
     null;
 
-pub const zbullet = if (bos.use_zbullet)
-    @import("zbullet/src/zbullet.zig")
+pub const zphysics = if (bos.use_zphysics)
+    @import("zphysics/src/zphysics.zig")
 else
     null;
 

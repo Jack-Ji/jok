@@ -6,8 +6,8 @@ cp -r %ZMODULES%/system-sdk src/deps
 rm -rf src/deps/zaudio
 cp -r %ZMODULES%/zaudio src/deps
 
-rm -rf src/deps/zbullet
-cp -r %ZMODULES%/zbullet src/deps
+rm -rf src/deps/zphysics
+cp -r %ZMODULES%/zphysics src/deps
 
 rm -rf src/deps/zmath
 cp -r %ZMODULES%/zmath src/deps

@@ -8,7 +8,7 @@ const nfd = @import("src/deps/nfd/build.zig");
 const zmesh = @import("src/deps/zmesh/build.zig");
 const znoise = @import("src/deps/znoise/build.zig");
 const zaudio = @import("src/deps/zaudio/build.zig");
-const zbullet = @import("src/deps/zbullet/build.zig");
+const zphysics = @import("src/deps/zphysics/build.zig");
 const ztracy = @import("src/deps/ztracy/build.zig");
 
 pub fn build(b: *std.build.Builder) void {
@@ -76,7 +76,7 @@ pub const BuildOptions = struct {
     link_chipmunk: bool = false,
     link_nfd: bool = false,
     link_zaudio: bool = false,
-    link_zbullet: bool = false,
+    link_zphysics: bool = false,
     link_ztracy: bool = false,
 };
 
@@ -115,8 +115,8 @@ pub fn createGame(
     if (opt.link_zaudio) {
         zaudio.link(exe);
     }
-    if (opt.link_zbullet) {
-        zbullet.link(exe);
+    if (opt.link_zphysics) {
+        zphysics.link(exe, zphysics.BuildOptionsStep.init(b, .{}));
     }
     if (opt.link_ztracy) {
         ztracy.link(exe, ztracy.BuildOptionsStep.init(b, .{}));
@@ -125,7 +125,7 @@ pub fn createGame(
     exe_options.addOption(bool, "use_chipmunk", opt.link_chipmunk);
     exe_options.addOption(bool, "use_nfd", opt.link_nfd);
     exe_options.addOption(bool, "use_zaudio", opt.link_zaudio);
-    exe_options.addOption(bool, "use_zbullet", opt.link_zbullet);
+    exe_options.addOption(bool, "use_zphysics", opt.link_zphysics);
     exe_options.addOption(bool, "use_ztracy", opt.link_ztracy);
 
     // Add packages

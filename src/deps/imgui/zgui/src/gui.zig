@@ -152,6 +152,27 @@ pub const io = struct {
         ranges: ?[*]const Wchar,
     ) Font;
 
+    pub fn addFontFromMemory(fontdata: []const u8, size_pixels: f32) Font {
+        return zguiIoAddFontFromMemory(fontdata.ptr, @intCast(i32, fontdata.len), size_pixels);
+    }
+    extern fn zguiIoAddFontFromMemory(font_data: *const anyopaque, font_size: i32, size_pixels: f32) Font;
+
+    pub fn addFontFromMemoryWithConfig(
+        fontdata: []const u8,
+        size_pixels: f32,
+        config: ?FontConfig,
+        ranges: ?[*]const Wchar,
+    ) Font {
+        return zguiIoAddFontFromMemoryWithConfig(fontdata.ptr, @intCast(i32, fontdata.len), size_pixels, if (config) |c| &c else null, ranges);
+    }
+    extern fn zguiIoAddFontFromMemoryWithConfig(
+        font_data: *const anyopaque,
+        font_size: i32,
+        size_pixels: f32,
+        config: ?*const FontConfig,
+        ranges: ?[*]const Wchar,
+    ) Font;
+
     /// `pub fn getFont(index: u32) Font`
     pub const getFont = zguiIoGetFont;
     extern fn zguiIoGetFont(index: u32) Font;
@@ -386,16 +407,11 @@ pub const Key = enum(u32) {
     mouse_wheel_x,
     mouse_wheel_y,
 
-    reserved_for_mod_ctrl,
-    reserved_for_mod_shift,
-    reserved_for_mod_alt,
-    reserved_for_mod_super,
-
-    mod_ctrl = 1 << 12,
-    mod_shift = 1 << 13,
-    mod_alt = 1 << 14,
-    mod_super = 1 << 15,
-    mod_mask_ = 0xf000,
+    pub const mod_ctrl: u32 = 1 << 12;
+    pub const mod_shift: u32 = 1 << 13;
+    pub const mod_alt: u32 = 1 << 14;
+    pub const mod_super: u32 = 1 << 15;
+    pub const mod_mask_: u32 = 0xf000;
 };
 //--------------------------------------------------------------------------------------------------
 pub const WindowFlags = packed struct(u32) {
