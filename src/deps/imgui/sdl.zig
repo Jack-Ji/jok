@@ -16,6 +16,9 @@ pub fn init(ctx: jok.Context) void {
 
     zgui.getStyle().scaleAllSizes(ctx.getPixelRatio());
 
+    const font = zgui.io.addFontFromMemory(jok.font.clacon_font_data, 16);
+    zgui.io.setDefaultFont(font);
+
     zgui.plot.init();
 }
 

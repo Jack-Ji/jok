@@ -13,6 +13,9 @@ pub const Atlas = @import("font/Atlas.zig");
 /// Regularly used codepoints
 pub const codepoint_ranges = @import("font/codepoint_ranges.zig");
 
+/// Embedded font data
+pub const clacon_font_data = @embedFile("font/clacon2.ttf");
+
 /// Draw debug text using builtin font
 pub const DrawOption = struct {
     pos: sdl.PointF,
@@ -26,7 +29,6 @@ pub const DrawResult = struct {
 };
 pub fn debugDraw(renderer: sdl.Renderer, opt: DrawOption, comptime fmt: []const u8, args: anytype) !DrawResult {
     const S = struct {
-        const clacon = @embedFile("font/clacon2.ttf");
         const allocator = std.heap.c_allocator;
         const max_text_size = 1000;
         var font: ?*Font = null;
@@ -44,7 +46,7 @@ pub fn debugDraw(renderer: sdl.Renderer, opt: DrawOption, comptime fmt: []const 
 
     // Initialize font data and atlases as needed
     if (S.font == null) {
-        S.font = Font.fromTrueTypeData(S.allocator, S.clacon) catch unreachable;
+        S.font = Font.fromTrueTypeData(S.allocator, clacon_font_data) catch unreachable;
         S.atlases = std.AutoHashMap(u32, Atlas).init(S.allocator);
         S.vattrib = std.ArrayList(sdl.Vertex).initCapacity(S.allocator, S.max_text_size * 4) catch unreachable;
         S.vindices = std.ArrayList(u32).initCapacity(S.allocator, S.max_text_size * 6) catch unreachable;
