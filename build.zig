@@ -46,6 +46,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "particle_life", .opt = .{ .link_imgui = true, .link_nfd = true } },
         .{ .name = "zaudio_demo", .opt = .{ .link_zaudio = true } },
         .{ .name = "audio_synthesize_demo", .opt = .{} },
+        .{ .name = "tinyrenderer_demo", .opt = .{} },
     };
     const build_examples = b.step("examples", "compile and install all examples");
     inline for (examples) |demo| {
