@@ -21,6 +21,9 @@ pub const TriangleRenderer = @import("j3d/TriangleRenderer.zig");
 /// 3d Skybox renderer
 pub const SkyboxRenderer = @import("j3d/SkyboxRenderer.zig");
 
+/// 3d pixel renderer (software rasterization)
+pub const PixelRenderer = @import("j3d/PixelRenderer.zig");
+
 /// 3d camera
 pub const Camera = @import("j3d/Camera.zig");
 
