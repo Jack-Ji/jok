@@ -94,7 +94,8 @@ Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.
 
 ## What's supported platforms?
 Theoretically anywhere SDL2 can run. But I'm focusing on PC platforms for now.
-Some optional vendor libraries are confined to certain platforms, use at your own needs.
+
+TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem` with `.Windows` in your build script.
 
 ## Watch out!
 It's way too minimal (perhaps), you can't write shaders (It doesn't mean performance is bad! Checkout
