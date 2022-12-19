@@ -12,7 +12,7 @@ comptime {
         .{ .name = "jok_allocator", .T = std.mem.Allocator, .desc = "default memory allocator" },
         .{ .name = "jok_mem_leak_checks", .T = bool, .desc = "whether default memory allocator check memleak when exiting" },
         .{ .name = "jok_mem_detail_logs", .T = bool, .desc = "whether default memory allocator print detailed memory alloc/free logs" },
-        .{ .name = "jok_software_renderer", .T = bool, .desc = "whether fallback to software renderer" },
+        .{ .name = "jok_software_renderer", .T = bool, .desc = "whether fallback to software renderer when hardware acceleration isn't available" },
         .{ .name = "jok_window_title", .T = [:0]const u8, .desc = "title of window" },
         .{ .name = "jok_window_pos_x", .T = sdl.WindowPosition, .desc = "horizontal position of window" },
         .{ .name = "jok_window_pos_y", .T = sdl.WindowPosition, .desc = "vertical position of window" },
@@ -29,8 +29,8 @@ comptime {
         .{ .name = "jok_mouse_mode", .T = MouseMode, .desc = "mouse mode setting" },
         .{ .name = "jok_default_2d_primitive", .T = bool, .desc = "whether init j2d" },
         .{ .name = "jok_default_3d_primitive", .T = bool, .desc = "whether init j3d" },
-        .{ .name = "jok_exit_on_recv_esc", .T = bool, .desc = "whether exit game when get esc event" },
-        .{ .name = "jok_exit_on_recv_quit", .T = bool, .desc = "whether exit game when get quit event" },
+        .{ .name = "jok_exit_on_recv_esc", .T = bool, .desc = "whether exit game when esc is pressed" },
+        .{ .name = "jok_exit_on_recv_quit", .T = bool, .desc = "whether exit game when getting quit event" },
     };
     const game_struct = @typeInfo(game).Struct;
     for (game_struct.decls) |f| {
