@@ -6,6 +6,7 @@ const jok = @import("../jok.zig");
 const j3d = jok.j3d;
 const zmath = j3d.zmath;
 const Camera = j3d.Camera;
+const utils = jok.utils;
 const Self = @This();
 
 // Triangle vertices
@@ -395,17 +396,17 @@ pub fn appendShape(
                     self.depths.items[front_tri[1]] + self.depths.items[front_tri[2]]) / 3.0;
 
                 if (tri_depth < front_depth and
-                    isPointInTriangle(tri_coords, front_tri_coords[0]) and
-                    isPointInTriangle(tri_coords, front_tri_coords[1]) and
-                    isPointInTriangle(tri_coords, front_tri_coords[2]))
+                    utils.math.isPointInTriangle(tri_coords, front_tri_coords[0]) and
+                    utils.math.isPointInTriangle(tri_coords, front_tri_coords[1]) and
+                    utils.math.isPointInTriangle(tri_coords, front_tri_coords[2]))
                 {
                     // Remove front triangle since new one is closer and larger
                     _ = self.large_front_triangles.swapRemove(idx);
                     continue;
                 } else if (tri_depth > front_depth and
-                    isPointInTriangle(front_tri_coords, tri_coords[0]) and
-                    isPointInTriangle(front_tri_coords, tri_coords[1]) and
-                    isPointInTriangle(front_tri_coords, tri_coords[2]))
+                    utils.math.isPointInTriangle(front_tri_coords, tri_coords[0]) and
+                    utils.math.isPointInTriangle(front_tri_coords, tri_coords[1]) and
+                    utils.math.isPointInTriangle(front_tri_coords, tri_coords[2]))
                 {
                     // The triangle is already covered
                     is_suitable_front = false;
@@ -764,9 +765,9 @@ inline fn isOBBHiddenBehind(self: *Self, obb: []zmath.Vec) bool {
             };
             const tri_depth = (_obb[indices[0]][2] + _obb[indices[1]][2] + _obb[indices[2]][2]) / 3.0;
             return tri_depth > front_depth and
-                isPointInTriangle(front_tri, tri[0]) and
-                isPointInTriangle(front_tri, tri[1]) and
-                isPointInTriangle(front_tri, tri[2]);
+                utils.math.isPointInTriangle(front_tri, tri[0]) and
+                utils.math.isPointInTriangle(front_tri, tri[1]) and
+                utils.math.isPointInTriangle(front_tri, tri[2]);
         }
     };
 
@@ -899,40 +900,6 @@ inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) bool {
     const plane_n = zmath.normalize3(zmath.cross3(f0, f1));
     const r = @fabs(plane_n[0]) + @fabs(plane_n[1]) + @fabs(plane_n[2]);
     return @fabs(zmath.dot3(plane_n, v0)[0]) > r;
-}
-
-/// Test whether a point is in triangle
-/// Using Barycentric Technique, checkout link https://blackpawn.com/texts/pointinpoly
-inline fn isPointInTriangle(tri: [3][2]f32, point: [2]f32) bool {
-    @setEvalBranchQuota(10000);
-
-    const v0 = zmath.f32x4(
-        tri[2][0] - tri[0][0],
-        tri[2][1] - tri[0][1],
-        0,
-        0,
-    );
-    const v1 = zmath.f32x4(
-        tri[1][0] - tri[0][0],
-        tri[1][1] - tri[0][1],
-        0,
-        0,
-    );
-    const v2 = zmath.f32x4(
-        point[0] - tri[0][0],
-        point[1] - tri[0][1],
-        0,
-        0,
-    );
-    const dot00 = zmath.dot2(v0, v0)[0];
-    const dot01 = zmath.dot2(v0, v1)[0];
-    const dot02 = zmath.dot2(v0, v2)[0];
-    const dot11 = zmath.dot2(v1, v1)[0];
-    const dot12 = zmath.dot2(v1, v2)[0];
-    const inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01);
-    const u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
-    const v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
-    return u >= 0 and v >= 0 and (u + v < 1);
 }
 
 /// Calculate tint color of vertex according to lighting paramters
