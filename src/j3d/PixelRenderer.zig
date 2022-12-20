@@ -6,6 +6,7 @@ const jok = @import("../jok.zig");
 const j3d = jok.j3d;
 const zmath = j3d.zmath;
 const Camera = j3d.Camera;
+const utils = jok.utils;
 const Self = @This();
 
 arena: std.heap.ArenaAllocator,
@@ -60,6 +61,35 @@ pub fn clear(self: *Self, opt: ClearOption) void {
 pub fn draw(self: Self, pos: ?sdl.Rectangle) !void {
     try self.tex.update(std.mem.sliceAsBytes(self.color_buffer), @intCast(usize, self.width * 4), null);
     try self.renderer.copy(self.tex, pos, null);
+}
+
+/// Add triangle
+pub fn triangle(self: *Self, _x0: i32, _y0: i32, _x1: i32, _y1: i32, _x2: i32, _y2: i32, color: sdl.Color) !void {
+    const x0 = math.clamp(_x0, 0, self.width);
+    const x1 = math.clamp(_x1, 0, self.width);
+    const x2 = math.clamp(_x2, 0, self.width);
+    const y0 = math.clamp(_y0, 0, self.width);
+    const y1 = math.clamp(_y1, 0, self.width);
+    const y2 = math.clamp(_y2, 0, self.width);
+    const xmin = math.min3(x0, x1, x2);
+    const xmax = math.max3(x0, x1, x2);
+    const ymin = math.min3(y0, y1, y2);
+    const ymax = math.max3(y0, y1, y2);
+    const tri = [3][2]f32{
+        [_]f32{ @intToFloat(f32, _x0), @intToFloat(f32, _y0) },
+        [_]f32{ @intToFloat(f32, _x1), @intToFloat(f32, _y1) },
+        [_]f32{ @intToFloat(f32, _x2), @intToFloat(f32, _y2) },
+    };
+    var x = xmin;
+    while (x <= xmax) : (x += 1) {
+        var y = ymin;
+        while (y <= ymax) : (y += 1) {
+            if (!utils.math.isPointInTriangle(tri, [_]f32{ @intToFloat(f32, x), @intToFloat(f32, y) })) {
+                continue;
+            }
+            try self.pixel(x, y, color);
+        }
+    }
 }
 
 /// Add line

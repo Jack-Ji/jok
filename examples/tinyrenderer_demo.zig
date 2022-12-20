@@ -26,6 +26,7 @@ pub fn draw(ctx: *jok.Context) !void {
 
     prd.clear(.{});
     try prd.line(30, 40, 200, 450, sdl.Color.red);
+    try prd.triangle(100, 50, 300, 150, 200, 390, sdl.Color.green);
     try prd.draw(null);
 }
 
