@@ -21,6 +21,20 @@ pub inline fn degreeToRadian(d: f32) f32 {
     return d * math.pi / 180.0;
 }
 
+/// Get min and max of 3 value
+pub inline fn minAndMax(_x: anytype, _y: anytype, _z: anytype) std.meta.Tuple(&[_]type{
+    @TypeOf(_x, _y, _z),
+    @TypeOf(_x, _y, _z),
+}) {
+    var x = _x;
+    var y = _y;
+    var z = _z;
+    if (x > y) std.mem.swap(@TypeOf(_x, _y, _z), &x, &y);
+    if (x > z) std.mem.swap(@TypeOf(_x, _y, _z), &x, &z);
+    if (y > z) std.mem.swap(@TypeOf(_x, _y, _z), &y, &z);
+    return .{ x, z };
+}
+
 /// Test whether a point is in triangle
 /// Using Barycentric Technique, checkout link https://blackpawn.com/texts/pointinpoly
 pub inline fn isPointInTriangle(tri: [3][2]f32, point: [2]f32) bool {

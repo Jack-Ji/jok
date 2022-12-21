@@ -71,19 +71,17 @@ pub fn triangle(self: *Self, _x0: i32, _y0: i32, _x1: i32, _y1: i32, _x2: i32, _
     const y0 = math.clamp(_y0, 0, self.width);
     const y1 = math.clamp(_y1, 0, self.width);
     const y2 = math.clamp(_y2, 0, self.width);
-    const xmin = math.min3(x0, x1, x2);
-    const xmax = math.max3(x0, x1, x2);
-    const ymin = math.min3(y0, y1, y2);
-    const ymax = math.max3(y0, y1, y2);
+    const xrange = utils.math.minAndMax(x0, x1, x2);
+    const yrange = utils.math.minAndMax(y0, y1, y2);
     const tri = [3][2]f32{
         [_]f32{ @intToFloat(f32, _x0), @intToFloat(f32, _y0) },
         [_]f32{ @intToFloat(f32, _x1), @intToFloat(f32, _y1) },
         [_]f32{ @intToFloat(f32, _x2), @intToFloat(f32, _y2) },
     };
-    var x = xmin;
-    while (x <= xmax) : (x += 1) {
-        var y = ymin;
-        while (y <= ymax) : (y += 1) {
+    var x = xrange[0];
+    while (x <= xrange[1]) : (x += 1) {
+        var y = yrange[0];
+        while (y <= yrange[1]) : (y += 1) {
             if (!utils.math.isPointInTriangle(tri, [_]f32{ @intToFloat(f32, x), @intToFloat(f32, y) })) {
                 continue;
             }
