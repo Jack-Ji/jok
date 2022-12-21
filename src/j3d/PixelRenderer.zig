@@ -9,40 +9,36 @@ const Camera = j3d.Camera;
 const utils = jok.utils;
 const Self = @This();
 
-arena: std.heap.ArenaAllocator,
-renderer: sdl.Renderer,
+allocator: std.mem.Allocator,
 tex: sdl.Texture,
 pixel_format: sdl.PixelFormatEnum,
 width: i32,
 height: i32,
 color_buffer: []u32 = undefined,
 
-pub fn init(ctx: jok.Context, size: ?sdl.Size) !Self {
+pub fn init(allocator: std.mem.Allocator, renderer: sdl.Renderer, size: ?sdl.Size) !Self {
     const pixel_format = jok.utils.gfx.getFormatByEndian();
-    const fb_size = ctx.getFramebufferSize();
+    const fb_size = try renderer.getOutputSize();
     const actual_size = size orelse sdl.Size{
-        .width = @intCast(c_int, fb_size.w),
-        .height = @intCast(c_int, fb_size.h),
+        .width = fb_size.width_pixels,
+        .height = fb_size.height_pixels,
     };
     const width = @intCast(usize, actual_size.width);
     const height = @intCast(usize, actual_size.height);
     var self = Self{
-        .arena = std.heap.ArenaAllocator.init(ctx.allocator),
-        .renderer = ctx.renderer,
+        .allocator = allocator,
         .pixel_format = pixel_format,
-        .tex = try sdl.createTexture(ctx.renderer, pixel_format, .streaming, width, height),
+        .tex = try sdl.createTexture(renderer, pixel_format, .streaming, width, height),
         .width = @intCast(i32, width),
         .height = @intCast(i32, height),
+        .color_buffer = try allocator.alloc(u32, width * height),
     };
-    errdefer self.arena.deinit();
-    self.color_buffer = try self.arena.allocator().alloc(u32, width * height);
     return self;
 }
 
 pub fn deinit(self: *Self) void {
     self.tex.destroy();
-    self.arena.deinit();
-    self.* = undefined;
+    self.allocator.free(self.color_buffer);
 }
 
 /// Clear the scene
@@ -59,9 +55,9 @@ pub fn clear(self: *Self, opt: ClearOption) void {
 }
 
 /// Draw the scene
-pub fn draw(self: Self, pos: ?sdl.Rectangle) !void {
+pub fn draw(self: Self, renderer: sdl.Renderer, pos: ?sdl.Rectangle) !void {
     try self.tex.update(std.mem.sliceAsBytes(self.color_buffer), @intCast(usize, self.width * 4), null);
-    try self.renderer.copy(self.tex, pos, null);
+    try renderer.copy(self.tex, pos, null);
 }
 
 /// Add triangle
