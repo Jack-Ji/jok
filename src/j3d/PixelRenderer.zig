@@ -34,6 +34,7 @@ pub fn init(ctx: jok.Context, size: ?sdl.Size) !Self {
         .width = @intCast(i32, width),
         .height = @intCast(i32, height),
     };
+    errdefer self.arena.deinit();
     self.color_buffer = try self.arena.allocator().alloc(u32, width * height);
     return self;
 }
