@@ -131,7 +131,7 @@ pub fn draw(ctx: *jok.Context) !void {
             .cull_faces = false,
         },
     );
-    try primitive.render(ctx.renderer, .{ .wireframe = wireframe });
+    try primitive.draw(ctx.renderer, .{ .wireframe = wireframe });
 
     primitive.clear();
     try primitive.addSubdividedSphere(
@@ -144,7 +144,7 @@ pub fn draw(ctx: *jok.Context) !void {
             .common = .{ .renderer = ctx.renderer },
         },
     );
-    try primitive.render(ctx.renderer, .{});
+    try primitive.draw(ctx.renderer, .{});
 
     _ = try font.debugDraw(
         ctx.renderer,

@@ -50,7 +50,7 @@ pub const RenderOption = struct {
     wireframe: bool = false,
     wireframe_color: sdl.Color = sdl.Color.green,
 };
-pub fn render(renderer: sdl.Renderer, opt: RenderOption) !void {
+pub fn draw(renderer: sdl.Renderer, opt: RenderOption) !void {
     if (opt.wireframe) {
         try tri_renderer.?.drawWireframe(renderer, opt.wireframe_color);
     } else {

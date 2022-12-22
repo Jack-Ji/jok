@@ -131,7 +131,7 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    try skybox_rd.render(ctx.renderer, camera, skybox_textures, skybox_tint_color);
+    try skybox_rd.draw(ctx.renderer, camera, skybox_textures, skybox_tint_color);
 
     primitive.clear();
     try primitive.addShape(
@@ -147,7 +147,7 @@ pub fn draw(ctx: *jok.Context) !void {
         null,
         .{ .renderer = ctx.renderer },
     );
-    try primitive.render(ctx.renderer, .{ .texture = tex });
+    try primitive.draw(ctx.renderer, .{ .texture = tex });
 
     primitive.clear();
     try primitive.addShape(
@@ -160,7 +160,7 @@ pub fn draw(ctx: *jok.Context) !void {
         null,
         .{ .renderer = ctx.renderer },
     );
-    try primitive.render(ctx.renderer, .{ .wireframe = true });
+    try primitive.draw(ctx.renderer, .{ .wireframe = true });
 
     _ = try font.debugDraw(
         ctx.renderer,

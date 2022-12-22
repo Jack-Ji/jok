@@ -117,7 +117,7 @@ pub fn draw(ctx: *jok.Context) !void {
     };
 
     scene.clear();
-    try scene.render(ctx.renderer, camera, .{
+    try scene.draw(ctx.renderer, camera, .{
         .lighting = lighting_opt,
     });
 

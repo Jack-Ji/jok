@@ -578,12 +578,12 @@ fn renderSimulation(ctx: *jok.Context) !void {
     if (number_r > 0) try drawPoints(red.?);
     if (number_g > 0) try drawPoints(green.?);
     if (number_b > 0) try drawPoints(blue.?);
-    primitive.render(ctx.renderer, .{}) catch unreachable;
+    try primitive.draw(ctx.renderer, .{});
 
     // Draw model
     if (show_model) {
         primitive.clear();
-        defer primitive.render(ctx.renderer, .{}) catch unreachable;
+        defer primitive.draw(ctx.renderer, .{}) catch unreachable;
 
         try primitive.addCircle(
             .{ .x = xshift, .y = yshift },

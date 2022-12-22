@@ -33,7 +33,7 @@ pub fn clear() void {
 pub const RenderOption = struct {
     // TODO
 };
-pub fn render(renderer: sdl.Renderer, opt: RenderOption) !void {
+pub fn draw(renderer: sdl.Renderer, opt: RenderOption) !void {
     _ = opt;
     try rd.?.draw(renderer);
 }

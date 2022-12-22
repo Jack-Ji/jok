@@ -95,7 +95,7 @@ pub fn deinit(self: *Self) void {
 }
 
 /// Render skybox
-pub fn render(
+pub fn draw(
     self: *Self,
     renderer: sdl.Renderer,
     camera: Camera,

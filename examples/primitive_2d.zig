@@ -120,7 +120,7 @@ pub fn draw(ctx: *jok.Context) !void {
         3,
         .{ .common = .{ .color = sdl.Color.cyan } },
     );
-    try primitive.render(ctx.renderer, .{});
+    try primitive.draw(ctx.renderer, .{});
 }
 
 pub fn quit(ctx: *jok.Context) void {

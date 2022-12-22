@@ -89,7 +89,7 @@ pub fn draw(ctx: *jok.Context) !void {
         10,
         .{},
     );
-    try primitive.render(ctx.renderer, .{});
+    try primitive.draw(ctx.renderer, .{});
 
     _ = try font.debugDraw(
         ctx.renderer,

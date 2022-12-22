@@ -358,7 +358,7 @@ pub const World = struct {
         if (self.debug) |dbg| {
             dbg.clear();
             c.cpSpaceDebugDraw(self.space, &dbg.space_draw_option);
-            try dbg.render(renderer);
+            try dbg.draw(renderer);
         }
     }
 };
@@ -411,7 +411,7 @@ const PhysicsDebug = struct {
         debug.vindices.clearRetainingCapacity();
     }
 
-    fn render(debug: *PhysicsDebug, renderer: sdl.Renderer) !void {
+    fn draw(debug: *PhysicsDebug, renderer: sdl.Renderer) !void {
         try renderer.drawGeometry(null, debug.vattribs.items, debug.vindices.items);
     }
 

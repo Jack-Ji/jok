@@ -134,7 +134,7 @@ pub fn draw(ctx: *jok.Context) !void {
             .{ .renderer = ctx.renderer },
         );
     }
-    try primitive.render(ctx.renderer, .{ .texture = tex });
+    try primitive.draw(ctx.renderer, .{ .texture = tex });
 
     _ = try font.debugDraw(
         ctx.renderer,

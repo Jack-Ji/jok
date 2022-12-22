@@ -198,7 +198,7 @@ pub const RenderOption = struct {
     cull_faces: bool = true,
     lighting: ?TriangleRenderer.LightingOption = null,
 };
-pub fn render(self: *Self, renderer: sdl.Renderer, camera: Camera, opt: RenderOption) !void {
+pub fn draw(self: *Self, renderer: sdl.Renderer, camera: Camera, opt: RenderOption) !void {
     try self.addObjectToRenderer(renderer, camera, self.root, opt);
     if (opt.wireframe) {
         try self.tri_rd.drawWireframe(renderer, opt.wireframe_color);
