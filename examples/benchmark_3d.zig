@@ -4,10 +4,14 @@ const jok = @import("jok");
 const font = jok.font;
 const j3d = jok.j3d;
 const zmath = j3d.zmath;
-const primitive = j3d.primitive;
+const imgui = jok.deps.imgui;
+const zjobs = jok.deps.zjobs;
 
 pub const jok_fps_limit: jok.config.FpsLimit = .none;
 
+var jobs: zjobs.JobQueue(.{}) = undefined;
+var rd: j3d.TriangleRenderer = undefined;
+var prd: j3d.ParallelTriangleRenderer = undefined;
 var camera: j3d.Camera = undefined;
 var cube: j3d.zmesh.Shape = undefined;
 var aabb: [6]f32 = undefined;
@@ -24,9 +28,16 @@ var texcoords = [_][2]f32{
     .{ 0, 0 },
     .{ 1, 0 },
 };
+var parallel_rendering: bool = false;
 
 pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
+
+    jobs = zjobs.JobQueue(.{}).init();
+    jobs.start();
+
+    rd = j3d.TriangleRenderer.init(ctx.allocator);
+    prd = j3d.ParallelTriangleRenderer.init(ctx.allocator, &jobs);
 
     camera = j3d.Camera.fromPositionAndTarget(
         .{
@@ -115,11 +126,10 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    primitive.clear();
-    for (translations.items) |tr, i| {
-        try primitive.addShape(
-            cube,
-            zmath.mul(
+    if (parallel_rendering) {
+        prd.clear(true);
+        for (translations.items) |tr, i| {
+            const model = zmath.mul(
                 zmath.translation(-0.5, -0.5, -0.5),
                 zmath.mul(
                     zmath.mul(
@@ -128,13 +138,47 @@ pub fn draw(ctx: *jok.Context) !void {
                     ),
                     tr,
                 ),
-            ),
-            camera,
-            aabb,
-            .{ .renderer = ctx.renderer },
-        );
+            );
+            try prd.addShapeData(
+                ctx.renderer,
+                model,
+                camera,
+                cube.indices,
+                cube.positions,
+                cube.normals.?,
+                null,
+                cube.texcoords.?,
+                .{ .aabb = aabb },
+            );
+        }
+        try prd.draw(ctx.renderer, tex);
+    } else {
+        rd.clear(true);
+        for (translations.items) |tr, i| {
+            const model = zmath.mul(
+                zmath.translation(-0.5, -0.5, -0.5),
+                zmath.mul(
+                    zmath.mul(
+                        zmath.scaling(0.1, 0.1, 0.1),
+                        zmath.matFromAxisAngle(rotation_axises.items[i], std.math.pi / 3.0 * @floatCast(f32, ctx.tick)),
+                    ),
+                    tr,
+                ),
+            );
+            try rd.addShapeData(
+                ctx.renderer,
+                model,
+                camera,
+                cube.indices,
+                cube.positions,
+                cube.normals.?,
+                null,
+                cube.texcoords.?,
+                .{ .aabb = aabb },
+            );
+        }
+        try rd.draw(ctx.renderer, tex);
     }
-    try primitive.draw(ctx.renderer, .{ .texture = tex });
 
     _ = try font.debugDraw(
         ctx.renderer,
@@ -142,12 +186,22 @@ pub fn draw(ctx: *jok.Context) !void {
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );
+
+    imgui.sdl.newFrame(ctx.*);
+    defer imgui.sdl.draw();
+
+    if (imgui.begin("Control Panel", .{})) {
+        _ = imgui.checkbox("parallel rendering", .{ .v = &parallel_rendering });
+    }
+    imgui.end();
 }
 
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 
+    rd.deinit();
+    prd.deinit();
     cube.deinit();
     translations.deinit();
     rotation_axises.deinit();

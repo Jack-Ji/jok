@@ -18,6 +18,9 @@ pub const zmesh = jok.deps.zmesh;
 /// 3d triangle renderer (accelerated by SDL, but with limited effects)
 pub const TriangleRenderer = @import("j3d/TriangleRenderer.zig");
 
+/// Parallel 3d triangle renderer (accelerated by SDL, but with limited effects)
+pub const ParallelTriangleRenderer = @import("j3d/ParallelTriangleRenderer.zig");
+
 /// 3d pixel renderer (software rasterization, more featureful but might be slow)
 pub const PixelRenderer = @import("j3d/PixelRenderer.zig");
 
