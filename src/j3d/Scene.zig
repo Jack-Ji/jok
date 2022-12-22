@@ -215,7 +215,7 @@ fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *
             try self.colors.ensureTotalCapacity(m.shape.positions.len);
             self.colors.appendNTimesAssumeCapacity(m.color, m.shape.positions.len);
 
-            try self.tri_rd.appendShape(
+            try self.tri_rd.addShapeData(
                 renderer,
                 o.transform,
                 camera,

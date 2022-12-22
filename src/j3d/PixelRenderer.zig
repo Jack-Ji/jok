@@ -75,14 +75,14 @@ pub fn clear(self: *Self, opt: ClearOption) void {
 }
 
 /// Advanced vertice appending options
-pub const AppendOption = struct {
+pub const ShapeOption = struct {
     aabb: ?[6]f32 = null,
     cull_faces: bool = true,
     wireframe: bool = false,
 };
 
 /// Append shape data
-pub fn appendShape(
+pub fn addShapeData(
     self: *Self,
     model: zmath.Mat,
     camera: Camera,
@@ -91,7 +91,7 @@ pub fn appendShape(
     normals: []const [3]f32,
     colors: ?[]const sdl.Color,
     texcoords: ?[]const [2]f32,
-    opt: AppendOption,
+    opt: ShapeOption,
 ) !void {
     assert(@rem(indices.len, 3) == 0);
     assert(normals.len == positions.len);

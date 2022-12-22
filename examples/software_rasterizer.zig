@@ -72,7 +72,7 @@ pub fn update(ctx: *jok.Context) !void {
 
 pub fn draw(ctx: *jok.Context) !void {
     prd.clear(.{});
-    try prd.appendShape(
+    try prd.addShapeData(
         zmath.identity(),
         camera,
         shape.indices,

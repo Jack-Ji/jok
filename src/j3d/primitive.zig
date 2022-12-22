@@ -78,7 +78,7 @@ pub fn addShape(
     S.colors.?.ensureTotalCapacity(shape.positions.len) catch unreachable;
     S.colors.?.appendNTimesAssumeCapacity(opt.color, shape.positions.len);
 
-    try tri_renderer.?.appendShape(
+    try tri_renderer.?.addShapeData(
         opt.renderer,
         model,
         camera,
