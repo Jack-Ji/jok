@@ -10,8 +10,8 @@ const zjobs = jok.deps.zjobs;
 pub const jok_fps_limit: jok.config.FpsLimit = .none;
 
 var jobs: zjobs.JobQueue(.{}) = undefined;
+var prd: *j3d.ParallelTriangleRenderer = undefined;
 var rd: j3d.TriangleRenderer = undefined;
-var prd: j3d.ParallelTriangleRenderer = undefined;
 var camera: j3d.Camera = undefined;
 var cube: j3d.zmesh.Shape = undefined;
 var aabb: [6]f32 = undefined;
@@ -36,8 +36,8 @@ pub fn init(ctx: *jok.Context) !void {
     jobs = zjobs.JobQueue(.{}).init();
     jobs.start();
 
+    prd = try j3d.ParallelTriangleRenderer.init(ctx.allocator, &jobs);
     rd = j3d.TriangleRenderer.init(ctx.allocator);
-    prd = j3d.ParallelTriangleRenderer.init(ctx.allocator, &jobs);
 
     camera = j3d.Camera.fromPositionAndTarget(
         .{
@@ -74,7 +74,7 @@ pub fn init(ctx: *jok.Context) !void {
     translations = std.ArrayList(zmath.Mat).init(ctx.allocator);
     rotation_axises = std.ArrayList(zmath.Vec).init(ctx.allocator);
     var i: u32 = 0;
-    while (i < 10000) : (i += 1) {
+    while (i < 1000) : (i += 1) {
         try translations.append(zmath.translation(
             -5 + rng.random().float(f32) * 10,
             -5 + rng.random().float(f32) * 10,
@@ -99,6 +99,7 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
 pub fn update(ctx: *jok.Context) !void {
     // camera movement
     const distance = ctx.delta_tick * 2;
+    const angle = std.math.pi * ctx.delta_tick / 2;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -112,16 +113,16 @@ pub fn update(ctx: *jok.Context) !void {
         camera.move(.right, distance);
     }
     if (ctx.isKeyPressed(.left)) {
-        camera.rotate(0, -std.math.pi / 180.0);
+        camera.rotate(0, -angle);
     }
     if (ctx.isKeyPressed(.right)) {
-        camera.rotate(0, std.math.pi / 180.0);
+        camera.rotate(0, angle);
     }
     if (ctx.isKeyPressed(.up)) {
-        camera.rotate(std.math.pi / 180.0, 0);
+        camera.rotate(angle, 0);
     }
     if (ctx.isKeyPressed(.down)) {
-        camera.rotate(-std.math.pi / 180.0, 0);
+        camera.rotate(-angle, 0);
     }
 }
 
@@ -200,8 +201,9 @@ pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 
-    rd.deinit();
+    jobs.deinit();
     prd.deinit();
+    rd.deinit();
     cube.deinit();
     translations.deinit();
     rotation_axises.deinit();

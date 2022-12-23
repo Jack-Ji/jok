@@ -10,9 +10,12 @@ const zmath = j3d.zmath;
 const Camera = j3d.Camera;
 const utils = jok.utils;
 const internal = @import("internal.zig");
+const lighting = @import("lighting.zig");
 const Self = @This();
 
 const max_jobs_num = @bitSizeOf(usize);
+
+allocator: std.mem.Allocator,
 
 // Jobs Queue
 jobs: *zjobs.JobQueue(.{}),
@@ -20,37 +23,37 @@ jobs: *zjobs.JobQueue(.{}),
 // Triangle vertices
 indices: std.ArrayList(u32),
 sorted: bool = false,
-
-// Triangle vertices
 vertices: std.ArrayList(sdl.Vertex),
-
-// Depth of vertices
 depths: std.ArrayList(f32),
+mutex: std.Thread.Mutex,
 
 // Parallel rendering jobs
 rendering_jobs: [max_jobs_num]RenderJob,
 rendering_job_ids: [max_jobs_num]zjobs.JobId,
-rendering_job_next: u32,
 
 pub fn init(
     allocator: std.mem.Allocator,
     jobs: *zjobs.JobQueue(.{}),
-) Self {
+) !*Self {
     if (builtin.single_threaded) {
         @panic("Current system doesn't support parallel rendering!");
     }
-    var self = Self{
+
+    var self = try allocator.create(Self);
+    errdefer allocator.destroy(self);
+    self.* = Self{
+        .allocator = allocator,
         .jobs = jobs,
         .indices = std.ArrayList(u32).init(allocator),
         .vertices = std.ArrayList(sdl.Vertex).init(allocator),
         .depths = std.ArrayList(f32).init(allocator),
+        .mutex = std.Thread.Mutex{},
         .rendering_jobs = undefined,
         .rendering_job_ids = undefined,
-        .rendering_job_next = 0,
     };
     var i: u32 = 0;
     while (i < self.rendering_jobs.len) : (i += 1) {
-        self.rendering_jobs[i] = RenderJob.init(allocator) catch unreachable;
+        self.rendering_jobs[i] = try RenderJob.init(allocator, self, i);
         self.rendering_job_ids[i] = .none;
     }
     return self;
@@ -64,6 +67,7 @@ pub fn deinit(self: *Self) void {
     while (i < self.rendering_jobs.len) : (i += 1) {
         self.rendering_jobs[i].deinit();
     }
+    self.allocator.destroy(self);
 }
 
 /// Clear mesh data
@@ -79,60 +83,13 @@ pub fn clear(self: *Self, retain_memory: bool) void {
     }
     self.sorted = false;
     std.mem.set(zjobs.JobId, &self.rendering_job_ids, .none);
-    self.rendering_job_next = 0;
 }
-
-/// Lighting options
-pub const Light = union(enum) {
-    directional: struct {
-        ambient: zmath.Vec = zmath.f32x4s(0.1),
-        diffuse: zmath.Vec = zmath.f32x4s(0.8),
-        specular: zmath.Vec = zmath.f32x4s(0.5),
-        direction: zmath.Vec = zmath.f32x4(0, -1, -1, 0),
-    },
-    point: struct {
-        ambient: zmath.Vec = zmath.f32x4s(0.1),
-        diffuse: zmath.Vec = zmath.f32x4s(0.8),
-        specular: zmath.Vec = zmath.f32x4s(0.5),
-        position: zmath.Vec = zmath.f32x4(1, 1, 1, 1),
-        constant: f32 = 1.0,
-        attenuation_linear: f32 = 0.5,
-        attenuation_quadratic: f32 = 0.3,
-    },
-    spot: struct {
-        ambient: zmath.Vec = zmath.f32x4s(0.1),
-        diffuse: zmath.Vec = zmath.f32x4s(0.9),
-        specular: zmath.Vec = zmath.f32x4s(0.8),
-        position: zmath.Vec = zmath.f32x4(3, 3, 3, 1),
-        direction: zmath.Vec = zmath.f32x4(-1, -1, -1, 0),
-        constant: f32 = 1.0,
-        attenuation_linear: f32 = 0.01,
-        attenuation_quadratic: f32 = 0.001,
-        inner_cutoff: f32 = 0.95,
-        outer_cutoff: f32 = 0.85,
-    },
-};
-pub const LightingOption = struct {
-    const max_light_num = 32;
-    lights: [max_light_num]Light = [_]Light{.{ .directional = .{} }} ** max_light_num,
-    lights_num: u32 = 1,
-    shininess: f32 = 4,
-
-    // Calculate color of light source
-    light_calc_fn: ?*const fn (
-        material_color: sdl.Color,
-        eye_pos: zmath.Vec,
-        vertex_pos: zmath.Vec,
-        normal: zmath.Vec,
-        opt: LightingOption,
-    ) sdl.Color = null,
-};
 
 /// Advanced vertice appending options
 pub const ShapeOption = struct {
     aabb: ?[6]f32 = null,
     cull_faces: bool = true,
-    lighting: ?LightingOption = null,
+    lighting_opt: ?lighting.LightingOption = null,
 };
 
 /// Append shape data for parallel processing
@@ -148,247 +105,60 @@ pub fn addShapeData(
     texcoords: ?[]const [2]f32,
     opt: ShapeOption,
 ) !void {
-    if (self.rendering_job_ids[self.rendering_job_next] != .none) {
-        self.jobs.wait(self.rendering_job_ids[self.rendering_job_next]);
-        try self.vertices.appendSlice(
-            self.rendering_jobs[self.rendering_job_next].context.vertices.items,
+    // Do early test with aabb if possible
+    if (opt.aabb) |ab| {
+        const mvp = zmath.mul(model, camera.getViewProjectMatrix());
+        const width = ab[3] - ab[0];
+        const length = ab[5] - ab[2];
+        assert(width >= 0);
+        assert(length >= 0);
+        const v0 = zmath.f32x4(ab[0], ab[1], ab[2], 1.0);
+        const v1 = zmath.f32x4(ab[0], ab[1], ab[2] + length, 1.0);
+        const v2 = zmath.f32x4(ab[0] + width, ab[1], ab[2] + length, 1.0);
+        const v3 = zmath.f32x4(ab[0] + width, ab[1], ab[2], 1.0);
+        const v4 = zmath.f32x4(ab[3] - width, ab[4], ab[5] - length, 1.0);
+        const v5 = zmath.f32x4(ab[3] - width, ab[4], ab[5], 1.0);
+        const v6 = zmath.f32x4(ab[3], ab[4], ab[5], 1.0);
+        const v7 = zmath.f32x4(ab[3], ab[4], ab[5] - length, 1.0);
+        const obb1 = zmath.mul(zmath.Mat{
+            v0, v1, v2, v3,
+        }, mvp);
+        const obb2 = zmath.mul(zmath.Mat{
+            v4, v5, v6, v7,
+        }, mvp);
+
+        // Ignore object outside of viewing space
+        if (internal.isOBBOutside(&[_]zmath.Vec{
+            obb1[0], obb1[1], obb1[2], obb1[3],
+            obb2[0], obb2[1], obb2[2], obb2[3],
+        })) return;
+    }
+
+    var i: usize = 0;
+    while (true) : (i = (i + 1) % self.rendering_job_ids.len) {
+        if (self.rendering_job_ids[i] != .none) {
+            continue;
+        }
+
+        try self.rendering_jobs[i].setup(
+            renderer,
+            model,
+            camera,
+            indices,
+            positions,
+            normals,
+            colors,
+            texcoords,
+            opt,
         );
-        try self.depths.appendSlice(
-            self.rendering_jobs[self.rendering_job_next].context.depths.items,
+
+        assert(self.jobs.isRunning());
+        self.rendering_job_ids[i] = try self.jobs.schedule(
+            .none,
+            self.rendering_jobs[i],
         );
-        var current_index: u32 = @intCast(u32, self.indices.items.len);
-        var i: usize = 0;
-        while (i < self.rendering_jobs[self.rendering_job_next].context.vertices.items.len) : (i += 1) {
-            try self.indices.append(current_index);
-            current_index += 1;
-        }
+        break;
     }
-
-    try self.rendering_jobs[self.rendering_job_next].setup(
-        renderer,
-        model,
-        camera,
-        indices,
-        positions,
-        normals,
-        colors,
-        texcoords,
-        opt,
-    );
-
-    self.rendering_job_ids[self.rendering_job_next] = try self.jobs.schedule(
-        .none,
-        self.rendering_jobs[self.rendering_job_next],
-    );
-
-    self.rendering_job_next = (self.rendering_job_next + 1) % max_jobs_num;
-}
-
-/// Test whether all obb's triangles are hidden behind current front triangles
-inline fn isOBBHiddenBehind(self: *Self, obb: []zmath.Vec) bool {
-    const S = struct {
-        /// Test whether a triangle is hidden behind another
-        inline fn isTriangleHiddenBehind(
-            front_tri: [3][2]f32,
-            front_depth: f32,
-            _obb: []zmath.Vec,
-            indices: [3]u32,
-        ) bool {
-            const tri = [3][2]f32{
-                .{ _obb[indices[0]][0], _obb[indices[0]][1] },
-                .{ _obb[indices[1]][0], _obb[indices[1]][1] },
-                .{ _obb[indices[2]][0], _obb[indices[2]][1] },
-            };
-            const tri_depth = (_obb[indices[0]][2] + _obb[indices[1]][2] + _obb[indices[2]][2]) / 3.0;
-            return tri_depth > front_depth and
-                utils.math.isPointInTriangle(front_tri, tri[0]) and
-                utils.math.isPointInTriangle(front_tri, tri[1]) and
-                utils.math.isPointInTriangle(front_tri, tri[2]);
-        }
-    };
-
-    assert(obb.len == 8);
-    var obb_visible_flags: u12 = std.math.maxInt(u12);
-    for (self.large_front_triangles.items) |tri| {
-        const front_tri = [3][2]f32{
-            .{ self.vertices.items[tri[0]].position.x, self.vertices.items[tri[0]].position.y },
-            .{ self.vertices.items[tri[1]].position.x, self.vertices.items[tri[1]].position.y },
-            .{ self.vertices.items[tri[2]].position.x, self.vertices.items[tri[2]].position.y },
-        };
-        const front_depth = (self.depths.items[tri[0]] + self.depths.items[tri[1]] + self.depths.items[tri[2]]) / 3.0;
-
-        if ((obb_visible_flags & 0x1) != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 1, 2 }))
-                obb_visible_flags &= ~@as(u12, 0x1);
-        }
-        if (obb_visible_flags & 0x2 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 2, 3 }))
-                obb_visible_flags &= ~@as(u12, 0x2);
-        }
-        if (obb_visible_flags & 0x4 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 3, 7 }))
-                obb_visible_flags &= ~@as(u12, 0x4);
-        }
-        if (obb_visible_flags & 0x8 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 7, 4 }))
-                obb_visible_flags &= ~@as(u12, 0x8);
-        }
-        if (obb_visible_flags & 0x10 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 4, 5 }))
-                obb_visible_flags &= ~@as(u12, 0x10);
-        }
-        if (obb_visible_flags & 0x20 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 5, 1 }))
-                obb_visible_flags &= ~@as(u12, 0x20);
-        }
-        if (obb_visible_flags & 0x40 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 7, 3 }))
-                obb_visible_flags &= ~@as(u12, 0x40);
-        }
-        if (obb_visible_flags & 0x80 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 3, 2 }))
-                obb_visible_flags &= ~@as(u12, 0x80);
-        }
-        if (obb_visible_flags & 0x100 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 2, 1 }))
-                obb_visible_flags &= ~@as(u12, 0x100);
-        }
-        if (obb_visible_flags & 0x200 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 1, 5 }))
-                obb_visible_flags &= ~@as(u12, 0x200);
-        }
-        if (obb_visible_flags & 0x400 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 5, 4 }))
-                obb_visible_flags &= ~@as(u12, 0x400);
-        }
-        if (obb_visible_flags & 0x800 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 4, 7 }))
-                obb_visible_flags &= ~@as(u12, 0x800);
-        }
-        if (obb_visible_flags == 0) return true;
-    }
-    return false;
-}
-
-/// Calculate tint color of vertex according to lighting paramters
-fn calcLightColor(
-    material_color: sdl.Color,
-    eye_pos: zmath.Vec,
-    vertex_pos: zmath.Vec,
-    normal: zmath.Vec,
-    opt: LightingOption,
-) sdl.Color {
-    const S = struct {
-        inline fn calcColor(
-            raw_color: zmath.Vec,
-            shininess: f32,
-            light_dir: zmath.Vec,
-            eye_dir: zmath.Vec,
-            _normal: zmath.Vec,
-            _ambient: zmath.Vec,
-            _diffuse: zmath.Vec,
-            _specular: zmath.Vec,
-        ) zmath.Vec {
-            const dns = zmath.dot3(_normal, light_dir);
-            var diffuse = zmath.max(dns, zmath.f32x4s(0)) * _diffuse;
-            var specular = zmath.f32x4s(0);
-            if (dns[0] > 0) {
-                // Calculate reflect ratio (Blinn-Phong model)
-                const halfway_dir = zmath.normalize3(eye_dir + light_dir);
-                const s = math.pow(f32, zmath.max(
-                    zmath.dot3(_normal, halfway_dir),
-                    zmath.f32x4s(0),
-                )[0], shininess);
-                specular = zmath.f32x4s(s) * _specular;
-            }
-            return raw_color * (_ambient + diffuse + specular);
-        }
-    };
-
-    if (opt.lights_num == 0) return material_color;
-    assert(math.approxEqAbs(f32, eye_pos[3], 1.0, math.f32_epsilon));
-    assert(math.approxEqAbs(f32, vertex_pos[3], 1.0, math.f32_epsilon));
-    assert(math.approxEqAbs(f32, normal[3], 0, math.f32_epsilon));
-    const ts = zmath.f32x4s(1.0 / 255.0);
-    const raw_color = zmath.f32x4(
-        @intToFloat(f32, material_color.r),
-        @intToFloat(f32, material_color.g),
-        @intToFloat(f32, material_color.b),
-        0,
-    ) * ts;
-
-    var final_color = zmath.f32x4s(0);
-    for (opt.lights[0..opt.lights_num]) |ul| {
-        switch (ul) {
-            .directional => |light| {
-                const light_dir = zmath.normalize3(-light.direction);
-                const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
-                final_color += S.calcColor(
-                    raw_color,
-                    opt.shininess,
-                    light_dir,
-                    eye_dir,
-                    normal,
-                    light.ambient,
-                    light.diffuse,
-                    light.specular,
-                );
-            },
-            .point => |light| {
-                const light_dir = zmath.normalize3(light.position - vertex_pos);
-                const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
-                const distance = zmath.length3(light.position - vertex_pos);
-                const attenuation = zmath.f32x4s(1.0) / (zmath.f32x4s(light.constant) +
-                    zmath.f32x4s(light.attenuation_linear) * distance +
-                    zmath.f32x4s(light.attenuation_quadratic) * distance * distance);
-                final_color += S.calcColor(
-                    raw_color,
-                    opt.shininess,
-                    light_dir,
-                    eye_dir,
-                    normal,
-                    light.ambient,
-                    light.diffuse,
-                    light.specular,
-                ) * attenuation;
-            },
-            .spot => |light| {
-                const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
-                const distance = zmath.length3(light.position - vertex_pos);
-                const attenuation = zmath.f32x4s(1.0) / (zmath.f32x4s(light.constant) +
-                    zmath.f32x4s(light.attenuation_linear) * distance +
-                    zmath.f32x4s(light.attenuation_quadratic) * distance * distance);
-                const light_dir = zmath.normalize3(light.position - vertex_pos);
-                const theta = zmath.dot3(light_dir, zmath.normalize3(-light.direction))[0];
-                assert(light.inner_cutoff > light.outer_cutoff);
-                const epsilon = light.inner_cutoff - light.outer_cutoff;
-                assert(epsilon > 0);
-                const intensity = zmath.f32x4s(math.clamp((theta - light.outer_cutoff) / epsilon, 0.0, 1.0));
-                final_color += S.calcColor(
-                    raw_color,
-                    opt.shininess,
-                    light_dir,
-                    eye_dir,
-                    normal,
-                    light.ambient,
-                    light.diffuse * intensity,
-                    light.specular * intensity,
-                ) * attenuation;
-            },
-        }
-    }
-
-    final_color = zmath.clamp(
-        final_color,
-        zmath.f32x4s(0),
-        zmath.f32x4s(1),
-    );
-    return .{
-        .r = @floatToInt(u8, final_color[0] * 255),
-        .g = @floatToInt(u8, final_color[1] * 255),
-        .b = @floatToInt(u8, final_color[2] * 255),
-        .a = material_color.a,
-    };
 }
 
 /// Sort triangles by depth values
@@ -398,27 +168,17 @@ fn compareTriangleDepths(self: *Self, lhs: [3]u32, rhs: [3]u32) bool {
     return d1 > d2;
 }
 
+inline fn waitJobs(self: *Self) void {
+    for (self.rendering_job_ids) |id| {
+        if (id != .none) {
+            self.jobs.wait(id);
+        }
+    }
+}
+
 /// Draw the meshes, fill triangles, using texture if possible
 pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
-    for (self.rendering_job_ids) |id, i| {
-        if (id == .none) continue;
-
-        self.jobs.wait(id);
-        try self.vertices.appendSlice(
-            self.rendering_jobs[i].context.vertices.items,
-        );
-        try self.depths.appendSlice(
-            self.rendering_jobs[i].context.depths.items,
-        );
-        var current_index: u32 = @intCast(u32, self.indices.items.len);
-        var j: usize = 0;
-        while (j < self.rendering_jobs[i].context.vertices.items.len) : (j += 1) {
-            try self.indices.append(current_index);
-            current_index += 1;
-        }
-
-        self.rendering_job_ids[i] = .none;
-    }
+    self.waitJobs();
 
     if (self.indices.items.len == 0) return;
 
@@ -445,6 +205,8 @@ pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
 
 /// Draw the wireframe
 pub fn drawWireframe(self: *Self, renderer: sdl.Renderer, color: sdl.Color) !void {
+    self.waitJobs();
+
     if (self.indices.items.len == 0) return;
 
     const old_color = try renderer.getColor();
@@ -531,13 +293,17 @@ const RenderJob = struct {
     };
 
     allocator: std.mem.Allocator,
+    prd: *Self,
+    idx: usize,
     context: *Context,
 
-    fn init(allocator: std.mem.Allocator) !RenderJob {
+    fn init(allocator: std.mem.Allocator, prd: *Self, idx: usize) !RenderJob {
         var ctx = try allocator.create(Context);
         ctx.* = Context.init(allocator);
         var job = RenderJob{
             .allocator = allocator,
+            .prd = prd,
+            .idx = idx,
             .context = ctx,
         };
         return job;
@@ -630,34 +396,6 @@ const RenderJob = struct {
         });
         const mvp = zmath.mul(ctx.model, ctx.camera.getViewProjectMatrix());
 
-        // Do early test with aabb if possible
-        if (ctx.opt.aabb) |ab| {
-            const width = ab[3] - ab[0];
-            const length = ab[5] - ab[2];
-            assert(width >= 0);
-            assert(length >= 0);
-            const v0 = zmath.f32x4(ab[0], ab[1], ab[2], 1.0);
-            const v1 = zmath.f32x4(ab[0], ab[1], ab[2] + length, 1.0);
-            const v2 = zmath.f32x4(ab[0] + width, ab[1], ab[2] + length, 1.0);
-            const v3 = zmath.f32x4(ab[0] + width, ab[1], ab[2], 1.0);
-            const v4 = zmath.f32x4(ab[3] - width, ab[4], ab[5] - length, 1.0);
-            const v5 = zmath.f32x4(ab[3] - width, ab[4], ab[5], 1.0);
-            const v6 = zmath.f32x4(ab[3], ab[4], ab[5], 1.0);
-            const v7 = zmath.f32x4(ab[3], ab[4], ab[5] - length, 1.0);
-            const obb1 = zmath.mul(zmath.Mat{
-                v0, v1, v2, v3,
-            }, mvp);
-            const obb2 = zmath.mul(zmath.Mat{
-                v4, v5, v6, v7,
-            }, mvp);
-
-            // Ignore object outside of viewing space
-            if (internal.isOBBOutside(&[_]zmath.Vec{
-                obb1[0], obb1[1], obb1[2], obb1[3],
-                obb2[0], obb2[1], obb2[2], obb2[3],
-            })) return;
-        }
-
         // Do face-culling and W-pannel clipping
         var i: usize = 2;
         while (i < ctx.indices.items.len) : (i += 3) {
@@ -741,7 +479,6 @@ const RenderJob = struct {
         // Continue with remaining triangles
         ctx.vertices.ensureTotalCapacityPrecise(ctx.clip_vertices.items.len) catch unreachable;
         ctx.depths.ensureTotalCapacityPrecise(ctx.clip_vertices.items.len) catch unreachable;
-        ctx.indices.ensureTotalCapacityPrecise(ctx.clip_vertices.items.len) catch unreachable;
         i = 2;
         while (i < ctx.clip_vertices.items.len) : (i += 3) {
             const idx0 = i - 2;
@@ -765,7 +502,7 @@ const RenderJob = struct {
                 continue;
             }
 
-            // Calculate screen coordinate
+            // Transform to screen coordinates
             const ndcs = zmath.Mat{
                 ndc0,
                 ndc1,
@@ -774,44 +511,60 @@ const RenderJob = struct {
             };
             const positions_screen = zmath.mul(ndcs, ndc_to_screen);
 
-            // Finally, we can append vertices for rendering
-            const c0 = if (ctx.colors.items.len > 0) ctx.clip_colors.items[idx0] else sdl.Color.white;
-            const c1 = if (ctx.colors.items.len > 0) ctx.clip_colors.items[idx1] else sdl.Color.white;
-            const c2 = if (ctx.colors.items.len > 0) ctx.clip_colors.items[idx2] else sdl.Color.white;
+            // Get screen coordinate
+            const p0 = sdl.PointF{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
+            const p1 = sdl.PointF{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
+            const p2 = sdl.PointF{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
+
+            // Get depths
+            const d0 = positions_screen[0][2];
+            const d1 = positions_screen[1][2];
+            const d2 = positions_screen[2][2];
+
+            // Get color of vertices
+            const c0_diffuse = if (ctx.colors.items.len > 0) ctx.clip_colors.items[idx0] else sdl.Color.white;
+            const c1_diffuse = if (ctx.colors.items.len > 0) ctx.clip_colors.items[idx1] else sdl.Color.white;
+            const c2_diffuse = if (ctx.colors.items.len > 0) ctx.clip_colors.items[idx2] else sdl.Color.white;
+            const c0 = if (ctx.opt.lighting_opt) |p| BLK: {
+                var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
+                break :BLK calc(c0_diffuse, ctx.camera.position, world_v0, n0, p);
+            } else c0_diffuse;
+            const c1 = if (ctx.opt.lighting_opt) |p| BLK: {
+                var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
+                break :BLK calc(c1_diffuse, ctx.camera.position, world_v1, n1, p);
+            } else c1_diffuse;
+            const c2 = if (ctx.opt.lighting_opt) |p| BLK: {
+                var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
+                break :BLK calc(c2_diffuse, ctx.camera.position, world_v2, n2, p);
+            } else c2_diffuse;
+
+            // Get texture coordinates
             const t0 = if (ctx.texcoords.items.len > 0) ctx.clip_texcoords.items[idx0] else undefined;
             const t1 = if (ctx.texcoords.items.len > 0) ctx.clip_texcoords.items[idx1] else undefined;
             const t2 = if (ctx.texcoords.items.len > 0) ctx.clip_texcoords.items[idx2] else undefined;
+
+            // Append to ouput buffers
             ctx.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
-                .{
-                    .position = .{ .x = positions_screen[0][0], .y = positions_screen[0][1] },
-                    .color = if (ctx.opt.lighting) |p| BLK: {
-                        var calc = if (p.light_calc_fn) |f| f else &calcLightColor;
-                        break :BLK calc(c0, ctx.camera.position, world_v0, n0, p);
-                    } else c0,
-                    .tex_coord = t0,
-                },
-                .{
-                    .position = .{ .x = positions_screen[1][0], .y = positions_screen[1][1] },
-                    .color = if (ctx.opt.lighting) |p| BLK: {
-                        var calc = if (p.light_calc_fn) |f| f else &calcLightColor;
-                        break :BLK calc(c1, ctx.camera.position, world_v1, n1, p);
-                    } else c1,
-                    .tex_coord = t1,
-                },
-                .{
-                    .position = .{ .x = positions_screen[2][0], .y = positions_screen[2][1] },
-                    .color = if (ctx.opt.lighting) |p| BLK: {
-                        var calc = if (p.light_calc_fn) |f| f else &calcLightColor;
-                        break :BLK calc(c2, ctx.camera.position, world_v2, n2, p);
-                    } else c2,
-                    .tex_coord = t2,
-                },
+                .{ .position = p0, .color = c0, .tex_coord = t0 },
+                .{ .position = p1, .color = c1, .tex_coord = t1 },
+                .{ .position = p2, .color = c2, .tex_coord = t2 },
             });
-            ctx.depths.appendSliceAssumeCapacity(&[_]f32{
-                positions_screen[0][2],
-                positions_screen[1][2],
-                positions_screen[2][2],
-            });
+            ctx.depths.appendSliceAssumeCapacity(&[_]f32{ d0, d1, d2 });
         }
+
+        // Finally, we can append vertices for rendering
+        job.prd.mutex.lock();
+        defer job.prd.mutex.unlock();
+        job.prd.vertices.ensureTotalCapacityPrecise(job.prd.vertices.items.len + ctx.vertices.items.len) catch unreachable;
+        job.prd.depths.ensureTotalCapacityPrecise(job.prd.vertices.items.len + ctx.vertices.items.len) catch unreachable;
+        job.prd.indices.ensureTotalCapacityPrecise(job.prd.vertices.items.len + ctx.vertices.items.len) catch unreachable;
+        job.prd.vertices.appendSliceAssumeCapacity(ctx.vertices.items);
+        job.prd.depths.appendSliceAssumeCapacity(ctx.depths.items);
+        const offset = job.prd.indices.items.len;
+        i = 0;
+        while (i < ctx.vertices.items.len) : (i += 1) {
+            job.prd.indices.appendAssumeCapacity(@intCast(u32, offset + i));
+        }
+        job.prd.rendering_job_ids[job.idx] = .none;
     }
 };
