@@ -107,8 +107,8 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    var lighting_opt = j3d.TriangleRenderer.LightingOption{};
-    lighting_opt.lights[0] = j3d.TriangleRenderer.Light{
+    var lighting_opt = j3d.lighting.LightingOption{};
+    lighting_opt.lights[0] = j3d.lighting.Light{
         .point = .{
             .position = zmath.f32x4s(0),
             .attenuation_linear = 0,

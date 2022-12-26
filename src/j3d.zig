@@ -15,6 +15,9 @@ pub const v_backward = zmath.f32x4(0, 0, -1, 0);
 /// Mesh manipulation (loading/writing/optimization/generation)
 pub const zmesh = jok.deps.zmesh;
 
+/// Common types related to lighting
+pub const lighting = @import("j3d/lighting.zig");
+
 /// 3d triangle renderer (accelerated by SDL, but with limited effects)
 pub const TriangleRenderer = @import("j3d/TriangleRenderer.zig");
 

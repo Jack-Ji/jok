@@ -111,7 +111,7 @@ pub fn draw(ctx: *jok.Context) !void {
     }
     imgui.end();
 
-    var lighting_opt = j3d.TriangleRenderer.LightingOption{};
+    var lighting_opt = j3d.lighting.LightingOption{};
     lighting_opt.lights[0] = .{
         .point = .{
             .position = zmath.f32x4(light_pos[0], light_pos[1], light_pos[2], 1),

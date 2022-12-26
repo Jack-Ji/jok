@@ -8,6 +8,7 @@ const jok = @import("../jok.zig");
 const j3d = jok.j3d;
 const zmath = j3d.zmath;
 const zmesh = j3d.zmesh;
+const lighting = j3d.lighting;
 const Self = @This();
 
 /// Represent a position in 3d space
@@ -196,7 +197,7 @@ pub const RenderOption = struct {
     wireframe: bool = false,
     wireframe_color: sdl.Color = sdl.Color.green,
     cull_faces: bool = true,
-    lighting: ?TriangleRenderer.LightingOption = null,
+    lighting: ?lighting.LightingOption = null,
 };
 pub fn draw(self: *Self, renderer: sdl.Renderer, camera: Camera, opt: RenderOption) !void {
     try self.addObjectToRenderer(renderer, camera, self.root, opt);
@@ -227,7 +228,7 @@ fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *
                 .{
                     .aabb = m.aabb,
                     .cull_faces = opt.cull_faces,
-                    .lighting = if (m.disable_lighting) null else opt.lighting,
+                    .lighting_opt = if (m.disable_lighting) null else opt.lighting,
                 },
             );
         },

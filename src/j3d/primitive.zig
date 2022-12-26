@@ -13,7 +13,7 @@ pub const CommonDrawOption = struct {
     renderer: sdl.Renderer,
     color: sdl.Color = sdl.Color.white,
     cull_faces: bool = true,
-    lighting: ?TriangleRenderer.LightingOption = null,
+    lighting: ?j3d.lighting.LightingOption = null,
     weld_threshold: ?f32 = null,
 };
 
@@ -90,7 +90,7 @@ pub fn addShape(
         .{
             .aabb = aabb,
             .cull_faces = opt.cull_faces,
-            .lighting = opt.lighting,
+            .lighting_opt = opt.lighting,
         },
     );
 }

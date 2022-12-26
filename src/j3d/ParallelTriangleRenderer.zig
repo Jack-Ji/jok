@@ -7,10 +7,10 @@ const jok = @import("../jok.zig");
 const zjobs = jok.deps.zjobs;
 const j3d = jok.j3d;
 const zmath = j3d.zmath;
+const lighting = j3d.lighting;
 const Camera = j3d.Camera;
 const utils = jok.utils;
 const internal = @import("internal.zig");
-const lighting = @import("lighting.zig");
 const Self = @This();
 
 const max_jobs_num = @bitSizeOf(usize);
