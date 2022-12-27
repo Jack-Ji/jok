@@ -84,7 +84,6 @@ pub const FpsLimit = union(enum) {
 pub const MouseMode = enum {
     normal,
     hide,
-    relative,
 };
 
 /// Logging level

@@ -225,11 +225,18 @@ fn initSDL() !void {
 
     // Apply mouse mode
     switch (config.mouse_mode) {
-        .normal => {},
-        .hide => {
-            _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
+        .normal => {
+            if (config.enable_fullscreen) {
+                sdl.c.SDL_SetWindowGrab(ctx.window.ptr, sdl.c.SDL_FALSE);
+            }
+            _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_ENABLE);
+            _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_FALSE);
         },
-        .relative => {
+        .hide => {
+            if (config.enable_fullscreen) {
+                sdl.c.SDL_SetWindowGrab(ctx.window.ptr, sdl.c.SDL_TRUE);
+            }
+            _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
             _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_TRUE);
         },
     }
