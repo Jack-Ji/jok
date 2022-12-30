@@ -27,8 +27,6 @@ comptime {
         .{ .name = "jok_window_maximized", .T = bool, .desc = "whether window is maximized when startup" },
         .{ .name = "jok_window_always_on_top", .T = bool, .desc = "whether window is locked to most front layer" },
         .{ .name = "jok_mouse_mode", .T = MouseMode, .desc = "mouse mode setting" },
-        .{ .name = "jok_default_2d_primitive", .T = bool, .desc = "whether init j2d" },
-        .{ .name = "jok_default_3d_primitive", .T = bool, .desc = "whether init j3d" },
         .{ .name = "jok_exit_on_recv_esc", .T = bool, .desc = "whether exit game when esc is pressed" },
         .{ .name = "jok_exit_on_recv_quit", .T = bool, .desc = "whether exit game when getting quit event" },
     };
@@ -205,18 +203,6 @@ pub const mouse_mode: MouseMode = if (@hasDecl(game, "jok_mouse_mode"))
     game.jok_mouse_mode
 else
     .normal;
-
-/// Init j2d.primitive with default renderer
-pub const enable_default_2d_primitive = if (@hasDecl(game, "jok_default_2d_primitive"))
-    game.jok_default_2d_primitive
-else
-    true;
-
-/// Init j3d.primitive with default renderer
-pub const enable_default_3d_primitive = if (@hasDecl(game, "jok_default_3d_primitive"))
-    game.jok_default_3d_primitive
-else
-    true;
 
 /// Exit game when get esc event
 pub const exit_on_recv_esc = if (@hasDecl(game, "jok_exit_on_recv_esc"))

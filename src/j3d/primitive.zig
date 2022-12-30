@@ -23,19 +23,16 @@ var arena: std.heap.ArenaAllocator = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 
 /// Initialize primitive module
-pub fn init(ctx: jok.Context, _rd: ?TriangleRenderer) !void {
-    tri_renderer = _rd orelse BLK: {
-        own_rd = true;
-        break :BLK TriangleRenderer.init(ctx.allocator);
-    };
-    arena = std.heap.ArenaAllocator.init(ctx.allocator);
+pub fn init(allocator: std.mem.Allocator) void {
+    tri_renderer = TriangleRenderer.init(allocator);
+    arena = std.heap.ArenaAllocator.init(allocator);
     all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
 }
 
 /// Destroy primitive module
 pub fn deinit() void {
     for (all_shapes.items) |s| s.deinit();
-    if (own_rd) tri_renderer.?.deinit();
+    tri_renderer.?.deinit();
     arena.deinit();
 }
 

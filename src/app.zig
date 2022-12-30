@@ -293,17 +293,10 @@ fn deinitSDL() void {
 /// Initialize modules
 fn initModules() !void {
     try initSDL();
-    zmesh.init(ctx.allocator);
     imgui.sdl.init(ctx);
-
-    if (config.enable_default_2d_primitive) {
-        try jok.j2d.primitive.init(ctx);
-    }
-
-    if (config.enable_default_3d_primitive) {
-        try jok.j3d.primitive.init(ctx, null);
-    }
-
+    zmesh.init(ctx.allocator);
+    jok.j2d.primitive.init();
+    jok.j3d.primitive.init(ctx.allocator);
     if (bos.use_zaudio) {
         zaudio.init(ctx.allocator);
     }
@@ -314,17 +307,10 @@ fn deinitModules() void {
     if (bos.use_zaudio) {
         zaudio.deinit();
     }
-
-    if (config.enable_default_3d_primitive) {
-        jok.j3d.primitive.deinit();
-    }
-
-    if (config.enable_default_2d_primitive) {
-        jok.j2d.primitive.deinit();
-    }
-
-    imgui.sdl.deinit();
+    jok.j3d.primitive.deinit();
+    jok.j2d.primitive.deinit();
     zmesh.deinit();
+    imgui.sdl.deinit();
     deinitSDL();
 }
 
