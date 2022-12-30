@@ -3,7 +3,7 @@ const assert = std.debug.assert;
 const unicode = std.unicode;
 const sdl = @import("sdl");
 const jok = @import("../jok.zig");
-const truetype = jok.deps.stb.truetype;
+const truetype = jok.stb.truetype;
 const Atlas = @This();
 
 const CharRange = struct {

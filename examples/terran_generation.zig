@@ -4,12 +4,12 @@ const math = std.math;
 const builtin = @import("builtin");
 const sdl = @import("sdl");
 const jok = @import("jok");
-const imgui = jok.deps.imgui;
-const znoise = jok.deps.znoise;
-const zmath = jok.deps.zmath;
+const imgui = jok.imgui;
+const znoise = jok.znoise;
+const zmath = jok.zmath;
+const zmesh = jok.zmesh;
 const font = jok.font;
 const j3d = jok.j3d;
-const zmesh = j3d.zmesh;
 const primitive = j3d.primitive;
 const Camera = j3d.Camera;
 

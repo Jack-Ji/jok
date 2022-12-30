@@ -3,7 +3,7 @@ const assert = std.debug.assert;
 const sdl = @import("sdl");
 const Atlas = @import("Atlas.zig");
 const jok = @import("../jok.zig");
-const truetype = jok.deps.stb.truetype;
+const truetype = jok.stb.truetype;
 const Font = @This();
 
 // Memory allocator

@@ -2,8 +2,8 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
+const zmath = jok.zmath;
 const j3d = jok.j3d;
-const zmath = jok.deps.zmath;
 const Self = @This();
 
 /// Params for viewing frustrum

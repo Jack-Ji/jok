@@ -3,7 +3,7 @@ const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const sdl = @import("sdl");
 const native_endian = @import("builtin").target.cpu.arch.endian();
-const stb = jok.deps.stb;
+const stb = jok.stb;
 
 pub const Error = error{
     LoadImageError,

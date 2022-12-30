@@ -3,11 +3,10 @@ const builtin = @import("builtin");
 const sdl = @import("sdl");
 const context = @import("context.zig");
 const jok = @import("jok.zig");
-const deps = jok.deps;
 const config = jok.config;
-const zmesh = deps.zmesh;
-const zaudio = deps.zaudio;
-const imgui = deps.imgui;
+const zmesh = jok.zmesh;
+const imgui = jok.imgui;
+const zaudio = jok.zaudio;
 const bos = @import("build_options");
 const game = @import("game");
 
@@ -294,16 +293,8 @@ fn deinitSDL() void {
 /// Initialize modules
 fn initModules() !void {
     try initSDL();
-
     zmesh.init(ctx.allocator);
-
-    if (bos.use_imgui) {
-        imgui.sdl.init(ctx);
-    }
-
-    if (bos.use_zaudio) {
-        zaudio.init(ctx.allocator);
-    }
+    imgui.sdl.init(ctx);
 
     if (config.enable_default_2d_primitive) {
         try jok.j2d.primitive.init(ctx);
@@ -312,10 +303,18 @@ fn initModules() !void {
     if (config.enable_default_3d_primitive) {
         try jok.j3d.primitive.init(ctx, null);
     }
+
+    if (bos.use_zaudio) {
+        zaudio.init(ctx.allocator);
+    }
 }
 
 /// Deinitialize modules
 fn deinitModules() void {
+    if (bos.use_zaudio) {
+        zaudio.deinit();
+    }
+
     if (config.enable_default_3d_primitive) {
         jok.j3d.primitive.deinit();
     }
@@ -324,16 +323,8 @@ fn deinitModules() void {
         jok.j2d.primitive.deinit();
     }
 
-    if (bos.use_zaudio) {
-        zaudio.deinit();
-    }
-
-    if (bos.use_imgui) {
-        imgui.sdl.deinit();
-    }
-
+    imgui.sdl.deinit();
     zmesh.deinit();
-
     deinitSDL();
 }
 
@@ -381,16 +372,15 @@ pub fn main() !void {
     while (!ctx.quit) {
         // Event processing
         while (sdl.pollNativeEvent()) |e| {
-            if (bos.use_imgui) {
-                _ = imgui.sdl.processEvent(e);
-            }
+            _ = imgui.sdl.processEvent(e);
 
             const we = sdl.Event.from(e);
-            if (we == .key_up and we.key_up.scancode == .escape and
-                config.exit_on_recv_esc)
+            if (config.exit_on_recv_esc and
+                we == .key_up and
+                we.key_up.scancode == .escape)
             {
                 ctx.kill();
-            } else if (we == .quit and config.exit_on_recv_quit) {
+            } else if (config.exit_on_recv_quit and we == .quit) {
                 ctx.kill();
             } else {
                 game.event(&ctx, we) catch |err| {

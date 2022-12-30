@@ -1,13 +1,14 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
-const imgui = jok.deps.imgui;
+const imgui = jok.imgui;
 const font = jok.font;
+const zmesh = jok.zmesh;
 const j3d = jok.j3d;
 const primitive = j3d.primitive;
 
 var camera: j3d.Camera = undefined;
-var cube: j3d.zmesh.Shape = undefined;
+var cube: zmesh.Shape = undefined;
 var tex: sdl.Texture = undefined;
 var texcoords = [_][2]f32{
     .{ 0, 1 },
@@ -45,7 +46,7 @@ pub fn init(ctx: *jok.Context) !void {
         [_]f32{ 0, 0, 0 },
         null,
     );
-    cube = j3d.zmesh.Shape.initCube();
+    cube = zmesh.Shape.initCube();
     cube.computeNormals();
     cube.texcoords = texcoords[0..];
     tex = try jok.utils.gfx.createTextureFromFile(

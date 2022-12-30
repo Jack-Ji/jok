@@ -2,7 +2,7 @@ const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
 const font = jok.font;
-const zaudio = jok.deps.zaudio;
+const zaudio = jok.zaudio;
 
 var engine: *zaudio.Engine = undefined;
 var music: *zaudio.Sound = undefined;

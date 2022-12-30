@@ -3,7 +3,7 @@ const assert = std.debug.assert;
 const math = std.math;
 const sdl = @import("sdl");
 const jok = @import("../jok.zig");
-const zmath = jok.deps.zmath;
+const zmath = jok.zmath;
 
 pub const CommonDrawOption = struct {
     thickness: f32 = 0, // zero means filling geometries in most cases

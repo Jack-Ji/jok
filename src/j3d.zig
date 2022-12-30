@@ -1,19 +1,14 @@
 const jok = @import("jok.zig");
 
-/// Linear algebra calculation
-pub const zmath = jok.deps.zmath;
-
 /// Regularly used math constants
-pub const v_zero = zmath.f32x4(0, 0, 0, 0);
-pub const v_up = zmath.f32x4(0, 1, 0, 0);
-pub const v_down = zmath.f32x4(0, -1, 0, 0);
-pub const v_right = zmath.f32x4(1, 0, 0, 0);
-pub const v_left = zmath.f32x4(-1, 0, 0, 0);
-pub const v_forward = zmath.f32x4(0, 0, 1, 0);
-pub const v_backward = zmath.f32x4(0, 0, -1, 0);
-
-/// Mesh manipulation (loading/writing/optimization/generation)
-pub const zmesh = jok.deps.zmesh;
+pub const zmath = jok.zmath;
+pub const v_zero = jok.zmath.f32x4(0, 0, 0, 0);
+pub const v_up = jok.zmath.f32x4(0, 1, 0, 0);
+pub const v_down = jok.zmath.f32x4(0, -1, 0, 0);
+pub const v_right = jok.zmath.f32x4(1, 0, 0, 0);
+pub const v_left = jok.zmath.f32x4(-1, 0, 0, 0);
+pub const v_forward = jok.zmath.f32x4(0, 0, 1, 0);
+pub const v_backward = jok.zmath.f32x4(0, 0, -1, 0);
 
 /// Common types related to lighting
 pub const lighting = @import("j3d/lighting.zig");

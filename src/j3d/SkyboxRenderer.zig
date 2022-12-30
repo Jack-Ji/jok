@@ -3,9 +3,9 @@ const assert = std.debug.assert;
 const math = std.math;
 const sdl = @import("sdl");
 const jok = @import("../jok.zig");
-const zmesh = jok.deps.zmesh;
+const zmath = jok.zmath;
+const zmesh = jok.zmesh;
 const j3d = jok.j3d;
-const zmath = j3d.zmath;
 const Camera = j3d.Camera;
 const Self = @This();
 

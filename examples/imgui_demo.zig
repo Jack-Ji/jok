@@ -1,7 +1,7 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
-const imgui = jok.deps.imgui;
+const imgui = jok.imgui;
 
 pub const jok_window_width: u32 = 1200;
 pub const jok_window_height: u32 = 800;

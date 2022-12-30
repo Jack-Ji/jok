@@ -3,7 +3,7 @@ const assert = std.debug.assert;
 const sdl = @import("sdl");
 const SpriteSheet = @import("SpriteSheet.zig");
 const jok = @import("../jok.zig");
-const zmath = jok.deps.zmath;
+const zmath = jok.zmath;
 const Self = @This();
 
 // Size of sprite

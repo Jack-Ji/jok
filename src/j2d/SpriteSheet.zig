@@ -5,8 +5,8 @@ const native_endian = @import("builtin").target.cpu.arch.endian();
 const sdl = @import("sdl");
 const Sprite = @import("Sprite.zig");
 const jok = @import("../jok.zig");
-const stb_rect_pack = jok.deps.stb.rect_pack;
-const stb_image = jok.deps.stb.image;
+const stb_rect_pack = jok.stb.rect_pack;
+const stb_image = jok.stb.image;
 const Self = @This();
 
 pub const Error = error{

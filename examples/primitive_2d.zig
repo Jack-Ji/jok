@@ -4,7 +4,7 @@ const math = std.math;
 const builtin = @import("builtin");
 const sdl = @import("sdl");
 const jok = @import("jok");
-const imgui = jok.deps.imgui;
+const imgui = jok.imgui;
 const primitive = jok.j2d.primitive;
 
 pub const jok_window_resizable = true;

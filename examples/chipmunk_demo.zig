@@ -1,7 +1,7 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
-const cp = jok.deps.chipmunk;
+const cp = jok.chipmunk;
 
 var rng: std.rand.Xoshiro256 = undefined;
 var world: cp.World = undefined;

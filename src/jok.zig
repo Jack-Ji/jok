@@ -13,11 +13,11 @@ pub const j3d = @import("j3d.zig");
 /// Font module
 pub const font = @import("font.zig");
 
-/// Vendor libraries
-pub const deps = @import("deps/deps.zig");
-
 /// Misc util functions
 pub const utils = @import("utils.zig");
+
+/// Expose vendor libraries
+pub usingnamespace @import("deps/deps.zig");
 
 // All tests
 test "all" {

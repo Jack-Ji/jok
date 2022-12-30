@@ -3,8 +3,8 @@ const std = @import("std");
 const math = std.math;
 const sdl = @import("sdl");
 const jok = @import("jok");
-const imgui = jok.deps.imgui;
-const nfd = jok.deps.nfd;
+const imgui = jok.imgui;
+const nfd = jok.nfd;
 const primitive = jok.j2d.primitive;
 
 pub const jok_window_width: u32 = 1200;

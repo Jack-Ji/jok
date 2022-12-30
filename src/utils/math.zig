@@ -2,7 +2,7 @@ const std = @import("std");
 const jok = @import("../jok.zig");
 const assert = std.debug.assert;
 const math = std.math;
-const zmath = jok.deps.zmath;
+const zmath = jok.zmath;
 
 /// Map `v` from [from, to] to [map_from, map_to]
 pub inline fn mapf(v: f32, from: f32, to: f32, map_from: f32, map_to: f32) f32 {

@@ -2,12 +2,14 @@ const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
 const font = jok.font;
+const zmath = jok.zmath;
+const zmesh = jok.zmesh;
 const j3d = jok.j3d;
-const zmath = j3d.zmath;
+const Camera = j3d.Camera;
 const Scene = j3d.Scene;
 
-var camera: j3d.Camera = undefined;
-var sphere: j3d.zmesh.Shape = undefined;
+var camera: Camera = undefined;
+var sphere: zmesh.Shape = undefined;
 var scene: *Scene = undefined;
 var earth_orbit: *Scene.Object = undefined;
 var moon_orbit: *Scene.Object = undefined;
@@ -18,7 +20,7 @@ var moon: *Scene.Object = undefined;
 pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
-    camera = j3d.Camera.fromPositionAndTarget(
+    camera = Camera.fromPositionAndTarget(
         .{
             .perspective = .{
                 .fov = std.math.pi / 4.0,
@@ -31,7 +33,7 @@ pub fn init(ctx: *jok.Context) !void {
         [_]f32{ 0, 0, 0 },
         null,
     );
-    sphere = j3d.zmesh.Shape.initSubdividedSphere(2);
+    sphere = zmesh.Shape.initSubdividedSphere(2);
     sphere.computeNormals();
 
     // Init solar system

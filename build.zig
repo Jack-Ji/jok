@@ -28,25 +28,25 @@ pub fn build(b: *std.build.Builder) void {
     });
     const examples = [_]struct { name: []const u8, opt: BuildOptions }{
         .{ .name = "hello", .opt = .{} },
-        .{ .name = "imgui_demo", .opt = .{ .link_imgui = true } },
+        .{ .name = "imgui_demo", .opt = .{} },
         .{ .name = "chipmunk_demo", .opt = .{ .link_chipmunk = true } },
         .{ .name = "sprite_sheet", .opt = .{} },
         .{ .name = "sprite_scene", .opt = .{} },
         .{ .name = "sprite_benchmark", .opt = .{} },
         .{ .name = "particle_2d", .opt = .{} },
         .{ .name = "animation_2d", .opt = .{} },
-        .{ .name = "primitive_2d", .opt = .{ .link_imgui = true } },
-        .{ .name = "primitive_3d", .opt = .{ .link_imgui = true } },
-        .{ .name = "terran_generation", .opt = .{ .link_imgui = true } },
-        .{ .name = "affline_texture", .opt = .{ .link_imgui = true } },
+        .{ .name = "primitive_2d", .opt = .{} },
+        .{ .name = "primitive_3d", .opt = .{} },
+        .{ .name = "terran_generation", .opt = .{} },
+        .{ .name = "affline_texture", .opt = .{} },
         .{ .name = "solar_system", .opt = .{} },
         .{ .name = "font_demo", .opt = .{} },
-        .{ .name = "skybox", .opt = .{ .link_imgui = true } },
-        .{ .name = "benchmark_3d", .opt = .{ .link_imgui = true } },
-        .{ .name = "particle_life", .opt = .{ .link_imgui = true, .link_nfd = true } },
+        .{ .name = "skybox", .opt = .{} },
+        .{ .name = "benchmark_3d", .opt = .{} },
+        .{ .name = "particle_life", .opt = .{ .link_nfd = true } },
         .{ .name = "zaudio_demo", .opt = .{ .link_zaudio = true } },
         .{ .name = "audio_synthesize_demo", .opt = .{} },
-        .{ .name = "software_rasterizer", .opt = .{ .link_imgui = true } },
+        .{ .name = "software_rasterizer", .opt = .{} },
         .{ .name = "hypocycloids", .opt = .{} },
     };
     const build_examples = b.step("examples", "compile and install all examples");
@@ -74,7 +74,6 @@ pub fn build(b: *std.build.Builder) void {
 }
 
 pub const BuildOptions = struct {
-    link_imgui: bool = false,
     link_chipmunk: bool = false,
     link_nfd: bool = false,
     link_zaudio: bool = false,
@@ -103,11 +102,9 @@ pub fn createGame(
     stb.link(exe);
     zmesh.link(exe, zmesh.BuildOptionsStep.init(b, .{}));
     znoise.link(exe);
+    imgui.link(exe);
 
     // Link optional dependencies and set comptime flags
-    if (opt.link_imgui) {
-        imgui.link(exe);
-    }
     if (opt.link_chipmunk) {
         chipmunk.link(exe);
     }
@@ -123,7 +120,6 @@ pub fn createGame(
     if (opt.link_ztracy) {
         ztracy.link(exe, ztracy.BuildOptionsStep.init(b, .{}));
     }
-    exe_options.addOption(bool, "use_imgui", opt.link_imgui);
     exe_options.addOption(bool, "use_chipmunk", opt.link_chipmunk);
     exe_options.addOption(bool, "use_nfd", opt.link_nfd);
     exe_options.addOption(bool, "use_zaudio", opt.link_zaudio);

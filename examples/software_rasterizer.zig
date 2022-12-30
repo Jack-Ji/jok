@@ -1,11 +1,11 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
-const imgui = jok.deps.imgui;
+const imgui = jok.imgui;
 const font = jok.font;
+const zmath = jok.zmath;
+const zmesh = jok.zmesh;
 const j3d = jok.j3d;
-const zmath = j3d.zmath;
-const zmesh = j3d.zmesh;
 const Camera = j3d.Camera;
 
 var prd: j3d.PixelRenderer = undefined;

@@ -5,9 +5,9 @@ const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
 const sdl = @import("sdl");
 const jok = @import("../jok.zig");
+const zmath = jok.zmath;
+const zmesh = jok.zmesh;
 const j3d = jok.j3d;
-const zmath = j3d.zmath;
-const zmesh = j3d.zmesh;
 
 pub const CommonDrawOption = struct {
     renderer: sdl.Renderer,
