@@ -131,7 +131,7 @@ pub fn draw(ctx: *jok.Context) !void {
             .cull_faces = false,
         },
     );
-    try primitive.draw(ctx.renderer, .{ .wireframe = wireframe });
+    try primitive.draw(.{ .wireframe = wireframe });
 
     primitive.clear();
     try primitive.addSubdividedSphere(

@@ -114,8 +114,8 @@ pub fn draw(ctx: *jok.Context) !void {
             .stacks = @intCast(u32, stacks),
         },
     );
-    try primitive.draw(ctx.renderer, .{ .texture = tex });
-    if (wireframe) try primitive.draw(ctx.renderer, .{
+    try primitive.draw(.{ .texture = tex });
+    if (wireframe) try primitive.draw(.{
         .wireframe = true,
         .wireframe_color = .{ .r = 0, .g = 255, .b = 0, .a = 100 },
     });

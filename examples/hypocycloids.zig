@@ -47,7 +47,7 @@ pub fn draw(ctx: *jok.Context) !void {
 
     primitive.clear();
     try primitive.addPolyline(pts.items, .{});
-    try primitive.draw(ctx.renderer, .{});
+    try primitive.draw(.{});
 }
 
 pub fn quit(ctx: *jok.Context) void {

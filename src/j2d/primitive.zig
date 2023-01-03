@@ -116,8 +116,12 @@ pub fn popTexture() void {
     draw_list.?.popTextureId();
 }
 
-pub fn addLine(_p1: sdl.PointF, _p2: sdl.PointF, color: sdl.Color, opt: TransformOption) void {
-    const m = opt.getMatrix();
+pub const AddLine = struct {
+    trs: TransformOption,
+    thickness: f32 = 1.0,
+};
+pub fn addLine(_p1: sdl.PointF, _p2: sdl.PointF, color: sdl.Color, opt: AddLine) void {
+    const m = opt.trs.getMatrix();
     const p1 = transformPoint(_p1, m);
     const p2 = transformPoint(_p2, m);
     draw_list.?.addLine(.{
@@ -133,7 +137,10 @@ pub const AddRect = struct {
     thickness: f32 = 1.0,
     rounding: f32 = 0,
 };
-pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, opt: AddRect) void {
+pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, _opt: AddRect) void {
+    var opt = _opt;
+    opt.trs.rotate = 0; // NOTE: doesn't support rotating
+
     const m = opt.trs.getMatrix();
     const _p1 = sdl.PointF{
         .x = rect.x,
@@ -210,7 +217,7 @@ pub fn addRectFilledMultiColor(
 
 // Calculate transform matrix
 inline fn getTransformMatrix(scale: sdl.PointF, anchor: sdl.PointF, rotate: f32, offset: sdl.PointF) zmath.Mat {
-    const m1 = zmath.scaling(scale.x, scale.y, 1);
+    const m1 = zmath.scaling(scale.x, scale.y, 0);
     const m2 = zmath.translation(-anchor.x, -anchor.y, 0);
     const m3 = zmath.rotationZ(rotate * math.pi / 180);
     const m4 = zmath.translation(anchor.x, anchor.y, 0);

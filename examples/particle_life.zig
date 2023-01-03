@@ -546,7 +546,7 @@ fn renderGui(ctx: *jok.Context) !void {
     imgui.end();
 }
 
-fn renderSimulation(ctx: *jok.Context) !void {
+fn renderSimulation() !void {
     // Simulation step forward
     if (number_w > 0) {
         interaction(white.?, green.?, power_wg, v_wg);
@@ -578,12 +578,12 @@ fn renderSimulation(ctx: *jok.Context) !void {
     if (number_r > 0) try drawPoints(red.?);
     if (number_g > 0) try drawPoints(green.?);
     if (number_b > 0) try drawPoints(blue.?);
-    try primitive.draw(ctx.renderer, .{});
+    try primitive.draw(.{});
 
     // Draw model
     if (show_model) {
         primitive.clear();
-        defer primitive.draw(ctx.renderer, .{}) catch unreachable;
+        defer primitive.draw(.{}) catch unreachable;
 
         try primitive.addCircle(
             .{ .x = xshift, .y = yshift },
@@ -861,7 +861,7 @@ pub fn draw(ctx: *jok.Context) !void {
     defer imgui.sdl.draw();
 
     try renderGui(ctx);
-    try renderSimulation(ctx);
+    try renderSimulation();
 }
 
 pub fn quit(ctx: *jok.Context) void {

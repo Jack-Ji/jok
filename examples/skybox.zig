@@ -148,7 +148,7 @@ pub fn draw(ctx: *jok.Context) !void {
         null,
         .{ .renderer = ctx.renderer },
     );
-    try primitive.draw(ctx.renderer, .{ .texture = tex });
+    try primitive.draw(.{ .texture = tex });
 
     primitive.clear();
     try primitive.addShape(
@@ -161,7 +161,7 @@ pub fn draw(ctx: *jok.Context) !void {
         null,
         .{ .renderer = ctx.renderer },
     );
-    try primitive.draw(ctx.renderer, .{ .wireframe = true });
+    try primitive.draw(.{ .wireframe = true });
 
     _ = try font.debugDraw(
         ctx.renderer,
