@@ -15,13 +15,16 @@ const PrimitiveType = enum(i32) {
 
 var primtype: PrimitiveType = .rectangle;
 var color: [4]f32 = .{ 1.0, 1.0, 1.0, 0.5 };
-var size: f32 = 15;
 var thickness: f32 = 0;
 var rotate_angle: f32 = 0;
-var rotate_anchor: [2]f32 = .{ 500, 500 };
+var offset: [2]f32 = undefined;
 
 pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
+
+    const fb = ctx.getFramebufferSize();
+    offset[0] = @intToFloat(f32, fb.w) / 2;
+    offset[1] = @intToFloat(f32, fb.h) / 2;
 
     try ctx.renderer.setColorRGB(77, 77, 77);
     try ctx.renderer.setDrawBlendMode(.blend);
@@ -45,10 +48,8 @@ pub fn draw(ctx: *jok.Context) !void {
         _ = imgui.radioButtonStatePtr("square", .{ .v = selection, .v_button = 0 });
         imgui.separator();
         _ = imgui.colorEdit4("color", .{ .col = &color });
-        _ = imgui.dragFloat("size", .{ .v = &size, .max = 1000 });
         _ = imgui.dragFloat("thickness", .{ .v = &thickness, .max = 100 });
         _ = imgui.dragFloat("rotate", .{ .v = &rotate_angle });
-        _ = imgui.dragFloat2("anchor", .{ .v = &rotate_anchor });
     }
     imgui.end();
 
@@ -56,7 +57,7 @@ pub fn draw(ctx: *jok.Context) !void {
     switch (primtype) {
         .rectangle => {
             primitive.addRect(
-                .{ .x = 100, .y = 100, .width = 50, .height = 50 },
+                .{ .x = -100, .y = -100, .width = 200, .height = 200 },
                 sdl.Color.rgba(
                     @floatToInt(u8, 255 * color[0]),
                     @floatToInt(u8, 255 * color[1]),
@@ -66,7 +67,7 @@ pub fn draw(ctx: *jok.Context) !void {
                 .{
                     .trs = .{
                         .rotate = rotate_angle,
-                        .anchor = .{ .x = rotate_anchor[0], .y = rotate_anchor[1] },
+                        .offset = .{ .x = offset[0], .y = offset[1] },
                     },
                     .thickness = thickness,
                 },

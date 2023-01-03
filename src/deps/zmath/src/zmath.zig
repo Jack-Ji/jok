@@ -1,4 +1,3 @@
-pub const version = @import("std").SemanticVersion{ .major = 0, .minor = 9, .patch = 4 };
 // ==============================================================================
 //
 // SIMD math library for game developers
@@ -4277,7 +4276,7 @@ pub fn approxEqAbs(v0: anytype, v1: anytype, eps: f32) bool {
 // This software is available under 2 licenses -- choose whichever you prefer.
 // ------------------------------------------------------------------------------
 // ALTERNATIVE A - MIT License
-// Copyright (c) 2022 Michal Ziulek
+// Copyright (c) 2022 Michal Ziulek and Contributors
 // Permission is hereby granted, free of charge, to any person obtaining a copy of
 // this software and associated documentation files (the "Software"), to deal in
 // the Software without restriction, including without limitation the rights to

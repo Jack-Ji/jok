@@ -17,16 +17,17 @@ pub const CommonDrawOption = struct {
     weld_threshold: ?f32 = null,
 };
 
-var own_rd: bool = false;
 var tri_renderer: ?TriangleRenderer = null;
 var arena: std.heap.ArenaAllocator = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
+var rd: sdl.Renderer = undefined;
 
 /// Initialize primitive module
-pub fn init(allocator: std.mem.Allocator) void {
+pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) void {
     tri_renderer = TriangleRenderer.init(allocator);
     arena = std.heap.ArenaAllocator.init(allocator);
     all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
+    rd = _rd;
 }
 
 /// Destroy primitive module
@@ -47,11 +48,11 @@ pub const RenderOption = struct {
     wireframe: bool = false,
     wireframe_color: sdl.Color = sdl.Color.green,
 };
-pub fn draw(renderer: sdl.Renderer, opt: RenderOption) !void {
+pub fn draw(opt: RenderOption) !void {
     if (opt.wireframe) {
-        try tri_renderer.?.drawWireframe(renderer, opt.wireframe_color);
+        try tri_renderer.drawWireframe(rd, opt.wireframe_color);
     } else {
-        try tri_renderer.?.draw(renderer, opt.texture);
+        try tri_renderer.draw(rd, opt.texture);
     }
 }
 

@@ -7,17 +7,17 @@ const imgui = jok.imgui;
 const zmath = jok.zmath;
 
 pub const TransformOption = struct {
-    scale: ?sdl.PointF = null,
+    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    anchor: sdl.PointF = .{ .x = 0, .y = 0 },
     rotate: f32 = 0,
-    anchor: ?sdl.PointF = null,
-    offset: ?sdl.PointF = null,
+    offset: sdl.PointF = .{ .x = 0, .y = 0 },
 
     pub fn getMatrix(self: @This()) zmath.Mat {
         return getTransformMatrix(
-            self.scale orelse sdl.PointF{ .x = 1, .y = 1 },
-            self.anchor orelse sdl.PointF{ .x = 0, .y = 0 },
+            self.scale,
+            self.anchor,
             self.rotate,
-            self.offset orelse sdl.PointF{ .x = 0, .y = 0 },
+            self.offset,
         );
     }
 };
@@ -210,21 +210,12 @@ pub fn addRectFilledMultiColor(
 
 // Calculate transform matrix
 inline fn getTransformMatrix(scale: sdl.PointF, anchor: sdl.PointF, rotate: f32, offset: sdl.PointF) zmath.Mat {
-    const transform1_m = zmath.scaling(scale.x, scale.y, 0);
-    const transform2_m = zmath.translation(-anchor.x, -anchor.y, 0);
-    const transform3_m = zmath.rotationZ(rotate * math.pi / 180);
-    const transform4_m = zmath.translation(anchor.x, anchor.y, 0);
-    const transform5_m = zmath.translation(offset.x, offset.y, 0);
-    return zmath.mul(
-        zmath.mul(
-            zmath.mul(
-                zmath.mul(transform1_m, transform2_m),
-                transform3_m,
-            ),
-            transform4_m,
-        ),
-        transform5_m,
-    );
+    const m1 = zmath.scaling(scale.x, scale.y, 1);
+    const m2 = zmath.translation(-anchor.x, -anchor.y, 0);
+    const m3 = zmath.rotationZ(rotate * math.pi / 180);
+    const m4 = zmath.translation(anchor.x, anchor.y, 0);
+    const m5 = zmath.translation(offset.x, offset.y, 0);
+    return zmath.mul(zmath.mul(zmath.mul(zmath.mul(m1, m2), m3), m4), m5);
 }
 
 // Transform coordinate
