@@ -83,7 +83,7 @@ pub fn update(ctx: *jok.Context) !void {
 
 pub fn draw(ctx: *jok.Context) !void {
     var ms = ctx.getMouseState();
-    primitive.clear();
+    primitive.clear(.{});
     try primitive.addCircle(
         .{ .x = @intToFloat(f32, ms.x), .y = @intToFloat(f32, ms.y) },
         10,

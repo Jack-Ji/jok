@@ -15,6 +15,7 @@ const PrimitiveType = enum(i32) {
 };
 
 var primtype: PrimitiveType = .rectangle;
+var antialiased: bool = true;
 var color: [4]f32 = .{ 1.0, 1.0, 1.0, 0.5 };
 var thickness: f32 = 0;
 var rotate_angle: f32 = 0;
@@ -50,6 +51,7 @@ pub fn draw(ctx: *jok.Context) !void {
         _ = imgui.radioButtonStatePtr("square", .{ .v = selection, .v_button = 0 });
         _ = imgui.radioButtonStatePtr("line", .{ .v = selection, .v_button = 1 });
         imgui.separator();
+        _ = imgui.checkbox("antialiased", .{ .v = &antialiased });
         _ = imgui.colorEdit4("color", .{ .col = &color });
         _ = imgui.dragFloat("thickness", .{ .v = &thickness, .max = 100 });
         _ = imgui.dragFloat("rotate", .{ .v = &rotate_angle });
@@ -57,7 +59,7 @@ pub fn draw(ctx: *jok.Context) !void {
     }
     imgui.end();
 
-    primitive.clear();
+    primitive.clear(.{ .antialiased = antialiased });
     switch (primtype) {
         .rectangle => {
             primitive.addRect(

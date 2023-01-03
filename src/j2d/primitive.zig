@@ -37,7 +37,11 @@ pub fn deinit() void {
 }
 
 /// Reset draw list state
-pub fn clear() void {
+pub const RenderOption = struct {
+    texture: ?sdl.Texture = null,
+    antialiased: bool = true,
+};
+pub fn clear(opt: RenderOption) void {
     draw_list.?.reset();
 
     const fb_size = rd.getOutputSize() catch unreachable;
@@ -47,6 +51,23 @@ pub fn clear() void {
         .width = @intToFloat(f32, fb_size.width_pixels),
         .height = @intToFloat(f32, fb_size.height_pixels),
     }, false);
+
+    if (opt.texture) |tex| {
+        draw_list.?.pushTextureId(tex.ptr);
+    }
+
+    if (opt.antialiased) {
+        draw_list.?.setDrawListFlags(.{
+            .anti_aliased_lines = true,
+            .anti_aliased_lines_use_tex = false,
+            .anti_aliased_fill = true,
+            .allow_vtx_offset = true,
+        });
+    } else {
+        draw_list.?.setDrawListFlags(.{
+            .allow_vtx_offset = true,
+        });
+    }
 }
 
 /// Render data
