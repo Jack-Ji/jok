@@ -2,19 +2,9 @@ const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
 
-var tex: sdl.Texture = undefined;
-
 pub fn init(ctx: *jok.Context) !void {
+    _ = ctx;
     std.log.info("game init", .{});
-
-    tex = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
-        "assets/images/jok.png",
-        .static,
-        false,
-    );
-    try tex.setBlendMode(.blend);
-    try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
 pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
@@ -27,10 +17,51 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    try ctx.renderer.copy(
-        tex,
-        null,
-        null,
+    const fb_size = ctx.getFramebufferSize();
+
+    jok.j2d.primitive.clear(.{});
+    jok.j2d.primitive.addQuadFilled(
+        .{ .x = -100, .y = -100 },
+        .{ .x = 100, .y = -100 },
+        .{ .x = 100, .y = 100 },
+        .{ .x = -100, .y = 100 },
+        sdl.Color.rgb(
+            @floatToInt(u8, 128 + 128 * std.math.sin(ctx.tick)),
+            @floatToInt(u8, std.math.max(0, 255 * std.math.sin(ctx.tick))),
+            @floatToInt(u8, 128 + 128 * std.math.cos(ctx.tick)),
+        ),
+        .{
+            .trs = .{
+                .scale = .{
+                    .x = @floatCast(f32, 1.3 + std.math.sin(ctx.tick)),
+                    .y = @floatCast(f32, 1.3 + std.math.sin(ctx.tick)),
+                },
+                .rotate = @floatCast(f32, ctx.tick * 30),
+                .offset = .{
+                    .x = @intToFloat(f32, fb_size.w) / 2,
+                    .y = @intToFloat(f32, fb_size.h) / 2,
+                },
+            },
+        },
+    );
+    try jok.j2d.primitive.draw();
+
+    _ = try jok.font.debugDraw(
+        ctx.renderer,
+        .{
+            .pos = .{
+                .x = @intToFloat(f32, fb_size.w) / 2,
+                .y = @intToFloat(f32, fb_size.h) / 2,
+            },
+            .font_size = 50,
+            .color = sdl.Color.rgb(
+                255,
+                @floatToInt(u8, std.math.max(0, 255 * std.math.cos(ctx.tick))),
+                0,
+            ),
+        },
+        "Hello Jok!",
+        .{},
     );
 }
 

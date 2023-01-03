@@ -186,7 +186,10 @@ pub const FillRect = struct {
     trs: TransformOption,
     rounding: f32 = 0,
 };
-pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) void {
+pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, _opt: FillRect) void {
+    var opt = _opt;
+    opt.trs.rotate = 0; // NOTE: doesn't support rotating
+    //
     const m = opt.trs.getMatrix();
     const _p1 = sdl.PointF{
         .x = rect.x,
@@ -198,7 +201,7 @@ pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) void
     };
     const p1 = transformPoint(_p1, m);
     const p2 = transformPoint(_p2, m);
-    draw_list.addRectFilled(.{
+    draw_list.?.addRectFilled(.{
         .pmin = .{ p1.x, p1.y },
         .pmax = .{ p2.x, p2.y },
         .col = convertColor(color),
@@ -206,15 +209,21 @@ pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) void
     });
 }
 
+pub const FillRectMultiColor = struct {
+    trs: TransformOption,
+};
 pub fn addRectFilledMultiColor(
     rect: sdl.RectangleF,
     color_top_left: sdl.Color,
     color_top_right: sdl.Color,
     color_bottom_right: sdl.Color,
     color_bottom_left: sdl.Color,
-    opt: FillRect,
+    _opt: FillRectMultiColor,
 ) void {
-    const m = opt.getMatrix();
+    var opt = _opt;
+    opt.trs.rotate = 0; // NOTE: doesn't support rotating
+    //
+    const m = opt.trs.getMatrix();
     const _p1 = sdl.PointF{
         .x = rect.x,
         .y = rect.y,
@@ -225,14 +234,65 @@ pub fn addRectFilledMultiColor(
     };
     const p1 = transformPoint(_p1, m);
     const p2 = transformPoint(_p2, m);
-    draw_list.addRectFilled(.{
+    draw_list.?.addRectFilledMultiColor(.{
         .pmin = .{ p1.x, p1.y },
         .pmax = .{ p2.x, p2.y },
         .col_upr_left = convertColor(color_top_left),
         .col_upr_right = convertColor(color_top_right),
         .col_bot_right = convertColor(color_bottom_right),
         .col_bot_left = convertColor(color_bottom_left),
-        .rounding = opt.rounding,
+    });
+}
+
+pub const AddQuad = struct {
+    trs: TransformOption,
+    thickness: f32 = 1.0,
+};
+pub fn addQuad(
+    _p1: sdl.PointF,
+    _p2: sdl.PointF,
+    _p3: sdl.PointF,
+    _p4: sdl.PointF,
+    color: sdl.Color,
+    opt: AddQuad,
+) void {
+    const m = opt.trs.getMatrix();
+    const p1 = transformPoint(_p1, m);
+    const p2 = transformPoint(_p2, m);
+    const p3 = transformPoint(_p3, m);
+    const p4 = transformPoint(_p4, m);
+    draw_list.?.addQuad(.{
+        .p1 = [_]f32{ p1.x, p1.y },
+        .p2 = [_]f32{ p2.x, p2.y },
+        .p3 = [_]f32{ p3.x, p3.y },
+        .p4 = [_]f32{ p4.x, p4.y },
+        .col = convertColor(color),
+        .thickness = opt.thickness,
+    });
+}
+
+pub const FillQuad = struct {
+    trs: TransformOption,
+};
+pub fn addQuadFilled(
+    _p1: sdl.PointF,
+    _p2: sdl.PointF,
+    _p3: sdl.PointF,
+    _p4: sdl.PointF,
+    color: sdl.Color,
+    opt: FillQuad,
+) void {
+    const m = opt.trs.getMatrix();
+    const p1 = transformPoint(_p1, m);
+    const p2 = transformPoint(_p2, m);
+    const p3 = transformPoint(_p3, m);
+    const p4 = transformPoint(_p4, m);
+    draw_list.?.addQuadFilled(.{
+        .p1 = [_]f32{ p1.x, p1.y },
+        .p2 = [_]f32{ p2.x, p2.y },
+        .p3 = [_]f32{ p3.x, p3.y },
+        .p4 = [_]f32{ p4.x, p4.y },
+        .col = convertColor(color),
     });
 }
 
