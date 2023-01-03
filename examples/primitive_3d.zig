@@ -179,7 +179,7 @@ pub fn draw(ctx: *jok.Context) !void {
         .hemisphere => try primitive.addHemisphere(model, camera, .{ .common = common_draw_opt }),
         .rock => try primitive.addRock(model, camera, .{ .common = common_draw_opt }),
     }
-    try primitive.draw(ctx.renderer, .{ .wireframe = wireframe });
+    try primitive.draw(.{ .wireframe = wireframe });
 
     _ = try font.debugDraw(
         ctx.renderer,

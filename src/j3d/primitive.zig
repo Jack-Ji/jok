@@ -50,9 +50,9 @@ pub const RenderOption = struct {
 };
 pub fn draw(opt: RenderOption) !void {
     if (opt.wireframe) {
-        try tri_renderer.drawWireframe(rd, opt.wireframe_color);
+        try tri_renderer.?.drawWireframe(rd, opt.wireframe_color);
     } else {
-        try tri_renderer.draw(rd, opt.texture);
+        try tri_renderer.?.draw(rd, opt.texture);
     }
 }
 
