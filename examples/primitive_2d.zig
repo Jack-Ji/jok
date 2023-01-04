@@ -13,6 +13,8 @@ const PrimitiveType = enum(i32) {
     rectangle,
     quad,
     line,
+    triangle,
+    circle,
 };
 
 var primtype: PrimitiveType = .rectangle;
@@ -56,6 +58,10 @@ pub fn draw(ctx: *jok.Context) !void {
         _ = imgui.radioButtonStatePtr("quad", .{ .v = selection, .v_button = 1 });
         imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("line", .{ .v = selection, .v_button = 2 });
+        imgui.sameLine(.{});
+        _ = imgui.radioButtonStatePtr("triangle", .{ .v = selection, .v_button = 3 });
+        imgui.sameLine(.{});
+        _ = imgui.radioButtonStatePtr("circle", .{ .v = selection, .v_button = 4 });
         imgui.separator();
         _ = imgui.checkbox("antialiased", .{ .v = &antialiased });
         imgui.sameLine(.{});
@@ -142,6 +148,52 @@ pub fn draw(ctx: *jok.Context) !void {
                     .thickness = thickness,
                 },
             );
+        },
+        .triangle => {
+            if (filling) {
+                primitive.addTriangleFilled(
+                    .{ .x = 0, .y = -100 },
+                    .{ .x = -100, .y = -100 },
+                    .{ .x = 100, .y = -100 },
+                    rgba,
+                    .{
+                        .trs = trs,
+                    },
+                );
+            } else {
+                primitive.addTriangle(
+                    .{ .x = 0, .y = -100 },
+                    .{ .x = -100, .y = -100 },
+                    .{ .x = 100, .y = -100 },
+                    rgba,
+                    .{
+                        .trs = trs,
+                        .thickness = thickness,
+                    },
+                );
+            }
+        },
+        .circle => {
+            if (filling) {
+                primitive.addCircleFilled(
+                    .{ .x = 0, .y = 0 },
+                    100,
+                    rgba,
+                    .{
+                        .trs = trs,
+                    },
+                );
+            } else {
+                primitive.addCircle(
+                    .{ .x = 0, .y = 0 },
+                    100,
+                    rgba,
+                    .{
+                        .trs = trs,
+                        .thickness = thickness,
+                    },
+                );
+            }
         },
     }
     primitive.addLine(

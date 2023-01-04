@@ -284,6 +284,94 @@ pub fn addQuadFilled(
     });
 }
 
+pub const AddTriangle = struct {
+    trs: TransformOption = .{},
+    thickness: f32 = 1.0,
+};
+pub fn addTriangle(
+    _p1: sdl.PointF,
+    _p2: sdl.PointF,
+    _p3: sdl.PointF,
+    color: sdl.Color,
+    opt: AddTriangle,
+) void {
+    const m = opt.trs.getMatrix();
+    const p1 = transformPoint(_p1, m);
+    const p2 = transformPoint(_p2, m);
+    const p3 = transformPoint(_p3, m);
+    draw_list.?.addTriangle(.{
+        .p1 = [_]f32{ p1.x, p1.y },
+        .p2 = [_]f32{ p2.x, p2.y },
+        .p3 = [_]f32{ p3.x, p3.y },
+        .col = convertColor(color),
+        .thickness = opt.thickness,
+    });
+}
+
+pub const FillTriangle = struct {
+    trs: TransformOption = .{},
+};
+pub fn addTriangleFilled(
+    _p1: sdl.PointF,
+    _p2: sdl.PointF,
+    _p3: sdl.PointF,
+    color: sdl.Color,
+    opt: FillTriangle,
+) void {
+    const m = opt.trs.getMatrix();
+    const p1 = transformPoint(_p1, m);
+    const p2 = transformPoint(_p2, m);
+    const p3 = transformPoint(_p3, m);
+    draw_list.?.addTriangleFilled(.{
+        .p1 = [_]f32{ p1.x, p1.y },
+        .p2 = [_]f32{ p2.x, p2.y },
+        .p3 = [_]f32{ p3.x, p3.y },
+        .col = convertColor(color),
+    });
+}
+
+pub const AddCircle = struct {
+    trs: TransformOption = .{},
+    thickness: f32 = 1.0,
+    num_segments: u32 = 0,
+};
+pub fn addCircle(
+    _center: sdl.PointF,
+    radius: f32,
+    color: sdl.Color,
+    opt: AddCircle,
+) void {
+    const m = opt.trs.getMatrix();
+    const center = transformPoint(_center, m);
+    draw_list.?.addCircle(.{
+        .p = [_]f32{ center.x, center.y },
+        .r = radius,
+        .col = convertColor(color),
+        .thickness = opt.thickness,
+        .num_segments = opt.num_segments,
+    });
+}
+
+pub const FillCircle = struct {
+    trs: TransformOption = .{},
+    num_segments: u32 = 0,
+};
+pub fn addCircleFilled(
+    _center: sdl.PointF,
+    radius: f32,
+    color: sdl.Color,
+    opt: FillCircle,
+) void {
+    const m = opt.trs.getMatrix();
+    const center = transformPoint(_center, m);
+    draw_list.?.addCircleFilled(.{
+        .p = [_]f32{ center.x, center.y },
+        .r = radius,
+        .col = convertColor(color),
+        .num_segments = opt.num_segments,
+    });
+}
+
 // Calculate transform matrix
 inline fn getTransformMatrix(scale: sdl.PointF, anchor: sdl.PointF, rotate: f32, offset: sdl.PointF) zmath.Mat {
     const m1 = zmath.scaling(scale.x, scale.y, 0);
