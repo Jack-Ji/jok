@@ -321,7 +321,7 @@ pub const Particle = struct {
 
     /// Draw particle
     pub fn draw(self: Particle, sprite_batch: *SpriteBatch) !void {
-        try sprite_batch.drawSprite(
+        try sprite_batch.addSprite(
             self.sprite,
             .{
                 .pos = .{ .x = self.pos.x(), .y = self.pos.y() },

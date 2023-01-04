@@ -119,21 +119,24 @@ pub fn draw(ctx: *jok.Context) !void {
             .attenuation_quadratic = 0.0002,
         },
     };
-    primitive.clear();
+    primitive.clear(.{});
     try primitive.addShape(
         shape,
         zmath.identity(),
         camera,
         null,
         .{
-            .renderer = ctx.renderer,
             .lighting = lighting_opt,
             .cull_faces = false,
         },
     );
-    try primitive.draw(.{ .wireframe = wireframe });
+    if (wireframe) {
+        try primitive.drawWireframe(sdl.Color.green);
+    } else {
+        try primitive.draw();
+    }
 
-    primitive.clear();
+    primitive.clear(.{});
     try primitive.addSubdividedSphere(
         zmath.mul(
             zmath.scaling(0.2, 0.2, 0.2),
@@ -141,10 +144,10 @@ pub fn draw(ctx: *jok.Context) !void {
         ),
         camera,
         .{
-            .common = .{ .renderer = ctx.renderer },
+            .common = .{},
         },
     );
-    try primitive.draw(.{});
+    try primitive.draw();
 
     _ = try font.debugDraw(
         ctx.renderer,

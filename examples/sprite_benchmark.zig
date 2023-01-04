@@ -99,7 +99,7 @@ pub fn update(ctx: *jok.Context) !void {
 pub fn draw(ctx: *jok.Context) !void {
     sb.begin(.{});
     for (characters.items) |c| {
-        try sb.drawSprite(c.sprite, .{
+        try sb.addSprite(c.sprite, .{
             .pos = c.pos,
         });
     }

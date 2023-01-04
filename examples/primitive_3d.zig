@@ -10,8 +10,7 @@ const font = jok.font;
 const primitive = jok.j3d.primitive;
 const Camera = jok.j3d.Camera;
 
-pub const jok_window_width: u32 = 800;
-pub const jok_window_height: u32 = 600;
+pub const jok_window_resizable = true;
 
 const PrimitiveType = enum(i32) {
     cube,
@@ -98,21 +97,33 @@ pub fn draw(ctx: *jok.Context) !void {
     if (imgui.begin("Control Panel", .{})) {
         var selection: *i32 = @ptrCast(*i32, &primtype);
         _ = imgui.radioButtonStatePtr("cube", .{ .v = selection, .v_button = 0 });
+        imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("subdivided_sphere", .{ .v = selection, .v_button = 1 });
+        imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("parametric_sphere", .{ .v = selection, .v_button = 2 });
+        imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("cone", .{ .v = selection, .v_button = 3 });
+        imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("cylinder", .{ .v = selection, .v_button = 4 });
         _ = imgui.radioButtonStatePtr("disk", .{ .v = selection, .v_button = 5 });
+        imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("torus", .{ .v = selection, .v_button = 6 });
+        imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("icosahedron", .{ .v = selection, .v_button = 7 });
+        imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("dodecahedron", .{ .v = selection, .v_button = 8 });
+        imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("octahedron", .{ .v = selection, .v_button = 9 });
         _ = imgui.radioButtonStatePtr("tetrahedron", .{ .v = selection, .v_button = 10 });
+        imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("hemisphere", .{ .v = selection, .v_button = 11 });
+        imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("rock", .{ .v = selection, .v_button = 12 });
         imgui.separator();
         _ = imgui.checkbox("welding", .{ .v = &welding });
+        imgui.sameLine(.{});
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
+        imgui.sameLine(.{});
         _ = imgui.checkbox("cull faces", .{ .v = &cull_faces });
         _ = imgui.colorEdit4("color", .{ .col = &color });
         _ = imgui.dragFloat3("scale", .{ .v = &scale, .min = 1, .max = 10, .speed = 0.1 });
@@ -122,7 +133,6 @@ pub fn draw(ctx: *jok.Context) !void {
     imgui.end();
 
     const common_draw_opt = primitive.CommonDrawOption{
-        .renderer = ctx.renderer,
         .color = .{
             .r = @floatToInt(u8, color[0] * 255),
             .g = @floatToInt(u8, color[1] * 255),
@@ -146,7 +156,7 @@ pub fn draw(ctx: *jok.Context) !void {
         ),
         zmath.translation(translate[0], translate[1], translate[2]),
     );
-    primitive.clear();
+    primitive.clear(.{});
     try primitive.addPlane(
         zmath.mul(
             zmath.mul(
@@ -158,7 +168,6 @@ pub fn draw(ctx: *jok.Context) !void {
         camera,
         .{
             .common = .{
-                .renderer = ctx.renderer,
                 .color = sdl.Color.rgba(100, 100, 100, 200),
                 .lighting = common_draw_opt.lighting,
             },
@@ -179,7 +188,11 @@ pub fn draw(ctx: *jok.Context) !void {
         .hemisphere => try primitive.addHemisphere(model, camera, .{ .common = common_draw_opt }),
         .rock => try primitive.addRock(model, camera, .{ .common = common_draw_opt }),
     }
-    try primitive.draw(.{ .wireframe = wireframe });
+    if (wireframe) {
+        try primitive.drawWireframe(sdl.Color.green);
+    } else {
+        try primitive.draw();
+    }
 
     _ = try font.debugDraw(
         ctx.renderer,

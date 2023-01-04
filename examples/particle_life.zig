@@ -573,17 +573,17 @@ fn renderSimulation() !void {
         interaction(blue.?, blue.?, power_bb, v_bb);
     }
 
-    primitive.clear();
+    primitive.clear(.{});
     if (number_w > 0) try drawPoints(white.?);
     if (number_r > 0) try drawPoints(red.?);
     if (number_g > 0) try drawPoints(green.?);
     if (number_b > 0) try drawPoints(blue.?);
-    try primitive.draw(.{});
+    try primitive.draw();
 
     // Draw model
     if (show_model) {
-        primitive.clear();
-        defer primitive.draw(.{}) catch unreachable;
+        primitive.clear(.{});
+        defer primitive.draw() catch unreachable;
 
         try primitive.addCircle(
             .{ .x = xshift, .y = yshift },

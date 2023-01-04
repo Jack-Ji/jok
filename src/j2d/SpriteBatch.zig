@@ -126,7 +126,7 @@ pub fn begin(self: *Self, opt: BatchOption) void {
 }
 
 /// Add sprite to next batch
-pub fn drawSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
+pub fn addSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
     var index = self.search_tree.get(sprite.sheet) orelse blk: {
         var count = self.search_tree.count();
         if (count == self.batches.len) {

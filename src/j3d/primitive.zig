@@ -10,7 +10,6 @@ const zmesh = jok.zmesh;
 const j3d = jok.j3d;
 
 pub const CommonDrawOption = struct {
-    renderer: sdl.Renderer,
     color: sdl.Color = sdl.Color.white,
     cull_faces: bool = true,
     lighting: ?j3d.lighting.LightingOption = null,
@@ -21,6 +20,7 @@ var tri_renderer: ?TriangleRenderer = null;
 var arena: std.heap.ArenaAllocator = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 var rd: sdl.Renderer = undefined;
+var texture: ?sdl.Texture = null;
 
 /// Initialize primitive module
 pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) void {
@@ -38,22 +38,20 @@ pub fn deinit() void {
 }
 
 /// Clear primitive
-pub fn clear() void {
+pub const RenderOption = struct {
+    texture: ?sdl.Texture = null,
+};
+pub fn clear(opt: RenderOption) void {
     tri_renderer.?.clear(true);
+    texture = opt.texture;
 }
 
 /// Render data
-pub const RenderOption = struct {
-    texture: ?sdl.Texture = null,
-    wireframe: bool = false,
-    wireframe_color: sdl.Color = sdl.Color.green,
-};
-pub fn draw(opt: RenderOption) !void {
-    if (opt.wireframe) {
-        try tri_renderer.?.drawWireframe(rd, opt.wireframe_color);
-    } else {
-        try tri_renderer.?.draw(rd, opt.texture);
-    }
+pub fn draw() !void {
+    try tri_renderer.?.draw(rd, texture);
+}
+pub fn drawWireframe(color: sdl.Color) !void {
+    try tri_renderer.?.drawWireframe(rd, color);
 }
 
 /// Draw a shape
@@ -77,7 +75,7 @@ pub fn addShape(
     S.colors.?.appendNTimesAssumeCapacity(opt.color, shape.positions.len);
 
     try tri_renderer.?.addShapeData(
-        opt.renderer,
+        rd,
         model,
         camera,
         shape.indices,
@@ -141,7 +139,7 @@ pub fn addCube(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !void {
 
 /// Draw a plane
 pub const PlaneDrawOption = struct {
-    common: CommonDrawOption,
+    common: CommonDrawOption = .{},
     slices: u32 = 10,
     stacks: u32 = 10,
 };
@@ -194,7 +192,7 @@ pub fn addPlane(model: zmath.Mat, camera: Camera, opt: PlaneDrawOption) !void {
 
 /// Draw a parametric sphere
 pub const ParametricSphereDrawOption = struct {
-    common: CommonDrawOption,
+    common: CommonDrawOption = .{},
     slices: u32 = 15,
     stacks: u32 = 15,
 };
@@ -247,7 +245,7 @@ pub fn addParametricSphere(model: zmath.Mat, camera: Camera, opt: ParametricSphe
 
 /// Draw a subdivided sphere
 pub const SubdividedSphereDrawOption = struct {
-    common: CommonDrawOption,
+    common: CommonDrawOption = .{},
     sub_num: u32 = 2,
 };
 pub fn addSubdividedSphere(model: zmath.Mat, camera: Camera, opt: SubdividedSphereDrawOption) !void {
@@ -298,7 +296,7 @@ pub fn addSubdividedSphere(model: zmath.Mat, camera: Camera, opt: SubdividedSphe
 
 /// Draw a parametric sphere
 pub const HemisphereDrawOption = struct {
-    common: CommonDrawOption,
+    common: CommonDrawOption = .{},
     slices: u32 = 15,
     stacks: u32 = 15,
 };
@@ -351,7 +349,7 @@ pub fn addHemisphere(model: zmath.Mat, camera: Camera, opt: HemisphereDrawOption
 
 /// Draw a cone
 pub const ConeDrawOption = struct {
-    common: CommonDrawOption,
+    common: CommonDrawOption = .{},
     slices: u32 = 15,
     stacks: u32 = 1,
 };
@@ -404,7 +402,7 @@ pub fn addCone(model: zmath.Mat, camera: Camera, opt: ConeDrawOption) !void {
 
 /// Draw a cylinder
 pub const CylinderDrawOption = struct {
-    common: CommonDrawOption,
+    common: CommonDrawOption = .{},
     slices: u32 = 20,
     stacks: u32 = 1,
 };
@@ -457,7 +455,7 @@ pub fn addCylinder(model: zmath.Mat, camera: Camera, opt: CylinderDrawOption) !v
 
 /// Draw a disk
 pub const DiskDrawOption = struct {
-    common: CommonDrawOption,
+    common: CommonDrawOption = .{},
     radius: f32 = 1,
     slices: u32 = 20,
     center: [3]f32 = .{ 0, 0, 0 },
@@ -516,7 +514,7 @@ pub fn addDisk(model: zmath.Mat, camera: Camera, opt: DiskDrawOption) !void {
 
 /// Draw a torus
 pub const TorusDrawOption = struct {
-    common: CommonDrawOption,
+    common: CommonDrawOption = .{},
     radius: f32 = 0.2,
     slices: u32 = 15,
     stacks: u32 = 20,
@@ -755,7 +753,7 @@ pub fn addTetrahedron(model: zmath.Mat, camera: Camera, opt: CommonDrawOption) !
 
 /// Draw a rock
 pub const RockDrawOption = struct {
-    common: CommonDrawOption,
+    common: CommonDrawOption = .{},
     seed: i32 = 3,
     sub_num: u32 = 1,
 };

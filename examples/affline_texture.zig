@@ -95,7 +95,7 @@ pub fn draw(ctx: *jok.Context) !void {
     }
     imgui.end();
 
-    primitive.clear();
+    primitive.clear(.{ .texture = tex });
     try primitive.addPlane(
         zmath.mul(
             zmath.mul(
@@ -107,18 +107,14 @@ pub fn draw(ctx: *jok.Context) !void {
         camera,
         .{
             .common = .{
-                .renderer = ctx.renderer,
                 .cull_faces = false,
             },
             .slices = @intCast(u32, slices),
             .stacks = @intCast(u32, stacks),
         },
     );
-    try primitive.draw(.{ .texture = tex });
-    if (wireframe) try primitive.draw(.{
-        .wireframe = true,
-        .wireframe_color = .{ .r = 0, .g = 255, .b = 0, .a = 100 },
-    });
+    try primitive.draw();
+    if (wireframe) try primitive.drawWireframe(sdl.Color.green);
 }
 
 pub fn quit(ctx: *jok.Context) void {

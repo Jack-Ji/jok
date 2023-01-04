@@ -109,7 +109,7 @@ pub fn update(ctx: *jok.Context) !void {
 
 pub fn draw(ctx: *jok.Context) !void {
     sb.begin(.{});
-    try sb.drawSprite(
+    try sb.addSprite(
         try sheet.getSpriteByName("player"),
         .{
             .pos = .{ .x = 0, .y = 50 },

@@ -45,9 +45,9 @@ pub fn draw(ctx: *jok.Context) !void {
         try pts.append(point);
     }
 
-    primitive.clear();
+    primitive.clear(.{});
     try primitive.addPolyline(pts.items, .{});
-    try primitive.draw(.{});
+    try primitive.draw();
 }
 
 pub fn quit(ctx: *jok.Context) void {

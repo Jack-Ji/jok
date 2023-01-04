@@ -108,7 +108,7 @@ pub const Animation = struct {
         opt: SpriteBatch.DrawOption,
     ) !void {
         anim.update(delta_tick);
-        try sb.drawSprite(anim.frames.items[anim.play_index], opt);
+        try sb.addSprite(anim.frames.items[anim.play_index], opt);
     }
 
     inline fn update(anim: *Animation, delta_tick: f32) void {

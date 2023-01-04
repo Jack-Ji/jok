@@ -134,7 +134,7 @@ pub fn update(ctx: *jok.Context) !void {
 pub fn draw(ctx: *jok.Context) !void {
     try skybox_rd.draw(ctx.renderer, camera, skybox_textures, skybox_tint_color);
 
-    primitive.clear();
+    primitive.clear(.{ .texture = tex });
     try primitive.addShape(
         cube,
         j3d.zmath.mul(
@@ -146,11 +146,11 @@ pub fn draw(ctx: *jok.Context) !void {
         ),
         camera,
         null,
-        .{ .renderer = ctx.renderer },
+        .{},
     );
-    try primitive.draw(.{ .texture = tex });
+    try primitive.draw();
 
-    primitive.clear();
+    primitive.clear(.{});
     try primitive.addShape(
         cube,
         j3d.zmath.mul(
@@ -159,9 +159,9 @@ pub fn draw(ctx: *jok.Context) !void {
         ),
         camera,
         null,
-        .{ .renderer = ctx.renderer },
+        .{},
     );
-    try primitive.draw(.{ .wireframe = true });
+    try primitive.drawWireframe(sdl.Color.green);
 
     _ = try font.debugDraw(
         ctx.renderer,

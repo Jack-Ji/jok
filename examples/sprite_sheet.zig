@@ -77,7 +77,7 @@ pub fn draw(ctx: *jok.Context) !void {
 
     sb.begin(.{ .depth_sort = .back_to_forth });
     const sprite = try sheet.getSpriteByName("ogre");
-    try sb.drawSprite(sprite, .{
+    try sb.addSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .camera = camera,
         .scale_w = 2,
@@ -86,7 +86,7 @@ pub fn draw(ctx: *jok.Context) !void {
         .flip_v = true,
         //.rotate_degree = @floatCast(f32, ctx.tick) * 30,
     });
-    try sb.drawSprite(sprite, .{
+    try sb.addSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .camera = camera,
         .tint_color = sdl.Color.rgb(255, 0, 0),

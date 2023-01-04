@@ -180,7 +180,7 @@ fn submitObject(self: *Self, camera: Camera, o: *Object) !void {
         if (o.actor.render_cb) |cb| {
             try cb(camera, s, self.sb, o.render_opt, o.actor.custom);
         } else {
-            try self.sb.drawSprite(s, .{
+            try self.sb.addSprite(s, .{
                 .pos = o.render_opt.pos,
                 .camera = camera,
                 .tint_color = o.render_opt.tint_color,
