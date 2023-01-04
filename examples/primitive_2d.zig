@@ -15,6 +15,9 @@ const PrimitiveType = enum(i32) {
     line,
     triangle,
     circle,
+    ngon,
+    polyline,
+    polygon,
 };
 
 var primtype: PrimitiveType = .rectangle;
@@ -62,6 +65,11 @@ pub fn draw(ctx: *jok.Context) !void {
         _ = imgui.radioButtonStatePtr("triangle", .{ .v = selection, .v_button = 3 });
         imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("circle", .{ .v = selection, .v_button = 4 });
+        _ = imgui.radioButtonStatePtr("ngon", .{ .v = selection, .v_button = 5 });
+        imgui.sameLine(.{});
+        _ = imgui.radioButtonStatePtr("polyline", .{ .v = selection, .v_button = 6 });
+        imgui.sameLine(.{});
+        _ = imgui.radioButtonStatePtr("polygon", .{ .v = selection, .v_button = 7 });
         imgui.separator();
         _ = imgui.checkbox("antialiased", .{ .v = &antialiased });
         imgui.sameLine(.{});
@@ -153,8 +161,8 @@ pub fn draw(ctx: *jok.Context) !void {
             if (filling) {
                 primitive.addTriangleFilled(
                     .{ .x = 0, .y = -100 },
-                    .{ .x = -100, .y = -100 },
-                    .{ .x = 100, .y = -100 },
+                    .{ .x = -100, .y = 100 },
+                    .{ .x = 100, .y = 100 },
                     rgba,
                     .{
                         .trs = trs,
@@ -163,8 +171,8 @@ pub fn draw(ctx: *jok.Context) !void {
             } else {
                 primitive.addTriangle(
                     .{ .x = 0, .y = -100 },
-                    .{ .x = -100, .y = -100 },
-                    .{ .x = 100, .y = -100 },
+                    .{ .x = -100, .y = 100 },
+                    .{ .x = 100, .y = 100 },
                     rgba,
                     .{
                         .trs = trs,
@@ -191,6 +199,85 @@ pub fn draw(ctx: *jok.Context) !void {
                     .{
                         .trs = trs,
                         .thickness = thickness,
+                    },
+                );
+            }
+        },
+        .ngon => {
+            if (filling) {
+                primitive.addNgonFilled(
+                    .{ .x = 0, .y = 0 },
+                    100,
+                    rgba,
+                    6,
+                    .{
+                        .trs = trs,
+                    },
+                );
+            } else {
+                primitive.addNgon(
+                    .{ .x = 0, .y = 0 },
+                    100,
+                    rgba,
+                    6,
+                    .{
+                        .trs = trs,
+                        .thickness = thickness,
+                    },
+                );
+            }
+        },
+        .polyline => {
+            primitive.addPolyline(
+                &[_]sdl.PointF{
+                    .{ .x = -100, .y = -100 },
+                    .{ .x = -50, .y = -150 },
+                    .{ .x = 50, .y = -120 },
+                    .{ .x = 100, .y = 20 },
+                    .{ .x = 50, .y = 80 },
+                    .{ .x = 0, .y = 100 },
+                    .{ .x = -100, .y = 130 },
+                },
+                rgba,
+                .{
+                    .trs = trs,
+                    .thickness = thickness,
+                },
+            );
+        },
+        .polygon => {
+            if (filling) {
+                primitive.addConvexPolyFilled(
+                    &[_]sdl.PointF{
+                        .{ .x = -100, .y = -100 },
+                        .{ .x = -50, .y = -150 },
+                        .{ .x = 50, .y = -120 },
+                        .{ .x = 100, .y = 20 },
+                        .{ .x = 50, .y = 80 },
+                        .{ .x = 0, .y = 100 },
+                        .{ .x = -100, .y = 130 },
+                    },
+                    rgba,
+                    .{
+                        .trs = trs,
+                    },
+                );
+            } else {
+                primitive.addPolyline(
+                    &[_]sdl.PointF{
+                        .{ .x = -100, .y = -100 },
+                        .{ .x = -50, .y = -150 },
+                        .{ .x = 50, .y = -120 },
+                        .{ .x = 100, .y = 20 },
+                        .{ .x = 50, .y = 80 },
+                        .{ .x = 0, .y = 100 },
+                        .{ .x = -100, .y = 130 },
+                    },
+                    rgba,
+                    .{
+                        .trs = trs,
+                        .thickness = thickness,
+                        .closed = true,
                     },
                 );
             }

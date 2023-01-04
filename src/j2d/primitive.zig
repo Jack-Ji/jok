@@ -22,17 +22,20 @@ pub const TransformOption = struct {
     }
 };
 
+var arena: std.heap.ArenaAllocator = undefined;
 var draw_list: ?imgui.DrawList = null;
 var rd: sdl.Renderer = undefined;
 
 /// Create primitive renderer
-pub fn init(_rd: sdl.Renderer) void {
+pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) void {
+    arena = std.heap.ArenaAllocator.init(allocator);
     draw_list = imgui.createDrawList();
     rd = _rd;
 }
 
 /// Destroy primitive renderer
 pub fn deinit() void {
+    arena.deinit();
     imgui.destroyDrawList(draw_list.?);
 }
 
@@ -370,6 +373,119 @@ pub fn addCircleFilled(
         .col = convertColor(color),
         .num_segments = opt.num_segments,
     });
+}
+
+pub const AddNgon = struct {
+    trs: TransformOption = .{},
+    thickness: f32 = 1.0,
+    num_segments: u32 = 0,
+};
+pub fn addNgon(
+    _center: sdl.PointF,
+    radius: f32,
+    color: sdl.Color,
+    num_segments: u32,
+    opt: AddNgon,
+) void {
+    const m = opt.trs.getMatrix();
+    const center = transformPoint(_center, m);
+    draw_list.?.addNgon(.{
+        .p = [_]f32{ center.x, center.y },
+        .r = radius,
+        .col = convertColor(color),
+        .num_segments = num_segments,
+        .thickness = opt.thickness,
+    });
+}
+
+pub const FillNgon = struct {
+    trs: TransformOption = .{},
+};
+pub fn addNgonFilled(
+    _center: sdl.PointF,
+    radius: f32,
+    color: sdl.Color,
+    num_segments: u32,
+    opt: FillNgon,
+) void {
+    const m = opt.trs.getMatrix();
+    const center = transformPoint(_center, m);
+    draw_list.?.addNgonFilled(.{
+        .p = [_]f32{ center.x, center.y },
+        .r = radius,
+        .col = convertColor(color),
+        .num_segments = num_segments,
+    });
+}
+
+pub const AddPolyline = struct {
+    trs: TransformOption = .{},
+    thickness: f32 = 1.0,
+    closed: bool = false,
+};
+pub fn addPolyline(
+    _points: []const sdl.PointF,
+    color: sdl.Color,
+    opt: AddPolyline,
+) void {
+    const S = struct {
+        var points: ?std.ArrayList([2]f32) = null;
+    };
+
+    if (_points.len < 2) return;
+
+    if (S.points == null) {
+        S.points = std.ArrayList([2]f32).init(arena.allocator());
+    }
+
+    S.points.?.clearRetainingCapacity();
+
+    const m = opt.trs.getMatrix();
+    for (_points) |_p| {
+        const p = transformPoint(_p, m);
+        S.points.?.append(.{ p.x, p.y }) catch unreachable;
+    }
+
+    draw_list.?.addPolyline(
+        S.points.?.items,
+        .{
+            .col = convertColor(color),
+            .flags = .{ .closed = opt.closed },
+            .thickness = opt.thickness,
+        },
+    );
+}
+
+pub const AddConvexPolyFilled = struct {
+    trs: TransformOption = .{},
+};
+pub fn addConvexPolyFilled(
+    _points: []const sdl.PointF,
+    color: sdl.Color,
+    opt: AddConvexPolyFilled,
+) void {
+    const S = struct {
+        var points: ?std.ArrayList([2]f32) = null;
+    };
+
+    if (_points.len < 2) return;
+
+    if (S.points == null) {
+        S.points = std.ArrayList([2]f32).init(arena.allocator());
+    }
+
+    S.points.?.clearRetainingCapacity();
+
+    const m = opt.trs.getMatrix();
+    for (_points) |_p| {
+        const p = transformPoint(_p, m);
+        S.points.?.append(.{ p.x, p.y }) catch unreachable;
+    }
+
+    draw_list.?.addConvexPolyFilled(
+        S.points.?.items,
+        convertColor(color),
+    );
 }
 
 // Calculate transform matrix
