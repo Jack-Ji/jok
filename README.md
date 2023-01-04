@@ -12,7 +12,7 @@ A minimal 2d/3d game framework for zig.
 * 2D sprite sheet generation/save/load
 * 2D animation system
 * 2D particle system
-* 2D primitive rendering (line/rectangle/ellipse/circle/triangle/polyline etc)
+* 2D primitive rendering (line/rectangle/circle/triangle/polyline etc)
 * 2D scene management
 * 3D camera
 * 3D skybox rendering
