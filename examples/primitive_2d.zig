@@ -18,6 +18,8 @@ const PrimitiveType = enum(i32) {
     ngon,
     polyline,
     polygon,
+    bezier_cubic,
+    bezier_quad,
 };
 
 var primtype: PrimitiveType = .rectangle;
@@ -70,6 +72,10 @@ pub fn draw(ctx: *jok.Context) !void {
         _ = imgui.radioButtonStatePtr("polyline", .{ .v = selection, .v_button = 6 });
         imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("polygon", .{ .v = selection, .v_button = 7 });
+        imgui.sameLine(.{});
+        _ = imgui.radioButtonStatePtr("bezier_cubic", .{ .v = selection, .v_button = 8 });
+        imgui.sameLine(.{});
+        _ = imgui.radioButtonStatePtr("bezier_quad", .{ .v = selection, .v_button = 9 });
         imgui.separator();
         _ = imgui.checkbox("antialiased", .{ .v = &antialiased });
         imgui.sameLine(.{});
@@ -281,6 +287,31 @@ pub fn draw(ctx: *jok.Context) !void {
                     },
                 );
             }
+        },
+        .bezier_cubic => {
+            primitive.addBezierCubic(
+                .{ .x = -100, .y = 0 },
+                .{ .x = -50, .y = -150 },
+                .{ .x = 100, .y = 120 },
+                .{ .x = 50, .y = 200 },
+                rgba,
+                .{
+                    .trs = trs,
+                    .thickness = thickness,
+                },
+            );
+        },
+        .bezier_quad => {
+            primitive.addBezierQuadratic(
+                .{ .x = -100, .y = 0 },
+                .{ .x = -50, .y = -150 },
+                .{ .x = 50, .y = 200 },
+                rgba,
+                .{
+                    .trs = trs,
+                    .thickness = thickness,
+                },
+            );
         },
     }
     primitive.addLine(

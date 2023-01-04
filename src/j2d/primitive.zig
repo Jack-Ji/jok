@@ -41,7 +41,6 @@ pub fn deinit() void {
 
 /// Reset draw list state
 pub const RenderOption = struct {
-    texture: ?sdl.Texture = null,
     antialiased: bool = true,
 };
 pub fn clear(opt: RenderOption) void {
@@ -54,10 +53,6 @@ pub fn clear(opt: RenderOption) void {
         .width = @intToFloat(f32, fb_size.width_pixels),
         .height = @intToFloat(f32, fb_size.height_pixels),
     }, false);
-
-    if (opt.texture) |tex| {
-        draw_list.?.pushTextureId(tex.ptr);
-    }
 
     if (opt.antialiased) {
         draw_list.?.setDrawListFlags(.{
@@ -486,6 +481,59 @@ pub fn addConvexPolyFilled(
         S.points.?.items,
         convertColor(color),
     );
+}
+
+pub const AddBezierCubic = struct {
+    trs: TransformOption = .{},
+    thickness: f32 = 1.0,
+    num_segments: u32 = 0,
+};
+pub fn addBezierCubic(
+    _p1: sdl.PointF,
+    _p2: sdl.PointF,
+    _p3: sdl.PointF,
+    _p4: sdl.PointF,
+    color: sdl.Color,
+    opt: AddBezierCubic,
+) void {
+    const m = opt.trs.getMatrix();
+    const p1 = transformPoint(_p1, m);
+    const p2 = transformPoint(_p2, m);
+    const p3 = transformPoint(_p3, m);
+    const p4 = transformPoint(_p4, m);
+    draw_list.?.addBezierCubic(.{
+        .p1 = .{ p1.x, p1.y },
+        .p2 = .{ p2.x, p2.y },
+        .p3 = .{ p3.x, p3.y },
+        .p4 = .{ p4.x, p4.y },
+        .col = convertColor(color),
+        .thickness = opt.thickness,
+    });
+}
+
+pub const AddBezierQuadratic = struct {
+    trs: TransformOption = .{},
+    thickness: f32 = 1.0,
+    num_segments: u32 = 0,
+};
+pub fn addBezierQuadratic(
+    _p1: sdl.PointF,
+    _p2: sdl.PointF,
+    _p3: sdl.PointF,
+    color: sdl.Color,
+    opt: AddBezierQuadratic,
+) void {
+    const m = opt.trs.getMatrix();
+    const p1 = transformPoint(_p1, m);
+    const p2 = transformPoint(_p2, m);
+    const p3 = transformPoint(_p3, m);
+    draw_list.?.addBezierQuadratic(.{
+        .p1 = .{ p1.x, p1.y },
+        .p2 = .{ p2.x, p2.y },
+        .p3 = .{ p3.x, p3.y },
+        .col = convertColor(color),
+        .thickness = opt.thickness,
+    });
 }
 
 // Calculate transform matrix
