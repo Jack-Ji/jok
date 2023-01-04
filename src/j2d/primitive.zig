@@ -63,10 +63,6 @@ pub fn clear(opt: RenderOption) void {
             .anti_aliased_fill = true,
             .allow_vtx_offset = true,
         });
-    } else {
-        draw_list.?.setDrawListFlags(.{
-            .allow_vtx_offset = true,
-        });
     }
 }
 

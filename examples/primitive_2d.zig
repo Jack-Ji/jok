@@ -49,6 +49,7 @@ pub fn draw(ctx: *jok.Context) !void {
     if (imgui.begin("Control Panel", .{})) {
         var selection: *i32 = @ptrCast(*i32, &primtype);
         _ = imgui.radioButtonStatePtr("square", .{ .v = selection, .v_button = 0 });
+        imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("line", .{ .v = selection, .v_button = 1 });
         imgui.separator();
         _ = imgui.checkbox("antialiased", .{ .v = &antialiased });
