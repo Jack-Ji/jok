@@ -134,7 +134,7 @@ pub fn popTexture() void {
 }
 
 pub const AddLine = struct {
-    trs: TransformOption,
+    trs: TransformOption = .{},
     thickness: f32 = 1.0,
 };
 pub fn addLine(_p1: sdl.PointF, _p2: sdl.PointF, color: sdl.Color, opt: AddLine) void {
@@ -150,25 +150,21 @@ pub fn addLine(_p1: sdl.PointF, _p2: sdl.PointF, color: sdl.Color, opt: AddLine)
 }
 
 pub const AddRect = struct {
-    trs: TransformOption,
+    trs: TransformOption = .{},
     thickness: f32 = 1.0,
     rounding: f32 = 0,
 };
-pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, _opt: AddRect) void {
-    var opt = _opt;
-    opt.trs.rotate = 0; // NOTE: doesn't support rotating
-
+pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, opt: AddRect) void {
     const m = opt.trs.getMatrix();
     const _p1 = sdl.PointF{
         .x = rect.x,
         .y = rect.y,
     };
-    const _p2 = sdl.PointF{
-        .x = rect.x + rect.width,
-        .y = rect.y + rect.height,
-    };
     const p1 = transformPoint(_p1, m);
-    const p2 = transformPoint(_p2, m);
+    const p2 = sdl.PointF{
+        .x = p1.x + rect.width,
+        .y = p1.y + rect.height,
+    };
     draw_list.?.addRect(.{
         .pmin = .{ p1.x, p1.y },
         .pmax = .{ p2.x, p2.y },
@@ -179,24 +175,20 @@ pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, _opt: AddRect) void {
 }
 
 pub const FillRect = struct {
-    trs: TransformOption,
+    trs: TransformOption = .{},
     rounding: f32 = 0,
 };
-pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, _opt: FillRect) void {
-    var opt = _opt;
-    opt.trs.rotate = 0; // NOTE: doesn't support rotating
-    //
+pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) void {
     const m = opt.trs.getMatrix();
     const _p1 = sdl.PointF{
         .x = rect.x,
         .y = rect.y,
     };
-    const _p2 = sdl.PointF{
-        .x = rect.x + rect.width,
-        .y = rect.y + rect.height,
-    };
     const p1 = transformPoint(_p1, m);
-    const p2 = transformPoint(_p2, m);
+    const p2 = sdl.PointF{
+        .x = p1.x + rect.width,
+        .y = p1.y + rect.height,
+    };
     draw_list.?.addRectFilled(.{
         .pmin = .{ p1.x, p1.y },
         .pmax = .{ p2.x, p2.y },
@@ -206,7 +198,7 @@ pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, _opt: FillRect) voi
 }
 
 pub const FillRectMultiColor = struct {
-    trs: TransformOption,
+    trs: TransformOption = .{},
 };
 pub fn addRectFilledMultiColor(
     rect: sdl.RectangleF,
@@ -241,7 +233,7 @@ pub fn addRectFilledMultiColor(
 }
 
 pub const AddQuad = struct {
-    trs: TransformOption,
+    trs: TransformOption = .{},
     thickness: f32 = 1.0,
 };
 pub fn addQuad(
@@ -268,7 +260,7 @@ pub fn addQuad(
 }
 
 pub const FillQuad = struct {
-    trs: TransformOption,
+    trs: TransformOption = .{},
 };
 pub fn addQuadFilled(
     _p1: sdl.PointF,
