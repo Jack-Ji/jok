@@ -1,4 +1,4 @@
-pub const version = @import("std").SemanticVersion{ .major = 0, .minor = 9, .patch = 2 };
+pub const version = @import("std").SemanticVersion{ .major = 0, .minor = 9, .patch = 3 };
 const std = @import("std");
 const assert = std.debug.assert;
 //--------------------------------------------------------------------------------------------------
@@ -619,14 +619,7 @@ pub const Noise = opaque {
             amplitude: f64,
         ) Config {
             var config: Config = undefined;
-            zaudioNoiseConfigInit(
-                format,
-                num_channels,
-                noise_type,
-                seed,
-                amplitude,
-                &config,
-            );
+            zaudioNoiseConfigInit(format, num_channels, noise_type, seed, amplitude, &config);
             return config;
         }
         extern fn zaudioNoiseConfigInit(
@@ -638,6 +631,57 @@ pub const Noise = opaque {
             out_config: *Config,
         ) void;
     };
+};
+//--------------------------------------------------------------------------------------------------
+//
+// AudioBuffer
+//
+//--------------------------------------------------------------------------------------------------
+pub const AudioBuffer = opaque {
+    pub const Config = extern struct {
+        format: Format,
+        channels: u32,
+        sample_rate: u32,
+        size_in_frames: u64,
+        data: ?*const anyopaque,
+        allocation_callbacks: AllocationCallbacks,
+
+        extern fn zaudioAudioBufferConfigInit(
+            format: Format,
+            channels: u32,
+            size_in_frames: u64,
+            data: ?*const anyopaque,
+            out_config: *Config,
+        ) void;
+
+        pub fn init(
+            format: Format,
+            channels: u32,
+            size_in_frames: u64,
+            data: ?*const anyopaque,
+        ) Config {
+            var config: Config = undefined;
+            zaudioAudioBufferConfigInit(format, channels, size_in_frames, data, &config);
+            return config;
+        }
+    };
+
+    pub fn create(config: Config) Error!*AudioBuffer {
+        var handle: ?*AudioBuffer = null;
+        try maybeError(zaudioAudioBufferCreate(&config, &handle));
+        return handle.?;
+    }
+    extern fn zaudioAudioBufferCreate(config: *const Config, out_handle: ?*?*AudioBuffer) Result;
+
+    pub const destroy = zaudioAudioBufferDestroy;
+    extern fn zaudioAudioBufferDestroy(handle: *AudioBuffer) void;
+
+    pub fn asDataSource(audio_buffer: *const AudioBuffer) *const DataSource {
+        return @ptrCast(*const DataSource, audio_buffer);
+    }
+    pub fn asDataSourceMut(audio_buffer: *AudioBuffer) *DataSource {
+        return @ptrCast(*DataSource, audio_buffer);
+    }
 };
 //--------------------------------------------------------------------------------------------------
 //
@@ -2746,6 +2790,38 @@ test "zaudio.node_graph.basic" {
     const node_graph = try NodeGraph.create(config);
     defer node_graph.destroy();
     _ = node_graph.getTime();
+}
+
+test "zaudio.audio_buffer" {
+    init(std.testing.allocator);
+    defer deinit();
+
+    var samples = try std.ArrayList(f32).initCapacity(std.testing.allocator, 1000);
+    defer samples.deinit();
+
+    var prng = std.rand.DefaultPrng.init(0);
+    const rand = prng.random();
+
+    samples.expandToCapacity();
+    for (samples.items) |*sample| {
+        sample.* = -1.0 + 2.0 * rand.float(f32);
+    }
+
+    const audio_buffer = try AudioBuffer.create(
+        AudioBuffer.Config.init(.float32, 1, samples.items.len, samples.items.ptr),
+    );
+    defer audio_buffer.destroy();
+
+    const engine = try Engine.create(null);
+    defer engine.destroy();
+
+    const sound = try engine.createSoundFromDataSource(audio_buffer.asDataSourceMut(), .{}, null);
+    defer sound.destroy();
+
+    sound.setLooping(true);
+    try sound.start();
+
+    std.time.sleep(1e8);
 }
 
 test {

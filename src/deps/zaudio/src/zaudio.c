@@ -584,7 +584,7 @@ void zaudioSoundGroupDestroy(ma_sound_group* handle) {
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-ma_result zaudioFenceCreate(ma_sound_group** out_handle) {
+ma_result zaudioFenceCreate(ma_fence** out_handle) {
     assert(out_handle != NULL);
     *out_handle = s_mem.onMalloc(sizeof(ma_fence), s_mem.pUserData);
     ma_result res = ma_fence_init(*out_handle);
@@ -599,6 +599,31 @@ void zaudioFenceDestroy(ma_fence* handle) {
     assert(handle != NULL);
     ma_fence_uninit(handle);
     s_mem.onFree(handle, s_mem.pUserData);
+}
+//--------------------------------------------------------------------------------------------------
+void zaudioAudioBufferConfigInit(
+    ma_format format,
+    ma_uint32 channels,
+    ma_int64 size_in_frames,
+    const void* data,
+    ma_audio_buffer_config* out_config
+) {
+    assert(out_config != NULL);
+    *out_config = ma_audio_buffer_config_init(format, channels, size_in_frames, data, &s_mem);
+}
+
+ma_result zaudioAudioBufferCreate(const ma_audio_buffer_config* config, ma_audio_buffer** out_handle) {
+    assert(config && out_handle != NULL);
+    ma_result res = ma_audio_buffer_alloc_and_init(config, out_handle);
+    if (res != MA_SUCCESS) {
+        *out_handle = NULL;
+    }
+    return res;
+}
+
+void zaudioAudioBufferDestroy(ma_audio_buffer* handle) {
+    assert(handle != NULL);
+    ma_audio_buffer_uninit_and_free(handle);
 }
 //--------------------------------------------------------------------------------------------------
 //
