@@ -9,14 +9,14 @@ const zmath = jok.zmath;
 pub const TransformOption = struct {
     scale: sdl.PointF = .{ .x = 1, .y = 1 },
     anchor: sdl.PointF = .{ .x = 0, .y = 0 },
-    rotate: f32 = 0,
+    rotate_degree: f32 = 0,
     offset: sdl.PointF = .{ .x = 0, .y = 0 },
 
     pub fn getMatrix(self: @This()) zmath.Mat {
         return getTransformMatrix(
             self.scale,
             self.anchor,
-            self.rotate,
+            self.rotate_degree,
             self.offset,
         );
     }
@@ -24,7 +24,7 @@ pub const TransformOption = struct {
     pub fn getMatrixNoScale(self: @This()) zmath.Mat {
         return getTransformMatrixNoScale(
             self.anchor,
-            self.rotate,
+            self.rotate_degree,
             self.offset,
         );
     }
@@ -53,15 +53,8 @@ pub const RenderOption = struct {
 };
 pub fn clear(opt: RenderOption) void {
     draw_list.?.reset();
-
-    const fb_size = rd.getOutputSize() catch unreachable;
-    pushClipRect(.{
-        .x = 0,
-        .y = 0,
-        .width = @intToFloat(f32, fb_size.width_pixels),
-        .height = @intToFloat(f32, fb_size.height_pixels),
-    }, false);
-
+    draw_list.?.pushClipRectFullScreen();
+    draw_list.?.pushTextureId(imgui.io.getFontsTexId());
     if (opt.antialiased) {
         draw_list.?.setDrawListFlags(.{
             .anti_aliased_lines = true,
@@ -540,18 +533,132 @@ pub fn addBezierQuadratic(
     });
 }
 
+pub fn addText(pos: sdl.PointF, color: sdl.Color, fmt: []const u8, args: anytype) void {
+    draw_list.?.addText(.{ pos.x, pos.y }, convertColor(color), fmt, args);
+}
+
+pub const path = struct {
+    var transform_m: zmath.Mat = zmath.identity();
+    var scale: sdl.PointF = .{ .x = 1, .y = 1 };
+
+    pub const PathBegin = struct {
+        trs: TransformOption = .{},
+    };
+    pub fn begin(opt: PathBegin) void {
+        draw_list.?.pathClear();
+        transform_m = opt.trs.getMatrix();
+        scale = opt.trs.scale;
+    }
+
+    pub fn fill(color: sdl.Color) void {
+        draw_list.?.pathFillConvex(convertColor(color));
+    }
+
+    pub const Stroke = struct {
+        thickness: f32 = 1.0,
+        closed: bool = false,
+    };
+    pub fn stroke(color: sdl.Color, opt: Stroke) void {
+        draw_list.?.pathStroke(.{
+            .col = convertColor(color),
+            .flags = .{ .closed = opt.closed },
+            .thickness = opt.thickness,
+        });
+    }
+
+    pub fn lineTo(pos: sdl.PointF) void {
+        const p = transformPoint(pos, transform_m);
+        draw_list.?.pathLineTo(.{ p.x, p.y });
+    }
+
+    pub const ArcTo = struct {
+        num_segments: u32 = 0,
+    };
+    pub fn arcTo(
+        pos: sdl.PointF,
+        radius: f32,
+        degree_begin: f32,
+        degree_end: f32,
+        opt: ArcTo,
+    ) void {
+        const p = transformPoint(pos, transform_m);
+        draw_list.?.pathArcTo(.{
+            .p = .{ p.x, p.y },
+            .r = radius * scale.x,
+            .amin = jok.utils.math.degreeToRadian(degree_begin),
+            .amax = jok.utils.math.degreeToRadian(degree_end),
+            .num_segments = opt.num_segments,
+        });
+    }
+
+    pub const BezierCurveTo = struct {
+        num_segments: u32 = 0,
+    };
+    pub fn bezierCubicCurveTo(
+        _p2: sdl.PointF,
+        _p3: sdl.PointF,
+        _p4: sdl.PointF,
+        opt: BezierCurveTo,
+    ) void {
+        const p2 = transformPoint(_p2, transform_m);
+        const p3 = transformPoint(_p3, transform_m);
+        const p4 = transformPoint(_p4, transform_m);
+        draw_list.?.pathBezierCubicCurveTo(.{
+            .p2 = .{ p2.x, p2.y },
+            .p3 = .{ p3.x, p3.y },
+            .p4 = .{ p4.x, p4.y },
+            .num_segments = opt.num_segments,
+        });
+    }
+    pub fn bezierQuadraticCurveTo(
+        _p2: sdl.PointF,
+        _p3: sdl.PointF,
+        opt: BezierCurveTo,
+    ) void {
+        const p2 = transformPoint(_p2, transform_m);
+        const p3 = transformPoint(_p3, transform_m);
+        draw_list.?.pathPathBezierQuadraticCurveTo(.{
+            .p2 = .{ p2.x, p2.y },
+            .p3 = .{ p3.x, p3.y },
+            .num_segments = opt.num_segments,
+        });
+    }
+
+    pub const Rect = struct {
+        rounding: f32 = 0,
+    };
+    pub fn rect(r: sdl.RectangleF, opt: Rect) void {
+        const m = opt.trs.getMatrixNoScale();
+        const _p1 = sdl.PointF{
+            .x = r.x,
+            .y = r.y,
+        };
+        const p1 = transformPoint(_p1, m);
+        const p2 = sdl.PointF{
+            .x = p1.x + r.width * scale.x,
+            .y = p1.y + r.height * scale.y,
+        };
+        draw_list.?.pathPathBezierQuadraticCurveTo(.{
+            .bmin = .{ p1.x, p1.y },
+            .bmax = .{ p2.x, p2.y },
+            .rounding = opt.rounding,
+            .num_segments = opt.num_segments,
+        });
+    }
+};
+
 // Calculate transform matrix
-inline fn getTransformMatrix(scale: sdl.PointF, anchor: sdl.PointF, rotate: f32, offset: sdl.PointF) zmath.Mat {
+inline fn getTransformMatrix(scale: sdl.PointF, anchor: sdl.PointF, rotate_degree: f32, offset: sdl.PointF) zmath.Mat {
     const m1 = zmath.scaling(scale.x, scale.y, 0);
     const m2 = zmath.translation(-anchor.x, -anchor.y, 0);
-    const m3 = zmath.rotationZ(rotate * math.pi / 180);
+    const m3 = zmath.rotationZ(jok.utils.math.degreeToRadian(rotate_degree));
     const m4 = zmath.translation(anchor.x, anchor.y, 0);
     const m5 = zmath.translation(offset.x, offset.y, 0);
     return zmath.mul(zmath.mul(zmath.mul(zmath.mul(m1, m2), m3), m4), m5);
 }
-inline fn getTransformMatrixNoScale(anchor: sdl.PointF, rotate: f32, offset: sdl.PointF) zmath.Mat {
+inline fn getTransformMatrixNoScale(anchor: sdl.PointF, rotate_degree: f32, offset: sdl.PointF) zmath.Mat {
     const m1 = zmath.translation(-anchor.x, -anchor.y, 0);
-    const m2 = zmath.rotationZ(rotate * math.pi / 180);
+    const m2 = zmath.rotationZ(jok.utils.math.degreeToRadian(rotate_degree));
     const m3 = zmath.translation(anchor.x, anchor.y, 0);
     const m4 = zmath.translation(offset.x, offset.y, 0);
     return zmath.mul(zmath.mul(zmath.mul(m1, m2), m3), m4);

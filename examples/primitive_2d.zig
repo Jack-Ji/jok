@@ -20,6 +20,7 @@ const PrimitiveType = enum(i32) {
     polygon,
     bezier_cubic,
     bezier_quad,
+    custom_path,
 };
 
 var primtype: PrimitiveType = .rectangle;
@@ -77,6 +78,7 @@ pub fn draw(ctx: *jok.Context) !void {
         _ = imgui.radioButtonStatePtr("bezier_cubic", .{ .v = selection, .v_button = 8 });
         imgui.sameLine(.{});
         _ = imgui.radioButtonStatePtr("bezier_quad", .{ .v = selection, .v_button = 9 });
+        _ = imgui.radioButtonStatePtr("custom_path", .{ .v = selection, .v_button = 10 });
         imgui.separator();
         _ = imgui.checkbox("antialiased", .{ .v = &antialiased });
         imgui.sameLine(.{});
@@ -87,7 +89,7 @@ pub fn draw(ctx: *jok.Context) !void {
         _ = imgui.dragFloat("rounding", .{ .v = &rounding, .max = 50 });
         _ = imgui.dragFloat2("scale", .{ .v = &scale, .speed = 0.1 });
         _ = imgui.dragFloat2("anchor", .{ .v = &anchor });
-        _ = imgui.dragFloat("rotate", .{ .v = &rotate_angle });
+        _ = imgui.dragFloat("rotate (deg)", .{ .v = &rotate_angle });
         _ = imgui.dragFloat2("offset", .{ .v = &offset });
     }
     imgui.end();
@@ -101,7 +103,7 @@ pub fn draw(ctx: *jok.Context) !void {
     const trs = primitive.TransformOption{
         .scale = .{ .x = scale[0], .y = scale[1] },
         .anchor = .{ .x = anchor[0], .y = anchor[1] },
-        .rotate = rotate_angle,
+        .rotate_degree = rotate_angle,
         .offset = .{ .x = offset[0], .y = offset[1] },
     };
 
@@ -315,6 +317,57 @@ pub fn draw(ctx: *jok.Context) !void {
                     .thickness = thickness,
                 },
             );
+        },
+        .custom_path => {
+            primitive.path.begin(.{ .trs = trs });
+            primitive.path.lineTo(.{ .x = -50, .y = 0 });
+            primitive.path.lineTo(.{ .x = -40, .y = -30 });
+            primitive.path.lineTo(.{ .x = 40, .y = -30 });
+            primitive.path.lineTo(.{ .x = 60, .y = 0 });
+            if (filling) {
+                primitive.path.fill(rgba);
+            } else {
+                primitive.path.stroke(rgba, .{
+                    .thickness = thickness,
+                    .closed = true,
+                });
+            }
+
+            primitive.path.begin(.{ .trs = trs });
+            primitive.path.lineTo(.{ .x = -80, .y = 0 });
+            primitive.path.lineTo(.{ .x = 90, .y = 0 });
+            primitive.path.lineTo(.{ .x = 100, .y = 20 });
+            primitive.path.lineTo(.{ .x = -80, .y = 20 });
+            if (filling) {
+                primitive.path.fill(rgba);
+            } else {
+                primitive.path.stroke(rgba, .{
+                    .thickness = thickness,
+                    .closed = true,
+                });
+            }
+
+            primitive.path.begin(.{ .trs = trs });
+            primitive.path.arcTo(.{ .x = -50, .y = 35 }, 15, 0, 360, .{});
+            if (filling) {
+                primitive.path.fill(rgba);
+            } else {
+                primitive.path.stroke(rgba, .{
+                    .thickness = thickness,
+                    .closed = true,
+                });
+            }
+
+            primitive.path.begin(.{ .trs = trs });
+            primitive.path.arcTo(.{ .x = 70, .y = 35 }, 15, 0, 360, .{});
+            if (filling) {
+                primitive.path.fill(rgba);
+            } else {
+                primitive.path.stroke(rgba, .{
+                    .thickness = thickness,
+                    .closed = true,
+                });
+            }
         },
     }
     primitive.addLine(

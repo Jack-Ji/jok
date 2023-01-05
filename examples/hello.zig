@@ -36,7 +36,7 @@ pub fn draw(ctx: *jok.Context) !void {
                     .x = @floatCast(f32, 1.3 + std.math.sin(ctx.tick)),
                     .y = @floatCast(f32, 1.3 + std.math.sin(ctx.tick)),
                 },
-                .rotate = @floatCast(f32, ctx.tick * 30),
+                .rotate_degree = @floatCast(f32, ctx.tick * 30),
                 .offset = .{
                     .x = @intToFloat(f32, fb_size.w) / 2,
                     .y = @intToFloat(f32, fb_size.h) / 2,

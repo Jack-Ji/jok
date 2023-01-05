@@ -51,6 +51,7 @@ pub fn draw(ctx: *jok.Context) !void {
                 .y = @intToFloat(f32, ctx.getFramebufferSize().h / 2),
             },
         },
+        .closed = true,
     });
     try primitive.draw();
 }
