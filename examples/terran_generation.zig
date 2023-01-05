@@ -64,7 +64,6 @@ pub fn init(ctx: *jok.Context) !void {
     shape.computeNormals();
 
     try ctx.renderer.setColorRGB(77, 77, 77);
-    try ctx.renderer.setDrawBlendMode(.blend);
 }
 
 pub fn event(ctx: *jok.Context, e: sdl.Event) !void {

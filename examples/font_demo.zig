@@ -24,7 +24,6 @@ pub fn draw(ctx: *jok.Context) !void {
     const size = ctx.getFramebufferSize();
 
     try ctx.renderer.setColorRGBA(0, 128, 0, 120);
-    try ctx.renderer.setDrawBlendMode(.blend);
 
     var result = try font.debugDraw(
         ctx.renderer,

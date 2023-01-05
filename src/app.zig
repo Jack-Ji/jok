@@ -266,6 +266,7 @@ fn initSDL() !void {
     };
     const rdinfo = try ctx.renderer.getInfo();
     ctx.is_software = ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0);
+    try ctx.renderer.setDrawBlendMode(.blend);
 }
 
 /// Deinitialize SDL

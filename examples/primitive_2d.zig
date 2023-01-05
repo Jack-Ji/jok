@@ -42,7 +42,6 @@ pub fn init(ctx: *jok.Context) !void {
     offset[1] = @intToFloat(f32, fb.h) / 2;
 
     try ctx.renderer.setColorRGB(77, 77, 77);
-    try ctx.renderer.setDrawBlendMode(.blend);
 }
 
 pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
