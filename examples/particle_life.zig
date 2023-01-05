@@ -91,10 +91,11 @@ const Point = struct {
     color: sdl.Color = sdl.Color.black,
 
     fn draw(p: Point) !void {
-        try primitive.addCircle(
+        primitive.addCircleFilled(
             .{ .x = p.x, .y = p.y },
             3,
-            .{ .common = .{ .color = p.color } },
+            p.color,
+            .{},
         );
     }
 };
@@ -585,253 +586,234 @@ fn renderSimulation() !void {
         primitive.clear(.{});
         defer primitive.draw() catch unreachable;
 
-        try primitive.addCircle(
+        primitive.addCircleFilled(
             .{ .x = xshift, .y = yshift },
             150,
-            .{ .common = .{ .color = sdl.Color.black } },
+            sdl.Color.black,
+            .{},
         );
 
-        try primitive.addLine(
+        primitive.addLine(
             .{ .x = p1x, .y = p1y - 10 },
             .{ .x = p2x, .y = p2y - 10 },
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_gr),
+                @floatToInt(u8, 150 + power_gr),
+                150,
+            ),
             .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, 150 - power_gr),
-                    @floatToInt(u8, 150 + power_gr),
-                    150,
-                ),
                 .thickness = 5,
             },
         );
-        try primitive.addLine(
+        primitive.addLine(
             .{ .x = p1x, .y = p1y + 10 },
             .{ .x = p2x, .y = p2y + 10 },
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_rg),
+                @floatToInt(u8, 150 + power_rg),
+                150,
+            ),
             .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, 150 - power_rg),
-                    @floatToInt(u8, 150 + power_rg),
-                    150,
-                ),
                 .thickness = 5,
             },
         );
-        try primitive.addLine(
+        primitive.addLine(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p1x, .y = p1y - 10 },
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_gw),
+                @floatToInt(u8, 150 + power_gw),
+                150,
+            ),
             .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, 150 - power_gw),
-                    @floatToInt(u8, 150 + power_gw),
-                    150,
-                ),
                 .thickness = 5,
             },
         );
-        try primitive.addLine(
+        primitive.addLine(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p1x, .y = p1y + 10 },
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_wg),
+                @floatToInt(u8, 150 + power_wg),
+                150,
+            ),
             .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, 150 - power_wg),
-                    @floatToInt(u8, 150 + power_wg),
-                    150,
-                ),
                 .thickness = 5,
             },
         );
 
-        try primitive.addLine(
+        primitive.addLine(
             .{ .x = p4x - 10, .y = p4y },
             .{ .x = p1x - 10, .y = p1y },
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_gb),
+                @floatToInt(u8, 150 + power_gb),
+                150,
+            ),
             .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, 150 - power_gb),
-                    @floatToInt(u8, 150 + power_gb),
-                    150,
-                ),
                 .thickness = 5,
             },
         );
-        try primitive.addLine(
+        primitive.addLine(
             .{ .x = p4x + 10, .y = p4y },
             .{ .x = p1x + 10, .y = p1y },
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_bg),
+                @floatToInt(u8, 150 + power_bg),
+                150,
+            ),
             .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, 150 - power_bg),
-                    @floatToInt(u8, 150 + power_bg),
-                    150,
-                ),
                 .thickness = 5,
             },
         );
 
-        try primitive.addLine(
+        primitive.addLine(
             .{ .x = p2x - 10, .y = p2y },
             .{ .x = p3x - 10, .y = p3y },
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_rw),
+                @floatToInt(u8, 150 + power_rw),
+                150,
+            ),
             .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, 150 - power_rw),
-                    @floatToInt(u8, 150 + power_rw),
-                    150,
-                ),
                 .thickness = 5,
             },
         );
-        try primitive.addLine(
+        primitive.addLine(
             .{ .x = p2x + 10, .y = p2y },
             .{ .x = p3x + 10, .y = p3y },
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_wr),
+                @floatToInt(u8, 150 + power_wr),
+                150,
+            ),
             .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, 150 - power_wr),
-                    @floatToInt(u8, 150 + power_wr),
-                    150,
-                ),
                 .thickness = 5,
             },
         );
 
-        try primitive.addLine(
+        primitive.addLine(
             .{ .x = p2x, .y = p2y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_rb),
+                @floatToInt(u8, 150 + power_rb),
+                150,
+            ),
             .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, 150 - power_rb),
-                    @floatToInt(u8, 150 + power_rb),
-                    150,
-                ),
                 .thickness = 5,
             },
         );
-        try primitive.addLine(
+        primitive.addLine(
             .{ .x = p2x, .y = p2y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_br),
+                @floatToInt(u8, 150 + power_br),
+                150,
+            ),
             .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, 150 - power_br),
-                    @floatToInt(u8, 150 + power_br),
-                    150,
-                ),
                 .thickness = 5,
             },
         );
 
-        try primitive.addLine(
+        primitive.addLine(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_wb),
+                @floatToInt(u8, 150 + power_wb),
+                150,
+            ),
             .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, 150 - power_wb),
-                    @floatToInt(u8, 150 + power_wb),
-                    150,
-                ),
                 .thickness = 5,
             },
         );
-        try primitive.addLine(
+        primitive.addLine(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_bw),
+                @floatToInt(u8, 150 + power_bw),
+                150,
+            ),
             .{
-                .color = sdl.Color.rgb(
-                    @floatToInt(u8, 150 - power_bw),
-                    @floatToInt(u8, 150 + power_bw),
-                    150,
-                ),
                 .thickness = 5,
             },
         );
 
-        try primitive.addCircle(
+        primitive.addCircle(
             .{ .x = p1x - 20, .y = p1y - 20 },
             rr + 20,
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_gg),
+                @floatToInt(u8, 150 + power_gg),
+                150,
+            ),
             .{
-                .common = .{
-                    .color = sdl.Color.rgb(
-                        @floatToInt(u8, 150 - power_gg),
-                        @floatToInt(u8, 150 + power_gg),
-                        150,
-                    ),
-                    .thickness = 2,
-                },
+                .thickness = 2,
             },
         );
-        try primitive.addCircle(
+        primitive.addCircle(
             .{ .x = p2x + 20, .y = p2y - 20 },
             rr + 20,
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_rr),
+                @floatToInt(u8, 150 + power_rr),
+                150,
+            ),
             .{
-                .common = .{
-                    .color = sdl.Color.rgb(
-                        @floatToInt(u8, 150 - power_rr),
-                        @floatToInt(u8, 150 + power_rr),
-                        150,
-                    ),
-                    .thickness = 2,
-                },
+                .thickness = 2,
             },
         );
-        try primitive.addCircle(
+        primitive.addCircle(
             .{ .x = p3x + 20, .y = p3y + 20 },
             rr + 20,
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_ww),
+                @floatToInt(u8, 150 + power_ww),
+                150,
+            ),
             .{
-                .common = .{
-                    .color = sdl.Color.rgb(
-                        @floatToInt(u8, 150 - power_ww),
-                        @floatToInt(u8, 150 + power_ww),
-                        150,
-                    ),
-                    .thickness = 2,
-                },
+                .thickness = 2,
             },
         );
-        try primitive.addCircle(
+        primitive.addCircle(
             .{ .x = p4x - 20, .y = p4y + 20 },
             rr + 20,
+            sdl.Color.rgb(
+                @floatToInt(u8, 150 - power_bb),
+                @floatToInt(u8, 150 + power_bb),
+                150,
+            ),
             .{
-                .common = .{
-                    .color = sdl.Color.rgb(
-                        @floatToInt(u8, 150 - power_bb),
-                        @floatToInt(u8, 150 + power_bb),
-                        150,
-                    ),
-                    .thickness = 2,
-                },
+                .thickness = 2,
             },
         );
 
-        try primitive.addCircle(
+        primitive.addCircle(
             .{ .x = p1x, .y = p1y },
             rr,
-            .{
-                .common = .{
-                    .color = sdl.Color.rgb(100, 250, 10),
-                },
-            },
+            sdl.Color.rgb(100, 250, 10),
+            .{},
         );
-        try primitive.addCircle(
+        primitive.addCircleFilled(
             .{ .x = p2x, .y = p2y },
             rr,
-            .{
-                .common = .{
-                    .color = sdl.Color.rgb(250, 10, 100),
-                },
-            },
+            sdl.Color.rgb(250, 10, 100),
+            .{},
         );
-        try primitive.addCircle(
+        primitive.addCircleFilled(
             .{ .x = p3x, .y = p3y },
             rr,
-            .{
-                .common = .{
-                    .color = sdl.Color.rgb(250, 250, 250),
-                },
-            },
+            sdl.Color.rgb(250, 250, 250),
+            .{},
         );
-        try primitive.addCircle(
+        primitive.addCircleFilled(
             .{ .x = p4x, .y = p4y },
             rr,
-            .{
-                .common = .{
-                    .color = sdl.Color.rgb(100, 100, 250),
-                },
-            },
+            sdl.Color.rgb(100, 100, 250),
+            .{},
         );
     }
 }

@@ -20,6 +20,10 @@ pub fn init(ctx: jok.Context) void {
     zgui.io.setDefaultFont(font);
 
     zgui.plot.init();
+
+    // NOTE: workaround for initializing imgui's internal state
+    newFrame(ctx);
+    defer draw();
 }
 
 pub fn deinit() void {

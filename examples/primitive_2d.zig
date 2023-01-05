@@ -27,6 +27,7 @@ var antialiased: bool = true;
 var filling: bool = false;
 var color: [4]f32 = .{ 1.0, 1.0, 1.0, 0.5 };
 var thickness: f32 = 0;
+var scale: [2]f32 = .{ 1, 1 };
 var anchor: [2]f32 = .{ 0, 0 };
 var rotate_angle: f32 = 0;
 var rounding: f32 = 0;
@@ -84,6 +85,7 @@ pub fn draw(ctx: *jok.Context) !void {
         _ = imgui.colorEdit4("color", .{ .col = &color });
         _ = imgui.dragFloat("thickness", .{ .v = &thickness, .max = 100 });
         _ = imgui.dragFloat("rounding", .{ .v = &rounding, .max = 50 });
+        _ = imgui.dragFloat2("scale", .{ .v = &scale, .speed = 0.1 });
         _ = imgui.dragFloat2("anchor", .{ .v = &anchor });
         _ = imgui.dragFloat("rotate", .{ .v = &rotate_angle });
         _ = imgui.dragFloat2("offset", .{ .v = &offset });
@@ -97,6 +99,7 @@ pub fn draw(ctx: *jok.Context) !void {
         @floatToInt(u8, 255 * color[3]),
     );
     const trs = primitive.TransformOption{
+        .scale = .{ .x = scale[0], .y = scale[1] },
         .anchor = .{ .x = anchor[0], .y = anchor[1] },
         .rotate = rotate_angle,
         .offset = .{ .x = offset[0], .y = offset[1] },

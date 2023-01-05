@@ -20,6 +20,14 @@ pub const TransformOption = struct {
             self.offset,
         );
     }
+
+    pub fn getMatrixNoScale(self: @This()) zmath.Mat {
+        return getTransformMatrixNoScale(
+            self.anchor,
+            self.rotate,
+            self.offset,
+        );
+    }
 };
 
 var arena: std.heap.ArenaAllocator = undefined;
@@ -153,15 +161,15 @@ pub const AddRect = struct {
     rounding: f32 = 0,
 };
 pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, opt: AddRect) void {
-    const m = opt.trs.getMatrix();
+    const m = opt.trs.getMatrixNoScale();
     const _p1 = sdl.PointF{
         .x = rect.x,
         .y = rect.y,
     };
     const p1 = transformPoint(_p1, m);
     const p2 = sdl.PointF{
-        .x = p1.x + rect.width,
-        .y = p1.y + rect.height,
+        .x = p1.x + rect.width * opt.trs.scale.x,
+        .y = p1.y + rect.height * opt.trs.scale.y,
     };
     draw_list.?.addRect(.{
         .pmin = .{ p1.x, p1.y },
@@ -177,15 +185,15 @@ pub const FillRect = struct {
     rounding: f32 = 0,
 };
 pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) void {
-    const m = opt.trs.getMatrix();
+    const m = opt.trs.getMatrixNoScale();
     const _p1 = sdl.PointF{
         .x = rect.x,
         .y = rect.y,
     };
     const p1 = transformPoint(_p1, m);
     const p2 = sdl.PointF{
-        .x = p1.x + rect.width,
-        .y = p1.y + rect.height,
+        .x = p1.x + rect.width * opt.trs.scale.x,
+        .y = p1.y + rect.height * opt.trs.scale.y,
     };
     draw_list.?.addRectFilled(.{
         .pmin = .{ p1.x, p1.y },
@@ -204,22 +212,18 @@ pub fn addRectFilledMultiColor(
     color_top_right: sdl.Color,
     color_bottom_right: sdl.Color,
     color_bottom_left: sdl.Color,
-    _opt: FillRectMultiColor,
+    opt: FillRectMultiColor,
 ) void {
-    var opt = _opt;
-    opt.trs.rotate = 0; // NOTE: doesn't support rotating
-    //
-    const m = opt.trs.getMatrix();
+    const m = opt.trs.getMatrixNoScale();
     const _p1 = sdl.PointF{
         .x = rect.x,
         .y = rect.y,
     };
-    const _p2 = sdl.PointF{
-        .x = rect.x + rect.width,
-        .y = rect.y + rect.height,
-    };
     const p1 = transformPoint(_p1, m);
-    const p2 = transformPoint(_p2, m);
+    const p2 = sdl.PointF{
+        .x = p1.x + rect.width * opt.trs.scale.x,
+        .y = p1.y + rect.height * opt.trs.scale.y,
+    };
     draw_list.?.addRectFilledMultiColor(.{
         .pmin = .{ p1.x, p1.y },
         .pmax = .{ p2.x, p2.y },
@@ -339,11 +343,11 @@ pub fn addCircle(
     color: sdl.Color,
     opt: AddCircle,
 ) void {
-    const m = opt.trs.getMatrix();
+    const m = opt.trs.getMatrixNoScale();
     const center = transformPoint(_center, m);
     draw_list.?.addCircle(.{
         .p = [_]f32{ center.x, center.y },
-        .r = radius,
+        .r = radius * opt.trs.scale.x,
         .col = convertColor(color),
         .thickness = opt.thickness,
         .num_segments = opt.num_segments,
@@ -360,11 +364,11 @@ pub fn addCircleFilled(
     color: sdl.Color,
     opt: FillCircle,
 ) void {
-    const m = opt.trs.getMatrix();
+    const m = opt.trs.getMatrixNoScale();
     const center = transformPoint(_center, m);
     draw_list.?.addCircleFilled(.{
         .p = [_]f32{ center.x, center.y },
-        .r = radius,
+        .r = radius * opt.trs.scale.x,
         .col = convertColor(color),
         .num_segments = opt.num_segments,
     });
@@ -382,11 +386,11 @@ pub fn addNgon(
     num_segments: u32,
     opt: AddNgon,
 ) void {
-    const m = opt.trs.getMatrix();
+    const m = opt.trs.getMatrixNoScale();
     const center = transformPoint(_center, m);
     draw_list.?.addNgon(.{
         .p = [_]f32{ center.x, center.y },
-        .r = radius,
+        .r = radius * opt.trs.scale.x,
         .col = convertColor(color),
         .num_segments = num_segments,
         .thickness = opt.thickness,
@@ -403,11 +407,11 @@ pub fn addNgonFilled(
     num_segments: u32,
     opt: FillNgon,
 ) void {
-    const m = opt.trs.getMatrix();
+    const m = opt.trs.getMatrixNoScale();
     const center = transformPoint(_center, m);
     draw_list.?.addNgonFilled(.{
         .p = [_]f32{ center.x, center.y },
-        .r = radius,
+        .r = radius * opt.trs.scale.x,
         .col = convertColor(color),
         .num_segments = num_segments,
     });
@@ -544,6 +548,13 @@ inline fn getTransformMatrix(scale: sdl.PointF, anchor: sdl.PointF, rotate: f32,
     const m4 = zmath.translation(anchor.x, anchor.y, 0);
     const m5 = zmath.translation(offset.x, offset.y, 0);
     return zmath.mul(zmath.mul(zmath.mul(zmath.mul(m1, m2), m3), m4), m5);
+}
+inline fn getTransformMatrixNoScale(anchor: sdl.PointF, rotate: f32, offset: sdl.PointF) zmath.Mat {
+    const m1 = zmath.translation(-anchor.x, -anchor.y, 0);
+    const m2 = zmath.rotationZ(rotate * math.pi / 180);
+    const m3 = zmath.translation(anchor.x, anchor.y, 0);
+    const m4 = zmath.translation(offset.x, offset.y, 0);
+    return zmath.mul(zmath.mul(zmath.mul(m1, m2), m3), m4);
 }
 
 // Transform coordinate

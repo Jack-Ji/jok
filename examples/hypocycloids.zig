@@ -31,22 +31,27 @@ pub fn draw(ctx: *jok.Context) !void {
     pts.clearRetainingCapacity();
     var i: usize = 0;
     while (i < 360 * 4 + 1) : (i += 1) {
-        var point = sdl.PointF{
-            .x = @intToFloat(f32, ctx.getFramebufferSize().w / 2),
-            .y = @intToFloat(f32, ctx.getFramebufferSize().h / 2),
-        };
+        var point = sdl.PointF{ .x = 0, .y = 0 };
         var j: usize = 0;
         while (j < 5) : (j += 1) {
             const angle = jok.utils.math.degreeToRadian(@intToFloat(f32, i) / 4 * math.pow(f32, @as(f32, 3.0), @intToFloat(f32, j)));
             const off = math.pow(f32, 0.4 + statechange, @intToFloat(f32, j));
-            point.x += scale * (math.cos(angle) * off);
-            point.y += scale * (math.sin(angle) * off);
+            point.x += math.cos(angle) * off;
+            point.y += math.sin(angle) * off;
         }
         try pts.append(point);
     }
 
     primitive.clear(.{});
-    try primitive.addPolyline(pts.items, .{});
+    primitive.addPolyline(pts.items, sdl.Color.white, .{
+        .trs = .{
+            .scale = .{ .x = scale, .y = scale },
+            .offset = .{
+                .x = @intToFloat(f32, ctx.getFramebufferSize().w / 2),
+                .y = @intToFloat(f32, ctx.getFramebufferSize().h / 2),
+            },
+        },
+    });
     try primitive.draw();
 }
 
