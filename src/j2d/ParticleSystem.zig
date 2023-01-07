@@ -217,7 +217,7 @@ pub const Effect = struct {
 
                 assert(color_fade_age < age_initial);
                 return Particle{
-                    .sprite = sprite.?,
+                    .sprite = sprite,
                     .age = age_initial,
                     .pos = origin.add(offset),
                     .move_speed = Vector.new(-offset.x() * 0.5, 0),
