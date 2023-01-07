@@ -49,12 +49,15 @@ pub fn deinit() void {
 
 /// Reset draw list state
 pub const RenderOption = struct {
+    inherit_texture: bool = true,
     antialiased: bool = true,
 };
 pub fn clear(opt: RenderOption) void {
     draw_list.?.reset();
     draw_list.?.pushClipRectFullScreen();
-    draw_list.?.pushTextureId(imgui.io.getFontsTexId());
+    if (opt.inherit_texture) {
+        draw_list.?.pushTextureId(imgui.io.getFontsTexId());
+    }
     if (opt.antialiased) {
         draw_list.?.setDrawListFlags(.{
             .anti_aliased_lines = true,
@@ -98,14 +101,14 @@ pub fn draw() !void {
         _ = sdl.c.SDL_RenderGeometryRaw(
             rd.ptr,
             @ptrCast(?*sdl.c.SDL_Texture, tex),
-            @intToPtr([*]const f32, xy),
+            @intToPtr([*c]const f32, xy),
             @sizeOf(imgui.DrawVert),
-            @intToPtr([*]const sdl.c.SDL_Color, cs),
+            @intToPtr([*c]const sdl.c.SDL_Color, cs),
             @sizeOf(imgui.DrawVert),
-            @intToPtr([*]const f32, uv),
+            @intToPtr([*c]const f32, uv),
             @sizeOf(imgui.DrawVert),
             @intCast(c_int, vs_count) - @intCast(c_int, cmd.vtx_offset),
-            @intToPtr([*]const c_int, is),
+            @intToPtr([*c]const c_int, is),
             @intCast(c_int, cmd.elem_count),
             @sizeOf(imgui.DrawIdx),
         );
