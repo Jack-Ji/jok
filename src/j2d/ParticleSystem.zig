@@ -163,6 +163,9 @@ pub const Effect = struct {
                     if (self.particles.items.len == self.particles.capacity) break;
                 }
             }
+            if (self.burst_countdown <= 0) {
+                self.burst_countdown = self.burst_freq;
+            }
         }
 
         // Update each particles' status
