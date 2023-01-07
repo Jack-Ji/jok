@@ -235,8 +235,13 @@ pub const Effect = struct {
 
 /// Represent a particle
 pub const Particle = struct {
+    pub const DrawFn = *const fn (particle: Particle) anyerror!void;
+
+    /// Custom drawing callback for particle
+    custom_draw: ?DrawFn = null,
+
     /// Sprite of particle
-    sprite: Sprite,
+    sprite: ?Sprite,
 
     /// Life of particle
     age: f32,
@@ -321,17 +326,21 @@ pub const Particle = struct {
 
     /// Draw particle
     pub fn draw(self: Particle, sprite_batch: *SpriteBatch) !void {
-        try sprite_batch.addSprite(
-            self.sprite,
-            .{
-                .pos = .{ .x = self.pos.x(), .y = self.pos.y() },
-                .tint_color = self.color,
-                .scale_w = self.scale,
-                .scale_h = self.scale,
-                .rotate_degree = self.angle,
-                .anchor_point = .{ .x = 0.5, .y = 0.5 },
-                .depth = 0,
-            },
-        );
+        if (self.custom_draw) |df| {
+            try df(self);
+        } else {
+            try sprite_batch.addSprite(
+                self.sprite.?,
+                .{
+                    .pos = .{ .x = self.pos.x(), .y = self.pos.y() },
+                    .tint_color = self.color,
+                    .scale_w = self.scale,
+                    .scale_h = self.scale,
+                    .rotate_degree = self.angle,
+                    .anchor_point = .{ .x = 0.5, .y = 0.5 },
+                    .depth = 0,
+                },
+            );
+        }
     }
 };
