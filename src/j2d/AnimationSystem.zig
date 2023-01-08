@@ -5,6 +5,11 @@ const Sprite = @import("Sprite.zig");
 const SpriteBatch = @import("SpriteBatch.zig");
 const Self = @This();
 
+pub const Error = error{
+    NameUsed,
+    NameNotExist,
+};
+
 // Memory allocator
 allocator: std.mem.Allocator,
 
@@ -29,6 +34,9 @@ pub fn deinit(self: *Self) void {
 
 /// Add animation
 pub fn add(self: *Self, name: []const u8, anim: Animation) !void {
+    if (self.animations.get(name) != null) {
+        return error.NameUsed;
+    }
     const dname = try self.allocator.dupe(u8, name);
     try self.animations.put(dname, anim);
 }
@@ -51,24 +59,43 @@ pub fn clear(self: *Self) void {
     }
 }
 
-/// Play animation
-pub fn play(
-    self: Self,
-    name: []const u8,
-    delta_tick: f32,
-    sb: *SpriteBatch,
-    opt: SpriteBatch.DrawOption,
-    force_replay: bool,
-) !void {
-    if (self.animations.getPtr(name)) |anim| {
-        if (anim.is_over and force_replay) {
-            anim.reset();
+/// Update animations
+pub fn update(self: *Self, delta_tick: f32) void {
+    var it = self.animations.iterator();
+    while (it.next()) |entry| {
+        var anim = entry.value_ptr;
+        if (anim.is_over) {
+            continue;
         }
-        try anim.play(delta_tick, sb, opt);
+        anim.update(delta_tick);
     }
 }
 
-/// Represent a animation
+/// Get animation's current frame
+pub fn getCurrentFrame(self: Self, name: []const u8) !Sprite {
+    if (self.animations.get(name)) |anim| {
+        return anim.frames.items[anim.play_index];
+    }
+    return error.NameNotExist;
+}
+
+/// Get animation's status
+pub fn isOver(self: Self, name: []const u8) !bool {
+    if (self.animations.get(name)) |anim| {
+        return anim.is_over;
+    }
+    return error.NameNotExist;
+}
+
+/// Reset animation's status
+pub fn reset(self: *Self, name: []const u8) !void {
+    if (self.animations.getPtr(name)) |anim| {
+        return anim.reset();
+    }
+    return error.NameNotExist;
+}
+
+/// Represent an animation
 pub const Animation = struct {
     frames: std.ArrayList(Sprite),
     frame_interval: f32,
@@ -101,17 +128,7 @@ pub const Animation = struct {
         anim.play_index = 0;
     }
 
-    pub fn play(
-        anim: *Animation,
-        delta_tick: f32,
-        sb: *SpriteBatch,
-        opt: SpriteBatch.DrawOption,
-    ) !void {
-        anim.update(delta_tick);
-        try sb.addSprite(anim.frames.items[anim.play_index], opt);
-    }
-
-    inline fn update(anim: *Animation, delta_tick: f32) void {
+    pub fn update(anim: *Animation, delta_tick: f32) void {
         if (anim.is_over) return;
         anim.passed_time += delta_tick;
         while (anim.passed_time > anim.frame_interval) : (anim.passed_time -= anim.frame_interval) {

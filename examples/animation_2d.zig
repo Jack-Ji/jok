@@ -10,7 +10,6 @@ const velocity = 100;
 var animation: []const u8 = "player_down";
 var pos = sdl.PointF{ .x = 200, .y = 200 };
 var flip_h = false;
-var force_replay = false;
 
 pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
@@ -82,6 +81,7 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: *jok.Context) !void {
+    var force_replay = false;
     if (ctx.isKeyPressed(.up)) {
         pos.y -= velocity * ctx.delta_tick;
         animation = "player_up";
@@ -102,9 +102,11 @@ pub fn update(ctx: *jok.Context) !void {
         animation = "player_left_right";
         flip_h = false;
         force_replay = true;
-    } else {
-        force_replay = false;
     }
+    if (force_replay and try as.isOver(animation)) {
+        try as.reset(animation);
+    }
+    as.update(ctx.delta_tick);
 }
 
 pub fn draw(ctx: *jok.Context) !void {
@@ -118,17 +120,14 @@ pub fn draw(ctx: *jok.Context) !void {
             .scale_h = 4,
         },
     );
-    try as.play(
-        animation,
-        ctx.delta_tick,
-        sb,
+    try sb.addSprite(
+        try as.getCurrentFrame(animation),
         .{
             .pos = pos,
             .flip_h = flip_h,
             .scale_w = 5,
             .scale_h = 5,
         },
-        force_replay,
     );
     try sb.end();
 
