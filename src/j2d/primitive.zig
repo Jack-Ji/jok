@@ -35,7 +35,7 @@ var draw_list: ?imgui.DrawList = null;
 var rd: sdl.Renderer = undefined;
 
 /// Create primitive renderer
-pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) void {
+pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
     arena = std.heap.ArenaAllocator.init(allocator);
     draw_list = imgui.createDrawList();
     rd = _rd;

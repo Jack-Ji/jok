@@ -37,10 +37,10 @@ pub fn init(ctx: *jok.Context) !void {
     sphere.computeNormals();
 
     // Init solar system
-    scene = try Scene.init(ctx.allocator, null);
-    earth_orbit = try Scene.Object.init(ctx.allocator, .{ .position = .{} });
-    moon_orbit = try Scene.Object.init(ctx.allocator, .{ .position = .{} });
-    sun = try Scene.Object.init(ctx.allocator, .{
+    scene = try Scene.create(ctx.allocator, null);
+    earth_orbit = try Scene.Object.create(ctx.allocator, .{ .position = .{} });
+    moon_orbit = try Scene.Object.create(ctx.allocator, .{ .position = .{} });
+    sun = try Scene.Object.create(ctx.allocator, .{
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.6)),
             .shape = sphere,
@@ -48,14 +48,14 @@ pub fn init(ctx: *jok.Context) !void {
             .disable_lighting = true,
         },
     });
-    earth = try Scene.Object.init(ctx.allocator, .{
+    earth = try Scene.Object.create(ctx.allocator, .{
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.2)),
             .shape = sphere,
             .color = sdl.Color.rgb(0, 0, 255),
         },
     });
-    moon = try Scene.Object.init(ctx.allocator, .{
+    moon = try Scene.Object.create(ctx.allocator, .{
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.06)),
             .shape = sphere,
@@ -146,6 +146,6 @@ pub fn quit(ctx: *jok.Context) void {
     std.log.info("game quit", .{});
 
     sphere.deinit();
-    scene.deinit(true);
+    scene.destroy(true);
 }
 

@@ -16,16 +16,16 @@ pub const CommonDrawOption = struct {
     weld_threshold: ?f32 = null,
 };
 
-var tri_renderer: ?TriangleRenderer = null;
 var arena: std.heap.ArenaAllocator = undefined;
+var tri_renderer: ?*TriangleRenderer = null;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 var rd: sdl.Renderer = undefined;
 var texture: ?sdl.Texture = null;
 
 /// Initialize primitive module
-pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) void {
-    tri_renderer = TriangleRenderer.init(allocator);
+pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
     arena = std.heap.ArenaAllocator.init(allocator);
+    tri_renderer = try TriangleRenderer.create(arena.allocator());
     all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
     rd = _rd;
 }
@@ -33,7 +33,6 @@ pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) void {
 /// Destroy primitive module
 pub fn deinit() void {
     for (all_shapes.items) |s| s.deinit();
-    tri_renderer.?.deinit();
     arena.deinit();
 }
 

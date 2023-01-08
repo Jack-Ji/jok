@@ -27,7 +27,7 @@ pub fn init(ctx: *jok.Context) !void {
     //    ctx.renderer,
     //    "sheet",
     //);
-    sb = try j2d.SpriteBatch.init(
+    sb = try j2d.SpriteBatch.create(
         ctx,
         10,
         1000,
@@ -121,6 +121,6 @@ pub fn draw(ctx: *jok.Context) !void {
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-    sheet.deinit();
-    sb.deinit();
+    sheet.destroy();
+    sb.destroy();
 }

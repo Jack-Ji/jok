@@ -21,7 +21,7 @@ var texcoords = [_][2]f32{
     .{ 1, 0 },
 };
 var skybox_textures: [6]sdl.Texture = undefined;
-var skybox_rd: j3d.SkyboxRenderer = undefined;
+var skybox_rd: *j3d.SkyboxRenderer = undefined;
 var skybox_tint_color: sdl.Color = sdl.Color.white;
 
 pub fn init(ctx: *jok.Context) !void {
@@ -92,7 +92,7 @@ pub fn init(ctx: *jok.Context) !void {
         .static,
         true,
     );
-    skybox_rd = j3d.SkyboxRenderer.init(ctx.allocator, .{});
+    skybox_rd = try j3d.SkyboxRenderer.create(ctx.allocator, .{});
 
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
@@ -202,5 +202,5 @@ pub fn quit(ctx: *jok.Context) void {
     std.log.info("game quit", .{});
 
     cube.deinit();
-    skybox_rd.deinit();
+    skybox_rd.destroy();
 }

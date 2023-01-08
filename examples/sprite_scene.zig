@@ -24,19 +24,19 @@ pub fn init(ctx: *jok.Context) !void {
         true,
         .{},
     );
-    sb = try j2d.SpriteBatch.init(
+    sb = try j2d.SpriteBatch.create(
         ctx,
         10,
         1000,
     );
-    scene = try j2d.Scene.init(ctx.allocator, sb);
-    ogre1 = try j2d.Scene.Object.init(ctx.allocator, .{
+    scene = try j2d.Scene.create(ctx.allocator, sb);
+    ogre1 = try j2d.Scene.Object.create(ctx.allocator, .{
         .sprite = try sheet.getSpriteByName("ogre"),
         .render_opt = .{
             .pos = .{ .x = 400, .y = 300 },
         },
     }, null);
-    ogre2 = try j2d.Scene.Object.init(ctx.allocator, .{
+    ogre2 = try j2d.Scene.Object.create(ctx.allocator, .{
         .sprite = try sheet.getSpriteByName("ogre"),
         .render_opt = .{
             .pos = .{ .x = 0, .y = 0 },
@@ -84,7 +84,7 @@ pub fn draw(ctx: *jok.Context) !void {
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-    sheet.deinit();
-    sb.deinit();
-    scene.deinit(true);
+    sheet.destroy();
+    sb.destroy();
+    scene.destroy(true);
 }

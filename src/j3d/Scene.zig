@@ -61,7 +61,7 @@ pub const Object = struct {
     children: std.ArrayList(*Object),
 
     /// Create an object
-    pub fn init(allocator: std.mem.Allocator, actor: Actor) !*Object {
+    pub fn create(allocator: std.mem.Allocator, actor: Actor) !*Object {
         var o = try allocator.create(Object);
         errdefer allocator.destroy(o);
         o.* = .{
@@ -75,9 +75,9 @@ pub const Object = struct {
     }
 
     /// Destroy an object
-    pub fn deinit(o: *Object, recursive: bool) void {
+    pub fn destroy(o: *Object, recursive: bool) void {
         if (recursive) {
-            for (o.children.items) |c| c.deinit(true);
+            for (o.children.items) |c| c.destroy(true);
         }
         o.removeSelf();
         o.children.deinit();
@@ -153,30 +153,27 @@ pub const Object = struct {
 
 allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
-own_rd: bool,
-tri_rd: TriangleRenderer,
+tri_rd: *TriangleRenderer,
 root: *Object,
 colors: std.ArrayList(sdl.Color),
 
-pub fn init(allocator: std.mem.Allocator, _rd: ?TriangleRenderer) !*Self {
+pub fn create(allocator: std.mem.Allocator, _rd: ?*TriangleRenderer) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
     self.allocator = allocator;
     self.arena = std.heap.ArenaAllocator.init(allocator);
     errdefer self.arena.deinit();
     self.tri_rd = _rd orelse BLK: {
-        self.own_rd = true;
-        break :BLK TriangleRenderer.init(allocator);
+        break :BLK try TriangleRenderer.create(self.arena.allocator());
     };
-    self.root = try Object.init(self.arena.allocator(), .{ .position = .{} });
-    errdefer self.root.deinit(false);
+    self.root = try Object.create(self.allocator, .{ .position = .{} });
+    errdefer self.root.destroy(false);
     self.colors = try std.ArrayList(sdl.Color).initCapacity(self.arena.allocator(), 1000);
     return self;
 }
 
-pub fn deinit(self: *Self, destroy_objects: bool) void {
-    self.root.deinit(destroy_objects);
-    self.tri_rd.deinit();
+pub fn destroy(self: *Self, destroy_objects: bool) void {
+    self.root.destroy(destroy_objects);
     self.arena.deinit();
     self.allocator.destroy(self);
 }

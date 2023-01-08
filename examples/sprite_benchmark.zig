@@ -23,7 +23,7 @@ pub fn init(ctx: *jok.Context) !void {
     const size = ctx.getFramebufferSize();
 
     // create sprite sheet
-    sheet = try j2d.SpriteSheet.init(
+    sheet = try j2d.SpriteSheet.create(
         ctx,
         &[_]j2d.SpriteSheet.ImageSource{
             .{
@@ -38,7 +38,7 @@ pub fn init(ctx: *jok.Context) !void {
         1,
         false,
     );
-    sb = try j2d.SpriteBatch.init(
+    sb = try j2d.SpriteBatch.create(
         ctx,
         10,
         1000000,
@@ -116,7 +116,7 @@ pub fn draw(ctx: *jok.Context) !void {
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-    sheet.deinit();
-    sb.deinit();
+    sheet.destroy();
+    sb.destroy();
     characters.deinit();
 }

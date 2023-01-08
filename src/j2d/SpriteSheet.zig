@@ -64,7 +64,7 @@ rects: []SpriteRect,
 search_tree: std.StringHashMap(u32),
 
 /// Create sprite-sheet
-pub fn init(
+pub fn create(
     ctx: *jok.Context,
     sources: []const ImageSource,
     width: u32,
@@ -278,7 +278,7 @@ pub fn fromPicturesInDir(
         }
     }
 
-    return try Self.init(ctx, images.items, width, height, gap, keep_packed_pixels);
+    return try Self.create(ctx, images.items, width, height, gap, keep_packed_pixels);
 }
 
 /// Create from previous written sheet files (a picture and a json file)
@@ -396,7 +396,7 @@ pub fn fromSinglePicture(
 }
 
 /// Destroy sprite-sheet
-pub fn deinit(self: *Self) void {
+pub fn destroy(self: *Self) void {
     if (self.packed_pixels) |px| {
         self.allocator.free(px.data);
     }

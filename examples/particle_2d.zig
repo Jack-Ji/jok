@@ -28,7 +28,7 @@ pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     rd = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
-    sheet = try j2d.SpriteSheet.init(
+    sheet = try j2d.SpriteSheet.create(
         ctx,
         &[_]j2d.SpriteSheet.ImageSource{
             .{
@@ -43,12 +43,12 @@ pub fn init(ctx: *jok.Context) !void {
         1,
         false,
     );
-    sb = try j2d.SpriteBatch.init(
+    sb = try j2d.SpriteBatch.create(
         ctx,
         1,
         10000,
     );
-    ps = try j2d.ParticleSystem.init(ctx.allocator);
+    ps = try j2d.ParticleSystem.create(ctx.allocator);
     emitter1.sprite = try sheet.getSpriteByName("particle");
     emitter2.sprite = try sheet.getSpriteByName("particle");
     try ps.addEffect(
@@ -96,7 +96,7 @@ pub fn draw(ctx: *jok.Context) !void {
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-    sheet.deinit();
-    sb.deinit();
-    ps.deinit();
+    sheet.destroy();
+    sb.destroy();
+    ps.destroy();
 }

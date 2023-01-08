@@ -50,7 +50,7 @@ pub const Object = struct {
     children: std.ArrayList(*Object),
 
     /// Create an object
-    pub fn init(allocator: std.mem.Allocator, actor: Actor, depth: ?f32) !*Object {
+    pub fn create(allocator: std.mem.Allocator, actor: Actor, depth: ?f32) !*Object {
         var o = try allocator.create(Object);
         errdefer allocator.destroy(o);
         o.* = .{
@@ -64,9 +64,9 @@ pub const Object = struct {
     }
 
     /// Destroy an object
-    pub fn deinit(o: *Object, recursive: bool) void {
+    pub fn destroy(o: *Object, recursive: bool) void {
         if (recursive) {
-            for (o.children.items) |c| c.deinit(true);
+            for (o.children.items) |c| c.destroy(true);
         }
         o.removeSelf();
         o.children.deinit();
@@ -141,27 +141,23 @@ pub const Object = struct {
 };
 
 allocator: std.mem.Allocator,
-arena: std.heap.ArenaAllocator,
 root: *Object,
 sb: *SpriteBatch,
 
-pub fn init(allocator: std.mem.Allocator, sb: *SpriteBatch) !*Self {
+pub fn create(allocator: std.mem.Allocator, sb: *SpriteBatch) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
     self.allocator = allocator;
-    self.arena = std.heap.ArenaAllocator.init(allocator);
-    errdefer self.arena.deinit();
-    self.root = try Object.init(self.arena.allocator(), .{
+    self.root = try Object.create(self.allocator, .{
         .render_opt = .{ .pos = .{ .x = 0, .y = 0 } },
     }, null);
-    errdefer self.root.deinit(false);
+    errdefer self.root.destroy(false);
     self.sb = sb;
     return self;
 }
 
-pub fn deinit(self: *Self, destroy_objects: bool) void {
-    self.root.deinit(destroy_objects);
-    self.arena.deinit();
+pub fn destroy(self: *Self, destroy_objects: bool) void {
+    self.root.destroy(destroy_objects);
     self.allocator.destroy(self);
 }
 

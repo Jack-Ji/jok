@@ -11,6 +11,8 @@ const utils = jok.utils;
 const internal = @import("internal.zig");
 const Self = @This();
 
+allocator: std.mem.Allocator,
+
 // Triangle vertices
 indices: std.ArrayList(u32),
 sorted: bool = false,
@@ -33,21 +35,24 @@ clip_texcoords: std.ArrayList(sdl.PointF),
 world_positions: std.ArrayList(zmath.Vec),
 world_normals: std.ArrayList(zmath.Vec),
 
-pub fn init(allocator: std.mem.Allocator) Self {
-    return .{
-        .indices = std.ArrayList(u32).init(allocator),
-        .vertices = std.ArrayList(sdl.Vertex).init(allocator),
-        .depths = std.ArrayList(f32).init(allocator),
-        .large_front_triangles = std.ArrayList([3]u32).init(allocator),
-        .clip_vertices = std.ArrayList(zmath.Vec).init(allocator),
-        .clip_colors = std.ArrayList(sdl.Color).init(allocator),
-        .clip_texcoords = std.ArrayList(sdl.PointF).init(allocator),
-        .world_positions = std.ArrayList(zmath.Vec).init(allocator),
-        .world_normals = std.ArrayList(zmath.Vec).init(allocator),
+pub fn create(allocator: std.mem.Allocator) !*Self {
+    var self = try allocator.create(Self);
+    self.* = .{
+        .allocator = allocator,
+        .indices = std.ArrayList(u32).init(self.allocator),
+        .vertices = std.ArrayList(sdl.Vertex).init(self.allocator),
+        .depths = std.ArrayList(f32).init(self.allocator),
+        .large_front_triangles = std.ArrayList([3]u32).init(self.allocator),
+        .clip_vertices = std.ArrayList(zmath.Vec).init(self.allocator),
+        .clip_colors = std.ArrayList(sdl.Color).init(self.allocator),
+        .clip_texcoords = std.ArrayList(sdl.PointF).init(self.allocator),
+        .world_positions = std.ArrayList(zmath.Vec).init(self.allocator),
+        .world_normals = std.ArrayList(zmath.Vec).init(self.allocator),
     };
+    return self;
 }
 
-pub fn deinit(self: *Self) void {
+pub fn destroy(self: *Self) void {
     self.indices.deinit();
     self.vertices.deinit();
     self.depths.deinit();
@@ -57,6 +62,7 @@ pub fn deinit(self: *Self) void {
     self.clip_texcoords.deinit();
     self.world_positions.deinit();
     self.world_normals.deinit();
+    self.allocator.destroy(self);
 }
 
 /// Clear mesh data

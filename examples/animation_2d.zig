@@ -25,51 +25,42 @@ pub fn init(ctx: *jok.Context) !void {
         true,
         .{},
     );
-    sb = try j2d.SpriteBatch.init(
+    sb = try j2d.SpriteBatch.create(
         ctx,
         10,
         1000,
     );
-    as = try j2d.AnimationSystem.init(ctx.allocator);
+    as = try j2d.AnimationSystem.create(ctx.allocator);
     const player = try sheet.getSpriteByName("player");
-    try as.add(
+    _ = try as.add(
         "player_left_right",
-        try j2d.AnimationSystem.Animation.init(
-            ctx.allocator,
-            &[_]j2d.Sprite{
-                player.getSubSprite(4 * 16, 0, 16, 16),
-                player.getSubSprite(5 * 16, 0, 16, 16),
-                player.getSubSprite(3 * 16, 0, 16, 16),
-            },
-            6,
-            false,
-        ),
+        &[_]j2d.Sprite{
+            player.getSubSprite(4 * 16, 0, 16, 16),
+            player.getSubSprite(5 * 16, 0, 16, 16),
+            player.getSubSprite(3 * 16, 0, 16, 16),
+        },
+        6,
+        false,
     );
-    try as.add(
+    _ = try as.add(
         "player_up",
-        try j2d.AnimationSystem.Animation.init(
-            ctx.allocator,
-            &[_]j2d.Sprite{
-                player.getSubSprite(7 * 16, 0, 16, 16),
-                player.getSubSprite(8 * 16, 0, 16, 16),
-                player.getSubSprite(6 * 16, 0, 16, 16),
-            },
-            6,
-            false,
-        ),
+        &[_]j2d.Sprite{
+            player.getSubSprite(7 * 16, 0, 16, 16),
+            player.getSubSprite(8 * 16, 0, 16, 16),
+            player.getSubSprite(6 * 16, 0, 16, 16),
+        },
+        6,
+        false,
     );
-    try as.add(
+    _ = try as.add(
         "player_down",
-        try j2d.AnimationSystem.Animation.init(
-            ctx.allocator,
-            &[_]j2d.Sprite{
-                player.getSubSprite(1 * 16, 0, 16, 16),
-                player.getSubSprite(2 * 16, 0, 16, 16),
-                player.getSubSprite(0 * 16, 0, 16, 16),
-            },
-            6,
-            false,
-        ),
+        &[_]j2d.Sprite{
+            player.getSubSprite(1 * 16, 0, 16, 16),
+            player.getSubSprite(2 * 16, 0, 16, 16),
+            player.getSubSprite(0 * 16, 0, 16, 16),
+        },
+        6,
+        false,
     );
 
     try ctx.renderer.setColorRGB(77, 77, 77);
@@ -142,7 +133,7 @@ pub fn draw(ctx: *jok.Context) !void {
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-    sheet.deinit();
-    sb.deinit();
-    as.deinit();
+    sheet.destroy();
+    sb.destroy();
+    as.destroy();
 }

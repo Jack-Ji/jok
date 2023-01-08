@@ -9,6 +9,9 @@ const j3d = jok.j3d;
 const Camera = j3d.Camera;
 const Self = @This();
 
+allocator: std.mem.Allocator,
+arena: std.heap.ArenaAllocator,
+
 // Box shape: right/left/top/bottom/front/back
 box_planes: [6]zmesh.Shape,
 
@@ -26,72 +29,72 @@ const InitOption = struct {
     plane_slices: i32 = 10,
     plane_stacks: i32 = 10,
 };
-pub fn init(allocator: std.mem.Allocator, opt: InitOption) Self {
+pub fn create(allocator: std.mem.Allocator, opt: InitOption) !*Self {
     assert(opt.plane_slices > 0);
     assert(opt.plane_stacks > 0);
-    return .{
-        .box_planes = .{
-            BLK: {
-                // right side
-                var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
-                shape.scale(2, 2, 0);
-                shape.rotate(math.pi * 0.5, 0, 1, 0);
-                shape.translate(1.0, -1.0, 1.0);
-                break :BLK shape;
-            },
-            BLK: {
-                // left side
-                var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
-                shape.scale(2, 2, 0);
-                shape.rotate(-math.pi * 0.5, 0, 1, 0);
-                shape.translate(-1.0, -1.0, -1.0);
-                break :BLK shape;
-            },
-            BLK: {
-                // top side
-                var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
-                shape.scale(2, 2, 0);
-                shape.rotate(-math.pi * 0.5, 1, 0, 0);
-                shape.translate(-1.0, 1.0, 1.0);
-                break :BLK shape;
-            },
-            BLK: {
-                // bottom side
-                var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
-                shape.scale(2, 2, 0);
-                shape.rotate(math.pi * 0.5, 1, 0, 0);
-                shape.translate(-1.0, -1.0, -1.0);
-                break :BLK shape;
-            },
-            BLK: {
-                // front side
-                var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
-                shape.scale(2, 2, 0);
-                shape.translate(-1.0, -1.0, 1.0);
-                break :BLK shape;
-            },
-            BLK: {
-                // back side
-                var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
-                shape.scale(2, 2, 0);
-                shape.rotate(math.pi, 0, 1, 0);
-                shape.translate(1.0, -1.0, -1.0);
-                break :BLK shape;
-            },
+    var self = try allocator.create(Self);
+    self.allocator = allocator;
+    self.arena = std.heap.ArenaAllocator.init(allocator);
+    self.box_planes = .{
+        BLK: {
+            // right side
+            var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
+            shape.scale(2, 2, 0);
+            shape.rotate(math.pi * 0.5, 0, 1, 0);
+            shape.translate(1.0, -1.0, 1.0);
+            break :BLK shape;
         },
-        .indices = std.ArrayList(u32).init(allocator),
-        .vertices = std.ArrayList(sdl.Vertex).init(allocator),
-        .clip_vertices = std.ArrayList(zmath.Vec).init(allocator),
-        .clip_texcoords = std.ArrayList(sdl.PointF).init(allocator),
+        BLK: {
+            // left side
+            var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
+            shape.scale(2, 2, 0);
+            shape.rotate(-math.pi * 0.5, 0, 1, 0);
+            shape.translate(-1.0, -1.0, -1.0);
+            break :BLK shape;
+        },
+        BLK: {
+            // top side
+            var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
+            shape.scale(2, 2, 0);
+            shape.rotate(-math.pi * 0.5, 1, 0, 0);
+            shape.translate(-1.0, 1.0, 1.0);
+            break :BLK shape;
+        },
+        BLK: {
+            // bottom side
+            var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
+            shape.scale(2, 2, 0);
+            shape.rotate(math.pi * 0.5, 1, 0, 0);
+            shape.translate(-1.0, -1.0, -1.0);
+            break :BLK shape;
+        },
+        BLK: {
+            // front side
+            var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
+            shape.scale(2, 2, 0);
+            shape.translate(-1.0, -1.0, 1.0);
+            break :BLK shape;
+        },
+        BLK: {
+            // back side
+            var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
+            shape.scale(2, 2, 0);
+            shape.rotate(math.pi, 0, 1, 0);
+            shape.translate(1.0, -1.0, -1.0);
+            break :BLK shape;
+        },
     };
+    self.indices = std.ArrayList(u32).init(self.arena.allocator());
+    self.vertices = std.ArrayList(sdl.Vertex).init(self.arena.allocator());
+    self.clip_vertices = std.ArrayList(zmath.Vec).init(self.arena.allocator());
+    self.clip_texcoords = std.ArrayList(sdl.PointF).init(self.arena.allocator());
+    return self;
 }
 
-pub fn deinit(self: *Self) void {
+pub fn destroy(self: *Self) void {
     for (self.box_planes) |s| s.deinit();
-    self.indices.deinit();
-    self.vertices.deinit();
-    self.clip_vertices.deinit();
-    self.clip_texcoords.deinit();
+    self.arena.deinit();
+    self.allocator.destroy(self);
 }
 
 /// Render skybox

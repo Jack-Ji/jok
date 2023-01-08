@@ -71,7 +71,7 @@ blend_method: BlendMethod = .blend,
 depth_sort: DepthSortMethod = .none,
 
 /// Create sprite-batch
-pub fn init(
+pub fn create(
     ctx: *jok.Context,
     max_sheet_num: u32,
     max_sprites_per_drawcall: u32,
@@ -96,7 +96,7 @@ pub fn init(
     return self;
 }
 
-pub fn deinit(self: *Self) void {
+pub fn destroy(self: *Self) void {
     for (self.batches) |b| {
         b.sprites_data.deinit();
         b.vattrib.deinit();

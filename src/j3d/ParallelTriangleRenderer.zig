@@ -31,7 +31,7 @@ mutex: std.Thread.Mutex,
 rendering_jobs: [max_jobs_num]RenderJob,
 rendering_job_ids: [max_jobs_num]zjobs.JobId,
 
-pub fn init(
+pub fn create(
     allocator: std.mem.Allocator,
     jobs: *zjobs.JobQueue(.{}),
 ) !*Self {
@@ -59,7 +59,7 @@ pub fn init(
     return self;
 }
 
-pub fn deinit(self: *Self) void {
+pub fn destroy(self: *Self) void {
     self.indices.deinit();
     self.vertices.deinit();
     self.depths.deinit();

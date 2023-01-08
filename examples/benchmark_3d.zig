@@ -12,7 +12,7 @@ pub const jok_fps_limit: jok.config.FpsLimit = .none;
 
 var jobs: zjobs.JobQueue(.{}) = undefined;
 var prd: *j3d.ParallelTriangleRenderer = undefined;
-var rd: j3d.TriangleRenderer = undefined;
+var rd: *j3d.TriangleRenderer = undefined;
 var camera: j3d.Camera = undefined;
 var cube: zmesh.Shape = undefined;
 var aabb: [6]f32 = undefined;
@@ -37,8 +37,8 @@ pub fn init(ctx: *jok.Context) !void {
     jobs = zjobs.JobQueue(.{}).init();
     jobs.start();
 
-    prd = try j3d.ParallelTriangleRenderer.init(ctx.allocator, &jobs);
-    rd = j3d.TriangleRenderer.init(ctx.allocator);
+    prd = try j3d.ParallelTriangleRenderer.create(ctx.allocator, &jobs);
+    rd = try j3d.TriangleRenderer.create(ctx.allocator);
 
     camera = j3d.Camera.fromPositionAndTarget(
         .{
@@ -75,7 +75,7 @@ pub fn init(ctx: *jok.Context) !void {
     translations = std.ArrayList(zmath.Mat).init(ctx.allocator);
     rotation_axises = std.ArrayList(zmath.Vec).init(ctx.allocator);
     var i: u32 = 0;
-    while (i < 10000) : (i += 1) {
+    while (i < 5000) : (i += 1) {
         try translations.append(zmath.translation(
             -5 + rng.random().float(f32) * 10,
             -5 + rng.random().float(f32) * 10,
@@ -203,8 +203,8 @@ pub fn quit(ctx: *jok.Context) void {
     std.log.info("game quit", .{});
 
     jobs.deinit();
-    prd.deinit();
-    rd.deinit();
+    prd.destroy();
+    rd.destroy();
     cube.deinit();
     translations.deinit();
     rotation_axises.deinit();

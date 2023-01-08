@@ -15,7 +15,7 @@ allocator: std.mem.Allocator,
 effects: std.ArrayList(Effect),
 
 /// Create particle effect system/manager
-pub fn init(allocator: std.mem.Allocator) !*Self {
+pub fn create(allocator: std.mem.Allocator) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
     self.* = .{
@@ -27,7 +27,7 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
 }
 
 /// Destroy particle effect system/manager
-pub fn deinit(self: *Self) void {
+pub fn destroy(self: *Self) void {
     for (self.effects.items) |e| {
         e.deinit();
     }
