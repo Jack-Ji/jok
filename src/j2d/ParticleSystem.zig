@@ -50,9 +50,9 @@ pub fn update(self: *Self, delta_time: f32) void {
 }
 
 /// Draw effects
-pub fn draw(self: Self, sprite_batch: *SpriteBatch) !void {
+pub fn draw(self: Self, sb: *SpriteBatch) !void {
     for (self.effects.items) |e| {
-        try e.draw(sprite_batch);
+        try e.draw(sb);
     }
 }
 
@@ -182,9 +182,9 @@ pub const Effect = struct {
     }
 
     /// Draw the effect
-    pub fn draw(self: Effect, sprite_batch: *SpriteBatch) !void {
+    pub fn draw(self: Effect, sb: *SpriteBatch) !void {
         for (self.particles.items) |p| {
-            try p.draw(sprite_batch);
+            try p.draw(sb);
         }
     }
 
@@ -238,7 +238,7 @@ pub const Effect = struct {
 
 /// Represent a particle
 pub const Particle = struct {
-    pub const DrawFn = *const fn (particle: Particle) anyerror!void;
+    pub const DrawFn = *const fn (particle: Particle, sb: *SpriteBatch) anyerror!void;
 
     /// Custom drawing callback for particle
     custom_draw: ?DrawFn = null,
@@ -328,11 +328,11 @@ pub const Particle = struct {
     }
 
     /// Draw particle
-    pub fn draw(self: Particle, sprite_batch: *SpriteBatch) !void {
-        if (self.custom_draw) |df| {
-            try df(self);
+    pub fn draw(self: Particle, sb: *SpriteBatch) !void {
+        if (self.custom_draw) |cb| {
+            try cb(self, sb);
         } else {
-            try sprite_batch.addSprite(
+            try sb.addSprite(
                 self.sprite.?,
                 .{
                     .pos = .{ .x = self.pos.x(), .y = self.pos.y() },
