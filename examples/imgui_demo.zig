@@ -13,7 +13,7 @@ pub fn init(ctx: *jok.Context) !void {
 
     tex = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer,
-        "assets/images/jok.png",
+        "assets/images/image9.jpg",
         .static,
         false,
     );
