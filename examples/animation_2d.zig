@@ -32,7 +32,7 @@ pub fn init(ctx: *jok.Context) !void {
     );
     as = try j2d.AnimationSystem.create(ctx.allocator);
     const player = try sheet.getSpriteByName("player");
-    _ = try as.add(
+    try as.add(
         "player_left_right",
         &[_]j2d.Sprite{
             player.getSubSprite(4 * 16, 0, 16, 16),
@@ -42,7 +42,7 @@ pub fn init(ctx: *jok.Context) !void {
         6,
         false,
     );
-    _ = try as.add(
+    try as.add(
         "player_up",
         &[_]j2d.Sprite{
             player.getSubSprite(7 * 16, 0, 16, 16),
@@ -52,7 +52,7 @@ pub fn init(ctx: *jok.Context) !void {
         6,
         false,
     );
-    _ = try as.add(
+    try as.add(
         "player_down",
         &[_]j2d.Sprite{
             player.getSubSprite(1 * 16, 0, 16, 16),

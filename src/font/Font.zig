@@ -18,8 +18,8 @@ font_info: truetype.stbtt_fontinfo,
 // Accept 20M font file at most
 const max_font_size = 20 * (1 << 20);
 
-/// Init Font instance with truetype file
-pub fn init(allocator: std.mem.Allocator, path: [:0]const u8) !*Font {
+/// Create Font instance with truetype file
+pub fn create(allocator: std.mem.Allocator, path: [:0]const u8) !*Font {
     const dir = std.fs.cwd();
 
     var self = try allocator.create(Font);
@@ -37,7 +37,7 @@ pub fn init(allocator: std.mem.Allocator, path: [:0]const u8) !*Font {
     return self;
 }
 
-/// Init Font instance with truetype data
+/// Create Font instance with truetype data
 /// WARNING: font data must be valid as long as Font instance
 pub fn fromTrueTypeData(allocator: std.mem.Allocator, data: []const u8) !*Font {
     var self = try allocator.create(Font);
@@ -55,14 +55,14 @@ pub fn fromTrueTypeData(allocator: std.mem.Allocator, data: []const u8) !*Font {
     return self;
 }
 
-pub fn deinit(self: *Font) void {
+pub fn destroy(self: *Font) void {
     if (self.font_data) |data| {
         self.allocator.free(data);
     }
     self.allocator.destroy(self);
 }
 
-pub fn createAtlas(
+pub fn initAtlas(
     self: Font,
     renderer: sdl.Renderer,
     font_size: u32,

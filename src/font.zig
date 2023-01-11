@@ -55,7 +55,7 @@ pub fn debugDraw(renderer: sdl.Renderer, opt: DrawOption, comptime fmt: []const 
     if (S.atlases.get(opt.font_size)) |a| {
         atlas = a;
     } else {
-        atlas = S.font.?.createAtlas(
+        atlas = S.font.?.initAtlas(
             renderer,
             opt.font_size,
             &[_][2]u32{
