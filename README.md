@@ -102,6 +102,7 @@ It's way too minimal (perhaps), you can't write shaders (It doesn't mean perform
 benchmark example `sprite_benchmark/benchmark_3d`. [And the situation might change in the future.](https://gist.github.com/icculus/f731224bef3906e4c5e8cbed6f98bb08)).
 If you want to achieve something fancy, you ought to resort to some clever art tricks or algorithms.
 Welcome to old golden time of 90s. Or, you can choose other more powerful/modern libraries/engines.
+It's also very **WIP**, do expect some breaking changes in the future.
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
