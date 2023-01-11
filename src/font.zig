@@ -31,7 +31,7 @@ pub fn debugDraw(renderer: sdl.Renderer, opt: DrawOption, comptime fmt: []const 
     const S = struct {
         const allocator = std.heap.c_allocator;
         const max_text_size = 1000;
-        var font: ?Font = null;
+        var font: ?*Font = null;
         var atlases: std.AutoHashMap(u32, Atlas) = undefined;
         var vattrib: std.ArrayList(sdl.Vertex) = undefined;
         var vindices: std.ArrayList(u32) = undefined;

@@ -19,13 +19,12 @@ font_info: truetype.stbtt_fontinfo,
 const max_font_size = 20 * (1 << 20);
 
 /// Init Font instance with truetype file
-pub fn init(allocator: std.mem.Allocator, path: [:0]const u8) !Font {
+pub fn init(allocator: std.mem.Allocator, path: [:0]const u8) !*Font {
     const dir = std.fs.cwd();
-    var self = Font{
-        .allocator = allocator,
-        .font_data = try dir.readFileAlloc(allocator, path, max_font_size),
-        .font_info = undefined,
-    };
+
+    var self = try allocator.create(Font);
+    self.allocator = allocator;
+    self.font_data = try dir.readFileAlloc(allocator, path, max_font_size);
 
     // Extract font info
     var rc = truetype.stbtt_InitFont(
@@ -39,13 +38,11 @@ pub fn init(allocator: std.mem.Allocator, path: [:0]const u8) !Font {
 }
 
 /// Init Font instance with truetype data
-/// WARNING: font data must be valid as long as Font instance is alive
-pub fn fromTrueTypeData(allocator: std.mem.Allocator, data: []const u8) !Font {
-    var self = Font{
-        .allocator = allocator,
-        .font_data = null,
-        .font_info = undefined,
-    };
+/// WARNING: font data must be valid as long as Font instance
+pub fn fromTrueTypeData(allocator: std.mem.Allocator, data: []const u8) !*Font {
+    var self = try allocator.create(Font);
+    self.allocator = allocator;
+    self.font_data = null;
 
     // Extract font info
     var rc = truetype.stbtt_InitFont(
@@ -62,7 +59,7 @@ pub fn deinit(self: *Font) void {
     if (self.font_data) |data| {
         self.allocator.free(data);
     }
-    self.* = undefined;
+    self.allocator.destroy(self);
 }
 
 pub fn createAtlas(
