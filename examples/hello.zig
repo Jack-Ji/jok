@@ -131,11 +131,17 @@ pub fn draw(ctx: *jok.Context) !void {
 
     text_rect.x += text_speed.x * ctx.delta_tick;
     text_rect.y += text_speed.y * ctx.delta_tick;
-    if (text_rect.x < 0 or text_rect.x + text_rect.width > @intToFloat(f32, fb_size.w)) {
-        text_speed.x = -text_speed.x;
+    if (text_rect.x < 0) {
+        text_speed.x = @fabs(text_speed.x);
     }
-    if (text_rect.y < 0 or text_rect.y + text_rect.height > @intToFloat(f32, fb_size.h)) {
-        text_speed.y = -text_speed.y;
+    if (text_rect.x + text_rect.width > @intToFloat(f32, fb_size.w)) {
+        text_speed.x = -@fabs(text_speed.x);
+    }
+    if (text_rect.y < 0) {
+        text_speed.y = @fabs(text_speed.y);
+    }
+    if (text_rect.y + text_rect.height > @intToFloat(f32, fb_size.h)) {
+        text_speed.y = -@fabs(text_speed.y);
     }
     const draw_result = try jok.font.debugDraw(
         ctx.renderer,
