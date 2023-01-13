@@ -24,7 +24,7 @@ A minimal 2d/3d game framework for zig.
 * Fully integrated Dear-ImGui
 
 ## How to start?
-Copy `jok` folder or clone repo (recursively) into `libs` subdirectory of the root of your project.
+Copy or clone repo (recursively) to `libs` subdirectory of the root of your project.
 Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig).
 Then in your `build.zig` add:
 
@@ -100,9 +100,9 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
 ## Watch out!
 It's way too minimal (perhaps), you can't write shaders (It doesn't mean performance is bad! Checkout
 benchmark example `sprite_benchmark/benchmark_3d`. [And the situation might change in the future.](https://gist.github.com/icculus/f731224bef3906e4c5e8cbed6f98bb08)).
-If you want to achieve something fancy, you ought to resort to some clever art tricks or algorithms.
-Welcome to old golden time of 90s. Or, you can choose other more powerful/modern libraries/engines.
-It's also very **WIP**, do expect some breaking changes in the future.
+If you want to achieve something fancy, you should resort to some clever art tricks or algorithms.
+Welcome to old golden time of 90s! Or, you can choose other more powerful/modern libraries/engines.
+It's also very **WIP**, please do expect some breaking changes in the future.
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
