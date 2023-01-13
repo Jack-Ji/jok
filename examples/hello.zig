@@ -47,32 +47,46 @@ pub fn update(ctx: *jok.Context) !void {
 
 pub fn draw(ctx: *jok.Context) !void {
     const fb_size = ctx.getFramebufferSize();
+    const center_x = @intToFloat(f32, fb_size.w) / 2;
+    const center_y = @intToFloat(f32, fb_size.h) / 2;
 
     jok.j2d.primitive.clear(.{});
-    jok.j2d.primitive.addQuadFilled(
-        .{ .x = -100, .y = -100 },
-        .{ .x = 100, .y = -100 },
-        .{ .x = 100, .y = 100 },
-        .{ .x = -100, .y = 100 },
-        sdl.Color.rgb(
-            @floatToInt(u8, 128 + 128 * std.math.sin(ctx.tick)),
-            @floatToInt(u8, std.math.max(0, 255 * std.math.sin(ctx.tick))),
-            @floatToInt(u8, 128 + 128 * std.math.cos(ctx.tick)),
-        ),
-        .{
-            .trs = .{
-                .scale = .{
-                    .x = @floatCast(f32, 1.3 + std.math.sin(ctx.tick)),
-                    .y = @floatCast(f32, 1.3 + std.math.sin(ctx.tick)),
-                },
-                .rotate_degree = @floatCast(f32, ctx.tick * 30),
-                .offset = .{
-                    .x = @intToFloat(f32, fb_size.w) / 2,
-                    .y = @intToFloat(f32, fb_size.h) / 2,
+    var i: u32 = 0;
+    while (i < 100) : (i += 1) {
+        const row = @intToFloat(f32, i / 10) - 5;
+        const col = @intToFloat(f32, i % 10) - 5;
+        const offset_origin = jok.zmath.f32x4(row * 50, col * 50, 0, 1);
+        const rotate_m = jok.zmath.matFromAxisAngle(
+            jok.zmath.f32x4(center_x, center_y, 1, 0),
+            @floatCast(f32, ctx.tick),
+        );
+        const translate_m = jok.zmath.translation(center_x, center_y, 0);
+        const offset_transformed = jok.zmath.mul(jok.zmath.mul(offset_origin, rotate_m), translate_m);
+        jok.j2d.primitive.addQuadFilled(
+            .{ .x = -10, .y = -10 },
+            .{ .x = 10, .y = -10 },
+            .{ .x = 10, .y = 10 },
+            .{ .x = -10, .y = 10 },
+            sdl.Color.rgb(
+                @floatToInt(u8, 128 + 128 * std.math.sin(ctx.tick)),
+                @floatToInt(u8, @intToFloat(f32, i) + std.math.max(0, 155 * std.math.sin(ctx.tick))),
+                @floatToInt(u8, 128 + 128 * std.math.cos(ctx.tick)),
+            ),
+            .{
+                .trs = .{
+                    .scale = .{
+                        .x = @floatCast(f32, 1.3 + std.math.sin(ctx.tick)),
+                        .y = @floatCast(f32, 1.3 + std.math.sin(ctx.tick)),
+                    },
+                    .rotate_degree = @floatCast(f32, ctx.tick * 30),
+                    .offset = .{
+                        .x = offset_transformed[0],
+                        .y = offset_transformed[1],
+                    },
                 },
             },
-        },
-    );
+        );
+    }
     try jok.j2d.primitive.draw();
 
     const color = sdl.Color.rgb(
