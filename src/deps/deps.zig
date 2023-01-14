@@ -7,7 +7,6 @@ pub const zpool = @import("zpool/src/main.zig");
 pub const zjobs = @import("zjobs/src/zjobs.zig");
 pub const zmesh = @import("zmesh/src/main.zig");
 pub const znoise = @import("znoise/src/znoise.zig");
-pub const znetwork = @import("znetwork/src/main.zig");
 
 pub const chipmunk = if (bos.use_chipmunk)
     @import("chipmunk/chipmunk.zig")
