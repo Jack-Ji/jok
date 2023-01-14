@@ -15,9 +15,6 @@ cp -r %ZMODULES%/zmath src/deps
 rm -rf src/deps/zmesh
 cp -r %ZMODULES%/zmesh src/deps
 
-rm -rf src/deps/znetwork
-cp -r %ZMODULES%/znetwork src/deps
-
 rm -rf src/deps/znoise
 cp -r %ZMODULES%/znoise src/deps
 
