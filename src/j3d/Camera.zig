@@ -1,6 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
+const sdl = @import("sdl");
 const jok = @import("../jok.zig");
 const zmath = jok.zmath;
 const j3d = jok.j3d;
@@ -124,6 +125,27 @@ pub fn getViewMatrix(self: Self) zmath.Mat {
 /// Get projection*view matrix
 pub fn getViewProjectMatrix(self: Self) zmath.Mat {
     return zmath.mul(self.getViewMatrix(), self.getProjectMatrix());
+}
+
+/// Get screen position of given coordinate
+pub fn getScreenPosition(
+    self: Self,
+    renderer: sdl.Renderer,
+    model: zmath.Mat,
+    coord: [3]f32,
+) sdl.PointF {
+    const vp = renderer.getViewport();
+    const ndc_to_screen = zmath.loadMat43(&[_]f32{
+        0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
+        0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
+        0.0,                              0.0,                                0.5,
+        0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
+    });
+    const mvp = zmath.mul(model, self.getViewProjectMatrix());
+    const clip = zmath.mul(zmath.f32x4(coord[0], coord[1], coord[2], 1), mvp);
+    const ndc = clip / zmath.splat(zmath.Vec, clip[3]);
+    const screen = zmath.mul(ndc, ndc_to_screen);
+    return .{ .x = screen[0], .y = screen[1] };
 }
 
 /// Move camera

@@ -196,6 +196,16 @@ pub fn draw(ctx: *jok.Context) !void {
 
     _ = try font.debugDraw(
         ctx.renderer,
+        .{
+            .pos = camera.getScreenPosition(ctx.renderer, model, [3]f32{ 0, 0, 0 }),
+            .color = sdl.Color.red,
+            .font_size = 30,
+        },
+        "Model is here!",
+        .{},
+    );
+    _ = try font.debugDraw(
+        ctx.renderer,
         .{ .pos = .{ .x = 200, .y = 10 } },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
