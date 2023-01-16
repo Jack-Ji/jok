@@ -57,6 +57,12 @@ comptime {
     }
 }
 
+/// Options for zig app
+pub const std_options = struct {
+    /// Logging level
+    pub const log_level = config.log_level;
+};
+
 /// Check system information
 fn checkSys() !void {
     const target = builtin.target;
@@ -67,19 +73,19 @@ fn checkSys() !void {
     // Print system info
     context.log.info(
         \\System info:
-        \\    Build Mode  : {s}
-        \\    Zig Version : {d}.{d}.{d}
-        \\    CPU         : {s}
-        \\    ABI         : {s}
-        \\    SDL         : {}.{}.{}
-        \\    Platform    : {s}
-        \\    Memory      : {d}MB
+        \\    Build Mode    : {s}
+        \\    Logging Level : {s}
+        \\    Zig Version   : {}
+        \\    CPU           : {s}
+        \\    ABI           : {s}
+        \\    SDL           : {}.{}.{}
+        \\    Platform      : {s}
+        \\    Memory        : {d}MB
     ,
         .{
             std.meta.tagName(builtin.mode),
-            builtin.zig_version.major,
-            builtin.zig_version.minor,
-            builtin.zig_version.patch,
+            std.meta.tagName(config.log_level),
+            builtin.zig_version,
             std.meta.tagName(target.cpu.arch),
             std.meta.tagName(target.abi),
             sdl_version.major,
@@ -314,9 +320,6 @@ fn deinitModules() void {
     imgui.sdl.deinit();
     deinitSDL();
 }
-
-/// Logging level, used by std.log
-pub const log_level = config.log_level;
 
 pub fn main() !void {
     // Check system
