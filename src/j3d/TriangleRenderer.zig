@@ -178,6 +178,7 @@ pub fn addShapeData(
     try self.clip_texcoords.ensureTotalCapacityPrecise(ensure_size);
     try self.world_positions.ensureTotalCapacityPrecise(ensure_size);
     try self.world_normals.ensureTotalCapacityPrecise(ensure_size);
+    const normal_transform = zmath.transpose(zmath.inverse(model));
     var i: usize = 2;
     while (i < indices.len) : (i += 3) {
         const idx0 = indices[i - 2];
@@ -216,7 +217,7 @@ pub fn addShapeData(
             n1,
             n2,
             zmath.f32x4s(0),
-        }, zmath.transpose(zmath.inverse(model)));
+        }, normal_transform);
         tri_world_normals[0] = zmath.normalize3(tri_world_normals[0]);
         tri_world_normals[1] = zmath.normalize3(tri_world_normals[1]);
         tri_world_normals[2] = zmath.normalize3(tri_world_normals[2]);

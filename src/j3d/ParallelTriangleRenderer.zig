@@ -397,6 +397,7 @@ const RenderJob = struct {
         const mvp = zmath.mul(ctx.model, ctx.camera.getViewProjectMatrix());
 
         // Do face-culling and W-pannel clipping
+        const normal_transform = zmath.transpose(zmath.inverse(ctx.model));
         var i: usize = 2;
         while (i < ctx.indices.items.len) : (i += 3) {
             const idx0 = ctx.indices.items[i - 2];
@@ -435,7 +436,7 @@ const RenderJob = struct {
                 n1,
                 n2,
                 zmath.f32x4s(0),
-            }, zmath.transpose(zmath.inverse(ctx.model)));
+            }, normal_transform);
             tri_world_normals[0] = zmath.normalize3(tri_world_normals[0]);
             tri_world_normals[1] = zmath.normalize3(tri_world_normals[1]);
             tri_world_normals[2] = zmath.normalize3(tri_world_normals[2]);
