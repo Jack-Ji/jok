@@ -343,12 +343,10 @@ pub fn addShapeData(
             .{ positions_screen[2][0], positions_screen[2][1] },
         };
         const tri_depth = (positions_screen[0][2] + positions_screen[1][2] + positions_screen[2][2]) / 3.0;
-        var is_suitable_front = false;
         const tri_area = (tri_coords[0][0] * (tri_coords[1][1] - tri_coords[2][1]) +
             tri_coords[1][0] * (tri_coords[2][1] - tri_coords[0][1]) +
             tri_coords[2][0] * (tri_coords[0][1] - tri_coords[1][1])) / 2.0;
         if (tri_area > front_tri_threshold) {
-            is_suitable_front = true;
             var idx: u32 = 0;
             while (idx < self.large_front_triangles.items.len) {
                 const front_tri = self.large_front_triangles.items[idx];
@@ -374,18 +372,16 @@ pub fn addShapeData(
                     utils.math.isPointInTriangle(front_tri_coords, tri_coords[2]))
                 {
                     // The triangle is already covered
-                    is_suitable_front = false;
                     break;
                 }
                 idx += 1;
+            } else {
+                self.large_front_triangles.append(.{
+                    current_index,
+                    current_index + 1,
+                    current_index + 2,
+                }) catch unreachable;
             }
-        }
-        if (is_suitable_front) {
-            self.large_front_triangles.append(.{
-                current_index,
-                current_index + 1,
-                current_index + 2,
-            }) catch unreachable;
         }
 
         // Step forward index, one triangle a time
