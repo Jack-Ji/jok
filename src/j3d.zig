@@ -28,5 +28,8 @@ pub const Camera = @import("j3d/Camera.zig");
 /// Scene management (Clone of three.js's scene. Learn detail from https://threejs.org/manual/#en/scenegraph)
 pub const Scene = @import("j3d/Scene.zig");
 
+/// 3d vector
+pub const Vector = @import("j3d/Vector.zig");
+
 /// 3d primitive drawing
 pub const primitive = @import("j3d/primitive.zig");
