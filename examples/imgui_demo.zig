@@ -363,8 +363,8 @@ pub fn draw(ctx: *jok.Context) !void {
         }
 
         if (imgui.collapsingHeader("Widgets: Image", .{})) {
-            imgui.image(tex.ptr, .{ .w = 512.0, .h = 512.0 });
-            _ = imgui.imageButton("image_button_id", tex.ptr, .{ .w = 512.0, .h = 512.0 });
+            imgui.image(tex.ptr, .{ .w = 256.0, .h = 256.0 });
+            _ = imgui.imageButton("image_button_id", tex.ptr, .{ .w = 256.0, .h = 256.0 });
         }
 
         const draw_list = imgui.getBackgroundDrawList();

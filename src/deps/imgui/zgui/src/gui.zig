@@ -561,6 +561,10 @@ pub fn setNextWindowBgAlpha(args: SetNextWindowBgAlpha) void {
     zguiSetNextWindowBgAlpha(args.alpha);
 }
 extern fn zguiSetNextWindowBgAlpha(alpha: f32) void;
+
+/// `pub fn setKeyboardFocusHere(offset: i32) void`
+pub const setKeyboardFocusHere = zguiSetKeyboardFocusHere;
+extern fn zguiSetKeyboardFocusHere(offset: i32) void;
 //--------------------------------------------------------------------------------------------------
 const Begin = struct {
     popen: ?*bool = null,
@@ -2893,6 +2897,8 @@ pub const MouseButton = enum(u32) {
     right = 1,
     middle = 2,
 };
+/// `pub fn isMouseDoubleClicked(mouse_button: MouseButton) bool`
+pub const isMouseDoubleClicked = zguiIsMouseDoubleClicked;
 /// `pub fn isItemClicked(mouse_button: MouseButton) bool`
 pub const isItemClicked = zguiIsItemClicked;
 /// `pub fn isItemVisible() bool`
@@ -2913,6 +2919,7 @@ pub const isAnyItemHovered = zguiIsAnyItemHovered;
 pub const isAnyItemActive = zguiIsAnyItemActive;
 /// `pub fn isAnyItemFocused() bool`
 pub const isAnyItemFocused = zguiIsAnyItemFocused;
+extern fn zguiIsMouseDoubleClicked(mouse_button: MouseButton) bool;
 extern fn zguiIsItemHovered(flags: HoveredFlags) bool;
 extern fn zguiIsItemActive() bool;
 extern fn zguiIsItemFocused() bool;
@@ -3046,6 +3053,8 @@ pub const endTooltip = zguiEndTooltip;
 extern fn zguiBeginTooltip() void;
 extern fn zguiEndTooltip() void;
 
+/// `pub fn beginPopupContextWindow() bool`
+pub const beginPopupContextWindow = zguiBeginPopupContextWindow;
 pub const PopupFlags = packed struct(u32) {
     mouse_button_left: bool = false,
     mouse_button_right: bool = false,
@@ -3069,6 +3078,7 @@ pub fn openPopup(str_id: [:0]const u8, flags: PopupFlags) void {
 pub const endPopup = zguiEndPopup;
 /// `pub fn closeCurrentPopup() void`
 pub const closeCurrentPopup = zguiCloseCurrentPopup;
+extern fn zguiBeginPopupContextWindow() bool;
 extern fn zguiBeginPopupModal(name: [*:0]const u8, popen: ?*bool, flags: WindowFlags) bool;
 extern fn zguiEndPopup() void;
 extern fn zguiOpenPopup(str_id: [*:0]const u8, flags: PopupFlags) void;
