@@ -295,49 +295,46 @@ pub fn addShapeData(
         };
         const positions_screen = zmath.mul(ndcs, ndc_to_screen);
 
-        // Finally, we can append vertices for rendering
-        const c0 = if (colors) |_| self.clip_colors.items[idx0] else sdl.Color.white;
-        const c1 = if (colors) |_| self.clip_colors.items[idx1] else sdl.Color.white;
-        const c2 = if (colors) |_| self.clip_colors.items[idx2] else sdl.Color.white;
+        // Get screen coordinate
+        const p0 = sdl.PointF{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
+        const p1 = sdl.PointF{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
+        const p2 = sdl.PointF{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
+
+        // Get depths
+        const d0 = positions_screen[0][2];
+        const d1 = positions_screen[1][2];
+        const d2 = positions_screen[2][2];
+
+        // Get color of vertices
+        const c0_diffuse = if (colors) |_| self.clip_colors.items[idx0] else sdl.Color.white;
+        const c1_diffuse = if (colors) |_| self.clip_colors.items[idx1] else sdl.Color.white;
+        const c2_diffuse = if (colors) |_| self.clip_colors.items[idx2] else sdl.Color.white;
+        const c0 = if (opt.lighting_opt) |p| BLK: {
+            var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
+            break :BLK calc(c0_diffuse, camera.position, world_v0, n0, p);
+        } else c0_diffuse;
+        const c1 = if (opt.lighting_opt) |p| BLK: {
+            var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
+            break :BLK calc(c1_diffuse, camera.position, world_v1, n1, p);
+        } else c1_diffuse;
+        const c2 = if (opt.lighting_opt) |p| BLK: {
+            var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
+            break :BLK calc(c2_diffuse, camera.position, world_v2, n2, p);
+        } else c2_diffuse;
+
+        // Get texture coordinates
         const t0 = if (texcoords) |_| self.clip_texcoords.items[idx0] else undefined;
         const t1 = if (texcoords) |_| self.clip_texcoords.items[idx1] else undefined;
         const t2 = if (texcoords) |_| self.clip_texcoords.items[idx2] else undefined;
+
+        // Append to ouput buffers
         self.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
-            .{
-                .position = .{ .x = positions_screen[0][0], .y = positions_screen[0][1] },
-                .color = if (opt.lighting_opt) |p| BLK: {
-                    var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
-                    break :BLK calc(c0, camera.position, world_v0, n0, p);
-                } else c0,
-                .tex_coord = t0,
-            },
-            .{
-                .position = .{ .x = positions_screen[1][0], .y = positions_screen[1][1] },
-                .color = if (opt.lighting_opt) |p| BLK: {
-                    var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
-                    break :BLK calc(c1, camera.position, world_v1, n1, p);
-                } else c1,
-                .tex_coord = t1,
-            },
-            .{
-                .position = .{ .x = positions_screen[2][0], .y = positions_screen[2][1] },
-                .color = if (opt.lighting_opt) |p| BLK: {
-                    var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
-                    break :BLK calc(c2, camera.position, world_v2, n2, p);
-                } else c2,
-                .tex_coord = t2,
-            },
+            .{ .position = p0, .color = c0, .tex_coord = t0 },
+            .{ .position = p1, .color = c1, .tex_coord = t1 },
+            .{ .position = p2, .color = c2, .tex_coord = t2 },
         });
-        self.indices.appendSliceAssumeCapacity(&[_]u32{
-            current_index,
-            current_index + 1,
-            current_index + 2,
-        });
-        self.depths.appendSliceAssumeCapacity(&[_]f32{
-            positions_screen[0][2],
-            positions_screen[1][2],
-            positions_screen[2][2],
-        });
+        self.depths.appendSliceAssumeCapacity(&[_]f32{ d0, d1, d2 });
+        self.indices.appendSliceAssumeCapacity(&[_]u32{ current_index, current_index + 1, current_index + 2 });
 
         // Update front triangles
         const tri_coords = [3][2]f32{
