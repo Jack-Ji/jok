@@ -82,7 +82,7 @@ pub fn clear(self: *Self, retain_memory: bool) void {
 }
 
 /// Advanced vertice appending options
-pub const ShapeOption = struct {
+pub const RenderOption = struct {
     aabb: ?[6]f32 = null,
     cull_faces: bool = true,
     lighting_opt: ?lighting.LightingOption = null,
@@ -99,7 +99,7 @@ pub fn addShapeData(
     normals: []const [3]f32,
     colors: ?[]const sdl.Color,
     texcoords: ?[]const [2]f32,
-    opt: ShapeOption,
+    opt: RenderOption,
 ) !void {
     assert(@rem(indices.len, 3) == 0);
     assert(normals.len == positions.len);

@@ -86,7 +86,7 @@ pub fn clear(self: *Self, retain_memory: bool) void {
 }
 
 /// Advanced vertice appending options
-pub const ShapeOption = struct {
+pub const RenderOption = struct {
     aabb: ?[6]f32 = null,
     cull_faces: bool = true,
     lighting_opt: ?lighting.LightingOption = null,
@@ -103,7 +103,7 @@ pub fn addShapeData(
     normals: []const [3]f32,
     colors: ?[]const sdl.Color,
     texcoords: ?[]const [2]f32,
-    opt: ShapeOption,
+    opt: RenderOption,
 ) !void {
     // Do early test with aabb if possible
     if (opt.aabb) |ab| {
@@ -253,7 +253,7 @@ const RenderJob = struct {
         normals: std.ArrayList([3]f32),
         colors: std.ArrayList(sdl.Color),
         texcoords: std.ArrayList([2]f32),
-        opt: ShapeOption,
+        opt: RenderOption,
 
         fn init(allocator: std.mem.Allocator) Context {
             return .{
@@ -324,7 +324,7 @@ const RenderJob = struct {
         normals: []const [3]f32,
         colors: ?[]const sdl.Color,
         texcoords: ?[]const [2]f32,
-        opt: ShapeOption,
+        opt: RenderOption,
     ) !void {
         // Empty outputs
         job.context.clip_vertices.clearRetainingCapacity();
