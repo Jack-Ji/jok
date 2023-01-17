@@ -262,7 +262,7 @@ pub fn addShapeData(
     try self.vertices.ensureTotalCapacityPrecise(self.vertices.items.len + self.clip_vertices.items.len);
     try self.depths.ensureTotalCapacityPrecise(self.vertices.items.len + self.clip_vertices.items.len);
     try self.indices.ensureTotalCapacityPrecise(self.vertices.items.len + self.clip_vertices.items.len);
-    var current_index: u32 = @intCast(u32, self.indices.items.len);
+    var current_index: u32 = @intCast(u32, self.vertices.items.len);
     i = 2;
     while (i < self.clip_vertices.items.len) : (i += 3) {
         const idx0 = i - 2;
@@ -427,12 +427,6 @@ pub fn addSpriteData(
     assert(opt.anchor_point.x >= 0 and opt.anchor_point.x <= 1);
     assert(opt.anchor_point.y >= 0 and opt.anchor_point.y <= 1);
     const vp = renderer.getViewport();
-    const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
-        0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
-        0.0,                              0.0,                                0.5,
-        0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
-    });
     const mv = zmath.mul(model, camera.getViewMatrix());
     const view_range = camera.getViewRange();
 
@@ -449,14 +443,14 @@ pub fn addSpriteData(
 
     // Get rectangle coordinates and convert it to clip space
     const basic_coords = zmath.loadMat(&[_]f32{
-        -opt.anchor_point.x, -opt.anchor_point.y, pos_in_camera_space[2], 1, // Left top
-        -opt.anchor_point.x, 1 - opt.anchor_point.y, pos_in_camera_space[2], 1, // Left bottom
-        1 - opt.anchor_point.x, 1 - opt.anchor_point.y, pos_in_camera_space[2], 1, // Right bottom
-        1 - opt.anchor_point.x, -opt.anchor_point.y, pos_in_camera_space[2], 1, // Right top
+        -opt.anchor_point.x, opt.anchor_point.y, pos_in_camera_space[2], 1, // Left top
+        -opt.anchor_point.x, opt.anchor_point.y - 1, pos_in_camera_space[2], 1, // Left bottom
+        1 - opt.anchor_point.x, opt.anchor_point.y - 1, pos_in_camera_space[2], 1, // Right bottom
+        1 - opt.anchor_point.x, opt.anchor_point.y, pos_in_camera_space[2], 1, // Right top
     });
     const m_scale = zmath.scaling(size.x * opt.scale_w, size.y * opt.scale_h, 1);
     const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
-    const m_translate = zmath.translation(pos_in_camera_space[0], pos_in_camera_space[1], 0);
+    const m_translate = zmath.translation(pos_in_camera_space[0], pos_in_camera_space[1], pos_in_camera_space[2]);
     const m_transform = zmath.mul(
         zmath.mul(zmath.mul(m_scale, m_rotate), m_translate),
         camera.getProjectMatrix(),
@@ -471,6 +465,12 @@ pub fn addSpriteData(
     }
 
     // Calculate screen coordinate
+    const ndc_to_screen = zmath.loadMat43(&[_]f32{
+        0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
+        0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
+        0.0,                              0.0,                                0.5,
+        0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
+    });
     const ndcs = zmath.Mat{
         ndc0,
         ndc1,
@@ -492,13 +492,16 @@ pub fn addSpriteData(
     const d3 = positions_screen[3][2];
 
     // Get texture coordinates
-    const t0 = uv[0];
-    const t1 = sdl.PointF{ .x = uv[0].x, .y = uv[1].y };
-    const t2 = uv[1];
-    const t3 = sdl.PointF{ .x = uv[1].x, .y = uv[0].y };
+    const t0 = uv0;
+    const t1 = sdl.PointF{ .x = uv0.x, .y = uv1.y };
+    const t2 = uv1;
+    const t3 = sdl.PointF{ .x = uv1.x, .y = uv0.y };
 
     // Append to ouput buffers
-    var current_index: u32 = @intCast(u32, self.indices.items.len);
+    try self.vertices.ensureTotalCapacityPrecise(self.vertices.items.len + 4);
+    try self.depths.ensureTotalCapacityPrecise(self.depths.items.len + 4);
+    try self.indices.ensureTotalCapacityPrecise(self.indices.items.len + 6);
+    var current_index: u32 = @intCast(u32, self.vertices.items.len);
     self.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
         .{ .position = p0, .color = opt.tint_color, .tex_coord = t0 },
         .{ .position = p1, .color = opt.tint_color, .tex_coord = t1 },

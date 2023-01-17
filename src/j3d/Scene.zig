@@ -16,7 +16,7 @@ pub const Position = struct {
     transform: zmath.Mat = zmath.identity(),
 };
 
-/// Represent a renderable object in 3d space
+/// Represent a mesh object in 3d space
 pub const Mesh = struct {
     transform: zmath.Mat,
     shape: zmesh.Shape,
@@ -25,15 +25,32 @@ pub const Mesh = struct {
     disable_lighting: bool = false,
 };
 
+/// Represent a sprite in 3d space
+pub const Sprite = struct {
+    transform: zmath.Mat,
+    pos: [3]f32,
+    size: sdl.PointF,
+    uv: [2]sdl.PointF,
+    tint_color: sdl.Color = sdl.Color.white,
+    scale_w: f32 = 1.0,
+    scale_h: f32 = 1.0,
+    rotate_degree: f32 = 0,
+    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    flip_h: bool = false,
+    flip_v: bool = false,
+};
+
 /// A movable object in 3d space
 pub const Actor = union(enum) {
     position: Position,
     mesh: Mesh,
+    sprite: Sprite,
 
     inline fn calcTransform(actor: Actor, parent_m: zmath.Mat) zmath.Mat {
         return switch (actor) {
             .position => |p| zmath.mul(p.transform, parent_m),
             .mesh => |m| zmath.mul(m.transform, parent_m),
+            .sprite => |s| zmath.mul(s.transform, parent_m),
         };
     }
 
@@ -41,6 +58,7 @@ pub const Actor = union(enum) {
         return switch (actor.*) {
             .position => |*p| p.transform = _m,
             .mesh => |*m| m.transform = _m,
+            .sprite => |*s| s.transform = _m,
         };
     }
 
@@ -48,6 +66,7 @@ pub const Actor = union(enum) {
         return switch (actor) {
             .position => |p| p.transform,
             .mesh => |m| m.transform,
+            .sprite => |s| s.transform,
         };
     }
 };
@@ -137,8 +156,10 @@ pub const Object = struct {
 
     /// Update all objects' transform matrix in tree
     pub fn updateTransforms(o: *Object) void {
-        assert(o.parent != null);
-        o.transform = o.actor.calcTransform(o.parent.?.transform);
+        o.transform = if (o.parent) |p|
+            o.actor.calcTransform(p.transform)
+        else
+            o.actor.getTransform();
         for (o.children.items) |c| {
             c.updateTransforms();
         }
@@ -226,6 +247,25 @@ fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *
                     .aabb = m.aabb,
                     .cull_faces = opt.cull_faces,
                     .lighting_opt = if (m.disable_lighting) null else opt.lighting,
+                },
+            );
+        },
+        .sprite => |s| {
+            try self.tri_rd.addSpriteData(
+                renderer,
+                o.transform,
+                camera,
+                s.pos,
+                s.size,
+                s.uv,
+                .{
+                    .tint_color = s.tint_color,
+                    .scale_w = s.scale_w,
+                    .scale_h = s.scale_h,
+                    .rotate_degree = s.rotate_degree,
+                    .anchor_point = s.anchor_point,
+                    .flip_h = s.flip_h,
+                    .flip_v = s.flip_v,
                 },
             );
         },

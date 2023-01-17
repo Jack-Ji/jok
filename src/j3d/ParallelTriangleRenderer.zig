@@ -555,7 +555,7 @@ const RenderJob = struct {
         job.prd.indices.ensureTotalCapacityPrecise(job.prd.vertices.items.len + ctx.vertices.items.len) catch unreachable;
         job.prd.vertices.appendSliceAssumeCapacity(ctx.vertices.items);
         job.prd.depths.appendSliceAssumeCapacity(ctx.depths.items);
-        const offset = job.prd.indices.items.len;
+        const offset = job.prd.vertices.items.len;
         i = 0;
         while (i < ctx.vertices.items.len) : (i += 1) {
             job.prd.indices.appendAssumeCapacity(@intCast(u32, offset + i));

@@ -37,6 +37,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "animation_2d", .opt = .{} },
         .{ .name = "primitive_2d", .opt = .{} },
         .{ .name = "primitive_3d", .opt = .{} },
+        .{ .name = "sprite_scene_3d", .opt = .{} },
         .{ .name = "terran_generation", .opt = .{} },
         .{ .name = "affine_texture", .opt = .{} },
         .{ .name = "solar_system", .opt = .{} },
