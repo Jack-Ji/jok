@@ -443,21 +443,17 @@ pub fn addSpriteData(
 
     // Convert to camera space
     const pos_in_camera_space = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1), mv);
-    if (pos_in_camera_space[2] <= view_range[0] or
-        pos_in_camera_space[2] >= view_range[1])
-    {
+    if (pos_in_camera_space[2] <= view_range[0] or pos_in_camera_space[2] >= view_range[1]) {
         return;
     }
 
-    // Get rectangle coordinates
+    // Get rectangle coordinates and convert it to clip space
     const basic_coords = zmath.loadMat(&[_]f32{
         -opt.anchor_point.x, -opt.anchor_point.y, pos_in_camera_space[2], 1, // Left top
         -opt.anchor_point.x, 1 - opt.anchor_point.y, pos_in_camera_space[2], 1, // Left bottom
         1 - opt.anchor_point.x, 1 - opt.anchor_point.y, pos_in_camera_space[2], 1, // Right bottom
         1 - opt.anchor_point.x, -opt.anchor_point.y, pos_in_camera_space[2], 1, // Right top
     });
-
-    // Convert to clip space
     const m_scale = zmath.scaling(size.x * opt.scale_w, size.y * opt.scale_h, 1);
     const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
     const m_translate = zmath.translation(pos_in_camera_space[0], pos_in_camera_space[1], 0);
