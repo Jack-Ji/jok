@@ -16,7 +16,8 @@ A minimal 2d/3d game framework for zig.
 * 2D scene management
 * 3D camera
 * 3D skybox rendering
-* 3D object batched rendering
+* 3D mesh rendering
+* 3D sprite rendering
 * 3D primitive rendering (plane/sphere/hemisphere/cone/cylinder etc)
 * 3D scene management
 * Font rendering/loading
