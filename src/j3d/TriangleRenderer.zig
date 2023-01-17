@@ -391,6 +391,133 @@ pub fn addShapeData(
     self.sorted = false;
 }
 
+/// Sprite's drawing params
+pub const SpriteOption = struct {
+    /// Mod color
+    tint_color: sdl.Color = sdl.Color.white,
+
+    /// Scale of width/height
+    scale_w: f32 = 1.0,
+    scale_h: f32 = 1.0,
+
+    /// Rotation around anchor-point (center by default)
+    rotate_degree: f32 = 0,
+
+    /// Anchor-point of sprite, around which rotation and translation is calculated
+    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+
+    /// Horizontal/vertial flipping
+    flip_h: bool = false,
+    flip_v: bool = false,
+};
+
+/// Append sprite data
+pub fn addSpriteData(
+    self: *Self,
+    renderer: sdl.Renderer,
+    model: zmath.Mat,
+    camera: Camera,
+    pos: [3]f32,
+    size: sdl.PointF,
+    uv: [2]sdl.PointF,
+    opt: SpriteOption,
+) !void {
+    assert(size.x > 0 and size.y > 0);
+    assert(opt.scale_w >= 0 and opt.scale_h >= 0);
+    assert(opt.anchor_point.x >= 0 and opt.anchor_point.x <= 1);
+    assert(opt.anchor_point.y >= 0 and opt.anchor_point.y <= 1);
+    const vp = renderer.getViewport();
+    const ndc_to_screen = zmath.loadMat43(&[_]f32{
+        0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
+        0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
+        0.0,                              0.0,                                0.5,
+        0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
+    });
+    const mv = zmath.mul(model, camera.getViewMatrix());
+    const view_range = camera.getViewRange();
+
+    var uv0 = uv[0];
+    var uv1 = uv[1];
+    if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
+    if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
+
+    // Convert to camera space
+    const pos_in_camera_space = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1), mv);
+    if (pos_in_camera_space[2] <= view_range[0] or
+        pos_in_camera_space[2] >= view_range[1])
+    {
+        return;
+    }
+
+    // Get rectangle coordinates
+    const basic_coords = zmath.loadMat(&[_]f32{
+        -opt.anchor_point.x, -opt.anchor_point.y, pos_in_camera_space[2], 1, // Left top
+        -opt.anchor_point.x, 1 - opt.anchor_point.y, pos_in_camera_space[2], 1, // Left bottom
+        1 - opt.anchor_point.x, 1 - opt.anchor_point.y, pos_in_camera_space[2], 1, // Right bottom
+        1 - opt.anchor_point.x, -opt.anchor_point.y, pos_in_camera_space[2], 1, // Right top
+    });
+
+    // Convert to clip space
+    const m_scale = zmath.scaling(size.x * opt.scale_w, size.y * opt.scale_h, 1);
+    const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
+    const m_translate = zmath.translation(pos_in_camera_space[0], pos_in_camera_space[1], 0);
+    const m_transform = zmath.mul(
+        zmath.mul(zmath.mul(m_scale, m_rotate), m_translate),
+        camera.getProjectMatrix(),
+    );
+    const clip_coords = zmath.mul(basic_coords, m_transform);
+    const ndc0 = clip_coords[0] / zmath.splat(zmath.Vec, clip_coords[0][3]);
+    const ndc1 = clip_coords[1] / zmath.splat(zmath.Vec, clip_coords[1][3]);
+    const ndc2 = clip_coords[2] / zmath.splat(zmath.Vec, clip_coords[2][3]);
+    const ndc3 = clip_coords[3] / zmath.splat(zmath.Vec, clip_coords[3][3]);
+    if (internal.isTriangleOutside(ndc0, ndc1, ndc2) or internal.isTriangleOutside(ndc0, ndc2, ndc3)) {
+        return;
+    }
+
+    // Calculate screen coordinate
+    const ndcs = zmath.Mat{
+        ndc0,
+        ndc1,
+        ndc2,
+        ndc3,
+    };
+    const positions_screen = zmath.mul(ndcs, ndc_to_screen);
+
+    // Get screen coordinate
+    const p0 = sdl.PointF{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
+    const p1 = sdl.PointF{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
+    const p2 = sdl.PointF{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
+    const p3 = sdl.PointF{ .x = positions_screen[3][0], .y = positions_screen[3][1] };
+
+    // Get depths
+    const d0 = positions_screen[0][2];
+    const d1 = positions_screen[1][2];
+    const d2 = positions_screen[2][2];
+    const d3 = positions_screen[3][2];
+
+    // Get texture coordinates
+    const t0 = uv[0];
+    const t1 = sdl.PointF{ .x = uv[0].x, .y = uv[1].y };
+    const t2 = uv[1];
+    const t3 = sdl.PointF{ .x = uv[1].x, .y = uv[0].y };
+
+    // Append to ouput buffers
+    var current_index: u32 = @intCast(u32, self.indices.items.len);
+    self.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
+        .{ .position = p0, .color = opt.tint_color, .tex_coord = t0 },
+        .{ .position = p1, .color = opt.tint_color, .tex_coord = t1 },
+        .{ .position = p2, .color = opt.tint_color, .tex_coord = t2 },
+        .{ .position = p3, .color = opt.tint_color, .tex_coord = t3 },
+    });
+    self.depths.appendSliceAssumeCapacity(&[_]f32{ d0, d1, d2, d3 });
+    self.indices.appendSliceAssumeCapacity(&[_]u32{
+        current_index, current_index + 1, current_index + 2,
+        current_index, current_index + 2, current_index + 3,
+    });
+
+    self.sorted = false;
+}
+
 /// Test whether all obb's triangles are hidden behind current front triangles
 pub inline fn isOBBHiddenBehind(self: *Self, obb: []zmath.Vec) bool {
     const S = struct {

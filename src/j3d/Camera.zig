@@ -127,6 +127,14 @@ pub fn getViewProjectMatrix(self: Self) zmath.Mat {
     return zmath.mul(self.getViewMatrix(), self.getProjectMatrix());
 }
 
+/// Get view distances
+pub fn getViewRange(self: Self) [2]f32 {
+    return switch (self.frustrum) {
+        .orthographic => |p| [2]f32{ p.near, p.far },
+        .perspective => |p| [2]f32{ p.near, p.far },
+    };
+}
+
 /// Get screen position of given coordinate
 pub fn getScreenPosition(
     self: Self,
