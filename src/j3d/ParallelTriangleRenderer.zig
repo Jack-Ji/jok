@@ -11,6 +11,7 @@ const lighting = j3d.lighting;
 const Camera = j3d.Camera;
 const utils = jok.utils;
 const internal = @import("internal.zig");
+const RenderOption = @import("TriangleRenderer.zig").RenderOption;
 const Self = @This();
 
 const max_jobs_num = @bitSizeOf(usize);
@@ -84,13 +85,6 @@ pub fn clear(self: *Self, retain_memory: bool) void {
     self.sorted = false;
     std.mem.set(zjobs.JobId, &self.rendering_job_ids, .none);
 }
-
-/// Advanced vertice appending options
-pub const RenderOption = struct {
-    aabb: ?[6]f32 = null,
-    cull_faces: bool = true,
-    lighting_opt: ?lighting.LightingOption = null,
-};
 
 /// Append shape data for parallel processing
 pub fn addShapeData(
