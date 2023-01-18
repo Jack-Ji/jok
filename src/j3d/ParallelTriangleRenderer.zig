@@ -12,6 +12,7 @@ const Camera = j3d.Camera;
 const utils = jok.utils;
 const internal = @import("internal.zig");
 const RenderOption = @import("TriangleRenderer.zig").RenderOption;
+const SpriteOption = @import("TriangleRenderer.zig").SpriteOption;
 const Self = @This();
 
 const max_jobs_num = @bitSizeOf(usize);
@@ -158,6 +159,163 @@ pub fn addShapeData(
         );
         break;
     }
+}
+
+/// Append sprite data
+/// TODO: Since sprite processing is pretty lightweight, we don't do multi-threading for now.
+pub fn addSpriteData(
+    self: *Self,
+    renderer: sdl.Renderer,
+    model: zmath.Mat,
+    camera: Camera,
+    pos: [3]f32,
+    size: sdl.PointF,
+    uv: [2]sdl.PointF,
+    opt: SpriteOption,
+) !void {
+    assert(size.x > 0 and size.y > 0);
+    assert(opt.scale_w >= 0 and opt.scale_h >= 0);
+    assert(opt.anchor_point.x >= 0 and opt.anchor_point.x <= 1);
+    assert(opt.anchor_point.y >= 0 and opt.anchor_point.y <= 1);
+
+    var uv0 = uv[0];
+    var uv1 = uv[1];
+    if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
+    if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
+
+    const basic_coords = zmath.loadMat(&[_]f32{
+        -opt.anchor_point.x, opt.anchor_point.y, 0, 1, // Left top
+        -opt.anchor_point.x, opt.anchor_point.y - 1, 0, 1, // Left bottom
+        1 - opt.anchor_point.x, opt.anchor_point.y - 1, 0, 1, // Right bottom
+        1 - opt.anchor_point.x, opt.anchor_point.y, 0, 1, // Right top
+    });
+    const vp = renderer.getViewport();
+    var ndc0: zmath.Vec = undefined;
+    var ndc1: zmath.Vec = undefined;
+    var ndc2: zmath.Vec = undefined;
+    var ndc3: zmath.Vec = undefined;
+    if (opt.fixed_size) {
+        const mvp = zmath.mul(model, camera.getViewProjectMatrix());
+
+        // Convert position to clip space
+        const pos_in_clip_space = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1), mvp);
+        const ndc_center = pos_in_clip_space / zmath.splat(zmath.Vec, pos_in_clip_space[3]);
+        if (ndc_center[2] <= -1 or ndc_center[2] >= 1) {
+            return;
+        }
+
+        // Get rectangle coordinates
+        const size_x = size.x / @intToFloat(f32, vp.width) * 2;
+        const size_y = size.y / @intToFloat(f32, vp.height) * 2;
+        const m_scale = zmath.scaling(size_x * opt.scale_w, size_y * opt.scale_h, 1);
+        const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
+        const m_translate = zmath.translation(ndc_center[0], ndc_center[1], 0);
+        const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
+        const ndc_coords = zmath.mul(basic_coords, m_transform);
+        ndc0 = ndc_coords[0];
+        ndc1 = ndc_coords[1];
+        ndc2 = ndc_coords[2];
+        ndc3 = ndc_coords[3];
+        ndc0[2] = ndc_center[2];
+        ndc1[2] = ndc_center[2];
+        ndc2[2] = ndc_center[2];
+        ndc3[2] = ndc_center[2];
+    } else {
+        const mv = zmath.mul(model, camera.getViewMatrix());
+        const view_range = camera.getViewRange();
+
+        // Convert position to camera space
+        const pos_in_camera_space = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1), mv);
+        if (pos_in_camera_space[2] <= view_range[0] or pos_in_camera_space[2] >= view_range[1]) {
+            return;
+        }
+
+        // Get rectangle coordinates and convert it to clip space
+        const m_scale = zmath.scaling(size.x * opt.scale_w, size.y * opt.scale_h, 1);
+        const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
+        const m_translate = zmath.translation(pos_in_camera_space[0], pos_in_camera_space[1], pos_in_camera_space[2]);
+        const m_transform = zmath.mul(
+            zmath.mul(zmath.mul(m_scale, m_rotate), m_translate),
+            camera.getProjectMatrix(),
+        );
+        const clip_coords = zmath.mul(basic_coords, m_transform);
+        ndc0 = clip_coords[0] / zmath.splat(zmath.Vec, clip_coords[0][3]);
+        ndc1 = clip_coords[1] / zmath.splat(zmath.Vec, clip_coords[1][3]);
+        ndc2 = clip_coords[2] / zmath.splat(zmath.Vec, clip_coords[2][3]);
+        ndc3 = clip_coords[3] / zmath.splat(zmath.Vec, clip_coords[3][3]);
+    }
+
+    // Test visibility
+    var min_x: f32 = math.f32_max;
+    var min_y: f32 = math.f32_max;
+    var max_x: f32 = math.f32_min;
+    var max_y: f32 = math.f32_min;
+    for ([_]zmath.Vec{ ndc0, ndc1, ndc2, ndc3 }) |p| {
+        if (min_x > p[0]) min_x = p[0];
+        if (min_y > p[1]) min_y = p[1];
+        if (max_x < p[0]) max_x = p[0];
+        if (max_y < p[1]) max_y = p[1];
+    }
+    if (min_x > 1 or max_x < -1 or min_y > 1 or max_y < -1) {
+        return;
+    }
+
+    // Calculate screen coordinate
+    const ndc_to_screen = zmath.loadMat43(&[_]f32{
+        0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
+        0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
+        0.0,                              0.0,                                0.5,
+        0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
+    });
+    const ndcs = zmath.Mat{
+        ndc0,
+        ndc1,
+        ndc2,
+        ndc3,
+    };
+    const positions_screen = zmath.mul(ndcs, ndc_to_screen);
+
+    // Get screen coordinate
+    const p0 = sdl.PointF{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
+    const p1 = sdl.PointF{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
+    const p2 = sdl.PointF{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
+    const p3 = sdl.PointF{ .x = positions_screen[3][0], .y = positions_screen[3][1] };
+
+    // Get depths
+    const d0 = positions_screen[0][2];
+    const d1 = positions_screen[1][2];
+    const d2 = positions_screen[2][2];
+    const d3 = positions_screen[3][2];
+
+    // Get texture coordinates
+    const t0 = uv0;
+    const t1 = sdl.PointF{ .x = uv0.x, .y = uv1.y };
+    const t2 = uv1;
+    const t3 = sdl.PointF{ .x = uv1.x, .y = uv0.y };
+
+    // Append to ouput buffers
+    try self.vertices.ensureTotalCapacityPrecise(self.vertices.items.len + 4);
+    try self.textures.ensureTotalCapacityPrecise(self.vertices.items.len + 4);
+    try self.depths.ensureTotalCapacityPrecise(self.depths.items.len + 4);
+    try self.indices.ensureTotalCapacityPrecise(self.indices.items.len + 6);
+    var current_index: u32 = @intCast(u32, self.vertices.items.len);
+    self.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
+        .{ .position = p0, .color = opt.tint_color, .tex_coord = t0 },
+        .{ .position = p1, .color = opt.tint_color, .tex_coord = t1 },
+        .{ .position = p2, .color = opt.tint_color, .tex_coord = t2 },
+        .{ .position = p3, .color = opt.tint_color, .tex_coord = t3 },
+    });
+    self.textures.appendSliceAssumeCapacity(&[_]?sdl.Texture{
+        opt.texture, opt.texture,
+        opt.texture, opt.texture,
+    });
+    self.depths.appendSliceAssumeCapacity(&[_]f32{ d0, d1, d2, d3 });
+    self.indices.appendSliceAssumeCapacity(&[_]u32{
+        current_index, current_index + 1, current_index + 2,
+        current_index, current_index + 2, current_index + 3,
+    });
+
+    self.sorted = false;
 }
 
 inline fn waitJobs(self: *Self) void {
