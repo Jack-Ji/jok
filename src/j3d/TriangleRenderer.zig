@@ -460,7 +460,19 @@ pub fn addSpriteData(
     const ndc1 = clip_coords[1] / zmath.splat(zmath.Vec, clip_coords[1][3]);
     const ndc2 = clip_coords[2] / zmath.splat(zmath.Vec, clip_coords[2][3]);
     const ndc3 = clip_coords[3] / zmath.splat(zmath.Vec, clip_coords[3][3]);
-    if (internal.isTriangleOutside(ndc0, ndc1, ndc2) or internal.isTriangleOutside(ndc0, ndc2, ndc3)) {
+
+    // Test visibility
+    var min_x: f32 = math.f32_max;
+    var min_y: f32 = math.f32_max;
+    var max_x: f32 = math.f32_min;
+    var max_y: f32 = math.f32_min;
+    for ([_]zmath.Vec{ ndc0, ndc1, ndc2, ndc3 }) |p| {
+        if (min_x > p[0]) min_x = p[0];
+        if (min_y > p[1]) min_y = p[1];
+        if (max_x < p[0]) max_x = p[0];
+        if (max_y < p[1]) max_y = p[1];
+    }
+    if (min_x > 1 or max_x < -1 or min_y > 1 or max_y < -1) {
         return;
     }
 
