@@ -394,3 +394,70 @@ pub inline fn clipTriangle(
         }
     }
 }
+
+/// Draw batched triangles
+pub inline fn drawTriangles(
+    renderer: sdl.Renderer,
+    indices: std.ArrayList(u32),
+    vertices: std.ArrayList(sdl.Vertex),
+    textures: std.ArrayList(?sdl.Texture),
+    depths: std.ArrayList(f32),
+    sorted: *bool,
+) !void {
+    const S = struct {
+        var _depths: std.ArrayList(f32) = undefined;
+
+        // Whether textures are same
+        inline fn isSameTexture(tex0: ?sdl.Texture, tex1: ?sdl.Texture) bool {
+            if (tex0 != null and tex1 != null) {
+                return tex0.?.ptr == tex1.?.ptr;
+            }
+            return tex0 == null and tex1 == null;
+        }
+
+        // Sort triangles by depth values
+        fn compareTriangleDepths(_: ?*anyopaque, lhs: [3]u32, rhs: [3]u32) bool {
+            const d1 = (_depths.items[lhs[0]] + _depths.items[lhs[1]] + _depths.items[lhs[2]]) / 3.0;
+            const d2 = (_depths.items[rhs[0]] + _depths.items[rhs[1]] + _depths.items[rhs[2]]) / 3.0;
+            return d1 > d2;
+        }
+    };
+
+    if (indices.items.len == 0) return;
+
+    if (!sorted.*) {
+        S._depths = depths;
+
+        // Sort triangles by depth, from farthest to closest
+        var _indices: [][3]u32 = undefined;
+        _indices.ptr = @ptrCast([*][3]u32, indices.items.ptr);
+        _indices.len = @divTrunc(indices.items.len, 3);
+        std.sort.sort(
+            [3]u32,
+            _indices,
+            @as(?*anyopaque, null),
+            S.compareTriangleDepths,
+        );
+        sorted.* = true;
+    }
+
+    // Send in batches relying on same texture
+    var offset: usize = 0;
+    var last_texture: ?sdl.Texture = null;
+    for (indices.items) |idx, i| {
+        if (i > 0 and !S.isSameTexture(textures.items[idx], last_texture)) {
+            try renderer.drawGeometry(
+                last_texture,
+                vertices.items,
+                indices.items[offset..i],
+            );
+            offset = i;
+        }
+        last_texture = textures.items[idx];
+    }
+    try renderer.drawGeometry(
+        last_texture,
+        vertices.items,
+        indices.items[offset..],
+    );
+}

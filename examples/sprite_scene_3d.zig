@@ -60,6 +60,7 @@ pub fn init(ctx: *jok.Context) !void {
                 .pos = .{ 0, 0, 0 },
                 .size = .{ .x = 2, .y = 2 },
                 .uv = .{ sp.uv0, sp.uv1 },
+                .texture = sheet.tex,
                 .anchor_point = .{ .x = 0.5, .y = 0.5 },
             },
         });
@@ -76,6 +77,7 @@ pub fn init(ctx: *jok.Context) !void {
                 .pos = .{ 0, 0, 0 },
                 .size = .{ .x = 100, .y = 100 },
                 .uv = .{ sp.uv0, sp.uv1 },
+                .texture = sheet.tex,
                 .anchor_point = .{ .x = 0.5, .y = 0.5 },
                 .fixed_size = true,
             },
@@ -93,6 +95,7 @@ pub fn init(ctx: *jok.Context) !void {
                 .pos = .{ 0, 0, 0 },
                 .size = .{ .x = 2, .y = 2 },
                 .uv = .{ sp.uv0, sp.uv1 },
+                .texture = sheet.tex,
                 .anchor_point = .{ .x = 0.5, .y = 0.5 },
             },
         });
@@ -162,7 +165,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
 
     scene.clear();
-    try scene.draw(ctx.renderer, camera, .{ .texture = sheet.tex, .lighting = .{} });
+    try scene.draw(ctx.renderer, camera, .{ .lighting = .{} });
 
     const ogre_pos = camera.getScreenPosition(ctx.renderer, sprites[12].transform, sprites[12].actor.sprite.pos);
     _ = try font.debugDraw(

@@ -25,6 +25,7 @@ jobs: *zjobs.JobQueue(.{}),
 indices: std.ArrayList(u32),
 sorted: bool = false,
 vertices: std.ArrayList(sdl.Vertex),
+textures: std.ArrayList(?sdl.Texture),
 depths: std.ArrayList(f32),
 mutex: std.Thread.Mutex,
 
@@ -47,6 +48,7 @@ pub fn create(
         .jobs = jobs,
         .indices = std.ArrayList(u32).init(allocator),
         .vertices = std.ArrayList(sdl.Vertex).init(allocator),
+        .textures = std.ArrayList(?sdl.Texture).init(self.allocator),
         .depths = std.ArrayList(f32).init(allocator),
         .mutex = std.Thread.Mutex{},
         .rendering_jobs = undefined,
@@ -63,6 +65,7 @@ pub fn create(
 pub fn destroy(self: *Self) void {
     self.indices.deinit();
     self.vertices.deinit();
+    self.textures.deinit();
     self.depths.deinit();
     var i: u32 = 0;
     while (i < self.rendering_jobs.len) : (i += 1) {
@@ -76,10 +79,12 @@ pub fn clear(self: *Self, retain_memory: bool) void {
     if (retain_memory) {
         self.indices.clearRetainingCapacity();
         self.vertices.clearRetainingCapacity();
+        self.textures.clearRetainingCapacity();
         self.depths.clearRetainingCapacity();
     } else {
         self.indices.clearAndFree();
         self.vertices.clearAndFree();
+        self.textures.clearAndFree();
         self.depths.clearAndFree();
     }
     self.sorted = false;
@@ -155,13 +160,6 @@ pub fn addShapeData(
     }
 }
 
-/// Sort triangles by depth values
-fn compareTriangleDepths(self: *Self, lhs: [3]u32, rhs: [3]u32) bool {
-    const d1 = (self.depths.items[lhs[0]] + self.depths.items[lhs[1]] + self.depths.items[lhs[2]]) / 3.0;
-    const d2 = (self.depths.items[rhs[0]] + self.depths.items[rhs[1]] + self.depths.items[rhs[2]]) / 3.0;
-    return d1 > d2;
-}
-
 inline fn waitJobs(self: *Self) void {
     for (self.rendering_job_ids) |id| {
         if (id != .none) {
@@ -170,30 +168,17 @@ inline fn waitJobs(self: *Self) void {
     }
 }
 
-/// Draw the meshes, fill triangles, using texture if possible
-pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
+/// Draw the meshes, fill triangles
+pub fn draw(self: *Self, renderer: sdl.Renderer) !void {
     self.waitJobs();
 
-    if (self.indices.items.len == 0) return;
-
-    if (!self.sorted) {
-        // Sort triangles by depth, from farthest to closest
-        var indices: [][3]u32 = undefined;
-        indices.ptr = @ptrCast([*][3]u32, self.indices.items.ptr);
-        indices.len = @divTrunc(self.indices.items.len, 3);
-        std.sort.sort(
-            [3]u32,
-            indices,
-            self,
-            compareTriangleDepths,
-        );
-        self.sorted = true;
-    }
-
-    try renderer.drawGeometry(
-        tex,
-        self.vertices.items,
-        self.indices.items,
+    return internal.drawTriangles(
+        renderer,
+        self.indices,
+        self.vertices,
+        self.textures,
+        self.depths,
+        &self.sorted,
     );
 }
 
@@ -551,11 +536,13 @@ const RenderJob = struct {
         job.prd.mutex.lock();
         defer job.prd.mutex.unlock();
         job.prd.vertices.ensureTotalCapacityPrecise(job.prd.vertices.items.len + ctx.vertices.items.len) catch unreachable;
+        job.prd.textures.ensureTotalCapacityPrecise(job.prd.textures.items.len + ctx.vertices.items.len) catch unreachable;
         job.prd.depths.ensureTotalCapacityPrecise(job.prd.depths.items.len + ctx.vertices.items.len) catch unreachable;
         job.prd.indices.ensureTotalCapacityPrecise(job.prd.indices.items.len + ctx.vertices.items.len) catch unreachable;
-        job.prd.vertices.appendSliceAssumeCapacity(ctx.vertices.items);
-        job.prd.depths.appendSliceAssumeCapacity(ctx.depths.items);
         const offset = job.prd.vertices.items.len;
+        job.prd.vertices.appendSliceAssumeCapacity(ctx.vertices.items);
+        job.prd.textures.appendNTimesAssumeCapacity(ctx.opt.texture, ctx.vertices.items.len);
+        job.prd.depths.appendSliceAssumeCapacity(ctx.depths.items);
         i = 0;
         while (i < ctx.vertices.items.len) : (i += 1) {
             job.prd.indices.appendAssumeCapacity(@intCast(u32, offset + i));

@@ -134,7 +134,7 @@ pub fn update(ctx: *jok.Context) !void {
 pub fn draw(ctx: *jok.Context) !void {
     try skybox_rd.draw(ctx.renderer, camera, skybox_textures, skybox_tint_color);
 
-    primitive.clear(.{ .texture = tex });
+    primitive.clear(.{});
     try primitive.addShape(
         cube,
         j3d.zmath.mul(
@@ -146,7 +146,7 @@ pub fn draw(ctx: *jok.Context) !void {
         ),
         camera,
         null,
-        .{},
+        .{ .texture = tex },
     );
     try primitive.draw();
 

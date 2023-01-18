@@ -9,6 +9,7 @@ const imgui = jok.imgui;
 const zjobs = jok.zjobs;
 
 pub const jok_fps_limit: jok.config.FpsLimit = .none;
+pub const jok_window_resizable = true;
 
 var jobs: zjobs.JobQueue(.{}) = undefined;
 var prd: *j3d.ParallelTriangleRenderer = undefined;
@@ -150,10 +151,10 @@ pub fn draw(ctx: *jok.Context) !void {
                 cube.normals.?,
                 null,
                 cube.texcoords.?,
-                .{ .aabb = aabb },
+                .{ .aabb = aabb, .texture = tex },
             );
         }
-        try prd.draw(ctx.renderer, tex);
+        try prd.draw(ctx.renderer);
     } else {
         rd.clear(true);
         for (translations.items) |tr, i| {
@@ -176,10 +177,10 @@ pub fn draw(ctx: *jok.Context) !void {
                 cube.normals.?,
                 null,
                 cube.texcoords.?,
-                .{ .aabb = aabb },
+                .{ .aabb = aabb, .texture = tex },
             );
         }
-        try rd.draw(ctx.renderer, tex);
+        try rd.draw(ctx.renderer);
     }
 
     _ = try font.debugDraw(

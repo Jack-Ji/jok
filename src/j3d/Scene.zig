@@ -22,6 +22,7 @@ pub const Mesh = struct {
     shape: zmesh.Shape,
     color: sdl.Color,
     aabb: ?[6]f32 = null,
+    texture: ?sdl.Texture = null,
     disable_lighting: bool = false,
 };
 
@@ -31,6 +32,7 @@ pub const Sprite = struct {
     pos: [3]f32,
     size: sdl.PointF,
     uv: [2]sdl.PointF,
+    texture: ?sdl.Texture = null,
     tint_color: sdl.Color = sdl.Color.white,
     scale_w: f32 = 1.0,
     scale_h: f32 = 1.0,
@@ -212,7 +214,6 @@ pub fn clear(self: *Self) void {
 
 /// Update and render the scene
 pub const RenderOption = struct {
-    texture: ?sdl.Texture = null,
     wireframe: bool = false,
     wireframe_color: sdl.Color = sdl.Color.green,
     cull_faces: bool = true,
@@ -223,7 +224,7 @@ pub fn draw(self: *Self, renderer: sdl.Renderer, camera: Camera, opt: RenderOpti
     if (opt.wireframe) {
         try self.tri_rd.drawWireframe(renderer, opt.wireframe_color);
     } else {
-        try self.tri_rd.draw(renderer, opt.texture);
+        try self.tri_rd.draw(renderer);
     }
 }
 
@@ -247,6 +248,7 @@ fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *
                 .{
                     .aabb = m.aabb,
                     .cull_faces = opt.cull_faces,
+                    .texture = m.texture,
                     .lighting_opt = if (m.disable_lighting) null else opt.lighting,
                 },
             );
@@ -260,6 +262,7 @@ fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *
                 s.size,
                 s.uv,
                 .{
+                    .texture = s.texture,
                     .tint_color = s.tint_color,
                     .scale_w = s.scale_w,
                     .scale_h = s.scale_h,

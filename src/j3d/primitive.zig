@@ -10,6 +10,7 @@ const zmesh = jok.zmesh;
 const j3d = jok.j3d;
 
 pub const CommonDrawOption = struct {
+    texture: ?sdl.Texture = null,
     color: sdl.Color = sdl.Color.white,
     cull_faces: bool = true,
     lighting: ?j3d.lighting.LightingOption = null,
@@ -20,7 +21,6 @@ var arena: std.heap.ArenaAllocator = undefined;
 var tri_renderer: ?*TriangleRenderer = null;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 var rd: sdl.Renderer = undefined;
-var texture: ?sdl.Texture = null;
 
 /// Initialize primitive module
 pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
@@ -38,16 +38,15 @@ pub fn deinit() void {
 
 /// Clear primitive
 pub const RenderOption = struct {
-    texture: ?sdl.Texture = null,
+    retain_memory: bool = true,
 };
 pub fn clear(opt: RenderOption) void {
-    tri_renderer.?.clear(true);
-    texture = opt.texture;
+    tri_renderer.?.clear(opt.retain_memory);
 }
 
 /// Render data
 pub fn draw() !void {
-    try tri_renderer.?.draw(rd, texture);
+    try tri_renderer.?.draw(rd);
 }
 pub fn drawWireframe(color: sdl.Color) !void {
     try tri_renderer.?.drawWireframe(rd, color);
@@ -85,6 +84,7 @@ pub fn addShape(
         .{
             .aabb = aabb,
             .cull_faces = opt.cull_faces,
+            .texture = opt.texture,
             .lighting_opt = opt.lighting,
         },
     );

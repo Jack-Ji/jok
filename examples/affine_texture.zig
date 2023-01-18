@@ -94,7 +94,7 @@ pub fn draw(ctx: *jok.Context) !void {
     }
     imgui.end();
 
-    primitive.clear(.{ .texture = tex });
+    primitive.clear(.{});
     try primitive.addPlane(
         zmath.mul(
             zmath.mul(
@@ -107,6 +107,7 @@ pub fn draw(ctx: *jok.Context) !void {
         .{
             .common = .{
                 .cull_faces = false,
+                .texture = tex,
             },
             .slices = @intCast(u32, slices),
             .stacks = @intCast(u32, stacks),

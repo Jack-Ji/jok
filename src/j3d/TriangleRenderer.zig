@@ -20,6 +20,9 @@ sorted: bool = false,
 // Triangle vertices
 vertices: std.ArrayList(sdl.Vertex),
 
+// Vertices' Textures
+textures: std.ArrayList(?sdl.Texture),
+
 // Depth of vertices
 depths: std.ArrayList(f32),
 
@@ -41,6 +44,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
         .allocator = allocator,
         .indices = std.ArrayList(u32).init(self.allocator),
         .vertices = std.ArrayList(sdl.Vertex).init(self.allocator),
+        .textures = std.ArrayList(?sdl.Texture).init(self.allocator),
         .depths = std.ArrayList(f32).init(self.allocator),
         .large_front_triangles = std.ArrayList([3]u32).init(self.allocator),
         .clip_vertices = std.ArrayList(zmath.Vec).init(self.allocator),
@@ -55,6 +59,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
 pub fn destroy(self: *Self) void {
     self.indices.deinit();
     self.vertices.deinit();
+    self.textures.deinit();
     self.depths.deinit();
     self.large_front_triangles.deinit();
     self.clip_vertices.deinit();
@@ -70,11 +75,13 @@ pub fn clear(self: *Self, retain_memory: bool) void {
     if (retain_memory) {
         self.indices.clearRetainingCapacity();
         self.vertices.clearRetainingCapacity();
+        self.textures.clearRetainingCapacity();
         self.depths.clearRetainingCapacity();
         self.large_front_triangles.clearRetainingCapacity();
     } else {
         self.indices.clearAndFree();
         self.vertices.clearAndFree();
+        self.textures.clearAndFree();
         self.depths.clearAndFree();
         self.large_front_triangles.clearAndFree();
     }
@@ -85,6 +92,7 @@ pub fn clear(self: *Self, retain_memory: bool) void {
 pub const RenderOption = struct {
     aabb: ?[6]f32 = null,
     cull_faces: bool = true,
+    texture: ?sdl.Texture = null,
     lighting_opt: ?lighting.LightingOption = null,
 };
 
@@ -260,6 +268,7 @@ pub fn addShapeData(
 
     // Continue with remaining triangles
     try self.vertices.ensureTotalCapacityPrecise(self.vertices.items.len + self.clip_vertices.items.len);
+    try self.textures.ensureTotalCapacityPrecise(self.textures.items.len + self.clip_vertices.items.len);
     try self.depths.ensureTotalCapacityPrecise(self.depths.items.len + self.clip_vertices.items.len);
     try self.indices.ensureTotalCapacityPrecise(self.indices.items.len + self.clip_vertices.items.len);
     var current_index: u32 = @intCast(u32, self.vertices.items.len);
@@ -333,6 +342,7 @@ pub fn addShapeData(
             .{ .position = p1, .color = c1, .tex_coord = t1 },
             .{ .position = p2, .color = c2, .tex_coord = t2 },
         });
+        self.textures.appendSliceAssumeCapacity(&[_]?sdl.Texture{ opt.texture, opt.texture, opt.texture });
         self.depths.appendSliceAssumeCapacity(&[_]f32{ d0, d1, d2 });
         self.indices.appendSliceAssumeCapacity(&[_]u32{ current_index, current_index + 1, current_index + 2 });
 
@@ -393,6 +403,9 @@ pub fn addShapeData(
 
 /// Sprite's drawing params
 pub const SpriteOption = struct {
+    /// Binded texture
+    texture: ?sdl.Texture = null,
+
     /// Mod color
     tint_color: sdl.Color = sdl.Color.white,
 
@@ -547,6 +560,7 @@ pub fn addSpriteData(
 
     // Append to ouput buffers
     try self.vertices.ensureTotalCapacityPrecise(self.vertices.items.len + 4);
+    try self.textures.ensureTotalCapacityPrecise(self.vertices.items.len + 4);
     try self.depths.ensureTotalCapacityPrecise(self.depths.items.len + 4);
     try self.indices.ensureTotalCapacityPrecise(self.indices.items.len + 6);
     var current_index: u32 = @intCast(u32, self.vertices.items.len);
@@ -555,6 +569,10 @@ pub fn addSpriteData(
         .{ .position = p1, .color = opt.tint_color, .tex_coord = t1 },
         .{ .position = p2, .color = opt.tint_color, .tex_coord = t2 },
         .{ .position = p3, .color = opt.tint_color, .tex_coord = t3 },
+    });
+    self.textures.appendSliceAssumeCapacity(&[_]?sdl.Texture{
+        opt.texture, opt.texture,
+        opt.texture, opt.texture,
     });
     self.depths.appendSliceAssumeCapacity(&[_]f32{ d0, d1, d2, d3 });
     self.indices.appendSliceAssumeCapacity(&[_]u32{
@@ -651,35 +669,15 @@ pub inline fn isOBBHiddenBehind(self: *Self, obb: []zmath.Vec) bool {
     return false;
 }
 
-/// Sort triangles by depth values
-fn compareTriangleDepths(self: *Self, lhs: [3]u32, rhs: [3]u32) bool {
-    const d1 = (self.depths.items[lhs[0]] + self.depths.items[lhs[1]] + self.depths.items[lhs[2]]) / 3.0;
-    const d2 = (self.depths.items[rhs[0]] + self.depths.items[rhs[1]] + self.depths.items[rhs[2]]) / 3.0;
-    return d1 > d2;
-}
-
-/// Draw the meshes, fill triangles, using texture if possible
-pub fn draw(self: *Self, renderer: sdl.Renderer, tex: ?sdl.Texture) !void {
-    if (self.indices.items.len == 0) return;
-
-    if (!self.sorted) {
-        // Sort triangles by depth, from farthest to closest
-        var indices: [][3]u32 = undefined;
-        indices.ptr = @ptrCast([*][3]u32, self.indices.items.ptr);
-        indices.len = @divTrunc(self.indices.items.len, 3);
-        std.sort.sort(
-            [3]u32,
-            indices,
-            self,
-            compareTriangleDepths,
-        );
-        self.sorted = true;
-    }
-
-    try renderer.drawGeometry(
-        tex,
-        self.vertices.items,
-        self.indices.items,
+/// Draw the meshes, fill triangles
+pub fn draw(self: *Self, renderer: sdl.Renderer) !void {
+    return internal.drawTriangles(
+        renderer,
+        self.indices,
+        self.vertices,
+        self.textures,
+        self.depths,
+        &self.sorted,
     );
 
     // Debug: draw front triangles
