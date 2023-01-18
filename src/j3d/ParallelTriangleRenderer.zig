@@ -294,6 +294,8 @@ pub fn addSpriteData(
     const t3 = sdl.PointF{ .x = uv1.x, .y = uv0.y };
 
     // Append to ouput buffers
+    self.mutex.lock();
+    defer self.mutex.unlock();
     try self.vertices.ensureTotalCapacityPrecise(self.vertices.items.len + 4);
     try self.textures.ensureTotalCapacityPrecise(self.vertices.items.len + 4);
     try self.depths.ensureTotalCapacityPrecise(self.depths.items.len + 4);
@@ -706,5 +708,6 @@ const RenderJob = struct {
             job.prd.indices.appendAssumeCapacity(@intCast(u32, offset + i));
         }
         job.prd.rendering_job_ids[job.idx] = .none;
+        job.prd.sorted = false;
     }
 };
