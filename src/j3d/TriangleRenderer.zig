@@ -260,8 +260,8 @@ pub fn addShapeData(
 
     // Continue with remaining triangles
     try self.vertices.ensureTotalCapacityPrecise(self.vertices.items.len + self.clip_vertices.items.len);
-    try self.depths.ensureTotalCapacityPrecise(self.vertices.items.len + self.clip_vertices.items.len);
-    try self.indices.ensureTotalCapacityPrecise(self.vertices.items.len + self.clip_vertices.items.len);
+    try self.depths.ensureTotalCapacityPrecise(self.depths.items.len + self.clip_vertices.items.len);
+    try self.indices.ensureTotalCapacityPrecise(self.indices.items.len + self.clip_vertices.items.len);
     var current_index: u32 = @intCast(u32, self.vertices.items.len);
     i = 2;
     while (i < self.clip_vertices.items.len) : (i += 3) {
@@ -436,17 +436,17 @@ pub fn addSpriteData(
     if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
 
     // Convert to camera space
-    const pos_in_camera_space = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1), mv);
+    var pos_in_camera_space = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1), mv);
     if (pos_in_camera_space[2] <= view_range[0] or pos_in_camera_space[2] >= view_range[1]) {
         return;
     }
 
     // Get rectangle coordinates and convert it to clip space
     const basic_coords = zmath.loadMat(&[_]f32{
-        -opt.anchor_point.x, opt.anchor_point.y, pos_in_camera_space[2], 1, // Left top
-        -opt.anchor_point.x, opt.anchor_point.y - 1, pos_in_camera_space[2], 1, // Left bottom
-        1 - opt.anchor_point.x, opt.anchor_point.y - 1, pos_in_camera_space[2], 1, // Right bottom
-        1 - opt.anchor_point.x, opt.anchor_point.y, pos_in_camera_space[2], 1, // Right top
+        -opt.anchor_point.x, opt.anchor_point.y, 0, 1, // Left top
+        -opt.anchor_point.x, opt.anchor_point.y - 1, 0, 1, // Left bottom
+        1 - opt.anchor_point.x, opt.anchor_point.y - 1, 0, 1, // Right bottom
+        1 - opt.anchor_point.x, opt.anchor_point.y, 0, 1, // Right top
     });
     const m_scale = zmath.scaling(size.x * opt.scale_w, size.y * opt.scale_h, 1);
     const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));

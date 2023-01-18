@@ -551,8 +551,8 @@ const RenderJob = struct {
         job.prd.mutex.lock();
         defer job.prd.mutex.unlock();
         job.prd.vertices.ensureTotalCapacityPrecise(job.prd.vertices.items.len + ctx.vertices.items.len) catch unreachable;
-        job.prd.depths.ensureTotalCapacityPrecise(job.prd.vertices.items.len + ctx.vertices.items.len) catch unreachable;
-        job.prd.indices.ensureTotalCapacityPrecise(job.prd.vertices.items.len + ctx.vertices.items.len) catch unreachable;
+        job.prd.depths.ensureTotalCapacityPrecise(job.prd.depths.items.len + ctx.vertices.items.len) catch unreachable;
+        job.prd.indices.ensureTotalCapacityPrecise(job.prd.indices.items.len + ctx.vertices.items.len) catch unreachable;
         job.prd.vertices.appendSliceAssumeCapacity(ctx.vertices.items);
         job.prd.depths.appendSliceAssumeCapacity(ctx.depths.items);
         const offset = job.prd.vertices.items.len;

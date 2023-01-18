@@ -10,10 +10,11 @@ const Camera = j3d.Camera;
 const Scene = j3d.Scene;
 
 var camera: Camera = undefined;
-var sphere: zmesh.Shape = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var scene: *Scene = undefined;
 var sprites: [14]*Scene.Object = undefined;
+var sphere_mesh: jok.zmesh.Shape = undefined;
+var sphere_obj: *Scene.Object = undefined;
 
 pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
@@ -27,7 +28,7 @@ pub fn init(ctx: *jok.Context) !void {
                 .far = 100,
             },
         },
-        [_]f32{ 6, 0, -14 },
+        [_]f32{ 7, 0, -27 },
         [_]f32{ 0, 0, 0 },
         null,
     );
@@ -59,6 +60,7 @@ pub fn init(ctx: *jok.Context) !void {
                 .pos = .{ 0, 0, 0 },
                 .size = .{ .x = 2, .y = 2 },
                 .uv = .{ sp.uv0, sp.uv1 },
+                .anchor_point = .{ .x = 0.5, .y = 0.5 },
             },
         });
         try scene.root.addChild(sprites[i]);
@@ -74,6 +76,7 @@ pub fn init(ctx: *jok.Context) !void {
                 .pos = .{ 0, 0, 0 },
                 .size = .{ .x = 2, .y = 2 },
                 .uv = .{ sp.uv0, sp.uv1 },
+                .anchor_point = .{ .x = 0.5, .y = 0.5 },
             },
         });
         try scene.root.addChild(sprites[12]);
@@ -89,10 +92,21 @@ pub fn init(ctx: *jok.Context) !void {
                 .pos = .{ 0, 0, 0 },
                 .size = .{ .x = 2, .y = 2 },
                 .uv = .{ sp.uv0, sp.uv1 },
+                .anchor_point = .{ .x = 0.5, .y = 0.5 },
             },
         });
         try scene.root.addChild(sprites[13]);
     }
+
+    sphere_mesh = jok.zmesh.Shape.initSubdividedSphere(1);
+    sphere_obj = try Scene.Object.create(ctx.allocator, .{
+        .mesh = .{
+            .transform = zmath.identity(),
+            .shape = sphere_mesh,
+            .color = sdl.Color.white,
+        },
+    });
+    try scene.root.addChild(sphere_obj);
 
     try ctx.renderer.setColorRGB(80, 80, 80);
 }
@@ -147,7 +161,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
 
     scene.clear();
-    try scene.draw(ctx.renderer, camera, .{ .texture = sheet.tex });
+    try scene.draw(ctx.renderer, camera, .{ .texture = sheet.tex, .lighting = .{} });
 
     _ = try font.debugDraw(
         ctx.renderer,
@@ -171,6 +185,7 @@ pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 
+    sphere_mesh.deinit();
     sheet.destroy();
     scene.destroy(true);
 }
