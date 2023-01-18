@@ -409,6 +409,9 @@ pub const SpriteOption = struct {
     /// Horizontal/vertial flipping
     flip_h: bool = false,
     flip_v: bool = false,
+
+    /// Fixed size
+    fixed_size: bool = false,
 };
 
 /// Append sprite data
@@ -426,40 +429,73 @@ pub fn addSpriteData(
     assert(opt.scale_w >= 0 and opt.scale_h >= 0);
     assert(opt.anchor_point.x >= 0 and opt.anchor_point.x <= 1);
     assert(opt.anchor_point.y >= 0 and opt.anchor_point.y <= 1);
-    const vp = renderer.getViewport();
-    const mv = zmath.mul(model, camera.getViewMatrix());
-    const view_range = camera.getViewRange();
 
     var uv0 = uv[0];
     var uv1 = uv[1];
     if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
     if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
 
-    // Convert to camera space
-    var pos_in_camera_space = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1), mv);
-    if (pos_in_camera_space[2] <= view_range[0] or pos_in_camera_space[2] >= view_range[1]) {
-        return;
-    }
-
-    // Get rectangle coordinates and convert it to clip space
     const basic_coords = zmath.loadMat(&[_]f32{
         -opt.anchor_point.x, opt.anchor_point.y, 0, 1, // Left top
         -opt.anchor_point.x, opt.anchor_point.y - 1, 0, 1, // Left bottom
         1 - opt.anchor_point.x, opt.anchor_point.y - 1, 0, 1, // Right bottom
         1 - opt.anchor_point.x, opt.anchor_point.y, 0, 1, // Right top
     });
-    const m_scale = zmath.scaling(size.x * opt.scale_w, size.y * opt.scale_h, 1);
-    const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
-    const m_translate = zmath.translation(pos_in_camera_space[0], pos_in_camera_space[1], pos_in_camera_space[2]);
-    const m_transform = zmath.mul(
-        zmath.mul(zmath.mul(m_scale, m_rotate), m_translate),
-        camera.getProjectMatrix(),
-    );
-    const clip_coords = zmath.mul(basic_coords, m_transform);
-    const ndc0 = clip_coords[0] / zmath.splat(zmath.Vec, clip_coords[0][3]);
-    const ndc1 = clip_coords[1] / zmath.splat(zmath.Vec, clip_coords[1][3]);
-    const ndc2 = clip_coords[2] / zmath.splat(zmath.Vec, clip_coords[2][3]);
-    const ndc3 = clip_coords[3] / zmath.splat(zmath.Vec, clip_coords[3][3]);
+    const vp = renderer.getViewport();
+    var ndc0: zmath.Vec = undefined;
+    var ndc1: zmath.Vec = undefined;
+    var ndc2: zmath.Vec = undefined;
+    var ndc3: zmath.Vec = undefined;
+    if (opt.fixed_size) {
+        const mvp = zmath.mul(model, camera.getViewProjectMatrix());
+
+        // Convert position to clip space
+        const pos_in_clip_space = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1), mvp);
+        const ndc_center = pos_in_clip_space / zmath.splat(zmath.Vec, pos_in_clip_space[3]);
+        if (ndc_center[2] <= -1 or ndc_center[2] >= 1) {
+            return;
+        }
+
+        // Get rectangle coordinates
+        const size_x = size.x / @intToFloat(f32, vp.width) * 2;
+        const size_y = size.y / @intToFloat(f32, vp.height) * 2;
+        const m_scale = zmath.scaling(size_x * opt.scale_w, size_y * opt.scale_h, 1);
+        const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
+        const m_translate = zmath.translation(ndc_center[0], ndc_center[1], 0);
+        const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
+        const ndc_coords = zmath.mul(basic_coords, m_transform);
+        ndc0 = ndc_coords[0];
+        ndc1 = ndc_coords[1];
+        ndc2 = ndc_coords[2];
+        ndc3 = ndc_coords[3];
+        ndc0[2] = ndc_center[2];
+        ndc1[2] = ndc_center[2];
+        ndc2[2] = ndc_center[2];
+        ndc3[2] = ndc_center[2];
+    } else {
+        const mv = zmath.mul(model, camera.getViewMatrix());
+        const view_range = camera.getViewRange();
+
+        // Convert position to camera space
+        const pos_in_camera_space = zmath.mul(zmath.f32x4(pos[0], pos[1], pos[2], 1), mv);
+        if (pos_in_camera_space[2] <= view_range[0] or pos_in_camera_space[2] >= view_range[1]) {
+            return;
+        }
+
+        // Get rectangle coordinates and convert it to clip space
+        const m_scale = zmath.scaling(size.x * opt.scale_w, size.y * opt.scale_h, 1);
+        const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
+        const m_translate = zmath.translation(pos_in_camera_space[0], pos_in_camera_space[1], pos_in_camera_space[2]);
+        const m_transform = zmath.mul(
+            zmath.mul(zmath.mul(m_scale, m_rotate), m_translate),
+            camera.getProjectMatrix(),
+        );
+        const clip_coords = zmath.mul(basic_coords, m_transform);
+        ndc0 = clip_coords[0] / zmath.splat(zmath.Vec, clip_coords[0][3]);
+        ndc1 = clip_coords[1] / zmath.splat(zmath.Vec, clip_coords[1][3]);
+        ndc2 = clip_coords[2] / zmath.splat(zmath.Vec, clip_coords[2][3]);
+        ndc3 = clip_coords[3] / zmath.splat(zmath.Vec, clip_coords[3][3]);
+    }
 
     // Test visibility
     var min_x: f32 = math.f32_max;

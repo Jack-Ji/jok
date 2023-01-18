@@ -38,6 +38,7 @@ pub const Sprite = struct {
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
     flip_h: bool = false,
     flip_v: bool = false,
+    fixed_size: bool = false,
 };
 
 /// A movable object in 3d space
@@ -266,6 +267,7 @@ fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *
                     .anchor_point = s.anchor_point,
                     .flip_h = s.flip_h,
                     .flip_v = s.flip_v,
+                    .fixed_size = s.fixed_size,
                 },
             );
         },

@@ -74,9 +74,10 @@ pub fn init(ctx: *jok.Context) !void {
                     zmath.rotationX(angle_step * 12),
                 ),
                 .pos = .{ 0, 0, 0 },
-                .size = .{ .x = 2, .y = 2 },
+                .size = .{ .x = 100, .y = 100 },
                 .uv = .{ sp.uv0, sp.uv1 },
                 .anchor_point = .{ .x = 0.5, .y = 0.5 },
+                .fixed_size = true,
             },
         });
         try scene.root.addChild(sprites[12]);
@@ -163,6 +164,13 @@ pub fn draw(ctx: *jok.Context) !void {
     scene.clear();
     try scene.draw(ctx.renderer, camera, .{ .texture = sheet.tex, .lighting = .{} });
 
+    const ogre_pos = camera.getScreenPosition(ctx.renderer, sprites[12].transform, sprites[12].actor.sprite.pos);
+    _ = try font.debugDraw(
+        ctx.renderer,
+        .{ .pos = .{ .x = ogre_pos.x + 50, .y = ogre_pos.y } },
+        "I have fixed size!",
+        .{},
+    );
     _ = try font.debugDraw(
         ctx.renderer,
         .{ .pos = .{ .x = 200, .y = 10 } },
