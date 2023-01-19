@@ -197,7 +197,8 @@ pub const Effect = struct {
     /// Bulitin particle emitter: fire
     pub fn FireEmitter(
         comptime _radius: f32,
-        comptime _age_initial: f32,
+        comptime _acceleration: f32,
+        comptime _age: f32,
         comptime _color_initial: sdl.Color,
         comptime _color_final: sdl.Color,
         comptime _color_fade_age: f32,
@@ -205,7 +206,8 @@ pub const Effect = struct {
         return struct {
             pub var sprite: ?Sprite = null;
             pub var radius = _radius;
-            pub var age_initial = _age_initial;
+            pub var acceleration = _acceleration;
+            pub var age = _age;
             pub var color_initial = _color_initial;
             pub var color_final = _color_final;
             pub var color_fade_age = _color_fade_age;
@@ -216,13 +218,13 @@ pub const Effect = struct {
                     random.float(f32) * radius * @sin(random.float(f32) * std.math.tau),
                 );
 
-                assert(color_fade_age < age_initial);
+                assert(color_fade_age < age);
                 return Particle{
                     .sprite = sprite,
-                    .age = age_initial,
+                    .age = age,
                     .pos = origin.add(offset),
                     .move_speed = Vector.new(-offset.x() * 0.5, 0),
-                    .move_acceleration = Vector.new(0, -random.float(f32) * 200),
+                    .move_acceleration = Vector.new(0, -random.float(f32) * acceleration),
                     .move_damp = 0.96,
                     .scale = 0.5,
                     .scale_speed = -0.1,

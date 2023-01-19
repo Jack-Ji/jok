@@ -11,6 +11,7 @@ var ps: *j2d.ParticleSystem = undefined;
 // fire effect
 const emitter1 = j2d.ParticleSystem.Effect.FireEmitter(
     50,
+    200,
     3,
     sdl.Color.red,
     sdl.Color.yellow,
@@ -18,6 +19,7 @@ const emitter1 = j2d.ParticleSystem.Effect.FireEmitter(
 );
 const emitter2 = j2d.ParticleSystem.Effect.FireEmitter(
     50,
+    200,
     3,
     sdl.Color.red,
     sdl.Color.green,
