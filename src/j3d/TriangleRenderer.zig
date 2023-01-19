@@ -92,6 +92,7 @@ pub fn clear(self: *Self, retain_memory: bool) void {
 pub const RenderOption = struct {
     aabb: ?[6]f32 = null,
     cull_faces: bool = true,
+    color: sdl.Color = sdl.Color.white,
     texture: ?sdl.Texture = null,
     lighting_opt: ?lighting.LightingOption = null,
 };
@@ -315,9 +316,9 @@ pub fn addShapeData(
         const d2 = positions_screen[2][2];
 
         // Get color of vertices
-        const c0_diffuse = if (colors) |_| self.clip_colors.items[idx0] else sdl.Color.white;
-        const c1_diffuse = if (colors) |_| self.clip_colors.items[idx1] else sdl.Color.white;
-        const c2_diffuse = if (colors) |_| self.clip_colors.items[idx2] else sdl.Color.white;
+        const c0_diffuse = if (colors) |_| self.clip_colors.items[idx0] else opt.color;
+        const c1_diffuse = if (colors) |_| self.clip_colors.items[idx1] else opt.color;
+        const c2_diffuse = if (colors) |_| self.clip_colors.items[idx2] else opt.color;
         const c0 = if (opt.lighting_opt) |p| BLK: {
             var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
             break :BLK calc(c0_diffuse, camera.position, world_v0, n0, p);

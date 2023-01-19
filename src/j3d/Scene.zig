@@ -20,8 +20,8 @@ pub const Position = struct {
 pub const Mesh = struct {
     transform: zmath.Mat,
     shape: zmesh.Shape,
-    color: sdl.Color,
     aabb: ?[6]f32 = null,
+    color: sdl.Color = sdl.Color.white,
     texture: ?sdl.Texture = null,
     disable_lighting: bool = false,
 };
@@ -179,7 +179,6 @@ allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
 tri_rd: *TriangleRenderer,
 root: *Object,
-colors: std.ArrayList(sdl.Color),
 
 pub fn create(allocator: std.mem.Allocator, _rd: ?*TriangleRenderer) !*Self {
     var self = try allocator.create(Self);
@@ -191,8 +190,6 @@ pub fn create(allocator: std.mem.Allocator, _rd: ?*TriangleRenderer) !*Self {
         break :BLK try TriangleRenderer.create(self.arena.allocator());
     };
     self.root = try Object.create(self.allocator, .{ .position = .{} });
-    errdefer self.root.destroy(false);
-    self.colors = try std.ArrayList(sdl.Color).initCapacity(self.arena.allocator(), 1000);
     return self;
 }
 
@@ -232,10 +229,6 @@ fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *
     switch (o.actor) {
         .position => {},
         .mesh => |m| {
-            self.colors.clearRetainingCapacity();
-            try self.colors.ensureTotalCapacity(m.shape.positions.len);
-            self.colors.appendNTimesAssumeCapacity(m.color, m.shape.positions.len);
-
             try self.tri_rd.addShapeData(
                 renderer,
                 o.transform,
@@ -243,11 +236,12 @@ fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *
                 m.shape.indices,
                 m.shape.positions,
                 m.shape.normals.?,
-                self.colors.items,
+                null,
                 m.shape.texcoords,
                 .{
                     .aabb = m.aabb,
                     .cull_faces = opt.cull_faces,
+                    .color = m.color,
                     .texture = m.texture,
                     .lighting_opt = if (m.disable_lighting) null else opt.lighting,
                 },

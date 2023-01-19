@@ -662,9 +662,9 @@ const RenderJob = struct {
             const d2 = positions_screen[2][2];
 
             // Get color of vertices
-            const c0_diffuse = if (ctx.colors.items.len > 0) ctx.clip_colors.items[idx0] else sdl.Color.white;
-            const c1_diffuse = if (ctx.colors.items.len > 0) ctx.clip_colors.items[idx1] else sdl.Color.white;
-            const c2_diffuse = if (ctx.colors.items.len > 0) ctx.clip_colors.items[idx2] else sdl.Color.white;
+            const c0_diffuse = if (ctx.colors.items.len > 0) ctx.clip_colors.items[idx0] else ctx.opt.color;
+            const c1_diffuse = if (ctx.colors.items.len > 0) ctx.clip_colors.items[idx1] else ctx.opt.color;
+            const c2_diffuse = if (ctx.colors.items.len > 0) ctx.clip_colors.items[idx2] else ctx.opt.color;
             const c0 = if (ctx.opt.lighting_opt) |p| BLK: {
                 var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
                 break :BLK calc(c0_diffuse, ctx.camera.position, world_v0, n0, p);

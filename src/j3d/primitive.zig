@@ -60,18 +60,6 @@ pub fn addShape(
     aabb: ?[6]f32,
     opt: CommonDrawOption,
 ) !void {
-    const S = struct {
-        var colors: ?std.ArrayList(sdl.Color) = null;
-    };
-
-    if (S.colors == null) {
-        S.colors = std.ArrayList(sdl.Color).initCapacity(arena.allocator(), 1000) catch unreachable;
-    }
-
-    S.colors.?.clearRetainingCapacity();
-    S.colors.?.ensureTotalCapacity(shape.positions.len) catch unreachable;
-    S.colors.?.appendNTimesAssumeCapacity(opt.color, shape.positions.len);
-
     try tri_renderer.?.addShapeData(
         rd,
         model,
@@ -79,11 +67,12 @@ pub fn addShape(
         shape.indices,
         shape.positions,
         shape.normals.?,
-        S.colors.?.items,
+        null,
         shape.texcoords,
         .{
             .aabb = aabb,
             .cull_faces = opt.cull_faces,
+            .color = opt.color,
             .texture = opt.texture,
             .lighting_opt = opt.lighting,
         },

@@ -22,6 +22,9 @@ pub const ParallelTriangleRenderer = @import("j3d/ParallelTriangleRenderer.zig")
 /// Skybox renderer
 pub const SkyboxRenderer = @import("j3d/SkyboxRenderer.zig");
 
+/// Particle system
+pub const ParticleSystem = @import("j3d/ParticleSystem.zig");
+
 /// 3d camera
 pub const Camera = @import("j3d/Camera.zig");
 
