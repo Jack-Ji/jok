@@ -42,6 +42,7 @@ pub fn update(self: *Self, delta_time: f32) void {
         var e = &self.effects.items[i];
         e.update(delta_time);
         if (e.isOver()) {
+            e.deinit();
             _ = self.effects.swapRemove(i);
         } else {
             i += 1;
