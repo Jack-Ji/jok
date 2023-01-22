@@ -462,20 +462,18 @@ pub inline fn drawTriangles(
     // Send in batches relying on same texture
     var offset: usize = 0;
     var last_texture: ?sdl.Texture = null;
-    if (textures.items.len > 0) {
-        var i: usize = 0;
-        while (i < indices.items.len) : (i += 3) {
-            const idx = indices.items[i];
-            if (i > 0 and !S.isSameTexture(textures.items[idx], last_texture)) {
-                try renderer.drawGeometry(
-                    last_texture,
-                    vertices.items,
-                    indices.items[offset..i],
-                );
-                offset = i;
-            }
-            last_texture = textures.items[idx];
+    var i: usize = 0;
+    while (i < indices.items.len) : (i += 3) {
+        const idx = indices.items[i];
+        if (i > 0 and !S.isSameTexture(textures.items[idx], last_texture)) {
+            try renderer.drawGeometry(
+                last_texture,
+                vertices.items,
+                indices.items[offset..i],
+            );
+            offset = i;
         }
+        last_texture = textures.items[idx];
     }
     try renderer.drawGeometry(
         last_texture,
