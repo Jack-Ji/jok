@@ -406,6 +406,7 @@ pub inline fn drawTriangles(
 ) !void {
     const S = struct {
         var _depths: std.ArrayList(f32) = undefined;
+        var _textures: std.ArrayList(?sdl.Texture) = undefined;
 
         // Whether textures are same
         inline fn isSameTexture(tex0: ?sdl.Texture, tex1: ?sdl.Texture) bool {
@@ -415,18 +416,35 @@ pub inline fn drawTriangles(
             return tex0 == null and tex1 == null;
         }
 
-        // Sort triangles by depth values
-        fn compareTriangleDepths(_: ?*anyopaque, lhs: [3]u32, rhs: [3]u32) bool {
-            const d1 = (_depths.items[lhs[0]] + _depths.items[lhs[1]] + _depths.items[lhs[2]]) / 3.0;
-            const d2 = (_depths.items[rhs[0]] + _depths.items[rhs[1]] + _depths.items[rhs[2]]) / 3.0;
+        // Sort triangles by depth and texture values
+        fn compareTriangles(_: ?*anyopaque, lhs: [3]u32, rhs: [3]u32) bool {
+            const l_idx0 = lhs[0];
+            const l_idx1 = lhs[1];
+            const l_idx2 = lhs[2];
+            const r_idx0 = rhs[0];
+            const r_idx1 = rhs[1];
+            const r_idx2 = rhs[2];
+            const d1 = (_depths.items[l_idx0] + _depths.items[l_idx1] + _depths.items[l_idx2]) / 3.0;
+            const d2 = (_depths.items[r_idx0] + _depths.items[r_idx1] + _depths.items[r_idx2]) / 3.0;
+            if (math.approxEqAbs(f32, d1, d2, 0.00001)) {
+                const tex0 = _textures.items[l_idx0];
+                const tex1 = _textures.items[r_idx0];
+                if (tex0 != null and tex1 != null) {
+                    return @ptrToInt(tex0.?.ptr) < @ptrToInt(tex1.?.ptr);
+                } else {
+                    return tex0 == null;
+                }
+            }
             return d1 > d2;
         }
     };
 
     if (indices.items.len == 0) return;
+    assert(indices.items.len % 3 == 0);
 
     if (!sorted.*) {
         S._depths = depths;
+        S._textures = textures;
 
         // Sort triangles by depth, from farthest to closest
         var _indices: [][3]u32 = undefined;
@@ -436,7 +454,7 @@ pub inline fn drawTriangles(
             [3]u32,
             _indices,
             @as(?*anyopaque, null),
-            S.compareTriangleDepths,
+            S.compareTriangles,
         );
         sorted.* = true;
     }
@@ -445,7 +463,9 @@ pub inline fn drawTriangles(
     var offset: usize = 0;
     var last_texture: ?sdl.Texture = null;
     if (textures.items.len > 0) {
-        for (indices.items) |idx, i| {
+        var i: usize = 0;
+        while (i < indices.items.len) : (i += 3) {
+            const idx = indices.items[i];
             if (i > 0 and !S.isSameTexture(textures.items[idx], last_texture)) {
                 try renderer.drawGeometry(
                     last_texture,
