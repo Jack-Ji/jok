@@ -34,6 +34,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "sprite_scene", .opt = .{} },
         .{ .name = "sprite_benchmark", .opt = .{} },
         .{ .name = "particle_2d", .opt = .{} },
+        .{ .name = "particle_3d", .opt = .{} },
         .{ .name = "animation_2d", .opt = .{} },
         .{ .name = "primitive_2d", .opt = .{} },
         .{ .name = "primitive_3d", .opt = .{} },

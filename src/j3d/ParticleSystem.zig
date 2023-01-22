@@ -246,16 +246,13 @@ pub const Effect = struct {
 pub const DrawData = union(enum) {
     mesh: struct {
         shape: zmesh.Shape,
-        diffuse_color: sdl.Color = sdl.Color.white,
         aabb: ?[6]f32 = null,
         texture: ?sdl.Texture = null,
     },
     sprite: struct {
-        pos: [3]f32,
         size: sdl.PointF,
         uv: [2]sdl.PointF,
         texture: ?sdl.Texture = null,
-        tint_color: sdl.Color = sdl.Color.white,
     },
 };
 
@@ -379,7 +376,7 @@ pub const Particle = struct {
                     d.shape.texcoords,
                     .{
                         .aabb = d.aabb,
-                        .diffuse_color = d.diffuse_color,
+                        .color = self.color,
                         .texture = d.texture,
                     },
                 );
@@ -393,9 +390,12 @@ pub const Particle = struct {
                         self.pos.z(),
                     ),
                     camera,
+                    .{ 0, 0, 0 },
+                    d.size,
+                    d.uv,
                     .{
                         .texture = d.texture,
-                        .tint_color = d.tint_color,
+                        .tint_color = self.color,
                         .scale_w = self.scale,
                         .scale_h = self.scale,
                         .rotate_degree = self.angle,
