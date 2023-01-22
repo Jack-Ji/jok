@@ -8,6 +8,7 @@ const font = jok.font;
 
 var rand: std.rand.DefaultPrng = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
+var cube: jok.zmesh.Shape = undefined;
 var rd: *j3d.TriangleRenderer = undefined;
 var ps: *j3d.ParticleSystem = undefined;
 var camera: j3d.Camera = undefined;
@@ -49,6 +50,8 @@ pub fn init(ctx: *jok.Context) !void {
         1,
         false,
     );
+    cube = jok.zmesh.Shape.initCube();
+    cube.computeNormals();
     rd = try j3d.TriangleRenderer.create(ctx.allocator);
     ps = try j3d.ParticleSystem.create(ctx.allocator);
     camera = j3d.Camera.fromPositionAndTarget(
@@ -72,7 +75,12 @@ pub fn init(ctx: *jok.Context) !void {
             .texture = sheet.tex,
         },
     };
-    emitter2.draw_data = emitter1.draw_data;
+    emitter2.draw_data = .{
+        .mesh = .{
+            .shape = cube,
+            .scale = .{ 5, 5, 5 },
+        },
+    };
     try ps.addEffect(
         rand.random(),
         8000,
@@ -174,6 +182,7 @@ pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     sheet.destroy();
+    cube.deinit();
     rd.destroy();
     ps.destroy();
 }

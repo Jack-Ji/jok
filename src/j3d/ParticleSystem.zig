@@ -246,6 +246,7 @@ pub const Effect = struct {
 pub const DrawData = union(enum) {
     mesh: struct {
         shape: zmesh.Shape,
+        scale: [3]f32 = .{ 1, 1, 1 },
         aabb: ?[6]f32 = null,
         texture: ?sdl.Texture = null,
     },
@@ -348,7 +349,11 @@ pub const Particle = struct {
             .mesh => |d| {
                 const model = zmath.mul(
                     zmath.mul(
-                        zmath.scaling(self.scale, self.scale, self.scale),
+                        zmath.scaling(
+                            d.scale[0] * self.scale,
+                            d.scale[1] * self.scale,
+                            d.scale[2] * self.scale,
+                        ),
                         zmath.matFromAxisAngle(
                             zmath.f32x4(
                                 self.rotation_axis.x(),
