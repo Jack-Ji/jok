@@ -96,7 +96,8 @@ pub inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) boo
             // Project the AABB onto the seperating axis
             const r = @fabs(axis[0]) + @fabs(axis[1]) + @fabs(axis[2]);
 
-            return math.max(-math.max3(p0, p1, p2), math.min3(p0, p1, p2)) > r;
+            const mm = jok.utils.math.minAndMax(p0, p1, p2);
+            return math.max(-mm[1], mm[0]) > r;
         }
     };
 
@@ -405,6 +406,7 @@ pub inline fn drawTriangles(
     sorted: *bool,
 ) !void {
     const S = struct {
+        var _vertices: std.ArrayList(sdl.Vertex) = undefined;
         var _depths: std.ArrayList(f32) = undefined;
         var _textures: std.ArrayList(?sdl.Texture) = undefined;
 
@@ -426,12 +428,26 @@ pub inline fn drawTriangles(
             const r_idx2 = rhs[2];
             const d1 = (_depths.items[l_idx0] + _depths.items[l_idx1] + _depths.items[l_idx2]) / 3.0;
             const d2 = (_depths.items[r_idx0] + _depths.items[r_idx1] + _depths.items[r_idx2]) / 3.0;
-            if (math.approxEqAbs(f32, d1, d2, 0.00001)) {
+            if (!jok.utils.math.areTrianglesIntersect(
+                [3][2]f32{
+                    .{ _vertices.items[l_idx0].position.x, _vertices.items[l_idx0].position.y },
+                    .{ _vertices.items[l_idx1].position.x, _vertices.items[l_idx1].position.y },
+                    .{ _vertices.items[l_idx2].position.x, _vertices.items[l_idx2].position.y },
+                },
+                [3][2]f32{
+                    .{ _vertices.items[r_idx0].position.x, _vertices.items[r_idx0].position.y },
+                    .{ _vertices.items[r_idx1].position.x, _vertices.items[r_idx1].position.y },
+                    .{ _vertices.items[r_idx2].position.x, _vertices.items[r_idx2].position.y },
+                },
+            )) {
+                // Sort by textures when they dont intersect
                 const tex0 = _textures.items[l_idx0];
                 const tex1 = _textures.items[r_idx0];
                 if (tex0 != null and tex1 != null) {
-                    return @ptrToInt(tex0.?.ptr) < @ptrToInt(tex1.?.ptr);
-                } else {
+                    const ptr0 = @ptrToInt(tex0.?.ptr);
+                    const ptr1 = @ptrToInt(tex1.?.ptr);
+                    return if (ptr0 == ptr1) d1 > d2 else ptr0 > ptr1;
+                } else if (tex0 != null or tex1 != null) {
                     return tex0 == null;
                 }
             }
@@ -443,6 +459,7 @@ pub inline fn drawTriangles(
     assert(indices.items.len % 3 == 0);
 
     if (!sorted.*) {
+        S._vertices = vertices;
         S._depths = depths;
         S._textures = textures;
 

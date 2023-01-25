@@ -16,7 +16,7 @@ var camera: j3d.Camera = undefined;
 // fire effect
 const emitter1 = j3d.ParticleSystem.Effect.FireEmitter(
     20,
-    100,
+    50,
     3,
     sdl.Color.red,
     sdl.Color.yellow,
@@ -24,7 +24,7 @@ const emitter1 = j3d.ParticleSystem.Effect.FireEmitter(
 );
 const emitter2 = j3d.ParticleSystem.Effect.FireEmitter(
     20,
-    100,
+    50,
     3,
     sdl.Color.red,
     sdl.Color.green,
@@ -92,7 +92,7 @@ pub fn init(ctx: *jok.Context) !void {
     );
     try ps.addEffect(
         rand.random(),
-        2000,
+        3000,
         emitter2.emit,
         j3d.Vector.new(60, 0, 0),
         60,

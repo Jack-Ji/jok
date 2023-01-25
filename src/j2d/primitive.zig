@@ -39,6 +39,7 @@ pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
     arena = std.heap.ArenaAllocator.init(allocator);
     draw_list = imgui.createDrawList();
     rd = _rd;
+    clear(.{});
 }
 
 /// Destroy primitive renderer
