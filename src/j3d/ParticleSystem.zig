@@ -252,7 +252,7 @@ pub const DrawData = union(enum) {
     },
     sprite: struct {
         size: sdl.PointF,
-        uv: [2]sdl.PointF,
+        uv: [2]sdl.PointF = .{ .{ .x = 0, .y = 0 }, .{ .x = 1, .y = 1 } },
         texture: ?sdl.Texture = null,
     },
 };
