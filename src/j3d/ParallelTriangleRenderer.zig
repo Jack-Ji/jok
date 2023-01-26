@@ -13,6 +13,7 @@ const utils = jok.utils;
 const internal = @import("internal.zig");
 const RenderOption = @import("TriangleRenderer.zig").RenderOption;
 const SpriteOption = @import("TriangleRenderer.zig").SpriteOption;
+const DrawOption = @import("TriangleRenderer.zig").DrawOption;
 const Self = @This();
 
 const max_jobs_num = @bitSizeOf(usize);
@@ -329,7 +330,7 @@ inline fn waitJobs(self: *Self) void {
 }
 
 /// Draw the meshes, fill triangles
-pub fn draw(self: *Self, renderer: sdl.Renderer) !void {
+pub fn draw(self: *Self, renderer: sdl.Renderer, opt: DrawOption) !void {
     self.waitJobs();
 
     return internal.drawTriangles(
@@ -338,7 +339,7 @@ pub fn draw(self: *Self, renderer: sdl.Renderer) !void {
         self.vertices,
         self.textures,
         self.depths,
-        &self.sorted,
+        opt.sort_by_depth,
     );
 }
 

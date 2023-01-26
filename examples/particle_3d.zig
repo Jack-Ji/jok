@@ -7,8 +7,8 @@ const j3d = jok.j3d;
 const font = jok.font;
 
 var rand: std.rand.DefaultPrng = undefined;
-var sheet: *j2d.SpriteSheet = undefined;
-var cube: jok.zmesh.Shape = undefined;
+var tex0: sdl.Texture = undefined;
+var tex1: sdl.Texture = undefined;
 var rd: *j3d.TriangleRenderer = undefined;
 var ps: *j3d.ParticleSystem = undefined;
 var camera: j3d.Camera = undefined;
@@ -26,8 +26,8 @@ const emitter2 = j3d.ParticleSystem.Effect.FireEmitter(
     20,
     50,
     3,
-    sdl.Color.red,
-    sdl.Color.green,
+    sdl.Color.black,
+    sdl.Color.white,
     2.75,
 );
 
@@ -35,23 +35,18 @@ pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     rand = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
-    sheet = try j2d.SpriteSheet.create(
-        ctx,
-        &[_]j2d.SpriteSheet.ImageSource{
-            .{
-                .name = "particle",
-                .image = .{
-                    .file_path = "assets/images/white-circle.png",
-                },
-            },
-        },
-        100,
-        100,
-        1,
+    tex0 = try jok.utils.gfx.createTextureFromFile(
+        ctx.renderer,
+        "assets/images/white-circle.png",
+        .static,
         false,
     );
-    cube = jok.zmesh.Shape.initCube();
-    cube.computeNormals();
+    tex1 = try jok.utils.gfx.createTextureFromFile(
+        ctx.renderer,
+        "assets/images/ogre.png",
+        .static,
+        false,
+    );
     rd = try j3d.TriangleRenderer.create(ctx.allocator);
     ps = try j3d.ParticleSystem.create(ctx.allocator);
     camera = j3d.Camera.fromPositionAndTarget(
@@ -67,18 +62,16 @@ pub fn init(ctx: *jok.Context) !void {
         .{ 0, 0, 0 },
         null,
     );
-    const sp = try sheet.getSpriteByName("particle");
     emitter1.draw_data = .{
         .sprite = .{
             .size = .{ .x = 5, .y = 5 },
-            .uv = .{ sp.uv0, sp.uv1 },
-            .texture = sheet.tex,
+            .texture = tex0,
         },
     };
     emitter2.draw_data = .{
-        .mesh = .{
-            .shape = cube,
-            .scale = .{ 5, 5, 5 },
+        .sprite = .{
+            .size = .{ .x = 5, .y = 5 },
+            .texture = tex1,
         },
     };
     try ps.addEffect(
@@ -92,7 +85,7 @@ pub fn init(ctx: *jok.Context) !void {
     );
     try ps.addEffect(
         rand.random(),
-        3000,
+        10000,
         emitter2.emit,
         j3d.Vector.new(60, 0, 0),
         60,
@@ -158,7 +151,7 @@ pub fn draw(ctx: *jok.Context) !void {
 
     rd.clear(true);
     try ps.draw(ctx.renderer, rd, camera);
-    try rd.draw(ctx.renderer);
+    try rd.draw(ctx.renderer, .{});
 
     _ = try font.debugDraw(
         ctx.renderer,
@@ -181,8 +174,6 @@ pub fn draw(ctx: *jok.Context) !void {
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-    sheet.destroy();
-    cube.deinit();
     rd.destroy();
     ps.destroy();
 }

@@ -671,14 +671,17 @@ pub inline fn isOBBHiddenBehind(self: *Self, obb: []zmath.Vec) bool {
 }
 
 /// Draw the meshes, fill triangles
-pub fn draw(self: *Self, renderer: sdl.Renderer) !void {
+pub const DrawOption = struct {
+    sort_by_depth: bool = true,
+};
+pub fn draw(self: *Self, renderer: sdl.Renderer, opt: DrawOption) !void {
     return internal.drawTriangles(
         renderer,
         self.indices,
         self.vertices,
         self.textures,
         self.depths,
-        &self.sorted,
+        opt.sort_by_depth,
     );
 
     // Debug: draw front triangles

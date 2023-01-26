@@ -21,6 +21,7 @@ var arena: std.heap.ArenaAllocator = undefined;
 var tri_renderer: ?*TriangleRenderer = null;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 var rd: sdl.Renderer = undefined;
+var sort_by_depth: bool = undefined;
 
 /// Initialize primitive module
 pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
@@ -39,14 +40,16 @@ pub fn deinit() void {
 /// Clear primitive
 pub const RenderOption = struct {
     retain_memory: bool = true,
+    sort_by_depth: bool = true,
 };
 pub fn clear(opt: RenderOption) void {
     tri_renderer.?.clear(opt.retain_memory);
+    sort_by_depth = opt.sort_by_depth;
 }
 
 /// Render data
 pub fn draw() !void {
-    try tri_renderer.?.draw(rd);
+    try tri_renderer.?.draw(rd, .{ .sort_by_depth = sort_by_depth });
 }
 pub fn drawWireframe(color: sdl.Color) !void {
     try tri_renderer.?.drawWireframe(rd, color);

@@ -215,13 +215,14 @@ pub const RenderOption = struct {
     wireframe_color: sdl.Color = sdl.Color.green,
     cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,
+    sort_by_depth: bool = true,
 };
 pub fn draw(self: *Self, renderer: sdl.Renderer, camera: Camera, opt: RenderOption) !void {
     try self.addObjectToRenderer(renderer, camera, self.root, opt);
     if (opt.wireframe) {
         try self.tri_rd.drawWireframe(renderer, opt.wireframe_color);
     } else {
-        try self.tri_rd.draw(renderer);
+        try self.tri_rd.draw(renderer, .{ .sort_by_depth = opt.sort_by_depth });
     }
 }
 

@@ -403,7 +403,7 @@ pub inline fn drawTriangles(
     vertices: std.ArrayList(sdl.Vertex),
     textures: std.ArrayList(?sdl.Texture),
     depths: std.ArrayList(f32),
-    sorted: *bool,
+    sort_by_depth: bool,
 ) !void {
     const S = struct {
         var _vertices: std.ArrayList(sdl.Vertex) = undefined;
@@ -426,39 +426,27 @@ pub inline fn drawTriangles(
             const r_idx0 = rhs[0];
             const r_idx1 = rhs[1];
             const r_idx2 = rhs[2];
-            const d1 = (_depths.items[l_idx0] + _depths.items[l_idx1] + _depths.items[l_idx2]) / 3.0;
-            const d2 = (_depths.items[r_idx0] + _depths.items[r_idx1] + _depths.items[r_idx2]) / 3.0;
-            if (!jok.utils.math.areTrianglesIntersect(
-                [3][2]f32{
-                    .{ _vertices.items[l_idx0].position.x, _vertices.items[l_idx0].position.y },
-                    .{ _vertices.items[l_idx1].position.x, _vertices.items[l_idx1].position.y },
-                    .{ _vertices.items[l_idx2].position.x, _vertices.items[l_idx2].position.y },
-                },
-                [3][2]f32{
-                    .{ _vertices.items[r_idx0].position.x, _vertices.items[r_idx0].position.y },
-                    .{ _vertices.items[r_idx1].position.x, _vertices.items[r_idx1].position.y },
-                    .{ _vertices.items[r_idx2].position.x, _vertices.items[r_idx2].position.y },
-                },
-            )) {
-                // Sort by textures when they dont intersect
+            const d0 = (_depths.items[l_idx0] + _depths.items[l_idx1] + _depths.items[l_idx2]) / 3.0;
+            const d1 = (_depths.items[r_idx0] + _depths.items[r_idx1] + _depths.items[r_idx2]) / 3.0;
+            if (math.approxEqAbs(f32, d0, d1, 0.00001)) {
                 const tex0 = _textures.items[l_idx0];
                 const tex1 = _textures.items[r_idx0];
                 if (tex0 != null and tex1 != null) {
                     const ptr0 = @ptrToInt(tex0.?.ptr);
                     const ptr1 = @ptrToInt(tex1.?.ptr);
-                    return if (ptr0 == ptr1) d1 > d2 else ptr0 > ptr1;
+                    return if (ptr0 == ptr1) d0 > d1 else ptr0 > ptr1;
                 } else if (tex0 != null or tex1 != null) {
                     return tex0 == null;
                 }
             }
-            return d1 > d2;
+            return d0 > d1;
         }
     };
 
     if (indices.items.len == 0) return;
     assert(indices.items.len % 3 == 0);
 
-    if (!sorted.*) {
+    if (sort_by_depth) {
         S._vertices = vertices;
         S._depths = depths;
         S._textures = textures;
@@ -473,7 +461,6 @@ pub inline fn drawTriangles(
             @as(?*anyopaque, null),
             S.compareTriangles,
         );
-        sorted.* = true;
     }
 
     // Send in batches relying on same texture
