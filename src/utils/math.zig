@@ -1,4 +1,5 @@
 const std = @import("std");
+const sdl = @import("sdl");
 const jok = @import("../jok.zig");
 const assert = std.debug.assert;
 const math = std.math;
@@ -103,4 +104,27 @@ pub inline fn areTrianglesIntersect(tri0: [3][2]f32, tri1: [3][2]f32) bool {
         }
     }
     return true;
+}
+
+/// Get area of triangle
+pub inline fn triangleArea(tri: [3][2]f32) f32 {
+    const x1 = tri[0][0];
+    const y1 = tri[0][1];
+    const x2 = tri[1][0];
+    const y2 = tri[1][1];
+    const x3 = tri[2][0];
+    const y3 = tri[2][1];
+    return @fabs(x1 * y2 + x2 * y3 + x3 * y1 - x2 * y1 - x3 * y2 - x1 * y3) / 2;
+}
+
+/// Get outer rect of triangle
+pub inline fn triangleRect(tri: [3][2]f32) sdl.RectangleF {
+    const min_max_x = minAndMax(tri[0][0], tri[1][0], tri[2][0]);
+    const min_max_y = minAndMax(tri[0][1], tri[1][1], tri[2][1]);
+    return .{
+        .x = min_max_x[0],
+        .y = min_max_y[0],
+        .width = min_max_x[1] - min_max_x[0],
+        .height = min_max_y[1] - min_max_y[0],
+    };
 }
