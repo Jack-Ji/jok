@@ -47,39 +47,60 @@ pub fn draw(ctx: *jok.Context) !void {
     imgui.end();
 
     jok.j2d.primitive.clear(.{});
-    var color = sdl.Color.white;
-    var thickness = @as(f32, 2);
-    if (jok.utils.math.areTrianglesIntersect([_][2]f32{
+    var tri_color = sdl.Color.white;
+    var tri_thickness = @as(f32, 2);
+    const tri0 = [_][2]f32{
         .{ offset0[0] + p0[0], offset0[1] + p0[1] },
         .{ offset0[0] + p1[0], offset0[1] + p1[1] },
         .{ offset0[0] + p2[0], offset0[1] + p2[1] },
-    }, [_][2]f32{
+    };
+    const tri1 = [_][2]f32{
         .{ offset1[0] + p3[0], offset1[1] + p3[1] },
         .{ offset1[0] + p4[0], offset1[1] + p4[1] },
         .{ offset1[0] + p5[0], offset1[1] + p5[1] },
-    })) {
-        color = sdl.Color.red;
-        thickness = 5;
+    };
+    if (jok.utils.math.areTrianglesIntersect(tri0, tri1)) {
+        tri_color = sdl.Color.red;
+        tri_thickness = 5;
     }
     jok.j2d.primitive.addTriangle(
         .{ .x = p0[0], .y = p0[1] },
         .{ .x = p1[0], .y = p1[1] },
         .{ .x = p2[0], .y = p2[1] },
-        color,
+        tri_color,
         .{
             .trs = .{ .offset = .{ .x = offset0[0], .y = offset0[1] } },
-            .thickness = thickness,
+            .thickness = tri_thickness,
         },
     );
     jok.j2d.primitive.addTriangle(
         .{ .x = p3[0], .y = p3[1] },
         .{ .x = p4[0], .y = p4[1] },
         .{ .x = p5[0], .y = p5[1] },
-        color,
+        tri_color,
         .{
             .trs = .{ .offset = .{ .x = offset1[0], .y = offset1[1] } },
-            .thickness = thickness,
+            .thickness = tri_thickness,
         },
+    );
+
+    var rect_color = sdl.Color.white;
+    var rect_thickness = @as(f32, 1);
+    const rect0 = jok.utils.math.triangleRect(tri0);
+    const rect1 = jok.utils.math.triangleRect(tri1);
+    if (rect0.hasIntersection(rect1)) {
+        rect_color = sdl.Color.red;
+        rect_thickness = 3;
+    }
+    jok.j2d.primitive.addRect(
+        jok.utils.math.triangleRect(tri0),
+        rect_color,
+        .{ .thickness = rect_thickness },
+    );
+    jok.j2d.primitive.addRect(
+        jok.utils.math.triangleRect(tri1),
+        rect_color,
+        .{ .thickness = rect_thickness },
     );
     try jok.j2d.primitive.draw();
 }
