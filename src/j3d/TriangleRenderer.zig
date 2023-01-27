@@ -15,7 +15,6 @@ allocator: std.mem.Allocator,
 
 // Triangle vertices
 indices: std.ArrayList(u32),
-sorted: bool = false,
 
 // Triangle vertices
 vertices: std.ArrayList(sdl.Vertex),
@@ -85,7 +84,6 @@ pub fn clear(self: *Self, retain_memory: bool) void {
         self.depths.clearAndFree();
         self.large_front_triangles.clearAndFree();
     }
-    self.sorted = false;
 }
 
 /// Advanced vertice appending options
@@ -398,8 +396,6 @@ pub fn addShapeData(
         // Step forward index, one triangle a time
         current_index += 3;
     }
-
-    self.sorted = false;
 }
 
 /// Sprite's drawing params
@@ -580,8 +576,6 @@ pub fn addSpriteData(
         current_index, current_index + 1, current_index + 2,
         current_index, current_index + 2, current_index + 3,
     });
-
-    self.sorted = false;
 }
 
 /// Test whether all obb's triangles are hidden behind current front triangles

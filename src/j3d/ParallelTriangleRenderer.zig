@@ -25,7 +25,6 @@ jobs: *zjobs.JobQueue(.{}),
 
 // Triangle vertices
 indices: std.ArrayList(u32),
-sorted: bool = false,
 vertices: std.ArrayList(sdl.Vertex),
 textures: std.ArrayList(?sdl.Texture),
 depths: std.ArrayList(f32),
@@ -89,7 +88,6 @@ pub fn clear(self: *Self, retain_memory: bool) void {
         self.textures.clearAndFree();
         self.depths.clearAndFree();
     }
-    self.sorted = false;
     std.mem.set(zjobs.JobId, &self.rendering_job_ids, .none);
 }
 
@@ -317,8 +315,6 @@ pub fn addSpriteData(
         current_index, current_index + 1, current_index + 2,
         current_index, current_index + 2, current_index + 3,
     });
-
-    self.sorted = false;
 }
 
 inline fn waitJobs(self: *Self) void {
@@ -709,6 +705,5 @@ const RenderJob = struct {
             job.prd.indices.appendAssumeCapacity(@intCast(u32, offset + i));
         }
         job.prd.rendering_job_ids[job.idx] = .none;
-        job.prd.sorted = false;
     }
 };
