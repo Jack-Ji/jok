@@ -154,7 +154,7 @@ pub fn draw(ctx: *jok.Context) !void {
                 .{ .aabb = aabb, .texture = tex },
             );
         }
-        try prd.draw(ctx.renderer, .{});
+        try prd.draw(ctx.renderer, .{ .sort_by_depth = true });
     } else {
         rd.clear(true);
         for (translations.items) |tr, i| {
@@ -180,7 +180,7 @@ pub fn draw(ctx: *jok.Context) !void {
                 .{ .aabb = aabb, .texture = tex },
             );
         }
-        try rd.draw(ctx.renderer, .{});
+        try rd.draw(ctx.renderer, .{ .sort_by_depth = true });
     }
 
     _ = try font.debugDraw(

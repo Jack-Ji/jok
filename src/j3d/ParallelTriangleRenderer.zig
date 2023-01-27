@@ -25,6 +25,7 @@ jobs: *zjobs.JobQueue(.{}),
 
 // Triangle vertices
 indices: std.ArrayList(u32),
+batched_indices: std.ArrayList(u32),
 vertices: std.ArrayList(sdl.Vertex),
 textures: std.ArrayList(?sdl.Texture),
 depths: std.ArrayList(f32),
@@ -48,6 +49,7 @@ pub fn create(
         .allocator = allocator,
         .jobs = jobs,
         .indices = std.ArrayList(u32).init(allocator),
+        .batched_indices = std.ArrayList(u32).init(self.allocator),
         .vertices = std.ArrayList(sdl.Vertex).init(allocator),
         .textures = std.ArrayList(?sdl.Texture).init(self.allocator),
         .depths = std.ArrayList(f32).init(allocator),
@@ -65,6 +67,7 @@ pub fn create(
 
 pub fn destroy(self: *Self) void {
     self.indices.deinit();
+    self.batched_indices.deinit();
     self.vertices.deinit();
     self.textures.deinit();
     self.depths.deinit();
@@ -79,11 +82,13 @@ pub fn destroy(self: *Self) void {
 pub fn clear(self: *Self, retain_memory: bool) void {
     if (retain_memory) {
         self.indices.clearRetainingCapacity();
+        self.batched_indices.clearRetainingCapacity();
         self.vertices.clearRetainingCapacity();
         self.textures.clearRetainingCapacity();
         self.depths.clearRetainingCapacity();
     } else {
         self.indices.clearAndFree();
+        self.batched_indices.clearAndFree();
         self.vertices.clearAndFree();
         self.textures.clearAndFree();
         self.depths.clearAndFree();
@@ -295,6 +300,15 @@ pub fn addSpriteData(
     // Append to ouput buffers
     self.mutex.lock();
     defer self.mutex.unlock();
+    internal.updateBatches(
+        &self.batched_indices,
+        if (self.textures.items.len > 0)
+            self.textures.items[self.textures.items.len - 1]
+        else
+            null,
+        opt.texture,
+        6,
+    );
     try self.vertices.ensureTotalCapacityPrecise(self.vertices.items.len + 4);
     try self.textures.ensureTotalCapacityPrecise(self.vertices.items.len + 4);
     try self.depths.ensureTotalCapacityPrecise(self.depths.items.len + 4);
@@ -332,6 +346,7 @@ pub fn draw(self: *Self, renderer: sdl.Renderer, opt: DrawOption) !void {
     return internal.drawTriangles(
         renderer,
         self.indices,
+        self.batched_indices,
         self.vertices,
         self.textures,
         self.depths,
@@ -690,20 +705,31 @@ const RenderJob = struct {
         }
 
         // Finally, we can append vertices for rendering
-        job.prd.mutex.lock();
-        defer job.prd.mutex.unlock();
-        job.prd.vertices.ensureTotalCapacityPrecise(job.prd.vertices.items.len + ctx.vertices.items.len) catch unreachable;
-        job.prd.textures.ensureTotalCapacityPrecise(job.prd.textures.items.len + ctx.vertices.items.len) catch unreachable;
-        job.prd.depths.ensureTotalCapacityPrecise(job.prd.depths.items.len + ctx.vertices.items.len) catch unreachable;
-        job.prd.indices.ensureTotalCapacityPrecise(job.prd.indices.items.len + ctx.vertices.items.len) catch unreachable;
-        const offset = job.prd.vertices.items.len;
-        job.prd.vertices.appendSliceAssumeCapacity(ctx.vertices.items);
-        job.prd.textures.appendNTimesAssumeCapacity(ctx.opt.texture, ctx.vertices.items.len);
-        job.prd.depths.appendSliceAssumeCapacity(ctx.depths.items);
-        i = 0;
-        while (i < ctx.vertices.items.len) : (i += 1) {
-            job.prd.indices.appendAssumeCapacity(@intCast(u32, offset + i));
+        if (ctx.vertices.items.len > 0) {
+            job.prd.mutex.lock();
+            defer job.prd.mutex.unlock();
+            internal.updateBatches(
+                &job.prd.batched_indices,
+                if (job.prd.textures.items.len > 0)
+                    job.prd.textures.items[job.prd.textures.items.len - 1]
+                else
+                    null,
+                ctx.opt.texture,
+                @intCast(u32, ctx.vertices.items.len),
+            );
+            job.prd.vertices.ensureTotalCapacityPrecise(job.prd.vertices.items.len + ctx.vertices.items.len) catch unreachable;
+            job.prd.textures.ensureTotalCapacityPrecise(job.prd.textures.items.len + ctx.vertices.items.len) catch unreachable;
+            job.prd.depths.ensureTotalCapacityPrecise(job.prd.depths.items.len + ctx.vertices.items.len) catch unreachable;
+            job.prd.indices.ensureTotalCapacityPrecise(job.prd.indices.items.len + ctx.vertices.items.len) catch unreachable;
+            const offset = job.prd.vertices.items.len;
+            job.prd.vertices.appendSliceAssumeCapacity(ctx.vertices.items);
+            job.prd.textures.appendNTimesAssumeCapacity(ctx.opt.texture, ctx.vertices.items.len);
+            job.prd.depths.appendSliceAssumeCapacity(ctx.depths.items);
+            i = 0;
+            while (i < ctx.vertices.items.len) : (i += 1) {
+                job.prd.indices.appendAssumeCapacity(@intCast(u32, offset + i));
+            }
+            job.prd.rendering_job_ids[job.idx] = .none;
         }
-        job.prd.rendering_job_ids[job.idx] = .none;
     }
 };

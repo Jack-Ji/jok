@@ -16,6 +16,10 @@ allocator: std.mem.Allocator,
 // Triangle vertices
 indices: std.ArrayList(u32),
 
+// Pre-batched vertices using same texture, used for fast rendering,
+// only valid when indices're not reordered by depth value
+batched_indices: std.ArrayList(u32),
+
 // Triangle vertices
 vertices: std.ArrayList(sdl.Vertex),
 
@@ -42,6 +46,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
     self.* = .{
         .allocator = allocator,
         .indices = std.ArrayList(u32).init(self.allocator),
+        .batched_indices = std.ArrayList(u32).init(self.allocator),
         .vertices = std.ArrayList(sdl.Vertex).init(self.allocator),
         .textures = std.ArrayList(?sdl.Texture).init(self.allocator),
         .depths = std.ArrayList(f32).init(self.allocator),
@@ -57,6 +62,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
 
 pub fn destroy(self: *Self) void {
     self.indices.deinit();
+    self.batched_indices.deinit();
     self.vertices.deinit();
     self.textures.deinit();
     self.depths.deinit();
@@ -69,16 +75,18 @@ pub fn destroy(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-/// Clear mesh data
+/// Clear triangles
 pub fn clear(self: *Self, retain_memory: bool) void {
     if (retain_memory) {
         self.indices.clearRetainingCapacity();
+        self.batched_indices.clearRetainingCapacity();
         self.vertices.clearRetainingCapacity();
         self.textures.clearRetainingCapacity();
         self.depths.clearRetainingCapacity();
         self.large_front_triangles.clearRetainingCapacity();
     } else {
         self.indices.clearAndFree();
+        self.batched_indices.clearAndFree();
         self.vertices.clearAndFree();
         self.textures.clearAndFree();
         self.depths.clearAndFree();
@@ -271,6 +279,7 @@ pub fn addShapeData(
     try self.depths.ensureTotalCapacityPrecise(self.depths.items.len + self.clip_vertices.items.len);
     try self.indices.ensureTotalCapacityPrecise(self.indices.items.len + self.clip_vertices.items.len);
     var current_index: u32 = @intCast(u32, self.vertices.items.len);
+    var batched_size: u32 = 0;
     i = 2;
     while (i < self.clip_vertices.items.len) : (i += 3) {
         const idx0 = i - 2;
@@ -293,6 +302,7 @@ pub fn addShapeData(
         if (internal.isTriangleOutside(ndc0, ndc1, ndc2)) {
             continue;
         }
+        batched_size += 3;
 
         // Calculate screen coordinate
         const ndcs = zmath.Mat{
@@ -395,6 +405,19 @@ pub fn addShapeData(
 
         // Step forward index, one triangle a time
         current_index += 3;
+    }
+
+    // Update batches
+    if (batched_size > 0) {
+        internal.updateBatches(
+            &self.batched_indices,
+            if (self.textures.items.len > batched_size)
+                self.textures.items[self.textures.items.len - batched_size - 1]
+            else
+                null,
+            opt.texture,
+            batched_size,
+        );
     }
 }
 
@@ -576,6 +599,17 @@ pub fn addSpriteData(
         current_index, current_index + 1, current_index + 2,
         current_index, current_index + 2, current_index + 3,
     });
+
+    // Update batches
+    internal.updateBatches(
+        &self.batched_indices,
+        if (self.textures.items.len > 4)
+            self.textures.items[self.textures.items.len - 5]
+        else
+            null,
+        opt.texture,
+        6,
+    );
 }
 
 /// Test whether all obb's triangles are hidden behind current front triangles
@@ -664,14 +698,22 @@ pub inline fn isOBBHiddenBehind(self: *Self, obb: []zmath.Vec) bool {
     return false;
 }
 
-/// Draw the meshes, fill triangles
 pub const DrawOption = struct {
-    sort_by_depth: bool = true,
+    // NOTE: Although sorting triangles before rendering is convenient, however,
+    // it's slow and cpu-consuming, and result in dramatic increase of draw-call amount.
+    // We can achieve much better performance by pre-ordering **CONVEX** object
+    // manually before rendering.
+    //
+    // ONLY consider using triangle-sorting when 3d scene is simple enough.
+    sort_by_depth: bool = false,
 };
+
+/// Draw the meshes, fill triangles
 pub fn draw(self: *Self, renderer: sdl.Renderer, opt: DrawOption) !void {
     return internal.drawTriangles(
         renderer,
         self.indices,
+        self.batched_indices,
         self.vertices,
         self.textures,
         self.depths,

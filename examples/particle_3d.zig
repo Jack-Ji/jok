@@ -5,6 +5,7 @@ const jok = @import("jok");
 const j2d = jok.j2d;
 const j3d = jok.j3d;
 const font = jok.font;
+const imgui = jok.imgui;
 
 var rand: std.rand.DefaultPrng = undefined;
 var tex0: sdl.Texture = undefined;
@@ -12,6 +13,7 @@ var tex1: sdl.Texture = undefined;
 var rd: *j3d.TriangleRenderer = undefined;
 var ps: *j3d.ParticleSystem = undefined;
 var camera: j3d.Camera = undefined;
+var sort_by_depth: bool = false;
 
 // fire effect
 const emitter1 = j3d.ParticleSystem.Effect.FireEmitter(
@@ -151,7 +153,7 @@ pub fn draw(ctx: *jok.Context) !void {
 
     rd.clear(true);
     try ps.draw(ctx.renderer, rd, camera);
-    try rd.draw(ctx.renderer, .{});
+    try rd.draw(ctx.renderer, .{ .sort_by_depth = sort_by_depth });
 
     _ = try font.debugDraw(
         ctx.renderer,
@@ -169,6 +171,13 @@ pub fn draw(ctx: *jok.Context) !void {
             camera.dir[0],camera.dir[1],camera.dir[2],
         },
     );
+
+    imgui.sdl.newFrame(ctx.*);
+    defer imgui.sdl.draw();
+    if (imgui.begin("Control", .{})) {
+        _ = imgui.checkbox("sort by depth", .{ .v = &sort_by_depth });
+    }
+    imgui.end();
 }
 
 pub fn quit(ctx: *jok.Context) void {

@@ -165,7 +165,10 @@ pub fn draw(ctx: *jok.Context) !void {
     );
 
     scene.clear();
-    try scene.draw(ctx.renderer, camera, .{ .lighting = .{} });
+    try scene.draw(ctx.renderer, camera, .{
+        .lighting = .{},
+        .sort_by_depth = true,
+    });
 
     const ogre_pos = camera.getScreenPosition(ctx.renderer, sprites[12].transform, sprites[12].actor.sprite.pos);
     _ = try font.debugDraw(

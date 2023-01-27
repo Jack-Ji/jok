@@ -204,18 +204,13 @@ pub fn clear(self: *Self) void {
     self.tri_rd.clear(true);
 }
 
-// TODO Action system
-// TODO Sequence Action
-// TODO Parallel Action
-// TODO Event system
-
 /// Update and render the scene
 pub const RenderOption = struct {
     wireframe: bool = false,
     wireframe_color: sdl.Color = sdl.Color.green,
     cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,
-    sort_by_depth: bool = true,
+    sort_by_depth: bool = false,
 };
 pub fn draw(self: *Self, renderer: sdl.Renderer, camera: Camera, opt: RenderOption) !void {
     try self.addObjectToRenderer(renderer, camera, self.root, opt);

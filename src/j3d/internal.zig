@@ -396,27 +396,41 @@ pub inline fn clipTriangle(
     }
 }
 
+/// Whether textures are same
+pub inline fn isSameTexture(tex0: ?sdl.Texture, tex1: ?sdl.Texture) bool {
+    if (tex0 != null and tex1 != null) {
+        return tex0.?.ptr == tex1.?.ptr;
+    }
+    return tex0 == null and tex1 == null;
+}
+
+/// Update batches for same texture
+pub inline fn updateBatches(
+    batched_indices: *std.ArrayList(u32),
+    last_texture: ?sdl.Texture,
+    next_texture: ?sdl.Texture,
+    next_size: u32,
+) void {
+    if (batched_indices.items.len > 0 and isSameTexture(last_texture, next_texture)) {
+        batched_indices.items[batched_indices.items.len - 1] += next_size;
+    } else {
+        batched_indices.append(next_size) catch unreachable;
+    }
+}
+
 /// Draw batched triangles
 pub inline fn drawTriangles(
     renderer: sdl.Renderer,
     indices: std.ArrayList(u32),
+    batched_indices: std.ArrayList(u32),
     vertices: std.ArrayList(sdl.Vertex),
     textures: std.ArrayList(?sdl.Texture),
     depths: std.ArrayList(f32),
     sort_by_depth: bool,
 ) !void {
     const S = struct {
-        var _vertices: std.ArrayList(sdl.Vertex) = undefined;
         var _depths: std.ArrayList(f32) = undefined;
         var _textures: std.ArrayList(?sdl.Texture) = undefined;
-
-        // Whether textures are same
-        inline fn isSameTexture(tex0: ?sdl.Texture, tex1: ?sdl.Texture) bool {
-            if (tex0 != null and tex1 != null) {
-                return tex0.?.ptr == tex1.?.ptr;
-            }
-            return tex0 == null and tex1 == null;
-        }
 
         // Sort triangles by depth and texture values
         fn compareTriangles(_: ?*anyopaque, lhs: [3]u32, rhs: [3]u32) bool {
@@ -446,8 +460,7 @@ pub inline fn drawTriangles(
     if (indices.items.len == 0) return;
     assert(indices.items.len % 3 == 0);
 
-    if (sort_by_depth) {
-        S._vertices = vertices;
+    if (sort_by_depth) { // Sort triangles by depth value before rendering
         S._depths = depths;
         S._textures = textures;
 
@@ -461,27 +474,39 @@ pub inline fn drawTriangles(
             @as(?*anyopaque, null),
             S.compareTriangles,
         );
-    }
 
-    // Send in batches relying on same texture
-    var offset: usize = 0;
-    var last_texture: ?sdl.Texture = null;
-    var i: usize = 0;
-    while (i < indices.items.len) : (i += 3) {
-        const idx = indices.items[i];
-        if (i > 0 and !S.isSameTexture(textures.items[idx], last_texture)) {
-            try renderer.drawGeometry(
-                last_texture,
-                vertices.items,
-                indices.items[offset..i],
-            );
-            offset = i;
+        // Scan vertices and send them in batches
+        var offset: usize = 0;
+        var last_texture: ?sdl.Texture = null;
+        var i: usize = 0;
+        while (i < indices.items.len) : (i += 3) {
+            const idx = indices.items[i];
+            if (i > 0 and !isSameTexture(textures.items[idx], last_texture)) {
+                try renderer.drawGeometry(
+                    last_texture,
+                    vertices.items,
+                    indices.items[offset..i],
+                );
+                offset = i;
+            }
+            last_texture = textures.items[idx];
         }
-        last_texture = textures.items[idx];
+        try renderer.drawGeometry(
+            last_texture,
+            vertices.items,
+            indices.items[offset..],
+        );
+    } else { // Send pre-batched vertices directly
+        var offset: u32 = 0;
+        for (batched_indices.items) |size| {
+            assert(size % 3 == 0);
+            try renderer.drawGeometry(
+                textures.items[indices.items[offset]],
+                vertices.items,
+                indices.items[offset .. offset + size],
+            );
+            offset += size;
+        }
+        assert(offset == @intCast(u32, indices.items.len));
     }
-    try renderer.drawGeometry(
-        last_texture,
-        vertices.items,
-        indices.items[offset..],
-    );
 }

@@ -40,7 +40,7 @@ pub fn deinit() void {
 /// Clear primitive
 pub const RenderOption = struct {
     retain_memory: bool = true,
-    sort_by_depth: bool = true,
+    sort_by_depth: bool = false,
 };
 pub fn clear(opt: RenderOption) void {
     tri_renderer.?.clear(opt.retain_memory);

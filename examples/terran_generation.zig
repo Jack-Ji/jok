@@ -118,7 +118,7 @@ pub fn draw(ctx: *jok.Context) !void {
             .attenuation_quadratic = 0.0002,
         },
     };
-    primitive.clear(.{});
+    primitive.clear(.{ .sort_by_depth = true });
     try primitive.addShape(
         shape,
         zmath.identity(),

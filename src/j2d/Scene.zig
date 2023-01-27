@@ -161,11 +161,6 @@ pub fn destroy(self: *Self, destroy_objects: bool) void {
     self.allocator.destroy(self);
 }
 
-// TODO Action system
-// TODO Sequence Action
-// TODO Parallel Action
-// TODO Event system
-
 /// Batch all sprites for rendering
 pub fn draw(self: *Self, camera: Camera) !void {
     try self.submitObject(camera, self.root);

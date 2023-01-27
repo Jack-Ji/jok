@@ -121,6 +121,7 @@ pub fn draw(ctx: *jok.Context) !void {
     scene.clear();
     try scene.draw(ctx.renderer, camera, .{
         .lighting = lighting_opt,
+        .sort_by_depth = true,
     });
 
     _ = try font.debugDraw(
