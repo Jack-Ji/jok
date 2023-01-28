@@ -127,51 +127,32 @@ pub const YPosType = enum { baseline, top, bottom };
 pub fn getRectangle(
     self: Atlas,
     text: []const u8,
-    pos: sdl.PointF,
+    _pos: sdl.PointF,
     ypos_type: YPosType,
 ) !sdl.RectangleF {
-    var xpos = pos.x;
-    var ypos = pos.y;
-    var pxpos = &xpos;
-    var pypos = &ypos;
-    var rect = sdl.RectangleF{ .x = pos.x, .y = std.math.floatMax(f32), .width = 0, .height = 0 };
+    var pos = _pos;
+    var rect = sdl.RectangleF{
+        .x = pos.x,
+        .y = std.math.floatMax(f32),
+        .width = 0,
+        .height = 0,
+    };
 
     if (text.len == 0) return rect;
 
     var i: u32 = 0;
     while (i < text.len) {
-        var size = try unicode.utf8ByteSequenceLength(text[i]);
-        var codepoint = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
-
-        // TODO: use simple loop searching for now, may need optimization
-        for (self.ranges.items) |range| {
-            if (codepoint < range.codepoint_begin or codepoint > range.codepoint_end) continue;
-
-            var quad: truetype.stbtt_aligned_quad = undefined;
-            const info = try self.tex.query();
-            truetype.stbtt_GetPackedQuad(
-                range.packedchar.items.ptr,
-                @intCast(c_int, info.width),
-                @intCast(c_int, info.height),
-                @intCast(c_int, codepoint - range.codepoint_begin),
-                pxpos,
-                pypos,
-                &quad,
-                0,
-            );
-            const yoffset = switch (ypos_type) {
-                .baseline => 0,
-                .top => self.vmetric_ascent * self.scale,
-                .bottom => self.vmetric_descent * self.scale,
-            };
-            if (quad.y0 + yoffset < rect.y) rect.y = quad.y0 + yoffset;
-            if (quad.y1 + yoffset - rect.y > rect.height) rect.height = quad.y1 + yoffset - rect.y;
-            break;
+        const size = try unicode.utf8ByteSequenceLength(text[i]);
+        const codepoint = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
+        if (self.getVerticesOfCodePoint(pos, ypos_type, sdl.Color.white, codepoint)) |cs| {
+            if (cs.vs[0].position.y < rect.y) rect.y = cs.vs[0].position.y;
+            if (cs.vs[3].position.y - rect.y > rect.height) rect.height = cs.vs[3].position.y - rect.y;
+            pos.x = cs.next_x;
         }
         i += size;
     }
 
-    rect.width = pxpos.* - rect.x;
+    rect.width = pos.x - rect.x;
     return rect;
 }
 
@@ -179,69 +160,29 @@ pub fn getRectangle(
 pub fn appendDrawDataFromUTF8String(
     self: Atlas,
     text: []const u8,
-    pos: sdl.PointF,
+    _pos: sdl.PointF,
     ypos_type: YPosType,
     color: sdl.Color,
     vattrib: *std.ArrayList(sdl.Vertex),
     vindices: *std.ArrayList(u32),
 ) !sdl.RectangleF {
-    var xpos = pos.x;
-    var ypos = pos.y;
-    var pxpos = &xpos;
-    var pypos = &ypos;
-    var rect = sdl.RectangleF{ .x = pos.x, .y = std.math.floatMax(f32), .width = 0, .height = 0 };
+    var pos = _pos;
+    var rect = sdl.RectangleF{
+        .x = pos.x,
+        .y = std.math.floatMax(f32),
+        .width = 0,
+        .height = 0,
+    };
 
     if (text.len == 0) return rect;
 
     var i: u32 = 0;
     while (i < text.len) {
-        var size = try unicode.utf8ByteSequenceLength(text[i]);
-        var codepoint = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
-
-        // TODO: use simple loop searching for now, may need optimization
-        for (self.ranges.items) |range| {
-            if (codepoint < range.codepoint_begin or codepoint > range.codepoint_end) continue;
-
-            var quad: truetype.stbtt_aligned_quad = undefined;
-            const info = try self.tex.query();
-            truetype.stbtt_GetPackedQuad(
-                range.packedchar.items.ptr,
-                @intCast(c_int, info.width),
-                @intCast(c_int, info.height),
-                @intCast(c_int, codepoint - range.codepoint_begin),
-                pxpos,
-                pypos,
-                &quad,
-                0,
-            );
-            const yoffset = switch (ypos_type) {
-                .baseline => 0,
-                .top => self.vmetric_ascent * self.scale,
-                .bottom => self.vmetric_descent * self.scale,
-            };
+        const size = try unicode.utf8ByteSequenceLength(text[i]);
+        const codepoint = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
+        if (self.getVerticesOfCodePoint(pos, ypos_type, color, codepoint)) |cs| {
             const base_index = @intCast(u32, vattrib.items.len);
-            try vattrib.appendSlice(&[_]sdl.Vertex{
-                .{
-                    .position = .{ .x = quad.x0, .y = quad.y0 + yoffset },
-                    .color = color,
-                    .tex_coord = .{ .x = quad.s0, .y = quad.t0 },
-                },
-                .{
-                    .position = .{ .x = quad.x0, .y = quad.y1 + yoffset },
-                    .color = color,
-                    .tex_coord = .{ .x = quad.s0, .y = quad.t1 },
-                },
-                .{
-                    .position = .{ .x = quad.x1, .y = quad.y1 + yoffset },
-                    .color = color,
-                    .tex_coord = .{ .x = quad.s1, .y = quad.t1 },
-                },
-                .{
-                    .position = .{ .x = quad.x1, .y = quad.y0 + yoffset },
-                    .color = color,
-                    .tex_coord = .{ .x = quad.s1, .y = quad.t0 },
-                },
-            });
+            try vattrib.appendSlice(&cs.vs);
             try vindices.appendSlice(&[_]u32{
                 base_index,
                 base_index + 1,
@@ -250,13 +191,77 @@ pub fn appendDrawDataFromUTF8String(
                 base_index + 2,
                 base_index + 3,
             });
-            if (quad.y0 + yoffset < rect.y) rect.y = quad.y0 + yoffset;
-            if (quad.y1 + yoffset - rect.y > rect.height) rect.height = quad.y1 + yoffset - rect.y;
-            break;
+            if (cs.vs[0].position.y < rect.y) rect.y = cs.vs[0].position.y;
+            if (cs.vs[3].position.y - rect.y > rect.height) rect.height = cs.vs[3].position.y - rect.y;
+            pos.x = cs.next_x;
         }
         i += size;
     }
 
-    rect.width = pxpos.* - rect.x;
+    rect.width = pos.x - rect.x;
     return rect;
+}
+
+/// Search coordinates of codepoint (in the order of left-top/right-top/right-bottom/left-bottom)
+pub inline fn getVerticesOfCodePoint(
+    self: Atlas,
+    pos: sdl.PointF,
+    ypos_type: YPosType,
+    color: sdl.Color,
+    codepoint: u32,
+) ?struct { vs: [4]sdl.Vertex, next_x: f32 } {
+    var xpos = pos.x;
+    var ypos = pos.y;
+    var pxpos = &xpos;
+    var pypos = &ypos;
+
+    // TODO: use simple loop searching for now, may need optimization
+    for (self.ranges.items) |range| {
+        if (codepoint < range.codepoint_begin or codepoint > range.codepoint_end) continue;
+
+        var quad: truetype.stbtt_aligned_quad = undefined;
+        const info = self.tex.query() catch unreachable;
+        truetype.stbtt_GetPackedQuad(
+            range.packedchar.items.ptr,
+            @intCast(c_int, info.width),
+            @intCast(c_int, info.height),
+            @intCast(c_int, codepoint - range.codepoint_begin),
+            pxpos,
+            pypos,
+            &quad,
+            0,
+        );
+        const yoffset = switch (ypos_type) {
+            .baseline => 0,
+            .top => self.vmetric_ascent * self.scale,
+            .bottom => self.vmetric_descent * self.scale,
+        };
+        return .{
+            .vs = [_]sdl.Vertex{
+                .{
+                    .position = .{ .x = quad.x0, .y = quad.y0 + yoffset },
+                    .color = color,
+                    .tex_coord = .{ .x = quad.s0, .y = quad.t0 },
+                },
+                .{
+                    .position = .{ .x = quad.x1, .y = quad.y0 + yoffset },
+                    .color = color,
+                    .tex_coord = .{ .x = quad.s1, .y = quad.t0 },
+                },
+                .{
+                    .position = .{ .x = quad.x1, .y = quad.y1 + yoffset },
+                    .color = color,
+                    .tex_coord = .{ .x = quad.s1, .y = quad.t1 },
+                },
+                .{
+                    .position = .{ .x = quad.x0, .y = quad.y1 + yoffset },
+                    .color = color,
+                    .tex_coord = .{ .x = quad.s0, .y = quad.t1 },
+                },
+            },
+            .next_x = xpos,
+        };
+    } else {
+        return null;
+    }
 }
