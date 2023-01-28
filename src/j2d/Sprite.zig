@@ -1,6 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
+const Camera = @import("Camera.zig");
 const jok = @import("../jok.zig");
 const zmath = jok.zmath;
 const Self = @This();
@@ -48,6 +49,9 @@ pub const DrawOption = struct {
     /// Position of sprite
     pos: sdl.PointF,
 
+    /// Optional camera
+    camera: ?Camera = null,
+
     /// Mod color
     tint_color: sdl.Color = sdl.Color.white,
 
@@ -80,9 +84,12 @@ pub fn appendDrawData(
     var uv1 = self.uv1;
     if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
     if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
-    const m_scale = zmath.scaling(self.width * opt.scale_w, self.height * opt.scale_h, 1);
+    const pos = if (opt.camera) |c| c.translatePointF(opt.pos) else opt.pos;
+    const scale_w = if (opt.camera) |c| opt.scale_w / c.zoom else opt.scale_w;
+    const scale_h = if (opt.camera) |c| opt.scale_h / c.zoom else opt.scale_h;
+    const m_scale = zmath.scaling(self.width * scale_w, self.height * scale_h, 1);
     const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
-    const m_translate = zmath.translation(opt.pos.x, opt.pos.y, 0);
+    const m_translate = zmath.translation(pos.x, pos.y, 0);
     const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
     const basic_coords = zmath.loadMat(&[_]f32{
         -opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // Left top

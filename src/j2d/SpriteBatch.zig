@@ -125,7 +125,6 @@ pub fn begin(self: *Self, opt: BatchOption) void {
     self.batch_search.clearRetainingCapacity();
 }
 
-/// Add sprite to next batch
 pub fn addSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
     var index = self.batch_search.get(sprite.tex.ptr) orelse blk: {
         var count = self.batch_search.count();
@@ -145,7 +144,6 @@ pub fn addSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
     });
 }
 
-/// Add text
 //pub fn addText(self: *Self, atlas: Atlas, opt: DrawOption, fmt: []const u8, args: anytype) !void {
 //    const text = jok.imgui.format(fmt, args);
 //    atlas.appendDrawDataFromUTF8String(text, pos);
@@ -196,10 +194,11 @@ pub fn end(self: *Self) !void {
                 &b.vattrib,
                 &b.vindices,
                 .{
-                    .pos = if (data.draw_option.camera) |c| c.translatePointF(data.draw_option.pos) else data.draw_option.pos,
+                    .pos = data.draw_option.pos,
+                    .camera = data.draw_option.camera,
                     .tint_color = data.draw_option.tint_color,
-                    .scale_w = if (data.draw_option.camera) |c| data.draw_option.scale_w / c.zoom else data.draw_option.scale_w,
-                    .scale_h = if (data.draw_option.camera) |c| data.draw_option.scale_h / c.zoom else data.draw_option.scale_h,
+                    .scale_w = data.draw_option.scale_w,
+                    .scale_h = data.draw_option.scale_h,
                     .rotate_degree = data.draw_option.rotate_degree,
                     .anchor_point = data.draw_option.anchor_point,
                     .flip_h = data.draw_option.flip_h,
