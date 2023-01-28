@@ -6,6 +6,7 @@ const jok = @import("../jok.zig");
 const Sprite = @import("Sprite.zig");
 const Camera = @import("Camera.zig");
 const Atlas = jok.font.Atlas;
+const zmath = jok.zmath;
 const Self = @This();
 
 pub const Error = error{
@@ -41,7 +42,6 @@ pub const DrawOption = struct {
 pub const TextOption = struct {
     atlas: Atlas,
     pos: sdl.PointF,
-    ypos_type: Atlas.YPosType = .top,
     camera: ?Camera = null,
     tint_color: sdl.Color = sdl.Color.white,
     scale_w: f32 = 1.0,
@@ -174,16 +174,34 @@ pub fn addText(
     const text = jok.imgui.format(fmt, args);
     if (text.len == 0) return;
 
-    var index = try self.getBatchIndex(opt.atlas.tex);
+    const transform_m = zmath.mul(
+        zmath.mul(
+            zmath.translation(-opt.pos.x, -opt.pos.y, 0),
+            zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree)),
+        ),
+        zmath.translation(opt.pos.x, opt.pos.y, 0),
+    );
+    const index = try self.getBatchIndex(opt.atlas.tex);
     var pos = opt.pos;
     var i: u32 = 0;
     while (i < text.len) {
         const size = try unicode.utf8ByteSequenceLength(text[i]);
-        const codepoint = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
-        if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, sdl.Color.white, codepoint)) |cs| {
+        const cp = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
+        if (opt.atlas.getVerticesOfCodePoint(pos, .top, sdl.Color.white, cp)) |cs| {
             if (self.batches[index].sprites_data.items.len >= self.max_sprites_per_drawcall) {
                 return error.TooMuchSprite;
             }
+
+            const v = zmath.mul(
+                zmath.f32x4(
+                    cs.vs[0].position.x,
+                    cs.vs[0].position.y,
+                    0,
+                    1,
+                ),
+                transform_m,
+            );
+            const draw_pos = sdl.PointF{ .x = v[0], .y = v[1] };
             try self.batches[index].sprites_data.append(.{
                 .sprite = .{
                     .width = cs.vs[1].position.x - cs.vs[0].position.x,
@@ -193,7 +211,7 @@ pub fn addText(
                     .tex = opt.atlas.tex,
                 },
                 .draw_option = .{
-                    .pos = cs.vs[0].position,
+                    .pos = draw_pos,
                     .camera = opt.camera,
                     .tint_color = opt.tint_color,
                     .scale_w = opt.scale_w,
@@ -205,7 +223,8 @@ pub fn addText(
                     .depth = opt.depth,
                 },
             });
-            pos.x = cs.next_x;
+
+            pos.x += (cs.next_x - pos.x) * opt.scale_w;
         }
         i += size;
     }

@@ -10,7 +10,7 @@ pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     font = try jok.font.Font.fromTrueTypeData(ctx.allocator, jok.font.clacon_font_data);
-    atlas = try font.initAtlas(ctx.renderer, 60, &jok.font.codepoint_ranges.default, null);
+    atlas = try font.initAtlas(ctx.renderer, 40, &jok.font.codepoint_ranges.default, null);
     sb = try jok.j2d.SpriteBatch.create(
         ctx,
         2,
@@ -98,8 +98,11 @@ pub fn draw(ctx: *jok.Context) !void {
                 @floatToInt(u8, 128 + @cos(ctx.tick * 10) * 127),
                 @floatToInt(u8, 128 + @sin(ctx.tick * 10) * 127),
             ),
+            .scale_w = @floatCast(f32, 1 + 0.5 * @sin(ctx.tick)),
+            .scale_h = @floatCast(f32, 1 + 0.5 * @cos(ctx.tick)),
+            .rotate_degree = @floatCast(f32, ctx.tick * 30),
         },
-        " @_@",
+        "Fancy Stuff!",
         .{},
     );
     try sb.end();
