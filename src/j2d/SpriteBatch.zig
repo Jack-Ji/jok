@@ -3,8 +3,8 @@ const assert = std.debug.assert;
 const sdl = @import("sdl");
 const jok = @import("../jok.zig");
 const Sprite = @import("Sprite.zig");
-const SpriteSheet = @import("SpriteSheet.zig");
 const Camera = @import("Camera.zig");
+const Atlas = jok.font.Atlas;
 const Self = @This();
 
 pub const Error = error{
@@ -43,7 +43,7 @@ const BatchData = struct {
         draw_option: DrawOption,
     };
 
-    sheet: ?*SpriteSheet = null,
+    tex: ?sdl.Texture = null,
     sprites_data: std.ArrayList(SpriteData),
     vattrib: std.ArrayList(sdl.Vertex),
     vindices: std.ArrayList(u32),
@@ -58,8 +58,8 @@ renderer: sdl.Renderer,
 // All batch data
 batches: []BatchData,
 
-// Sprite-sheet search tree
-search_tree: std.AutoHashMap(*SpriteSheet, u32),
+// Batch data search tree
+batch_search: std.AutoHashMap(*sdl.c.SDL_Texture, u32),
 
 // Maximum limit
 max_sprites_per_drawcall: u32,
@@ -73,22 +73,22 @@ depth_sort: DepthSortMethod = .none,
 /// Create sprite-batch
 pub fn create(
     ctx: *jok.Context,
-    max_sheet_num: u32,
+    max_tex_num: u32,
     max_sprites_per_drawcall: u32,
 ) !*Self {
     var self = try ctx.allocator.create(Self);
     errdefer ctx.allocator.destroy(self);
-    const batches = try ctx.allocator.alloc(BatchData, max_sheet_num);
+    const batches = try ctx.allocator.alloc(BatchData, max_tex_num);
     errdefer ctx.allocator.free(batches);
     self.* = Self{
         .allocator = ctx.allocator,
         .renderer = ctx.renderer,
         .batches = batches,
-        .search_tree = std.AutoHashMap(*SpriteSheet, u32).init(ctx.allocator),
+        .batch_search = std.AutoHashMap(*sdl.c.SDL_Texture, u32).init(ctx.allocator),
         .max_sprites_per_drawcall = max_sprites_per_drawcall,
     };
     for (self.batches) |*b| {
-        b.sheet = null;
+        b.tex = null;
         b.sprites_data = std.ArrayList(BatchData.SpriteData).initCapacity(ctx.allocator, 1000) catch unreachable;
         b.vattrib = std.ArrayList(sdl.Vertex).initCapacity(ctx.allocator, 4000) catch unreachable;
         b.vindices = std.ArrayList(u32).initCapacity(ctx.allocator, 6000) catch unreachable;
@@ -103,7 +103,7 @@ pub fn destroy(self: *Self) void {
         b.vindices.deinit();
     }
     self.allocator.free(self.batches);
-    self.search_tree.deinit();
+    self.batch_search.deinit();
     self.allocator.destroy(self);
 }
 
@@ -115,25 +115,25 @@ pub const BatchOption = struct {
 pub fn begin(self: *Self, opt: BatchOption) void {
     self.depth_sort = opt.depth_sort;
     self.blend_method = opt.blend_method;
-    const size = self.search_tree.count();
+    const size = self.batch_search.count();
     for (self.batches[0..size]) |*b| {
-        b.sheet = null;
+        b.tex = null;
         b.sprites_data.clearRetainingCapacity();
         b.vattrib.clearRetainingCapacity();
         b.vindices.clearRetainingCapacity();
     }
-    self.search_tree.clearRetainingCapacity();
+    self.batch_search.clearRetainingCapacity();
 }
 
 /// Add sprite to next batch
 pub fn addSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
-    var index = self.search_tree.get(sprite.sheet) orelse blk: {
-        var count = self.search_tree.count();
+    var index = self.batch_search.get(sprite.sheet.tex.ptr) orelse blk: {
+        var count = self.batch_search.count();
         if (count == self.batches.len) {
             return error.TooMuchSheet;
         }
-        self.batches[count].sheet = sprite.sheet;
-        try self.search_tree.put(sprite.sheet, count);
+        self.batches[count].tex = sprite.sheet.tex;
+        try self.batch_search.put(sprite.sheet.tex.ptr, count);
         break :blk count;
     };
     if (self.batches[index].sprites_data.items.len >= self.max_sprites_per_drawcall) {
@@ -144,6 +144,12 @@ pub fn addSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
         .draw_option = opt,
     });
 }
+
+/// Add text
+//pub fn addText(self: *Self, atlas: Atlas, opt: DrawOption, fmt: []const u8, args: anytype) !void {
+//    const text = jok.imgui.format(fmt, args);
+//    atlas.appendDrawDataFromUTF8String(text, pos);
+//}
 
 fn ascendCompare(self: *Self, lhs: BatchData.SpriteData, rhs: BatchData.SpriteData) bool {
     _ = self;
@@ -157,7 +163,7 @@ fn descendCompare(self: *Self, lhs: BatchData.SpriteData, rhs: BatchData.SpriteD
 
 /// Send batched data to gpu, issue draw command
 pub fn end(self: *Self) !void {
-    const size = self.search_tree.count();
+    const size = self.batch_search.count();
     if (size == 0) return;
 
     // Generate draw data
@@ -206,12 +212,12 @@ pub fn end(self: *Self) !void {
     // Send draw command
     for (self.batches[0..size]) |b| {
         switch (self.blend_method) {
-            .blend => try b.sheet.?.tex.setBlendMode(.blend),
-            .additive => try b.sheet.?.tex.setBlendMode(.add),
-            .overwrite => try b.sheet.?.tex.setBlendMode(.none),
+            .blend => try b.tex.?.setBlendMode(.blend),
+            .additive => try b.tex.?.setBlendMode(.add),
+            .overwrite => try b.tex.?.setBlendMode(.none),
         }
         try self.renderer.drawGeometry(
-            b.sheet.?.tex,
+            b.tex.?,
             b.vattrib.items,
             b.vindices.items,
         );
