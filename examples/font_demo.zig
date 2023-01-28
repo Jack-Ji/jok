@@ -1,10 +1,21 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
-const font = jok.font;
+
+var font: *jok.font.Font = undefined;
+var atlas: jok.font.Atlas = undefined;
+var sb: *jok.j2d.SpriteBatch = undefined;
 
 pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
+
+    font = try jok.font.Font.fromTrueTypeData(ctx.allocator, jok.font.clacon_font_data);
+    atlas = try font.initAtlas(ctx.renderer, 60, &jok.font.codepoint_ranges.default, null);
+    sb = try jok.j2d.SpriteBatch.create(
+        ctx,
+        2,
+        10000,
+    );
 
     try ctx.renderer.setColorRGB(100, 100, 100);
 }
@@ -25,7 +36,7 @@ pub fn draw(ctx: *jok.Context) !void {
 
     try ctx.renderer.setColorRGBA(0, 128, 0, 120);
 
-    var result = try font.debugDraw(
+    var result = try jok.font.debugDraw(
         ctx.renderer,
         .{
             .pos = sdl.PointF{ .x = 0, .y = 0 },
@@ -37,7 +48,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
     try ctx.renderer.fillRectF(result.area);
 
-    result = try font.debugDraw(
+    result = try jok.font.debugDraw(
         ctx.renderer,
         .{
             .pos = sdl.PointF{ .x = 0, .y = @intToFloat(f32, size.h) / 2 },
@@ -49,7 +60,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
     try ctx.renderer.fillRectF(result.area);
 
-    result = try font.debugDraw(
+    result = try jok.font.debugDraw(
         ctx.renderer,
         .{
             .pos = sdl.PointF{ .x = result.area.x + result.area.width, .y = @intToFloat(f32, size.h) / 2 },
@@ -61,7 +72,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
     try ctx.renderer.fillRectF(result.area);
 
-    result = try font.debugDraw(
+    result = try jok.font.debugDraw(
         ctx.renderer,
         .{
             .pos = sdl.PointF{ .x = 0, .y = @intToFloat(f32, size.h) },
@@ -73,9 +84,32 @@ pub fn draw(ctx: *jok.Context) !void {
         .{},
     );
     try ctx.renderer.fillRectF(result.area);
+
+    sb.begin(.{});
+    try sb.addText(
+        .{
+            .atlas = atlas,
+            .pos = .{
+                .x = @intToFloat(f32, size.w) / 2,
+                .y = @intToFloat(f32, size.h) / 2,
+            },
+            .tint_color = sdl.Color.rgb(
+                @floatToInt(u8, 128 + @sin(ctx.tick * 10) * 127),
+                @floatToInt(u8, 128 + @cos(ctx.tick * 10) * 127),
+                @floatToInt(u8, 128 + @sin(ctx.tick * 10) * 127),
+            ),
+        },
+        " @_@",
+        .{},
+    );
+    try sb.end();
 }
 
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
+
+    sb.destroy();
+    atlas.deinit();
+    font.destroy();
 }

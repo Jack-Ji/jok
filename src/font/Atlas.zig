@@ -107,8 +107,8 @@ pub fn init(
     };
 }
 
-pub fn deinit(self: Atlas) void {
-    self.tex.deinit();
+pub fn deinit(self: *Atlas) void {
+    self.tex.destroy();
     for (self.ranges.items) |r| {
         r.packedchar.deinit();
     }

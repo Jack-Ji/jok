@@ -1,5 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
+const unicode = std.unicode;
 const sdl = @import("sdl");
 const jok = @import("../jok.zig");
 const Sprite = @import("Sprite.zig");
@@ -26,6 +27,21 @@ pub const BlendMethod = enum {
 
 pub const DrawOption = struct {
     pos: sdl.PointF,
+    camera: ?Camera = null,
+    tint_color: sdl.Color = sdl.Color.white,
+    scale_w: f32 = 1.0,
+    scale_h: f32 = 1.0,
+    rotate_degree: f32 = 0,
+    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    flip_h: bool = false,
+    flip_v: bool = false,
+    depth: f32 = 0.5,
+};
+
+pub const TextOption = struct {
+    atlas: Atlas,
+    pos: sdl.PointF,
+    ypos_type: Atlas.YPosType = .top,
     camera: ?Camera = null,
     tint_color: sdl.Color = sdl.Color.white,
     scale_w: f32 = 1.0,
@@ -125,16 +141,21 @@ pub fn begin(self: *Self, opt: BatchOption) void {
     self.batch_search.clearRetainingCapacity();
 }
 
-pub fn addSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
-    var index = self.batch_search.get(sprite.tex.ptr) orelse blk: {
+inline fn getBatchIndex(self: *Self, tex: sdl.Texture) !usize {
+    const index = self.batch_search.get(tex.ptr) orelse blk: {
         var count = self.batch_search.count();
         if (count == self.batches.len) {
             return error.TooMuchSheet;
         }
-        self.batches[count].tex = sprite.tex;
-        try self.batch_search.put(sprite.tex.ptr, count);
+        self.batches[count].tex = tex;
+        try self.batch_search.put(tex.ptr, count);
         break :blk count;
     };
+    return index;
+}
+
+pub fn addSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
+    var index = try self.getBatchIndex(sprite.tex);
     if (self.batches[index].sprites_data.items.len >= self.max_sprites_per_drawcall) {
         return error.TooMuchSprite;
     }
@@ -144,10 +165,51 @@ pub fn addSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
     });
 }
 
-//pub fn addText(self: *Self, atlas: Atlas, opt: DrawOption, fmt: []const u8, args: anytype) !void {
-//    const text = jok.imgui.format(fmt, args);
-//    atlas.appendDrawDataFromUTF8String(text, pos);
-//}
+pub fn addText(
+    self: *Self,
+    opt: TextOption,
+    comptime fmt: []const u8,
+    args: anytype,
+) !void {
+    const text = jok.imgui.format(fmt, args);
+    if (text.len == 0) return;
+
+    var index = try self.getBatchIndex(opt.atlas.tex);
+    var pos = opt.pos;
+    var i: u32 = 0;
+    while (i < text.len) {
+        const size = try unicode.utf8ByteSequenceLength(text[i]);
+        const codepoint = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
+        if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, sdl.Color.white, codepoint)) |cs| {
+            if (self.batches[index].sprites_data.items.len >= self.max_sprites_per_drawcall) {
+                return error.TooMuchSprite;
+            }
+            try self.batches[index].sprites_data.append(.{
+                .sprite = .{
+                    .width = cs.vs[1].position.x - cs.vs[0].position.x,
+                    .height = cs.vs[3].position.y - cs.vs[0].position.y,
+                    .uv0 = cs.vs[0].tex_coord,
+                    .uv1 = cs.vs[2].tex_coord,
+                    .tex = opt.atlas.tex,
+                },
+                .draw_option = .{
+                    .pos = cs.vs[0].position,
+                    .camera = opt.camera,
+                    .tint_color = opt.tint_color,
+                    .scale_w = opt.scale_w,
+                    .scale_h = opt.scale_h,
+                    .rotate_degree = opt.rotate_degree,
+                    .anchor_point = opt.anchor_point,
+                    .flip_h = opt.flip_h,
+                    .flip_v = opt.flip_v,
+                    .depth = opt.depth,
+                },
+            });
+            pos.x = cs.next_x;
+        }
+        i += size;
+    }
+}
 
 fn ascendCompare(self: *Self, lhs: BatchData.SpriteData, rhs: BatchData.SpriteData) bool {
     _ = self;

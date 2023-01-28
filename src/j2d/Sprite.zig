@@ -93,9 +93,9 @@ pub fn appendDrawData(
     const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
     const basic_coords = zmath.loadMat(&[_]f32{
         -opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // Left top
-        -opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // Left bottom
-        1 - opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // Right bottom
         1 - opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // Right top
+        1 - opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // Right bottom
+        -opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // Left bottom
     });
     const trasformed_coords = zmath.mul(basic_coords, m_transform);
     const base_index = @intCast(u32, vattribs.items.len);
@@ -108,7 +108,7 @@ pub fn appendDrawData(
         .{
             .position = .{ .x = trasformed_coords[1][0], .y = trasformed_coords[1][1] },
             .color = opt.tint_color,
-            .tex_coord = .{ .x = uv0.x, .y = uv1.y },
+            .tex_coord = .{ .x = uv1.x, .y = uv0.y },
         },
         .{
             .position = .{ .x = trasformed_coords[2][0], .y = trasformed_coords[2][1] },
@@ -118,7 +118,7 @@ pub fn appendDrawData(
         .{
             .position = .{ .x = trasformed_coords[3][0], .y = trasformed_coords[3][1] },
             .color = opt.tint_color,
-            .tex_coord = .{ .x = uv1.x, .y = uv0.y },
+            .tex_coord = .{ .x = uv0.x, .y = uv1.y },
         },
     });
     try vindices.appendSlice(&[_]u32{

@@ -5,6 +5,8 @@ const j2d = jok.j2d;
 
 var rd: std.rand.DefaultPrng = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
+var font: *jok.font.Font = undefined;
+var atlas: jok.font.Atlas = undefined;
 var sb: *j2d.SpriteBatch = undefined;
 var ps: *j2d.ParticleSystem = undefined;
 
@@ -45,14 +47,23 @@ pub fn init(ctx: *jok.Context) !void {
         1,
         false,
     );
+    font = try jok.font.Font.fromTrueTypeData(ctx.allocator, jok.font.clacon_font_data);
+    atlas = try font.initAtlas(ctx.renderer, 60, &jok.font.codepoint_ranges.default, null);
+    const cs = atlas.getVerticesOfCodePoint(.{ .x = 0, .y = 0 }, .top, sdl.Color.white, '*').?;
     sb = try j2d.SpriteBatch.create(
         ctx,
-        1,
+        2,
         10000,
     );
     ps = try j2d.ParticleSystem.create(ctx.allocator);
     emitter1.sprite = try sheet.getSpriteByName("particle");
-    emitter2.sprite = try sheet.getSpriteByName("particle");
+    emitter2.sprite = .{
+        .width = cs.vs[1].position.x - cs.vs[0].position.x,
+        .height = cs.vs[3].position.y - cs.vs[0].position.y,
+        .uv0 = cs.vs[0].tex_coord,
+        .uv1 = cs.vs[2].tex_coord,
+        .tex = atlas.tex,
+    };
     try ps.addEffect(
         rd.random(),
         8000,
@@ -98,6 +109,8 @@ pub fn draw(ctx: *jok.Context) !void {
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
+    atlas.deinit();
+    font.destroy();
     sheet.destroy();
     sb.destroy();
     ps.destroy();
