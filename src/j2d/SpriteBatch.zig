@@ -127,13 +127,13 @@ pub fn begin(self: *Self, opt: BatchOption) void {
 
 /// Add sprite to next batch
 pub fn addSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
-    var index = self.batch_search.get(sprite.sheet.tex.ptr) orelse blk: {
+    var index = self.batch_search.get(sprite.tex.ptr) orelse blk: {
         var count = self.batch_search.count();
         if (count == self.batches.len) {
             return error.TooMuchSheet;
         }
-        self.batches[count].tex = sprite.sheet.tex;
-        try self.batch_search.put(sprite.sheet.tex.ptr, count);
+        self.batches[count].tex = sprite.tex;
+        try self.batch_search.put(sprite.tex.ptr, count);
         break :blk count;
     };
     if (self.batches[index].sprites_data.items.len >= self.max_sprites_per_drawcall) {

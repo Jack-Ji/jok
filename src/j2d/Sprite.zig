@@ -1,7 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
-const SpriteSheet = @import("SpriteSheet.zig");
 const jok = @import("../jok.zig");
 const zmath = jok.zmath;
 const Self = @This();
@@ -14,8 +13,8 @@ height: f32,
 uv0: sdl.PointF,
 uv1: sdl.PointF,
 
-// Reference to sprite-sheet
-sheet: *SpriteSheet,
+// Reference to texture
+tex: sdl.Texture,
 
 /// Get sub-sprite by offsets/size
 pub fn getSubSprite(
@@ -40,7 +39,7 @@ pub fn getSubSprite(
             .x = self.uv0.x + (self.uv1.x - self.uv0.x) * (offset_x + width) / self.width,
             .y = self.uv0.y + (self.uv1.y - self.uv0.y) * (offset_y + height) / self.height,
         },
-        .sheet = self.sheet,
+        .tex = self.tex,
     };
 }
 

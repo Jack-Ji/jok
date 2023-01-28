@@ -462,7 +462,7 @@ pub fn getSpriteByName(self: *Self, name: []const u8) !Sprite {
             .height = rect.height,
             .uv0 = .{ .x = rect.s0, .y = rect.t0 },
             .uv1 = .{ .x = rect.s1, .y = rect.t1 },
-            .sheet = self,
+            .tex = self.tex,
         };
     }
     return error.SpriteNotExist;
@@ -476,7 +476,7 @@ pub fn getSpriteByRectangle(self: *Self, rect: sdl.RectangleF) !Sprite {
     var sp = Sprite{
         .width = std.math.min(rect.width, tex_width - rect.x),
         .height = std.math.min(rect.height, tex_height - rect.y),
-        .sheet = self,
+        .tex = self.tex,
         .uv0 = .{ .x = rect.x / tex_width, .y = rect.y / tex_height },
         .uv1 = undefined,
     };
