@@ -184,6 +184,23 @@ pub fn saveSurfaceToFile(surface: sdl.Surface, path: [:0]const u8, opt: Encoding
     );
 }
 
+/// Create texture for offscreen rendering
+pub fn createTextureAsTarget(rd: sdl.Renderer, _size: ?sdl.Point) !sdl.Texture {
+    const size = _size orelse BLK: {
+        const vp = rd.getViewport();
+        break :BLK sdl.Point{ .x = vp.width, .y = vp.height };
+    };
+    const tex = try sdl.createTexture(
+        rd,
+        getFormatByEndian(),
+        .target,
+        @intCast(usize, size.x),
+        @intCast(usize, size.y),
+    );
+    try tex.setBlendMode(.blend);
+    return tex;
+}
+
 pub const RenderToTexture = struct {
     target: ?sdl.Texture = null,
     size: ?sdl.Point = null,
@@ -194,21 +211,7 @@ pub const RenderToTexture = struct {
 /// `renderer` can be any struct with method `fn draw(sdl.Renderer) !void`
 pub fn renderToTexture(rd: sdl.Renderer, renderer: anytype, opt: RenderToTexture) !sdl.Texture {
     const old_target = sdl.c.SDL_GetRenderTarget(rd.ptr);
-    const target = opt.target orelse BLK: {
-        const size = opt.size orelse BLK2: {
-            const vp = rd.getViewport();
-            break :BLK2 sdl.Point{ .x = vp.width, .y = vp.height };
-        };
-        const tex = try sdl.createTexture(
-            rd,
-            getFormatByEndian(),
-            .target,
-            @intCast(usize, size.x),
-            @intCast(usize, size.y),
-        );
-        try tex.setBlendMode(.blend);
-        break :BLK tex;
-    };
+    const target = opt.target orelse try createTextureAsTarget(rd, opt.size);
     try rd.setTarget(target);
     defer _ = sdl.c.SDL_SetRenderTarget(rd.ptr, old_target);
 
