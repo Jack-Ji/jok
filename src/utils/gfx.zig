@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const jok = @import("../jok.zig");
 const sdl = @import("sdl");
+const jok = @import("../jok.zig");
 const native_endian = @import("builtin").target.cpu.arch.endian();
 const stb = jok.stb;
 
@@ -182,4 +182,47 @@ pub fn saveSurfaceToFile(surface: sdl.Surface, path: [:0]const u8, opt: Encoding
         path,
         opt,
     );
+}
+
+pub const RenderToTexture = struct {
+    target: ?sdl.Texture = null,
+    size: ?sdl.Point = null,
+    clear_color: ?sdl.Color = null,
+};
+
+/// Render to texture and return it.
+/// `renderer` can be any struct with method `fn draw(sdl.Renderer) !void`
+pub fn renderToTexture(rd: sdl.Renderer, renderer: anytype, opt: RenderToTexture) !sdl.Texture {
+    const old_target = sdl.c.SDL_GetRenderTarget(rd.ptr);
+    const target = opt.target orelse BLK: {
+        const size = opt.size orelse BLK2: {
+            const vp = rd.getViewport();
+            break :BLK2 sdl.Point{ .x = vp.width, .y = vp.height };
+        };
+        const tex = try sdl.createTexture(
+            rd,
+            getFormatByEndian(),
+            .target,
+            @intCast(usize, size.x),
+            @intCast(usize, size.y),
+        );
+        try tex.setBlendMode(.blend);
+        break :BLK tex;
+    };
+    try rd.setTarget(target);
+    defer _ = sdl.c.SDL_SetRenderTarget(rd.ptr, old_target);
+
+    const old_blend_mode = try rd.getDrawBlendMode();
+    try rd.setDrawBlendMode(.none);
+    defer rd.setDrawBlendMode(old_blend_mode) catch unreachable;
+
+    const old_color = try rd.getColor();
+    const color = opt.clear_color orelse sdl.Color.rgba(0, 0, 0, 0);
+    try rd.setColor(color);
+    defer rd.setColor(old_color) catch unreachable;
+
+    try rd.clear();
+    try renderer.draw(rd);
+
+    return target;
 }
