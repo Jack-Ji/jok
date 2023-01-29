@@ -43,6 +43,7 @@ pub const TextOption = struct {
     atlas: Atlas,
     pos: sdl.PointF,
     camera: ?Camera = null,
+    ypos_type: Atlas.YPosType = .top,
     tint_color: sdl.Color = sdl.Color.white,
     scale_w: f32 = 1.0,
     scale_h: f32 = 1.0,
@@ -187,7 +188,7 @@ pub fn addText(
     while (i < text.len) {
         const size = try unicode.utf8ByteSequenceLength(text[i]);
         const cp = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
-        if (opt.atlas.getVerticesOfCodePoint(pos, .top, sdl.Color.white, cp)) |cs| {
+        if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, sdl.Color.white, cp)) |cs| {
             if (self.batches[index].sprites_data.items.len >= self.max_sprites_per_drawcall) {
                 return error.TooMuchSprite;
             }

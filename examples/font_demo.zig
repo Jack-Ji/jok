@@ -60,17 +60,24 @@ pub fn draw(ctx: *jok.Context) !void {
     );
     try ctx.renderer.fillRectF(result.area);
 
-    result = try jok.font.debugDraw(
-        ctx.renderer,
+    sb.begin(.{});
+    try sb.addText(
         .{
+            .atlas = atlas,
             .pos = sdl.PointF{ .x = result.area.x + result.area.width, .y = @intToFloat(f32, size.h) / 2 },
-            .font_size = 80,
-            .ypos_type = .top,
+            .tint_color = sdl.Color.rgb(
+                @floatToInt(u8, 128 + @sin(ctx.tick * 10) * 127),
+                @floatToInt(u8, 128 + @cos(ctx.tick * 10) * 127),
+                @floatToInt(u8, 128 + @sin(ctx.tick * 10) * 127),
+            ),
+            .scale_w = @floatCast(f32, 1 + 0.5 * @sin(ctx.tick)),
+            .scale_h = @floatCast(f32, 1 + 0.5 * @cos(ctx.tick)),
+            .rotate_degree = @floatCast(f32, ctx.tick * 30),
         },
         "jok!",
         .{},
     );
-    try ctx.renderer.fillRectF(result.area);
+    try sb.end();
 
     result = try jok.font.debugDraw(
         ctx.renderer,
@@ -84,28 +91,6 @@ pub fn draw(ctx: *jok.Context) !void {
         .{},
     );
     try ctx.renderer.fillRectF(result.area);
-
-    sb.begin(.{});
-    try sb.addText(
-        .{
-            .atlas = atlas,
-            .pos = .{
-                .x = @intToFloat(f32, size.w) / 2,
-                .y = @intToFloat(f32, size.h) / 2,
-            },
-            .tint_color = sdl.Color.rgb(
-                @floatToInt(u8, 128 + @sin(ctx.tick * 10) * 127),
-                @floatToInt(u8, 128 + @cos(ctx.tick * 10) * 127),
-                @floatToInt(u8, 128 + @sin(ctx.tick * 10) * 127),
-            ),
-            .scale_w = @floatCast(f32, 1 + 0.5 * @sin(ctx.tick)),
-            .scale_h = @floatCast(f32, 1 + 0.5 * @cos(ctx.tick)),
-            .rotate_degree = @floatCast(f32, ctx.tick * 30),
-        },
-        "Fancy Stuff!",
-        .{},
-    );
-    try sb.end();
 }
 
 pub fn quit(ctx: *jok.Context) void {
