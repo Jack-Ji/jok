@@ -76,7 +76,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
 
     sb.begin(.{ .depth_sort = .back_to_forth });
-    const sprite = try sheet.getSpriteByName("ogre");
+    const sprite = sheet.getSpriteByName("ogre").?;
     try sb.addSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .camera = camera,

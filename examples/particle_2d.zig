@@ -49,21 +49,14 @@ pub fn init(ctx: *jok.Context) !void {
     );
     font = try jok.font.Font.fromTrueTypeData(ctx.allocator, jok.font.clacon_font_data);
     atlas = try font.initAtlas(ctx.renderer, 60, &jok.font.codepoint_ranges.default, null);
-    const cs = atlas.getVerticesOfCodePoint(.{ .x = 0, .y = 0 }, .top, sdl.Color.white, '*').?;
     sb = try j2d.SpriteBatch.create(
         ctx,
         2,
         10000,
     );
     ps = try j2d.ParticleSystem.create(ctx.allocator);
-    emitter1.sprite = try sheet.getSpriteByName("particle");
-    emitter2.sprite = .{
-        .width = cs.vs[1].position.x - cs.vs[0].position.x,
-        .height = cs.vs[3].position.y - cs.vs[0].position.y,
-        .uv0 = cs.vs[0].tex_coord,
-        .uv1 = cs.vs[2].tex_coord,
-        .tex = atlas.tex,
-    };
+    emitter1.sprite = sheet.getSpriteByName("particle");
+    emitter2.sprite = atlas.getSpriteOfCodePoint('*');
     try ps.addEffect(
         rd.random(),
         8000,

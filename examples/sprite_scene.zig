@@ -31,13 +31,13 @@ pub fn init(ctx: *jok.Context) !void {
     );
     scene = try j2d.Scene.create(ctx.allocator, sb);
     ogre1 = try j2d.Scene.Object.create(ctx.allocator, .{
-        .sprite = try sheet.getSpriteByName("ogre"),
+        .sprite = sheet.getSpriteByName("ogre").?,
         .render_opt = .{
             .pos = .{ .x = 400, .y = 300 },
         },
     }, null);
     ogre2 = try j2d.Scene.Object.create(ctx.allocator, .{
-        .sprite = try sheet.getSpriteByName("ogre"),
+        .sprite = sheet.getSpriteByName("ogre").?,
         .render_opt = .{
             .pos = .{ .x = 0, .y = 0 },
             .scale_w = 0.5,

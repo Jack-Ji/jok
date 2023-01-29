@@ -31,7 +31,7 @@ pub fn init(ctx: *jok.Context) !void {
         1000,
     );
     as = try j2d.AnimationSystem.create(ctx.allocator);
-    const player = try sheet.getSpriteByName("player");
+    const player = sheet.getSpriteByName("player").?;
     try as.add(
         "player_left_right",
         &[_]j2d.Sprite{
@@ -103,7 +103,7 @@ pub fn update(ctx: *jok.Context) !void {
 pub fn draw(ctx: *jok.Context) !void {
     sb.begin(.{});
     try sb.addSprite(
-        try sheet.getSpriteByName("player"),
+        sheet.getSpriteByName("player").?,
         .{
             .pos = .{ .x = 0, .y = 50 },
             .tint_color = sdl.Color.rgb(100, 100, 100),

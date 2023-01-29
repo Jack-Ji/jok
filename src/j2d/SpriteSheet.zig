@@ -11,7 +11,6 @@ const Self = @This();
 
 pub const Error = error{
     TextureNotLargeEnough,
-    SpriteNotExist,
     InvalidJson,
     NoTextureData,
 };
@@ -376,8 +375,8 @@ pub fn fromSinglePicture(
             .s0 = .{ .x = sp.rect.x / tex_width, .y = sp.rect.y / tex_height },
             .t0 = undefined,
         };
-        sp.s1 = (sp.rect.x + sp.rect.width) / tex_width;
-        sp.t1 = (sp.rect.y + sp.rect.height) / tex_height;
+        sp.s1 = std.math.min(1.0, (sp.rect.x + sp.rect.width) / tex_width);
+        sp.t1 = std.math.min(1.0, (sp.rect.y + sp.rect.height) / tex_height);
         rects[i] = sr;
         try tree.putNoClobber(
             try std.fmt.allocPrint(ctx.allocator, "{s}", .{sp.name}),
@@ -455,7 +454,7 @@ pub fn saveToFiles(self: Self, path: []const u8) !void {
 }
 
 /// Get sprite by name
-pub fn getSpriteByName(self: *Self, name: []const u8) !Sprite {
+pub fn getSpriteByName(self: *Self, name: []const u8) ?Sprite {
     if (self.getSpriteRect(name)) |rect| {
         return Sprite{
             .width = rect.width,
@@ -465,11 +464,11 @@ pub fn getSpriteByName(self: *Self, name: []const u8) !Sprite {
             .tex = self.tex,
         };
     }
-    return error.SpriteNotExist;
+    return null;
 }
 
 /// Get sprite by rectangle
-pub fn getSpriteByRectangle(self: *Self, rect: sdl.RectangleF) !Sprite {
+pub fn getSpriteByRectangle(self: *Self, rect: sdl.RectangleF) Sprite {
     const info = try self.tex.query();
     const tex_width = @intToFloat(f32, info.width);
     const tex_height = @intToFloat(f32, info.height);
@@ -478,10 +477,9 @@ pub fn getSpriteByRectangle(self: *Self, rect: sdl.RectangleF) !Sprite {
         .height = std.math.min(rect.height, tex_height - rect.y),
         .tex = self.tex,
         .uv0 = .{ .x = rect.x / tex_width, .y = rect.y / tex_height },
-        .uv1 = undefined,
     };
-    sp.uv1.x = (rect.x + sp.width) / tex_width;
-    sp.uv1.y = (rect.y + sp.height) / tex_height;
+    sp.uv1.x = std.math.min(1.0, (rect.x + sp.width) / tex_width);
+    sp.uv1.y = std.math.min(1.0, (rect.y + sp.height) / tex_height);
     return sp;
 }
 

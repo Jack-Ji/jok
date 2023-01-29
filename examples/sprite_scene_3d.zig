@@ -50,7 +50,7 @@ pub fn init(ctx: *jok.Context) !void {
     var i: u32 = 0;
     while (i < 12) : (i += 1) {
         const name = try std.fmt.bufPrint(&buf, "image{d}", .{i + 1});
-        const sp = try sheet.getSpriteByName(name);
+        const sp = sheet.getSpriteByName(name).?;
         sprites[i] = try Scene.Object.create(ctx.allocator, .{
             .sprite = .{
                 .transform = zmath.mul(
@@ -67,7 +67,7 @@ pub fn init(ctx: *jok.Context) !void {
         try scene.root.addChild(sprites[i]);
     }
     {
-        const sp = try sheet.getSpriteByName("ogre");
+        const sp = sheet.getSpriteByName("ogre").?;
         sprites[12] = try Scene.Object.create(ctx.allocator, .{
             .sprite = .{
                 .transform = zmath.mul(
@@ -85,7 +85,7 @@ pub fn init(ctx: *jok.Context) !void {
         try scene.root.addChild(sprites[12]);
     }
     {
-        const sp = try sheet.getSpriteByName("sphinx");
+        const sp = sheet.getSpriteByName("sphinx").?;
         sprites[13] = try Scene.Object.create(ctx.allocator, .{
             .sprite = .{
                 .transform = zmath.mul(

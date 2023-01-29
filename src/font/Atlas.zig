@@ -4,6 +4,7 @@ const unicode = std.unicode;
 const sdl = @import("sdl");
 const jok = @import("../jok.zig");
 const truetype = jok.stb.truetype;
+const Sprite = jok.j2d.Sprite;
 const Atlas = @This();
 
 const CharRange = struct {
@@ -260,6 +261,26 @@ pub inline fn getVerticesOfCodePoint(
                 },
             },
             .next_x = xpos,
+        };
+    } else {
+        return null;
+    }
+}
+
+/// Get sprite of codepoint
+pub fn getSpriteOfCodePoint(self: Atlas, codepoint: u32) ?Sprite {
+    if (self.getVerticesOfCodePoint(
+        .{ .x = 0, .y = 0 },
+        .top,
+        sdl.Color.white,
+        codepoint,
+    )) |cs| {
+        return Sprite{
+            .width = cs.vs[1].position.x - cs.vs[0].position.x,
+            .height = cs.vs[3].position.y - cs.vs[0].position.y,
+            .uv0 = cs.vs[0].tex_coord,
+            .uv1 = cs.vs[2].tex_coord,
+            .tex = self.tex,
         };
     } else {
         return null;

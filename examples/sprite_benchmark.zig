@@ -69,7 +69,7 @@ pub fn update(ctx: *jok.Context) !void {
         while (i < 10) : (i += 1) {
             const angle = rd.float(f32) * 2 * std.math.pi;
             try characters.append(.{
-                .sprite = try sheet.getSpriteByName("ogre"),
+                .sprite = sheet.getSpriteByName("ogre").?,
                 .pos = pos,
                 .velocity = .{
                     .x = 300 * @cos(angle),
