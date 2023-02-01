@@ -196,7 +196,7 @@ pub fn addText(
             const v = zmath.mul(
                 zmath.f32x4(
                     cs.vs[0].position.x,
-                    cs.vs[0].position.y,
+                    pos.y + (cs.vs[0].position.y - pos.y) * opt.scale_h,
                     0,
                     1,
                 ),
