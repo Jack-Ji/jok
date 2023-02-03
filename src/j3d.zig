@@ -1,15 +1,5 @@
 const jok = @import("jok.zig");
 
-/// Regularly used math constants
-pub const zmath = jok.zmath;
-pub const v_zero = jok.zmath.f32x4(0, 0, 0, 0);
-pub const v_up = jok.zmath.f32x4(0, 1, 0, 0);
-pub const v_down = jok.zmath.f32x4(0, -1, 0, 0);
-pub const v_right = jok.zmath.f32x4(1, 0, 0, 0);
-pub const v_left = jok.zmath.f32x4(-1, 0, 0, 0);
-pub const v_forward = jok.zmath.f32x4(0, 0, 1, 0);
-pub const v_backward = jok.zmath.f32x4(0, 0, -1, 0);
-
 /// Common types related to lighting
 pub const lighting = @import("j3d/lighting.zig");
 

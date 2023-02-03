@@ -4,6 +4,7 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const j2d = jok.j2d;
 const j3d = jok.j3d;
+const zmath = jok.zmath;
 const font = jok.font;
 const imgui = jok.imgui;
 
@@ -134,12 +135,12 @@ pub fn update(ctx: *jok.Context) !void {
 pub fn draw(ctx: *jok.Context) !void {
     j3d.primitive.clear(.{});
     try j3d.primitive.addPlane(
-        j3d.zmath.mul(
-            j3d.zmath.mul(
-                j3d.zmath.rotationX(-math.pi * 0.5),
-                j3d.zmath.translation(-0.5, -1.1, 0.5),
+        zmath.mul(
+            zmath.mul(
+                zmath.rotationX(-math.pi * 0.5),
+                zmath.translation(-0.5, -1.1, 0.5),
             ),
-            j3d.zmath.scaling(200, 1, 200),
+            zmath.scaling(200, 1, 200),
         ),
         camera,
         .{

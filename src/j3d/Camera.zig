@@ -59,7 +59,10 @@ roll: f32 = undefined,
 pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: [3]f32, target: [3]f32, world_up: ?[3]f32) Self {
     var camera: Self = .{};
     camera.frustrum = frustrum;
-    camera.world_up = zmath.normalize3(if (world_up) |up| zmath.f32x4(up[0], up[1], up[2], 1.0) else j3d.v_up);
+    camera.world_up = zmath.normalize3(if (world_up) |up|
+        zmath.f32x4(up[0], up[1], up[2], 0)
+    else
+        zmath.f32x4(0, 1, 0, 0));
     camera.position = zmath.f32x4(pos[0], pos[1], pos[2], 1.0);
     camera.dir = zmath.normalize3(zmath.f32x4(target[0], target[1], target[2], 1.0) - camera.position);
     camera.right = zmath.normalize3(zmath.cross3(camera.world_up, camera.dir));
@@ -74,9 +77,9 @@ pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: [3]f32, target: [3]f32
     } else {
         camera.pitch = -math.acos(math.clamp(cos_pitch[0], -1, 1));
     }
-    crossdir = zmath.cross3(camera.right, j3d.v_right);
+    crossdir = zmath.cross3(camera.right, zmath.f32x4(1, 0, 0, 0));
     angles = zmath.dot3(crossdir, camera.world_up);
-    const cos_yaw = zmath.dot3(camera.right, j3d.v_right);
+    const cos_yaw = zmath.dot3(camera.right, zmath.f32x4(1, 0, 0, 0));
     if (angles[0] < 0) {
         camera.yaw = math.acos(math.clamp(cos_yaw[0], -1, 1));
     } else {
@@ -91,7 +94,10 @@ pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: [3]f32, pitch: f3
     var camera: Self = .{};
     camera.frustrum = frustrum;
     camera.position = zmath.f32x4(pos[0], pos[1], pos[2], 1.0);
-    camera.world_up = zmath.normalize3(if (world_up) |up| zmath.f32x4(up[0], up[1], up[2], 1.0) else j3d.v_up);
+    camera.world_up = zmath.normalize3(if (world_up) |up|
+        zmath.f32x4(up[0], up[1], up[2], 0)
+    else
+        zmath.f32x4(0, 1, 0, 0));
     camera.pitch = pitch;
     camera.yaw = yaw;
     camera.roll = 0;
@@ -188,7 +194,7 @@ fn updateVectors(self: *Self) void {
         zmath.rotationX(self.pitch),
         zmath.rotationY(self.yaw),
     );
-    self.dir = zmath.normalize3(zmath.mul(j3d.v_forward, transform));
+    self.dir = zmath.normalize3(zmath.mul(zmath.f32x4(0, 0, 1, 0), transform));
     self.right = zmath.normalize3(zmath.cross3(self.world_up, self.dir));
     self.up = zmath.normalize3(zmath.cross3(self.dir, self.right));
 }
