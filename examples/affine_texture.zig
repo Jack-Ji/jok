@@ -7,7 +7,6 @@ const jok = @import("jok");
 const imgui = jok.imgui;
 const zmath = jok.zmath;
 const j3d = jok.j3d;
-const primitive = j3d.primitive;
 const Camera = j3d.Camera;
 
 pub const jok_window_resizable = true;
@@ -94,27 +93,32 @@ pub fn draw(ctx: *jok.Context) !void {
     }
     imgui.end();
 
-    primitive.clear(.{});
-    try primitive.addPlane(
+    const mat = zmath.mul(
         zmath.mul(
-            zmath.mul(
-                zmath.rotationX(math.pi * 0.5),
-                zmath.translation(-0.5, -1.1, -0.5),
-            ),
-            zmath.scaling(10, 1, 10),
+            zmath.rotationX(math.pi * 0.5),
+            zmath.translation(-0.5, -1.1, -0.5),
         ),
-        camera,
-        .{
-            .common = .{
-                .cull_faces = false,
-                .texture = tex,
-            },
-            .slices = @intCast(u32, slices),
-            .stacks = @intCast(u32, stacks),
-        },
+        zmath.scaling(10, 1, 10),
     );
-    try primitive.draw();
-    if (wireframe) try primitive.drawWireframe(sdl.Color.green);
+    const plane_opt = j3d.PlaneDrawOption{
+        .rdopt = .{
+            .cull_faces = false,
+            .texture = tex,
+        },
+        .slices = @intCast(u32, slices),
+        .stacks = @intCast(u32, stacks),
+    };
+
+    try j3d.begin(.{ .camera = camera });
+    try j3d.addPlane(mat, plane_opt);
+    try j3d.end();
+
+    try j3d.begin(.{
+        .camera = camera,
+        .wireframe_color = sdl.Color.green,
+    });
+    try j3d.addPlane(mat, plane_opt);
+    try j3d.end();
 }
 
 pub fn quit(ctx: *jok.Context) void {

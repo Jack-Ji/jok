@@ -4,10 +4,10 @@ pub const config = @import("config.zig");
 /// Context of application
 pub const Context = @import("context.zig").Context;
 
-/// Toolkit for 2d game
+/// 2d rendering
 pub const j2d = @import("j2d.zig");
 
-/// Toolkit for 3d game
+/// 3d rendering
 pub const j3d = @import("j3d.zig");
 
 /// Font module

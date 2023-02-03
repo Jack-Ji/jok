@@ -1,3 +1,4 @@
+/// Particle system
 const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
@@ -5,6 +6,7 @@ const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
 const jok = @import("../jok.zig");
+const j3d = jok.j3d;
 const zmesh = jok.zmesh;
 const zmath = jok.zmath;
 const Self = @This();
@@ -50,13 +52,6 @@ pub fn update(self: *Self, delta_time: f32) void {
         } else {
             i += 1;
         }
-    }
-}
-
-/// Draw effects
-pub fn draw(self: Self, rd: sdl.Renderer, tri_rd: *TriangleRenderer, camera: Camera) !void {
-    for (self.effects.items) |e| {
-        try e.draw(rd, tri_rd, camera);
     }
 }
 
@@ -117,7 +112,7 @@ pub const Effect = struct {
     burst_countdown: f32,
 
     /// Particle effect initialization
-    pub fn init(
+    fn init(
         allocator: std.mem.Allocator,
         random: std.rand.Random,
         max_particle_num: u32,
@@ -145,12 +140,12 @@ pub const Effect = struct {
         };
     }
 
-    pub fn deinit(self: Effect) void {
+    fn deinit(self: Effect) void {
         self.particles.deinit();
     }
 
     /// Update effect
-    pub fn update(self: *Effect, delta_time: f32) void {
+    fn update(self: *Effect, delta_time: f32) void {
         if (self.effect_duration > 0) {
             self.effect_duration -= delta_time;
             self.burst_countdown -= delta_time;
@@ -185,16 +180,22 @@ pub const Effect = struct {
         }
     }
 
-    /// Draw the effect
-    pub fn draw(self: Effect, rd: sdl.Renderer, tri_rd: *TriangleRenderer, camera: Camera) !void {
-        for (self.particles.items) |p| {
-            try p.draw(rd, tri_rd, camera);
-        }
-    }
-
     /// If effect is over
     pub fn isOver(self: Effect) bool {
         return self.effect_duration <= 0 and self.particles.items.len == 0;
+    }
+
+    /// Render to output
+    pub fn render(
+        self: Effect,
+        tri_rd: *TriangleRenderer,
+        vp: sdl.Rectangle,
+        target: *j3d.RenderTarget,
+        camera: Camera,
+    ) !void {
+        for (self.particles.items) |p| {
+            try p.render(tri_rd, vp, target, camera);
+        }
     }
 
     /// Bulitin particle emitter: fire
@@ -343,8 +344,14 @@ pub const Particle = struct {
         self.updateColor();
     }
 
-    /// Draw particle
-    pub fn draw(self: Particle, rd: sdl.Renderer, tri_rd: *TriangleRenderer, camera: Camera) !void {
+    /// Render to output
+    fn render(
+        self: Particle,
+        tri_rd: *TriangleRenderer,
+        vp: sdl.Rectangle,
+        target: *j3d.RenderTarget,
+        camera: Camera,
+    ) !void {
         switch (self.draw_data) {
             .mesh => |d| {
                 const model = zmath.mul(
@@ -370,8 +377,9 @@ pub const Particle = struct {
                         self.pos.z(),
                     ),
                 );
-                try tri_rd.addShapeData(
-                    rd,
+                try tri_rd.renderShape(
+                    vp,
+                    target,
                     model,
                     camera,
                     d.shape.indices,
@@ -387,8 +395,9 @@ pub const Particle = struct {
                 );
             },
             .sprite => |d| {
-                try tri_rd.addSpriteData(
-                    rd,
+                try tri_rd.renderSprite(
+                    vp,
+                    target,
                     zmath.translation(
                         self.pos.x(),
                         self.pos.y(),

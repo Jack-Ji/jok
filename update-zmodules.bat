@@ -21,9 +21,6 @@ cp -r %ZMODULES%/znoise src/deps
 rm -rf src/deps/zpool
 cp -r %ZMODULES%/zpool src/deps
 
-rm -rf src/deps/zjobs
-cp -r %ZMODULES%/zjobs src/deps
-
 rm -rf src/deps/ztracy
 cp -r %ZMODULES%/ztracy src/deps
 

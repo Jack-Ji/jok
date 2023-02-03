@@ -11,7 +11,6 @@ const imgui = jok.imgui;
 var rand: std.rand.DefaultPrng = undefined;
 var tex0: sdl.Texture = undefined;
 var tex1: sdl.Texture = undefined;
-var rd: *j3d.TriangleRenderer = undefined;
 var ps: *j3d.ParticleSystem = undefined;
 var camera: j3d.Camera = undefined;
 var sort_by_depth: bool = false;
@@ -50,7 +49,6 @@ pub fn init(ctx: *jok.Context) !void {
         .static,
         false,
     );
-    rd = try j3d.TriangleRenderer.create(ctx.allocator);
     ps = try j3d.ParticleSystem.create(ctx.allocator);
     camera = j3d.Camera.fromPositionAndTarget(
         .{
@@ -133,8 +131,8 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    j3d.primitive.clear(.{});
-    try j3d.primitive.addPlane(
+    try j3d.begin(.{ .camera = camera, .sort_by_depth = sort_by_depth });
+    try j3d.addPlane(
         zmath.mul(
             zmath.mul(
                 zmath.rotationX(-math.pi * 0.5),
@@ -142,19 +140,15 @@ pub fn draw(ctx: *jok.Context) !void {
             ),
             zmath.scaling(200, 1, 200),
         ),
-        camera,
         .{
-            .common = .{
+            .rdopt = .{
                 .color = sdl.Color.rgba(100, 100, 100, 200),
                 .lighting = .{},
             },
         },
     );
-    try j3d.primitive.draw();
-
-    rd.clear(true);
-    try ps.draw(ctx.renderer, rd, camera);
-    try rd.draw(ctx.renderer, .{ .sort_by_depth = sort_by_depth });
+    try j3d.addEffects(ps.effects.items);
+    try j3d.end();
 
     _ = try font.debugDraw(
         ctx.renderer,
@@ -184,6 +178,5 @@ pub fn draw(ctx: *jok.Context) !void {
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-    rd.destroy();
     ps.destroy();
 }

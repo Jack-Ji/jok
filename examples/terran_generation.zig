@@ -10,7 +10,6 @@ const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 const font = jok.font;
 const j3d = jok.j3d;
-const primitive = j3d.primitive;
 const Camera = j3d.Camera;
 
 pub const jok_window_resizable = true;
@@ -118,35 +117,29 @@ pub fn draw(ctx: *jok.Context) !void {
             .attenuation_quadratic = 0.0002,
         },
     };
-    primitive.clear(.{ .sort_by_depth = true });
-    try primitive.addShape(
+    try j3d.begin(.{
+        .camera = camera,
+        .sort_by_depth = true,
+        .wireframe_color = if (wireframe) sdl.Color.green else null,
+    });
+    try j3d.addShape(
         shape,
         zmath.identity(),
-        camera,
         null,
         .{
             .lighting = lighting_opt,
-            .cull_faces = false,
         },
     );
-    if (wireframe) {
-        try primitive.drawWireframe(sdl.Color.green);
-    } else {
-        try primitive.draw();
-    }
-
-    primitive.clear(.{});
-    try primitive.addSubdividedSphere(
+    try j3d.addSubdividedSphere(
         zmath.mul(
             zmath.scaling(0.2, 0.2, 0.2),
             zmath.translation(light_pos[0], light_pos[1], light_pos[2]),
         ),
-        camera,
         .{
-            .common = .{},
+            .rdopt = .{},
         },
     );
-    try primitive.draw();
+    try j3d.end();
 
     _ = try font.debugDraw(
         ctx.renderer,

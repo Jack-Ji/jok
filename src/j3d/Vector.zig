@@ -1,3 +1,4 @@
+/// 3d vector
 const std = @import("std");
 const math = std.math;
 const expectEqual = std.testing.expectEqual;

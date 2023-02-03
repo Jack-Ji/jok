@@ -1,3 +1,4 @@
+/// 3d triangle renderer
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
@@ -11,26 +12,38 @@ const utils = jok.utils;
 const internal = @import("internal.zig");
 const Self = @This();
 
-allocator: std.mem.Allocator,
+pub const RenderOption = struct {
+    aabb: ?[6]f32 = null,
+    cull_faces: bool = true,
+    color: sdl.Color = sdl.Color.white,
+    texture: ?sdl.Texture = null,
+    lighting_opt: ?lighting.LightingOption = null,
+};
 
-// Triangle vertices
-indices: std.ArrayList(u32),
+pub const SpriteOption = struct {
+    /// Binded texture
+    texture: ?sdl.Texture = null,
 
-// Pre-batched vertices using same texture, used for fast rendering,
-// only valid when indices're not reordered by depth value
-batched_indices: std.ArrayList(u32),
+    /// Mod color
+    tint_color: sdl.Color = sdl.Color.white,
 
-// Triangle vertices
-vertices: std.ArrayList(sdl.Vertex),
+    /// Scale of width/height
+    scale_w: f32 = 1.0,
+    scale_h: f32 = 1.0,
 
-// Vertices' Textures
-textures: std.ArrayList(?sdl.Texture),
+    /// Rotation around anchor-point (center by default)
+    rotate_degree: f32 = 0,
 
-// Depth of vertices
-depths: std.ArrayList(f32),
+    /// Anchor-point of sprite, around which rotation and translation is calculated
+    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
 
-// Large triangles directly in front of camera
-large_front_triangles: std.ArrayList([3]u32),
+    /// Horizontal/vertial flipping
+    flip_h: bool = false,
+    flip_v: bool = false,
+
+    /// Fixed size
+    fixed_size: bool = false,
+};
 
 // Temporary storage for clipping
 clip_vertices: std.ArrayList(zmath.Vec),
@@ -41,72 +54,29 @@ clip_texcoords: std.ArrayList(sdl.PointF),
 world_positions: std.ArrayList(zmath.Vec),
 world_normals: std.ArrayList(zmath.Vec),
 
-pub fn create(allocator: std.mem.Allocator) !*Self {
-    var self = try allocator.create(Self);
-    self.* = .{
-        .allocator = allocator,
-        .indices = std.ArrayList(u32).init(self.allocator),
-        .batched_indices = std.ArrayList(u32).init(self.allocator),
-        .vertices = std.ArrayList(sdl.Vertex).init(self.allocator),
-        .textures = std.ArrayList(?sdl.Texture).init(self.allocator),
-        .depths = std.ArrayList(f32).init(self.allocator),
-        .large_front_triangles = std.ArrayList([3]u32).init(self.allocator),
-        .clip_vertices = std.ArrayList(zmath.Vec).init(self.allocator),
-        .clip_colors = std.ArrayList(sdl.Color).init(self.allocator),
-        .clip_texcoords = std.ArrayList(sdl.PointF).init(self.allocator),
-        .world_positions = std.ArrayList(zmath.Vec).init(self.allocator),
-        .world_normals = std.ArrayList(zmath.Vec).init(self.allocator),
+pub fn init(allocator: std.mem.Allocator) Self {
+    return .{
+        .clip_vertices = std.ArrayList(zmath.Vec).init(allocator),
+        .clip_colors = std.ArrayList(sdl.Color).init(allocator),
+        .clip_texcoords = std.ArrayList(sdl.PointF).init(allocator),
+        .world_positions = std.ArrayList(zmath.Vec).init(allocator),
+        .world_normals = std.ArrayList(zmath.Vec).init(allocator),
     };
-    return self;
 }
 
-pub fn destroy(self: *Self) void {
-    self.indices.deinit();
-    self.batched_indices.deinit();
-    self.vertices.deinit();
-    self.textures.deinit();
-    self.depths.deinit();
-    self.large_front_triangles.deinit();
+pub fn deinit(self: *Self) void {
     self.clip_vertices.deinit();
     self.clip_colors.deinit();
     self.clip_texcoords.deinit();
     self.world_positions.deinit();
     self.world_normals.deinit();
-    self.allocator.destroy(self);
+    self.* = undefined;
 }
 
-/// Clear triangles
-pub fn clear(self: *Self, retain_memory: bool) void {
-    if (retain_memory) {
-        self.indices.clearRetainingCapacity();
-        self.batched_indices.clearRetainingCapacity();
-        self.vertices.clearRetainingCapacity();
-        self.textures.clearRetainingCapacity();
-        self.depths.clearRetainingCapacity();
-        self.large_front_triangles.clearRetainingCapacity();
-    } else {
-        self.indices.clearAndFree();
-        self.batched_indices.clearAndFree();
-        self.vertices.clearAndFree();
-        self.textures.clearAndFree();
-        self.depths.clearAndFree();
-        self.large_front_triangles.clearAndFree();
-    }
-}
-
-/// Advanced vertice appending options
-pub const RenderOption = struct {
-    aabb: ?[6]f32 = null,
-    cull_faces: bool = true,
-    color: sdl.Color = sdl.Color.white,
-    texture: ?sdl.Texture = null,
-    lighting_opt: ?lighting.LightingOption = null,
-};
-
-/// Append shape data
-pub fn addShapeData(
+pub fn renderShape(
     self: *Self,
-    renderer: sdl.Renderer,
+    vp: sdl.Rectangle,
+    target: *j3d.RenderTarget,
     model: zmath.Mat,
     camera: Camera,
     indices: []const u16,
@@ -121,65 +91,6 @@ pub fn addShapeData(
     assert(if (colors) |cs| cs.len == positions.len else true);
     assert(if (texcoords) |ts| ts.len == positions.len else true);
     if (indices.len == 0) return;
-    const vp = renderer.getViewport();
-    const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
-        0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
-        0.0,                              0.0,                                0.5,
-        0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
-    });
-    const front_tri_threshold = @intToFloat(f32, vp.width * vp.height) / 64;
-    const mvp = zmath.mul(model, camera.getViewProjectMatrix());
-
-    // Do early test with aabb if possible
-    if (opt.aabb) |ab| {
-        const width = ab[3] - ab[0];
-        const length = ab[5] - ab[2];
-        assert(width >= 0);
-        assert(length >= 0);
-        const v0 = zmath.f32x4(ab[0], ab[1], ab[2], 1.0);
-        const v1 = zmath.f32x4(ab[0], ab[1], ab[2] + length, 1.0);
-        const v2 = zmath.f32x4(ab[0] + width, ab[1], ab[2] + length, 1.0);
-        const v3 = zmath.f32x4(ab[0] + width, ab[1], ab[2], 1.0);
-        const v4 = zmath.f32x4(ab[3] - width, ab[4], ab[5] - length, 1.0);
-        const v5 = zmath.f32x4(ab[3] - width, ab[4], ab[5], 1.0);
-        const v6 = zmath.f32x4(ab[3], ab[4], ab[5], 1.0);
-        const v7 = zmath.f32x4(ab[3], ab[4], ab[5] - length, 1.0);
-        const obb1 = zmath.mul(zmath.Mat{
-            v0, v1, v2, v3,
-        }, mvp);
-        const obb2 = zmath.mul(zmath.Mat{
-            v4, v5, v6, v7,
-        }, mvp);
-
-        // Ignore object outside of viewing space
-        if (internal.isOBBOutside(&[_]zmath.Vec{
-            obb1[0], obb1[1], obb1[2], obb1[3],
-            obb2[0], obb2[1], obb2[2], obb2[3],
-        })) return;
-
-        // Ignore object hidden behind front triangles
-        const ndc0 = obb1[0] / zmath.splat(zmath.Vec, obb1[0][3]);
-        const ndc1 = obb1[1] / zmath.splat(zmath.Vec, obb1[1][3]);
-        const ndc2 = obb1[2] / zmath.splat(zmath.Vec, obb1[2][3]);
-        const ndc3 = obb1[3] / zmath.splat(zmath.Vec, obb1[3][3]);
-        const ndc4 = obb2[0] / zmath.splat(zmath.Vec, obb2[0][3]);
-        const ndc5 = obb2[1] / zmath.splat(zmath.Vec, obb2[1][3]);
-        const ndc6 = obb2[2] / zmath.splat(zmath.Vec, obb2[2][3]);
-        const ndc7 = obb2[3] / zmath.splat(zmath.Vec, obb2[3][3]);
-        const positions_screen1 = zmath.mul(zmath.Mat{ ndc0, ndc1, ndc2, ndc3 }, ndc_to_screen);
-        const positions_screen2 = zmath.mul(zmath.Mat{ ndc4, ndc5, ndc6, ndc7 }, ndc_to_screen);
-        if (self.isOBBHiddenBehind(&[_]zmath.Vec{
-            positions_screen1[0],
-            positions_screen1[1],
-            positions_screen1[2],
-            positions_screen1[3],
-            positions_screen2[0],
-            positions_screen2[1],
-            positions_screen2[2],
-            positions_screen2[3],
-        })) return;
-    }
 
     // Do face-culling and W-pannel clipping
     self.clip_vertices.clearRetainingCapacity();
@@ -193,6 +104,7 @@ pub fn addShapeData(
     try self.clip_texcoords.ensureTotalCapacityPrecise(ensure_size);
     try self.world_positions.ensureTotalCapacityPrecise(ensure_size);
     try self.world_normals.ensureTotalCapacityPrecise(ensure_size);
+    const mvp = zmath.mul(model, camera.getViewProjectMatrix());
     const normal_transform = zmath.transpose(zmath.inverse(model));
     var i: usize = 2;
     while (i < indices.len) : (i += 3) {
@@ -274,11 +186,17 @@ pub fn addShapeData(
     assert(@rem(self.clip_vertices.items.len, 3) == 0);
 
     // Continue with remaining triangles
-    try self.vertices.ensureTotalCapacityPrecise(self.vertices.items.len + self.clip_vertices.items.len);
-    try self.textures.ensureTotalCapacityPrecise(self.textures.items.len + self.clip_vertices.items.len);
-    try self.depths.ensureTotalCapacityPrecise(self.depths.items.len + self.clip_vertices.items.len);
-    try self.indices.ensureTotalCapacityPrecise(self.indices.items.len + self.clip_vertices.items.len);
-    var current_index: u32 = @intCast(u32, self.vertices.items.len);
+    const ndc_to_screen = zmath.loadMat43(&[_]f32{
+        0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
+        0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
+        0.0,                              0.0,                                0.5,
+        0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
+    });
+    try target.vertices.ensureTotalCapacityPrecise(target.vertices.items.len + self.clip_vertices.items.len);
+    try target.textures.ensureTotalCapacityPrecise(target.textures.items.len + self.clip_vertices.items.len);
+    try target.depths.ensureTotalCapacityPrecise(target.depths.items.len + self.clip_vertices.items.len);
+    try target.indices.ensureTotalCapacityPrecise(target.indices.items.len + self.clip_vertices.items.len);
+    var current_index: u32 = @intCast(u32, target.vertices.items.len);
     var batched_size: u32 = 0;
     i = 2;
     while (i < self.clip_vertices.items.len) : (i += 3) {
@@ -345,112 +263,24 @@ pub fn addShapeData(
         const t1 = if (texcoords) |_| self.clip_texcoords.items[idx1] else undefined;
         const t2 = if (texcoords) |_| self.clip_texcoords.items[idx2] else undefined;
 
-        // Append to ouput buffers
-        self.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
+        // Render to ouput
+        target.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
             .{ .position = p0, .color = c0, .tex_coord = t0 },
             .{ .position = p1, .color = c1, .tex_coord = t1 },
             .{ .position = p2, .color = c2, .tex_coord = t2 },
         });
-        self.textures.appendSliceAssumeCapacity(&[_]?sdl.Texture{ opt.texture, opt.texture, opt.texture });
-        self.depths.appendSliceAssumeCapacity(&[_]f32{ d0, d1, d2 });
-        self.indices.appendSliceAssumeCapacity(&[_]u32{ current_index, current_index + 1, current_index + 2 });
-
-        // Update front triangles
-        const tri_coords = [3][2]f32{
-            .{ positions_screen[0][0], positions_screen[0][1] },
-            .{ positions_screen[1][0], positions_screen[1][1] },
-            .{ positions_screen[2][0], positions_screen[2][1] },
-        };
-        const tri_depth = (positions_screen[0][2] + positions_screen[1][2] + positions_screen[2][2]) / 3.0;
-        const tri_area = (tri_coords[0][0] * (tri_coords[1][1] - tri_coords[2][1]) +
-            tri_coords[1][0] * (tri_coords[2][1] - tri_coords[0][1]) +
-            tri_coords[2][0] * (tri_coords[0][1] - tri_coords[1][1])) / 2.0;
-        if (tri_area > front_tri_threshold) {
-            var idx: u32 = 0;
-            while (idx < self.large_front_triangles.items.len) {
-                const front_tri = self.large_front_triangles.items[idx];
-                const front_tri_coords = [3][2]f32{
-                    .{ self.vertices.items[front_tri[0]].position.x, self.vertices.items[front_tri[0]].position.y },
-                    .{ self.vertices.items[front_tri[1]].position.x, self.vertices.items[front_tri[1]].position.y },
-                    .{ self.vertices.items[front_tri[2]].position.x, self.vertices.items[front_tri[2]].position.y },
-                };
-                const front_depth = (self.depths.items[front_tri[0]] +
-                    self.depths.items[front_tri[1]] + self.depths.items[front_tri[2]]) / 3.0;
-
-                if (tri_depth < front_depth and
-                    utils.math.isPointInTriangle(tri_coords, front_tri_coords[0]) and
-                    utils.math.isPointInTriangle(tri_coords, front_tri_coords[1]) and
-                    utils.math.isPointInTriangle(tri_coords, front_tri_coords[2]))
-                {
-                    // Remove front triangle since new one is closer and larger
-                    _ = self.large_front_triangles.swapRemove(idx);
-                    continue;
-                } else if (tri_depth > front_depth and
-                    utils.math.isPointInTriangle(front_tri_coords, tri_coords[0]) and
-                    utils.math.isPointInTriangle(front_tri_coords, tri_coords[1]) and
-                    utils.math.isPointInTriangle(front_tri_coords, tri_coords[2]))
-                {
-                    // The triangle is already covered
-                    break;
-                }
-                idx += 1;
-            } else {
-                self.large_front_triangles.append(.{
-                    current_index,
-                    current_index + 1,
-                    current_index + 2,
-                }) catch unreachable;
-            }
-        }
-
-        // Step forward index, one triangle a time
+        target.textures.appendSliceAssumeCapacity(&[_]?sdl.Texture{ opt.texture, opt.texture, opt.texture });
+        target.depths.appendSliceAssumeCapacity(&[_]f32{ d0, d1, d2 });
+        target.indices.appendSliceAssumeCapacity(&[_]u32{ current_index, current_index + 1, current_index + 2 });
         current_index += 3;
     }
-
-    // Update batches
-    if (batched_size > 0) {
-        internal.updateBatches(
-            &self.batched_indices,
-            if (self.textures.items.len > batched_size)
-                self.textures.items[self.textures.items.len - batched_size - 1]
-            else
-                null,
-            opt.texture,
-            batched_size,
-        );
-    }
+    try target.updateBatch(batched_size, batched_size, opt.texture);
 }
 
-/// Sprite's drawing params
-pub const SpriteOption = struct {
-    /// Binded texture
-    texture: ?sdl.Texture = null,
-
-    /// Mod color
-    tint_color: sdl.Color = sdl.Color.white,
-
-    /// Scale of width/height
-    scale_w: f32 = 1.0,
-    scale_h: f32 = 1.0,
-
-    /// Rotation around anchor-point (center by default)
-    rotate_degree: f32 = 0,
-
-    /// Anchor-point of sprite, around which rotation and translation is calculated
-    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
-
-    /// Horizontal/vertial flipping
-    flip_h: bool = false,
-    flip_v: bool = false,
-
-    /// Fixed size
-    fixed_size: bool = false,
-};
-
-/// Append sprite data
-pub fn addSpriteData(
-    self: *Self,
-    renderer: sdl.Renderer,
+pub fn renderSprite(
+    _: Self,
+    vp: sdl.Rectangle,
+    target: *j3d.RenderTarget,
     model: zmath.Mat,
     camera: Camera,
     pos: [3]f32,
@@ -474,7 +304,6 @@ pub fn addSpriteData(
         1 - opt.anchor_point.x, opt.anchor_point.y - 1, 0, 1, // Right bottom
         1 - opt.anchor_point.x, opt.anchor_point.y, 0, 1, // Right top
     });
-    const vp = renderer.getViewport();
     var ndc0: zmath.Vec = undefined;
     var ndc1: zmath.Vec = undefined;
     var ndc2: zmath.Vec = undefined;
@@ -578,38 +407,24 @@ pub fn addSpriteData(
     const t2 = uv1;
     const t3 = sdl.PointF{ .x = uv1.x, .y = uv0.y };
 
-    // Append to ouput buffers
-    try self.vertices.ensureTotalCapacityPrecise(self.vertices.items.len + 4);
-    try self.textures.ensureTotalCapacityPrecise(self.vertices.items.len + 4);
-    try self.depths.ensureTotalCapacityPrecise(self.depths.items.len + 4);
-    try self.indices.ensureTotalCapacityPrecise(self.indices.items.len + 6);
-    var current_index: u32 = @intCast(u32, self.vertices.items.len);
-    self.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
+    // Render to ouput
+    var current_index: u32 = @intCast(u32, target.vertices.items.len);
+    try target.vertices.appendSlice(&[_]sdl.Vertex{
         .{ .position = p0, .color = opt.tint_color, .tex_coord = t0 },
         .{ .position = p1, .color = opt.tint_color, .tex_coord = t1 },
         .{ .position = p2, .color = opt.tint_color, .tex_coord = t2 },
         .{ .position = p3, .color = opt.tint_color, .tex_coord = t3 },
     });
-    self.textures.appendSliceAssumeCapacity(&[_]?sdl.Texture{
+    try target.textures.appendSlice(&[_]?sdl.Texture{
         opt.texture, opt.texture,
         opt.texture, opt.texture,
     });
-    self.depths.appendSliceAssumeCapacity(&[_]f32{ d0, d1, d2, d3 });
-    self.indices.appendSliceAssumeCapacity(&[_]u32{
+    try target.depths.appendSlice(&[_]f32{ d0, d1, d2, d3 });
+    try target.indices.appendSlice(&[_]u32{
         current_index, current_index + 1, current_index + 2,
         current_index, current_index + 2, current_index + 3,
     });
-
-    // Update batches
-    internal.updateBatches(
-        &self.batched_indices,
-        if (self.textures.items.len > 4)
-            self.textures.items[self.textures.items.len - 5]
-        else
-            null,
-        opt.texture,
-        6,
-    );
+    try target.updateBatch(6, 4, opt.texture);
 }
 
 /// Test whether all obb's triangles are hidden behind current front triangles
@@ -696,63 +511,4 @@ pub inline fn isOBBHiddenBehind(self: *Self, obb: []zmath.Vec) bool {
         if (obb_visible_flags == 0) return true;
     }
     return false;
-}
-
-pub const DrawOption = struct {
-    // NOTE: Although sorting triangles before rendering is convenient, however,
-    // it's slow and cpu-consuming, and result in dramatic increase of draw-call amount.
-    // We can achieve much better performance by pre-ordering **CONVEX** object
-    // manually before rendering.
-    //
-    // ONLY consider using triangle-sorting when 3d scene is simple enough.
-    sort_by_depth: bool = false,
-};
-
-/// Draw the meshes, fill triangles
-pub fn draw(self: *Self, renderer: sdl.Renderer, opt: DrawOption) !void {
-    return internal.drawTriangles(
-        renderer,
-        self.indices,
-        self.batched_indices,
-        self.vertices,
-        self.textures,
-        self.depths,
-        opt.sort_by_depth,
-    );
-
-    // Debug: draw front triangles
-    //for (self.large_front_triangles.items) |tri| {
-    //    try renderer.drawGeometry(
-    //        null,
-    //        &[3]sdl.Vertex{
-    //            self.vertices.items[tri[0]],
-    //            self.vertices.items[tri[1]],
-    //            self.vertices.items[tri[2]],
-    //        },
-    //        null,
-    //    );
-    //}
-}
-
-/// Draw the wireframe
-pub fn drawWireframe(self: *Self, renderer: sdl.Renderer, color: sdl.Color) !void {
-    if (self.indices.items.len == 0) return;
-
-    const old_color = try renderer.getColor();
-    defer renderer.setColor(old_color) catch unreachable;
-    try renderer.setColor(color);
-
-    const vs = self.vertices.items;
-    var i: usize = 2;
-    while (i < self.indices.items.len) : (i += 3) {
-        const idx1 = self.indices.items[i - 2];
-        const idx2 = self.indices.items[i - 1];
-        const idx3 = self.indices.items[i];
-        assert(idx1 < vs.len);
-        assert(idx2 < vs.len);
-        assert(idx3 < vs.len);
-        try renderer.drawLineF(vs[idx1].position.x, vs[idx1].position.y, vs[idx2].position.x, vs[idx2].position.y);
-        try renderer.drawLineF(vs[idx2].position.x, vs[idx2].position.y, vs[idx3].position.x, vs[idx3].position.y);
-        try renderer.drawLineF(vs[idx3].position.x, vs[idx3].position.y, vs[idx1].position.x, vs[idx1].position.y);
-    }
 }

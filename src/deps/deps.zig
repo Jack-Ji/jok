@@ -4,7 +4,6 @@ pub const stb = @import("stb/stb.zig");
 pub const imgui = @import("imgui/imgui.zig");
 pub const zmath = @import("zmath/src/main.zig");
 pub const zpool = @import("zpool/src/main.zig");
-pub const zjobs = @import("zjobs/src/zjobs.zig");
 pub const zmesh = @import("zmesh/src/main.zig");
 pub const znoise = @import("znoise/src/znoise.zig");
 

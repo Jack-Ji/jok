@@ -404,23 +404,9 @@ pub inline fn isSameTexture(tex0: ?sdl.Texture, tex1: ?sdl.Texture) bool {
     return tex0 == null and tex1 == null;
 }
 
-/// Update batches for same texture
-pub inline fn updateBatches(
-    batched_indices: *std.ArrayList(u32),
-    last_texture: ?sdl.Texture,
-    next_texture: ?sdl.Texture,
-    next_size: u32,
-) void {
-    if (batched_indices.items.len > 0 and isSameTexture(last_texture, next_texture)) {
-        batched_indices.items[batched_indices.items.len - 1] += next_size;
-    } else {
-        batched_indices.append(next_size) catch unreachable;
-    }
-}
-
 /// Draw batched triangles
 pub inline fn drawTriangles(
-    renderer: sdl.Renderer,
+    rd: sdl.Renderer,
     indices: std.ArrayList(u32),
     batched_indices: std.ArrayList(u32),
     vertices: std.ArrayList(sdl.Vertex),
@@ -482,7 +468,7 @@ pub inline fn drawTriangles(
         while (i < indices.items.len) : (i += 3) {
             const idx = indices.items[i];
             if (i > 0 and !isSameTexture(textures.items[idx], last_texture)) {
-                try renderer.drawGeometry(
+                try rd.drawGeometry(
                     last_texture,
                     vertices.items,
                     indices.items[offset..i],
@@ -491,7 +477,7 @@ pub inline fn drawTriangles(
             }
             last_texture = textures.items[idx];
         }
-        try renderer.drawGeometry(
+        try rd.drawGeometry(
             last_texture,
             vertices.items,
             indices.items[offset..],
@@ -500,7 +486,7 @@ pub inline fn drawTriangles(
         var offset: u32 = 0;
         for (batched_indices.items) |size| {
             assert(size % 3 == 0);
-            try renderer.drawGeometry(
+            try rd.drawGeometry(
                 textures.items[indices.items[offset]],
                 vertices.items,
                 indices.items[offset .. offset + size],

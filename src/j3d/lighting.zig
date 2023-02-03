@@ -1,3 +1,4 @@
+/// Common types related to lighting
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;

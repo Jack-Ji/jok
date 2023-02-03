@@ -1,3 +1,4 @@
+/// 3d camera
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;

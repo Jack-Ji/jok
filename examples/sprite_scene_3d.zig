@@ -45,7 +45,7 @@ pub fn init(ctx: *jok.Context) !void {
 
     // Init scene
     var buf: [10]u8 = undefined;
-    scene = try Scene.create(ctx.allocator, null);
+    scene = try Scene.create(ctx.allocator);
     const angle_step = std.math.tau / @as(f32, 14.0);
     var i: u32 = 0;
     while (i < 12) : (i += 1) {
@@ -164,11 +164,9 @@ pub fn draw(ctx: *jok.Context) !void {
         null,
     );
 
-    scene.clear();
-    try scene.draw(ctx.renderer, camera, .{
-        .lighting = .{},
-        .sort_by_depth = true,
-    });
+    try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
+    try j3d.addScene(scene, .{ .lighting = .{} });
+    try j3d.end();
 
     const ogre_pos = camera.getScreenPosition(ctx.renderer, sprites[12].transform, sprites[12].actor.sprite.pos);
     _ = try font.debugDraw(

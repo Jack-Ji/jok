@@ -37,7 +37,7 @@ pub fn init(ctx: *jok.Context) !void {
     sphere.computeNormals();
 
     // Init solar system
-    scene = try Scene.create(ctx.allocator, null);
+    scene = try Scene.create(ctx.allocator);
     earth_orbit = try Scene.Object.create(ctx.allocator, .{ .position = .{} });
     moon_orbit = try Scene.Object.create(ctx.allocator, .{ .position = .{} });
     sun = try Scene.Object.create(ctx.allocator, .{
@@ -118,11 +118,9 @@ pub fn draw(ctx: *jok.Context) !void {
         },
     };
 
-    scene.clear();
-    try scene.draw(ctx.renderer, camera, .{
-        .lighting = lighting_opt,
-        .sort_by_depth = true,
-    });
+    try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
+    try j3d.addScene(scene, .{ .lighting = lighting_opt });
+    try j3d.end();
 
     _ = try font.debugDraw(
         ctx.renderer,

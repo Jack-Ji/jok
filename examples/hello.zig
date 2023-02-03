@@ -1,8 +1,12 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
+const font = jok.font;
+const zmath = jok.zmath;
+const j2d = jok.j2d;
+const j3d = jok.j3d;
 
-var camera: jok.j3d.Camera = undefined;
+var camera: j3d.Camera = undefined;
 var text_rect: sdl.RectangleF = undefined;
 var text_speed: sdl.PointF = undefined;
 
@@ -11,7 +15,7 @@ pub fn init(ctx: *jok.Context) !void {
 
     const fb_size = ctx.getFramebufferSize();
 
-    camera = jok.j3d.Camera.fromPositionAndTarget(
+    camera = j3d.Camera.fromPositionAndTarget(
         .{
             .perspective = .{
                 .fov = std.math.pi / 4.0,
@@ -94,40 +98,36 @@ pub fn draw(ctx: *jok.Context) !void {
         100,
         @floatToInt(u8, 128 + 128 * std.math.cos(ctx.tick)),
     );
-    jok.j3d.primitive.clear(.{});
-    try jok.j3d.primitive.addIcosahedron(
-        jok.zmath.mul(
-            jok.zmath.rotationY(@floatCast(f32, ctx.tick)),
-            jok.zmath.translation(-3, 3, 0),
+    try j3d.begin(.{ .camera = camera });
+    try j3d.addIcosahedron(
+        zmath.mul(
+            zmath.rotationY(@floatCast(f32, ctx.tick)),
+            zmath.translation(-3, 3, 0),
         ),
-        camera,
         .{ .lighting = .{}, .color = color },
     );
-    try jok.j3d.primitive.addTorus(
-        jok.zmath.mul(
-            jok.zmath.rotationY(@floatCast(f32, ctx.tick)),
-            jok.zmath.translation(3, 3, 0),
+    try j3d.addTorus(
+        zmath.mul(
+            zmath.rotationY(@floatCast(f32, ctx.tick)),
+            zmath.translation(3, 3, 0),
         ),
-        camera,
-        .{ .common = .{ .lighting = .{}, .color = color } },
+        .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
-    try jok.j3d.primitive.addParametricSphere(
-        jok.zmath.mul(
-            jok.zmath.rotationY(@floatCast(f32, ctx.tick)),
-            jok.zmath.translation(3, -3, 0),
+    try j3d.addParametricSphere(
+        zmath.mul(
+            zmath.rotationY(@floatCast(f32, ctx.tick)),
+            zmath.translation(3, -3, 0),
         ),
-        camera,
-        .{ .common = .{ .lighting = .{}, .color = color } },
+        .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
-    try jok.j3d.primitive.addTetrahedron(
-        jok.zmath.mul(
-            jok.zmath.rotationY(@floatCast(f32, ctx.tick)),
-            jok.zmath.translation(-3, -3, 0),
+    try j3d.addTetrahedron(
+        zmath.mul(
+            zmath.rotationY(@floatCast(f32, ctx.tick)),
+            zmath.translation(-3, -3, 0),
         ),
-        camera,
         .{ .lighting = .{}, .color = color },
     );
-    try jok.j3d.primitive.draw();
+    try j3d.end();
 
     text_rect.x += text_speed.x * ctx.delta_tick;
     text_rect.y += text_speed.y * ctx.delta_tick;
@@ -143,7 +143,7 @@ pub fn draw(ctx: *jok.Context) !void {
     if (text_rect.y + text_rect.height > @intToFloat(f32, fb_size.h)) {
         text_speed.y = -@fabs(text_speed.y);
     }
-    const draw_result = try jok.font.debugDraw(
+    const draw_result = try font.debugDraw(
         ctx.renderer,
         .{
             .pos = .{ .x = text_rect.x, .y = text_rect.y },

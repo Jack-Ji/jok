@@ -5,15 +5,10 @@ const font = jok.font;
 const j3d = jok.j3d;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
-const imgui = jok.imgui;
-const zjobs = jok.zjobs;
 
 pub const jok_fps_limit: jok.config.FpsLimit = .none;
 pub const jok_window_resizable = true;
 
-var jobs: zjobs.JobQueue(.{}) = undefined;
-var prd: *j3d.ParallelTriangleRenderer = undefined;
-var rd: *j3d.TriangleRenderer = undefined;
 var camera: j3d.Camera = undefined;
 var cube: zmesh.Shape = undefined;
 var aabb: [6]f32 = undefined;
@@ -30,16 +25,9 @@ var texcoords = [_][2]f32{
     .{ 0, 0 },
     .{ 1, 0 },
 };
-var parallel_rendering: bool = false;
 
 pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
-
-    jobs = zjobs.JobQueue(.{}).init();
-    jobs.start();
-
-    prd = try j3d.ParallelTriangleRenderer.create(ctx.allocator, &jobs);
-    rd = try j3d.TriangleRenderer.create(ctx.allocator);
 
     camera = j3d.Camera.fromPositionAndTarget(
         .{
@@ -129,59 +117,26 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    if (parallel_rendering) {
-        prd.clear(true);
-        for (translations.items) |tr, i| {
-            const model = zmath.mul(
-                zmath.translation(-0.5, -0.5, -0.5),
+    try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
+    for (translations.items) |tr, i| {
+        const model = zmath.mul(
+            zmath.translation(-0.5, -0.5, -0.5),
+            zmath.mul(
                 zmath.mul(
-                    zmath.mul(
-                        zmath.scaling(0.1, 0.1, 0.1),
-                        zmath.matFromAxisAngle(rotation_axises.items[i], std.math.pi / 3.0 * @floatCast(f32, ctx.tick)),
-                    ),
-                    tr,
+                    zmath.scaling(0.1, 0.1, 0.1),
+                    zmath.matFromAxisAngle(rotation_axises.items[i], std.math.pi / 3.0 * @floatCast(f32, ctx.tick)),
                 ),
-            );
-            try prd.addShapeData(
-                ctx.renderer,
-                model,
-                camera,
-                cube.indices,
-                cube.positions,
-                cube.normals.?,
-                null,
-                cube.texcoords.?,
-                .{ .aabb = aabb, .texture = tex },
-            );
-        }
-        try prd.draw(ctx.renderer, .{ .sort_by_depth = true });
-    } else {
-        rd.clear(true);
-        for (translations.items) |tr, i| {
-            const model = zmath.mul(
-                zmath.translation(-0.5, -0.5, -0.5),
-                zmath.mul(
-                    zmath.mul(
-                        zmath.scaling(0.1, 0.1, 0.1),
-                        zmath.matFromAxisAngle(rotation_axises.items[i], std.math.pi / 3.0 * @floatCast(f32, ctx.tick)),
-                    ),
-                    tr,
-                ),
-            );
-            try rd.addShapeData(
-                ctx.renderer,
-                model,
-                camera,
-                cube.indices,
-                cube.positions,
-                cube.normals.?,
-                null,
-                cube.texcoords.?,
-                .{ .aabb = aabb, .texture = tex },
-            );
-        }
-        try rd.draw(ctx.renderer, .{ .sort_by_depth = true });
+                tr,
+            ),
+        );
+        try j3d.addShape(
+            cube,
+            model,
+            aabb,
+            .{ .texture = tex },
+        );
     }
+    try j3d.end();
 
     _ = try font.debugDraw(
         ctx.renderer,
@@ -189,23 +144,12 @@ pub fn draw(ctx: *jok.Context) !void {
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );
-
-    imgui.sdl.newFrame(ctx.*);
-    defer imgui.sdl.draw();
-
-    if (imgui.begin("Control Panel", .{})) {
-        _ = imgui.checkbox("parallel rendering", .{ .v = &parallel_rendering });
-    }
-    imgui.end();
 }
 
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 
-    jobs.deinit();
-    prd.destroy();
-    rd.destroy();
     cube.deinit();
     translations.deinit();
     rotation_axises.deinit();

@@ -1,3 +1,4 @@
+/// Scene management (Clone of three.js's scene. Learn detail from https://threejs.org/manual/#en/scenegraph)
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
@@ -177,18 +178,14 @@ pub const Object = struct {
 
 allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
-tri_rd: *TriangleRenderer,
 root: *Object,
 
-pub fn create(allocator: std.mem.Allocator, _rd: ?*TriangleRenderer) !*Self {
+pub fn create(allocator: std.mem.Allocator) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
     self.allocator = allocator;
     self.arena = std.heap.ArenaAllocator.init(allocator);
     errdefer self.arena.deinit();
-    self.tri_rd = _rd orelse BLK: {
-        break :BLK try TriangleRenderer.create(self.arena.allocator());
-    };
     self.root = try Object.create(self.allocator, .{ .position = .{} });
     return self;
 }
@@ -199,34 +196,26 @@ pub fn destroy(self: *Self, destroy_objects: bool) void {
     self.allocator.destroy(self);
 }
 
-/// Clear scene
-pub fn clear(self: *Self) void {
-    self.tri_rd.clear(true);
-}
-
-/// Update and render the scene
 pub const RenderOption = struct {
-    wireframe: bool = false,
-    wireframe_color: sdl.Color = sdl.Color.green,
     cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,
-    sort_by_depth: bool = false,
+    object: ?*Object = null,
 };
-pub fn draw(self: *Self, renderer: sdl.Renderer, camera: Camera, opt: RenderOption) !void {
-    try self.addObjectToRenderer(renderer, camera, self.root, opt);
-    if (opt.wireframe) {
-        try self.tri_rd.drawWireframe(renderer, opt.wireframe_color);
-    } else {
-        try self.tri_rd.draw(renderer, .{ .sort_by_depth = opt.sort_by_depth });
-    }
-}
-
-fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *Object, opt: RenderOption) !void {
+pub fn render(
+    self: Self,
+    tri_rd: *TriangleRenderer,
+    vp: sdl.Rectangle,
+    target: *j3d.RenderTarget,
+    camera: Camera,
+    opt: RenderOption,
+) !void {
+    const o = opt.object orelse self.root;
     switch (o.actor) {
         .position => {},
         .mesh => |m| {
-            try self.tri_rd.addShapeData(
-                renderer,
+            try tri_rd.renderShape(
+                vp,
+                target,
                 o.transform,
                 camera,
                 m.shape.indices,
@@ -244,8 +233,9 @@ fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *
             );
         },
         .sprite => |s| {
-            try self.tri_rd.addSpriteData(
-                renderer,
+            try tri_rd.renderSprite(
+                vp,
+                target,
                 o.transform,
                 camera,
                 s.pos,
@@ -266,5 +256,9 @@ fn addObjectToRenderer(self: *Self, renderer: sdl.Renderer, camera: Camera, o: *
         },
     }
 
-    for (o.children.items) |c| try self.addObjectToRenderer(renderer, camera, c, opt);
+    var nopt = opt;
+    for (o.children.items) |c| {
+        nopt.object = c;
+        try self.render(tri_rd, vp, target, camera, nopt);
+    }
 }

@@ -1,3 +1,4 @@
+/// Skybox renderer
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
@@ -9,17 +10,8 @@ const j3d = jok.j3d;
 const Camera = j3d.Camera;
 const Self = @This();
 
-allocator: std.mem.Allocator,
-arena: std.heap.ArenaAllocator,
-
 // Box shape: right/left/top/bottom/front/back
 box_planes: [6]zmesh.Shape,
-
-// Triangle vertices
-indices: std.ArrayList(u32),
-
-// Triangle vertices
-vertices: std.ArrayList(sdl.Vertex),
 
 // Temporary storage for clipping
 clip_vertices: std.ArrayList(zmath.Vec),
@@ -29,83 +21,79 @@ const InitOption = struct {
     plane_slices: i32 = 10,
     plane_stacks: i32 = 10,
 };
-pub fn create(allocator: std.mem.Allocator, opt: InitOption) !*Self {
+pub fn init(allocator: std.mem.Allocator, opt: InitOption) Self {
     assert(opt.plane_slices > 0);
     assert(opt.plane_stacks > 0);
-    var self = try allocator.create(Self);
-    self.allocator = allocator;
-    self.arena = std.heap.ArenaAllocator.init(allocator);
-    self.box_planes = .{
-        BLK: {
-            // right side
-            var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
-            shape.scale(2, 2, 0);
-            shape.rotate(math.pi * 0.5, 0, 1, 0);
-            shape.translate(1.0, -1.0, 1.0);
-            break :BLK shape;
+    return .{
+        .box_planes = .{
+            BLK: {
+                // right side
+                var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
+                shape.scale(2, 2, 0);
+                shape.rotate(math.pi * 0.5, 0, 1, 0);
+                shape.translate(1.0, -1.0, 1.0);
+                break :BLK shape;
+            },
+            BLK: {
+                // left side
+                var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
+                shape.scale(2, 2, 0);
+                shape.rotate(-math.pi * 0.5, 0, 1, 0);
+                shape.translate(-1.0, -1.0, -1.0);
+                break :BLK shape;
+            },
+            BLK: {
+                // top side
+                var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
+                shape.scale(2, 2, 0);
+                shape.rotate(-math.pi * 0.5, 1, 0, 0);
+                shape.translate(-1.0, 1.0, 1.0);
+                break :BLK shape;
+            },
+            BLK: {
+                // bottom side
+                var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
+                shape.scale(2, 2, 0);
+                shape.rotate(math.pi * 0.5, 1, 0, 0);
+                shape.translate(-1.0, -1.0, -1.0);
+                break :BLK shape;
+            },
+            BLK: {
+                // front side
+                var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
+                shape.scale(2, 2, 0);
+                shape.translate(-1.0, -1.0, 1.0);
+                break :BLK shape;
+            },
+            BLK: {
+                // back side
+                var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
+                shape.scale(2, 2, 0);
+                shape.rotate(math.pi, 0, 1, 0);
+                shape.translate(1.0, -1.0, -1.0);
+                break :BLK shape;
+            },
         },
-        BLK: {
-            // left side
-            var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
-            shape.scale(2, 2, 0);
-            shape.rotate(-math.pi * 0.5, 0, 1, 0);
-            shape.translate(-1.0, -1.0, -1.0);
-            break :BLK shape;
-        },
-        BLK: {
-            // top side
-            var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
-            shape.scale(2, 2, 0);
-            shape.rotate(-math.pi * 0.5, 1, 0, 0);
-            shape.translate(-1.0, 1.0, 1.0);
-            break :BLK shape;
-        },
-        BLK: {
-            // bottom side
-            var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
-            shape.scale(2, 2, 0);
-            shape.rotate(math.pi * 0.5, 1, 0, 0);
-            shape.translate(-1.0, -1.0, -1.0);
-            break :BLK shape;
-        },
-        BLK: {
-            // front side
-            var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
-            shape.scale(2, 2, 0);
-            shape.translate(-1.0, -1.0, 1.0);
-            break :BLK shape;
-        },
-        BLK: {
-            // back side
-            var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
-            shape.scale(2, 2, 0);
-            shape.rotate(math.pi, 0, 1, 0);
-            shape.translate(1.0, -1.0, -1.0);
-            break :BLK shape;
-        },
+        .clip_vertices = std.ArrayList(zmath.Vec).init(allocator),
+        .clip_texcoords = std.ArrayList(sdl.PointF).init(allocator),
     };
-    self.indices = std.ArrayList(u32).init(self.arena.allocator());
-    self.vertices = std.ArrayList(sdl.Vertex).init(self.arena.allocator());
-    self.clip_vertices = std.ArrayList(zmath.Vec).init(self.arena.allocator());
-    self.clip_texcoords = std.ArrayList(sdl.PointF).init(self.arena.allocator());
-    return self;
 }
 
-pub fn destroy(self: *Self) void {
+pub fn deinit(self: *Self) void {
     for (self.box_planes) |s| s.deinit();
-    self.arena.deinit();
-    self.allocator.destroy(self);
+    self.clip_vertices.deinit();
+    self.clip_texcoords.deinit();
+    self.* = undefined;
 }
 
-/// Render skybox
-pub fn draw(
+pub fn render(
     self: *Self,
-    renderer: sdl.Renderer,
+    viewpoint: sdl.Rectangle,
+    target: *j3d.RenderTarget,
     camera: Camera,
     textures: [6]sdl.Texture, // cube textures: right/left/top/bottom/front/back
     color: ?sdl.Color, // tint color
 ) !void {
-    const viewpoint = renderer.getViewport();
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
         0.5 * @intToFloat(f32, viewpoint.width), 0.0,                                       0.0,
         0.0,                                     -0.5 * @intToFloat(f32, viewpoint.height), 0.0,
@@ -117,8 +105,6 @@ pub fn draw(
     vp = zmath.mul(vp, camera.getProjectMatrix());
 
     for (self.box_planes) |plane, idx| {
-        self.indices.clearRetainingCapacity();
-        self.vertices.clearRetainingCapacity();
         self.clip_vertices.clearRetainingCapacity();
         self.clip_texcoords.clearRetainingCapacity();
 
@@ -153,9 +139,8 @@ pub fn draw(
         assert(@rem(self.clip_vertices.items.len, 3) == 0);
 
         // Continue with remaining triangles
-        try self.vertices.ensureTotalCapacityPrecise(self.clip_vertices.items.len);
-        try self.indices.ensureTotalCapacityPrecise(self.clip_vertices.items.len);
-        var current_index: u32 = @intCast(u32, self.indices.items.len);
+        var batched_size: u32 = 0;
+        var current_index: u32 = @intCast(u32, target.indices.items.len);
         i = 2;
         while (i < self.clip_vertices.items.len) : (i += 3) {
             const idx0 = i - 2;
@@ -181,7 +166,7 @@ pub fn draw(
             const t0 = self.clip_texcoords.items[idx0];
             const t1 = self.clip_texcoords.items[idx1];
             const t2 = self.clip_texcoords.items[idx2];
-            self.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
+            try target.vertices.appendSlice(&[_]sdl.Vertex{
                 .{
                     .position = .{ .x = positions_screen[0][0], .y = positions_screen[0][1] },
                     .color = color orelse sdl.Color.white,
@@ -198,22 +183,21 @@ pub fn draw(
                     .tex_coord = t2,
                 },
             });
-            self.indices.appendSliceAssumeCapacity(&[_]u32{
+            try target.textures.appendSlice(&[_]?sdl.Texture{
+                textures[idx],
+                textures[idx],
+                textures[idx],
+            });
+            try target.depths.appendSlice(&[_]f32{ 10, 10, 10 });
+            try target.indices.appendSlice(&[_]u32{
                 current_index,
                 current_index + 1,
                 current_index + 2,
             });
-
-            // Step forward index, one triangle a time
             current_index += 3;
+            batched_size += 3;
         }
-
-        assert(self.indices.items.len > 0);
-        try renderer.drawGeometry(
-            textures[idx],
-            self.vertices.items,
-            self.indices.items,
-        );
+        try target.updateBatch(batched_size, batched_size, textures[idx]);
     }
 }
 

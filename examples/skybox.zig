@@ -3,9 +3,9 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const imgui = jok.imgui;
 const font = jok.font;
+const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 const j3d = jok.j3d;
-const primitive = j3d.primitive;
 
 var camera: j3d.Camera = undefined;
 var cube: zmesh.Shape = undefined;
@@ -21,7 +21,6 @@ var texcoords = [_][2]f32{
     .{ 1, 0 },
 };
 var skybox_textures: [6]sdl.Texture = undefined;
-var skybox_rd: *j3d.SkyboxRenderer = undefined;
 var skybox_tint_color: sdl.Color = sdl.Color.white;
 
 pub fn init(ctx: *jok.Context) !void {
@@ -92,7 +91,6 @@ pub fn init(ctx: *jok.Context) !void {
         .static,
         true,
     );
-    skybox_rd = try j3d.SkyboxRenderer.create(ctx.allocator, .{});
 
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
@@ -132,36 +130,21 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    try skybox_rd.draw(ctx.renderer, camera, skybox_textures, skybox_tint_color);
-
-    primitive.clear(.{});
-    try primitive.addShape(
+    try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
+    try j3d.addShape(
         cube,
-        j3d.zmath.mul(
-            j3d.zmath.translation(-0.5, -0.5, -0.5),
-            j3d.zmath.mul(
-                j3d.zmath.scaling(0.5, 0.5, 0.5),
-                j3d.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi),
+        zmath.mul(
+            zmath.translation(-0.5, -0.5, -0.5),
+            zmath.mul(
+                zmath.scaling(0.5, 0.5, 0.5),
+                zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi),
             ),
         ),
-        camera,
         null,
         .{ .texture = tex },
     );
-    try primitive.draw();
-
-    primitive.clear(.{});
-    try primitive.addShape(
-        cube,
-        j3d.zmath.mul(
-            j3d.zmath.translation(-0.5, -0.5, -0.5),
-            j3d.zmath.rotationY(@floatCast(f32, ctx.tick) * std.math.pi / 3.0),
-        ),
-        camera,
-        null,
-        .{},
-    );
-    try primitive.drawWireframe(sdl.Color.green);
+    try j3d.addSkybox(skybox_textures, skybox_tint_color);
+    try j3d.end();
 
     _ = try font.debugDraw(
         ctx.renderer,
@@ -202,5 +185,4 @@ pub fn quit(ctx: *jok.Context) void {
     std.log.info("game quit", .{});
 
     cube.deinit();
-    skybox_rd.destroy();
 }
