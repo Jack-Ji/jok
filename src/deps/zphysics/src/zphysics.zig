@@ -17,6 +17,7 @@ pub const rvec_align = if (Real == f64) 32 else 16;
 pub const Material = opaque {};
 pub const GroupFilter = opaque {};
 pub const BodyLockInterface = opaque {};
+pub const NarrowPhaseQuery = opaque {};
 pub const SharedMutex = opaque {};
 
 pub const BroadPhaseLayer = c.JPC_BroadPhaseLayer;
@@ -76,6 +77,8 @@ pub const BroadPhaseLayerInterface = extern struct {
     }
 
     pub const VTable = extern struct {
+        __unused0: ?*const anyopaque = null,
+        __unused1: ?*const anyopaque = null,
         getNumBroadPhaseLayers: *const fn (self: *const BroadPhaseLayerInterface) callconv(.C) u32,
         getBroadPhaseLayer: *const fn (
             self: *const BroadPhaseLayerInterface,
@@ -107,6 +110,8 @@ pub const ObjectVsBroadPhaseLayerFilter = extern struct {
     }
 
     pub const VTable = extern struct {
+        __unused0: ?*const anyopaque = null,
+        __unused1: ?*const anyopaque = null,
         shouldCollide: *const fn (
             self: *const ObjectVsBroadPhaseLayerFilter,
             layer1: ObjectLayer,
@@ -120,6 +125,37 @@ pub const ObjectVsBroadPhaseLayerFilter = extern struct {
             c.JPC_ObjectVsBroadPhaseLayerFilterVTable,
             "ShouldCollide",
         ));
+    }
+};
+
+pub const BroadPhaseLayerFilter = extern struct {
+    __v: *const VTable,
+
+    pub usingnamespace Methods(@This());
+
+    pub fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn shouldCollide(self: *const T, layer: BroadPhaseLayer) bool {
+                return @ptrCast(*const BroadPhaseLayerFilter.VTable, self.__v)
+                    .shouldCollide(@ptrCast(*const BroadPhaseLayerFilter, self), layer);
+            }
+        };
+    }
+
+    pub const VTable = extern struct {
+        __unused0: ?*const anyopaque = null,
+        __unused1: ?*const anyopaque = null,
+        shouldCollide: *const fn (
+            self: *const BroadPhaseLayerFilter,
+            layer: BroadPhaseLayer,
+        ) callconv(.C) bool,
+    };
+
+    comptime {
+        assert(@sizeOf(VTable) == @sizeOf(c.JPC_BroadPhaseLayerFilterVTable));
+        assert(
+            @offsetOf(VTable, "shouldCollide") == @offsetOf(c.JPC_BroadPhaseLayerFilterVTable, "ShouldCollide"),
+        );
     }
 };
 
@@ -138,15 +174,42 @@ pub const ObjectLayerPairFilter = extern struct {
     }
 
     pub const VTable = extern struct {
+        __unused0: ?*const anyopaque = null,
+        __unused1: ?*const anyopaque = null,
         shouldCollide: *const fn (self: *const ObjectLayerPairFilter, ObjectLayer, ObjectLayer) callconv(.C) bool,
     };
 
     comptime {
         assert(@sizeOf(VTable) == @sizeOf(c.JPC_ObjectLayerPairFilterVTable));
-        assert(@offsetOf(VTable, "shouldCollide") == @offsetOf(
-            c.JPC_ObjectLayerPairFilterVTable,
-            "ShouldCollide",
-        ));
+        assert(
+            @offsetOf(VTable, "shouldCollide") == @offsetOf(c.JPC_ObjectLayerPairFilterVTable, "ShouldCollide"),
+        );
+    }
+};
+
+pub const ObjectLayerFilter = extern struct {
+    __v: *const VTable,
+
+    pub usingnamespace Methods(@This());
+
+    pub fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn shouldCollide(self: *const T, layer: ObjectLayer) bool {
+                return @ptrCast(*const ObjectLayerFilter.VTable, self.__v)
+                    .shouldCollide(@ptrCast(*const ObjectLayerFilter, self), layer);
+            }
+        };
+    }
+
+    pub const VTable = extern struct {
+        __unused0: ?*const anyopaque = null,
+        __unused1: ?*const anyopaque = null,
+        shouldCollide: *const fn (self: *const ObjectLayerFilter, ObjectLayer) callconv(.C) bool,
+    };
+
+    comptime {
+        assert(@sizeOf(VTable) == @sizeOf(c.JPC_ObjectLayerFilterVTable));
+        assert(@offsetOf(VTable, "shouldCollide") == @offsetOf(c.JPC_ObjectLayerFilterVTable, "ShouldCollide"));
     }
 };
 
@@ -159,7 +222,7 @@ pub const BodyActivationListener = extern struct {
         return extern struct {
             pub inline fn onBodyActivated(
                 self: *T,
-                body_id: BodyId,
+                body_id: *const BodyId,
                 user_data: u64,
             ) void {
                 @ptrCast(*const BodyActivationListener.VTable, self.__v)
@@ -167,7 +230,7 @@ pub const BodyActivationListener = extern struct {
             }
             pub inline fn onBodyDeactivated(
                 self: *T,
-                body_id: BodyId,
+                body_id: *const BodyId,
                 user_data: u64,
             ) void {
                 @ptrCast(*const BodyActivationListener.VTable, self.__v)
@@ -177,14 +240,16 @@ pub const BodyActivationListener = extern struct {
     }
 
     pub const VTable = extern struct {
+        __unused0: ?*const anyopaque = null,
+        __unused1: ?*const anyopaque = null,
         onBodyActivated: *const fn (
             self: *BodyActivationListener,
-            body_id: BodyId,
+            body_id: *const BodyId,
             user_data: u64,
         ) callconv(.C) void,
         onBodyDeactivated: *const fn (
             self: *BodyActivationListener,
-            body_id: BodyId,
+            body_id: *const BodyId,
             user_data: u64,
         ) callconv(.C) void,
     };
@@ -288,10 +353,43 @@ pub const ContactListener = extern struct {
             c.JPC_ContactListenerVTable,
             "OnContactAdded",
         ));
-        assert(@offsetOf(VTable, "onContactRemoved") == @offsetOf(
-            c.JPC_ContactListenerVTable,
-            "OnContactRemoved",
-        ));
+        assert(
+            @offsetOf(VTable, "onContactRemoved") == @offsetOf(c.JPC_ContactListenerVTable, "OnContactRemoved"),
+        );
+    }
+};
+
+pub const BodyFilter = extern struct {
+    __v: *const VTable,
+
+    pub usingnamespace Methods(@This());
+
+    pub fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn shouldCollide(self: *const T, body_id: *const BodyId) bool {
+                return @ptrCast(*const BodyFilter.VTable, self.__v)
+                    .shouldCollide(@ptrCast(*const BodyFilter, self), body_id);
+            }
+            pub inline fn shouldCollideLocked(self: *const T, body: *const Body) bool {
+                return @ptrCast(*const BodyFilter.VTable, self.__v)
+                    .shouldCollideLocked(@ptrCast(*const BodyFilter, self), body);
+            }
+        };
+    }
+
+    pub const VTable = extern struct {
+        __unused0: ?*const anyopaque = null,
+        __unused1: ?*const anyopaque = null,
+        shouldCollide: *const fn (self: *const BodyFilter, body_id: *const BodyId) callconv(.C) bool,
+        shouldCollideLocked: *const fn (self: *const BodyFilter, body: *const Body) callconv(.C) bool,
+    };
+
+    comptime {
+        assert(@sizeOf(VTable) == @sizeOf(c.JPC_BodyFilterVTable));
+        assert(@offsetOf(VTable, "shouldCollide") == @offsetOf(c.JPC_BodyFilterVTable, "ShouldCollide"));
+        assert(
+            @offsetOf(VTable, "shouldCollideLocked") == @offsetOf(c.JPC_BodyFilterVTable, "ShouldCollideLocked"),
+        );
     }
 };
 
@@ -546,6 +644,15 @@ pub const PhysicsSystem = opaque {
         return c.JPC_PhysicsSystem_GetMaxBodies(@ptrCast(*const c.JPC_PhysicsSystem, physics_system));
     }
 
+    pub fn getGravity(physics_system: *const PhysicsSystem) [3]f32 {
+        var gravity: [3]f32 = undefined;
+        c.JPC_PhysicsSystem_GetGravity(@ptrCast(*const c.JPC_PhysicsSystem, physics_system), &gravity);
+        return gravity;
+    }
+    pub fn setGravity(physics_system: *PhysicsSystem, gravity: [3]f32) void {
+        c.JPC_PhysicsSystem_SetGravity(@ptrCast(*c.JPC_PhysicsSystem, physics_system), &gravity);
+    }
+
     pub fn getBodyInterface(physics_system: *const PhysicsSystem) *const BodyInterface {
         return @ptrCast(
             *const BodyInterface,
@@ -568,6 +675,19 @@ pub const PhysicsSystem = opaque {
         return @ptrCast(
             *BodyInterface,
             c.JPC_PhysicsSystem_GetBodyInterfaceNoLock(@ptrCast(*c.JPC_PhysicsSystem, physics_system)),
+        );
+    }
+
+    pub fn getNarrowPhaseQuery(physics_system: *const PhysicsSystem) *const NarrowPhaseQuery {
+        return @ptrCast(
+            *const NarrowPhaseQuery,
+            c.JPC_PhysicsSystem_GetNarrowPhaseQuery(@ptrCast(*const c.JPC_PhysicsSystem, physics_system)),
+        );
+    }
+    pub fn getNarrowPhaseQueryNoLock(physics_system: *const PhysicsSystem) *const NarrowPhaseQuery {
+        return @ptrCast(
+            *const NarrowPhaseQuery,
+            c.JPC_PhysicsSystem_GetNarrowPhaseQueryNoLock(@ptrCast(*const c.JPC_PhysicsSystem, physics_system)),
         );
     }
 
@@ -1011,6 +1131,232 @@ pub const BoxShapeSettings = opaque {
 };
 //--------------------------------------------------------------------------------------------------
 //
+// SphereShapeSettings (-> ConvexShapeSettings -> ShapeSettings)
+//
+//--------------------------------------------------------------------------------------------------
+pub const SphereShapeSettings = opaque {
+    pub usingnamespace ConvexShapeSettings.Methods(@This());
+
+    pub fn create(radius: f32) !*SphereShapeSettings {
+        const sphere_shape_settings = c.JPC_SphereShapeSettings_Create(radius);
+        if (sphere_shape_settings == null)
+            return error.FailedToCreateSphereShapeSettings;
+        return @ptrCast(*SphereShapeSettings, sphere_shape_settings);
+    }
+
+    pub fn getRadius(sphere_shape_settings: *const SphereShapeSettings) f32 {
+        return c.JPC_SphereShapeSettings_GetRadius(
+            @ptrCast(*const c.JPC_SphereShapeSettings, sphere_shape_settings),
+        );
+    }
+    pub fn setRadius(sphere_shape_settings: *SphereShapeSettings, radius: f32) void {
+        c.JPC_SphereShapeSettings_SetRadius(
+            @ptrCast(*c.JPC_SphereShapeSettings, sphere_shape_settings),
+            radius,
+        );
+    }
+};
+//--------------------------------------------------------------------------------------------------
+//
+// TriangleShapeSettings (-> ConvexShapeSettings -> ShapeSettings)
+//
+//--------------------------------------------------------------------------------------------------
+pub const TriangleShapeSettings = opaque {
+    pub usingnamespace ConvexShapeSettings.Methods(@This());
+
+    pub fn create(v1: [3]f32, v2: [3]f32, v3: [3]f32) !*TriangleShapeSettings {
+        const triangle_shape_settings = c.JPC_TriangleShapeSettings_Create(&v1, &v2, &v3);
+        if (triangle_shape_settings == null)
+            return error.FailedToCreateTriangleShapeSettings;
+        return @ptrCast(*TriangleShapeSettings, triangle_shape_settings);
+    }
+
+    pub fn getConvexRadius(triangle_shape_settings: *const TriangleShapeSettings) f32 {
+        return c.JPC_TriangleShapeSettings_GetConvexRadius(
+            @ptrCast(*const c.JPC_TriangleShapeSettings, triangle_shape_settings),
+        );
+    }
+    pub fn setConvexRadius(triangle_shape_settings: *TriangleShapeSettings, convex_radius: f32) void {
+        c.JPC_TriangleShapeSettings_SetConvexRadius(
+            @ptrCast(*c.JPC_TriangleShapeSettings, triangle_shape_settings),
+            convex_radius,
+        );
+    }
+};
+//--------------------------------------------------------------------------------------------------
+//
+// CapsuleShapeSettings (-> ConvexShapeSettings -> ShapeSettings)
+//
+//--------------------------------------------------------------------------------------------------
+pub const CapsuleShapeSettings = opaque {
+    pub usingnamespace ConvexShapeSettings.Methods(@This());
+
+    pub fn create(half_height: f32, radius: f32) !*CapsuleShapeSettings {
+        const capsule_shape_settings = c.JPC_CapsuleShapeSettings_Create(half_height, radius);
+        if (capsule_shape_settings == null)
+            return error.FailedToCreateCapsuleShapeSettings;
+        return @ptrCast(*CapsuleShapeSettings, capsule_shape_settings);
+    }
+
+    pub fn getHalfHeight(capsule_shape_settings: *const CapsuleShapeSettings) f32 {
+        return c.JPC_CapsuleShapeSettings_GetHalfHeight(
+            @ptrCast(*const c.JPC_CapsuleShapeSettings, capsule_shape_settings),
+        );
+    }
+    pub fn setHalfHeight(capsule_shape_settings: *CapsuleShapeSettings, half_height: f32) void {
+        c.JPC_CapsuleShapeSettings_SetHalfHeight(
+            @ptrCast(*c.JPC_CapsuleShapeSettings, capsule_shape_settings),
+            half_height,
+        );
+    }
+
+    pub fn getRadius(capsule_shape_settings: *const CapsuleShapeSettings) f32 {
+        return c.JPC_CapsuleShapeSettings_GetRadius(
+            @ptrCast(*const c.JPC_CapsuleShapeSettings, capsule_shape_settings),
+        );
+    }
+    pub fn setRadius(capsule_shape_settings: *CapsuleShapeSettings, radius: f32) void {
+        c.JPC_CapsuleShapeSettings_SetRadius(
+            @ptrCast(*c.JPC_CapsuleShapeSettings, capsule_shape_settings),
+            radius,
+        );
+    }
+};
+//--------------------------------------------------------------------------------------------------
+//
+// TaperedCapsuleShapeSettings (-> ConvexShapeSettings -> ShapeSettings)
+//
+//--------------------------------------------------------------------------------------------------
+pub const TaperedCapsuleShapeSettings = opaque {
+    pub usingnamespace ConvexShapeSettings.Methods(@This());
+
+    pub fn create(half_height: f32, top_radius: f32, bottom_radius: f32) !*TaperedCapsuleShapeSettings {
+        const capsule_shape_settings = c.JPC_TaperedCapsuleShapeSettings_Create(
+            half_height,
+            top_radius,
+            bottom_radius,
+        );
+        if (capsule_shape_settings == null)
+            return error.FailedToCreateTaperedCapsuleShapeSettings;
+        return @ptrCast(*TaperedCapsuleShapeSettings, capsule_shape_settings);
+    }
+
+    pub fn getHalfHeight(capsule_shape_settings: *const TaperedCapsuleShapeSettings) f32 {
+        return c.JPC_TaperedCapsuleShapeSettings_GetHalfHeight(
+            @ptrCast(*const c.JPC_TaperedCapsuleShapeSettings, capsule_shape_settings),
+        );
+    }
+    pub fn setHalfHeight(capsule_shape_settings: *TaperedCapsuleShapeSettings, half_height: f32) void {
+        c.JPC_CapsuleShapeSettings_SetHalfHeight(
+            @ptrCast(*c.JPC_TaperedCapsuleShapeSettings, capsule_shape_settings),
+            half_height,
+        );
+    }
+
+    pub fn getTopRadius(capsule_shape_settings: *const TaperedCapsuleShapeSettings) f32 {
+        return c.JPC_TaperedCapsuleShapeSettings_GetTopRadius(
+            @ptrCast(*const c.JPC_TaperedCapsuleShapeSettings, capsule_shape_settings),
+        );
+    }
+    pub fn setTopRadius(capsule_shape_settings: *TaperedCapsuleShapeSettings, radius: f32) void {
+        c.JPC_TaperedCapsuleShapeSettings_SetTopRadius(
+            @ptrCast(*c.JPC_TaperedCapsuleShapeSettings, capsule_shape_settings),
+            radius,
+        );
+    }
+
+    pub fn getBottomRadius(capsule_shape_settings: *const TaperedCapsuleShapeSettings) f32 {
+        return c.JPC_TaperedCapsuleShapeSettings_GetBottomRadius(
+            @ptrCast(*const c.JPC_TaperedCapsuleShapeSettings, capsule_shape_settings),
+        );
+    }
+    pub fn setBottomRadius(capsule_shape_settings: *TaperedCapsuleShapeSettings, radius: f32) void {
+        c.JPC_TaperedCapsuleShapeSettings_SetBottomRadius(
+            @ptrCast(*c.JPC_TaperedCapsuleShapeSettings, capsule_shape_settings),
+            radius,
+        );
+    }
+};
+//--------------------------------------------------------------------------------------------------
+//
+// CylinderShapeSettings (-> ConvexShapeSettings -> ShapeSettings)
+//
+//--------------------------------------------------------------------------------------------------
+pub const CylinderShapeSettings = opaque {
+    pub usingnamespace ConvexShapeSettings.Methods(@This());
+
+    pub fn create(half_height: f32, radius: f32) !*CylinderShapeSettings {
+        const cylinder_shape_settings = c.JPC_CylinderShapeSettings_Create(half_height, radius);
+        if (cylinder_shape_settings == null)
+            return error.FailedToCreateCylinderShapeSettings;
+        return @ptrCast(*CylinderShapeSettings, cylinder_shape_settings);
+    }
+
+    pub fn getConvexRadius(cylinder_shape_settings: *const CylinderShapeSettings) f32 {
+        return c.JPC_CylinderShapeSettings_GetConvexRadius(
+            @ptrCast(*const c.JPC_CylinderShapeSettings, cylinder_shape_settings),
+        );
+    }
+    pub fn setConvexRadius(cylinder_shape_settings: *CylinderShapeSettings, convex_radius: f32) void {
+        c.JPC_CylinderShapeSettings_SetConvexRadius(
+            @ptrCast(*c.JPC_CylinderShapeSettings, cylinder_shape_settings),
+            convex_radius,
+        );
+    }
+
+    pub fn getHalfHeight(cylinder_shape_settings: *const CylinderShapeSettings) f32 {
+        return c.JPC_CylinderShapeSettings_GetHalfHeight(
+            @ptrCast(*const c.JPC_CylinderShapeSettings, cylinder_shape_settings),
+        );
+    }
+    pub fn setHalfHeight(cylinder_shape_settings: *CylinderShapeSettings, half_height: f32) void {
+        c.JPC_CylinderShapeSettings_SetHalfHeight(
+            @ptrCast(*c.JPC_CylinderShapeSettings, cylinder_shape_settings),
+            half_height,
+        );
+    }
+
+    pub fn getRadius(cylinder_shape_settings: *const CylinderShapeSettings) f32 {
+        return c.JPC_CylinderShapeSettings_GetRadius(
+            @ptrCast(*const c.JPC_CylinderShapeSettings, cylinder_shape_settings),
+        );
+    }
+    pub fn setRadius(cylinder_shape_settings: *CylinderShapeSettings, radius: f32) void {
+        c.JPC_CylinderShapeSettings_SetRadius(
+            @ptrCast(*c.JPC_CylinderShapeSettings, cylinder_shape_settings),
+            radius,
+        );
+    }
+};
+//--------------------------------------------------------------------------------------------------
+//
+// ConvexHullShapeSettings (-> ConvexShapeSettings -> ShapeSettings)
+//
+//--------------------------------------------------------------------------------------------------
+pub const ConvexHullShapeSettings = opaque {
+    pub usingnamespace ConvexShapeSettings.Methods(@This());
+
+    pub fn create(vertices: *const anyopaque, num_vertices: u32, vertex_size: u32) !*ConvexHullShapeSettings {
+        const settings = c.JPC_ConvexHullShapeSettings_Create(vertices, num_vertices, vertex_size);
+        if (settings == null)
+            return error.FailedToCreateConvexHullShapeSettings;
+        return @ptrCast(*ConvexHullShapeSettings, settings);
+    }
+
+    pub fn getMaxConvexRadius(settings: *const ConvexHullShapeSettings) f32 {
+        return c.JPC_ConvexHullShapeSettings_GetMaxConvexRadius(
+            @ptrCast(*const c.JPC_ConvexHullShapeSettings, settings),
+        );
+    }
+    pub fn setMaxConvexRadius(settings: *ConvexHullShapeSettings, radius: f32) void {
+        c.JPC_ConvexHullShapeSettings_SetMaxConvexRadius(
+            @ptrCast(*c.JPC_ConvexHullShapeSettings, settings),
+            radius,
+        );
+    }
+};
+//--------------------------------------------------------------------------------------------------
+//
 // Shape
 //
 //--------------------------------------------------------------------------------------------------
@@ -1226,6 +1572,12 @@ test "zphysics.basic" {
     try expect(physics_system.getNumActiveBodies() == 0);
     try expect(physics_system.getMaxBodies() == 1024);
 
+    {
+        physics_system.setGravity(.{ 0, -10.0, 0 });
+        const gravity = physics_system.getGravity();
+        try expect(gravity[0] == 0 and gravity[1] == -10.0 and gravity[2] == 0);
+    }
+
     try expect(physics_system.getBodyActivationListener() == null);
     physics_system.setBodyActivationListener(null);
     try expect(physics_system.getBodyActivationListener() == null);
@@ -1240,6 +1592,8 @@ test "zphysics.basic" {
     _ = physics_system.getBodyInterfaceMutNoLock();
     _ = physics_system.getBodyLockInterface();
     _ = physics_system.getBodyLockInterfaceNoLock();
+    _ = physics_system.getNarrowPhaseQuery();
+    _ = physics_system.getNarrowPhaseQueryNoLock();
 
     physics_system.optimizeBroadPhase();
     physics_system.update(1.0 / 60.0, .{ .collision_steps = 1, .integration_sub_steps = 1 });
@@ -1297,6 +1651,197 @@ test "zphysics.basic" {
 
     box_shape.setUserData(456);
     try expect(box_shape.getUserData() == 456);
+}
+
+test "zphysics.shape.sphere" {
+    try init(std.testing.allocator, .{});
+    defer deinit();
+
+    const my_broad_phase_layer_interface = test_cb1.MyBroadphaseLayerInterface.init();
+    const my_broad_phase_should_collide = test_cb1.MyObjectVsBroadPhaseLayerFilter{};
+    const my_object_should_collide = test_cb1.MyObjectLayerPairFilter{};
+
+    const physics_system = try PhysicsSystem.create(
+        @ptrCast(*const BroadPhaseLayerInterface, &my_broad_phase_layer_interface),
+        @ptrCast(*const ObjectVsBroadPhaseLayerFilter, &my_broad_phase_should_collide),
+        @ptrCast(*const ObjectLayerPairFilter, &my_object_should_collide),
+        .{},
+    );
+    defer physics_system.destroy();
+
+    const sphere_shape_settings = try SphereShapeSettings.create(10.0);
+    defer sphere_shape_settings.release();
+
+    try expect(sphere_shape_settings.getRadius() == 10.0);
+
+    sphere_shape_settings.setRadius(2.0);
+    try expect(sphere_shape_settings.getRadius() == 2.0);
+
+    const sphere_shape = try sphere_shape_settings.createShape();
+    defer sphere_shape.release();
+
+    try expect(sphere_shape.getRefCount() == 2);
+    try expect(sphere_shape.getType() == .convex);
+    try expect(sphere_shape.getSubType() == .sphere);
+
+    sphere_shape.setUserData(1456);
+    try expect(sphere_shape.getUserData() == 1456);
+}
+
+test "zphysics.shape.capsule" {
+    try init(std.testing.allocator, .{});
+    defer deinit();
+
+    const my_broad_phase_layer_interface = test_cb1.MyBroadphaseLayerInterface.init();
+    const my_broad_phase_should_collide = test_cb1.MyObjectVsBroadPhaseLayerFilter{};
+    const my_object_should_collide = test_cb1.MyObjectLayerPairFilter{};
+
+    const physics_system = try PhysicsSystem.create(
+        @ptrCast(*const BroadPhaseLayerInterface, &my_broad_phase_layer_interface),
+        @ptrCast(*const ObjectVsBroadPhaseLayerFilter, &my_broad_phase_should_collide),
+        @ptrCast(*const ObjectLayerPairFilter, &my_object_should_collide),
+        .{},
+    );
+    defer physics_system.destroy();
+
+    const capsule_shape_settings = try CapsuleShapeSettings.create(10.0, 2.0);
+    defer capsule_shape_settings.release();
+
+    try expect(capsule_shape_settings.getRadius() == 2.0);
+    try expect(capsule_shape_settings.getHalfHeight() == 10.0);
+
+    capsule_shape_settings.setRadius(4.0);
+    try expect(capsule_shape_settings.getRadius() == 4.0);
+
+    capsule_shape_settings.setHalfHeight(1.0);
+    try expect(capsule_shape_settings.getHalfHeight() == 1.0);
+
+    const capsule_shape = try capsule_shape_settings.createShape();
+    defer capsule_shape.release();
+
+    try expect(capsule_shape.getRefCount() == 2);
+    try expect(capsule_shape.getType() == .convex);
+    try expect(capsule_shape.getSubType() == .capsule);
+
+    capsule_shape.setUserData(146);
+    try expect(capsule_shape.getUserData() == 146);
+}
+
+test "zphysics.shape.taperedcapsule" {
+    try init(std.testing.allocator, .{});
+    defer deinit();
+
+    const my_broad_phase_layer_interface = test_cb1.MyBroadphaseLayerInterface.init();
+    const my_broad_phase_should_collide = test_cb1.MyObjectVsBroadPhaseLayerFilter{};
+    const my_object_should_collide = test_cb1.MyObjectLayerPairFilter{};
+
+    const physics_system = try PhysicsSystem.create(
+        @ptrCast(*const BroadPhaseLayerInterface, &my_broad_phase_layer_interface),
+        @ptrCast(*const ObjectVsBroadPhaseLayerFilter, &my_broad_phase_should_collide),
+        @ptrCast(*const ObjectLayerPairFilter, &my_object_should_collide),
+        .{},
+    );
+    defer physics_system.destroy();
+
+    const capsule_shape_settings = try TaperedCapsuleShapeSettings.create(10.0, 2.0, 3.0);
+    defer capsule_shape_settings.release();
+
+    try expect(capsule_shape_settings.getTopRadius() == 2.0);
+    try expect(capsule_shape_settings.getBottomRadius() == 3.0);
+    try expect(capsule_shape_settings.getHalfHeight() == 10.0);
+
+    capsule_shape_settings.setTopRadius(4.0);
+    try expect(capsule_shape_settings.getTopRadius() == 4.0);
+
+    capsule_shape_settings.setBottomRadius(1.0);
+    try expect(capsule_shape_settings.getBottomRadius() == 1.0);
+
+    const capsule_shape = try capsule_shape_settings.createShape();
+    defer capsule_shape.release();
+
+    try expect(capsule_shape.getRefCount() == 2);
+    try expect(capsule_shape.getType() == .convex);
+    try expect(capsule_shape.getSubType() == .tapered_capsule);
+
+    capsule_shape.setUserData(1146);
+    try expect(capsule_shape.getUserData() == 1146);
+}
+
+test "zphysics.shape.cylinder" {
+    try init(std.testing.allocator, .{});
+    defer deinit();
+
+    const my_broad_phase_layer_interface = test_cb1.MyBroadphaseLayerInterface.init();
+    const my_broad_phase_should_collide = test_cb1.MyObjectVsBroadPhaseLayerFilter{};
+    const my_object_should_collide = test_cb1.MyObjectLayerPairFilter{};
+
+    const physics_system = try PhysicsSystem.create(
+        @ptrCast(*const BroadPhaseLayerInterface, &my_broad_phase_layer_interface),
+        @ptrCast(*const ObjectVsBroadPhaseLayerFilter, &my_broad_phase_should_collide),
+        @ptrCast(*const ObjectLayerPairFilter, &my_object_should_collide),
+        .{},
+    );
+    defer physics_system.destroy();
+
+    const cylinder_shape_settings = try CylinderShapeSettings.create(10.0, 2.0);
+    defer cylinder_shape_settings.release();
+
+    try expect(cylinder_shape_settings.getRadius() == 2.0);
+    try expect(cylinder_shape_settings.getHalfHeight() == 10.0);
+
+    cylinder_shape_settings.setRadius(4.0);
+    try expect(cylinder_shape_settings.getRadius() == 4.0);
+
+    cylinder_shape_settings.setHalfHeight(1.0);
+    try expect(cylinder_shape_settings.getHalfHeight() == 1.0);
+
+    cylinder_shape_settings.setConvexRadius(0.5);
+    try expect(cylinder_shape_settings.getConvexRadius() == 0.5);
+
+    const cylinder_shape = try cylinder_shape_settings.createShape();
+    defer cylinder_shape.release();
+
+    try expect(cylinder_shape.getRefCount() == 2);
+    try expect(cylinder_shape.getType() == .convex);
+    try expect(cylinder_shape.getSubType() == .cylinder);
+
+    cylinder_shape.setUserData(146);
+    try expect(cylinder_shape.getUserData() == 146);
+}
+
+test "zphysics.shape.convexhull" {
+    try init(std.testing.allocator, .{});
+    defer deinit();
+
+    const my_broad_phase_layer_interface = test_cb1.MyBroadphaseLayerInterface.init();
+    const my_broad_phase_should_collide = test_cb1.MyObjectVsBroadPhaseLayerFilter{};
+    const my_object_should_collide = test_cb1.MyObjectLayerPairFilter{};
+
+    const physics_system = try PhysicsSystem.create(
+        @ptrCast(*const BroadPhaseLayerInterface, &my_broad_phase_layer_interface),
+        @ptrCast(*const ObjectVsBroadPhaseLayerFilter, &my_broad_phase_should_collide),
+        @ptrCast(*const ObjectLayerPairFilter, &my_object_should_collide),
+        .{},
+    );
+    defer physics_system.destroy();
+
+    const points = [_]f32{ 0, 0, 0, 1, 1, 1, 1, 1, 0 };
+
+    const settings = try ConvexHullShapeSettings.create(&points, 3, 12);
+    defer settings.release();
+
+    settings.setMaxConvexRadius(0.1);
+    try expect(settings.getMaxConvexRadius() == 0.1);
+
+    const shape = try settings.createShape();
+    defer shape.release();
+
+    try expect(shape.getRefCount() == 2);
+    try expect(shape.getType() == .convex);
+    try expect(shape.getSubType() == .convex_hull);
+
+    shape.setUserData(111);
+    try expect(shape.getUserData() == 111);
 }
 
 test "zphysics.body.basic" {
@@ -1453,7 +1998,7 @@ const test_cb1 = struct {
         const len: u32 = 2;
     };
 
-    const MyBroadphaseLayerInterface = struct {
+    const MyBroadphaseLayerInterface = extern struct {
         usingnamespace BroadPhaseLayerInterface.Methods(@This());
         __v: *const BroadPhaseLayerInterface.VTable = &vtable,
 
@@ -1485,7 +2030,7 @@ const test_cb1 = struct {
         }
     };
 
-    const MyObjectVsBroadPhaseLayerFilter = struct {
+    const MyObjectVsBroadPhaseLayerFilter = extern struct {
         usingnamespace ObjectVsBroadPhaseLayerFilter.Methods(@This());
         __v: *const ObjectVsBroadPhaseLayerFilter.VTable = &vtable,
 
@@ -1504,7 +2049,7 @@ const test_cb1 = struct {
         }
     };
 
-    const MyObjectLayerPairFilter = struct {
+    const MyObjectLayerPairFilter = extern struct {
         usingnamespace ObjectLayerPairFilter.Methods(@This());
         __v: *const ObjectLayerPairFilter.VTable = &vtable,
 

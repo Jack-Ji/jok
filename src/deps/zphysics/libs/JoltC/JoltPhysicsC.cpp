@@ -11,6 +11,7 @@
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
 #include <Jolt/Physics/Collision/CollideShape.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
@@ -19,6 +20,8 @@
 #include <Jolt/Physics/Collision/Shape/TaperedCapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
+#include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
+#include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/PhysicsMaterial.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
@@ -28,6 +31,10 @@ JPH_SUPPRESS_WARNINGS
 
 #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
 #error Currently JoltPhysicsC does not support profiling. Please undef JPH_EXTERNAL_PROFILE and JPH_PROFILE_ENABLED.
+#endif
+
+#if defined(JPH_TRACK_BROADPHASE_STATS)
+#error JPH_TRACK_BROADPHASE_STATS is not supported.
 #endif
 
 #define ENSURE_TYPE(o, t) \
@@ -133,6 +140,32 @@ FN(toJpc)(JPH::ConvexHullShapeSettings *in) {
     return reinterpret_cast<JPC_ConvexHullShapeSettings *>(in);
 }
 
+FN(toJph)(const JPC_HeightFieldShapeSettings *in) {
+    ENSURE_TYPE(in, JPH::HeightFieldShapeSettings);
+    return reinterpret_cast<const JPH::HeightFieldShapeSettings *>(in);
+}
+FN(toJph)(JPC_HeightFieldShapeSettings *in) {
+    ENSURE_TYPE(in, JPH::HeightFieldShapeSettings);
+    return reinterpret_cast<JPH::HeightFieldShapeSettings *>(in);
+}
+FN(toJpc)(JPH::HeightFieldShapeSettings *in) {
+    assert(in);
+    return reinterpret_cast<JPC_HeightFieldShapeSettings *>(in);
+}
+
+FN(toJph)(const JPC_MeshShapeSettings *in) {
+    ENSURE_TYPE(in, JPH::MeshShapeSettings);
+    return reinterpret_cast<const JPH::MeshShapeSettings *>(in);
+}
+FN(toJph)(JPC_MeshShapeSettings *in) {
+    ENSURE_TYPE(in, JPH::MeshShapeSettings);
+    return reinterpret_cast<JPH::MeshShapeSettings *>(in);
+}
+FN(toJpc)(JPH::MeshShapeSettings *in) {
+    assert(in);
+    return reinterpret_cast<JPC_MeshShapeSettings *>(in);
+}
+
 FN(toJph)(const JPC_ConvexShapeSettings *in) {
     ENSURE_TYPE(in, JPH::ConvexShapeSettings);
     return reinterpret_cast<const JPH::ConvexShapeSettings *>(in);
@@ -153,6 +186,10 @@ FN(toJph)(const JPC_BodyLockInterface *in) {
 }
 FN(toJpc)(const JPH::BodyLockInterface *in) {
     assert(in); return reinterpret_cast<const JPC_BodyLockInterface *>(in);
+}
+
+FN(toJpc)(const JPH::NarrowPhaseQuery *in) {
+    assert(in); return reinterpret_cast<const JPC_NarrowPhaseQuery *>(in);
 }
 
 FN(toJph)(const JPC_PhysicsSystem *in) { assert(in); return reinterpret_cast<const JPH::PhysicsSystem *>(in); }
@@ -400,83 +437,6 @@ JPC_JobSystem_Destroy(JPC_JobSystem *in_job_system)
 // JPC_PhysicsSystem
 //
 //--------------------------------------------------------------------------------------------------
-class BroadPhaseLayerInterface : public JPH::BroadPhaseLayerInterface
-{
-public:
-	uint32_t GetNumBroadPhaseLayers() const override
-    {
-        assert(c_listener->vtbl->GetNumBroadPhaseLayers);
-        return c_listener->vtbl->GetNumBroadPhaseLayers(c_listener);
-    }
-
-    JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
-    {
-        assert(c_listener->vtbl->GetBroadPhaseLayer);
-        return static_cast<JPH::BroadPhaseLayer>(
-            c_listener->vtbl->GetBroadPhaseLayer(c_listener, toJpc(inLayer)));
-    }
-
-    struct CListener
-    {
-        JPC_BroadPhaseLayerInterfaceVTable *vtbl;
-    };
-    const CListener *c_listener;
-};
-
-class ObjectVsBroadPhaseLayerFilter : public JPH::ObjectVsBroadPhaseLayerFilter
-{
-public:
-	bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override
-    {
-        assert(c_listener->vtbl->ShouldCollide);
-        return c_listener->vtbl->ShouldCollide(c_listener, toJpc(inLayer1), toJpc(inLayer2));
-    }
-
-    struct CListener
-    {
-        JPC_ObjectVsBroadPhaseLayerFilterVTable *vtbl;
-    };
-    const CListener *c_listener;
-};
-
-class ObjectLayerPairFilter : public JPH::ObjectLayerPairFilter
-{
-public:
-	bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::ObjectLayer inLayer2) const override
-    {
-        assert(c_listener->vtbl->ShouldCollide);
-        return c_listener->vtbl->ShouldCollide(c_listener, toJpc(inLayer1), toJpc(inLayer2));
-    }
-
-    struct CListener
-    {
-        JPC_ObjectLayerPairFilterVTable *vtbl;
-    };
-    const CListener *c_listener;
-};
-
-class BodyActivationListener : public JPH::BodyActivationListener
-{
-public:
-    void OnBodyActivated(const JPH::BodyID &inBodyID, uint64_t inBodyUserData) override
-    {
-        assert(c_listener->vtbl->OnBodyActivated);
-        c_listener->vtbl->OnBodyActivated(c_listener, inBodyID.GetIndexAndSequenceNumber(), inBodyUserData);
-    }
-
-    void OnBodyDeactivated(const JPH::BodyID &inBodyID, uint64_t inBodyUserData) override
-    {
-        assert(c_listener->vtbl->OnBodyDeactivated);
-        c_listener->vtbl->OnBodyDeactivated(c_listener, inBodyID.GetIndexAndSequenceNumber(), inBodyUserData);
-    }
-
-    struct CListener
-    {
-        JPC_BodyActivationListenerVTable *vtbl;
-    };
-    CListener *c_listener;
-};
-
 class ContactListener : public JPH::ContactListener
 {
 public:
@@ -542,10 +502,6 @@ struct PhysicsSystemData
 {
     uint64_t safety_token = 0xC0DEC0DEC0DEC0DE;
     ContactListener *contact_listener = nullptr;
-    BroadPhaseLayerInterface *broad_phase_layer_interface = nullptr;
-    ObjectVsBroadPhaseLayerFilter *object_broad_phase_filter = nullptr;
-    ObjectLayerPairFilter *object_pair_filter = nullptr;
-    BodyActivationListener *body_activation_listener = nullptr;
 };
 
 JPC_API JPC_PhysicsSystem *
@@ -570,35 +526,14 @@ JPC_PhysicsSystem_Create(uint32_t in_max_bodies,
         ::new (reinterpret_cast<uint8_t *>(physics_system) + sizeof(JPH::PhysicsSystem)) PhysicsSystemData();
     assert(data->safety_token == 0xC0DEC0DEC0DEC0DE);
 
-    data->broad_phase_layer_interface =
-        static_cast<BroadPhaseLayerInterface *>(JPH::Allocate(sizeof(BroadPhaseLayerInterface)));
-    ::new (data->broad_phase_layer_interface) BroadPhaseLayerInterface();
-
-    data->object_broad_phase_filter =
-        static_cast<ObjectVsBroadPhaseLayerFilter*>(JPH::Allocate(sizeof(ObjectVsBroadPhaseLayerFilter)));
-    ::new (data->object_broad_phase_filter) ObjectVsBroadPhaseLayerFilter();
-
-    data->object_pair_filter =
-        static_cast<ObjectLayerPairFilter*>(JPH::Allocate(sizeof(ObjectLayerPairFilter)));
-    ::new (data->object_pair_filter) ObjectLayerPairFilter();
-
-    data->broad_phase_layer_interface->c_listener =
-        static_cast<const BroadPhaseLayerInterface::CListener *>(in_broad_phase_layer_interface);
-
-    data->object_broad_phase_filter->c_listener =
-        static_cast<const ObjectVsBroadPhaseLayerFilter::CListener *>(in_object_vs_broad_phase_layer_filter);
-
-    data->object_pair_filter->c_listener =
-        static_cast<const ObjectLayerPairFilter::CListener *>(in_object_layer_pair_filter);
-
     physics_system->Init(
         in_max_bodies,
         in_num_body_mutexes,
         in_max_body_pairs,
         in_max_contact_constraints,
-        *data->broad_phase_layer_interface,
-        *data->object_broad_phase_filter,
-        *data->object_pair_filter);
+        *static_cast<const JPH::BroadPhaseLayerInterface *>(in_broad_phase_layer_interface),
+        *static_cast<const JPH::ObjectVsBroadPhaseLayerFilter *>(in_object_vs_broad_phase_layer_filter),
+        *static_cast<const JPH::ObjectLayerPairFilter *>(in_object_layer_pair_filter));
 
     return toJpc(physics_system);
 }
@@ -610,30 +545,10 @@ JPC_PhysicsSystem_Destroy(JPC_PhysicsSystem *in_physics_system)
         reinterpret_cast<uint8_t *>(in_physics_system) + sizeof(JPH::PhysicsSystem));
     assert(data->safety_token == 0xC0DEC0DEC0DEC0DE);
 
-    if (data->broad_phase_layer_interface)
-    {
-        data->broad_phase_layer_interface->~BroadPhaseLayerInterface();
-        JPH::Free(data->broad_phase_layer_interface);
-    }
-    if (data->object_broad_phase_filter)
-    {
-        data->object_broad_phase_filter->~ObjectVsBroadPhaseLayerFilter();
-        JPH::Free(data->object_broad_phase_filter);
-    }
-    if (data->object_pair_filter)
-    {
-        data->object_pair_filter->~ObjectLayerPairFilter();
-        JPH::Free(data->object_pair_filter);
-    }
     if (data->contact_listener)
     {
         data->contact_listener->~ContactListener();
         JPH::Free(data->contact_listener);
-    }
-    if (data->body_activation_listener)
-    {
-        data->body_activation_listener->~BodyActivationListener();
-        JPH::Free(data->body_activation_listener);
     }
 
     toJph(in_physics_system)->~PhysicsSystem();
@@ -643,35 +558,13 @@ JPC_PhysicsSystem_Destroy(JPC_PhysicsSystem *in_physics_system)
 JPC_API void
 JPC_PhysicsSystem_SetBodyActivationListener(JPC_PhysicsSystem *in_physics_system, void *in_listener)
 {
-    if (in_listener == nullptr)
-    {
-        toJph(in_physics_system)->SetBodyActivationListener(nullptr);
-        return;
-    }
-
-    auto data = reinterpret_cast<PhysicsSystemData *>(
-        reinterpret_cast<uint8_t *>(in_physics_system) + sizeof(JPH::PhysicsSystem));
-    assert(data->safety_token == 0xC0DEC0DEC0DEC0DE);
-
-    if (data->body_activation_listener == nullptr)
-    {
-        data->body_activation_listener = static_cast<BodyActivationListener *>(
-            JPH::Allocate(sizeof(BodyActivationListener)));
-        ::new (data->body_activation_listener) BodyActivationListener();
-    }
-
-    toJph(in_physics_system)->SetBodyActivationListener(data->body_activation_listener);
-
-    data->body_activation_listener->c_listener = static_cast<BodyActivationListener::CListener *>(in_listener);
+    toJph(in_physics_system)->SetBodyActivationListener(static_cast<JPH::BodyActivationListener *>(in_listener));
 }
 //--------------------------------------------------------------------------------------------------
 JPC_API void *
 JPC_PhysicsSystem_GetBodyActivationListener(const JPC_PhysicsSystem *in_physics_system)
 {
-    auto listener = static_cast<BodyActivationListener *>(toJph(in_physics_system)->GetBodyActivationListener());
-    if (listener == nullptr)
-        return nullptr;
-    return listener->c_listener;
+    return toJph(in_physics_system)->GetBodyActivationListener();
 }
 //--------------------------------------------------------------------------------------------------
 JPC_API void
@@ -725,6 +618,18 @@ JPC_PhysicsSystem_GetMaxBodies(const JPC_PhysicsSystem *in_physics_system)
     return toJph(in_physics_system)->GetMaxBodies();
 }
 //--------------------------------------------------------------------------------------------------
+JPC_API void
+JPC_PhysicsSystem_GetGravity(const JPC_PhysicsSystem *in_physics_system, float out_gravity[3])
+{
+    storeVec3(out_gravity, toJph(in_physics_system)->GetGravity());
+}
+//--------------------------------------------------------------------------------------------------
+JPC_API void
+JPC_PhysicsSystem_SetGravity(JPC_PhysicsSystem *in_physics_system, const float in_gravity[3])
+{
+    toJph(in_physics_system)->SetGravity(loadVec3(in_gravity));
+}
+//--------------------------------------------------------------------------------------------------
 JPC_API JPC_BodyInterface *
 JPC_PhysicsSystem_GetBodyInterface(JPC_PhysicsSystem *in_physics_system)
 {
@@ -770,11 +675,22 @@ JPC_PhysicsSystem_GetBodyLockInterfaceNoLock(const JPC_PhysicsSystem *in_physics
     return toJpc(&toJph(in_physics_system)->GetBodyLockInterfaceNoLock());
 }
 //--------------------------------------------------------------------------------------------------
+JPC_API const JPC_NarrowPhaseQuery *
+JPC_PhysicsSystem_GetNarrowPhaseQuery(const JPC_PhysicsSystem *in_physics_system)
+{
+    return toJpc(&toJph(in_physics_system)->GetNarrowPhaseQuery());
+}
+JPC_API const JPC_NarrowPhaseQuery *
+JPC_PhysicsSystem_GetNarrowPhaseQueryNoLock(const JPC_PhysicsSystem *in_physics_system)
+{
+    return toJpc(&toJph(in_physics_system)->GetNarrowPhaseQueryNoLock());
+}
+//--------------------------------------------------------------------------------------------------
 //
 // JPC_BodyLock*
 //
 //--------------------------------------------------------------------------------------------------
-void JPC_API
+JPC_API void
 JPC_BodyLockRead_Lock(JPC_BodyLockRead *out_lock,
                       const JPC_BodyLockInterface *in_lock_interface,
                       JPC_BodyID in_body_id)
@@ -783,13 +699,13 @@ JPC_BodyLockRead_Lock(JPC_BodyLockRead *out_lock,
     ::new (out_lock) JPH::BodyLockRead(*toJph(in_lock_interface), toJph(in_body_id));
 }
 //--------------------------------------------------------------------------------------------------
-void JPC_API
+JPC_API void
 JPC_BodyLockRead_Unlock(JPC_BodyLockRead *io_lock)
 {
     toJph(io_lock)->~BodyLockRead();
 }
 //--------------------------------------------------------------------------------------------------
-void JPC_API
+JPC_API void
 JPC_BodyLockWrite_Lock(JPC_BodyLockWrite *out_lock,
                        const JPC_BodyLockInterface *in_lock_interface,
                        JPC_BodyID in_body_id)
@@ -798,10 +714,41 @@ JPC_BodyLockWrite_Lock(JPC_BodyLockWrite *out_lock,
     ::new (out_lock) JPH::BodyLockWrite(*toJph(in_lock_interface), toJph(in_body_id));
 }
 //--------------------------------------------------------------------------------------------------
-void JPC_API
+JPC_API void
 JPC_BodyLockWrite_Unlock(JPC_BodyLockWrite *io_lock)
 {
     toJph(io_lock)->~BodyLockWrite();
+}
+//--------------------------------------------------------------------------------------------------
+//
+// JPC_NarrowPhaseQuery
+//
+//--------------------------------------------------------------------------------------------------
+JPC_API bool
+JPC_NarrowPhaseQuery_CastRay(const JPC_NarrowPhaseQuery *in_query,
+                             const JPC_RRayCast *in_ray,
+                             JPC_RayCastResult *io_hit,
+                             const void *in_broad_phase_layer_filter,
+                             const void *in_object_layer_filter,
+                             const void *in_body_filter)
+{
+    assert(in_query && in_ray && io_hit);
+
+    const JPH::BroadPhaseLayerFilter broad_phase_layer_filter{};
+    const JPH::ObjectLayerFilter object_layer_filter{};
+    const JPH::BodyFilter body_filter{};
+
+    auto query = reinterpret_cast<const JPH::NarrowPhaseQuery *>(in_query);
+    return query->CastRay(
+        *reinterpret_cast<const JPH::RRayCast *>(in_ray),
+        *reinterpret_cast<JPH::RayCastResult *>(io_hit),
+        in_broad_phase_layer_filter ?
+            *static_cast<const JPH::BroadPhaseLayerFilter *>(in_broad_phase_layer_filter) :
+            broad_phase_layer_filter,
+        in_object_layer_filter ?
+            *static_cast<const JPH::ObjectLayerFilter *>(in_object_layer_filter) : object_layer_filter,
+        in_body_filter ?
+            *static_cast<const JPH::BodyFilter *>(in_body_filter) : body_filter);
 }
 //--------------------------------------------------------------------------------------------------
 //
@@ -999,14 +946,14 @@ JPC_CapsuleShapeSettings_Create(float in_half_height_of_cylinder, float in_radiu
 }
 //--------------------------------------------------------------------------------------------------
 JPC_API float
-JPC_CapsuleShapeSettings_GetHalfHeightOfCylinder(const JPC_CapsuleShapeSettings *in_settings)
+JPC_CapsuleShapeSettings_GetHalfHeight(const JPC_CapsuleShapeSettings *in_settings)
 {
     return toJph(in_settings)->mHalfHeightOfCylinder;
 }
 //--------------------------------------------------------------------------------------------------
 JPC_API void
-JPC_CapsuleShapeSettings_SetHalfHeightOfCylinder(JPC_CapsuleShapeSettings *in_settings,
-                                                 float in_half_height_of_cylinder)
+JPC_CapsuleShapeSettings_SetHalfHeight(JPC_CapsuleShapeSettings *in_settings,
+                                       float in_half_height_of_cylinder)
 {
     toJph(in_settings)->mHalfHeightOfCylinder = in_half_height_of_cylinder;
 }
@@ -1036,14 +983,14 @@ JPC_TaperedCapsuleShapeSettings_Create(float in_half_height, float in_top_radius
 }
 //--------------------------------------------------------------------------------------------------
 JPC_API float
-JPC_TaperedCapsuleShapeSettings_GetHalfHeightOfTaperedCylinder(const JPC_TaperedCapsuleShapeSettings *in_settings)
+JPC_TaperedCapsuleShapeSettings_GetHalfHeight(const JPC_TaperedCapsuleShapeSettings *in_settings)
 {
     return toJph(in_settings)->mHalfHeightOfTaperedCylinder;
 }
 //--------------------------------------------------------------------------------------------------
 JPC_API void
-JPC_TaperedCapsuleShapeSettings_SetHalfHeightOfTaperedCylinder(JPC_TaperedCapsuleShapeSettings *in_settings,
-                                                               float in_half_height)
+JPC_TaperedCapsuleShapeSettings_SetHalfHeight(JPC_TaperedCapsuleShapeSettings *in_settings,
+                                              float in_half_height)
 {
     toJph(in_settings)->mHalfHeightOfTaperedCylinder = in_half_height;
 }
@@ -1126,12 +1073,21 @@ JPC_CylinderShapeSettings_SetRadius(JPC_CylinderShapeSettings *in_settings, floa
 //
 //--------------------------------------------------------------------------------------------------
 JPC_API JPC_ConvexHullShapeSettings *
-JPC_ConvexHullShapeSettings_Create(const float in_points[][4], int in_num_points)
+JPC_ConvexHullShapeSettings_Create(const void *in_vertices, uint32_t in_num_vertices, uint32_t in_vertex_size)
 {
-    assert(in_points != nullptr && in_num_points > 0);
-    assert((reinterpret_cast<uintptr_t>(&in_points[0][0]) & 0xf) == 0);
-    auto settings = new JPH::ConvexHullShapeSettings(
-        reinterpret_cast<const JPH::Vec3 *>(&in_points[0][0]), in_num_points);
+    assert(in_vertices && in_num_vertices >= 3);
+    assert(in_vertex_size >= 3 * sizeof(float));
+
+    JPH::Array<JPH::Vec3> points;
+    points.reserve(in_num_vertices);
+
+    for (uint32_t i = 0; i < in_num_vertices; ++i)
+    {
+        const uint8_t *base = static_cast<const uint8_t *>(in_vertices) + i * in_vertex_size;
+        points.push_back(loadVec3(reinterpret_cast<const float *>(base)));
+    }
+
+    auto settings = new JPH::ConvexHullShapeSettings(points);
     settings->AddRef();
     return toJpc(settings);
 }
@@ -1173,6 +1129,93 @@ JPC_ConvexHullShapeSettings_SetHullTolerance(JPC_ConvexHullShapeSettings *in_set
                                              float in_hull_tolerance)
 {
     toJph(in_settings)->mHullTolerance = in_hull_tolerance;
+}
+//--------------------------------------------------------------------------------------------------
+//
+// JPC_HeightFieldShapeSettings (-> JPC_ShapeSettings)
+//
+//--------------------------------------------------------------------------------------------------
+JPC_API JPC_HeightFieldShapeSettings *
+JPC_HeightFieldShapeSettings_Create(const float *in_samples,
+                                    uint32_t in_num_samples,
+                                    const float in_offset[3],
+                                    const float in_scale[3])
+{
+    assert(in_samples != nullptr && in_num_samples > 0);
+    auto settings = new JPH::HeightFieldShapeSettings(
+        in_samples, loadVec3(in_offset), loadVec3(in_scale), in_num_samples);
+    settings->AddRef();
+    return toJpc(settings);
+}
+//--------------------------------------------------------------------------------------------------
+JPC_API void
+JPC_HeightFieldShapeSettings_GetOffset(const JPC_HeightFieldShapeSettings *in_settings, float out_offset[3])
+{
+    storeVec3(out_offset, toJph(in_settings)->mOffset);
+}
+//--------------------------------------------------------------------------------------------------
+JPC_API void
+JPC_HeightFieldShapeSettings_SetOffset(JPC_HeightFieldShapeSettings *in_settings, const float in_offset[3])
+{
+    toJph(in_settings)->mOffset = loadVec3(in_offset);
+}
+//--------------------------------------------------------------------------------------------------
+JPC_API void
+JPC_HeightFieldShapeSettings_GetScale(const JPC_HeightFieldShapeSettings *in_settings, float out_scale[3])
+{
+    storeVec3(out_scale, toJph(in_settings)->mScale);
+}
+//--------------------------------------------------------------------------------------------------
+JPC_API void
+JPC_HeightFieldShapeSettings_SetScale(JPC_HeightFieldShapeSettings *in_settings, const float in_scale[3])
+{
+    toJph(in_settings)->mScale = loadVec3(in_scale);
+}
+//--------------------------------------------------------------------------------------------------
+//
+// JPC_MeshShapeSettings (-> JPC_ShapeSettings)
+//
+//--------------------------------------------------------------------------------------------------
+JPC_API JPC_MeshShapeSettings *
+JPC_MeshShapeSettings_Create(const void *in_vertices,
+                             uint32_t in_num_vertices,
+                             uint32_t in_vertex_size,
+                             const uint32_t *in_indices,
+                             uint32_t in_num_indices)
+{
+    assert(in_vertices && in_indices);
+    assert(in_num_vertices >= 3);
+    assert(in_vertex_size >= 3 * sizeof(float));
+    assert(in_num_indices >= 3 && in_num_indices % 3 == 0);
+
+    JPH::VertexList vertices;
+    vertices.reserve(in_num_vertices);
+
+    for (uint32_t i = 0; i < in_num_vertices; ++i)
+    {
+        const float *base = reinterpret_cast<const float *>(
+            static_cast<const uint8_t *>(in_vertices) + i * in_vertex_size);
+        vertices.push_back(JPH::Float3(base[0], base[1], base[2]));
+    }
+
+    JPH::IndexedTriangleList triangles;
+    triangles.reserve(in_num_indices / 3);
+
+    for (uint32_t i = 0; i < in_num_indices / 3; ++i)
+    {
+        triangles.push_back(
+            JPH::IndexedTriangle(in_indices[i * 3], in_indices[i * 3 + 1], in_indices[i * 3 + 2], 0));
+    }
+
+    auto settings = new JPH::MeshShapeSettings(vertices, triangles);
+    settings->AddRef();
+    return toJpc(settings);
+}
+//--------------------------------------------------------------------------------------------------
+JPC_API void
+JPC_MeshShapeSettings_Sanitize(JPC_MeshShapeSettings *in_settings)
+{
+    toJph(in_settings)->Sanitize();
 }
 //--------------------------------------------------------------------------------------------------
 //
@@ -1626,12 +1669,6 @@ JPC_Body_GetMotionProperties(JPC_Body *in_body)
     return toJpc(toJph(in_body)->GetMotionProperties());
 }
 //--------------------------------------------------------------------------------------------------
-JPC_API JPC_MotionProperties *
-JPC_Body_GetMotionPropertiesUnchecked(JPC_Body *in_body)
-{
-    return toJpc(toJph(in_body)->GetMotionPropertiesUnchecked());
-}
-//--------------------------------------------------------------------------------------------------
 JPC_API uint64_t
 JPC_Body_GetUserData(const JPC_Body *in_body)
 {
@@ -1788,12 +1825,6 @@ JPC_MotionProperties_GetInverseMass(const JPC_MotionProperties *in_properties)
     return toJph(in_properties)->GetInverseMass();
 }
 //--------------------------------------------------------------------------------------------------
-JPC_API float
-JPC_MotionProperties_GetInverseMassUnchecked(const JPC_MotionProperties *in_properties)
-{
-    return toJph(in_properties)->GetInverseMassUnchecked();
-}
-//--------------------------------------------------------------------------------------------------
 JPC_API void
 JPC_MotionProperties_SetInverseMass(JPC_MotionProperties *in_properties, float in_inv_mass)
 {
@@ -1829,13 +1860,6 @@ JPC_MotionProperties_GetLocalSpaceInverseInertia(const JPC_MotionProperties *in_
                                                  float out_matrix[16])
 {
     storeMat44(out_matrix, toJph(in_properties)->GetLocalSpaceInverseInertia());
-}
-//--------------------------------------------------------------------------------------------------
-JPC_API void
-JPC_MotionProperties_GetLocalSpaceInverseInertiaUnchecked(const JPC_MotionProperties *in_properties,
-                                                          float out_matrix[16])
-{
-    storeMat44(out_matrix, toJph(in_properties)->GetLocalSpaceInverseInertiaUnchecked());
 }
 //--------------------------------------------------------------------------------------------------
 JPC_API void

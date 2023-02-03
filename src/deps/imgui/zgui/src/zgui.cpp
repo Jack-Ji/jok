@@ -1040,6 +1040,10 @@ ZGUI_API void zguiSetNextItemWidth(float item_width) {
     ImGui::SetNextItemWidth(item_width);
 }
 
+ZGUI_API void zguiSetItemDefaultFocus(void) {
+    ImGui::SetItemDefaultFocus();
+}
+
 ZGUI_API ImFont* zguiGetFont(void) {
     return ImGui::GetFont();
 }
@@ -1152,7 +1156,7 @@ ZGUI_API void zguiSetClipboardText(const char* text) {
     ImGui::SetClipboardText(text);
 }
 
-ZGUI_API const char* zguiGetClipboardText() {
+ZGUI_API const char* zguiGetClipboardText(void) {
     return ImGui::GetClipboardText();
 }
 

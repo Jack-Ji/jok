@@ -1,4 +1,4 @@
-// JoltPhysicsC v0.0.2 - C API for Jolt Physics C++ library
+// JoltPhysicsC v0.0.3 - C API for Jolt Physics C++ library
 
 #pragma once
 #include <stdlib.h>
@@ -133,6 +133,13 @@ typedef enum JPC_ValidateResult
     JPC_VALIDATE_RESULT_REJECT_ALL_CONTACTS = 3,
     _JPC_VALIDATE_RESULT_FORCEU32           = 0x7fffffff
 } JPC_ValidateResult;
+
+typedef uint8_t JPC_BackFaceMode;
+enum
+{
+    JPC_BACK_FACE_IGNORE  = 0,
+    JPC_BACK_FACE_COLLIDE = 1
+};
 //--------------------------------------------------------------------------------------------------
 //
 // Types
@@ -162,6 +169,7 @@ typedef struct JPC_TempAllocator     JPC_TempAllocator;
 typedef struct JPC_JobSystem         JPC_JobSystem;
 typedef struct JPC_BodyInterface     JPC_BodyInterface;
 typedef struct JPC_BodyLockInterface JPC_BodyLockInterface;
+typedef struct JPC_NarrowPhaseQuery  JPC_NarrowPhaseQuery;
 
 typedef struct JPC_ShapeSettings               JPC_ShapeSettings;
 typedef struct JPC_ConvexShapeSettings         JPC_ConvexShapeSettings;
@@ -172,6 +180,8 @@ typedef struct JPC_CapsuleShapeSettings        JPC_CapsuleShapeSettings;
 typedef struct JPC_TaperedCapsuleShapeSettings JPC_TaperedCapsuleShapeSettings;
 typedef struct JPC_CylinderShapeSettings       JPC_CylinderShapeSettings;
 typedef struct JPC_ConvexHullShapeSettings     JPC_ConvexHullShapeSettings;
+typedef struct JPC_HeightFieldShapeSettings    JPC_HeightFieldShapeSettings;
+typedef struct JPC_MeshShapeSettings           JPC_MeshShapeSettings;
 
 typedef struct JPC_PhysicsSystem JPC_PhysicsSystem;
 typedef struct JPC_SharedMutex   JPC_SharedMutex;
@@ -377,6 +387,28 @@ typedef struct JPC_BodyLockWrite
     JPC_SharedMutex *            mutex;
     JPC_Body *                   body;
 } JPC_BodyLockWrite;
+
+// NOTE: Needs to be kept in sync with JPH::RRayCast
+typedef struct JPC_RRayCast
+{
+    JPC_RVEC_ALIGN JPC_Real origin[4]; // 4th element is ignored
+    alignas(16) float       direction[4]; // 4th element is ignored
+} JPC_RRayCast;
+
+// NOTE: Needs to be kept in sync with JPH::RayCastResult
+typedef struct JPC_RayCastResult
+{
+    JPC_BodyID     body_id;
+    float          fraction;
+    JPC_SubShapeID sub_shape_id;
+} JPC_RayCastResult;
+
+// NOTE: Needs to be kept in sync with JPH::RayCastSettings
+typedef struct JPC_RayCastSettings
+{
+    JPC_BackFaceMode back_face_mode;
+    bool             treat_convex_as_solid;
+} JPC_RayCastSettings;
 //--------------------------------------------------------------------------------------------------
 //
 // Interfaces (virtual tables)
@@ -384,6 +416,9 @@ typedef struct JPC_BodyLockWrite
 //--------------------------------------------------------------------------------------------------
 typedef struct JPC_BroadPhaseLayerInterfaceVTable
 {
+    const void *__unused0; // Unused, *must* be NULL.
+    const void *__unused1; // Unused, *must* be NULL.
+
     // Required, *cannot* be NULL.
     uint32_t
     (*GetNumBroadPhaseLayers)(const void *in_self);
@@ -395,28 +430,71 @@ typedef struct JPC_BroadPhaseLayerInterfaceVTable
 
 typedef struct JPC_ObjectVsBroadPhaseLayerFilterVTable
 {
+    const void *__unused0; // Unused, *must* be NULL.
+    const void *__unused1; // Unused, *must* be NULL.
+
     // Required, *cannot* be NULL.
     bool
     (*ShouldCollide)(const void *in_self, JPC_ObjectLayer in_layer1, JPC_BroadPhaseLayer in_layer2);
 } JPC_ObjectVsBroadPhaseLayerFilterVTable;
 
+typedef struct JPC_BroadPhaseLayerFilterVTable
+{
+    const void *__unused0; // Unused, *must* be NULL.
+    const void *__unused1; // Unused, *must* be NULL.
+
+    // Required, *cannot* be NULL.
+    bool
+    (*ShouldCollide)(const void *in_self, JPC_BroadPhaseLayer in_layer);
+} JPC_BroadPhaseLayerFilterVTable;
+
 typedef struct JPC_ObjectLayerPairFilterVTable
 {
+    const void *__unused0; // Unused, *must* be NULL.
+    const void *__unused1; // Unused, *must* be NULL.
+
     // Required, *cannot* be NULL.
     bool
     (*ShouldCollide)(const void *in_self, JPC_ObjectLayer in_layer1, JPC_ObjectLayer in_layer2);
 } JPC_ObjectLayerPairFilterVTable;
 
+typedef struct JPC_ObjectLayerFilterVTable
+{
+    const void *__unused0; // Unused, *must* be NULL.
+    const void *__unused1; // Unused, *must* be NULL.
+
+    // Required, *cannot* be NULL.
+    bool
+    (*ShouldCollide)(const void *in_self, JPC_ObjectLayer in_layer);
+} JPC_ObjectLayerFilterVTable;
+
 typedef struct JPC_BodyActivationListenerVTable
 {
-    // Required, *cannot* be NULL.
-    void
-    (*OnBodyActivated)(void *in_self, JPC_BodyID in_body_id, uint64_t in_user_data);
+    const void *__unused0; // Unused, *must* be NULL.
+    const void *__unused1; // Unused, *must* be NULL.
 
     // Required, *cannot* be NULL.
     void
-    (*OnBodyDeactivated)(void *in_self, JPC_BodyID in_body_id, uint64_t in_user_data);
+    (*OnBodyActivated)(void *in_self, const JPC_BodyID *in_body_id, uint64_t in_user_data);
+
+    // Required, *cannot* be NULL.
+    void
+    (*OnBodyDeactivated)(void *in_self, const JPC_BodyID *in_body_id, uint64_t in_user_data);
 } JPC_BodyActivationListenerVTable;
+
+typedef struct JPC_BodyFilterVTable
+{
+    const void *__unused0; // Unused, *must* be NULL.
+    const void *__unused1; // Unused, *must* be NULL.
+
+    // Required, *cannot* be NULL.
+    bool
+    (*ShouldCollide)(const void *in_self, const JPC_BodyID *in_body_id);
+
+    // Required, *cannot* be NULL.
+    bool
+    (*ShouldCollideLocked)(const void *in_self, const JPC_Body *in_body);
+} JPC_BodyFilterVTable;
 
 typedef struct JPC_ContactListenerVTable
 {
@@ -538,9 +616,6 @@ JPC_MotionProperties_SetMassProperties(JPC_MotionProperties *in_properties,
 JPC_API float
 JPC_MotionProperties_GetInverseMass(const JPC_MotionProperties *in_properties);
 
-JPC_API float
-JPC_MotionProperties_GetInverseMassUnchecked(const JPC_MotionProperties *in_properties);
-
 JPC_API void
 JPC_MotionProperties_SetInverseMass(JPC_MotionProperties *in_properties, float in_inv_mass);
 
@@ -557,9 +632,6 @@ JPC_MotionProperties_SetInverseInertia(JPC_MotionProperties *in_properties,
 JPC_API void
 JPC_MotionProperties_GetLocalSpaceInverseInertia(const JPC_MotionProperties *in_properties,
                                                  float out_matrix[16]);
-JPC_API void
-JPC_MotionProperties_GetLocalSpaceInverseInertiaUnchecked(const JPC_MotionProperties *in_properties,
-                                                          float out_matrix[16]);
 JPC_API void
 JPC_MotionProperties_GetInverseInertiaForRotation(const JPC_MotionProperties *in_properties,
                                                   const float in_rotation_matrix[4],
@@ -661,6 +733,12 @@ JPC_PhysicsSystem_GetNumActiveBodies(const JPC_PhysicsSystem *in_physics_system)
 JPC_API uint32_t
 JPC_PhysicsSystem_GetMaxBodies(const JPC_PhysicsSystem *in_physics_system);
 
+JPC_API void
+JPC_PhysicsSystem_GetGravity(const JPC_PhysicsSystem *in_physics_system, float out_gravity[3]);
+
+JPC_API void
+JPC_PhysicsSystem_SetGravity(JPC_PhysicsSystem *in_physics_system, const float in_gravity[3]);
+
 JPC_API JPC_BodyInterface *
 JPC_PhysicsSystem_GetBodyInterface(JPC_PhysicsSystem *in_physics_system);
 
@@ -683,6 +761,12 @@ JPC_PhysicsSystem_GetBodyLockInterface(const JPC_PhysicsSystem *in_physics_syste
 
 JPC_API const JPC_BodyLockInterface *
 JPC_PhysicsSystem_GetBodyLockInterfaceNoLock(const JPC_PhysicsSystem *in_physics_system);
+
+JPC_API const JPC_NarrowPhaseQuery *
+JPC_PhysicsSystem_GetNarrowPhaseQuery(const JPC_PhysicsSystem *in_physics_system);
+
+JPC_API const JPC_NarrowPhaseQuery *
+JPC_PhysicsSystem_GetNarrowPhaseQueryNoLock(const JPC_PhysicsSystem *in_physics_system);
 
 /// Get copy of the list of all bodies under protection of a lock.
 JPC_API void
@@ -721,19 +805,31 @@ JPC_PhysicsSystem_GetBodiesUnsafe(JPC_PhysicsSystem *in_physics_system);
 // JPC_BodyLock*
 //
 //--------------------------------------------------------------------------------------------------
-void JPC_API
+JPC_API void
 JPC_BodyLockRead_Lock(JPC_BodyLockRead *out_lock,
                       const JPC_BodyLockInterface *in_lock_interface,
                       JPC_BodyID in_body_id);
-void JPC_API
+JPC_API void
 JPC_BodyLockRead_Unlock(JPC_BodyLockRead *io_lock);
 
-void JPC_API
+JPC_API void
 JPC_BodyLockWrite_Lock(JPC_BodyLockWrite *out_lock,
                        const JPC_BodyLockInterface *in_lock_interface,
                        JPC_BodyID in_body_id);
-void JPC_API
+JPC_API void
 JPC_BodyLockWrite_Unlock(JPC_BodyLockWrite *io_lock);
+//--------------------------------------------------------------------------------------------------
+//
+// JPC_NarrowPhaseQuery
+//
+//--------------------------------------------------------------------------------------------------
+JPC_API bool
+JPC_NarrowPhaseQuery_CastRay(const JPC_NarrowPhaseQuery *in_query,
+                             const JPC_RRayCast *in_ray,
+                             JPC_RayCastResult *io_hit,
+                             const void *in_broad_phase_layer_filter,
+                             const void *in_object_layer_filter,
+                             const void *in_body_filter);
 //--------------------------------------------------------------------------------------------------
 //
 // JPC_ShapeSettings
@@ -840,11 +936,11 @@ JPC_API JPC_CapsuleShapeSettings *
 JPC_CapsuleShapeSettings_Create(float in_half_height_of_cylinder, float in_radius);
 
 JPC_API float
-JPC_CapsuleShapeSettings_GetHalfHeightOfCylinder(const JPC_CapsuleShapeSettings *in_settings);
+JPC_CapsuleShapeSettings_GetHalfHeight(const JPC_CapsuleShapeSettings *in_settings);
 
 JPC_API void
-JPC_CapsuleShapeSettings_SetHalfHeightOfCylinder(JPC_CapsuleShapeSettings *in_settings,
-                                                 float in_half_height_of_cylinder);
+JPC_CapsuleShapeSettings_SetHalfHeight(JPC_CapsuleShapeSettings *in_settings,
+                                       float in_half_height_of_cylinder);
 JPC_API float
 JPC_CapsuleShapeSettings_GetRadius(const JPC_CapsuleShapeSettings *in_settings);
 
@@ -859,11 +955,11 @@ JPC_API JPC_TaperedCapsuleShapeSettings *
 JPC_TaperedCapsuleShapeSettings_Create(float in_half_height, float in_top_radius, float in_bottom_radius);
 
 JPC_API float
-JPC_TaperedCapsuleShapeSettings_GetHalfHeightOfTaperedCylinder(const JPC_TaperedCapsuleShapeSettings *in_settings);
+JPC_TaperedCapsuleShapeSettings_GetHalfHeight(const JPC_TaperedCapsuleShapeSettings *in_settings);
 
 JPC_API void
-JPC_TaperedCapsuleShapeSettings_SetHalfHeightOfTaperedCylinder(JPC_TaperedCapsuleShapeSettings *in_settings,
-                                                               float in_half_height);
+JPC_TaperedCapsuleShapeSettings_SetHalfHeight(JPC_TaperedCapsuleShapeSettings *in_settings,
+                                              float in_half_height);
 JPC_API float
 JPC_TaperedCapsuleShapeSettings_GetTopRadius(const JPC_TaperedCapsuleShapeSettings *in_settings);
 
@@ -906,9 +1002,8 @@ JPC_CylinderShapeSettings_SetRadius(JPC_CylinderShapeSettings *in_settings, floa
 // JPC_ConvexHullShapeSettings (-> JPC_ConvexShapeSettings -> JPC_ShapeSettings)
 //
 //--------------------------------------------------------------------------------------------------
-/// `in_points` needs to be aligned to 16 bytes
 JPC_API JPC_ConvexHullShapeSettings *
-JPC_ConvexHullShapeSettings_Create(const float in_points[][4], int in_num_points);
+JPC_ConvexHullShapeSettings_Create(const void *in_vertices, uint32_t in_num_vertices, uint32_t in_vertex_size);
 
 JPC_API float
 JPC_ConvexHullShapeSettings_GetMaxConvexRadius(const JPC_ConvexHullShapeSettings *in_settings);
@@ -928,6 +1023,40 @@ JPC_ConvexHullShapeSettings_GetHullTolerance(const JPC_ConvexHullShapeSettings *
 JPC_API void
 JPC_ConvexHullShapeSettings_SetHullTolerance(JPC_ConvexHullShapeSettings *in_settings,
                                              float in_hull_tolerance);
+//--------------------------------------------------------------------------------------------------
+//
+// JPC_HeightFieldShapeSettings (-> JPC_ShapeSettings)
+//
+//--------------------------------------------------------------------------------------------------
+JPC_API JPC_HeightFieldShapeSettings *
+JPC_HeightFieldShapeSettings_Create(const float *in_samples,
+                                    uint32_t in_num_samples,
+                                    const float in_offset[3],
+                                    const float in_scale[3]);
+JPC_API void
+JPC_HeightFieldShapeSettings_GetOffset(const JPC_HeightFieldShapeSettings *in_settings, float out_offset[3]);
+
+JPC_API void
+JPC_HeightFieldShapeSettings_SetOffset(JPC_HeightFieldShapeSettings *in_settings, const float in_offset[3]);
+
+JPC_API void
+JPC_HeightFieldShapeSettings_GetScale(const JPC_HeightFieldShapeSettings *in_settings, float out_scale[3]);
+
+JPC_API void
+JPC_HeightFieldShapeSettings_SetScale(JPC_HeightFieldShapeSettings *in_settings, const float in_scale[3]);
+//--------------------------------------------------------------------------------------------------
+//
+// JPC_MeshShapeSettings
+//
+//--------------------------------------------------------------------------------------------------
+JPC_API JPC_MeshShapeSettings *
+JPC_MeshShapeSettings_Create(const void *in_vertices,
+                             uint32_t in_num_vertices,
+                             uint32_t in_vertex_size,
+                             const uint32_t *in_indices,
+                             uint32_t in_num_indices);
+JPC_API void
+JPC_MeshShapeSettings_Sanitize(JPC_MeshShapeSettings *in_settings);
 //--------------------------------------------------------------------------------------------------
 //
 // JPC_Shape
@@ -1150,9 +1279,6 @@ JPC_Body_GetWorldSpaceBounds(const JPC_Body *in_body, float out_min[3], float ou
 
 JPC_API JPC_MotionProperties *
 JPC_Body_GetMotionProperties(JPC_Body *in_body);
-
-JPC_API JPC_MotionProperties *
-JPC_Body_GetMotionPropertiesUnchecked(JPC_Body *in_body);
 
 JPC_API uint64_t
 JPC_Body_GetUserData(const JPC_Body *in_body);
