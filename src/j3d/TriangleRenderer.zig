@@ -274,7 +274,7 @@ pub fn renderShape(
         target.indices.appendSliceAssumeCapacity(&[_]u32{ current_index, current_index + 1, current_index + 2 });
         current_index += 3;
     }
-    try target.updateBatch(batched_size, batched_size, opt.texture);
+    try target.updateBatch(batched_size, batched_size);
 }
 
 pub fn renderSprite(
@@ -424,7 +424,7 @@ pub fn renderSprite(
         current_index, current_index + 1, current_index + 2,
         current_index, current_index + 2, current_index + 3,
     });
-    try target.updateBatch(6, 4, opt.texture);
+    try target.updateBatch(6, 4);
 }
 
 /// Test whether all obb's triangles are hidden behind current front triangles

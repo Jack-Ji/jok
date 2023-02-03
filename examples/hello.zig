@@ -104,7 +104,7 @@ pub fn draw(ctx: *jok.Context) !void {
             zmath.rotationY(@floatCast(f32, ctx.tick)),
             zmath.translation(-3, 3, 0),
         ),
-        .{ .lighting = .{}, .color = color },
+        .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
     try j3d.addTorus(
         zmath.mul(
@@ -125,7 +125,7 @@ pub fn draw(ctx: *jok.Context) !void {
             zmath.rotationY(@floatCast(f32, ctx.tick)),
             zmath.translation(-3, -3, 0),
         ),
-        .{ .lighting = .{}, .color = color },
+        .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
     try j3d.end();
 

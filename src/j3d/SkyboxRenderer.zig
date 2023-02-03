@@ -197,7 +197,7 @@ pub fn render(
             current_index += 3;
             batched_size += 3;
         }
-        try target.updateBatch(batched_size, batched_size, textures[idx]);
+        try target.updateBatch(batched_size, batched_size);
     }
 }
 

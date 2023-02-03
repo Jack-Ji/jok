@@ -21,7 +21,6 @@ pub const RenderOption = struct {
     color: sdl.Color = sdl.Color.white,
     cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,
-    weld_threshold: ?f32 = null,
 };
 
 pub const BeginOption = struct {
@@ -75,16 +74,17 @@ pub const RenderTarget = struct {
         self: *RenderTarget,
         batched_index_count: u32,
         batched_vertex_count: u32,
-        batched_texture: ?sdl.Texture,
     ) !void {
         if (batched_index_count == 0) return;
+        const latest_texture =
+            self.textures.items[self.textures.items.len - 1];
         const last_texture: ?sdl.Texture =
             if (self.textures.items.len > batched_vertex_count)
             self.textures.items[self.textures.items.len - batched_vertex_count - 1]
         else
             null;
         if (self.batched_indices.items.len > 0 and
-            internal.isSameTexture(last_texture, batched_texture))
+            internal.isSameTexture(last_texture, latest_texture))
         {
             self.batched_indices.items[self.batched_indices.items.len - 1] += batched_index_count;
         } else {
@@ -264,7 +264,11 @@ pub fn addShape(
     );
 }
 
-pub fn addCube(model: zmath.Mat, opt: RenderOption) !void {
+pub const CubeDrawOption = struct {
+    rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
+};
+pub fn addCube(model: zmath.Mat, opt: CubeDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -274,7 +278,7 @@ pub fn addCube(model: zmath.Mat, opt: RenderOption) !void {
         var meshes: ?std.StringHashMap(*Mesh) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: RenderOption) []u8 {
+        fn getKey(_opt: CubeDrawOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}",
@@ -306,11 +310,12 @@ pub fn addCube(model: zmath.Mat, opt: RenderOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, camera, mesh.aabb, opt);
+    try addShape(mesh.shape, model, camera, mesh.aabb, opt.rdopt);
 }
 
 pub const PlaneDrawOption = struct {
     rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
     slices: u32 = 10,
     stacks: u32 = 10,
 };
@@ -328,7 +333,7 @@ pub fn addPlane(model: zmath.Mat, opt: PlaneDrawOption) !void {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}-{d}",
-                .{ _opt.rdopt.weld_threshold, _opt.slices, _opt.stacks },
+                .{ _opt.weld_threshold, _opt.slices, _opt.stacks },
             ) catch unreachable;
         }
     };
@@ -348,7 +353,7 @@ pub fn addPlane(model: zmath.Mat, opt: PlaneDrawOption) !void {
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initPlane(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
         m.shape.unweld();
-        if (opt.rdopt.weld_threshold) |w| {
+        if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
@@ -363,6 +368,7 @@ pub fn addPlane(model: zmath.Mat, opt: PlaneDrawOption) !void {
 
 pub const ParametricSphereDrawOption = struct {
     rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
     slices: u32 = 15,
     stacks: u32 = 15,
 };
@@ -380,7 +386,7 @@ pub fn addParametricSphere(model: zmath.Mat, opt: ParametricSphereDrawOption) !v
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}-{d}",
-                .{ _opt.rdopt.weld_threshold, _opt.slices, _opt.stacks },
+                .{ _opt.weld_threshold, _opt.slices, _opt.stacks },
             ) catch unreachable;
         }
     };
@@ -400,7 +406,7 @@ pub fn addParametricSphere(model: zmath.Mat, opt: ParametricSphereDrawOption) !v
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initParametricSphere(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
         m.shape.unweld();
-        if (opt.rdopt.weld_threshold) |w| {
+        if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
@@ -415,6 +421,7 @@ pub fn addParametricSphere(model: zmath.Mat, opt: ParametricSphereDrawOption) !v
 
 pub const SubdividedSphereDrawOption = struct {
     rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
     sub_num: u32 = 2,
 };
 pub fn addSubdividedSphere(model: zmath.Mat, opt: SubdividedSphereDrawOption) !void {
@@ -431,7 +438,7 @@ pub fn addSubdividedSphere(model: zmath.Mat, opt: SubdividedSphereDrawOption) !v
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}",
-                .{ _opt.rdopt.weld_threshold, _opt.sub_num },
+                .{ _opt.weld_threshold, _opt.sub_num },
             ) catch unreachable;
         }
     };
@@ -450,7 +457,7 @@ pub fn addSubdividedSphere(model: zmath.Mat, opt: SubdividedSphereDrawOption) !v
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initSubdividedSphere(@intCast(i32, opt.sub_num));
         m.shape.unweld();
-        if (opt.rdopt.weld_threshold) |w| {
+        if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
@@ -465,6 +472,7 @@ pub fn addSubdividedSphere(model: zmath.Mat, opt: SubdividedSphereDrawOption) !v
 
 pub const HemisphereDrawOption = struct {
     rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
     slices: u32 = 15,
     stacks: u32 = 15,
 };
@@ -482,7 +490,7 @@ pub fn addHemisphere(model: zmath.Mat, opt: HemisphereDrawOption) !void {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}-{d}",
-                .{ _opt.rdopt.weld_threshold, _opt.slices, _opt.stacks },
+                .{ _opt.weld_threshold, _opt.slices, _opt.stacks },
             ) catch unreachable;
         }
     };
@@ -502,7 +510,7 @@ pub fn addHemisphere(model: zmath.Mat, opt: HemisphereDrawOption) !void {
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initHemisphere(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
         m.shape.unweld();
-        if (opt.rdopt.weld_threshold) |w| {
+        if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
@@ -517,6 +525,7 @@ pub fn addHemisphere(model: zmath.Mat, opt: HemisphereDrawOption) !void {
 
 pub const ConeDrawOption = struct {
     rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
     slices: u32 = 15,
     stacks: u32 = 1,
 };
@@ -534,7 +543,7 @@ pub fn addCone(model: zmath.Mat, opt: ConeDrawOption) !void {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}-{d}",
-                .{ _opt.rdopt.weld_threshold, _opt.slices, _opt.stacks },
+                .{ _opt.weld_threshold, _opt.slices, _opt.stacks },
             ) catch unreachable;
         }
     };
@@ -554,7 +563,7 @@ pub fn addCone(model: zmath.Mat, opt: ConeDrawOption) !void {
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initCone(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
         m.shape.unweld();
-        if (opt.rdopt.weld_threshold) |w| {
+        if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
@@ -569,6 +578,7 @@ pub fn addCone(model: zmath.Mat, opt: ConeDrawOption) !void {
 
 pub const CylinderDrawOption = struct {
     rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
     slices: u32 = 20,
     stacks: u32 = 1,
 };
@@ -586,7 +596,7 @@ pub fn addCylinder(model: zmath.Mat, opt: CylinderDrawOption) !void {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}-{d}",
-                .{ _opt.rdopt.weld_threshold, _opt.slices, _opt.stacks },
+                .{ _opt.weld_threshold, _opt.slices, _opt.stacks },
             ) catch unreachable;
         }
     };
@@ -606,7 +616,7 @@ pub fn addCylinder(model: zmath.Mat, opt: CylinderDrawOption) !void {
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initCylinder(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
         m.shape.unweld();
-        if (opt.rdopt.weld_threshold) |w| {
+        if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
@@ -621,6 +631,7 @@ pub fn addCylinder(model: zmath.Mat, opt: CylinderDrawOption) !void {
 
 pub const DiskDrawOption = struct {
     rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
     radius: f32 = 1,
     slices: u32 = 20,
     center: [3]f32 = .{ 0, 0, 0 },
@@ -641,9 +652,9 @@ pub fn addDisk(model: zmath.Mat, opt: DiskDrawOption) !void {
                 &buf,
                 "{?:.5}-{d:.3}-{d}-({d:.3}/{d:.3}/{d:.3})-({d:.3}/{d:.3}/{d:.3})",
                 .{
-                    _opt.rdopt.weld_threshold, _opt.radius,    _opt.slices,
-                    _opt.center[0],            _opt.center[1], _opt.center[2],
-                    _opt.normal[0],            _opt.normal[1], _opt.normal[2],
+                    _opt.weld_threshold, _opt.radius,    _opt.slices,
+                    _opt.center[0],      _opt.center[1], _opt.center[2],
+                    _opt.normal[0],      _opt.normal[1], _opt.normal[2],
                 },
             ) catch unreachable;
         }
@@ -664,7 +675,7 @@ pub fn addDisk(model: zmath.Mat, opt: DiskDrawOption) !void {
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initDisk(opt.radius, @intCast(i32, opt.slices), &opt.center, &opt.normal);
         m.shape.unweld();
-        if (opt.rdopt.weld_threshold) |w| {
+        if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
@@ -679,6 +690,7 @@ pub fn addDisk(model: zmath.Mat, opt: DiskDrawOption) !void {
 
 pub const TorusDrawOption = struct {
     rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
     radius: f32 = 0.2,
     slices: u32 = 15,
     stacks: u32 = 20,
@@ -697,7 +709,7 @@ pub fn addTorus(model: zmath.Mat, opt: TorusDrawOption) !void {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d:.3}-{d}-{d}",
-                .{ _opt.rdopt.weld_threshold, _opt.radius, _opt.slices, _opt.stacks },
+                .{ _opt.weld_threshold, _opt.radius, _opt.slices, _opt.stacks },
             ) catch unreachable;
         }
     };
@@ -718,7 +730,7 @@ pub fn addTorus(model: zmath.Mat, opt: TorusDrawOption) !void {
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initTorus(@intCast(i32, opt.slices), @intCast(i32, opt.stacks), opt.radius);
         m.shape.unweld();
-        if (opt.rdopt.weld_threshold) |w| {
+        if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
@@ -731,7 +743,11 @@ pub fn addTorus(model: zmath.Mat, opt: TorusDrawOption) !void {
     try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
 }
 
-pub fn addIcosahedron(model: zmath.Mat, opt: RenderOption) !void {
+pub const IcosahedronDrawOption = struct {
+    rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
+};
+pub fn addIcosahedron(model: zmath.Mat, opt: IcosahedronDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -741,7 +757,7 @@ pub fn addIcosahedron(model: zmath.Mat, opt: RenderOption) !void {
         var meshes: ?std.StringHashMap(*Mesh) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: RenderOption) []u8 {
+        fn getKey(_opt: IcosahedronDrawOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}",
@@ -773,10 +789,14 @@ pub fn addIcosahedron(model: zmath.Mat, opt: RenderOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt);
+    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
 }
 
-pub fn addDodecahedron(model: zmath.Mat, opt: RenderOption) !void {
+pub const DodecahedronDrawOption = struct {
+    rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
+};
+pub fn addDodecahedron(model: zmath.Mat, opt: DodecahedronDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -786,7 +806,7 @@ pub fn addDodecahedron(model: zmath.Mat, opt: RenderOption) !void {
         var meshes: ?std.StringHashMap(*Mesh) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: RenderOption) []u8 {
+        fn getKey(_opt: DodecahedronDrawOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}",
@@ -818,10 +838,14 @@ pub fn addDodecahedron(model: zmath.Mat, opt: RenderOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt);
+    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
 }
 
-pub fn addOctahedron(model: zmath.Mat, opt: RenderOption) !void {
+pub const OctahedronDrawOption = struct {
+    rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
+};
+pub fn addOctahedron(model: zmath.Mat, opt: OctahedronDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -831,7 +855,7 @@ pub fn addOctahedron(model: zmath.Mat, opt: RenderOption) !void {
         var meshes: ?std.StringHashMap(*Mesh) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: RenderOption) []u8 {
+        fn getKey(_opt: OctahedronDrawOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}",
@@ -863,10 +887,14 @@ pub fn addOctahedron(model: zmath.Mat, opt: RenderOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt);
+    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
 }
 
-pub fn addTetrahedron(model: zmath.Mat, opt: RenderOption) !void {
+pub const TetrahedronDrawOption = struct {
+    rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
+};
+pub fn addTetrahedron(model: zmath.Mat, opt: TetrahedronDrawOption) !void {
     const S = struct {
         const Mesh = struct {
             shape: zmesh.Shape,
@@ -876,7 +904,7 @@ pub fn addTetrahedron(model: zmath.Mat, opt: RenderOption) !void {
         var meshes: ?std.StringHashMap(*Mesh) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: RenderOption) []u8 {
+        fn getKey(_opt: TetrahedronDrawOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}",
@@ -908,11 +936,12 @@ pub fn addTetrahedron(model: zmath.Mat, opt: RenderOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt);
+    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
 }
 
 pub const RockDrawOption = struct {
     rdopt: RenderOption = .{},
+    weld_threshold: ?f32 = null,
     seed: i32 = 3,
     sub_num: u32 = 1,
 };
@@ -930,7 +959,7 @@ pub fn addRock(model: zmath.Mat, opt: RockDrawOption) !void {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}-{d}",
-                .{ _opt.rdopt.weld_threshold, _opt.seed, _opt.sub_num },
+                .{ _opt.weld_threshold, _opt.seed, _opt.sub_num },
             ) catch unreachable;
         }
     };
@@ -949,7 +978,7 @@ pub fn addRock(model: zmath.Mat, opt: RockDrawOption) !void {
         var m = try arena.allocator().create(S.Mesh);
         m.shape = zmesh.Shape.initRock(@intCast(i32, opt.seed), @intCast(i32, opt.sub_num));
         m.shape.unweld();
-        if (opt.rdopt.weld_threshold) |w| {
+        if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
         }
         m.shape.computeNormals();
