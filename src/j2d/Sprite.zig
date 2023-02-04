@@ -1,8 +1,10 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
+const DrawCmd = @import("j2d/draw_command.zig").DrawCmd;
 const Camera = @import("Camera.zig");
 const jok = @import("../jok.zig");
+const imgui = jok.imgui;
 const zmath = jok.zmath;
 const Self = @This();
 
@@ -45,37 +47,24 @@ pub fn getSubSprite(
 }
 
 /// Sprite's drawing params
-pub const DrawOption = struct {
-    /// Position of sprite
+pub const RenderOption = struct {
     pos: sdl.PointF,
-
-    /// Optional camera
     camera: ?Camera = null,
-
-    /// Mod color
     tint_color: sdl.Color = sdl.Color.white,
-
-    /// Scale of width/height
     scale_w: f32 = 1.0,
     scale_h: f32 = 1.0,
-
-    /// Rotation around anchor-point (center by default)
     rotate_degree: f32 = 0,
-
-    /// Anchor-point of sprite, around which rotation and translation is calculated
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
-
-    /// Horizontal/vertial flipping
     flip_h: bool = false,
     flip_v: bool = false,
+    depth: f32 = 0.5,
 };
 
-/// Add vertex data
-pub fn appendDrawData(
+/// Render to output
+pub fn render(
     self: Self,
-    vattribs: *std.ArrayList(sdl.Vertex),
-    vindices: *std.ArrayList(u32),
-    opt: DrawOption,
+    draw_commands: *std.ArrayList(DrawCmd),
+    opt: RenderOption,
 ) !void {
     assert(opt.scale_w >= 0 and opt.scale_h >= 0);
     assert(opt.anchor_point.x >= 0 and opt.anchor_point.x <= 1);
@@ -98,35 +87,23 @@ pub fn appendDrawData(
         -opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // Left bottom
     });
     const trasformed_coords = zmath.mul(basic_coords, m_transform);
-    const base_index = @intCast(u32, vattribs.items.len);
-    try vattribs.appendSlice(&[_]sdl.Vertex{
-        .{
-            .position = .{ .x = trasformed_coords[0][0], .y = trasformed_coords[0][1] },
-            .color = opt.tint_color,
-            .tex_coord = .{ .x = uv0.x, .y = uv0.y },
+    try draw_commands.append(.{
+        .cmd = .{
+            .image = .{
+                .texture = self.tex,
+                .pmin = .{
+                    .x = trasformed_coords[0][0],
+                    .y = trasformed_coords[0][1],
+                },
+                .pmax = .{
+                    .x = trasformed_coords[2][0],
+                    .y = trasformed_coords[2][1],
+                },
+                .uv0 = uv0,
+                .uv1 = uv1,
+                .tint_color = imgui.sdl.convertColor(opt.tint_color),
+            },
         },
-        .{
-            .position = .{ .x = trasformed_coords[1][0], .y = trasformed_coords[1][1] },
-            .color = opt.tint_color,
-            .tex_coord = .{ .x = uv1.x, .y = uv0.y },
-        },
-        .{
-            .position = .{ .x = trasformed_coords[2][0], .y = trasformed_coords[2][1] },
-            .color = opt.tint_color,
-            .tex_coord = .{ .x = uv1.x, .y = uv1.y },
-        },
-        .{
-            .position = .{ .x = trasformed_coords[3][0], .y = trasformed_coords[3][1] },
-            .color = opt.tint_color,
-            .tex_coord = .{ .x = uv0.x, .y = uv1.y },
-        },
-    });
-    try vindices.appendSlice(&[_]u32{
-        base_index,
-        base_index + 1,
-        base_index + 2,
-        base_index,
-        base_index + 2,
-        base_index + 3,
+        .depth = opt.depth,
     });
 }

@@ -302,7 +302,7 @@ fn initModules() !void {
     try initSDL();
     imgui.sdl.init(ctx);
     zmesh.init(ctx.allocator);
-    try jok.j2d.primitive.init(ctx.allocator, ctx.renderer);
+    try jok.j2d.init(ctx.allocator, ctx.renderer);
     try jok.j3d.init(ctx.allocator, ctx.renderer);
     if (bos.use_zaudio) {
         zaudio.init(ctx.allocator);
@@ -315,7 +315,7 @@ fn deinitModules() void {
         zaudio.deinit();
     }
     jok.j3d.deinit();
-    jok.j2d.primitive.deinit();
+    jok.j2d.deinit();
     zmesh.deinit();
     imgui.sdl.deinit();
     deinitSDL();

@@ -88,11 +88,11 @@ blend_method: BlendMethod = .blend,
 depth_sort: DepthSortMethod = .none,
 
 /// Create sprite-batch
-pub fn create(
+pub fn init(
     ctx: *jok.Context,
     max_tex_num: u32,
     max_sprites_per_drawcall: u32,
-) !*Self {
+) !Self {
     var self = try ctx.allocator.create(Self);
     errdefer ctx.allocator.destroy(self);
     const batches = try ctx.allocator.alloc(BatchData, max_tex_num);
@@ -113,7 +113,7 @@ pub fn create(
     return self;
 }
 
-pub fn destroy(self: *Self) void {
+pub fn deinit(self: *Self) void {
     for (self.batches) |b| {
         b.sprites_data.deinit();
         b.vattrib.deinit();
@@ -121,7 +121,7 @@ pub fn destroy(self: *Self) void {
     }
     self.allocator.free(self.batches);
     self.batch_search.deinit();
-    self.allocator.destroy(self);
+    self.* = undefined;
 }
 
 /// Begin batched data

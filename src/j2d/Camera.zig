@@ -1,3 +1,4 @@
+/// 2d camera
 const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
