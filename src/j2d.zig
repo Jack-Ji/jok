@@ -1,6 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
+const unicode = std.unicode;
 const sdl = @import("sdl");
 const jok = @import("jok.zig");
 const imgui = jok.imgui;
@@ -8,7 +9,7 @@ const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 
 const dc = @import("j2d/draw_command.zig");
-pub const Camera = @import("j2d/Camera.zig");
+const Atlas = @import("font/Atlas.zig");
 pub const Sprite = @import("j2d/Sprite.zig");
 pub const SpriteSheet = @import("j2d/SpriteSheet.zig");
 pub const ParticleSystem = @import("j2d/ParticleSystem.zig");
@@ -53,7 +54,7 @@ pub const BlendMethod = enum {
 };
 
 pub const BeginOption = struct {
-    camera: ?Camera = null,
+    transform: TransformOption = .{},
     depth_sort: DepthSortMethod = .none,
     blend_method: BlendMethod = .blend,
     antialiased: bool = true,
@@ -63,7 +64,9 @@ var arena: std.heap.ArenaAllocator = undefined;
 var rd: sdl.Renderer = undefined;
 var draw_list: imgui.DrawList = undefined;
 var draw_commands: std.ArrayList(dc.DrawCmd) = undefined;
-var camera: ?Camera = undefined;
+var transform: TransformOption = undefined;
+var transform_m: zmath.Mat = undefined;
+var transform_noscale_m: zmath.Mat = undefined;
 var depth_sort: DepthSortMethod = undefined;
 var blend_method: BlendMethod = undefined;
 
@@ -80,12 +83,14 @@ pub fn deinit() void {
     draw_commands.deinit();
 }
 
-pub fn begin(opt: BeginOption) void {
+pub fn begin(opt: BeginOption) !void {
     draw_list.reset();
     draw_list.pushClipRectFullScreen();
     draw_list.pushTextureId(imgui.io.getFontsTexId());
     draw_commands.clearRetainingCapacity();
-    camera = opt.camera;
+    transform = opt.transform;
+    transform_m = transform.getMatrix();
+    transform_noscale_m = transform.getMatrixNoScale();
     depth_sort = opt.depth_sort;
     blend_method = opt.blend_method;
     if (opt.antialiased) {
@@ -99,6 +104,11 @@ pub fn begin(opt: BeginOption) void {
 }
 
 pub fn end() !void {
+    switch (depth_sort) {
+        .none => {},
+        .back_to_forth => {},
+        .forth_to_back => {},
+    }
     try imgui.sdl.renderDrawList(rd, draw_list);
 }
 
@@ -121,71 +131,79 @@ pub fn popClipRect() void {
 }
 
 pub const AddLine = struct {
-    trs: TransformOption = .{},
     thickness: f32 = 1.0,
+    depth: f32 = 0.5,
 };
-pub fn addLine(_p1: sdl.PointF, _p2: sdl.PointF, color: sdl.Color, opt: AddLine) void {
-    const m = opt.trs.getMatrix();
-    const p1 = transformPoint(_p1, m);
-    const p2 = transformPoint(_p2, m);
-    draw_list.addLine(.{
-        .p1 = .{ p1.x, p1.y },
-        .p2 = .{ p2.x, p2.y },
-        .col = imgui.sdl.convertColor(color),
-        .thickness = opt.thickness,
+pub fn addLine(p1: sdl.PointF, p2: sdl.PointF, color: sdl.Color, opt: AddLine) void {
+    try draw_commands.append(.{
+        .cmd = .{
+            .line = .{
+                .p1 = transformPoint(p1, transform_m),
+                .p2 = transformPoint(p2, transform_m),
+                .color = imgui.sdl.convertColor(color),
+                .thickness = opt.thickness,
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
 pub const AddRect = struct {
-    trs: TransformOption = .{},
     thickness: f32 = 1.0,
     rounding: f32 = 0,
+    depth: f32 = 0.5,
 };
 pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, opt: AddRect) void {
-    const m = opt.trs.getMatrixNoScale();
-    const _p1 = sdl.PointF{
+    const pmin = transformPoint(.{
         .x = rect.x,
         .y = rect.y,
+    }, transform_noscale_m);
+    const pmax = sdl.PointF{
+        .x = pmin.x + rect.width * transform.scale.x,
+        .y = pmin.y + rect.height * transform.scale.y,
     };
-    const p1 = transformPoint(_p1, m);
-    const p2 = sdl.PointF{
-        .x = p1.x + rect.width * opt.trs.scale.x,
-        .y = p1.y + rect.height * opt.trs.scale.y,
-    };
-    draw_list.addRect(.{
-        .pmin = .{ p1.x, p1.y },
-        .pmax = .{ p2.x, p2.y },
-        .col = imgui.sdl.convertColor(color),
-        .rounding = opt.rounding,
-        .thickness = opt.thickness,
+    try draw_commands.append(.{
+        .cmd = .{
+            .rect = .{
+                .pmin = pmin,
+                .pmax = pmax,
+                .color = imgui.sdl.convertColor(color),
+                .thickness = opt.thickness,
+                .rounding = opt.rounding,
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
 pub const FillRect = struct {
-    trs: TransformOption = .{},
     rounding: f32 = 0,
+    depth: f32 = 0.5,
 };
 pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) void {
-    const m = opt.trs.getMatrixNoScale();
-    const _p1 = sdl.PointF{
+    const pmin = transformPoint(.{
         .x = rect.x,
         .y = rect.y,
+    }, transform_noscale_m);
+    const pmax = sdl.PointF{
+        .x = pmin.x + rect.width * transform.scale.x,
+        .y = pmin.y + rect.height * transform.scale.y,
     };
-    const p1 = transformPoint(_p1, m);
-    const p2 = sdl.PointF{
-        .x = p1.x + rect.width * opt.trs.scale.x,
-        .y = p1.y + rect.height * opt.trs.scale.y,
-    };
-    draw_list.addRectFilled(.{
-        .pmin = .{ p1.x, p1.y },
-        .pmax = .{ p2.x, p2.y },
-        .col = imgui.sdl.convertColor(color),
-        .rounding = opt.rounding,
+    try draw_commands.append(.{
+        .cmd = .{
+            .rect_fill = .{
+                .pmin = pmin,
+                .pmax = pmax,
+                .color = imgui.sdl.convertColor(color),
+                .rounding = opt.rounding,
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
 pub const FillRectMultiColor = struct {
-    trs: TransformOption = .{},
+    depth: f32 = 0.5,
 };
 pub fn addRectFilledMultiColor(
     rect: sdl.RectangleF,
@@ -195,357 +213,419 @@ pub fn addRectFilledMultiColor(
     color_bottom_left: sdl.Color,
     opt: FillRectMultiColor,
 ) void {
-    const m = opt.trs.getMatrixNoScale();
-    const _p1 = sdl.PointF{
+    const pmin = transformPoint(.{
         .x = rect.x,
         .y = rect.y,
+    }, transform_noscale_m);
+    const pmax = sdl.PointF{
+        .x = pmin.x + rect.width * transform.scale.x,
+        .y = pmin.y + rect.height * transform.scale.y,
     };
-    const p1 = transformPoint(_p1, m);
-    const p2 = sdl.PointF{
-        .x = p1.x + rect.width * opt.trs.scale.x,
-        .y = p1.y + rect.height * opt.trs.scale.y,
-    };
-    draw_list.addRectFilledMultiColor(.{
-        .pmin = .{ p1.x, p1.y },
-        .pmax = .{ p2.x, p2.y },
-        .col_upr_left = imgui.sdl.convertColor(color_top_left),
-        .col_upr_right = imgui.sdl.convertColor(color_top_right),
-        .col_bot_right = imgui.sdl.convertColor(color_bottom_right),
-        .col_bot_left = imgui.sdl.convertColor(color_bottom_left),
+    try draw_commands.append(.{
+        .cmd = .{
+            .rect_fill_multicolor = .{
+                .pmin = pmin,
+                .pmax = pmax,
+                .color_ul = imgui.sdl.convertColor(color_top_left),
+                .color_ur = imgui.sdl.convertColor(color_top_right),
+                .color_br = imgui.sdl.convertColor(color_bottom_right),
+                .color_bl = imgui.sdl.convertColor(color_bottom_left),
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
 pub const AddQuad = struct {
-    trs: TransformOption = .{},
     thickness: f32 = 1.0,
+    depth: f32 = 0.5,
 };
 pub fn addQuad(
-    _p1: sdl.PointF,
-    _p2: sdl.PointF,
-    _p3: sdl.PointF,
-    _p4: sdl.PointF,
+    p1: sdl.PointF,
+    p2: sdl.PointF,
+    p3: sdl.PointF,
+    p4: sdl.PointF,
     color: sdl.Color,
     opt: AddQuad,
 ) void {
-    const m = opt.trs.getMatrix();
-    const p1 = transformPoint(_p1, m);
-    const p2 = transformPoint(_p2, m);
-    const p3 = transformPoint(_p3, m);
-    const p4 = transformPoint(_p4, m);
-    draw_list.addQuad(.{
-        .p1 = [_]f32{ p1.x, p1.y },
-        .p2 = [_]f32{ p2.x, p2.y },
-        .p3 = [_]f32{ p3.x, p3.y },
-        .p4 = [_]f32{ p4.x, p4.y },
-        .col = imgui.sdl.convertColor(color),
-        .thickness = opt.thickness,
+    try draw_commands.append(.{
+        .cmd = .{
+            .quad = .{
+                .p1 = transformPoint(p1, transform_m),
+                .p2 = transformPoint(p2, transform_m),
+                .p3 = transformPoint(p3, transform_m),
+                .p4 = transformPoint(p4, transform_m),
+                .color = imgui.sdl.convertColor(color),
+                .thickness = opt.thickness,
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
 pub const FillQuad = struct {
-    trs: TransformOption = .{},
+    depth: f32 = 0.5,
 };
 pub fn addQuadFilled(
-    _p1: sdl.PointF,
-    _p2: sdl.PointF,
-    _p3: sdl.PointF,
-    _p4: sdl.PointF,
+    p1: sdl.PointF,
+    p2: sdl.PointF,
+    p3: sdl.PointF,
+    p4: sdl.PointF,
     color: sdl.Color,
     opt: FillQuad,
 ) void {
-    const m = opt.trs.getMatrix();
-    const p1 = transformPoint(_p1, m);
-    const p2 = transformPoint(_p2, m);
-    const p3 = transformPoint(_p3, m);
-    const p4 = transformPoint(_p4, m);
-    draw_list.addQuadFilled(.{
-        .p1 = [_]f32{ p1.x, p1.y },
-        .p2 = [_]f32{ p2.x, p2.y },
-        .p3 = [_]f32{ p3.x, p3.y },
-        .p4 = [_]f32{ p4.x, p4.y },
-        .col = imgui.sdl.convertColor(color),
+    try draw_commands.append(.{
+        .cmd = .{
+            .quad_fill = .{
+                .p1 = transformPoint(p1, transform_m),
+                .p2 = transformPoint(p2, transform_m),
+                .p3 = transformPoint(p3, transform_m),
+                .p4 = transformPoint(p4, transform_m),
+                .color = imgui.sdl.convertColor(color),
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
 pub const AddTriangle = struct {
-    trs: TransformOption = .{},
     thickness: f32 = 1.0,
+    depth: f32 = 0.5,
 };
 pub fn addTriangle(
-    _p1: sdl.PointF,
-    _p2: sdl.PointF,
-    _p3: sdl.PointF,
+    p1: sdl.PointF,
+    p2: sdl.PointF,
+    p3: sdl.PointF,
     color: sdl.Color,
     opt: AddTriangle,
 ) void {
-    const m = opt.trs.getMatrix();
-    const p1 = transformPoint(_p1, m);
-    const p2 = transformPoint(_p2, m);
-    const p3 = transformPoint(_p3, m);
-    draw_list.addTriangle(.{
-        .p1 = [_]f32{ p1.x, p1.y },
-        .p2 = [_]f32{ p2.x, p2.y },
-        .p3 = [_]f32{ p3.x, p3.y },
-        .col = imgui.sdl.convertColor(color),
-        .thickness = opt.thickness,
+    try draw_commands.append(.{
+        .cmd = .{
+            .triangle = .{
+                .p1 = transformPoint(p1, transform_m),
+                .p2 = transformPoint(p2, transform_m),
+                .p3 = transformPoint(p3, transform_m),
+                .color = imgui.sdl.convertColor(color),
+                .thickness = opt.thickness,
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
 pub const FillTriangle = struct {
-    trs: TransformOption = .{},
+    depth: f32 = 0.5,
 };
 pub fn addTriangleFilled(
-    _p1: sdl.PointF,
-    _p2: sdl.PointF,
-    _p3: sdl.PointF,
+    p1: sdl.PointF,
+    p2: sdl.PointF,
+    p3: sdl.PointF,
     color: sdl.Color,
     opt: FillTriangle,
 ) void {
-    const m = opt.trs.getMatrix();
-    const p1 = transformPoint(_p1, m);
-    const p2 = transformPoint(_p2, m);
-    const p3 = transformPoint(_p3, m);
-    draw_list.addTriangleFilled(.{
-        .p1 = [_]f32{ p1.x, p1.y },
-        .p2 = [_]f32{ p2.x, p2.y },
-        .p3 = [_]f32{ p3.x, p3.y },
-        .col = imgui.sdl.convertColor(color),
+    try draw_commands.append(.{
+        .cmd = .{
+            .triangle_fill = .{
+                .p1 = transformPoint(p1, transform_m),
+                .p2 = transformPoint(p2, transform_m),
+                .p3 = transformPoint(p3, transform_m),
+                .color = imgui.sdl.convertColor(color),
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
 pub const AddCircle = struct {
-    trs: TransformOption = .{},
     thickness: f32 = 1.0,
     num_segments: u32 = 0,
+    depth: f32 = 0.5,
 };
 pub fn addCircle(
-    _center: sdl.PointF,
+    center: sdl.PointF,
     radius: f32,
     color: sdl.Color,
     opt: AddCircle,
 ) void {
-    const m = opt.trs.getMatrixNoScale();
-    const center = transformPoint(_center, m);
-    draw_list.addCircle(.{
-        .p = [_]f32{ center.x, center.y },
-        .r = radius * opt.trs.scale.x,
-        .col = imgui.sdl.convertColor(color),
-        .thickness = opt.thickness,
-        .num_segments = opt.num_segments,
+    try draw_commands.append(.{
+        .cmd = .{
+            .circle = .{
+                .p = transformPoint(center, transform_noscale_m),
+                .radius = radius * transform.scale.x,
+                .color = imgui.sdl.convertColor(color),
+                .thickness = opt.thickness,
+                .num_segments = opt.num_segments,
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
 pub const FillCircle = struct {
     trs: TransformOption = .{},
     num_segments: u32 = 0,
+    depth: f32 = 0.5,
 };
 pub fn addCircleFilled(
-    _center: sdl.PointF,
+    center: sdl.PointF,
     radius: f32,
     color: sdl.Color,
     opt: FillCircle,
-) void {
-    const m = opt.trs.getMatrixNoScale();
-    const center = transformPoint(_center, m);
-    draw_list.addCircleFilled(.{
-        .p = [_]f32{ center.x, center.y },
-        .r = radius * opt.trs.scale.x,
-        .col = imgui.sdl.convertColor(color),
-        .num_segments = opt.num_segments,
+) !void {
+    try draw_commands.append(.{
+        .cmd = .{
+            .circle_fill = .{
+                .p = transformPoint(center, transform_noscale_m),
+                .radius = radius * transform.scale.x,
+                .color = imgui.sdl.convertColor(color),
+                .num_segments = opt.num_segments,
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
 pub const AddNgon = struct {
-    trs: TransformOption = .{},
     thickness: f32 = 1.0,
-    num_segments: u32 = 0,
+    depth: f32 = 0.5,
 };
 pub fn addNgon(
-    _center: sdl.PointF,
+    center: sdl.PointF,
     radius: f32,
     color: sdl.Color,
     num_segments: u32,
     opt: AddNgon,
-) void {
-    const m = opt.trs.getMatrixNoScale();
-    const center = transformPoint(_center, m);
-    draw_list.addNgon(.{
-        .p = [_]f32{ center.x, center.y },
-        .r = radius * opt.trs.scale.x,
-        .col = imgui.sdl.convertColor(color),
-        .num_segments = num_segments,
-        .thickness = opt.thickness,
+) !void {
+    try draw_commands.append(.{
+        .cmd = .{
+            .ngon = .{
+                .p = transformPoint(center, transform_noscale_m),
+                .radius = radius * transform.scale.x,
+                .color = imgui.sdl.convertColor(color),
+                .thickness = opt.thickness,
+                .num_segments = num_segments,
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
 pub const FillNgon = struct {
-    trs: TransformOption = .{},
+    depth: f32 = 0.5,
 };
 pub fn addNgonFilled(
-    _center: sdl.PointF,
+    center: sdl.PointF,
     radius: f32,
     color: sdl.Color,
     num_segments: u32,
     opt: FillNgon,
-) void {
-    const m = opt.trs.getMatrixNoScale();
-    const center = transformPoint(_center, m);
-    draw_list.addNgonFilled(.{
-        .p = [_]f32{ center.x, center.y },
-        .r = radius * opt.trs.scale.x,
-        .col = imgui.sdl.convertColor(color),
-        .num_segments = num_segments,
+) !void {
+    try draw_commands.append(.{
+        .cmd = .{
+            .ngon_fill = .{
+                .p = transformPoint(center, transform_noscale_m),
+                .radius = radius * transform.scale.x,
+                .color = imgui.sdl.convertColor(color),
+                .num_segments = num_segments,
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
-pub const AddPolyline = struct {
-    trs: TransformOption = .{},
-    thickness: f32 = 1.0,
-    closed: bool = false,
-};
-pub fn addPolyline(
-    _points: []const sdl.PointF,
-    color: sdl.Color,
-    opt: AddPolyline,
-) void {
-    const S = struct {
-        var points: ?std.ArrayList([2]f32) = null;
-    };
-
-    if (_points.len < 2) return;
-
-    if (S.points == null) {
-        S.points = std.ArrayList([2]f32).init(arena.allocator());
-    }
-
-    S.points.?.clearRetainingCapacity();
-
-    const m = opt.trs.getMatrix();
-    for (_points) |_p| {
-        const p = transformPoint(_p, m);
-        S.points.?.append(.{ p.x, p.y }) catch unreachable;
-    }
-
-    draw_list.addPolyline(
-        S.points.?.items,
-        .{
-            .col = imgui.sdl.convertColor(color),
-            .flags = .{ .closed = opt.closed },
-            .thickness = opt.thickness,
-        },
-    );
-}
-
-pub const AddConvexPolyFilled = struct {
-    trs: TransformOption = .{},
-};
-pub fn addConvexPolyFilled(
-    _points: []const sdl.PointF,
-    color: sdl.Color,
-    opt: AddConvexPolyFilled,
-) void {
-    const S = struct {
-        var points: ?std.ArrayList([2]f32) = null;
-    };
-
-    if (_points.len < 2) return;
-
-    if (S.points == null) {
-        S.points = std.ArrayList([2]f32).init(arena.allocator());
-    }
-
-    S.points.?.clearRetainingCapacity();
-
-    const m = opt.trs.getMatrix();
-    for (_points) |_p| {
-        const p = transformPoint(_p, m);
-        S.points.?.append(.{ p.x, p.y }) catch unreachable;
-    }
-
-    draw_list.addConvexPolyFilled(
-        S.points.?.items,
-        imgui.sdl.convertColor(color),
-    );
-}
-
 pub const AddBezierCubic = struct {
-    trs: TransformOption = .{},
     thickness: f32 = 1.0,
     num_segments: u32 = 0,
+    depth: f32 = 0.5,
 };
 pub fn addBezierCubic(
-    _p1: sdl.PointF,
-    _p2: sdl.PointF,
-    _p3: sdl.PointF,
-    _p4: sdl.PointF,
+    p1: sdl.PointF,
+    p2: sdl.PointF,
+    p3: sdl.PointF,
+    p4: sdl.PointF,
     color: sdl.Color,
     opt: AddBezierCubic,
-) void {
-    const m = opt.trs.getMatrix();
-    const p1 = transformPoint(_p1, m);
-    const p2 = transformPoint(_p2, m);
-    const p3 = transformPoint(_p3, m);
-    const p4 = transformPoint(_p4, m);
-    draw_list.addBezierCubic(.{
-        .p1 = .{ p1.x, p1.y },
-        .p2 = .{ p2.x, p2.y },
-        .p3 = .{ p3.x, p3.y },
-        .p4 = .{ p4.x, p4.y },
-        .col = imgui.sdl.convertColor(color),
-        .thickness = opt.thickness,
+) !void {
+    try draw_commands.append(.{
+        .cmd = .{
+            .bezier_cubic = .{
+                .p1 = transformPoint(p1, transform_m),
+                .p2 = transformPoint(p2, transform_m),
+                .p3 = transformPoint(p3, transform_m),
+                .p4 = transformPoint(p4, transform_m),
+                .color = imgui.sdl.convertColor(color),
+                .thickness = opt.thickness,
+                .num_segments = opt.num_segments,
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
 pub const AddBezierQuadratic = struct {
-    trs: TransformOption = .{},
     thickness: f32 = 1.0,
     num_segments: u32 = 0,
+    depth: f32 = 0.5,
 };
 pub fn addBezierQuadratic(
-    _p1: sdl.PointF,
-    _p2: sdl.PointF,
-    _p3: sdl.PointF,
+    p1: sdl.PointF,
+    p2: sdl.PointF,
+    p3: sdl.PointF,
     color: sdl.Color,
     opt: AddBezierQuadratic,
-) void {
-    const m = opt.trs.getMatrix();
-    const p1 = transformPoint(_p1, m);
-    const p2 = transformPoint(_p2, m);
-    const p3 = transformPoint(_p3, m);
-    draw_list.addBezierQuadratic(.{
-        .p1 = .{ p1.x, p1.y },
-        .p2 = .{ p2.x, p2.y },
-        .p3 = .{ p3.x, p3.y },
-        .col = imgui.sdl.convertColor(color),
-        .thickness = opt.thickness,
+) !void {
+    try draw_commands.append(.{
+        .cmd = .{
+            .bezier_quadratic = .{
+                .p1 = transformPoint(p1, transform_m),
+                .p2 = transformPoint(p2, transform_m),
+                .p3 = transformPoint(p3, transform_m),
+                .color = imgui.sdl.convertColor(color),
+                .thickness = opt.thickness,
+                .num_segments = opt.num_segments,
+            },
+        },
+        .depth = opt.depth,
     });
 }
 
-pub fn addText(pos: sdl.PointF, color: sdl.Color, fmt: []const u8, args: anytype) void {
-    draw_list.addText(
-        .{ pos.x, pos.y },
-        imgui.sdl.convertColor(color),
-        fmt,
-        args,
+pub const AddImage = struct {
+    rect: sdl.RectangleF,
+    uv0: sdl.PointF = .{ .x = 0, .y = 0 },
+    uv1: sdl.PointF = .{ .x = 1, .y = 1 },
+    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    tint_color: sdl.Color = sdl.Color.white,
+    flip_h: bool = false,
+    flip_v: bool = false,
+    rounding: f32 = 0,
+};
+pub fn addImage(texture: sdl.Texture, opt: AddImage) !void {
+    const pmin = transformPoint(.{
+        .x = opt.rect.x,
+        .y = opt.rect.y,
+    }, transform_noscale_m);
+    const pmax = sdl.PointF{
+        .x = opt.pmin.x + opt.rect.width * transform.scale.x * opt.scale.x,
+        .y = opt.pmin.y + opt.rect.height * transform.scale.y * opt.scale.y,
+    };
+    var uv0 = opt.uv0;
+    var uv1 = opt.uv1;
+    if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
+    if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
+    try draw_commands.append(.{
+        .cmd = .{
+            .image_rounded = .{
+                .texture = texture,
+                .pmin = pmin,
+                .pmax = pmax,
+                .uv0 = uv0,
+                .uv1 = uv1,
+                .tint_color = opt.tint_color,
+                .rounding = opt.rounding,
+            },
+        },
+        .depth = opt.depth,
+    });
+}
+
+pub fn addSprite(sprite: Sprite, opt: Sprite.RenderOption) !void {
+    try sprite.render(&draw_commands, .{
+        .pos = transformPoint(opt.pos),
+        .tint_color = opt.tint_color,
+        .scale = sdl.PointF{
+            .x = transform.scale.x * opt.scale.x,
+            .y = transform.scale.y * opt.scale.y,
+        },
+        .rotate_degree = opt.rotate_degree,
+        .anchor_point = opt.anchor_point,
+        .flip_h = opt.flip_h,
+        .flip_v = opt.flip_v,
+        .depth = opt.depth,
+    });
+}
+
+pub const AddText = struct {
+    atlas: Atlas,
+    pos: sdl.PointF,
+    ypos_type: Atlas.YPosType = .top,
+    tint_color: sdl.Color = sdl.Color.white,
+    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    rotate_degree: f32 = 0,
+    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    depth: f32 = 0.5,
+};
+pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) void {
+    const text = jok.imgui.format(fmt, args);
+    if (text.len == 0) return;
+
+    var pos = transformPoint(opt.pos, transform_m);
+    const scale = sdl.PointF{
+        .x = transform.scale.x * opt.scale.x,
+        .y = transform.scale.y * opt.scale.y,
+    };
+    const angle = jok.utils.math.degreeToRadian(opt.rotate_degree);
+    const mat = zmath.mul(
+        zmath.mul(
+            zmath.translation(-pos.x, -pos.y, 0),
+            zmath.rotationZ(angle),
+        ),
+        zmath.translation(pos.x, pos.y, 0),
     );
+    var i: u32 = 0;
+    while (i < text.len) {
+        const size = try unicode.utf8ByteSequenceLength(text[i]);
+        const cp = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
+        if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, sdl.Color.white, cp)) |cs| {
+            const v = zmath.mul(
+                zmath.f32x4(
+                    cs.vs[0].position.x,
+                    pos.y + (cs.vs[0].position.y - pos.y) * scale.y,
+                    0,
+                    1,
+                ),
+                mat,
+            );
+            const pmin = sdl.PointF{ .x = v[0], .y = v[1] };
+            const pmax = sdl.PointF{
+                .x = pmin.x + (cs.vs[1].position.x - cs.vs[0].position.x) * scale.x,
+                .y = pmin.y + (cs.vs[3].position.y - cs.vs[0].position.y) * scale.y,
+            };
+            try draw_commands.append(.{
+                .cmd = .{
+                    .image = .{
+                        .texture = opt.atlas.tex,
+                        .pmin = pmin,
+                        .pmax = pmax,
+                        .uv0 = cs.vs[0].tex_coord,
+                        .uv1 = cs.vs[2].tex_coord,
+                        .tint_color = opt.tint_color,
+                    },
+                },
+                .depth = opt.depth,
+            });
+            pos.x += (cs.next_x - pos.x) * opt.scale_w;
+        }
+        i += size;
+    }
+}
+
+pub const AddPath = struct {
+    depth: f32 = 0.5,
+};
+pub fn addPath(path: Path, opt: AddPath) !void {
+    try draw_commands.append(.{
+        .cmd = .{ .path = path.path },
+        .depth = opt.depth,
+    });
 }
 
 pub const Path = struct {
-    transform_m: zmath.Mat,
-    scale: sdl.PointF,
     path: dc.PathCmd,
     finished: bool = false,
 
     /// Begin definition of path
-    pub const PathBegin = struct {
-        trs: TransformOption = .{},
-    };
-    pub fn begin(allocator: std.mem.Allocator, opt: PathBegin) Path {
-        return .{
-            .transform_m = opt.trs.getMatrix(),
-            .scale = opt.trs.scale,
-            .path = dc.PathCmd.init(allocator),
-        };
+    pub fn begin(allocator: std.mem.Allocator) Path {
+        return .{ .path = dc.PathCmd.init(allocator) };
     }
 
     /// End definition of path
@@ -571,16 +651,9 @@ pub const Path = struct {
         self.* = undefined;
     }
 
-    fn convertPoint(self: Path, point: sdl.PointF) sdl.PointF {
-        return if (camera) |c|
-            c.translatePointF(transformPoint(point, self.transform_m))
-        else
-            transformPoint(point, self.transform_m);
-    }
-
     pub fn lineTo(self: *Path, pos: sdl.PointF) !void {
         try self.path.cmds.append(.{
-            .line_to = .{ .p = self.convertPoint(pos) },
+            .line_to = .{ .p = transformPoint(pos, transform_m) },
         });
     }
 
@@ -597,8 +670,8 @@ pub const Path = struct {
     ) !void {
         try self.path.cmds.append(.{
             .arc_to = .{
-                .p = self.convertPoint(pos),
-                .radius = radius * self.scale.x,
+                .p = transformPoint(pos, transform_m),
+                .radius = radius * transform.scale.x,
                 .amin = jok.utils.math.degreeToRadian(degree_begin),
                 .amax = jok.utils.math.degreeToRadian(degree_end),
                 .num_segments = opt.num_segments,
@@ -618,9 +691,9 @@ pub const Path = struct {
     ) void {
         try self.path.cmds.append(.{
             .bezier_cubic_to = .{
-                .p2 = self.convertPoint(p2),
-                .p3 = self.convertPoint(p3),
-                .p4 = self.convertPoint(p4),
+                .p2 = transformPoint(p2, transform_m),
+                .p3 = transformPoint(p3, transform_m),
+                .p4 = transformPoint(p4, transform_m),
                 .num_segments = opt.num_segments,
             },
         });
@@ -633,8 +706,8 @@ pub const Path = struct {
     ) void {
         try self.path.cmds.append(.{
             .bezier_quadratic_to = .{
-                .p2 = self.convertPoint(p2),
-                .p3 = self.convertPoint(p3),
+                .p2 = transformPoint(p2, transform_m),
+                .p3 = transformPoint(p3, transform_m),
                 .num_segments = opt.num_segments,
             },
         });
@@ -648,14 +721,14 @@ pub const Path = struct {
         r: sdl.RectangleF,
         opt: Rect,
     ) void {
-        const pmin = self.convertPoint(.{
-            .x = r.x,
-            .y = r.y,
-        });
-        const pmax = self.convertPoint(.{
-            .x = pmin.x + r.width * self.scale.x,
-            .y = pmin.y + r.height * self.scale.y,
-        });
+        const pmin = transformPoint(
+            .{ .x = r.x, .y = r.y },
+            transform_noscale_m,
+        );
+        const pmax = sdl.PointF{
+            .x = pmin.x + r.width * transform.scale.x,
+            .y = pmin.y + r.height * transform.scale.y,
+        };
         try self.path.cmds.append(.{
             .rect = .{
                 .pmin = pmin,
@@ -683,9 +756,8 @@ inline fn getTransformMatrixNoScale(anchor: sdl.PointF, rotate_degree: f32, offs
     return zmath.mul(zmath.mul(zmath.mul(m1, m2), m3), m4);
 }
 
-// Transform coordinate
-inline fn transformPoint(pos: sdl.PointF, trs: zmath.Mat) sdl.PointF {
-    const v = zmath.f32x4(pos.x, pos.y, 0, 1);
+inline fn transformPoint(point: sdl.PointF, trs: zmath.Mat) sdl.PointF {
+    const v = zmath.f32x4(point.x, point.y, 0, 1);
     const tv = zmath.mul(v, trs);
-    return .{ .x = tv[0], .y = tv[1] };
+    return sdl.PointF{ .x = tv[0], .y = tv[1] };
 }

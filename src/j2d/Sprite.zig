@@ -2,7 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
 const DrawCmd = @import("j2d/draw_command.zig").DrawCmd;
-const Camera = @import("Camera.zig");
 const jok = @import("../jok.zig");
 const imgui = jok.imgui;
 const zmath = jok.zmath;
@@ -49,10 +48,8 @@ pub fn getSubSprite(
 /// Sprite's drawing params
 pub const RenderOption = struct {
     pos: sdl.PointF,
-    camera: ?Camera = null,
     tint_color: sdl.Color = sdl.Color.white,
-    scale_w: f32 = 1.0,
-    scale_h: f32 = 1.0,
+    scale: sdl.Pointf = .{ .x = 1, .y = 1 },
     rotate_degree: f32 = 0,
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
     flip_h: bool = false,
@@ -66,19 +63,16 @@ pub fn render(
     draw_commands: *std.ArrayList(DrawCmd),
     opt: RenderOption,
 ) !void {
-    assert(opt.scale_w >= 0 and opt.scale_h >= 0);
+    assert(opt.scale.x >= 0 and opt.scale.y >= 0);
     assert(opt.anchor_point.x >= 0 and opt.anchor_point.x <= 1);
     assert(opt.anchor_point.y >= 0 and opt.anchor_point.y <= 1);
     var uv0 = self.uv0;
     var uv1 = self.uv1;
     if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
     if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
-    const pos = if (opt.camera) |c| c.translatePointF(opt.pos) else opt.pos;
-    const scale_w = if (opt.camera) |c| opt.scale_w / c.zoom else opt.scale_w;
-    const scale_h = if (opt.camera) |c| opt.scale_h / c.zoom else opt.scale_h;
-    const m_scale = zmath.scaling(self.width * scale_w, self.height * scale_h, 1);
+    const m_scale = zmath.scaling(self.width * opt.scale.x, self.height * opt.scale.y, 1);
     const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
-    const m_translate = zmath.translation(pos.x, pos.y, 0);
+    const m_translate = zmath.translation(opt.pos.x, opt.pos.y, 0);
     const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
     const basic_coords = zmath.loadMat(&[_]f32{
         -opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // Left top

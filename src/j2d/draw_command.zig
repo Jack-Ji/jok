@@ -115,28 +115,6 @@ pub const NgonFillCmd = struct {
     num_segments: u32,
 };
 
-pub const PolylineCmd = struct {
-    ps: std.ArrayList(sdl.PointF),
-    color: u32,
-    thickness: f32,
-    closed: bool,
-
-    pub fn deinit(self: *@This()) void {
-        self.ps.deinit();
-        self.* = undefined;
-    }
-};
-
-pub const ConvexPolyFillCmd = struct {
-    ps: std.ArrayList(sdl.PointF),
-    color: u32,
-
-    pub fn deinit(self: *@This()) void {
-        self.ps.deinit();
-        self.* = undefined;
-    }
-};
-
 pub const BezierCubicCmd = struct {
     p1: sdl.PointF,
     p2: sdl.PointF,
@@ -233,8 +211,6 @@ pub const DrawCmd = struct {
         circle_fill: CircleFillCmd,
         ngon: NgonCmd,
         ngon_fill: NgonFillCmd,
-        polyline: PolylineCmd,
-        convex_poly_fill: ConvexPolyFillCmd,
         bezier_cubic: BezierCubicCmd,
         bezier_quadratic: BezierQuadraticCmd,
         path: PathCmd,
@@ -339,25 +315,6 @@ pub const DrawCmd = struct {
                 .col = c.color,
                 .num_segments = c.num_segments,
             }),
-            .polyline => |c| {
-                var points: [][2]f32 = undefined;
-                points.ptr = @ptrCast([*][2]f32, c.ps.items.ptr);
-                points.len = c.ps.items.len;
-                var flags = imgui.DrawFlags{ .closed = c.closed };
-                dl.addPolyline(points, .{
-                    .col = c.color,
-                    .thickness = c.thickness,
-                    .flags = flags,
-                });
-            },
-            .convex_poly_fill => |c| {
-                var points: [][2]f32 = undefined;
-                points.ptr = @ptrCast([*][2]f32, c.ps.items.ptr);
-                points.len = c.ps.items.len;
-                dl.addConvexPolyFilled(points, .{
-                    .col = c.color,
-                });
-            },
             .bezier_cubic => |c| dl.addBezierCubic(.{
                 .p1 = .{ c.p1.x, c.p1.y },
                 .p2 = .{ c.p2.x, c.p2.y },
