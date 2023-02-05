@@ -498,6 +498,7 @@ pub const AddImage = struct {
     flip_h: bool = false,
     flip_v: bool = false,
     rounding: f32 = 0,
+    depth: f32 = 0.5,
 };
 pub fn addImage(texture: sdl.Texture, opt: AddImage) !void {
     const pmin = transformPoint(.{
