@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const sdlsdk = @import("src/deps/sdl/Sdk.zig");
+const Sdk = @import("src/deps/sdl/Sdk.zig");
 const stb = @import("src/deps/stb/build.zig");
 const imgui = @import("src/deps/imgui/build.zig");
 const chipmunk = @import("src/deps/chipmunk/build.zig");
@@ -11,16 +11,9 @@ const zaudio = @import("src/deps/zaudio/build.zig");
 const zphysics = @import("src/deps/zphysics/build.zig");
 const ztracy = @import("src/deps/ztracy/build.zig");
 
-pub fn build(b: *std.build.Builder) void {
-    const mode = b.standardReleaseOptions();
-    const target = b.standardTargetOptions(.{
-        .default_target = .{
-            // Prefer compatibility over performance here
-            // Make your own choice
-            .cpu_model = .baseline,
-        },
-    });
-
+pub fn build(b: *std.Build) void {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
     const assets_install = b.addInstallDirectory(.{
         .source_dir = "examples/assets",
         .install_dir = .bin,
@@ -57,7 +50,7 @@ pub fn build(b: *std.build.Builder) void {
             demo.name,
             "examples/" ++ demo.name ++ ".zig",
             target,
-            mode,
+            optimize,
             demo.opt,
         );
         const install_cmd = b.addInstallArtifact(exe);
@@ -84,22 +77,25 @@ pub const BuildOptions = struct {
 
 /// Create game executable
 pub fn createGame(
-    b: *std.build.Builder,
+    b: *std.Build,
     name: []const u8,
     root_file: []const u8,
     target: std.zig.CrossTarget,
-    mode: std.builtin.Mode,
+    optimize: std.builtin.Mode,
     opt: BuildOptions,
 ) *std.build.LibExeObjStep {
-    const exe = b.addExecutable(name, thisDir() ++ "/src/app.zig");
+    const exe = b.addExecutable(.{
+        .name = name,
+        .root_source_file = .{ .path = thisDir() ++ "/src/app.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
     const exe_options = b.addOptions();
     exe.addOptions("build_options", exe_options);
-    exe.setTarget(target);
-    exe.setBuildMode(mode);
 
     // Link must-have dependencies
-    const sdl = sdlsdk.init(exe.builder);
-    sdl.link(exe, .dynamic);
+    const sdk = Sdk.init(exe.builder, null);
+    sdk.link(exe, .dynamic);
     stb.link(exe);
     zmesh.link(exe, zmesh.BuildOptionsStep.init(b, .{}));
     znoise.link(exe);
@@ -115,9 +111,9 @@ pub fn createGame(
     if (opt.link_zaudio) {
         zaudio.link(exe);
     }
-    if (opt.link_zphysics) {
-        zphysics.link(exe, zphysics.BuildOptionsStep.init(b, .{}));
-    }
+    //if (opt.link_zphysics) {
+    //    zphysics.link(exe, zphysics.BuildOptionsStep.init(b, .{}));
+    //}
     if (opt.link_ztracy) {
         ztracy.link(exe, ztracy.BuildOptionsStep.init(b, .{}));
     }
@@ -127,25 +123,25 @@ pub fn createGame(
     exe_options.addOption(bool, "use_zphysics", opt.link_zphysics);
     exe_options.addOption(bool, "use_ztracy", opt.link_ztracy);
 
-    // Add packages
-    const jok = std.build.Pkg{
-        .name = "jok",
-        .source = .{ .path = thisDir() ++ "/src/jok.zig" },
-        .dependencies = &[_]std.build.Pkg{
-            sdl.getWrapperPackage("sdl"),
+    // Add modules
+    const jok = getJokModule(b);
+    const game = b.createModule(.{
+        .source_file = .{ .path = root_file },
+        .dependencies = &.{
+            .{ .name = "jok", .module = jok },
+            .{ .name = "sdl", .module = sdk.getWrapperModule() },
         },
-    };
-    const game = std.build.Pkg{
-        .name = "game",
-        .source = .{ .path = root_file },
-        .dependencies = &[_]std.build.Pkg{
-            jok,
-            sdl.getWrapperPackage("sdl"),
-        },
-    };
-    exe.addPackage(game);
-    exe.addPackage(sdl.getWrapperPackage("sdl"));
+    });
+    exe.addModule("sdl", sdk.getWrapperModule());
+    exe.addModule("jok", jok);
+    exe.addModule("game", game);
     return exe;
+}
+
+pub fn getJokModule(b: *std.Build) *std.Build.Module {
+    return b.createModule(.{
+        .source_file = .{ .path = thisDir() ++ "/src/jok.zig" },
+    });
 }
 
 inline fn thisDir() []const u8 {

@@ -3,19 +3,15 @@ const std = @import("std");
 pub fn link(exe: *std.build.LibExeObjStep) void {
     var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
     defer flags.deinit();
-    if (exe.builder.is_release) {
+    if (exe.optimize != .Debug) {
         flags.append("-DNDEBUG") catch unreachable;
     }
     flags.append("-DCP_USE_DOUBLES=0") catch unreachable;
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
     flags.append("-fno-sanitize=undefined") catch unreachable;
 
-    var lib = exe.builder.addStaticLibrary("chipmunk", null);
-    lib.setBuildMode(exe.build_mode);
-    lib.setTarget(exe.target);
-    lib.linkLibC();
-    lib.addIncludePath(comptime thisDir() ++ "/c/include");
-    lib.addCSourceFiles(&.{
+    exe.addIncludePath(comptime thisDir() ++ "/c/include");
+    exe.addCSourceFiles(&.{
         comptime thisDir() ++ "/c/src/chipmunk.c",
         comptime thisDir() ++ "/c/src/cpArbiter.c",
         comptime thisDir() ++ "/c/src/cpArray.c",
@@ -50,7 +46,6 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
         comptime thisDir() ++ "/c/src/cpSweep1D.c",
         comptime thisDir() ++ "/c/src/prime.h",
     }, flags.items);
-    exe.linkLibrary(lib);
 }
 
 fn thisDir() []const u8 {

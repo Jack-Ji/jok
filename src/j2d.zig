@@ -8,7 +8,7 @@ const imgui = jok.imgui;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 
-const dc = @import("j2d/draw_command.zig");
+const dc = @import("j2d/command.zig");
 const Atlas = @import("font/Atlas.zig");
 pub const Sprite = @import("j2d/Sprite.zig");
 pub const SpriteSheet = @import("j2d/SpriteSheet.zig");
@@ -506,8 +506,8 @@ pub fn addImage(texture: sdl.Texture, opt: AddImage) !void {
         .y = opt.rect.y,
     }, transform_noscale_m);
     const pmax = sdl.PointF{
-        .x = opt.pmin.x + opt.rect.width * transform.scale.x * opt.scale.x,
-        .y = opt.pmin.y + opt.rect.height * transform.scale.y * opt.scale.y,
+        .x = pmin.x + opt.rect.width * transform.scale.x * opt.scale.x,
+        .y = pmin.y + opt.rect.height * transform.scale.y * opt.scale.y,
     };
     var uv0 = opt.uv0;
     var uv1 = opt.uv1;

@@ -6,15 +6,10 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
     flags.append("-fno-sanitize=undefined") catch unreachable;
 
-    var lib = exe.builder.addStaticLibrary("stb", null);
-    lib.setBuildMode(exe.build_mode);
-    lib.setTarget(exe.target);
-    lib.linkLibC();
-    lib.addCSourceFile(
+    exe.addCSourceFile(
         comptime thisDir() ++ "/c/stb_wrapper.c",
         flags.items,
     );
-    exe.linkLibrary(lib);
 }
 
 fn thisDir() []const u8 {

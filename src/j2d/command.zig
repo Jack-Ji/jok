@@ -1,6 +1,6 @@
 const std = @import("std");
 const sdl = @import("sdl");
-const jok = @import("jok.zig");
+const jok = @import("../jok.zig");
 const imgui = jok.imgui;
 
 pub const ImageCmd = struct {
