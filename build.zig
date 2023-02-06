@@ -133,7 +133,6 @@ pub fn createGame(
         },
     });
     exe.addModule("sdl", sdk.getWrapperModule());
-    exe.addModule("jok", jok);
     exe.addModule("game", game);
     return exe;
 }
