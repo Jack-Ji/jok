@@ -2,7 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
 const Sprite = @import("Sprite.zig");
-const SpriteBatch = @import("SpriteBatch.zig");
 const Self = @This();
 
 pub const Error = error{

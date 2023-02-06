@@ -2,40 +2,33 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const sdl = @import("sdl");
+const jok = @import("../jok.zig");
+const DrawCmd = @import("command.zig").DrawCmd;
 const Vector = @import("Vector.zig");
-const Camera = @import("Camera.zig");
 const Sprite = @import("Sprite.zig");
-const SpriteBatch = @import("SpriteBatch.zig");
 const Self = @This();
-
-const RenderCallback = *const fn (
-    camera: Camera,
-    s: Sprite,
-    sb: *SpriteBatch,
-    opt: Sprite.DrawOption,
-    custom: ?*anyopaque,
-) anyerror!void;
 
 /// A movable object in 2d space
 pub const Actor = struct {
     sprite: ?Sprite = null,
-    render_cb: ?RenderCallback = null,
-    custom: ?*anyopaque = null,
-    render_opt: Sprite.DrawOption,
+    render_opt: Sprite.RenderOption,
 
-    fn getRenderOptions(actor: Actor, parent_opt: Sprite.DrawOption) Sprite.DrawOption {
+    fn getRenderOptions(actor: Actor, parent_opt: Sprite.RenderOption) Sprite.RenderOption {
         return .{
             .pos = .{
                 .x = parent_opt.pos.x + actor.render_opt.pos.x,
                 .y = parent_opt.pos.y + actor.render_opt.pos.y,
             },
             .tint_color = actor.render_opt.tint_color,
-            .scale_w = parent_opt.scale_w * actor.render_opt.scale_w,
-            .scale_h = parent_opt.scale_h * actor.render_opt.scale_h,
+            .scale = .{
+                .x = parent_opt.scale.x * actor.render_opt.scale.x,
+                .y = parent_opt.scale.y * actor.render_opt.scale.y,
+            },
             .rotate_degree = parent_opt.rotate_degree + actor.render_opt.rotate_degree,
             .anchor_point = actor.render_opt.anchor_point,
             .flip_h = if (parent_opt.flip_h) !actor.render_opt.flip_h else actor.render_opt.flip_h,
             .flip_v = if (parent_opt.flip_v) !actor.render_opt.flip_v else actor.render_opt.flip_v,
+            .depth = parent_opt.depth,
         };
     }
 };
@@ -44,7 +37,7 @@ pub const Actor = struct {
 pub const Object = struct {
     allocator: std.mem.Allocator,
     actor: Actor,
-    render_opt: Sprite.DrawOption,
+    render_opt: Sprite.RenderOption,
     depth: f32,
     parent: ?*Object = null,
     children: std.ArrayList(*Object),
@@ -134,7 +127,7 @@ pub const Object = struct {
     }
 
     // Change object's rendering option
-    pub fn setRenderOptions(o: *Object, opt: Sprite.DrawOption) void {
+    pub fn setRenderOptions(o: *Object, opt: Sprite.RenderOption) void {
         o.actor.render_opt = opt;
         o.updateRenderOptions();
     }
@@ -142,9 +135,8 @@ pub const Object = struct {
 
 allocator: std.mem.Allocator,
 root: *Object,
-sb: *SpriteBatch,
 
-pub fn create(allocator: std.mem.Allocator, sb: *SpriteBatch) !*Self {
+pub fn create(allocator: std.mem.Allocator) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
     self.allocator = allocator;
@@ -152,7 +144,6 @@ pub fn create(allocator: std.mem.Allocator, sb: *SpriteBatch) !*Self {
         .render_opt = .{ .pos = .{ .x = 0, .y = 0 } },
     }, null);
     errdefer self.root.destroy(false);
-    self.sb = sb;
     return self;
 }
 
@@ -161,30 +152,21 @@ pub fn destroy(self: *Self, destroy_objects: bool) void {
     self.allocator.destroy(self);
 }
 
-/// Batch all sprites for rendering
-pub fn draw(self: *Self, camera: Camera) !void {
-    try self.submitObject(camera, self.root);
-}
-
-fn submitObject(self: *Self, camera: Camera, o: *Object) !void {
+pub const RenderOption = struct {
+    object: ?*Object = null,
+};
+pub fn render(
+    self: Self,
+    draw_commands: *std.ArrayList(DrawCmd),
+    opt: RenderOption,
+) !void {
+    const o = opt.object orelse self.root;
     if (o.actor.sprite) |s| {
-        if (o.actor.render_cb) |cb| {
-            try cb(camera, s, self.sb, o.render_opt, o.actor.custom);
-        } else {
-            try self.sb.addSprite(s, .{
-                .pos = o.render_opt.pos,
-                .camera = camera,
-                .tint_color = o.render_opt.tint_color,
-                .scale_w = o.render_opt.scale_w,
-                .scale_h = o.render_opt.scale_h,
-                .flip_h = o.render_opt.flip_h,
-                .flip_v = o.render_opt.flip_v,
-                .rotate_degree = o.render_opt.rotate_degree,
-                .anchor_point = o.render_opt.anchor_point,
-                .depth = o.depth,
-            });
-        }
+        try s.render(draw_commands, o.render_opt);
     }
 
-    for (o.children.items) |c| try self.submitObject(camera, c);
+    for (o.children.items) |c| try self.render(
+        draw_commands,
+        .{ .object = c },
+    );
 }

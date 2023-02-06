@@ -4,9 +4,7 @@ const sdl = @import("sdl");
 const j2d = jok.j2d;
 
 var sheet: *j2d.SpriteSheet = undefined;
-var sb: *j2d.SpriteBatch = undefined;
 var scene: *j2d.Scene = undefined;
-var camera: j2d.Camera = undefined;
 var ogre1: *j2d.Scene.Object = undefined;
 var ogre2: *j2d.Scene.Object = undefined;
 
@@ -24,12 +22,7 @@ pub fn init(ctx: *jok.Context) !void {
         true,
         .{},
     );
-    sb = try j2d.SpriteBatch.create(
-        ctx,
-        10,
-        1000,
-    );
-    scene = try j2d.Scene.create(ctx.allocator, sb);
+    scene = try j2d.Scene.create(ctx.allocator);
     ogre1 = try j2d.Scene.Object.create(ctx.allocator, .{
         .sprite = sheet.getSpriteByName("ogre").?,
         .render_opt = .{
@@ -40,14 +33,12 @@ pub fn init(ctx: *jok.Context) !void {
         .sprite = sheet.getSpriteByName("ogre").?,
         .render_opt = .{
             .pos = .{ .x = 0, .y = 0 },
-            .scale_w = 0.5,
-            .scale_h = 0.5,
+            .scale = .{ .x = 0.5, .y = 0.5 },
         },
     }, null);
     try ogre1.addChild(ogre2);
     try scene.root.addChild(ogre1);
 
-    camera = j2d.Camera.fromViewport(ctx.renderer.getViewport());
     try ctx.renderer.setColorRGB(77, 77, 77);
 }
 
@@ -70,21 +61,22 @@ pub fn draw(ctx: *jok.Context) !void {
     ogre1.setRenderOptions(.{
         .pos = .{ .x = 400, .y = 300 },
         .tint_color = sdl.Color.rgb(255, 0, 0),
-        .scale_w = 4 + 2 * @cos(@floatCast(f32, ctx.tick)),
-        .scale_h = 4 + 2 * @sin(@floatCast(f32, ctx.tick)),
+        .scale = .{
+            .x = 4 + 2 * @cos(@floatCast(f32, ctx.tick)),
+            .y = 4 + 2 * @sin(@floatCast(f32, ctx.tick)),
+        },
         .rotate_degree = @floatCast(f32, ctx.tick) * 30,
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
     });
 
-    scene.sb.begin(.{ .depth_sort = .back_to_forth });
-    try scene.draw(camera);
-    try scene.sb.end();
+    try j2d.begin(.{ .depth_sort = .back_to_forth });
+    try j2d.addScene(scene, .{});
+    try j2d.end();
 }
 
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     sheet.destroy();
-    sb.destroy();
     scene.destroy(true);
 }

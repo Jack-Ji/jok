@@ -1,12 +1,16 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
+const DrawCmd = @import("command.zig").DrawCmd;
 const Vector = @import("Vector.zig");
 const Sprite = @import("Sprite.zig");
-const SpriteBatch = @import("SpriteBatch.zig");
 const Self = @This();
 
 const default_effects_capacity = 10;
+
+pub const RenderOption = struct {
+    depth: f32 = 0.5,
+};
 
 // Memory allocator
 allocator: std.mem.Allocator,
@@ -47,13 +51,6 @@ pub fn update(self: *Self, delta_time: f32) void {
         } else {
             i += 1;
         }
-    }
-}
-
-/// Draw effects
-pub fn draw(self: Self, sb: *SpriteBatch) !void {
-    for (self.effects.items) |e| {
-        try e.draw(sb);
     }
 }
 
@@ -182,10 +179,14 @@ pub const Effect = struct {
         }
     }
 
-    /// Draw the effect
-    pub fn draw(self: Effect, sb: *SpriteBatch) !void {
+    /// Render to output
+    pub fn render(
+        self: Effect,
+        draw_commands: *std.ArrayList(DrawCmd),
+        opt: RenderOption,
+    ) !void {
         for (self.particles.items) |p| {
-            try p.draw(sb);
+            try p.render(draw_commands, opt);
         }
     }
 
@@ -241,11 +242,6 @@ pub const Effect = struct {
 
 /// Represent a particle
 pub const Particle = struct {
-    pub const DrawFn = *const fn (particle: Particle, sb: *SpriteBatch) anyerror!void;
-
-    /// Custom drawing callback for particle
-    custom_draw: ?DrawFn = null,
-
     /// Sprite of particle
     sprite: ?Sprite,
 
@@ -330,23 +326,22 @@ pub const Particle = struct {
         self.updateColor();
     }
 
-    /// Draw particle
-    pub fn draw(self: Particle, sb: *SpriteBatch) !void {
-        if (self.custom_draw) |cb| {
-            try cb(self, sb);
-        } else {
-            try sb.addSprite(
-                self.sprite.?,
-                .{
-                    .pos = .{ .x = self.pos.x(), .y = self.pos.y() },
-                    .tint_color = self.color,
-                    .scale_w = self.scale,
-                    .scale_h = self.scale,
-                    .rotate_degree = self.angle,
-                    .anchor_point = .{ .x = 0.5, .y = 0.5 },
-                    .depth = 0,
-                },
-            );
-        }
+    /// Render to output
+    fn render(
+        self: Particle,
+        draw_commands: *std.ArrayList(DrawCmd),
+        opt: RenderOption,
+    ) !void {
+        try self.sprite.?.render(
+            draw_commands,
+            .{
+                .pos = .{ .x = self.pos.x(), .y = self.pos.y() },
+                .tint_color = self.color,
+                .scale = .{ .x = self.scale, .y = self.scale },
+                .rotate_degree = self.angle,
+                .anchor_point = .{ .x = 0.5, .y = 0.5 },
+                .depth = opt.depth,
+            },
+        );
     }
 };

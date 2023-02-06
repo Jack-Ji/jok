@@ -4,7 +4,6 @@ const sdl = @import("sdl");
 const j2d = jok.j2d;
 
 var sheet: *j2d.SpriteSheet = undefined;
-var sb: *j2d.SpriteBatch = undefined;
 var as: *j2d.AnimationSystem = undefined;
 const velocity = 100;
 var animation: []const u8 = "player_down";
@@ -24,11 +23,6 @@ pub fn init(ctx: *jok.Context) !void {
         1,
         true,
         .{},
-    );
-    sb = try j2d.SpriteBatch.create(
-        ctx,
-        10,
-        1000,
     );
     as = try j2d.AnimationSystem.create(ctx.allocator);
     const player = sheet.getSpriteByName("player").?;
@@ -101,26 +95,24 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    sb.begin(.{});
-    try sb.addSprite(
+    try j2d.begin(.{});
+    try j2d.addSprite(
         sheet.getSpriteByName("player").?,
         .{
             .pos = .{ .x = 0, .y = 50 },
             .tint_color = sdl.Color.rgb(100, 100, 100),
-            .scale_w = 4,
-            .scale_h = 4,
+            .scale = .{ .x = 4, .y = 4 },
         },
     );
-    try sb.addSprite(
+    try j2d.addSprite(
         try as.getCurrentFrame(animation),
         .{
             .pos = pos,
             .flip_h = flip_h,
-            .scale_w = 5,
-            .scale_h = 5,
+            .scale = .{ .x = 5, .y = 5 },
         },
     );
-    try sb.end();
+    try j2d.end();
 
     _ = try jok.font.debugDraw(
         ctx.renderer,
@@ -134,6 +126,5 @@ pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     sheet.destroy();
-    sb.destroy();
     as.destroy();
 }

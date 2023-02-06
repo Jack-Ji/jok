@@ -1,8 +1,8 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
-const DrawCmd = @import("command.zig").DrawCmd;
 const jok = @import("../jok.zig");
+const DrawCmd = @import("command.zig").DrawCmd;
 const imgui = jok.imgui;
 const zmath = jok.zmath;
 const Self = @This();
@@ -49,7 +49,7 @@ pub fn getSubSprite(
 pub const RenderOption = struct {
     pos: sdl.PointF,
     tint_color: sdl.Color = sdl.Color.white,
-    scale: sdl.Pointf = .{ .x = 1, .y = 1 },
+    scale: sdl.PointF = .{ .x = 1, .y = 1 },
     rotate_degree: f32 = 0,
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
     flip_h: bool = false,
@@ -83,18 +83,28 @@ pub fn render(
     const trasformed_coords = zmath.mul(basic_coords, m_transform);
     try draw_commands.append(.{
         .cmd = .{
-            .image = .{
+            .quad_image = .{
                 .texture = self.tex,
-                .pmin = .{
+                .p1 = .{
                     .x = trasformed_coords[0][0],
                     .y = trasformed_coords[0][1],
                 },
-                .pmax = .{
+                .p2 = .{
+                    .x = trasformed_coords[1][0],
+                    .y = trasformed_coords[1][1],
+                },
+                .p3 = .{
                     .x = trasformed_coords[2][0],
                     .y = trasformed_coords[2][1],
                 },
-                .uv0 = uv0,
-                .uv1 = uv1,
+                .p4 = .{
+                    .x = trasformed_coords[3][0],
+                    .y = trasformed_coords[3][1],
+                },
+                .uv1 = uv0,
+                .uv2 = .{ .x = uv1.x, .y = uv0.y },
+                .uv3 = uv1,
+                .uv4 = .{ .x = uv0.x, .y = uv1.y },
                 .tint_color = imgui.sdl.convertColor(opt.tint_color),
             },
         },

@@ -147,7 +147,7 @@ pub fn draw(ctx: *jok.Context) !void {
             },
         },
     );
-    try j3d.addEffects(ps.effects.items);
+    try j3d.addEffects(ps);
     try j3d.end();
 
     _ = try font.debugDraw(

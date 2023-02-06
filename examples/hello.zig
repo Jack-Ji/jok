@@ -54,7 +54,7 @@ pub fn draw(ctx: *jok.Context) !void {
     const center_x = @intToFloat(f32, fb_size.w) / 2;
     const center_y = @intToFloat(f32, fb_size.h) / 2;
 
-    jok.j2d.primitive.clear(.{});
+    try j2d.begin(.{});
     var i: u32 = 0;
     while (i < 100) : (i += 1) {
         const row = @intToFloat(f32, i / 10) - 5;
@@ -66,7 +66,7 @@ pub fn draw(ctx: *jok.Context) !void {
         );
         const translate_m = jok.zmath.translation(center_x, center_y, 0);
         const offset_transformed = jok.zmath.mul(jok.zmath.mul(offset_origin, rotate_m), translate_m);
-        jok.j2d.primitive.addQuadFilled(
+        try j2d.addQuadFilled(
             .{ .x = -10, .y = -10 },
             .{ .x = 10, .y = -10 },
             .{ .x = 10, .y = 10 },
@@ -91,7 +91,7 @@ pub fn draw(ctx: *jok.Context) !void {
             },
         );
     }
-    try jok.j2d.primitive.draw();
+    try j2d.end();
 
     const color = sdl.Color.rgb(
         @floatToInt(u8, 128 + 128 * std.math.sin(ctx.tick)),

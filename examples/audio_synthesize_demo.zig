@@ -3,8 +3,8 @@ const assert = std.debug.assert;
 const builtin = @import("builtin");
 const sdl = @import("sdl");
 const jok = @import("jok");
+const j2d = jok.j2d;
 const font = jok.font;
-const primitive = jok.j2d.primitive;
 
 var audio_device: sdl.AudioDevice = undefined;
 var audio_spec: sdl.AudioSpecResponse = undefined;
@@ -83,14 +83,14 @@ pub fn update(ctx: *jok.Context) !void {
 
 pub fn draw(ctx: *jok.Context) !void {
     var ms = ctx.getMouseState();
-    primitive.clear(.{});
-    primitive.addCircleFilled(
+    try j2d.begin(.{});
+    try j2d.addCircleFilled(
         .{ .x = @intToFloat(f32, ms.x), .y = @intToFloat(f32, ms.y) },
         10,
         sdl.Color.white,
         .{},
     );
-    try primitive.draw();
+    try j2d.end();
 
     _ = try font.debugDraw(
         ctx.renderer,

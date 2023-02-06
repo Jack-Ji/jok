@@ -12,7 +12,6 @@ const Actor = struct {
 };
 
 var sheet: *j2d.SpriteSheet = undefined;
-var sb: *j2d.SpriteBatch = undefined;
 var characters: std.ArrayList(Actor) = undefined;
 var rand_gen: std.rand.DefaultPrng = undefined;
 var delta_tick: f32 = 0;
@@ -37,11 +36,6 @@ pub fn init(ctx: *jok.Context) !void {
         size.h,
         1,
         false,
-    );
-    sb = try j2d.SpriteBatch.create(
-        ctx,
-        10,
-        1000000,
     );
     characters = try std.ArrayList(Actor).initCapacity(
         ctx.allocator,
@@ -97,13 +91,13 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    sb.begin(.{});
+    try j2d.begin(.{});
     for (characters.items) |c| {
-        try sb.addSprite(c.sprite, .{
+        try j2d.addSprite(c.sprite, .{
             .pos = c.pos,
         });
     }
-    try sb.end();
+    try j2d.end();
 
     _ = try jok.font.debugDraw(
         ctx.renderer,
@@ -117,6 +111,5 @@ pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     sheet.destroy();
-    sb.destroy();
     characters.deinit();
 }

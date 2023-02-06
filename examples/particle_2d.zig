@@ -7,7 +7,6 @@ var rd: std.rand.DefaultPrng = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var font: *jok.font.Font = undefined;
 var atlas: jok.font.Atlas = undefined;
-var sb: *j2d.SpriteBatch = undefined;
 var ps: *j2d.ParticleSystem = undefined;
 
 // fire effect
@@ -49,11 +48,6 @@ pub fn init(ctx: *jok.Context) !void {
     );
     font = try jok.font.Font.fromTrueTypeData(ctx.allocator, jok.font.clacon_font_data);
     atlas = try font.initAtlas(ctx.renderer, 60, &jok.font.codepoint_ranges.default, null);
-    sb = try j2d.SpriteBatch.create(
-        ctx,
-        2,
-        10000,
-    );
     ps = try j2d.ParticleSystem.create(ctx.allocator);
     emitter1.sprite = sheet.getSpriteByName("particle");
     emitter2.sprite = atlas.getSpriteOfCodePoint('*');
@@ -94,9 +88,9 @@ pub fn update(ctx: *jok.Context) !void {
 pub fn draw(ctx: *jok.Context) !void {
     _ = ctx;
 
-    sb.begin(.{ .blend_method = .additive });
-    try ps.draw(sb);
-    try sb.end();
+    try j2d.begin(.{ .blend_method = .additive });
+    try j2d.addEffects(ps, .{});
+    try j2d.end();
 }
 
 pub fn quit(ctx: *jok.Context) void {
@@ -105,6 +99,5 @@ pub fn quit(ctx: *jok.Context) void {
     atlas.deinit();
     font.destroy();
     sheet.destroy();
-    sb.destroy();
     ps.destroy();
 }

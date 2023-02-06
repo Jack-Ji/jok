@@ -207,8 +207,8 @@ pub fn addScene(scene: *const Scene, opt: Scene.RenderOption) !void {
     );
 }
 
-pub fn addEffects(effects: []const ParticleSystem.Effect) !void {
-    for (effects) |eff| {
+pub fn addEffects(ps: *ParticleSystem) !void {
+    for (ps.effects.items) |eff| {
         try eff.render(
             &tri_rd,
             rd.getViewport(),

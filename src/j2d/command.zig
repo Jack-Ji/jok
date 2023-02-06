@@ -2,6 +2,7 @@ const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("../jok.zig");
 const imgui = jok.imgui;
+const zmath = jok.zmath;
 
 pub const ImageCmd = struct {
     texture: sdl.Texture,
@@ -20,6 +21,19 @@ pub const ImageRoundedCmd = struct {
     uv1: sdl.PointF,
     tint_color: u32,
     rounding: f32,
+};
+
+pub const QuadImageCmd = struct {
+    texture: sdl.Texture,
+    p1: sdl.PointF,
+    p2: sdl.PointF,
+    p3: sdl.PointF,
+    p4: sdl.PointF,
+    uv1: sdl.PointF,
+    uv2: sdl.PointF,
+    uv3: sdl.PointF,
+    uv4: sdl.PointF,
+    tint_color: u32,
 };
 
 pub const LineCmd = struct {
@@ -178,6 +192,8 @@ pub const PathCmd = struct {
     color: u32,
     thickness: f32,
     closed: bool,
+    trs: zmath.Mat,
+    scale: sdl.PointF,
 
     pub fn init(allocator: std.mem.Allocator) @This() {
         return .{
@@ -186,6 +202,8 @@ pub const PathCmd = struct {
             .color = 0xff_ff_ff_ff,
             .thickness = 1,
             .closed = false,
+            .trs = zmath.identity(),
+            .scale = .{ .x = 1, .y = 1 },
         };
     }
 
@@ -199,6 +217,7 @@ pub const DrawCmd = struct {
     cmd: union(enum) {
         image: ImageCmd,
         image_rounded: ImageRoundedCmd,
+        quad_image: QuadImageCmd,
         line: LineCmd,
         rect: RectCmd,
         rect_fill: RectFillCmd,
@@ -234,6 +253,22 @@ pub const DrawCmd = struct {
                 .col = c.tint_color,
                 .rounding = c.rounding,
             }),
+            .quad_image => |c| {
+                dl.pushTextureId(c.texture.ptr);
+                defer dl.popTextureId();
+                dl.primReserve(6, 4);
+                dl.primQuadUV(
+                    .{ c.p1.x, c.p1.y },
+                    .{ c.p2.x, c.p2.y },
+                    .{ c.p3.x, c.p3.y },
+                    .{ c.p4.x, c.p4.y },
+                    .{ c.uv1.x, c.uv1.y },
+                    .{ c.uv2.x, c.uv2.y },
+                    .{ c.uv3.x, c.uv3.y },
+                    .{ c.uv4.x, c.uv4.y },
+                    c.tint_color,
+                );
+            },
             .line => |c| dl.addLine(.{
                 .p1 = .{ c.p1.x, c.p1.y },
                 .p2 = .{ c.p2.x, c.p2.y },
@@ -336,30 +371,50 @@ pub const DrawCmd = struct {
                 dl.pathClear();
                 for (c.cmds.items) |_pc| {
                     switch (_pc) {
-                        .line_to => |pc| dl.pathLineTo(.{ pc.p.x, pc.p.y }),
-                        .arc_to => |pc| dl.pathArcTo(.{
-                            .p = .{ pc.x, pc.y },
-                            .r = pc.radius,
-                            .amin = pc.amin,
-                            .amax = pc.amax,
-                            .num_segments = pc.num_segments,
-                        }),
-                        .bezier_cubic_to => |pc| dl.pathBezierCubicCurveTo(.{
-                            .p2 = .{ pc.p2.x, pc.p2.y },
-                            .p3 = .{ pc.p3.x, pc.p3.y },
-                            .p4 = .{ pc.p4.x, pc.p4.y },
-                            .num_segments = pc.num_segments,
-                        }),
-                        .bezier_quadratic_to => |pc| dl.pathBezierQuadraticCurveTo(.{
-                            .p2 = .{ pc.p2.x, pc.p2.y },
-                            .p3 = .{ pc.p3.x, pc.p3.y },
-                            .num_segments = pc.num_segments,
-                        }),
-                        .rect => |pc| dl.pathRect(.{
-                            .bmin = pc.pmin,
-                            .bmax = pc.pmax,
-                            .rounding = pc.rounding,
-                        }),
+                        .line_to => |pc| {
+                            const v = zmath.mul(zmath.f32x4(pc.p.x, pc.p.y, 0, 1), c.trs);
+                            dl.pathLineTo(.{ v[0], v[1] });
+                        },
+                        .arc_to => |pc| {
+                            const v = zmath.mul(zmath.f32x4(pc.p.x, pc.p.y, 0, 1), c.trs);
+                            dl.pathArcTo(.{
+                                .p = .{ v[0], v[1] },
+                                .r = pc.radius * c.scale.x,
+                                .amin = pc.amin,
+                                .amax = pc.amax,
+                                .num_segments = pc.num_segments,
+                            });
+                        },
+                        .bezier_cubic_to => |pc| {
+                            const v2 = zmath.mul(zmath.f32x4(pc.p2.x, pc.p2.y, 0, 1), c.trs);
+                            const v3 = zmath.mul(zmath.f32x4(pc.p3.x, pc.p3.y, 0, 1), c.trs);
+                            const v4 = zmath.mul(zmath.f32x4(pc.p4.x, pc.p4.y, 0, 1), c.trs);
+                            dl.pathBezierCubicCurveTo(.{
+                                .p2 = .{ v2[0], v2[1] },
+                                .p3 = .{ v3[0], v3[1] },
+                                .p4 = .{ v4[0], v4[1] },
+                                .num_segments = pc.num_segments,
+                            });
+                        },
+                        .bezier_quadratic_to => |pc| {
+                            const v2 = zmath.mul(zmath.f32x4(pc.p2.x, pc.p2.y, 0, 1), c.trs);
+                            const v3 = zmath.mul(zmath.f32x4(pc.p3.x, pc.p3.y, 0, 1), c.trs);
+                            dl.pathBezierQuadraticCurveTo(.{
+                                .p2 = .{ v2[0], v2[1] },
+                                .p3 = .{ v3[0], v3[1] },
+                                .num_segments = pc.num_segments,
+                            });
+                        },
+                        .rect => |pc| {
+                            const vmin = zmath.mul(zmath.f32x4(pc.pmin.x, pc.pmin.y, 0, 1), c.trs);
+                            const width = (pc.pmax.x - pc.pmin.x) * c.scale.x;
+                            const height = (pc.pmax.y - pc.pmin.y) * c.scale.y;
+                            dl.pathRect(.{
+                                .bmin = .{ vmin[0], vmin[1] },
+                                .bmax = .{ vmin[0] + width, vmin[1] + height },
+                                .rounding = pc.rounding,
+                            });
+                        },
                     }
                 }
                 switch (c.draw_method) {
