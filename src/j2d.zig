@@ -113,8 +113,7 @@ pub fn end() !void {
 }
 
 pub fn recycleMemory() void {
-    imgui.destroyDrawList(draw_list);
-    draw_list = imgui.createDrawList();
+    imgui.clearMemory(draw_list);
     draw_commands.clearAndFree();
 }
 

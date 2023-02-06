@@ -184,8 +184,7 @@ pub fn end() !void {
 
 pub fn recycleMemory() void {
     target.clear(true);
-    imgui.destroyDrawList(draw_list);
-    draw_list = imgui.createDrawList();
+    imgui.clearMemory(draw_list);
 }
 
 pub fn addSkybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {
