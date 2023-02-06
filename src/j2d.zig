@@ -667,8 +667,8 @@ pub fn addSprite(sprite: Sprite, opt: AddSprite) !void {
         .pos = transformPoint(opt.pos, mat),
         .tint_color = opt.tint_color,
         .scale = sdl.PointF{
-            .x = trs.scale.x * opt.scale.x,
-            .y = trs.scale.y * opt.scale.y,
+            .x = trs.scale.x * opt.trs.scale.x * opt.scale.x,
+            .y = trs.scale.y * opt.trs.scale.y * opt.scale.y,
         },
         .rotate_degree = opt.rotate_degree,
         .anchor_point = opt.anchor_point,
@@ -679,6 +679,7 @@ pub fn addSprite(sprite: Sprite, opt: AddSprite) !void {
 }
 
 pub const AddText = struct {
+    trs: TransformOption = .{},
     atlas: Atlas,
     pos: sdl.PointF,
     ypos_type: Atlas.YPosType = .top,
@@ -692,10 +693,10 @@ pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
     const text = jok.imgui.format(fmt, args);
     if (text.len == 0) return;
 
-    var pos = transformPoint(opt.pos, trs_m);
+    var pos = transformPoint(opt.pos, zmath.mul(trs_m, opt.trs.getMatrix()));
     const scale = sdl.PointF{
-        .x = trs.scale.x * opt.scale.x,
-        .y = trs.scale.y * opt.scale.y,
+        .x = trs.scale.x * opt.trs.scale.x * opt.scale.x,
+        .y = trs.scale.y * opt.trs.scale.y * opt.scale.y,
     };
     const angle = jok.utils.math.degreeToRadian(opt.rotate_degree);
     const mat = zmath.mul(
