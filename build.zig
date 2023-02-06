@@ -111,9 +111,9 @@ pub fn createGame(
     if (opt.link_zaudio) {
         zaudio.link(exe);
     }
-    //if (opt.link_zphysics) {
-    //    zphysics.link(exe, zphysics.BuildOptionsStep.init(b, .{}));
-    //}
+    if (opt.link_zphysics) {
+        zphysics.link(exe, zphysics.BuildOptionsStep.init(b, .{}));
+    }
     if (opt.link_ztracy) {
         ztracy.link(exe, ztracy.BuildOptionsStep.init(b, .{}));
     }
