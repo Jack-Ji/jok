@@ -2,6 +2,7 @@ const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
 const imgui = jok.imgui;
+const j2d = jok.j2d;
 
 var offset0: [2]f32 = .{ 0, 0 };
 var offset1: [2]f32 = .{ 0, 0 };
@@ -46,7 +47,7 @@ pub fn draw(ctx: *jok.Context) !void {
     }
     imgui.end();
 
-    jok.j2d.primitive.clear(.{});
+    try j2d.begin(.{});
     var tri_color = sdl.Color.white;
     var tri_thickness = @as(f32, 2);
     const tri0 = [_][2]f32{
@@ -63,7 +64,7 @@ pub fn draw(ctx: *jok.Context) !void {
         tri_color = sdl.Color.red;
         tri_thickness = 5;
     }
-    jok.j2d.primitive.addTriangle(
+    try j2d.addTriangle(
         .{ .x = p0[0], .y = p0[1] },
         .{ .x = p1[0], .y = p1[1] },
         .{ .x = p2[0], .y = p2[1] },
@@ -73,7 +74,7 @@ pub fn draw(ctx: *jok.Context) !void {
             .thickness = tri_thickness,
         },
     );
-    jok.j2d.primitive.addTriangle(
+    try j2d.addTriangle(
         .{ .x = p3[0], .y = p3[1] },
         .{ .x = p4[0], .y = p4[1] },
         .{ .x = p5[0], .y = p5[1] },
@@ -92,17 +93,17 @@ pub fn draw(ctx: *jok.Context) !void {
         rect_color = sdl.Color.red;
         rect_thickness = 3;
     }
-    jok.j2d.primitive.addRect(
+    try j2d.addRect(
         jok.utils.math.triangleRect(tri0),
         rect_color,
         .{ .thickness = rect_thickness },
     );
-    jok.j2d.primitive.addRect(
+    try j2d.addRect(
         jok.utils.math.triangleRect(tri1),
         rect_color,
         .{ .thickness = rect_thickness },
     );
-    try jok.j2d.primitive.draw();
+    try j2d.end();
 }
 
 pub fn quit(ctx: *jok.Context) void {
