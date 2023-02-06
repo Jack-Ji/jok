@@ -124,7 +124,9 @@ pub fn createGame(
     exe_options.addOption(bool, "use_ztracy", opt.link_ztracy);
 
     // Add modules
-    const jok = getJokModule(b);
+    const jok = b.createModule(.{
+        .source_file = .{ .path = thisDir() ++ "/src/jok.zig" },
+    });
     const game = b.createModule(.{
         .source_file = .{ .path = root_file },
         .dependencies = &.{
@@ -135,12 +137,6 @@ pub fn createGame(
     exe.addModule("sdl", sdk.getWrapperModule());
     exe.addModule("game", game);
     return exe;
-}
-
-pub fn getJokModule(b: *std.Build) *std.Build.Module {
-    return b.createModule(.{
-        .source_file = .{ .path = thisDir() ++ "/src/jok.zig" },
-    });
 }
 
 inline fn thisDir() []const u8 {
