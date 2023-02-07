@@ -676,7 +676,9 @@ pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
     if (text.len == 0) return;
 
     var pos = transformPoint(opt.pos, opt.trs);
-    const scale = getScale(opt.trs);
+    var scale = getScale(opt.trs);
+    scale.x *= opt.scale.x;
+    scale.y *= opt.scale.y;
     const angle = jok.utils.math.degreeToRadian(opt.rotate_degree);
     const mat = zmath.mul(
         zmath.mul(
@@ -710,7 +712,7 @@ pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
             try sprite.render(&draw_commands, .{
                 .pos = draw_pos,
                 .tint_color = opt.tint_color,
-                .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
+                .scale = scale,
                 .rotate_degree = opt.rotate_degree,
                 .anchor_point = opt.anchor_point,
                 .depth = opt.depth,
