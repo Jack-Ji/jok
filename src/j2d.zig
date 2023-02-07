@@ -139,8 +139,14 @@ pub fn end() !void {
             S.ascendCompare,
         ),
     }
-    for (draw_commands.items) |c| {
-        try c.render(draw_list);
+    for (draw_commands.items) |dcmd| {
+        switch (dcmd.cmd) {
+            .image => |c| try all_tex.put(c.texture.ptr, true),
+            .image_rounded => |c| try all_tex.put(c.texture.ptr, true),
+            .quad_image => |c| try all_tex.put(c.texture.ptr, true),
+            else => {},
+        }
+        try dcmd.render(draw_list);
     }
     const mode = switch (blend_method) {
         .blend => sdl.c.SDL_BLENDMODE_BLEND,
@@ -547,6 +553,7 @@ pub const AddImage = struct {
     uv0: sdl.PointF = .{ .x = 0, .y = 0 },
     uv1: sdl.PointF = .{ .x = 1, .y = 1 },
     tint_color: sdl.Color = sdl.Color.white,
+    scale: sdl.PointF = .{ .x = 1, .y = 1 },
     rotate_degree: f32 = 0,
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
     flip_h: bool = false,
@@ -554,6 +561,7 @@ pub const AddImage = struct {
     depth: f32 = 0.5,
 };
 pub fn addImage(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImage) !void {
+    const scale = getScale(opt.trs);
     const pos = transformPoint(.{ .x = rect.x, .y = rect.y }, opt.trs);
     const sprite = Sprite{
         .width = rect.width,
@@ -565,7 +573,7 @@ pub fn addImage(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImage) !void
     try sprite.render(&draw_commands, .{
         .pos = pos,
         .tint_color = opt.tint_color,
-        .scale = getScale(opt.trs),
+        .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
         .rotate_degree = opt.rotate_degree,
         .anchor_point = opt.anchor_point,
         .flip_h = opt.flip_h,
@@ -579,6 +587,7 @@ pub const AddImageRounded = struct {
     uv0: sdl.PointF = .{ .x = 0, .y = 0 },
     uv1: sdl.PointF = .{ .x = 1, .y = 1 },
     tint_color: sdl.Color = sdl.Color.white,
+    scale: sdl.PointF = .{ .x = 1, .y = 1 },
     flip_h: bool = false,
     flip_v: bool = false,
     rounding: f32 = 4,
@@ -627,9 +636,10 @@ pub fn addEffects(ps: *const ParticleSystem, opt: ParticleSystem.RenderOption) !
 }
 
 pub const AddSprite = struct {
-    trs: ?TransformOption = null,
     pos: sdl.PointF,
+    trs: ?TransformOption = null,
     tint_color: sdl.Color = sdl.Color.white,
+    scale: sdl.PointF = .{ .x = 1, .y = 1 },
     rotate_degree: f32 = 0,
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
     flip_h: bool = false,
@@ -637,10 +647,11 @@ pub const AddSprite = struct {
     depth: f32 = 0.5,
 };
 pub fn addSprite(sprite: Sprite, opt: AddSprite) !void {
+    const scale = getScale(opt.trs);
     try sprite.render(&draw_commands, .{
         .pos = transformPoint(opt.pos, opt.trs),
         .tint_color = opt.tint_color,
-        .scale = getScale(opt.trs),
+        .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
         .rotate_degree = opt.rotate_degree,
         .anchor_point = opt.anchor_point,
         .flip_h = opt.flip_h,
@@ -650,11 +661,12 @@ pub fn addSprite(sprite: Sprite, opt: AddSprite) !void {
 }
 
 pub const AddText = struct {
-    trs: ?TransformOption = null,
     atlas: Atlas,
     pos: sdl.PointF,
+    trs: ?TransformOption = null,
     ypos_type: Atlas.YPosType = .top,
     tint_color: sdl.Color = sdl.Color.white,
+    scale: sdl.PointF = .{ .x = 1, .y = 1 },
     rotate_degree: f32 = 0,
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
     depth: f32 = 0.5,
@@ -698,7 +710,7 @@ pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
             try sprite.render(&draw_commands, .{
                 .pos = draw_pos,
                 .tint_color = opt.tint_color,
-                .scale = scale,
+                .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
                 .rotate_degree = opt.rotate_degree,
                 .anchor_point = opt.anchor_point,
                 .depth = opt.depth,
@@ -864,14 +876,8 @@ inline fn transformPoint(point: sdl.PointF, local_trs: ?TransformOption) sdl.Poi
         const m1 = zmath.scaling(trs.scale.x * a.scale.x, trs.scale.y * a.scale.y, 0);
         const m2 = trs_noscale_m;
         const m1m2 = zmath.mul(m1, m2);
-        const v1 = zmath.mul(
-            zmath.f32x4(point.x, point.y, 0, 1),
-            m1m2,
-        );
-        const v2 = zmath.mul(
-            zmath.f32x4(trs.anchor.x, trs.anchor.y, 0, 1),
-            m1m2,
-        );
+        const v1 = zmath.mul(zmath.f32x4(point.x, point.y, 0, 1), m1m2);
+        const v2 = zmath.mul(zmath.f32x4(trs.anchor.x, trs.anchor.y, 0, 1), m1m2);
 
         const anchor_x = a.anchor.x + v2[0];
         const anchor_y = a.anchor.y + v2[1];
@@ -879,10 +885,7 @@ inline fn transformPoint(point: sdl.PointF, local_trs: ?TransformOption) sdl.Poi
         const m4 = zmath.rotationZ(jok.utils.math.degreeToRadian(a.rotate_degree));
         const m5 = zmath.translation(anchor_x, anchor_y, 0);
         const m6 = zmath.translation(a.offset.x, a.offset.y, 0);
-        const v3 = zmath.mul(
-            v1,
-            zmath.mul(zmath.mul(zmath.mul(m3, m4), m5), m6),
-        );
+        const v3 = zmath.mul(v1, zmath.mul(zmath.mul(zmath.mul(m3, m4), m5), m6));
         return sdl.PointF{ .x = v3[0], .y = v3[1] };
     } else { // Only global transformation
         const v = zmath.f32x4(point.x, point.y, 0, 1);

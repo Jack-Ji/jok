@@ -98,7 +98,7 @@ pub fn draw(ctx: *jok.Context) !void {
         100,
         @floatToInt(u8, 128 + 128 * std.math.cos(ctx.tick)),
     );
-    try j3d.begin(.{ .camera = camera });
+    try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
     try j3d.addIcosahedron(
         zmath.mul(
             zmath.rotationY(@floatCast(f32, ctx.tick)),
