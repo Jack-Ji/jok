@@ -97,7 +97,7 @@ pub fn createGame(
     const sdk = Sdk.init(exe.builder, null);
     sdk.link(exe, .dynamic);
     stb.link(exe);
-    zmesh.link(exe, zmesh.BuildOptionsStep.init(b, .{}));
+    zmesh.link(exe, .{});
     znoise.link(exe);
     imgui.link(exe);
 
@@ -112,10 +112,10 @@ pub fn createGame(
         zaudio.link(exe);
     }
     if (opt.link_zphysics) {
-        zphysics.link(exe, zphysics.BuildOptionsStep.init(b, .{}));
+        zphysics.link(exe, .{});
     }
     if (opt.link_ztracy) {
-        ztracy.link(exe, ztracy.BuildOptionsStep.init(b, .{}));
+        ztracy.link(exe, .{});
     }
     exe_options.addOption(bool, "use_chipmunk", opt.link_chipmunk);
     exe_options.addOption(bool, "use_nfd", opt.link_nfd);
@@ -136,6 +136,9 @@ pub fn createGame(
     });
     exe.addModule("sdl", sdk.getWrapperModule());
     exe.addModule("game", game);
+
+    // TODO shouldn't need it in short future
+    exe.addModule("zmesh_options", zmesh.package(b, .{}).options_module);
     return exe;
 }
 

@@ -4,7 +4,7 @@ const zgui = @import("zgui/build.zig");
 const cflags = &.{"-fno-sanitize=undefined"};
 
 pub fn link(exe: *std.build.LibExeObjStep) void {
-    zgui.link(exe, zgui.BuildOptionsStep.init(exe.builder, .{ .backend = .no_backend }));
+    zgui.link(exe, .{ .backend = .no_backend });
 
     exe.addIncludePath(thisDir() ++ "/c");
     exe.addIncludePath(thisDir() ++ "/c/SDL2");
