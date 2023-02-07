@@ -5,7 +5,7 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const imgui = jok.imgui;
 const nfd = jok.nfd;
-const primitive = jok.j2d.primitive;
+const j2d = jok.j2d;
 
 pub const jok_window_width: u32 = 1200;
 pub const jok_window_height: u32 = 800;
@@ -91,7 +91,7 @@ const Point = struct {
     color: sdl.Color = sdl.Color.black,
 
     fn draw(p: Point) !void {
-        primitive.addCircleFilled(
+        try j2d.addCircleFilled(
             .{ .x = p.x, .y = p.y },
             3,
             p.color,
@@ -574,26 +574,20 @@ fn renderSimulation() !void {
         interaction(blue.?, blue.?, power_bb, v_bb);
     }
 
-    primitive.clear(.{});
+    try j2d.begin(.{});
     if (number_w > 0) try drawPoints(white.?);
     if (number_r > 0) try drawPoints(red.?);
     if (number_g > 0) try drawPoints(green.?);
     if (number_b > 0) try drawPoints(blue.?);
-    try primitive.draw();
-
-    // Draw model
     if (show_model) {
-        primitive.clear(.{});
-        defer primitive.draw() catch unreachable;
-
-        primitive.addCircleFilled(
+        try j2d.addCircleFilled(
             .{ .x = xshift, .y = yshift },
             150,
             sdl.Color.black,
             .{},
         );
 
-        primitive.addLine(
+        try j2d.addLine(
             .{ .x = p1x, .y = p1y - 10 },
             .{ .x = p2x, .y = p2y - 10 },
             sdl.Color.rgb(
@@ -605,7 +599,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        primitive.addLine(
+        try j2d.addLine(
             .{ .x = p1x, .y = p1y + 10 },
             .{ .x = p2x, .y = p2y + 10 },
             sdl.Color.rgb(
@@ -617,7 +611,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        primitive.addLine(
+        try j2d.addLine(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p1x, .y = p1y - 10 },
             sdl.Color.rgb(
@@ -629,7 +623,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        primitive.addLine(
+        try j2d.addLine(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p1x, .y = p1y + 10 },
             sdl.Color.rgb(
@@ -642,7 +636,7 @@ fn renderSimulation() !void {
             },
         );
 
-        primitive.addLine(
+        try j2d.addLine(
             .{ .x = p4x - 10, .y = p4y },
             .{ .x = p1x - 10, .y = p1y },
             sdl.Color.rgb(
@@ -654,7 +648,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        primitive.addLine(
+        try j2d.addLine(
             .{ .x = p4x + 10, .y = p4y },
             .{ .x = p1x + 10, .y = p1y },
             sdl.Color.rgb(
@@ -667,7 +661,7 @@ fn renderSimulation() !void {
             },
         );
 
-        primitive.addLine(
+        try j2d.addLine(
             .{ .x = p2x - 10, .y = p2y },
             .{ .x = p3x - 10, .y = p3y },
             sdl.Color.rgb(
@@ -679,7 +673,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        primitive.addLine(
+        try j2d.addLine(
             .{ .x = p2x + 10, .y = p2y },
             .{ .x = p3x + 10, .y = p3y },
             sdl.Color.rgb(
@@ -692,7 +686,7 @@ fn renderSimulation() !void {
             },
         );
 
-        primitive.addLine(
+        try j2d.addLine(
             .{ .x = p2x, .y = p2y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
             sdl.Color.rgb(
@@ -704,7 +698,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        primitive.addLine(
+        try j2d.addLine(
             .{ .x = p2x, .y = p2y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
             sdl.Color.rgb(
@@ -717,7 +711,7 @@ fn renderSimulation() !void {
             },
         );
 
-        primitive.addLine(
+        try j2d.addLine(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
             sdl.Color.rgb(
@@ -729,7 +723,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        primitive.addLine(
+        try j2d.addLine(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
             sdl.Color.rgb(
@@ -742,7 +736,7 @@ fn renderSimulation() !void {
             },
         );
 
-        primitive.addCircle(
+        try j2d.addCircle(
             .{ .x = p1x - 20, .y = p1y - 20 },
             rr + 20,
             sdl.Color.rgb(
@@ -754,7 +748,7 @@ fn renderSimulation() !void {
                 .thickness = 2,
             },
         );
-        primitive.addCircle(
+        try j2d.addCircle(
             .{ .x = p2x + 20, .y = p2y - 20 },
             rr + 20,
             sdl.Color.rgb(
@@ -766,7 +760,7 @@ fn renderSimulation() !void {
                 .thickness = 2,
             },
         );
-        primitive.addCircle(
+        try j2d.addCircle(
             .{ .x = p3x + 20, .y = p3y + 20 },
             rr + 20,
             sdl.Color.rgb(
@@ -778,7 +772,7 @@ fn renderSimulation() !void {
                 .thickness = 2,
             },
         );
-        primitive.addCircle(
+        try j2d.addCircle(
             .{ .x = p4x - 20, .y = p4y + 20 },
             rr + 20,
             sdl.Color.rgb(
@@ -791,31 +785,32 @@ fn renderSimulation() !void {
             },
         );
 
-        primitive.addCircle(
+        try j2d.addCircleFilled(
             .{ .x = p1x, .y = p1y },
             rr,
             sdl.Color.rgb(100, 250, 10),
             .{},
         );
-        primitive.addCircleFilled(
+        try j2d.addCircleFilled(
             .{ .x = p2x, .y = p2y },
             rr,
             sdl.Color.rgb(250, 10, 100),
             .{},
         );
-        primitive.addCircleFilled(
+        try j2d.addCircleFilled(
             .{ .x = p3x, .y = p3y },
             rr,
             sdl.Color.rgb(250, 250, 250),
             .{},
         );
-        primitive.addCircleFilled(
+        try j2d.addCircleFilled(
             .{ .x = p4x, .y = p4y },
             rr,
             sdl.Color.rgb(100, 100, 250),
             .{},
         );
     }
+    try j2d.end();
 }
 
 pub fn init(ctx: *jok.Context) !void {
