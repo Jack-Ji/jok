@@ -239,14 +239,14 @@ pub const DrawCmd = struct {
     pub fn render(self: DrawCmd, dl: imgui.DrawList) !void {
         switch (self.cmd) {
             .image => |c| dl.addImage(c.texture.ptr, .{
-                .pmin = .{ c.pmin.x, c.pmax.y },
+                .pmin = .{ c.pmin.x, c.pmin.y },
                 .pmax = .{ c.pmax.x, c.pmax.y },
                 .uvmin = .{ c.uv0.x, c.uv0.y },
                 .uvmax = .{ c.uv1.x, c.uv1.y },
                 .col = c.tint_color,
             }),
             .image_rounded => |c| dl.addImageRounded(c.texture.ptr, .{
-                .pmin = .{ c.pmin.x, c.pmax.y },
+                .pmin = .{ c.pmin.x, c.pmin.y },
                 .pmax = .{ c.pmax.x, c.pmax.y },
                 .uvmin = .{ c.uv0.x, c.uv0.y },
                 .uvmax = .{ c.uv1.x, c.uv1.y },

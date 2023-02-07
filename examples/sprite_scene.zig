@@ -52,12 +52,6 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    try ctx.renderer.copy(
-        sheet.tex,
-        sdl.Rectangle{ .x = 0, .y = 0, .width = 200, .height = 200 },
-        null,
-    );
-
     ogre1.setRenderOptions(.{
         .pos = .{ .x = 400, .y = 300 },
         .tint_color = sdl.Color.rgb(255, 0, 0),
@@ -70,6 +64,14 @@ pub fn draw(ctx: *jok.Context) !void {
     });
 
     try j2d.begin(.{ .depth_sort = .back_to_forth });
+    try j2d.addImage(
+        sheet.tex,
+        .{ .x = 0, .y = 0, .width = 600, .height = 600 },
+        .{
+            .rotate_degree = 30,
+            .anchor_point = .{ .x = 0.5, .y = 0.5 },
+        },
+    );
     try j2d.addScene(scene, .{});
     try j2d.end();
 }

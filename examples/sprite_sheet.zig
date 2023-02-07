@@ -39,14 +39,14 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    try ctx.renderer.copy(
-        sheet.tex,
-        null,
-        null,
-    );
+    const sprite = sheet.getSpriteByName("ogre").?;
 
     try j2d.begin(.{ .depth_sort = .back_to_forth });
-    const sprite = sheet.getSpriteByName("ogre").?;
+    try j2d.addImage(
+        sheet.tex,
+        .{ .x = 0, .y = 0, .width = 400, .height = 300 },
+        .{},
+    );
     try j2d.addSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .scale = .{ .x = 2, .y = 2 },
@@ -56,11 +56,11 @@ pub fn draw(ctx: *jok.Context) !void {
     });
     try j2d.addSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
-        .tint_color = sdl.Color.rgb(255, 0, 0),
         .scale = .{
             .x = 4 + 2 * @cos(@floatCast(f32, ctx.tick)),
             .y = 4 + 2 * @sin(@floatCast(f32, ctx.tick)),
         },
+        .tint_color = sdl.Color.rgb(255, 0, 0),
         .rotate_degree = @floatCast(f32, ctx.tick) * 30,
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
         .depth = 0.6,
