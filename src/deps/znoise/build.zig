@@ -1,9 +1,15 @@
 const std = @import("std");
 
-pub const pkg = std.Build.Pkg{
-    .name = "znoise",
-    .source = .{ .path = thisDir() ++ "/src/znoise.zig" },
+pub const Package = struct {
+    module: *std.Build.Module,
 };
+
+pub fn package(b: *std.Build, _: struct {}) Package {
+    const module = b.createModule(.{
+        .source_file = .{ .path = thisDir() ++ "/src/znoise.zig" },
+    });
+    return .{ .module = module };
+}
 
 pub fn build(_: *std.Build) void {}
 
@@ -13,7 +19,7 @@ pub fn buildTests(
     target: std.zig.CrossTarget,
 ) *std.Build.CompileStep {
     const tests = b.addTest(.{
-        .root_source_file = .{ .path = pkg.source.path },
+        .root_source_file = .{ .path = thisDir() ++ "/src/znoise.zig" },
         .target = target,
         .optimize = build_mode,
     });
