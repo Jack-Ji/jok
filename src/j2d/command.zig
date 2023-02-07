@@ -1,6 +1,7 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("../jok.zig");
+const TransformOption = jok.j2d.TransformOption;
 const imgui = jok.imgui;
 const zmath = jok.zmath;
 
@@ -192,24 +193,75 @@ pub const PathCmd = struct {
     color: u32,
     thickness: f32,
     closed: bool,
-    trs: zmath.Mat,
-    scale: sdl.PointF,
 
-    pub fn init(allocator: std.mem.Allocator) @This() {
+    trs: TransformOption,
+    trs_m: zmath.Mat,
+    trs_noscale_m: zmath.Mat,
+    local_trs: ?TransformOption,
+
+    pub fn init(
+        allocator: std.mem.Allocator,
+        local_trs: ?TransformOption,
+    ) @This() {
         return .{
             .cmds = std.ArrayList(Cmd).init(allocator),
             .draw_method = .fill,
             .color = 0xff_ff_ff_ff,
             .thickness = 1,
             .closed = false,
-            .trs = zmath.identity(),
-            .scale = .{ .x = 1, .y = 1 },
+            .trs = .{},
+            .trs_m = zmath.identity(),
+            .trs_noscale_m = zmath.identity(),
+            .local_trs = local_trs,
         };
     }
 
     pub fn deinit(self: *@This()) void {
         self.cmds.deinit();
         self.* = undefined;
+    }
+
+    inline fn transformPoint(self: @This(), point: sdl.PointF) sdl.PointF {
+        if (self.local_trs) |a| { // Merge two transformations
+            const m1 = zmath.scaling(self.trs.scale.x * a.scale.x, self.trs.scale.y * a.scale.y, 0);
+            const m2 = self.trs_noscale_m;
+            const m1m2 = zmath.mul(m1, m2);
+            const v1 = zmath.mul(
+                zmath.f32x4(point.x, point.y, 0, 1),
+                m1m2,
+            );
+            const v2 = zmath.mul(
+                zmath.f32x4(self.trs.anchor.x, self.trs.anchor.y, 0, 1),
+                m1m2,
+            );
+
+            const anchor_x = a.anchor.x + v2[0];
+            const anchor_y = a.anchor.y + v2[1];
+            const m3 = zmath.translation(-anchor_x, -anchor_y, 0);
+            const m4 = zmath.rotationZ(jok.utils.math.degreeToRadian(a.rotate_degree));
+            const m5 = zmath.translation(anchor_x, anchor_y, 0);
+            const m6 = zmath.translation(a.offset.x, a.offset.y, 0);
+            const v3 = zmath.mul(
+                v1,
+                zmath.mul(zmath.mul(zmath.mul(m3, m4), m5), m6),
+            );
+            return sdl.PointF{ .x = v3[0], .y = v3[1] };
+        } else { // Only global transformation
+            const v = zmath.f32x4(point.x, point.y, 0, 1);
+            const tv = zmath.mul(v, self.trs_m);
+            return sdl.PointF{ .x = tv[0], .y = tv[1] };
+        }
+    }
+
+    inline fn getScale(self: @This()) sdl.PointF {
+        if (self.local_trs) |a| {
+            return .{
+                .x = self.trs.scale.x * a.scale.x,
+                .y = self.trs.scale.y * a.scale.y,
+            };
+        } else {
+            return self.trs.scale;
+        }
     }
 };
 
@@ -369,49 +421,50 @@ pub const DrawCmd = struct {
             }),
             .path => |c| {
                 dl.pathClear();
+                const scale = c.getScale();
                 for (c.cmds.items) |_pc| {
                     switch (_pc) {
                         .line_to => |pc| {
-                            const v = zmath.mul(zmath.f32x4(pc.p.x, pc.p.y, 0, 1), c.trs);
-                            dl.pathLineTo(.{ v[0], v[1] });
+                            const p = c.transformPoint(pc.p);
+                            dl.pathLineTo(.{ p.x, p.y });
                         },
                         .arc_to => |pc| {
-                            const v = zmath.mul(zmath.f32x4(pc.p.x, pc.p.y, 0, 1), c.trs);
+                            const p = c.transformPoint(pc.p);
                             dl.pathArcTo(.{
-                                .p = .{ v[0], v[1] },
-                                .r = pc.radius * c.scale.x,
+                                .p = .{ p.x, p.y },
+                                .r = pc.radius * scale.x,
                                 .amin = pc.amin,
                                 .amax = pc.amax,
                                 .num_segments = pc.num_segments,
                             });
                         },
                         .bezier_cubic_to => |pc| {
-                            const v2 = zmath.mul(zmath.f32x4(pc.p2.x, pc.p2.y, 0, 1), c.trs);
-                            const v3 = zmath.mul(zmath.f32x4(pc.p3.x, pc.p3.y, 0, 1), c.trs);
-                            const v4 = zmath.mul(zmath.f32x4(pc.p4.x, pc.p4.y, 0, 1), c.trs);
+                            const p2 = c.transformPoint(pc.p2);
+                            const p3 = c.transformPoint(pc.p3);
+                            const p4 = c.transformPoint(pc.p4);
                             dl.pathBezierCubicCurveTo(.{
-                                .p2 = .{ v2[0], v2[1] },
-                                .p3 = .{ v3[0], v3[1] },
-                                .p4 = .{ v4[0], v4[1] },
+                                .p2 = .{ p2.x, p2.y },
+                                .p3 = .{ p3.x, p3.y },
+                                .p4 = .{ p4.x, p4.y },
                                 .num_segments = pc.num_segments,
                             });
                         },
                         .bezier_quadratic_to => |pc| {
-                            const v2 = zmath.mul(zmath.f32x4(pc.p2.x, pc.p2.y, 0, 1), c.trs);
-                            const v3 = zmath.mul(zmath.f32x4(pc.p3.x, pc.p3.y, 0, 1), c.trs);
+                            const p2 = c.transformPoint(pc.p2);
+                            const p3 = c.transformPoint(pc.p3);
                             dl.pathBezierQuadraticCurveTo(.{
-                                .p2 = .{ v2[0], v2[1] },
-                                .p3 = .{ v3[0], v3[1] },
+                                .p2 = .{ p2.x, p2.y },
+                                .p3 = .{ p3.x, p3.y },
                                 .num_segments = pc.num_segments,
                             });
                         },
                         .rect => |pc| {
-                            const vmin = zmath.mul(zmath.f32x4(pc.pmin.x, pc.pmin.y, 0, 1), c.trs);
-                            const width = (pc.pmax.x - pc.pmin.x) * c.scale.x;
-                            const height = (pc.pmax.y - pc.pmin.y) * c.scale.y;
+                            const vmin = c.transformPoint(pc.pmin);
+                            const width = (pc.pmax.x - pc.pmin.x) * scale.x;
+                            const height = (pc.pmax.y - pc.pmin.y) * scale.y;
                             dl.pathRect(.{
-                                .bmin = .{ vmin[0], vmin[1] },
-                                .bmax = .{ vmin[0] + width, vmin[1] + height },
+                                .bmin = .{ vmin.x, vmin.y },
+                                .bmax = .{ vmin.x + width, vmin.y + height },
                                 .rounding = pc.rounding,
                             });
                         },
