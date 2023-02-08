@@ -73,7 +73,7 @@ pub fn update(ctx: *jok.Context) !void {
         }
     }
 
-    delta_tick = (delta_tick + ctx.delta_tick) / 2;
+    delta_tick = (delta_tick + ctx.delta_seconds) / 2;
     const size = ctx.getFramebufferSize();
     for (characters.items) |*c| {
         const curpos = c.pos;
@@ -85,8 +85,8 @@ pub fn update(ctx: *jok.Context) !void {
             c.velocity.y = @fabs(c.velocity.y);
         if (curpos.y + c.sprite.height > @intToFloat(f32, size.h))
             c.velocity.y = -@fabs(c.velocity.y);
-        c.pos.x += c.velocity.x * ctx.delta_tick;
-        c.pos.y += c.velocity.y * ctx.delta_tick;
+        c.pos.x += c.velocity.x * ctx.delta_seconds;
+        c.pos.y += c.velocity.y * ctx.delta_seconds;
     }
 }
 

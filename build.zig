@@ -5,6 +5,7 @@ const stb = @import("src/deps/stb/build.zig");
 const imgui = @import("src/deps/imgui/build.zig");
 const chipmunk = @import("src/deps/chipmunk/build.zig");
 const nfd = @import("src/deps/nfd/build.zig");
+const zmath = @import("src/deps/zmath/build.zig");
 const zmesh = @import("src/deps/zmesh/build.zig");
 const znoise = @import("src/deps/znoise/build.zig");
 const zaudio = @import("src/deps/zaudio/build.zig");
@@ -22,7 +23,7 @@ pub fn build(b: *std.Build) void {
     const examples = [_]struct { name: []const u8, opt: BuildOptions }{
         .{ .name = "hello", .opt = .{} },
         .{ .name = "imgui_demo", .opt = .{} },
-        .{ .name = "chipmunk_demo", .opt = .{ .link_chipmunk = true } },
+        //.{ .name = "chipmunk_demo", .opt = .{ .link_chipmunk = true } },
         .{ .name = "sprite_sheet", .opt = .{} },
         .{ .name = "sprite_scene", .opt = .{} },
         .{ .name = "sprite_benchmark", .opt = .{} },
@@ -83,24 +84,58 @@ pub fn createGame(
     optimize: std.builtin.Mode,
     opt: BuildOptions,
 ) *std.build.LibExeObjStep {
+    // Initialize jok module
+    const bos = b.addOptions();
+    bos.addOption(bool, "use_chipmunk", opt.link_chipmunk);
+    bos.addOption(bool, "use_nfd", opt.link_nfd);
+    bos.addOption(bool, "use_zaudio", opt.link_zaudio);
+    bos.addOption(bool, "use_zphysics", opt.link_zphysics);
+    bos.addOption(bool, "use_ztracy", opt.link_ztracy);
+    const sdl_sdk = Sdk.init(b, null);
+    const zmath_pkg = zmath.package(b, .{});
+    const zmesh_pkg = zmesh.package(b, .{});
+    const znoise_pkg = znoise.package(b, .{});
+    const zaudio_pkg = zaudio.package(b, .{});
+    const zphysics_pkg = zphysics.package(b, .{});
+    const ztracy_pkg = ztracy.package(b, .{});
+    const jok = b.createModule(.{
+        .source_file = .{ .path = thisDir() ++ "/src/jok.zig" },
+        .dependencies = &.{
+            .{ .name = "build_options", .module = bos.createModule() },
+            .{ .name = "sdl", .module = sdl_sdk.getWrapperModule() },
+            .{ .name = "zgui", .module = imgui.getZguiModule(b) },
+            .{ .name = "zmath", .module = zmath_pkg.module },
+            .{ .name = "zmesh", .module = zmesh_pkg.module },
+            .{ .name = "znoise", .module = znoise_pkg.module },
+            .{ .name = "zaudio", .module = zaudio_pkg.module },
+            .{ .name = "zphysics", .module = zphysics_pkg.module },
+            .{ .name = "ztracy", .module = ztracy_pkg.module },
+        },
+    });
+
+    // Initialize executable
     const exe = b.addExecutable(.{
         .name = name,
         .root_source_file = .{ .path = thisDir() ++ "/src/app.zig" },
         .target = target,
         .optimize = optimize,
     });
-    const exe_options = b.addOptions();
-    exe.addOptions("build_options", exe_options);
+    exe.addModule("sdl", sdl_sdk.getWrapperModule());
+    exe.addModule("jok", jok);
+    exe.addModule("game", b.createModule(.{
+        .source_file = .{ .path = root_file },
+        .dependencies = &.{
+            .{ .name = "sdl", .module = sdl_sdk.getWrapperModule() },
+            .{ .name = "jok", .module = jok },
+        },
+    }));
 
-    // Link must-have dependencies
-    const sdk = Sdk.init(exe.builder, null);
-    sdk.link(exe, .dynamic);
+    // Link libraries
+    sdl_sdk.link(exe, .dynamic);
     stb.link(exe);
-    zmesh.link(exe, .{});
-    znoise.link(exe);
     imgui.link(exe);
-
-    // Link optional dependencies and set comptime flags
+    zmesh.link(exe, zmesh_pkg.options);
+    znoise.link(exe);
     if (opt.link_chipmunk) {
         chipmunk.link(exe);
     }
@@ -111,33 +146,12 @@ pub fn createGame(
         zaudio.link(exe);
     }
     if (opt.link_zphysics) {
-        zphysics.link(exe, .{});
+        zphysics.link(exe, zphysics_pkg.options);
     }
     if (opt.link_ztracy) {
-        ztracy.link(exe, .{});
+        ztracy.link(exe, ztracy_pkg.options);
     }
-    exe_options.addOption(bool, "use_chipmunk", opt.link_chipmunk);
-    exe_options.addOption(bool, "use_nfd", opt.link_nfd);
-    exe_options.addOption(bool, "use_zaudio", opt.link_zaudio);
-    exe_options.addOption(bool, "use_zphysics", opt.link_zphysics);
-    exe_options.addOption(bool, "use_ztracy", opt.link_ztracy);
 
-    // Add modules
-    const jok = b.createModule(.{
-        .source_file = .{ .path = thisDir() ++ "/src/jok.zig" },
-    });
-    const game = b.createModule(.{
-        .source_file = .{ .path = root_file },
-        .dependencies = &.{
-            .{ .name = "jok", .module = jok },
-            .{ .name = "sdl", .module = sdk.getWrapperModule() },
-        },
-    });
-    exe.addModule("sdl", sdk.getWrapperModule());
-    exe.addModule("game", game);
-
-    // TODO shouldn't need it in short future
-    exe.addModule("zmesh_options", zmesh.package(b, .{}).options_module);
     return exe;
 }
 

@@ -62,7 +62,7 @@ pub fn draw(ctx: *jok.Context) !void {
         const offset_origin = jok.zmath.f32x4(row * 50, col * 50, 0, 1);
         const rotate_m = jok.zmath.matFromAxisAngle(
             jok.zmath.f32x4(center_x, center_y, 1, 0),
-            @floatCast(f32, ctx.tick),
+            @floatCast(f32, ctx.seconds),
         );
         const translate_m = jok.zmath.translation(center_x, center_y, 0);
         const offset_transformed = jok.zmath.mul(jok.zmath.mul(offset_origin, rotate_m), translate_m);
@@ -72,17 +72,17 @@ pub fn draw(ctx: *jok.Context) !void {
             .{ .x = 10, .y = 10 },
             .{ .x = -10, .y = 10 },
             sdl.Color.rgb(
-                @floatToInt(u8, 128 + 128 * std.math.sin(ctx.tick)),
-                @floatToInt(u8, @intToFloat(f32, i) + std.math.max(0, 155 * std.math.sin(ctx.tick))),
-                @floatToInt(u8, 128 + 128 * std.math.cos(ctx.tick)),
+                @floatToInt(u8, 128 + 128 * std.math.sin(ctx.seconds)),
+                @floatToInt(u8, @intToFloat(f32, i) + std.math.max(0, 155 * std.math.sin(ctx.seconds))),
+                @floatToInt(u8, 128 + 128 * std.math.cos(ctx.seconds)),
             ),
             .{
                 .trs = .{
                     .scale = .{
-                        .x = @floatCast(f32, 1.3 + std.math.sin(ctx.tick)),
-                        .y = @floatCast(f32, 1.3 + std.math.sin(ctx.tick)),
+                        .x = @floatCast(f32, 1.3 + std.math.sin(ctx.seconds)),
+                        .y = @floatCast(f32, 1.3 + std.math.sin(ctx.seconds)),
                     },
-                    .rotate_degree = @floatCast(f32, ctx.tick * 30),
+                    .rotate_degree = @floatCast(f32, ctx.seconds * 30),
                     .offset = .{
                         .x = offset_transformed[0],
                         .y = offset_transformed[1],
@@ -94,43 +94,43 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.end();
 
     const color = sdl.Color.rgb(
-        @floatToInt(u8, 128 + 128 * std.math.sin(ctx.tick)),
+        @floatToInt(u8, 128 + 128 * std.math.sin(ctx.seconds)),
         100,
-        @floatToInt(u8, 128 + 128 * std.math.cos(ctx.tick)),
+        @floatToInt(u8, 128 + 128 * std.math.cos(ctx.seconds)),
     );
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
     try j3d.addIcosahedron(
         zmath.mul(
-            zmath.rotationY(@floatCast(f32, ctx.tick)),
+            zmath.rotationY(@floatCast(f32, ctx.seconds)),
             zmath.translation(-3, 3, 0),
         ),
         .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
     try j3d.addTorus(
         zmath.mul(
-            zmath.rotationY(@floatCast(f32, ctx.tick)),
+            zmath.rotationY(@floatCast(f32, ctx.seconds)),
             zmath.translation(3, 3, 0),
         ),
         .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
     try j3d.addParametricSphere(
         zmath.mul(
-            zmath.rotationY(@floatCast(f32, ctx.tick)),
+            zmath.rotationY(@floatCast(f32, ctx.seconds)),
             zmath.translation(3, -3, 0),
         ),
         .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
     try j3d.addTetrahedron(
         zmath.mul(
-            zmath.rotationY(@floatCast(f32, ctx.tick)),
+            zmath.rotationY(@floatCast(f32, ctx.seconds)),
             zmath.translation(-3, -3, 0),
         ),
         .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
     try j3d.end();
 
-    text_rect.x += text_speed.x * ctx.delta_tick;
-    text_rect.y += text_speed.y * ctx.delta_tick;
+    text_rect.x += text_speed.x * ctx.delta_seconds;
+    text_rect.y += text_speed.y * ctx.delta_seconds;
     if (text_rect.x < 0) {
         text_speed.x = @fabs(text_speed.x);
     }
@@ -150,7 +150,7 @@ pub fn draw(ctx: *jok.Context) !void {
             .font_size = 50,
             .color = sdl.Color.rgb(
                 255,
-                @floatToInt(u8, std.math.max(0, 255 * std.math.cos(ctx.tick))),
+                @floatToInt(u8, std.math.max(0, 255 * std.math.cos(ctx.seconds))),
                 0,
             ),
         },

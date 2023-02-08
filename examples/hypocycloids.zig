@@ -25,7 +25,7 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    const statechange = math.sin(@floatCast(f32, ctx.tick)) * 0.2;
+    const statechange = math.sin(@floatCast(f32, ctx.seconds)) * 0.2;
     const scale = @intToFloat(f32, ctx.getFramebufferSize().h) / 4;
 
     path.reset(.{});

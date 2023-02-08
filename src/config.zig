@@ -1,67 +1,6 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok.zig");
-const game = @import("game");
-
-// Validate setup configurations
-comptime {
-    const config_options = [_]struct { name: []const u8, T: type, desc: []const u8 }{
-        .{ .name = "jok_log_level", .T = std.log.Level, .desc = "logging level" },
-        .{ .name = "jok_fps_limit", .T = FpsLimit, .desc = "fps limit setting" },
-        .{ .name = "jok_framestat_display", .T = bool, .desc = "whether refresh and display frame statistics on title-bar of window" },
-        .{ .name = "jok_allocator", .T = std.mem.Allocator, .desc = "default memory allocator" },
-        .{ .name = "jok_mem_leak_checks", .T = bool, .desc = "whether default memory allocator check memleak when exiting" },
-        .{ .name = "jok_mem_detail_logs", .T = bool, .desc = "whether default memory allocator print detailed memory alloc/free logs" },
-        .{ .name = "jok_software_renderer", .T = bool, .desc = "whether fallback to software renderer when hardware acceleration isn't available" },
-        .{ .name = "jok_window_title", .T = [:0]const u8, .desc = "title of window" },
-        .{ .name = "jok_window_pos_x", .T = sdl.WindowPosition, .desc = "horizontal position of window" },
-        .{ .name = "jok_window_pos_y", .T = sdl.WindowPosition, .desc = "vertical position of window" },
-        .{ .name = "jok_window_width", .T = u32, .desc = "width of window" },
-        .{ .name = "jok_window_height", .T = u32, .desc = "height of window" },
-        .{ .name = "jok_window_min_size", .T = sdl.Size, .desc = "minimum size of window" },
-        .{ .name = "jok_window_max_size", .T = sdl.Size, .desc = "maximum size of window" },
-        .{ .name = "jok_window_resizable", .T = bool, .desc = "whether window is resizable" },
-        .{ .name = "jok_window_fullscreen", .T = bool, .desc = "whether use fullscreen mode" },
-        .{ .name = "jok_window_borderless", .T = bool, .desc = "whether window is borderless" },
-        .{ .name = "jok_window_minimized", .T = bool, .desc = "whether window is minimized when startup" },
-        .{ .name = "jok_window_maximized", .T = bool, .desc = "whether window is maximized when startup" },
-        .{ .name = "jok_window_always_on_top", .T = bool, .desc = "whether window is locked to most front layer" },
-        .{ .name = "jok_mouse_mode", .T = MouseMode, .desc = "mouse mode setting" },
-        .{ .name = "jok_exit_on_recv_esc", .T = bool, .desc = "whether exit game when esc is pressed" },
-        .{ .name = "jok_exit_on_recv_quit", .T = bool, .desc = "whether exit game when getting quit event" },
-    };
-    const game_struct = @typeInfo(game).Struct;
-    for (game_struct.decls) |f| {
-        if (!std.mem.startsWith(u8, f.name, "jok_")) {
-            continue;
-        }
-        if (!f.is_pub) {
-            @compileError("Validation of setup options failed, option `" ++ f.name ++ "` need to be public!");
-        }
-        for (config_options) |o| {
-            if (std.mem.eql(u8, o.name, f.name)) {
-                const FieldType = @TypeOf(@field(game, f.name));
-                if (o.T != FieldType) {
-                    @compileError("Validation of setup options failed, invalid type for option `" ++
-                        f.name ++ "`, expecting " ++ @typeName(o.T) ++ ", get " ++ @typeName(FieldType));
-                }
-                break;
-            }
-        } else {
-            var buf: [2048]u8 = undefined;
-            var off: usize = 0;
-            var bs = std.fmt.bufPrint(&buf, "Validation of setup options failed, invalid option name: `" ++ f.name ++ "`", .{}) catch unreachable;
-            off += bs.len;
-            bs = std.fmt.bufPrint(buf[off..], "\nSupported options:", .{}) catch unreachable;
-            off += bs.len;
-            inline for (config_options) |o| {
-                bs = std.fmt.bufPrint(buf[off..], "\n\t" ++ o.name ++ " (" ++ @typeName(o.T) ++ "): " ++ o.desc ++ ".", .{}) catch unreachable;
-                off += bs.len;
-            }
-            @compileError(buf[0..off]);
-        }
-    }
-}
 
 /// Graphics flushing method
 pub const FpsLimit = union(enum) {
@@ -84,134 +23,65 @@ pub const MouseMode = enum {
     hide,
 };
 
-/// Logging level
-pub const log_level: std.log.Level = if (@hasDecl(game, "jok_log_level"))
-    game.jok_log_level
-else
-    std.log.default_level;
+/// Logging level - jok_log_level
+pub var log_level: std.log.Level = std.log.default_level;
 
-/// FPS limiting (auto means vsync)
-pub const fps_limit: FpsLimit = if (@hasDecl(game, "jok_fps_limit"))
-    game.jok_fps_limit
-else
-    .auto;
+/// FPS limiting (auto means vsync) - jok_fps_limit
+pub var fps_limit: FpsLimit = .auto;
 
-/// Display frame stats on title bar
-pub const enable_framestat_display = if (@hasDecl(game, "jok_framestat_display"))
-    game.jok_framestat_display
-else
-    true;
+/// Display frame stats on title bar - jok_framestat_display
+pub var enable_framestat_display = true;
 
-/// Default memory allocator
-pub const allocator: ?std.mem.Allocator = if (@hasDecl(game, "jok_allocator"))
-    game.jok_allocator
-else
-    null;
+/// Default memory allocator - jok_allocator
+pub var allocator: ?std.mem.Allocator = null;
 
-/// Default memory allocator settings
-pub const enable_mem_leak_checks = if (@hasDecl(game, "jok_mem_leak_checks"))
-    game.jok_mem_leak_checks
-else
-    true;
-pub const enable_mem_detail_logs = if (@hasDecl(game, "jok_mem_detail_logs"))
-    game.jok_mem_detail_logs
-else
-    false;
+/// Default memory allocator settings - jok_mem_leak_checks/jok_mem_detail_logs
+pub var enable_mem_leak_checks = true;
+pub var enable_mem_detail_logs = false;
 
-/// Whether fallback to software renderer
-pub const enable_software_renderer: bool = if (@hasDecl(game, "jok_software_renderer"))
-    game.jok_software_renderer
-else
-    true;
+/// Whether fallback to software renderer - jok_software_renderer
+pub var enable_software_renderer: bool = true;
 
-/// Window's title
-pub const title: [:0]const u8 = if (@hasDecl(game, "jok_window_title"))
-    game.jok_window_title
-else
-    "jok";
+/// Window's title - jok_window_title
+pub var title: [:0]const u8 = "jok";
 
-/// Position of window
-pub const pos_x: sdl.WindowPosition = if (@hasDecl(game, "jok_window_pos_x"))
-    game.jok_window_pos_x
-else
-    .default;
-pub const pos_y: sdl.WindowPosition = if (@hasDecl(game, "jok_window_pos_y"))
-    game.jok_window_pos_y
-else
-    .default;
+/// Position of window - jok_window_pos_x/jok_window_pos_y
+pub var pos_x: sdl.WindowPosition = .default;
+pub var pos_y: sdl.WindowPosition = .default;
 
-/// Width/height of window
-pub const width: u32 = if (@hasDecl(game, "jok_window_width"))
-    game.jok_window_width
-else
-    800;
-pub const height: u32 = if (@hasDecl(game, "jok_window_height"))
-    game.jok_window_height
-else
-    600;
+/// Width/height of window - jok_window_width/jok_window_height
+pub var width: u32 = 800;
+pub var height: u32 = 600;
 
-/// Mimimum size of window
-pub const min_size: ?sdl.Size = if (@hasDecl(game, "jok_window_min_size"))
-    game.jok_window_min_size
-else
-    null;
+/// Mimimum size of window - jok_window_min_size
+pub var min_size: ?sdl.Size = null;
 
-/// Maximumsize of window
-pub const max_size: ?sdl.Size = if (@hasDecl(game, "jok_window_max_size"))
-    game.jok_window_max_size
-else
-    null;
+/// Maximumsize of window - jok_window_max_size
+pub var max_size: ?sdl.Size = null;
 
-// Resizable switch
-pub const enable_resizable = if (@hasDecl(game, "jok_window_resizable"))
-    game.jok_window_resizable
-else
-    false;
+// Resizable switch - jok_window_resizable
+pub var enable_resizable = false;
 
-/// Display switch
-pub const enable_fullscreen = if (@hasDecl(game, "jok_window_fullscreen"))
-    game.jok_window_fullscreen
-else
-    false;
+/// Display switch - jok_window_fullscreen
+pub var enable_fullscreen = false;
 
-/// Borderless window
-pub const enable_borderless = if (@hasDecl(game, "jok_window_borderless"))
-    game.jok_window_borderless
-else
-    false;
+/// Borderless window - jok_window_borderless
+pub var enable_borderless = false;
 
-/// Minimize window
-pub const enable_minimized = if (@hasDecl(game, "jok_window_minimized"))
-    game.jok_window_minimized
-else
-    false;
+/// Minimize window - jok_window_minimized
+pub var enable_minimized = false;
 
-/// Maximize window
-pub const enable_maximized = if (@hasDecl(game, "jok_window_maximized"))
-    game.jok_window_maximized
-else
-    false;
+/// Maximize window - jok_window_maximized
+pub var enable_maximized = false;
 
-/// Window always on top
-pub const enable_always_on_top = if (@hasDecl(game, "jok_window_always_on_top"))
-    game.jok_window_always_on_top
-else
-    false;
+/// Window always on top - jok_window_always_on_top
+pub var enable_always_on_top = false;
 
-/// Mouse mode
-pub const mouse_mode: MouseMode = if (@hasDecl(game, "jok_mouse_mode"))
-    game.jok_mouse_mode
-else
-    .normal;
+/// Mouse mode - jok_mouse_mode
+pub var mouse_mode: MouseMode = .normal;
 
-/// Exit game when get esc event
-pub const exit_on_recv_esc = if (@hasDecl(game, "jok_exit_on_recv_esc"))
-    game.jok_exit_on_recv_esc
-else
-    true;
+/// Exit game when get esc event - jok_exit_on_recv_esc
+pub var exit_on_recv_esc = true;
 
-/// Exit game when get quit event
-pub const exit_on_recv_quit = if (@hasDecl(game, "jok_exit_on_recv_quit"))
-    game.jok_exit_on_recv_esc
-else
-    false;
+/// Exit game when get quit event - jok_exit_on_recv_quit
+pub var exit_on_recv_quit = false;

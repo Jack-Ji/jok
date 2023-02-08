@@ -2,10 +2,9 @@ const bos = @import("build_options");
 
 pub const stb = @import("stb/stb.zig");
 pub const imgui = @import("imgui/imgui.zig");
-pub const zmath = @import("zmath/src/main.zig");
-pub const zpool = @import("zpool/src/main.zig");
-pub const zmesh = @import("zmesh/src/main.zig");
-pub const znoise = @import("znoise/src/znoise.zig");
+pub const zmath = @import("zmath");
+pub const zmesh = @import("zmesh");
+pub const znoise = @import("znoise");
 
 pub const chipmunk = if (bos.use_chipmunk)
     @import("chipmunk/chipmunk.zig")
@@ -18,16 +17,16 @@ else
     null;
 
 pub const zaudio = if (bos.use_zaudio)
-    @import("zaudio/src/zaudio.zig")
+    @import("zaudio")
 else
     null;
 
 pub const zphysics = if (bos.use_zphysics)
-    @import("zphysics/src/zphysics.zig")
+    @import("zphysics")
 else
     null;
 
 pub const ztracy = if (bos.use_ztracy)
-    @import("ztracy/src/ztracy.zig")
+    @import("ztracy")
 else
     null;

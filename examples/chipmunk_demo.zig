@@ -154,7 +154,7 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: *jok.Context) !void {
-    world.update(ctx.delta_tick);
+    world.update(ctx.delta_seconds);
 }
 
 pub fn draw(ctx: *jok.Context) !void {

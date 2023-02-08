@@ -68,22 +68,22 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
 pub fn update(ctx: *jok.Context) !void {
     var force_replay = false;
     if (ctx.isKeyPressed(.up)) {
-        pos.y -= velocity * ctx.delta_tick;
+        pos.y -= velocity * ctx.delta_seconds;
         animation = "player_up";
         flip_h = false;
         force_replay = true;
     } else if (ctx.isKeyPressed(.down)) {
-        pos.y += velocity * ctx.delta_tick;
+        pos.y += velocity * ctx.delta_seconds;
         animation = "player_down";
         flip_h = false;
         force_replay = true;
     } else if (ctx.isKeyPressed(.right)) {
-        pos.x += velocity * ctx.delta_tick;
+        pos.x += velocity * ctx.delta_seconds;
         animation = "player_left_right";
         flip_h = true;
         force_replay = true;
     } else if (ctx.isKeyPressed(.left)) {
-        pos.x -= velocity * ctx.delta_tick;
+        pos.x -= velocity * ctx.delta_seconds;
         animation = "player_left_right";
         flip_h = false;
         force_replay = true;
@@ -91,7 +91,7 @@ pub fn update(ctx: *jok.Context) !void {
     if (force_replay and try as.isOver(animation)) {
         try as.reset(animation);
     }
-    as.update(ctx.delta_tick);
+    as.update(ctx.delta_seconds);
 }
 
 pub fn draw(ctx: *jok.Context) !void {

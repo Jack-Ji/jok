@@ -88,8 +88,8 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
 
 pub fn update(ctx: *jok.Context) !void {
     // camera movement
-    const distance = ctx.delta_tick * 2;
-    const angle = std.math.pi * ctx.delta_tick / 2;
+    const distance = ctx.delta_seconds * 2;
+    const angle = std.math.pi * ctx.delta_seconds / 2;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -124,7 +124,7 @@ pub fn draw(ctx: *jok.Context) !void {
             zmath.mul(
                 zmath.mul(
                     zmath.scaling(0.1, 0.1, 0.1),
-                    zmath.matFromAxisAngle(rotation_axises.items[i], std.math.pi / 3.0 * @floatCast(f32, ctx.tick)),
+                    zmath.matFromAxisAngle(rotation_axises.items[i], std.math.pi / 3.0 * @floatCast(f32, ctx.seconds)),
                 ),
                 tr,
             ),

@@ -1,8 +1,8 @@
 const std = @import("std");
 const assert = std.debug.assert;
 
-/// Export zgui's api
-pub usingnamespace @import("zgui/src/main.zig");
+/// Re-export zgui's api
+pub usingnamespace @import("zgui");
 
-/// SDL2 backend
+/// SDL backend
 pub const sdl = @import("sdl.zig");

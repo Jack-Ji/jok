@@ -122,7 +122,7 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
 
 pub fn update(ctx: *jok.Context) !void {
     // camera movement
-    const distance = ctx.delta_tick * 2;
+    const distance = ctx.delta_seconds * 2;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -148,13 +148,13 @@ pub fn update(ctx: *jok.Context) !void {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
 
-    scene.root.setTransform(zmath.rotationX(@floatCast(f32, ctx.tick)));
+    scene.root.setTransform(zmath.rotationX(@floatCast(f32, ctx.seconds)));
     sprites[12].actor.sprite.tint_color = sdl.Color.rgb(
-        @floatToInt(u8, 127 * (1 + @sin(@floatCast(f32, ctx.tick)))),
-        @floatToInt(u8, 127 * (1 + @cos(@floatCast(f32, ctx.tick)))),
+        @floatToInt(u8, 127 * (1 + @sin(@floatCast(f32, ctx.seconds)))),
+        @floatToInt(u8, 127 * (1 + @cos(@floatCast(f32, ctx.seconds)))),
         100,
     );
-    sprites[13].actor.sprite.rotate_degree = @floatCast(f32, ctx.tick) * 180;
+    sprites[13].actor.sprite.rotate_degree = @floatCast(f32, ctx.seconds) * 180;
 }
 
 pub fn draw(ctx: *jok.Context) !void {

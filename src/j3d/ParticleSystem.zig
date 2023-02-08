@@ -377,7 +377,7 @@ pub const Particle = struct {
                         self.pos.z(),
                     ),
                 );
-                try tri_rd.renderShape(
+                try tri_rd.renderMesh(
                     vp,
                     target,
                     model,

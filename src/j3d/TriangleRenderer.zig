@@ -12,7 +12,7 @@ const utils = jok.utils;
 const internal = @import("internal.zig");
 const Self = @This();
 
-pub const RenderOption = struct {
+pub const MeshOption = struct {
     aabb: ?[6]f32 = null,
     cull_faces: bool = true,
     color: sdl.Color = sdl.Color.white,
@@ -73,7 +73,7 @@ pub fn deinit(self: *Self) void {
     self.* = undefined;
 }
 
-pub fn renderShape(
+pub fn renderMesh(
     self: *Self,
     vp: sdl.Rectangle,
     target: *j3d.RenderTarget,
@@ -84,7 +84,7 @@ pub fn renderShape(
     normals: []const [3]f32,
     colors: ?[]const sdl.Color,
     texcoords: ?[]const [2]f32,
-    opt: RenderOption,
+    opt: MeshOption,
 ) !void {
     assert(@rem(indices.len, 3) == 0);
     assert(normals.len == positions.len);

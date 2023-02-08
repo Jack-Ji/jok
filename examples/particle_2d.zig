@@ -82,7 +82,7 @@ pub fn update(ctx: *jok.Context) !void {
     if (ctx.isKeyPressed(.left)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(-10, 0));
     if (ctx.isKeyPressed(.right)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(10, 0));
 
-    ps.update(ctx.delta_tick);
+    ps.update(ctx.delta_seconds);
 }
 
 pub fn draw(ctx: *jok.Context) !void {

@@ -72,7 +72,7 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
 
 pub fn update(ctx: *jok.Context) !void {
     // camera movement
-    const distance = ctx.delta_tick * 2;
+    const distance = ctx.delta_seconds * 2;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }

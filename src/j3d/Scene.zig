@@ -213,7 +213,7 @@ pub fn render(
     switch (o.actor) {
         .position => {},
         .mesh => |m| {
-            try tri_rd.renderShape(
+            try tri_rd.renderMesh(
                 vp,
                 target,
                 o.transform,

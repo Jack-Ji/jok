@@ -78,7 +78,7 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
 
 pub fn update(ctx: *jok.Context) !void {
     // camera movement
-    const distance = ctx.delta_tick * 2;
+    const distance = ctx.delta_seconds * 2;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -104,8 +104,8 @@ pub fn update(ctx: *jok.Context) !void {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
 
-    earth_orbit.setTransform(zmath.mul(zmath.translation(2, 0, 0), zmath.rotationY(@floatCast(f32, ctx.tick))));
-    moon_orbit.setTransform(zmath.mul(zmath.translation(0.3, 0, 0), zmath.rotationY(@floatCast(f32, ctx.tick * 12))));
+    earth_orbit.setTransform(zmath.mul(zmath.translation(2, 0, 0), zmath.rotationY(@floatCast(f32, ctx.seconds))));
+    moon_orbit.setTransform(zmath.mul(zmath.translation(0.3, 0, 0), zmath.rotationY(@floatCast(f32, ctx.seconds * 12))));
 }
 
 pub fn draw(ctx: *jok.Context) !void {

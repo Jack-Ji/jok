@@ -101,7 +101,7 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: *jok.Context) !void {
-    const distance = ctx.delta_tick * 100;
+    const distance = ctx.delta_seconds * 100;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -127,7 +127,7 @@ pub fn update(ctx: *jok.Context) !void {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
 
-    ps.update(ctx.delta_tick);
+    ps.update(ctx.delta_seconds);
 }
 
 pub fn draw(ctx: *jok.Context) !void {

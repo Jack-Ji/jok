@@ -1,7 +1,7 @@
 const std = @import("std");
 const math = std.math;
 const jok = @import("../../jok.zig");
-const zgui = @import("zgui/src/main.zig");
+const zgui = @import("zgui");
 const sdl = @import("sdl");
 const imgui = @import("imgui.zig");
 

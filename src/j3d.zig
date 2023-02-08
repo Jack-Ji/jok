@@ -243,7 +243,7 @@ pub fn addShape(
     aabb: ?[6]f32,
     opt: RenderOption,
 ) !void {
-    try tri_rd.renderShape(
+    try tri_rd.renderMesh(
         rd.getViewport(),
         &target,
         model,
@@ -259,6 +259,39 @@ pub fn addShape(
             .color = opt.color,
             .texture = opt.texture,
             .lighting_opt = opt.lighting,
+        },
+    );
+}
+
+pub const AddMesh = struct {
+    rdopt: RenderOption = .{},
+    aabb: ?[6]f32 = null,
+};
+pub fn addMesh(
+    model: zmath.Mat,
+    indices: []const u16,
+    positions: []const [3]f32,
+    normals: []const [3]f32,
+    colors: ?[]const sdl.Color,
+    texcoords: ?[]const [2]f32,
+    opt: RenderOption,
+) !void {
+    try tri_rd.renderMesh(
+        rd.getViewport(),
+        &target,
+        model,
+        camera,
+        indices,
+        positions,
+        normals,
+        colors,
+        texcoords,
+        .{
+            .aabb = opt.aabb,
+            .cull_faces = opt.rdopt.cull_faces,
+            .color = opt.rdopt.color,
+            .texture = opt.rdopt.texture,
+            .lighting_opt = opt.rdopt.lighting,
         },
     );
 }

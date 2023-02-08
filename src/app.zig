@@ -1,13 +1,9 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const sdl = @import("sdl");
-const context = @import("context.zig");
-const jok = @import("jok.zig");
+const jok = @import("jok");
 const config = jok.config;
-const zmesh = jok.zmesh;
 const imgui = jok.imgui;
-const zaudio = jok.zaudio;
-const bos = @import("build_options");
 const game = @import("game");
 
 // Validate exposed game api
@@ -57,337 +53,190 @@ comptime {
     }
 }
 
-/// Options for zig app
+// Validate setup configurations
+comptime {
+    const config_options = [_]struct { name: []const u8, T: type, desc: []const u8 }{
+        .{ .name = "jok_log_level", .T = std.log.Level, .desc = "logging level" },
+        .{ .name = "jok_fps_limit", .T = config.FpsLimit, .desc = "fps limit setting" },
+        .{ .name = "jok_framestat_display", .T = bool, .desc = "whether refresh and display frame statistics on title-bar of window" },
+        .{ .name = "jok_allocator", .T = std.mem.Allocator, .desc = "default memory allocator" },
+        .{ .name = "jok_mem_leak_checks", .T = bool, .desc = "whether default memory allocator check memleak when exiting" },
+        .{ .name = "jok_mem_detail_logs", .T = bool, .desc = "whether default memory allocator print detailed memory alloc/free logs" },
+        .{ .name = "jok_software_renderer", .T = bool, .desc = "whether fallback to software renderer when hardware acceleration isn't available" },
+        .{ .name = "jok_window_title", .T = [:0]const u8, .desc = "title of window" },
+        .{ .name = "jok_window_pos_x", .T = sdl.WindowPosition, .desc = "horizontal position of window" },
+        .{ .name = "jok_window_pos_y", .T = sdl.WindowPosition, .desc = "vertical position of window" },
+        .{ .name = "jok_window_width", .T = u32, .desc = "width of window" },
+        .{ .name = "jok_window_height", .T = u32, .desc = "height of window" },
+        .{ .name = "jok_window_min_size", .T = sdl.Size, .desc = "minimum size of window" },
+        .{ .name = "jok_window_max_size", .T = sdl.Size, .desc = "maximum size of window" },
+        .{ .name = "jok_window_resizable", .T = bool, .desc = "whether window is resizable" },
+        .{ .name = "jok_window_fullscreen", .T = bool, .desc = "whether use fullscreen mode" },
+        .{ .name = "jok_window_borderless", .T = bool, .desc = "whether window is borderless" },
+        .{ .name = "jok_window_minimized", .T = bool, .desc = "whether window is minimized when startup" },
+        .{ .name = "jok_window_maximized", .T = bool, .desc = "whether window is maximized when startup" },
+        .{ .name = "jok_window_always_on_top", .T = bool, .desc = "whether window is locked to most front layer" },
+        .{ .name = "jok_mouse_mode", .T = config.MouseMode, .desc = "mouse mode setting" },
+        .{ .name = "jok_exit_on_recv_esc", .T = bool, .desc = "whether exit game when esc is pressed" },
+        .{ .name = "jok_exit_on_recv_quit", .T = bool, .desc = "whether exit game when getting quit event" },
+    };
+    const game_struct = @typeInfo(game).Struct;
+    for (game_struct.decls) |f| {
+        if (!std.mem.startsWith(u8, f.name, "jok_")) {
+            continue;
+        }
+        if (!f.is_pub) {
+            @compileError("Validation of setup options failed, option `" ++ f.name ++ "` need to be public!");
+        }
+        for (config_options) |o| {
+            if (std.mem.eql(u8, o.name, f.name)) {
+                const FieldType = @TypeOf(@field(game, f.name));
+                if (o.T != FieldType) {
+                    @compileError("Validation of setup options failed, invalid type for option `" ++
+                        f.name ++ "`, expecting " ++ @typeName(o.T) ++ ", get " ++ @typeName(FieldType));
+                }
+                break;
+            }
+        } else {
+            var buf: [2048]u8 = undefined;
+            var off: usize = 0;
+            var bs = std.fmt.bufPrint(&buf, "Validation of setup options failed, invalid option name: `" ++ f.name ++ "`", .{}) catch unreachable;
+            off += bs.len;
+            bs = std.fmt.bufPrint(buf[off..], "\nSupported options:", .{}) catch unreachable;
+            off += bs.len;
+            inline for (config_options) |o| {
+                bs = std.fmt.bufPrint(buf[off..], "\n\t" ++ o.name ++ " (" ++ @typeName(o.T) ++ "): " ++ o.desc ++ ".", .{}) catch unreachable;
+                off += bs.len;
+            }
+            @compileError(buf[0..off]);
+        }
+    }
+}
+
+/// Options for zig executable
 pub const std_options = struct {
-    /// Logging level
-    pub const log_level = config.log_level;
+    pub const log_level = if (@hasDecl(game, "jok_log_level"))
+        game.jok_log_level
+    else
+        std.log.default_level;
 };
 
-/// Check system information
-fn checkSys() !void {
-    const target = builtin.target;
-    var sdl_version: sdl.c.SDL_version = undefined;
-    sdl.c.SDL_GetVersion(&sdl_version);
-    const ram_size = sdl.c.SDL_GetSystemRAM();
-
-    // Print system info
-    context.log.info(
-        \\System info:
-        \\    Build Mode    : {s}
-        \\    Logging Level : {s}
-        \\    Zig Version   : {}
-        \\    CPU           : {s}
-        \\    ABI           : {s}
-        \\    SDL           : {}.{}.{}
-        \\    Platform      : {s}
-        \\    Memory        : {d}MB
-    ,
-        .{
-            std.meta.tagName(builtin.mode),
-            std.meta.tagName(config.log_level),
-            builtin.zig_version,
-            std.meta.tagName(target.cpu.arch),
-            std.meta.tagName(target.abi),
-            sdl_version.major,
-            sdl_version.minor,
-            sdl_version.patch,
-            std.meta.tagName(target.os.tag),
-            ram_size,
-        },
-    );
-
-    if (sdl_version.major < 2 or (sdl_version.minor == 0 and sdl_version.patch < 18)) {
-        context.log.err("Need SDL least version >= 2.0.18", .{});
-        return sdl.makeError();
+/// Setup runtime configurations
+fn setupConfigurations() void {
+    if (@hasDecl(game, "jok_log_level")) {
+        config.log_level = game.jok_log_level;
     }
-
-    if (config.exit_on_recv_esc) {
-        context.log.info("Press ESC to exit game", .{});
+    if (@hasDecl(game, "jok_fps_limit")) {
+        config.fps_limit = game.jok_fps_limit;
     }
-}
-
-/// Global context
-var ctx: context.Context = .{};
-
-/// Internal memory allocation
-var mem_allocations: std.AutoHashMap(usize, usize) = undefined;
-var mem_mutex: std.Thread.Mutex = .{};
-const mem_alignment = 16;
-
-/// Custom memory functions for SDL
-fn sdlMemAlloc(size: usize) callconv(.C) ?*anyopaque {
-    mem_mutex.lock();
-    defer mem_mutex.unlock();
-
-    const mem_slice = ctx.allocator.alignedAlloc(
-        u8,
-        mem_alignment,
-        size,
-    ) catch @panic("jok: out of memory");
-    mem_allocations.put(@ptrToInt(mem_slice.ptr), size) catch @panic("jok: out of memory");
-    return mem_slice.ptr;
-}
-fn sdlMemCalloc(nmemb: usize, size: usize) callconv(.C) ?*anyopaque {
-    mem_mutex.lock();
-    defer mem_mutex.unlock();
-
-    const mem_slice = ctx.allocator.alignedAlloc(
-        u8,
-        mem_alignment,
-        size * nmemb,
-    ) catch @panic("jok: out of memory");
-    @memset(mem_slice.ptr, 0, mem_slice.len);
-    mem_allocations.put(@ptrToInt(mem_slice.ptr), size * nmemb) catch @panic("jok: out of memory");
-    return mem_slice.ptr;
-}
-fn sdlMemRealloc(mem: ?*anyopaque, size: usize) callconv(.C) ?*anyopaque {
-    if (mem) |ptr| {
-        mem_mutex.lock();
-        defer mem_mutex.unlock();
-
-        const old_size = mem_allocations.fetchRemove(@ptrToInt(ptr)).?.value;
-        const old_mem_slice = @ptrCast(
-            [*]align(mem_alignment) u8,
-            @alignCast(mem_alignment, ptr),
-        )[0..old_size];
-        const mem_slice = ctx.allocator.realloc(old_mem_slice, size) catch @panic("jok: out of memory");
-        mem_allocations.put(@ptrToInt(mem_slice.ptr), size) catch @panic("jok: out of memory");
-        return mem_slice.ptr;
-    } else {
-        return sdlMemAlloc(size);
+    if (@hasDecl(game, "jok_framestat_display")) {
+        config.enable_framestat_display = game.jok_framestat_display;
     }
-}
-fn sdlMemFree(mem: ?*anyopaque) callconv(.C) void {
-    if (mem) |ptr| {
-        mem_mutex.lock();
-        defer mem_mutex.unlock();
-
-        const size = mem_allocations.fetchRemove(@ptrToInt(ptr)).?.value;
-        const mem_slice = @ptrCast(
-            [*]align(mem_alignment) u8,
-            @alignCast(mem_alignment, ptr),
-        )[0..size];
-        ctx.allocator.free(mem_slice);
+    if (@hasDecl(game, "jok_allocator")) {
+        config.allocator = game.jok_allocator;
     }
-}
-
-/// Initialize SDL
-fn initSDL() !void {
-    // Set SDL memory allocator
-    mem_allocations = std.AutoHashMap(usize, usize).init(ctx.allocator);
-    try mem_allocations.ensureTotalCapacity(32);
-    sdl.c.SDL_SetMemoryFunctions(
-        &sdlMemAlloc,
-        &sdlMemCalloc,
-        &sdlMemRealloc,
-        &sdlMemFree,
-    );
-
-    // Initialize SDL sub-systems
-    var sdl_flags = sdl.InitFlags.everything;
-    try sdl.init(sdl_flags);
-
-    // Create window
-    var window_flags = sdl.WindowFlags{
-        .allow_high_dpi = true,
-        .mouse_capture = true,
-        .mouse_focus = true,
-    };
-    if (config.enable_borderless) {
-        window_flags.borderless = true;
+    if (@hasDecl(game, "jok_mem_leak_checks")) {
+        config.enable_mem_leak_checks = game.jok_mem_leak_checks;
     }
-    if (config.enable_minimized) {
-        window_flags.dim = .minimized;
+    if (@hasDecl(game, "jok_mem_detail_logs")) {
+        config.enable_mem_detail_logs = game.jok_mem_detail_logs;
     }
-    if (config.enable_maximized) {
-        window_flags.dim = .maximized;
+    if (@hasDecl(game, "jok_software_renderer")) {
+        config.enable_software_renderer = game.jok_software_renderer;
     }
-    ctx.window = try sdl.createWindow(
-        config.title,
-        config.pos_x,
-        config.pos_y,
-        config.width,
-        config.height,
-        window_flags,
-    );
-    if (config.min_size) |size| {
-        sdl.c.SDL_SetWindowMinimumSize(
-            ctx.window.ptr,
-            size.width,
-            size.height,
-        );
+    if (@hasDecl(game, "jok_window_title")) {
+        config.title = game.jok_window_title;
     }
-    if (config.max_size) |size| {
-        sdl.c.SDL_SetWindowMaximumSize(
-            ctx.window.ptr,
-            size.width,
-            size.height,
-        );
+    if (@hasDecl(game, "jok_window_pos_x")) {
+        config.pos_x = game.jok_window_pos_x;
     }
-    ctx.toggleResizable(config.enable_resizable);
-    ctx.toggleFullscreeen(config.enable_fullscreen);
-    ctx.toggleAlwaysOnTop(config.enable_always_on_top);
-
-    // Apply mouse mode
-    switch (config.mouse_mode) {
-        .normal => {
-            if (config.enable_fullscreen) {
-                sdl.c.SDL_SetWindowGrab(ctx.window.ptr, sdl.c.SDL_FALSE);
-            }
-            _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_ENABLE);
-            _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_FALSE);
-        },
-        .hide => {
-            if (config.enable_fullscreen) {
-                sdl.c.SDL_SetWindowGrab(ctx.window.ptr, sdl.c.SDL_TRUE);
-            }
-            _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
-            _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_TRUE);
-        },
+    if (@hasDecl(game, "jok_window_pos_y")) {
+        config.pos_y = game.jok_window_pos_y;
     }
-
-    // Create hardware accelerated renderer
-    // Fallback to software renderer if allowed
-    ctx.renderer = sdl.createRenderer(
-        ctx.window,
-        null,
-        .{
-            .accelerated = true,
-            .present_vsync = config.fps_limit == .auto,
-            .target_texture = true,
-        },
-    ) catch blk: {
-        if (config.enable_software_renderer) {
-            context.log.warn("hardware accelerated renderer isn't supported, fallback to software backend", .{});
-            break :blk try sdl.createRenderer(
-                ctx.window,
-                null,
-                .{
-                    .software = true,
-                    .present_vsync = config.fps_limit == .auto, // Doesn't matter actually, vsync won't work anyway
-                    .target_texture = true,
-                },
-            );
-        }
-    };
-    const rdinfo = try ctx.renderer.getInfo();
-    ctx.is_software = ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0);
-    try ctx.renderer.setDrawBlendMode(.blend);
-}
-
-/// Deinitialize SDL
-fn deinitSDL() void {
-    ctx.renderer.destroy();
-    ctx.window.destroy();
-    sdl.quit();
-
-    // Release leftover memory (probably some leaks in SDL)
-    var leftover_mem_size: usize = 0;
-    var it = mem_allocations.iterator();
-    while (it.next()) |p| {
-        const mem_slice = @ptrCast(
-            [*]align(mem_alignment) u8,
-            @alignCast(mem_alignment, @intToPtr(*anyopaque, p.key_ptr.*)),
-        )[0..p.value_ptr.*];
-        ctx.allocator.free(mem_slice);
-        leftover_mem_size += mem_slice.len;
+    if (@hasDecl(game, "jok_window_width")) {
+        config.width = game.jok_window_width;
     }
-    if (leftover_mem_size > 0)
-        context.log.warn("SDL leaked some memory @_@, size: {:.3} ", .{std.fmt.fmtIntSizeBin(leftover_mem_size)});
-    mem_allocations.deinit();
-}
-
-/// Initialize modules
-fn initModules() !void {
-    try initSDL();
-    imgui.sdl.init(ctx);
-    zmesh.init(ctx.allocator);
-    try jok.j2d.init(ctx.allocator, ctx.renderer);
-    try jok.j3d.init(ctx.allocator, ctx.renderer);
-    if (bos.use_zaudio) {
-        zaudio.init(ctx.allocator);
+    if (@hasDecl(game, "jok_window_height")) {
+        config.height = game.jok_window_height;
     }
-}
-
-/// Deinitialize modules
-fn deinitModules() void {
-    if (bos.use_zaudio) {
-        zaudio.deinit();
+    if (@hasDecl(game, "jok_window_min_size")) {
+        config.min_size = game.jok_window_min_size;
     }
-    jok.j3d.deinit();
-    jok.j2d.deinit();
-    zmesh.deinit();
-    imgui.sdl.deinit();
-    deinitSDL();
+    if (@hasDecl(game, "jok_window_max_size")) {
+        config.max_size = game.jok_window_max_size;
+    }
+    if (@hasDecl(game, "jok_window_resizable")) {
+        config.enable_resizable = game.jok_window_resizable;
+    }
+    if (@hasDecl(game, "jok_window_fullscreen")) {
+        config.enable_fullscreen = game.jok_window_fullscreen;
+    }
+    if (@hasDecl(game, "jok_window_borderless")) {
+        config.enable_borderless = game.jok_window_borderless;
+    }
+    if (@hasDecl(game, "jok_window_minimized")) {
+        config.enable_minimized = game.jok_window_minimized;
+    }
+    if (@hasDecl(game, "jok_window_maximized")) {
+        config.enable_maximized = game.jok_window_maximized;
+    }
+    if (@hasDecl(game, "jok_window_always_on_top")) {
+        config.enable_always_on_top = game.jok_window_always_on_top;
+    }
+    if (@hasDecl(game, "jok_mouse_mode")) {
+        config.mouse_mode = game.jok_mouse_mode;
+    }
+    if (@hasDecl(game, "jok_exit_on_recv_esc")) {
+        config.exit_on_recv_esc = game.jok_exit_on_recv_esc;
+    }
+    if (@hasDecl(game, "jok_exit_on_recv_quit")) {
+        config.exit_on_recv_quit = game.jok_exit_on_recv_esc;
+    }
 }
 
 pub fn main() !void {
-    // Check system
-    try checkSys();
+    setupConfigurations();
 
-    // Initialize memory allocator
+    // Init memory allocator
     const AllocatorType = std.heap.GeneralPurposeAllocator(.{
-        .safety = if (config.enable_mem_leak_checks) true else false,
-        .verbose_log = if (config.enable_mem_detail_logs) true else false,
+        .safety = if (@hasDecl(game, "jok_mem_leak_checks") and
+            game.enable_mem_leak_checks)
+            true
+        else
+            false,
+        .verbose_log = if (@hasDecl(game, "jok_mem_detail_logs") and
+            game.enable_mem_detail_logs)
+            true
+        else
+            false,
         .enable_memory_limit = true,
     });
     var gpa: ?AllocatorType = null;
-    if (config.allocator) |a| {
-        ctx.allocator = a;
-    } else {
+    var allocator = if (config.allocator) |a| a else BLK: {
         gpa = AllocatorType{};
-        ctx.allocator = gpa.?.allocator();
-    }
-    defer {
-        if (gpa) |*a| {
-            if (a.deinit()) {
-                @panic("jok: memory leaks happened!");
-            }
+        break :BLK gpa.?.allocator();
+    };
+    defer if (gpa) |*a| {
+        if (a.deinit()) {
+            @panic("jok: memory leaks happened!");
         }
-    }
+    };
 
-    // Init modules
-    try initModules();
-    defer deinitModules();
+    // Init application context
+    var ctx = try jok.Context.init(allocator);
+    defer ctx.deinit();
 
     // Init game object
     try game.init(&ctx);
     defer game.quit(&ctx);
 
-    // Init common time-related vars
-    ctx._pc_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
-    ctx._last_pc = sdl.c.SDL_GetPerformanceCounter();
-
-    // Game loop
+    // Start Game loop
+    var last_time = ctx.seconds;
     while (!ctx.quit) {
-        // Event processing
-        while (sdl.pollNativeEvent()) |e| {
-            _ = imgui.sdl.processEvent(e);
+        ctx.tick(game.event, game.update, game.draw);
 
-            const we = sdl.Event.from(e);
-            if (config.exit_on_recv_esc and
-                we == .key_up and
-                we.key_up.scancode == .escape)
-            {
-                ctx.kill();
-            } else if (config.exit_on_recv_quit and we == .quit) {
-                ctx.kill();
-            } else {
-                game.event(&ctx, we) catch |err| {
-                    context.log.err("got error in `event`: {}", .{err});
-                    if (@errorReturnTrace()) |trace| {
-                        std.debug.dumpStackTrace(trace.*);
-                        break;
-                    }
-                };
-            }
-        }
-
-        // Internal loop
-        ctx.internalLoop(config.fps_limit, game.update, game.draw);
-
-        // Update frame stats and display
-        if (ctx.updateFrameStats() and config.enable_framestat_display) {
+        if (ctx.seconds - last_time > 1 and config.enable_framestat_display) {
+            last_time = ctx.seconds;
             var buf: [128]u8 = undefined;
             const txt = std.fmt.bufPrintZ(
                 &buf,
