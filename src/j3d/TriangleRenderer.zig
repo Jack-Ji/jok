@@ -192,12 +192,10 @@ pub fn renderMesh(
         0.0,                              0.0,                                0.5,
         0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
     });
-    try target.vertices.ensureTotalCapacityPrecise(target.vertices.items.len + self.clip_vertices.items.len);
-    try target.textures.ensureTotalCapacityPrecise(target.textures.items.len + self.clip_vertices.items.len);
-    try target.depths.ensureTotalCapacityPrecise(target.depths.items.len + self.clip_vertices.items.len);
     try target.indices.ensureTotalCapacityPrecise(target.indices.items.len + self.clip_vertices.items.len);
-    var current_index: u32 = @intCast(u32, target.vertices.items.len);
-    var batched_size: u32 = 0;
+    try target.vertices.ensureTotalCapacityPrecise(target.vertices.items.len + self.clip_vertices.items.len);
+    try target.depths.ensureTotalCapacityPrecise(target.depths.items.len + self.clip_vertices.items.len);
+    try target.textures.ensureTotalCapacityPrecise(target.textures.items.len + self.clip_vertices.items.len);
     i = 2;
     while (i < self.clip_vertices.items.len) : (i += 3) {
         const idx0 = i - 2;
@@ -220,7 +218,6 @@ pub fn renderMesh(
         if (internal.isTriangleOutside(ndc0, ndc1, ndc2)) {
             continue;
         }
-        batched_size += 3;
 
         // Calculate screen coordinate
         const ndcs = zmath.Mat{
@@ -264,17 +261,17 @@ pub fn renderMesh(
         const t2 = if (texcoords) |_| self.clip_texcoords.items[idx2] else undefined;
 
         // Render to ouput
-        target.vertices.appendSliceAssumeCapacity(&[_]sdl.Vertex{
-            .{ .position = p0, .color = c0, .tex_coord = t0 },
-            .{ .position = p1, .color = c1, .tex_coord = t1 },
-            .{ .position = p2, .color = c2, .tex_coord = t2 },
-        });
-        target.textures.appendSliceAssumeCapacity(&[_]?sdl.Texture{ opt.texture, opt.texture, opt.texture });
-        target.depths.appendSliceAssumeCapacity(&[_]f32{ d0, d1, d2 });
-        target.indices.appendSliceAssumeCapacity(&[_]u32{ current_index, current_index + 1, current_index + 2 });
-        current_index += 3;
+        try target.appendTrianglesAssumeCapacity(
+            &.{ 0, 1, 2 },
+            &[_]sdl.Vertex{
+                .{ .position = p0, .color = c0, .tex_coord = t0 },
+                .{ .position = p1, .color = c1, .tex_coord = t1 },
+                .{ .position = p2, .color = c2, .tex_coord = t2 },
+            },
+            &.{ d0, d1, d2 },
+            &[_]?sdl.Texture{ opt.texture, opt.texture, opt.texture },
+        );
     }
-    try target.updateBatch(batched_size, batched_size);
 }
 
 pub fn renderSprite(
@@ -408,23 +405,21 @@ pub fn renderSprite(
     const t3 = sdl.PointF{ .x = uv1.x, .y = uv0.y };
 
     // Render to ouput
-    var current_index: u32 = @intCast(u32, target.vertices.items.len);
-    try target.vertices.appendSlice(&[_]sdl.Vertex{
-        .{ .position = p0, .color = opt.tint_color, .tex_coord = t0 },
-        .{ .position = p1, .color = opt.tint_color, .tex_coord = t1 },
-        .{ .position = p2, .color = opt.tint_color, .tex_coord = t2 },
-        .{ .position = p3, .color = opt.tint_color, .tex_coord = t3 },
-    });
-    try target.textures.appendSlice(&[_]?sdl.Texture{
-        opt.texture, opt.texture,
-        opt.texture, opt.texture,
-    });
-    try target.depths.appendSlice(&[_]f32{ d0, d1, d2, d3 });
-    try target.indices.appendSlice(&[_]u32{
-        current_index, current_index + 1, current_index + 2,
-        current_index, current_index + 2, current_index + 3,
-    });
-    try target.updateBatch(6, 4);
+    try target.indices.ensureTotalCapacityPrecise(target.indices.items.len + 6);
+    try target.vertices.ensureTotalCapacityPrecise(target.vertices.items.len + 4);
+    try target.depths.ensureTotalCapacityPrecise(target.depths.items.len + 4);
+    try target.textures.ensureTotalCapacityPrecise(target.textures.items.len + 4);
+    try target.appendTrianglesAssumeCapacity(
+        &.{ 0, 1, 2, 0, 2, 3 },
+        &[_]sdl.Vertex{
+            .{ .position = p0, .color = opt.tint_color, .tex_coord = t0 },
+            .{ .position = p1, .color = opt.tint_color, .tex_coord = t1 },
+            .{ .position = p2, .color = opt.tint_color, .tex_coord = t2 },
+            .{ .position = p3, .color = opt.tint_color, .tex_coord = t3 },
+        },
+        &.{ d0, d1, d2, d3 },
+        &[_]?sdl.Texture{ opt.texture, opt.texture, opt.texture, opt.texture },
+    );
 }
 
 /// Test whether all obb's triangles are hidden behind current front triangles

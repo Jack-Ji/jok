@@ -35,6 +35,7 @@ pub const RenderTarget = struct {
     vertices: std.ArrayList(sdl.Vertex),
     depths: std.ArrayList(f32),
     textures: std.ArrayList(?sdl.Texture),
+    draw_list: imgui.DrawList,
 
     fn init(_allocator: std.mem.Allocator) RenderTarget {
         return .{
@@ -43,24 +44,36 @@ pub const RenderTarget = struct {
             .vertices = std.ArrayList(sdl.Vertex).init(_allocator),
             .depths = std.ArrayList(f32).init(_allocator),
             .textures = std.ArrayList(?sdl.Texture).init(_allocator),
+            .draw_list = imgui.createDrawList(),
         };
     }
 
-    fn deinit(self: RenderTarget) void {
+    fn deinit(self: *RenderTarget) void {
         self.indices.deinit();
         self.batched_indices.deinit();
         self.vertices.deinit();
         self.depths.deinit();
         self.textures.deinit();
+        imgui.destroyDrawList(self.draw_list);
+        self.* = undefined;
     }
 
     fn clear(self: *RenderTarget, recycle_memory: bool) void {
+        self.draw_list.reset();
+        self.draw_list.pushClipRectFullScreen();
+        self.draw_list.setDrawListFlags(.{
+            .anti_aliased_lines = true,
+            .anti_aliased_lines_use_tex = false,
+            .anti_aliased_fill = true,
+            .allow_vtx_offset = true,
+        });
         if (recycle_memory) {
             self.indices.clearAndFree();
             self.batched_indices.clearAndFree();
             self.vertices.clearAndFree();
             self.depths.clearAndFree();
             self.textures.clearAndFree();
+            self.draw_list.clearMemory();
         } else {
             self.indices.clearRetainingCapacity();
             self.batched_indices.clearRetainingCapacity();
@@ -70,26 +83,87 @@ pub const RenderTarget = struct {
         }
     }
 
-    pub inline fn updateBatch(
-        self: *RenderTarget,
-        batched_index_count: u32,
-        batched_vertex_count: u32,
-    ) !void {
-        if (batched_index_count == 0) return;
-        const latest_texture =
-            self.textures.items[self.textures.items.len - 1];
-        const last_texture: ?sdl.Texture =
-            if (self.textures.items.len > batched_vertex_count)
-            self.textures.items[self.textures.items.len - batched_vertex_count - 1]
-        else
-            null;
-        if (self.batched_indices.items.len > 0 and
-            internal.isSameTexture(last_texture, latest_texture))
-        {
-            self.batched_indices.items[self.batched_indices.items.len - 1] += batched_index_count;
-        } else {
-            try self.batched_indices.append(batched_index_count);
+    // Sort triangles by depth and texture values
+    fn compareTriangles(self: *RenderTarget, lhs: [3]u32, rhs: [3]u32) bool {
+        const l_idx0 = lhs[0];
+        const l_idx1 = lhs[1];
+        const l_idx2 = lhs[2];
+        const r_idx0 = rhs[0];
+        const r_idx1 = rhs[1];
+        const r_idx2 = rhs[2];
+        const d0 = (self.depths.items[l_idx0] + self.depths.items[l_idx1] + self.depths.items[l_idx2]) / 3.0;
+        const d1 = (self.depths.items[r_idx0] + self.depths.items[r_idx1] + self.depths.items[r_idx2]) / 3.0;
+        if (math.approxEqAbs(f32, d0, d1, 0.00001)) {
+            const tex0 = self.textures.items[l_idx0];
+            const tex1 = self.textures.items[r_idx0];
+            if (tex0 != null and tex1 != null) {
+                const ptr0 = @ptrToInt(tex0.?.ptr);
+                const ptr1 = @ptrToInt(tex1.?.ptr);
+                return if (ptr0 == ptr1) d0 > d1 else ptr0 > ptr1;
+            } else if (tex0 != null or tex1 != null) {
+                return tex0 == null;
+            }
         }
+        return d0 > d1;
+    }
+
+    fn sortTriangles(self: *RenderTarget) void {
+        var _indices: [][3]u32 = undefined;
+        _indices.ptr = @ptrCast([*][3]u32, self.indices.items.ptr);
+        _indices.len = @divTrunc(self.indices.items.len, 3);
+        std.sort.sort(
+            [3]u32,
+            _indices,
+            self,
+            RenderTarget.compareTriangles,
+        );
+    }
+
+    inline fn drawTriangles(self: RenderTarget, color: sdl.Color) void {
+        const col = imgui.sdl.convertColor(color);
+        var i: u32 = 0;
+        while (i < self.indices.items.len) : (i += 3) {
+            const v0 = self.vertices.items[target.indices.items[i]];
+            const v1 = self.vertices.items[target.indices.items[i + 1]];
+            const v2 = self.vertices.items[target.indices.items[i + 2]];
+            self.draw_list.addTriangle(.{
+                .p1 = .{ v0.position.x, v0.position.y },
+                .p2 = .{ v1.position.x, v1.position.y },
+                .p3 = .{ v2.position.x, v2.position.y },
+                .col = col,
+            });
+        }
+    }
+
+    pub inline fn appendTrianglesAssumeCapacity(
+        self: *RenderTarget,
+        indices: []const u32,
+        vertices: []const sdl.Vertex,
+        depths: []const f32,
+        textures: []?sdl.Texture,
+    ) !void {
+        assert(@rem(indices.len, 3) == 0);
+        assert(vertices.len == depths.len);
+        assert(vertices.len == textures.len);
+
+        if (self.batched_indices.items.len == 0) {
+            try self.batched_indices.append(indices.len);
+        } else {
+            const last_texture = self.textures.items[self.textures.items.len - 1];
+            if (internal.isSameTexture(last_texture, textures[0])) {
+                self.batched_indices.items[self.batched_indices.items.len - 1] += @intCast(u32, indices.len);
+            } else {
+                try self.batched_indices.append(indices.len);
+            }
+        }
+
+        const current_index: u32 = @intCast(u32, self.vertices.items.len);
+        for (indices) |idx| {
+            self.indices.appendAssumeCapacity(idx + current_index);
+        }
+        self.vertices.appendSliceAssumeCapacity(vertices);
+        self.depths.appendSliceAssumeCapacity(depths);
+        self.textures.appendSliceAssumeCapacity(textures);
     }
 };
 
@@ -97,7 +171,6 @@ var allocator: std.mem.Allocator = undefined;
 var arena: std.heap.ArenaAllocator = undefined;
 var rd: sdl.Renderer = undefined;
 var target: RenderTarget = undefined;
-var draw_list: imgui.DrawList = undefined;
 var tri_rd: TriangleRenderer = undefined;
 var skybox_rd: SkyboxRenderer = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
@@ -110,7 +183,6 @@ pub fn init(_allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
     arena = std.heap.ArenaAllocator.init(allocator);
     rd = _rd;
     target = RenderTarget.init(allocator);
-    draw_list = imgui.createDrawList();
     tri_rd = TriangleRenderer.init(allocator);
     skybox_rd = SkyboxRenderer.init(allocator, .{});
     all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
@@ -120,7 +192,6 @@ pub fn deinit() void {
     for (all_shapes.items) |s| s.deinit();
     tri_rd.deinit();
     skybox_rd.deinit();
-    imgui.destroyDrawList(draw_list);
     target.deinit();
     arena.deinit();
 }
@@ -153,38 +224,53 @@ pub fn end() !void {
     assert(@rem(target.indices.items.len, 3) == 0);
 
     if (wireframe_color) |wc| {
-        draw_list.reset();
-        draw_list.pushClipRectFullScreen();
-        const col = imgui.sdl.convertColor(wc);
-        var i: u32 = 0;
-        while (i < target.indices.items.len) : (i += 3) {
-            const v0 = target.vertices.items[target.indices.items[i]];
-            const v1 = target.vertices.items[target.indices.items[i + 1]];
-            const v2 = target.vertices.items[target.indices.items[i + 2]];
-            draw_list.addTriangle(.{
-                .p1 = .{ v0.position.x, v0.position.y },
-                .p2 = .{ v1.position.x, v1.position.y },
-                .p3 = .{ v2.position.x, v2.position.y },
-                .col = col,
-            });
-        }
-        imgui.sdl.renderDrawList(rd, draw_list) catch unreachable;
+        target.drawTriangles(wc);
     } else {
-        try internal.drawTriangles(
-            rd,
-            target.indices,
-            target.batched_indices,
-            target.vertices,
-            target.textures,
-            target.depths,
-            sort_by_depth,
-        );
+        if (sort_by_depth) {
+            if (sort_by_depth) {
+                target.sortTriangles();
+            }
+
+            // Scan vertices and send them in batches
+            var offset: usize = 0;
+            var last_texture: ?sdl.Texture = null;
+            var i: usize = 0;
+            while (i < target.indices.items.len) : (i += 3) {
+                const idx = target.indices.items[i];
+                if (i > 0 and !internal.isSameTexture(target.textures.items[idx], last_texture)) {
+                    try rd.drawGeometry(
+                        last_texture,
+                        target.vertices.items,
+                        target.indices.items[offset..i],
+                    );
+                    offset = i;
+                }
+                last_texture = target.textures.items[idx];
+            }
+            try rd.drawGeometry(
+                last_texture,
+                target.vertices.items,
+                target.indices.items[offset..],
+            );
+        } else { // Send pre-batched vertices directly
+            var offset: u32 = 0;
+            for (target.batched_indices.items) |size| {
+                assert(size % 3 == 0);
+                try rd.drawGeometry(
+                    target.textures.items[target.indices.items[offset]],
+                    target.vertices.items,
+                    target.indices.items[offset .. offset + size],
+                );
+                offset += size;
+            }
+            assert(offset == @intCast(u32, target.indices.items.len));
+        }
     }
+    imgui.sdl.renderDrawList(rd, target.draw_list) catch unreachable;
 }
 
-pub fn recycleMemory() void {
+pub fn clearMemory() void {
     target.clear(true);
-    imgui.clearMemory(draw_list);
 }
 
 pub fn addSkybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {

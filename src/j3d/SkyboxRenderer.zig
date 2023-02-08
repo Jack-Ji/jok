@@ -139,8 +139,10 @@ pub fn render(
         assert(@rem(self.clip_vertices.items.len, 3) == 0);
 
         // Continue with remaining triangles
-        var batched_size: u32 = 0;
-        var current_index: u32 = @intCast(u32, target.indices.items.len);
+        try target.indices.ensureTotalCapacityPrecise(target.indices.items.len + self.clip_vertices.items.len);
+        try target.vertices.ensureTotalCapacityPrecise(target.vertices.items.len + self.clip_vertices.items.len);
+        try target.depths.ensureTotalCapacityPrecise(target.depths.items.len + self.clip_vertices.items.len);
+        try target.textures.ensureTotalCapacityPrecise(target.textures.items.len + self.clip_vertices.items.len);
         i = 2;
         while (i < self.clip_vertices.items.len) : (i += 3) {
             const idx0 = i - 2;
@@ -166,38 +168,29 @@ pub fn render(
             const t0 = self.clip_texcoords.items[idx0];
             const t1 = self.clip_texcoords.items[idx1];
             const t2 = self.clip_texcoords.items[idx2];
-            try target.vertices.appendSlice(&[_]sdl.Vertex{
-                .{
-                    .position = .{ .x = positions_screen[0][0], .y = positions_screen[0][1] },
-                    .color = color orelse sdl.Color.white,
-                    .tex_coord = t0,
+            try target.appendTrianglesAssumeCapacity(
+                &.{ 0, 1, 2 },
+                &[_]sdl.Vertex{
+                    .{
+                        .position = .{ .x = positions_screen[0][0], .y = positions_screen[0][1] },
+                        .color = color orelse sdl.Color.white,
+                        .tex_coord = t0,
+                    },
+                    .{
+                        .position = .{ .x = positions_screen[1][0], .y = positions_screen[1][1] },
+                        .color = color orelse sdl.Color.white,
+                        .tex_coord = t1,
+                    },
+                    .{
+                        .position = .{ .x = positions_screen[2][0], .y = positions_screen[2][1] },
+                        .color = color orelse sdl.Color.white,
+                        .tex_coord = t2,
+                    },
                 },
-                .{
-                    .position = .{ .x = positions_screen[1][0], .y = positions_screen[1][1] },
-                    .color = color orelse sdl.Color.white,
-                    .tex_coord = t1,
-                },
-                .{
-                    .position = .{ .x = positions_screen[2][0], .y = positions_screen[2][1] },
-                    .color = color orelse sdl.Color.white,
-                    .tex_coord = t2,
-                },
-            });
-            try target.textures.appendSlice(&[_]?sdl.Texture{
-                textures[idx],
-                textures[idx],
-                textures[idx],
-            });
-            try target.depths.appendSlice(&[_]f32{ 10, 10, 10 });
-            try target.indices.appendSlice(&[_]u32{
-                current_index,
-                current_index + 1,
-                current_index + 2,
-            });
-            current_index += 3;
-            batched_size += 3;
+                &[_]f32{ 10, 10, 10 },
+                &[_]?sdl.Texture{ textures[idx], textures[idx], textures[idx] },
+            );
         }
-        try target.updateBatch(batched_size, batched_size);
     }
 }
 
