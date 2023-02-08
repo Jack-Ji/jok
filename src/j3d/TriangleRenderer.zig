@@ -192,10 +192,10 @@ pub fn renderMesh(
         0.0,                              0.0,                                0.5,
         0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
     });
-    try target.indices.ensureTotalCapacityPrecise(target.indices.items.len + self.clip_vertices.items.len);
-    try target.vertices.ensureTotalCapacityPrecise(target.vertices.items.len + self.clip_vertices.items.len);
-    try target.depths.ensureTotalCapacityPrecise(target.depths.items.len + self.clip_vertices.items.len);
-    try target.textures.ensureTotalCapacityPrecise(target.textures.items.len + self.clip_vertices.items.len);
+    try target.reserveCapacity(
+        self.clip_vertices.items.len,
+        self.clip_vertices.items.len,
+    );
     i = 2;
     while (i < self.clip_vertices.items.len) : (i += 3) {
         const idx0 = i - 2;
@@ -405,10 +405,7 @@ pub fn renderSprite(
     const t3 = sdl.PointF{ .x = uv1.x, .y = uv0.y };
 
     // Render to ouput
-    try target.indices.ensureTotalCapacityPrecise(target.indices.items.len + 6);
-    try target.vertices.ensureTotalCapacityPrecise(target.vertices.items.len + 4);
-    try target.depths.ensureTotalCapacityPrecise(target.depths.items.len + 4);
-    try target.textures.ensureTotalCapacityPrecise(target.textures.items.len + 4);
+    try target.reserveCapacity(6, 4);
     try target.appendTrianglesAssumeCapacity(
         &.{ 0, 1, 2, 0, 2, 3 },
         &[_]sdl.Vertex{

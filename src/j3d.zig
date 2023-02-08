@@ -135,6 +135,13 @@ pub const RenderTarget = struct {
         }
     }
 
+    pub inline fn reserveCapacity(self: *RenderTarget, idx_size: usize, vtx_size: usize) !void {
+        try self.indices.ensureTotalCapacity(self.indices.items.len + idx_size);
+        try self.vertices.ensureTotalCapacity(self.vertices.items.len + vtx_size);
+        try self.depths.ensureTotalCapacity(self.depths.items.len + vtx_size);
+        try self.textures.ensureTotalCapacity(self.textures.items.len + vtx_size);
+    }
+
     pub inline fn appendTrianglesAssumeCapacity(
         self: *RenderTarget,
         indices: []const u32,

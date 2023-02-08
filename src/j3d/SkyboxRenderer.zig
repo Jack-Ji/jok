@@ -139,10 +139,10 @@ pub fn render(
         assert(@rem(self.clip_vertices.items.len, 3) == 0);
 
         // Continue with remaining triangles
-        try target.indices.ensureTotalCapacityPrecise(target.indices.items.len + self.clip_vertices.items.len);
-        try target.vertices.ensureTotalCapacityPrecise(target.vertices.items.len + self.clip_vertices.items.len);
-        try target.depths.ensureTotalCapacityPrecise(target.depths.items.len + self.clip_vertices.items.len);
-        try target.textures.ensureTotalCapacityPrecise(target.textures.items.len + self.clip_vertices.items.len);
+        try target.reserveCapacity(
+            self.clip_vertices.items.len,
+            self.clip_vertices.items.len,
+        );
         i = 2;
         while (i < self.clip_vertices.items.len) : (i += 3) {
             const idx0 = i - 2;
