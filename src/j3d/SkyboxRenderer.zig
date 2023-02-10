@@ -8,6 +8,7 @@ const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 const j3d = jok.j3d;
 const Camera = j3d.Camera;
+const internal = @import("internal.zig");
 const Self = @This();
 
 // Box shape: right/left/top/bottom/front/back
@@ -89,7 +90,7 @@ pub fn deinit(self: *Self) void {
 pub fn render(
     self: *Self,
     viewpoint: sdl.Rectangle,
-    target: *j3d.RenderTarget,
+    target: *internal.RenderTarget,
     camera: Camera,
     textures: [6]sdl.Texture, // cube textures: right/left/top/bottom/front/back
     color: ?sdl.Color, // tint color
@@ -188,7 +189,7 @@ pub fn render(
                     },
                 },
                 &[_]f32{ 10, 10, 10 },
-                &[_]?sdl.Texture{ textures[idx], textures[idx], textures[idx] },
+                textures[idx],
             );
         }
     }

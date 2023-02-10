@@ -76,7 +76,7 @@ pub fn deinit(self: *Self) void {
 pub fn renderMesh(
     self: *Self,
     vp: sdl.Rectangle,
-    target: *j3d.RenderTarget,
+    target: *internal.RenderTarget,
     model: zmath.Mat,
     camera: Camera,
     indices: []const u16,
@@ -269,7 +269,7 @@ pub fn renderMesh(
                 .{ .position = p2, .color = c2, .tex_coord = t2 },
             },
             &.{ d0, d1, d2 },
-            &[_]?sdl.Texture{ opt.texture, opt.texture, opt.texture },
+            opt.texture,
         );
     }
 }
@@ -415,7 +415,7 @@ pub fn renderSprite(
             .{ .position = p3, .color = opt.tint_color, .tex_coord = t3 },
         },
         &.{ d0, d1, d2, d3 },
-        &[_]?sdl.Texture{ opt.texture, opt.texture, opt.texture, opt.texture },
+        opt.texture,
     );
 }
 
