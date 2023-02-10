@@ -67,10 +67,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.addImage(
         sheet.tex,
         .{ .x = 0, .y = 0, .width = 600, .height = 600 },
-        .{
-            .rotate_degree = 30,
-            .anchor_point = .{ .x = 0.5, .y = 0.5 },
-        },
+        .{},
     );
     try j2d.addScene(scene, .{});
     try j2d.end();
