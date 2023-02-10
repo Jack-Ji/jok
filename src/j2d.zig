@@ -150,6 +150,10 @@ pub fn popClipRect() void {
     draw_list.popClipRect();
 }
 
+pub fn setTransform(t: AffineTransform) void {
+    transform = t;
+}
+
 pub fn getTransform() *AffineTransform {
     return &transform;
 }

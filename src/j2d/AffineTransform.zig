@@ -17,6 +17,11 @@ pub fn init() Self {
     };
 }
 
+pub fn clone(self: Self) Self {
+    const cloned = self;
+    return cloned;
+}
+
 pub fn transformPoint(self: Self, p: sdl.PointF) sdl.PointF {
     const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.mat);
     return .{ .x = v[0], .y = v[1] };
