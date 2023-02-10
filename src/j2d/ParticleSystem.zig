@@ -4,12 +4,13 @@ const sdl = @import("sdl");
 const DrawCmd = @import("command.zig").DrawCmd;
 const Vector = @import("Vector.zig");
 const Sprite = @import("Sprite.zig");
+const AffineTransform = @import("AffineTransform.zig");
 const Self = @This();
 
 const default_effects_capacity = 10;
 
 pub const RenderOption = struct {
-    depth: f32 = 0.5,
+    transform: AffineTransform = AffineTransform.init(),
 };
 
 // Memory allocator
@@ -55,6 +56,9 @@ pub fn update(self: *Self, delta_time: f32) void {
 }
 
 /// Add effect
+pub const AddEffect = struct {
+    depth: f32 = 0.5,
+};
 pub fn addEffect(
     self: *Self,
     random: std.rand.Random,
@@ -64,6 +68,7 @@ pub fn addEffect(
     effect_duration: f32,
     gen_amount: u32,
     burst_freq: f32,
+    opt: AddEffect,
 ) !void {
     var effect = try Effect.init(
         self.allocator,
@@ -74,6 +79,7 @@ pub fn addEffect(
         effect_duration,
         gen_amount,
         burst_freq,
+        opt.depth,
     );
     errdefer effect.deinit();
     try self.effects.append(effect);
@@ -110,6 +116,9 @@ pub const Effect = struct {
     /// Burst countdown
     burst_countdown: f32,
 
+    /// Depth of effect
+    depth: f32,
+
     /// Particle effect initialization
     pub fn init(
         allocator: std.mem.Allocator,
@@ -120,6 +129,7 @@ pub const Effect = struct {
         effect_duration: f32,
         gen_amount: u32,
         burst_freq: f32,
+        depth: f32,
     ) !Effect {
         assert(max_particle_num > 0);
         assert(effect_duration > 0);
@@ -136,6 +146,7 @@ pub const Effect = struct {
             .gen_amount = gen_amount,
             .burst_freq = burst_freq,
             .burst_countdown = burst_freq,
+            .depth = depth,
         };
     }
 
@@ -180,13 +191,9 @@ pub const Effect = struct {
     }
 
     /// Render to output
-    pub fn render(
-        self: Effect,
-        draw_commands: *std.ArrayList(DrawCmd),
-        opt: RenderOption,
-    ) !void {
+    pub fn render(self: Effect, draw_commands: *std.ArrayList(DrawCmd), opt: RenderOption) !void {
         for (self.particles.items) |p| {
-            try p.render(draw_commands, opt);
+            try p.render(draw_commands, opt.transform, self.depth);
         }
     }
 
@@ -330,17 +337,18 @@ pub const Particle = struct {
     fn render(
         self: Particle,
         draw_commands: *std.ArrayList(DrawCmd),
-        opt: RenderOption,
+        transform: AffineTransform,
+        depth: f32,
     ) !void {
         try self.sprite.?.render(
             draw_commands,
             .{
-                .pos = .{ .x = self.pos.x(), .y = self.pos.y() },
+                .pos = transform.transformPoint(.{ .x = self.pos.x(), .y = self.pos.y() }),
                 .tint_color = self.color,
                 .scale = .{ .x = self.scale, .y = self.scale },
                 .rotate_degree = self.angle,
                 .anchor_point = .{ .x = 0.5, .y = 0.5 },
-                .depth = opt.depth,
+                .depth = depth,
             },
         );
     }

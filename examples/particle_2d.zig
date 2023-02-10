@@ -59,6 +59,7 @@ pub fn init(ctx: *jok.Context) !void {
         60,
         40,
         0.016,
+        .{},
     );
     try ps.addEffect(
         rd.random(),
@@ -68,6 +69,7 @@ pub fn init(ctx: *jok.Context) !void {
         60,
         10,
         0.016,
+        .{},
     );
 }
 
@@ -89,7 +91,7 @@ pub fn draw(ctx: *jok.Context) !void {
     _ = ctx;
 
     try j2d.begin(.{ .blend_method = .additive });
-    try j2d.addEffects(ps, .{});
+    try j2d.addEffects(ps);
     try j2d.end();
 }
 

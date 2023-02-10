@@ -584,18 +584,13 @@ pub fn addImageRounded(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImage
     });
 }
 
-// TODO global transform not taking effect
-pub fn addScene(scene: *const Scene, opt: Scene.RenderOption) !void {
-    try scene.render(&draw_commands, opt);
+pub fn addScene(scene: *const Scene) !void {
+    try scene.render(&draw_commands, .{ .transform = transform });
 }
 
-// TODO global transform not taking effect
-pub fn addEffects(ps: *const ParticleSystem, opt: ParticleSystem.RenderOption) !void {
+pub fn addEffects(ps: *const ParticleSystem) !void {
     for (ps.effects.items) |eff| {
-        try eff.render(
-            &draw_commands,
-            opt,
-        );
+        try eff.render(&draw_commands, .{ .transform = transform });
     }
 }
 

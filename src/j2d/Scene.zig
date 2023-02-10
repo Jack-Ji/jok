@@ -6,6 +6,7 @@ const jok = @import("../jok.zig");
 const DrawCmd = @import("command.zig").DrawCmd;
 const Vector = @import("Vector.zig");
 const Sprite = @import("Sprite.zig");
+const AffineTransform = @import("AffineTransform.zig");
 const Self = @This();
 
 /// A movable object in 2d space
@@ -153,6 +154,7 @@ pub fn destroy(self: *Self, destroy_objects: bool) void {
 }
 
 pub const RenderOption = struct {
+    transform: AffineTransform = AffineTransform.init(),
     object: ?*Object = null,
 };
 pub fn render(
@@ -162,11 +164,16 @@ pub fn render(
 ) !void {
     const o = opt.object orelse self.root;
     if (o.actor.sprite) |s| {
-        try s.render(draw_commands, o.render_opt);
+        const scale = opt.transform.getScale();
+        var rdopt = o.render_opt;
+        rdopt.pos = opt.transform.transformPoint(rdopt.pos);
+        rdopt.scale.x *= scale.x;
+        rdopt.scale.y *= scale.y;
+        try s.render(draw_commands, rdopt);
     }
 
     for (o.children.items) |c| try self.render(
         draw_commands,
-        .{ .object = c },
+        .{ .transform = opt.transform, .object = c },
     );
 }

@@ -69,7 +69,7 @@ pub fn draw(ctx: *jok.Context) !void {
         .{ .x = 0, .y = 0, .width = 600, .height = 600 },
         .{},
     );
-    try j2d.addScene(scene, .{});
+    try j2d.addScene(scene);
     try j2d.end();
 }
 
