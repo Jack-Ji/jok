@@ -10,6 +10,7 @@ const zmesh = jok.zmesh;
 
 const dc = @import("j2d/command.zig");
 const Atlas = @import("font/Atlas.zig");
+pub const AffineTransform = @import("j2d/AffineTransform.zig");
 pub const Sprite = @import("j2d/Sprite.zig");
 pub const SpriteSheet = @import("j2d/SpriteSheet.zig");
 pub const ParticleSystem = @import("j2d/ParticleSystem.zig");
@@ -19,31 +20,6 @@ pub const Vector = @import("j2d/Vector.zig");
 
 pub const Error = error{
     PathNotFinished,
-};
-
-pub const TransformOption = struct {
-    scale: sdl.PointF = .{ .x = 1, .y = 1 },
-    anchor: sdl.PointF = .{ .x = 0, .y = 0 },
-    rotate_degree: f32 = 0,
-    offset: sdl.PointF = .{ .x = 0, .y = 0 },
-
-    pub fn getMatrix(self: TransformOption) zmath.Mat {
-        return getTransformMatrix(
-            self.scale,
-            self.anchor,
-            self.rotate_degree,
-            self.offset,
-        );
-    }
-
-    pub fn getNoScaleMatrix(self: TransformOption) zmath.Mat {
-        return getTransformMatrix(
-            .{ .x = 1, .y = 1 },
-            self.anchor,
-            self.rotate_degree,
-            self.offset,
-        );
-    }
 };
 
 pub const DepthSortMethod = enum {
@@ -59,7 +35,7 @@ pub const BlendMethod = enum {
 };
 
 pub const BeginOption = struct {
-    trs: TransformOption = .{},
+    transform: AffineTransform = AffineTransform.init(),
     depth_sort: DepthSortMethod = .none,
     blend_method: BlendMethod = .blend,
     antialiased: bool = true,
@@ -69,9 +45,7 @@ var arena: std.heap.ArenaAllocator = undefined;
 var rd: sdl.Renderer = undefined;
 var draw_list: imgui.DrawList = undefined;
 var draw_commands: std.ArrayList(dc.DrawCmd) = undefined;
-var trs: TransformOption = undefined;
-var trs_m: zmath.Mat = undefined;
-var trs_noscale_m: zmath.Mat = undefined;
+var transform: AffineTransform = undefined;
 var depth_sort: DepthSortMethod = undefined;
 var blend_method: BlendMethod = undefined;
 var all_tex: std.AutoHashMap(*sdl.c.SDL_Texture, bool) = undefined;
@@ -97,9 +71,7 @@ pub fn begin(opt: BeginOption) !void {
     draw_list.pushTextureId(imgui.io.getFontsTexId());
     draw_commands.clearRetainingCapacity();
     all_tex.clearRetainingCapacity();
-    trs = opt.trs;
-    trs_m = opt.trs.getMatrix();
-    trs_noscale_m = opt.trs.getNoScaleMatrix();
+    transform = opt.transform;
     depth_sort = opt.depth_sort;
     blend_method = opt.blend_method;
     if (opt.antialiased) {
@@ -178,8 +150,11 @@ pub fn popClipRect() void {
     draw_list.popClipRect();
 }
 
+pub fn getTransform() *AffineTransform {
+    return &transform;
+}
+
 pub const AddLine = struct {
-    trs: ?TransformOption = null,
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
@@ -187,8 +162,8 @@ pub fn addLine(p1: sdl.PointF, p2: sdl.PointF, color: sdl.Color, opt: AddLine) !
     try draw_commands.append(.{
         .cmd = .{
             .line = .{
-                .p1 = transformPoint(p1, opt.trs),
-                .p2 = transformPoint(p2, opt.trs),
+                .p1 = transform.transformPoint(p1),
+                .p2 = transform.transformPoint(p2),
                 .color = imgui.sdl.convertColor(color),
                 .thickness = opt.thickness,
             },
@@ -198,14 +173,13 @@ pub fn addLine(p1: sdl.PointF, p2: sdl.PointF, color: sdl.Color, opt: AddLine) !
 }
 
 pub const AddRect = struct {
-    trs: ?TransformOption = null,
     thickness: f32 = 1.0,
     rounding: f32 = 0,
     depth: f32 = 0.5,
 };
 pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, opt: AddRect) !void {
-    const scale = getScale(opt.trs);
-    const pmin = transformPoint(.{ .x = rect.x, .y = rect.y }, opt.trs);
+    const scale = transform.getScale();
+    const pmin = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
     const pmax = sdl.PointF{
         .x = pmin.x + rect.width * scale.x,
         .y = pmin.y + rect.height * scale.y,
@@ -225,13 +199,12 @@ pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, opt: AddRect) !void {
 }
 
 pub const FillRect = struct {
-    trs: ?TransformOption = null,
     rounding: f32 = 0,
     depth: f32 = 0.5,
 };
 pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) !void {
-    const scale = getScale(opt.trs);
-    const pmin = transformPoint(.{ .x = rect.x, .y = rect.y }, opt.trs);
+    const scale = transform.getScale();
+    const pmin = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
     const pmax = sdl.PointF{
         .x = pmin.x + rect.width * scale.x,
         .y = pmin.y + rect.height * scale.y,
@@ -250,7 +223,6 @@ pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) !voi
 }
 
 pub const FillRectMultiColor = struct {
-    trs: ?TransformOption = null,
     depth: f32 = 0.5,
 };
 pub fn addRectFilledMultiColor(
@@ -261,8 +233,8 @@ pub fn addRectFilledMultiColor(
     color_bottom_left: sdl.Color,
     opt: FillRectMultiColor,
 ) !void {
-    const scale = getScale(opt.trs);
-    const pmin = transformPoint(.{ .x = rect.x, .y = rect.y }, opt.trs);
+    const scale = transform.getScale();
+    const pmin = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
     const pmax = sdl.PointF{
         .x = pmin.x + rect.width * scale.x,
         .y = pmin.y + rect.height * scale.y,
@@ -283,7 +255,6 @@ pub fn addRectFilledMultiColor(
 }
 
 pub const AddQuad = struct {
-    trs: ?TransformOption = null,
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
@@ -298,10 +269,10 @@ pub fn addQuad(
     try draw_commands.append(.{
         .cmd = .{
             .quad = .{
-                .p1 = transformPoint(p1, opt.trs),
-                .p2 = transformPoint(p2, opt.trs),
-                .p3 = transformPoint(p3, opt.trs),
-                .p4 = transformPoint(p4, opt.trs),
+                .p1 = transform.transformPoint(p1),
+                .p2 = transform.transformPoint(p2),
+                .p3 = transform.transformPoint(p3),
+                .p4 = transform.transformPoint(p4),
                 .color = imgui.sdl.convertColor(color),
                 .thickness = opt.thickness,
             },
@@ -311,7 +282,6 @@ pub fn addQuad(
 }
 
 pub const FillQuad = struct {
-    trs: ?TransformOption = null,
     depth: f32 = 0.5,
 };
 pub fn addQuadFilled(
@@ -325,10 +295,10 @@ pub fn addQuadFilled(
     try draw_commands.append(.{
         .cmd = .{
             .quad_fill = .{
-                .p1 = transformPoint(p1, opt.trs),
-                .p2 = transformPoint(p2, opt.trs),
-                .p3 = transformPoint(p3, opt.trs),
-                .p4 = transformPoint(p4, opt.trs),
+                .p1 = transform.transformPoint(p1),
+                .p2 = transform.transformPoint(p2),
+                .p3 = transform.transformPoint(p3),
+                .p4 = transform.transformPoint(p4),
                 .color = imgui.sdl.convertColor(color),
             },
         },
@@ -337,7 +307,6 @@ pub fn addQuadFilled(
 }
 
 pub const AddTriangle = struct {
-    trs: ?TransformOption = null,
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
@@ -351,9 +320,9 @@ pub fn addTriangle(
     try draw_commands.append(.{
         .cmd = .{
             .triangle = .{
-                .p1 = transformPoint(p1, opt.trs),
-                .p2 = transformPoint(p2, opt.trs),
-                .p3 = transformPoint(p3, opt.trs),
+                .p1 = transform.transformPoint(p1),
+                .p2 = transform.transformPoint(p2),
+                .p3 = transform.transformPoint(p3),
                 .color = imgui.sdl.convertColor(color),
                 .thickness = opt.thickness,
             },
@@ -363,7 +332,6 @@ pub fn addTriangle(
 }
 
 pub const FillTriangle = struct {
-    trs: ?TransformOption = null,
     depth: f32 = 0.5,
 };
 pub fn addTriangleFilled(
@@ -376,9 +344,9 @@ pub fn addTriangleFilled(
     try draw_commands.append(.{
         .cmd = .{
             .triangle_fill = .{
-                .p1 = transformPoint(p1, opt.trs),
-                .p2 = transformPoint(p2, opt.trs),
-                .p3 = transformPoint(p3, opt.trs),
+                .p1 = transform.transformPoint(p1),
+                .p2 = transform.transformPoint(p2),
+                .p3 = transform.transformPoint(p3),
                 .color = imgui.sdl.convertColor(color),
             },
         },
@@ -387,7 +355,6 @@ pub fn addTriangleFilled(
 }
 
 pub const AddCircle = struct {
-    trs: ?TransformOption = null,
     thickness: f32 = 1.0,
     num_segments: u32 = 0,
     depth: f32 = 0.5,
@@ -398,11 +365,11 @@ pub fn addCircle(
     color: sdl.Color,
     opt: AddCircle,
 ) !void {
-    const scale = getScale(opt.trs);
+    const scale = transform.getScale();
     try draw_commands.append(.{
         .cmd = .{
             .circle = .{
-                .p = transformPoint(center, opt.trs),
+                .p = transform.transformPoint(center),
                 .radius = radius * scale.x,
                 .color = imgui.sdl.convertColor(color),
                 .thickness = opt.thickness,
@@ -414,7 +381,6 @@ pub fn addCircle(
 }
 
 pub const FillCircle = struct {
-    trs: ?TransformOption = null,
     num_segments: u32 = 0,
     depth: f32 = 0.5,
 };
@@ -424,11 +390,11 @@ pub fn addCircleFilled(
     color: sdl.Color,
     opt: FillCircle,
 ) !void {
-    const scale = getScale(opt.trs);
+    const scale = transform.getScale();
     try draw_commands.append(.{
         .cmd = .{
             .circle_fill = .{
-                .p = transformPoint(center, opt.trs),
+                .p = transform.transformPoint(center),
                 .radius = radius * scale.x,
                 .color = imgui.sdl.convertColor(color),
                 .num_segments = opt.num_segments,
@@ -439,7 +405,6 @@ pub fn addCircleFilled(
 }
 
 pub const AddNgon = struct {
-    trs: ?TransformOption = null,
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
@@ -450,11 +415,11 @@ pub fn addNgon(
     num_segments: u32,
     opt: AddNgon,
 ) !void {
-    const scale = getScale(opt.trs);
+    const scale = transform.getScale();
     try draw_commands.append(.{
         .cmd = .{
             .ngon = .{
-                .p = transformPoint(center, opt.trs),
+                .p = transform.transformPoint(center),
                 .radius = radius * scale.x,
                 .color = imgui.sdl.convertColor(color),
                 .thickness = opt.thickness,
@@ -466,7 +431,6 @@ pub fn addNgon(
 }
 
 pub const FillNgon = struct {
-    trs: ?TransformOption = null,
     depth: f32 = 0.5,
 };
 pub fn addNgonFilled(
@@ -476,11 +440,11 @@ pub fn addNgonFilled(
     num_segments: u32,
     opt: FillNgon,
 ) !void {
-    const scale = getScale(opt.trs);
+    const scale = transform.getScale();
     try draw_commands.append(.{
         .cmd = .{
             .ngon_fill = .{
-                .p = transformPoint(center, opt.trs),
+                .p = transform.transformPoint(center),
                 .radius = radius * scale.x,
                 .color = imgui.sdl.convertColor(color),
                 .num_segments = num_segments,
@@ -491,7 +455,6 @@ pub fn addNgonFilled(
 }
 
 pub const AddBezierCubic = struct {
-    trs: ?TransformOption = null,
     thickness: f32 = 1.0,
     num_segments: u32 = 0,
     depth: f32 = 0.5,
@@ -507,10 +470,10 @@ pub fn addBezierCubic(
     try draw_commands.append(.{
         .cmd = .{
             .bezier_cubic = .{
-                .p1 = transformPoint(p1, opt.trs),
-                .p2 = transformPoint(p2, opt.trs),
-                .p3 = transformPoint(p3, opt.trs),
-                .p4 = transformPoint(p4, opt.trs),
+                .p1 = transform.transformPoint(p1),
+                .p2 = transform.transformPoint(p2),
+                .p3 = transform.transformPoint(p3),
+                .p4 = transform.transformPoint(p4),
                 .color = imgui.sdl.convertColor(color),
                 .thickness = opt.thickness,
                 .num_segments = opt.num_segments,
@@ -521,7 +484,6 @@ pub fn addBezierCubic(
 }
 
 pub const AddBezierQuadratic = struct {
-    trs: ?TransformOption = null,
     thickness: f32 = 1.0,
     num_segments: u32 = 0,
     depth: f32 = 0.5,
@@ -536,9 +498,9 @@ pub fn addBezierQuadratic(
     try draw_commands.append(.{
         .cmd = .{
             .bezier_quadratic = .{
-                .p1 = transformPoint(p1, opt.trs),
-                .p2 = transformPoint(p2, opt.trs),
-                .p3 = transformPoint(p3, opt.trs),
+                .p1 = transform.transformPoint(p1),
+                .p2 = transform.transformPoint(p2),
+                .p3 = transform.transformPoint(p3),
                 .color = imgui.sdl.convertColor(color),
                 .thickness = opt.thickness,
                 .num_segments = opt.num_segments,
@@ -549,7 +511,6 @@ pub fn addBezierQuadratic(
 }
 
 pub const AddImage = struct {
-    trs: ?TransformOption = null,
     uv0: sdl.PointF = .{ .x = 0, .y = 0 },
     uv1: sdl.PointF = .{ .x = 1, .y = 1 },
     tint_color: sdl.Color = sdl.Color.white,
@@ -561,8 +522,8 @@ pub const AddImage = struct {
     depth: f32 = 0.5,
 };
 pub fn addImage(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImage) !void {
-    const scale = getScale(opt.trs);
-    const pos = transformPoint(.{ .x = rect.x, .y = rect.y }, opt.trs);
+    const scale = transform.getScale();
+    const pos = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
     const sprite = Sprite{
         .width = rect.width,
         .height = rect.height,
@@ -583,7 +544,6 @@ pub fn addImage(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImage) !void
 }
 
 pub const AddImageRounded = struct {
-    trs: ?TransformOption = null,
     uv0: sdl.PointF = .{ .x = 0, .y = 0 },
     uv1: sdl.PointF = .{ .x = 1, .y = 1 },
     tint_color: sdl.Color = sdl.Color.white,
@@ -594,8 +554,8 @@ pub const AddImageRounded = struct {
     depth: f32 = 0.5,
 };
 pub fn addImageRounded(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImageRounded) !void {
-    const scale = getScale(opt.trs);
-    const pmin = transformPoint(.{ .x = rect.x, .y = rect.y }, opt.trs);
+    const scale = transform.getScale();
+    const pmin = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
     const pmax = sdl.PointF{
         .x = pmin.x + rect.width * scale.x,
         .y = pmin.y + rect.height * scale.y,
@@ -620,12 +580,12 @@ pub fn addImageRounded(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImage
     });
 }
 
-// TODO global trs not taking effect
+// TODO global transform not taking effect
 pub fn addScene(scene: *const Scene, opt: Scene.RenderOption) !void {
     try scene.render(&draw_commands, opt);
 }
 
-// TODO global trs not taking effect
+// TODO global transform not taking effect
 pub fn addEffects(ps: *const ParticleSystem, opt: ParticleSystem.RenderOption) !void {
     for (ps.effects.items) |eff| {
         try eff.render(
@@ -637,7 +597,6 @@ pub fn addEffects(ps: *const ParticleSystem, opt: ParticleSystem.RenderOption) !
 
 pub const AddSprite = struct {
     pos: sdl.PointF,
-    trs: ?TransformOption = null,
     tint_color: sdl.Color = sdl.Color.white,
     scale: sdl.PointF = .{ .x = 1, .y = 1 },
     rotate_degree: f32 = 0,
@@ -647,9 +606,9 @@ pub const AddSprite = struct {
     depth: f32 = 0.5,
 };
 pub fn addSprite(sprite: Sprite, opt: AddSprite) !void {
-    const scale = getScale(opt.trs);
+    const scale = transform.getScale();
     try sprite.render(&draw_commands, .{
-        .pos = transformPoint(opt.pos, opt.trs),
+        .pos = transform.transformPoint(opt.pos),
         .tint_color = opt.tint_color,
         .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
         .rotate_degree = opt.rotate_degree,
@@ -663,7 +622,6 @@ pub fn addSprite(sprite: Sprite, opt: AddSprite) !void {
 pub const AddText = struct {
     atlas: Atlas,
     pos: sdl.PointF,
-    trs: ?TransformOption = null,
     ypos_type: Atlas.YPosType = .top,
     tint_color: sdl.Color = sdl.Color.white,
     scale: sdl.PointF = .{ .x = 1, .y = 1 },
@@ -675,8 +633,8 @@ pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
     const text = jok.imgui.format(fmt, args);
     if (text.len == 0) return;
 
-    var pos = transformPoint(opt.pos, opt.trs);
-    var scale = getScale(opt.trs);
+    var pos = transform.transformPoint(opt.pos);
+    var scale = transform.getScale();
     scale.x *= opt.scale.x;
     scale.y *= opt.scale.y;
     const angle = jok.utils.math.degreeToRadian(opt.rotate_degree);
@@ -729,9 +687,7 @@ pub const AddPath = struct {
 pub fn addPath(path: Path, opt: AddPath) !void {
     if (!path.finished) return error.PathNotFinished;
     var rpath = path.path;
-    rpath.trs = trs;
-    rpath.trs_m = trs_m;
-    rpath.trs_noscale_m = trs_noscale_m;
+    rpath.transform = transform;
     try draw_commands.append(.{
         .cmd = .{ .path = rpath },
         .depth = opt.depth,
@@ -743,12 +699,9 @@ pub const Path = struct {
     finished: bool = false,
 
     /// Begin definition of path
-    pub const PathBegin = struct {
-        trs: ?TransformOption = null,
-    };
-    pub fn begin(allocator: std.mem.Allocator, opt: PathBegin) Path {
+    pub fn begin(allocator: std.mem.Allocator) Path {
         return .{
-            .path = dc.PathCmd.init(allocator, opt.trs),
+            .path = dc.PathCmd.init(allocator),
         };
     }
 
@@ -775,9 +728,8 @@ pub const Path = struct {
         self.* = undefined;
     }
 
-    pub fn reset(self: *Path, opt: PathBegin) void {
+    pub fn reset(self: *Path) void {
         self.path.cmds.clearRetainingCapacity();
-        self.path.local_trs = opt.trs;
         self.finished = false;
     }
 
@@ -863,46 +815,3 @@ pub const Path = struct {
         });
     }
 };
-
-inline fn getTransformMatrix(scale: sdl.PointF, anchor: sdl.PointF, rotate_degree: f32, offset: sdl.PointF) zmath.Mat {
-    const m1 = zmath.scaling(scale.x, scale.y, 0);
-    const m2 = zmath.translation(-anchor.x, -anchor.y, 0);
-    const m3 = zmath.rotationZ(jok.utils.math.degreeToRadian(rotate_degree));
-    const m4 = zmath.translation(anchor.x, anchor.y, 0);
-    const m5 = zmath.translation(offset.x, offset.y, 0);
-    return zmath.mul(zmath.mul(zmath.mul(zmath.mul(m1, m2), m3), m4), m5);
-}
-
-inline fn transformPoint(point: sdl.PointF, local_trs: ?TransformOption) sdl.PointF {
-    if (local_trs) |a| { // Merge two transformations
-        const m1 = zmath.scaling(trs.scale.x * a.scale.x, trs.scale.y * a.scale.y, 0);
-        const m2 = trs_noscale_m;
-        const m1m2 = zmath.mul(m1, m2);
-        const v1 = zmath.mul(zmath.f32x4(point.x, point.y, 0, 1), m1m2);
-        const v2 = zmath.mul(zmath.f32x4(trs.anchor.x, trs.anchor.y, 0, 1), m1m2);
-
-        const anchor_x = a.anchor.x + v2[0];
-        const anchor_y = a.anchor.y + v2[1];
-        const m3 = zmath.translation(-anchor_x, -anchor_y, 0);
-        const m4 = zmath.rotationZ(jok.utils.math.degreeToRadian(a.rotate_degree));
-        const m5 = zmath.translation(anchor_x, anchor_y, 0);
-        const m6 = zmath.translation(a.offset.x, a.offset.y, 0);
-        const v3 = zmath.mul(v1, zmath.mul(zmath.mul(zmath.mul(m3, m4), m5), m6));
-        return sdl.PointF{ .x = v3[0], .y = v3[1] };
-    } else { // Only global transformation
-        const v = zmath.f32x4(point.x, point.y, 0, 1);
-        const tv = zmath.mul(v, trs_m);
-        return sdl.PointF{ .x = tv[0], .y = tv[1] };
-    }
-}
-
-inline fn getScale(local_trs: ?TransformOption) sdl.PointF {
-    if (local_trs) |a| {
-        return .{
-            .x = trs.scale.x * a.scale.x,
-            .y = trs.scale.y * a.scale.y,
-        };
-    } else {
-        return trs.scale;
-    }
-}

@@ -66,6 +66,19 @@ pub fn draw(ctx: *jok.Context) !void {
         );
         const translate_m = jok.zmath.translation(center_x, center_y, 0);
         const offset_transformed = jok.zmath.mul(jok.zmath.mul(offset_origin, rotate_m), translate_m);
+
+        j2d.getTransform().setToIdentity();
+        j2d.getTransform().scale(.{
+            .x = @floatCast(f32, 1.3 + std.math.sin(ctx.seconds)),
+            .y = @floatCast(f32, 1.3 + std.math.sin(ctx.seconds)),
+        });
+        j2d.getTransform().rotateByOrgin(@floatCast(f32, ctx.seconds * 30));
+        j2d.getTransform().translate(
+            .{
+                .x = offset_transformed[0],
+                .y = offset_transformed[1],
+            },
+        );
         try j2d.addQuadFilled(
             .{ .x = -10, .y = -10 },
             .{ .x = 10, .y = -10 },
@@ -76,19 +89,7 @@ pub fn draw(ctx: *jok.Context) !void {
                 @floatToInt(u8, @intToFloat(f32, i) + std.math.max(0, 155 * std.math.sin(ctx.seconds))),
                 @floatToInt(u8, 128 + 128 * std.math.cos(ctx.seconds)),
             ),
-            .{
-                .trs = .{
-                    .scale = .{
-                        .x = @floatCast(f32, 1.3 + std.math.sin(ctx.seconds)),
-                        .y = @floatCast(f32, 1.3 + std.math.sin(ctx.seconds)),
-                    },
-                    .rotate_degree = @floatCast(f32, ctx.seconds * 30),
-                    .offset = .{
-                        .x = offset_transformed[0],
-                        .y = offset_transformed[1],
-                    },
-                },
-            },
+            .{},
         );
     }
     try j2d.end();

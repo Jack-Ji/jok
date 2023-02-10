@@ -47,7 +47,6 @@ pub fn draw(ctx: *jok.Context) !void {
     }
     imgui.end();
 
-    try j2d.begin(.{});
     var tri_color = sdl.Color.white;
     var tri_thickness = @as(f32, 2);
     const tri0 = [_][2]f32{
@@ -64,27 +63,6 @@ pub fn draw(ctx: *jok.Context) !void {
         tri_color = sdl.Color.red;
         tri_thickness = 5;
     }
-    try j2d.addTriangle(
-        .{ .x = p0[0], .y = p0[1] },
-        .{ .x = p1[0], .y = p1[1] },
-        .{ .x = p2[0], .y = p2[1] },
-        tri_color,
-        .{
-            .trs = .{ .offset = .{ .x = offset0[0], .y = offset0[1] } },
-            .thickness = tri_thickness,
-        },
-    );
-    try j2d.addTriangle(
-        .{ .x = p3[0], .y = p3[1] },
-        .{ .x = p4[0], .y = p4[1] },
-        .{ .x = p5[0], .y = p5[1] },
-        tri_color,
-        .{
-            .trs = .{ .offset = .{ .x = offset1[0], .y = offset1[1] } },
-            .thickness = tri_thickness,
-        },
-    );
-
     var rect_color = sdl.Color.white;
     var rect_thickness = @as(f32, 1);
     const rect0 = jok.utils.math.triangleRect(tri0);
@@ -93,13 +71,34 @@ pub fn draw(ctx: *jok.Context) !void {
         rect_color = sdl.Color.red;
         rect_thickness = 3;
     }
+
+    try j2d.begin(.{});
+    j2d.getTransform().setToTranslate(.{ .x = offset0[0], .y = offset0[1] });
+    try j2d.addTriangle(
+        .{ .x = p0[0], .y = p0[1] },
+        .{ .x = p1[0], .y = p1[1] },
+        .{ .x = p2[0], .y = p2[1] },
+        tri_color,
+        .{ .thickness = tri_thickness },
+    );
+
+    j2d.getTransform().setToTranslate(.{ .x = offset1[0], .y = offset1[1] });
+    try j2d.addTriangle(
+        .{ .x = p3[0], .y = p3[1] },
+        .{ .x = p4[0], .y = p4[1] },
+        .{ .x = p5[0], .y = p5[1] },
+        tri_color,
+        .{ .thickness = tri_thickness },
+    );
+
+    j2d.getTransform().setToIdentity();
     try j2d.addRect(
-        jok.utils.math.triangleRect(tri0),
+        rect0,
         rect_color,
         .{ .thickness = rect_thickness },
     );
     try j2d.addRect(
-        jok.utils.math.triangleRect(tri1),
+        rect1,
         rect_color,
         .{ .thickness = rect_thickness },
     );

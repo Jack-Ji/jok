@@ -2,6 +2,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
+const internal = @import("internal.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
 const sdl = @import("sdl");
@@ -205,7 +206,7 @@ pub fn render(
     self: Self,
     tri_rd: *TriangleRenderer,
     vp: sdl.Rectangle,
-    target: *j3d.RenderTarget,
+    target: *internal.RenderTarget,
     camera: Camera,
     opt: RenderOption,
 ) !void {

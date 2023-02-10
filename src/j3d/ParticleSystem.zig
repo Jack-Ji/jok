@@ -2,6 +2,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const sdl = @import("sdl");
+const internal = @import("internal.zig");
 const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
@@ -190,7 +191,7 @@ pub const Effect = struct {
         self: Effect,
         tri_rd: *TriangleRenderer,
         vp: sdl.Rectangle,
-        target: *j3d.RenderTarget,
+        target: *internal.RenderTarget,
         camera: Camera,
     ) !void {
         for (self.particles.items) |p| {
@@ -349,7 +350,7 @@ pub const Particle = struct {
         self: Particle,
         tri_rd: *TriangleRenderer,
         vp: sdl.Rectangle,
-        target: *j3d.RenderTarget,
+        target: *internal.RenderTarget,
         camera: Camera,
     ) !void {
         switch (self.draw_data) {

@@ -3,12 +3,12 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const sdl = @import("sdl");
+const internal = @import("internal.zig");
 const jok = @import("../jok.zig");
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 const j3d = jok.j3d;
 const Camera = j3d.Camera;
-const internal = @import("internal.zig");
 const Self = @This();
 
 // Box shape: right/left/top/bottom/front/back

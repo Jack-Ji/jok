@@ -12,7 +12,7 @@ var path: j2d.Path = undefined;
 pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
-    path = j2d.Path.begin(ctx.allocator, .{});
+    path = j2d.Path.begin(ctx.allocator);
 }
 
 pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
@@ -28,7 +28,7 @@ pub fn draw(ctx: *jok.Context) !void {
     const statechange = math.sin(@floatCast(f32, ctx.seconds)) * 0.2;
     const scale = @intToFloat(f32, ctx.getFramebufferSize().h) / 4;
 
-    path.reset(.{});
+    path.reset();
     var i: usize = 0;
     while (i < 360 * 4 + 1) : (i += 1) {
         var point = sdl.PointF{ .x = 0, .y = 0 };
@@ -43,15 +43,13 @@ pub fn draw(ctx: *jok.Context) !void {
     }
     path.end(.stroke, .{ .closed = true });
 
-    try j2d.begin(.{
-        .trs = .{
-            .scale = .{ .x = scale, .y = scale },
-            .offset = .{
-                .x = @intToFloat(f32, ctx.getFramebufferSize().w / 2),
-                .y = @intToFloat(f32, ctx.getFramebufferSize().h / 2),
-            },
-        },
+    var transform = j2d.AffineTransform.init();
+    transform.scale(.{ .x = scale, .y = scale });
+    transform.translate(.{
+        .x = @intToFloat(f32, ctx.getFramebufferSize().w / 2),
+        .y = @intToFloat(f32, ctx.getFramebufferSize().h / 2),
     });
+    try j2d.begin(.{ .transform = transform });
     try j2d.addPath(path, .{});
     try j2d.end();
 }

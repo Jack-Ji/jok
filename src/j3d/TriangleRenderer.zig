@@ -277,7 +277,7 @@ pub fn renderMesh(
 pub fn renderSprite(
     _: Self,
     vp: sdl.Rectangle,
-    target: *j3d.RenderTarget,
+    target: *internal.RenderTarget,
     model: zmath.Mat,
     camera: Camera,
     pos: [3]f32,
