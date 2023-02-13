@@ -92,24 +92,26 @@ pub fn createGame(
     bos.addOption(bool, "use_zphysics", opt.link_zphysics);
     bos.addOption(bool, "use_ztracy", opt.link_ztracy);
     const sdl_sdk = Sdk.init(b, null);
-    const zmath_pkg = zmath.package(b, .{});
-    const zmesh_pkg = zmesh.package(b, .{});
-    const znoise_pkg = znoise.package(b, .{});
-    const zaudio_pkg = zaudio.package(b, .{});
-    const zphysics_pkg = zphysics.package(b, .{});
-    const ztracy_pkg = ztracy.package(b, .{});
+    const zmath_pkg = zmath.Package.build(b, .{});
+    const zmesh_pkg = zmesh.Package.build(b, target, optimize, .{
+        .options = .{ .shape_use_32bit_indices = false },
+    });
+    const znoise_pkg = znoise.Package.build(b, target, optimize, .{});
+    const zaudio_pkg = zaudio.Package.build(b, target, optimize, .{});
+    const zphysics_pkg = zphysics.Package.build(b, target, optimize, .{});
+    const ztracy_pkg = ztracy.Package.build(b, target, optimize, .{});
     const jok = b.createModule(.{
         .source_file = .{ .path = thisDir() ++ "/src/jok.zig" },
         .dependencies = &.{
             .{ .name = "build_options", .module = bos.createModule() },
             .{ .name = "sdl", .module = sdl_sdk.getWrapperModule() },
-            .{ .name = "zgui", .module = imgui.getZguiModule(b) },
-            .{ .name = "zmath", .module = zmath_pkg.module },
-            .{ .name = "zmesh", .module = zmesh_pkg.module },
-            .{ .name = "znoise", .module = znoise_pkg.module },
-            .{ .name = "zaudio", .module = zaudio_pkg.module },
-            .{ .name = "zphysics", .module = zphysics_pkg.module },
-            .{ .name = "ztracy", .module = ztracy_pkg.module },
+            .{ .name = "zgui", .module = imgui.getZguiModule(b, target, optimize) },
+            .{ .name = "zmath", .module = zmath_pkg.zmath },
+            .{ .name = "zmesh", .module = zmesh_pkg.zmesh },
+            .{ .name = "znoise", .module = znoise_pkg.znoise },
+            .{ .name = "zaudio", .module = zaudio_pkg.zaudio },
+            .{ .name = "zphysics", .module = zphysics_pkg.zphysics },
+            .{ .name = "ztracy", .module = ztracy_pkg.ztracy },
         },
     });
 
@@ -134,8 +136,8 @@ pub fn createGame(
     sdl_sdk.link(exe, .dynamic);
     stb.link(exe);
     imgui.link(exe);
-    zmesh.link(exe, zmesh_pkg.options);
-    znoise.link(exe);
+    zmesh_pkg.link(exe);
+    znoise_pkg.link(exe);
     if (opt.link_chipmunk) {
         chipmunk.link(exe);
     }
@@ -143,13 +145,13 @@ pub fn createGame(
         nfd.link(exe);
     }
     if (opt.link_zaudio) {
-        zaudio.link(exe);
+        zaudio_pkg.link(exe);
     }
     if (opt.link_zphysics) {
-        zphysics.link(exe, zphysics_pkg.options);
+        zphysics_pkg.link(exe);
     }
     if (opt.link_ztracy) {
-        ztracy.link(exe, ztracy_pkg.options);
+        ztracy_pkg.link(exe);
     }
 
     return exe;
