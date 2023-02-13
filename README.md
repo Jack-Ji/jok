@@ -33,7 +33,7 @@ const jok = @import("libs/jok/build.zig");
 
 pub fn build(b: *std.build.Builder) void {
     const target = b.standardTargetOptions(.{});
-    const mode = b.standardReleaseOptions();
+    const mode = b.standardReleaseOptions(.{});
     const exe = jok.createGame(
         b, 
         "mygame",
