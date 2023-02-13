@@ -680,6 +680,53 @@ pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
     }
 }
 
+pub const AddTexturedPolygon = struct {
+    depth: f32 = 0.5,
+};
+pub fn addTexturedPolygon(poly: TexturedPolygon, opt: AddTexturedPolygon) !void {
+    if (!poly.finished) return error.PathNotFinished;
+    var cmd = poly.cmd;
+    cmd.transform = transform;
+    try draw_commands.append(.{
+        .cmd = .{ .textured_polygon = cmd },
+        .depth = opt.depth,
+    });
+}
+
+pub const TexturedPolygon = struct {
+    cmd: dc.TexturedPolygonCmd,
+    finished: bool = false,
+
+    pub fn begin(allocator: std.mem.Allocator, texture: sdl.Texture) TexturedPolygon {
+        return .{
+            .cmd = dc.TexturedPolygonCmd.init(allocator, texture),
+        };
+    }
+
+    pub fn end(self: *TexturedPolygon) void {
+        self.finished = true;
+    }
+
+    pub fn deinit(self: *TexturedPolygon) void {
+        self.cmd.deinit();
+        self.* = undefined;
+    }
+
+    pub fn reset(self: *TexturedPolygon, texture: ?sdl.Texture) void {
+        self.cmd.points.clearRetainingCapacity();
+        if (texture) |tex| self.cmd.texture = tex;
+        self.finished = false;
+    }
+
+    pub fn addPoint(self: *TexturedPolygon, p: sdl.Vertex) !void {
+        try self.cmd.points.append(p);
+    }
+
+    pub fn addNPoints(self: *TexturedPolygon, ps: []sdl.Vertex) !void {
+        try self.cmd.points.appendSlice(ps);
+    }
+};
+
 pub const AddPath = struct {
     depth: f32 = 0.5,
 };

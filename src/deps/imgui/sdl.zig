@@ -94,7 +94,7 @@ pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) !void {
             @intToPtr([*c]const f32, uv),
             @sizeOf(imgui.DrawVert),
             @intCast(c_int, vs_count) - @intCast(c_int, cmd.vtx_offset),
-            @intToPtr([*c]const c_int, is),
+            @intToPtr([*c]const u16, is),
             @intCast(c_int, cmd.elem_count),
             @sizeOf(imgui.DrawIdx),
         );
