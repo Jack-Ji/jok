@@ -87,11 +87,10 @@ pub fn end() !void {
 
     if (wireframe_color) |wc| {
         target.drawTriangles(wc);
+        imgui.sdl.renderDrawList(rd, target.draw_list) catch unreachable;
     } else {
         if (sort_by_depth) {
-            if (sort_by_depth) {
-                target.sortTriangles();
-            }
+            target.sortTriangles();
 
             // Scan vertices and send them in batches
             var offset: usize = 0;
@@ -128,7 +127,6 @@ pub fn end() !void {
             assert(offset == @intCast(u32, target.indices.items.len));
         }
     }
-    imgui.sdl.renderDrawList(rd, target.draw_list) catch unreachable;
 }
 
 pub fn clearMemory() void {
