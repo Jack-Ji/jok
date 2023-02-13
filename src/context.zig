@@ -92,11 +92,11 @@ pub const Context = struct {
         while (sdl.pollNativeEvent()) |e| {
             _ = imgui.sdl.processEvent(e);
             const we = sdl.Event.from(e);
-            if (config.exit_on_recv_esc and we == .key_up and
+            if (config.jok_exit_on_recv_esc and we == .key_up and
                 we.key_up.scancode == .escape)
             {
                 self.kill();
-            } else if (config.exit_on_recv_quit and we == .quit) {
+            } else if (config.jok_exit_on_recv_quit and we == .quit) {
                 self.kill();
             } else {
                 eventFn(self, we) catch |err| {
@@ -119,7 +119,7 @@ pub const Context = struct {
         comptime updateFn: *const fn (*Context) anyerror!void,
         comptime drawFn: *const fn (*Context) anyerror!void,
     ) void {
-        const fps_pc_threshold: u64 = switch (config.fps_limit) {
+        const fps_pc_threshold: u64 = switch (config.jok_fps_limit) {
             .none => 0,
             .auto => if (self.is_software) @divTrunc(@floatToInt(u64, self._pc_freq), 30) else 0,
             .manual => |fps| @floatToInt(u64, self._pc_freq) / @intCast(u64, fps),
@@ -360,7 +360,7 @@ pub const Context = struct {
         ,
             .{
                 std.meta.tagName(builtin.mode),
-                std.meta.tagName(config.log_level),
+                std.meta.tagName(config.jok_log_level),
                 builtin.zig_version,
                 std.meta.tagName(target.cpu.arch),
                 std.meta.tagName(target.abi),
@@ -377,7 +377,7 @@ pub const Context = struct {
             return sdl.makeError();
         }
 
-        if (config.exit_on_recv_esc) {
+        if (config.jok_exit_on_recv_esc) {
             log.info("Press ESC to exit game", .{});
         }
     }
@@ -394,52 +394,52 @@ pub const Context = struct {
             .mouse_capture = true,
             .mouse_focus = true,
         };
-        if (config.enable_borderless) {
+        if (config.jok_window_borderless) {
             window_flags.borderless = true;
         }
-        if (config.enable_minimized) {
+        if (config.jok_window_minimized) {
             window_flags.dim = .minimized;
         }
-        if (config.enable_maximized) {
+        if (config.jok_window_maximized) {
             window_flags.dim = .maximized;
         }
         self.window = try sdl.createWindow(
-            config.title,
-            config.pos_x,
-            config.pos_y,
-            config.width,
-            config.height,
+            config.jok_window_title,
+            config.jok_window_pos_x,
+            config.jok_window_pos_y,
+            config.jok_window_width,
+            config.jok_window_height,
             window_flags,
         );
-        if (config.min_size) |size| {
+        if (config.jok_window_min_size) |size| {
             sdl.c.SDL_SetWindowMinimumSize(
                 self.window.ptr,
                 size.width,
                 size.height,
             );
         }
-        if (config.max_size) |size| {
+        if (config.jok_window_max_size) |size| {
             sdl.c.SDL_SetWindowMaximumSize(
                 self.window.ptr,
                 size.width,
                 size.height,
             );
         }
-        self.toggleResizable(config.enable_resizable);
-        self.toggleFullscreeen(config.enable_fullscreen);
-        self.toggleAlwaysOnTop(config.enable_always_on_top);
+        self.toggleResizable(config.jok_window_resizable);
+        self.toggleFullscreeen(config.jok_window_fullscreen);
+        self.toggleAlwaysOnTop(config.jok_window_always_on_top);
 
         // Apply mouse mode
-        switch (config.mouse_mode) {
+        switch (config.jok_mouse_mode) {
             .normal => {
-                if (config.enable_fullscreen) {
+                if (config.jok_window_fullscreen) {
                     sdl.c.SDL_SetWindowGrab(self.window.ptr, sdl.c.SDL_FALSE);
                 }
                 _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_ENABLE);
                 _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_FALSE);
             },
             .hide => {
-                if (config.enable_fullscreen) {
+                if (config.jok_window_fullscreen) {
                     sdl.c.SDL_SetWindowGrab(self.window.ptr, sdl.c.SDL_TRUE);
                 }
                 _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
@@ -454,18 +454,18 @@ pub const Context = struct {
             null,
             .{
                 .accelerated = true,
-                .present_vsync = config.fps_limit == .auto,
+                .present_vsync = config.jok_fps_limit == .auto,
                 .target_texture = true,
             },
         ) catch blk: {
-            if (config.enable_software_renderer) {
+            if (config.jok_software_renderer) {
                 log.warn("hardware accelerated renderer isn't supported, fallback to software backend", .{});
                 break :blk try sdl.createRenderer(
                     self.window,
                     null,
                     .{
                         .software = true,
-                        .present_vsync = config.fps_limit == .auto, // Doesn't matter actually, vsync won't work anyway
+                        .present_vsync = config.jok_fps_limit == .auto, // Doesn't matter actually, vsync won't work anyway
                         .target_texture = true,
                     },
                 );
