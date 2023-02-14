@@ -124,19 +124,34 @@ pub fn getVPosOfNextLine(self: Atlas, current_ypos: f32) f32 {
 /// Position type of y axis (determine where text will be aligned to vertically)
 pub const YPosType = enum { baseline, top, bottom };
 
-/// Get bounds (width and height)  of text
-pub fn getRectangle(
+/// Type of text's bounding rectangle
+pub const BoxType = enum { aligned, drawed };
+
+/// Get bounding box of text
+pub fn getBoundingBox(
     self: Atlas,
     text: []const u8,
     _pos: sdl.PointF,
     ypos_type: YPosType,
+    box_type: BoxType,
 ) !sdl.RectangleF {
+    const yoffset = switch (ypos_type) {
+        .baseline => -self.vmetric_ascent * self.scale,
+        .top => 0,
+        .bottom => (self.vmetric_descent - self.vmetric_ascent) * self.scale,
+    };
     var pos = _pos;
     var rect = sdl.RectangleF{
         .x = pos.x,
-        .y = std.math.floatMax(f32),
+        .y = switch (box_type) {
+            .aligned => pos.y + yoffset,
+            .drawed => std.math.floatMax(f32),
+        },
         .width = 0,
-        .height = 0,
+        .height = switch (box_type) {
+            .aligned => @round((self.vmetric_ascent - self.vmetric_descent) * self.scale),
+            .drawed => 0,
+        },
     };
 
     if (text.len == 0) return rect;
@@ -146,33 +161,52 @@ pub fn getRectangle(
         const size = try unicode.utf8ByteSequenceLength(text[i]);
         const codepoint = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
         if (self.getVerticesOfCodePoint(pos, ypos_type, sdl.Color.white, codepoint)) |cs| {
-            if (cs.vs[0].position.y < rect.y) rect.y = cs.vs[0].position.y;
-            if (cs.vs[3].position.y - rect.y > rect.height) rect.height = cs.vs[3].position.y - rect.y;
+            switch (box_type) {
+                .aligned => {
+                    rect.width = cs.next_x - rect.x;
+                },
+                .drawed => {
+                    if (cs.vs[0].position.y < rect.y) rect.y = cs.vs[0].position.y;
+                    if (cs.vs[3].position.y - rect.y > rect.height) rect.height = cs.vs[3].position.y - rect.y;
+                    rect.width = cs.vs[1].position.x - rect.x;
+                },
+            }
             pos.x = cs.next_x;
         }
         i += size;
     }
 
-    rect.width = pos.x - rect.x;
     return rect;
 }
 
-/// Append draw data for rendering utf8 string, return drawing area
+/// Append draw data for rendering utf8 string, return bounding box
 pub fn appendDrawDataFromUTF8String(
     self: Atlas,
     text: []const u8,
     _pos: sdl.PointF,
     ypos_type: YPosType,
+    box_type: BoxType,
     color: sdl.Color,
     vattrib: *std.ArrayList(sdl.Vertex),
     vindices: *std.ArrayList(u32),
 ) !sdl.RectangleF {
+    const yoffset = switch (ypos_type) {
+        .baseline => -self.vmetric_ascent * self.scale,
+        .top => 0,
+        .bottom => (self.vmetric_descent - self.vmetric_ascent) * self.scale,
+    };
     var pos = _pos;
     var rect = sdl.RectangleF{
         .x = pos.x,
-        .y = std.math.floatMax(f32),
+        .y = switch (box_type) {
+            .aligned => pos.y + yoffset,
+            .drawed => std.math.floatMax(f32),
+        },
         .width = 0,
-        .height = 0,
+        .height = switch (box_type) {
+            .aligned => @round((self.vmetric_ascent - self.vmetric_descent) * self.scale),
+            .drawed => 0,
+        },
     };
 
     if (text.len == 0) return rect;
@@ -192,14 +226,21 @@ pub fn appendDrawDataFromUTF8String(
                 base_index + 2,
                 base_index + 3,
             });
-            if (cs.vs[0].position.y < rect.y) rect.y = cs.vs[0].position.y;
-            if (cs.vs[3].position.y - rect.y > rect.height) rect.height = cs.vs[3].position.y - rect.y;
+            switch (box_type) {
+                .aligned => {
+                    rect.width = cs.next_x - rect.x;
+                },
+                .drawed => {
+                    if (cs.vs[0].position.y < rect.y) rect.y = cs.vs[0].position.y;
+                    if (cs.vs[3].position.y - rect.y > rect.height) rect.height = cs.vs[3].position.y - rect.y;
+                    rect.width = cs.vs[1].position.x - rect.x;
+                },
+            }
             pos.x = cs.next_x;
         }
         i += size;
     }
 
-    rect.width = pos.x - rect.x;
     return rect;
 }
 

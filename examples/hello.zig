@@ -7,7 +7,7 @@ const j2d = jok.j2d;
 const j3d = jok.j3d;
 
 var camera: j3d.Camera = undefined;
-var text_rect: sdl.RectangleF = undefined;
+var text_draw_pos: sdl.PointF = undefined;
 var text_speed: sdl.PointF = undefined;
 
 pub fn init(ctx: *jok.Context) !void {
@@ -28,11 +28,9 @@ pub fn init(ctx: *jok.Context) !void {
         .{ 0, 0, 0 },
         null,
     );
-    text_rect = .{
+    text_draw_pos = .{
         .x = @intToFloat(f32, fb_size.w) / 2,
         .y = @intToFloat(f32, fb_size.h) / 2,
-        .width = 0,
-        .height = 0,
     };
     text_speed = .{
         .x = 100,
@@ -130,24 +128,12 @@ pub fn draw(ctx: *jok.Context) !void {
     );
     try j3d.end();
 
-    text_rect.x += text_speed.x * ctx.delta_seconds;
-    text_rect.y += text_speed.y * ctx.delta_seconds;
-    if (text_rect.x < 0) {
-        text_speed.x = @fabs(text_speed.x);
-    }
-    if (text_rect.x + text_rect.width > @intToFloat(f32, fb_size.w)) {
-        text_speed.x = -@fabs(text_speed.x);
-    }
-    if (text_rect.y < 0) {
-        text_speed.y = @fabs(text_speed.y);
-    }
-    if (text_rect.y + text_rect.height > @intToFloat(f32, fb_size.h)) {
-        text_speed.y = -@fabs(text_speed.y);
-    }
+    text_draw_pos.x += text_speed.x * ctx.delta_seconds;
+    text_draw_pos.y += text_speed.y * ctx.delta_seconds;
     const draw_result = try font.debugDraw(
         ctx.renderer,
         .{
-            .pos = .{ .x = text_rect.x, .y = text_rect.y },
+            .pos = .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
             .font_size = 50,
             .color = sdl.Color.rgb(
                 255,
@@ -158,8 +144,18 @@ pub fn draw(ctx: *jok.Context) !void {
         "Hello Jok!",
         .{},
     );
-    text_rect.width = draw_result.area.width;
-    text_rect.height = draw_result.area.height;
+    if (draw_result.area.x < 0) {
+        text_speed.x = @fabs(text_speed.x);
+    }
+    if (draw_result.area.x + draw_result.area.width > @intToFloat(f32, fb_size.w)) {
+        text_speed.x = -@fabs(text_speed.x);
+    }
+    if (draw_result.area.y < 0) {
+        text_speed.y = @fabs(text_speed.y);
+    }
+    if (draw_result.area.y + draw_result.area.height > @intToFloat(f32, fb_size.h)) {
+        text_speed.y = -@fabs(text_speed.y);
+    }
 }
 
 pub fn quit(ctx: *jok.Context) void {

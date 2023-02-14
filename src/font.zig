@@ -20,6 +20,7 @@ pub const clacon_font_data = @embedFile("font/clacon2.ttf");
 pub const DrawOption = struct {
     pos: sdl.PointF,
     ypos_type: Atlas.YPosType = .top,
+    box_type: Atlas.BoxType = .aligned,
     color: sdl.Color = sdl.Color.white,
     font_size: u32 = 16,
 };
@@ -77,6 +78,7 @@ pub fn debugDraw(renderer: sdl.Renderer, opt: DrawOption, comptime fmt: []const 
         text,
         opt.pos,
         opt.ypos_type,
+        opt.box_type,
         opt.color,
         &S.vattrib,
         &S.vindices,
