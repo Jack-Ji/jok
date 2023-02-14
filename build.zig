@@ -8,6 +8,8 @@ const nfd = @import("src/deps/nfd/build.zig");
 const zmath = @import("src/deps/zmath/build.zig");
 const zmesh = @import("src/deps/zmesh/build.zig");
 const znoise = @import("src/deps/znoise/build.zig");
+const zpool = @import("src/deps/zpool/build.zig");
+const zflecs = @import("src/deps/zflecs/build.zig");
 const zaudio = @import("src/deps/zaudio/build.zig");
 const zphysics = @import("src/deps/zphysics/build.zig");
 const ztracy = @import("src/deps/ztracy/build.zig");
@@ -23,7 +25,7 @@ pub fn build(b: *std.Build) void {
     const examples = [_]struct { name: []const u8, opt: BuildOptions }{
         .{ .name = "hello", .opt = .{} },
         .{ .name = "imgui_demo", .opt = .{} },
-        //.{ .name = "chipmunk_demo", .opt = .{ .link_chipmunk = true } },
+        //.{ .name = "chipmunk_demo", .opt = .{ .use_chipmunk = true } },
         .{ .name = "sprite_sheet", .opt = .{} },
         .{ .name = "sprite_scene", .opt = .{} },
         .{ .name = "sprite_benchmark", .opt = .{} },
@@ -38,8 +40,8 @@ pub fn build(b: *std.Build) void {
         .{ .name = "font_demo", .opt = .{} },
         .{ .name = "skybox", .opt = .{} },
         .{ .name = "benchmark_3d", .opt = .{} },
-        .{ .name = "particle_life", .opt = .{ .link_nfd = true } },
-        .{ .name = "zaudio_demo", .opt = .{ .link_zaudio = true } },
+        .{ .name = "particle_life", .opt = .{ .use_nfd = true } },
+        .{ .name = "zaudio_demo", .opt = .{ .use_zaudio = true } },
         .{ .name = "audio_synthesize_demo", .opt = .{} },
         .{ .name = "hypocycloids", .opt = .{} },
     };
@@ -68,11 +70,11 @@ pub fn build(b: *std.Build) void {
 }
 
 pub const BuildOptions = struct {
-    link_chipmunk: bool = false,
-    link_nfd: bool = false,
-    link_zaudio: bool = false,
-    link_zphysics: bool = false,
-    link_ztracy: bool = false,
+    use_chipmunk: bool = false,
+    use_nfd: bool = false,
+    use_zaudio: bool = false,
+    use_zphysics: bool = false,
+    use_ztracy: bool = false,
 };
 
 /// Create game executable
@@ -86,17 +88,19 @@ pub fn createGame(
 ) *std.build.LibExeObjStep {
     // Initialize jok module
     const bos = b.addOptions();
-    bos.addOption(bool, "use_chipmunk", opt.link_chipmunk);
-    bos.addOption(bool, "use_nfd", opt.link_nfd);
-    bos.addOption(bool, "use_zaudio", opt.link_zaudio);
-    bos.addOption(bool, "use_zphysics", opt.link_zphysics);
-    bos.addOption(bool, "use_ztracy", opt.link_ztracy);
+    bos.addOption(bool, "use_chipmunk", opt.use_chipmunk);
+    bos.addOption(bool, "use_nfd", opt.use_nfd);
+    bos.addOption(bool, "use_zaudio", opt.use_zaudio);
+    bos.addOption(bool, "use_zphysics", opt.use_zphysics);
+    bos.addOption(bool, "use_ztracy", opt.use_ztracy);
     const sdl_sdk = Sdk.init(b, null);
     const zmath_pkg = zmath.Package.build(b, .{});
     const zmesh_pkg = zmesh.Package.build(b, target, optimize, .{
         .options = .{ .shape_use_32bit_indices = false },
     });
     const znoise_pkg = znoise.Package.build(b, target, optimize, .{});
+    const zpool_pkg = zpool.Package.build(b, .{});
+    const zflecs_pkg = zflecs.Package.build(b, target, optimize, .{});
     const zaudio_pkg = zaudio.Package.build(b, target, optimize, .{});
     const zphysics_pkg = zphysics.Package.build(b, target, optimize, .{});
     const ztracy_pkg = ztracy.Package.build(b, target, optimize, .{});
@@ -109,6 +113,8 @@ pub fn createGame(
             .{ .name = "zmath", .module = zmath_pkg.zmath },
             .{ .name = "zmesh", .module = zmesh_pkg.zmesh },
             .{ .name = "znoise", .module = znoise_pkg.znoise },
+            .{ .name = "zflecs", .module = zflecs_pkg.zflecs },
+            .{ .name = "zpool", .module = zpool_pkg.zpool },
             .{ .name = "zaudio", .module = zaudio_pkg.zaudio },
             .{ .name = "zphysics", .module = zphysics_pkg.zphysics },
             .{ .name = "ztracy", .module = ztracy_pkg.ztracy },
@@ -138,19 +144,19 @@ pub fn createGame(
     imgui.link(exe);
     zmesh_pkg.link(exe);
     znoise_pkg.link(exe);
-    if (opt.link_chipmunk) {
+    if (opt.use_chipmunk) {
         chipmunk.link(exe);
     }
-    if (opt.link_nfd) {
+    if (opt.use_nfd) {
         nfd.link(exe);
     }
-    if (opt.link_zaudio) {
+    if (opt.use_zaudio) {
         zaudio_pkg.link(exe);
     }
-    if (opt.link_zphysics) {
+    if (opt.use_zphysics) {
         zphysics_pkg.link(exe);
     }
-    if (opt.link_ztracy) {
+    if (opt.use_ztracy) {
         ztracy_pkg.link(exe);
     }
 

@@ -5,6 +5,8 @@ pub const imgui = @import("imgui/imgui.zig");
 pub const zmath = @import("zmath");
 pub const zmesh = @import("zmesh");
 pub const znoise = @import("znoise");
+pub const zpool = @import("zpool");
+pub const zflecs = @import("zflecs");
 
 pub const chipmunk = if (bos.use_chipmunk)
     @import("chipmunk/chipmunk.zig")
