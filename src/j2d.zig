@@ -264,7 +264,7 @@ pub fn addSprite(sprite: Sprite, opt: AddSprite) !void {
 }
 
 pub const AddText = struct {
-    atlas: Atlas,
+    atlas: *Atlas,
     pos: sdl.PointF,
     ypos_type: Atlas.YPosType = .top,
     tint_color: sdl.Color = sdl.Color.white,

@@ -17,6 +17,7 @@ const default_map_size = 8192;
 
 tex: sdl.Texture,
 ranges: std.ArrayList(CharRange),
+codepoint_search: std.AutoHashMap(u32, u8),
 scale: f32,
 vmetric_ascent: f32,
 vmetric_descent: f32,
@@ -101,6 +102,7 @@ pub fn init(
     return Atlas{
         .tex = tex,
         .ranges = ranges,
+        .codepoint_search = std.AutoHashMap(u32, u8).init(allocator),
         .scale = scale,
         .vmetric_ascent = @intToFloat(f32, ascent),
         .vmetric_descent = @intToFloat(f32, descent),
@@ -114,6 +116,7 @@ pub fn deinit(self: *Atlas) void {
         r.packedchar.deinit();
     }
     self.ranges.deinit();
+    self.codepoint_search.deinit();
 }
 
 /// Calculate next line's y coordinate
@@ -129,7 +132,7 @@ pub const BoxType = enum { aligned, drawed };
 
 /// Get bounding box of text
 pub fn getBoundingBox(
-    self: Atlas,
+    self: *Atlas,
     text: []const u8,
     _pos: sdl.PointF,
     ypos_type: YPosType,
@@ -181,7 +184,7 @@ pub fn getBoundingBox(
 
 /// Append draw data for rendering utf8 string, return bounding box
 pub fn appendDrawDataFromUTF8String(
-    self: Atlas,
+    self: *Atlas,
     text: []const u8,
     _pos: sdl.PointF,
     ypos_type: YPosType,
@@ -246,7 +249,7 @@ pub fn appendDrawDataFromUTF8String(
 
 /// Search coordinates of codepoint (in the order of left-top/right-top/right-bottom/left-bottom)
 pub inline fn getVerticesOfCodePoint(
-    self: Atlas,
+    self: *Atlas,
     pos: sdl.PointF,
     ypos_type: YPosType,
     color: sdl.Color,
@@ -257,59 +260,62 @@ pub inline fn getVerticesOfCodePoint(
     var pxpos = &xpos;
     var pypos = &ypos;
 
-    // TODO: use simple loop searching for now, may need optimization
-    for (self.ranges.items) |range| {
-        if (codepoint < range.codepoint_begin or codepoint > range.codepoint_end) continue;
-
-        var quad: truetype.stbtt_aligned_quad = undefined;
-        const info = self.tex.query() catch unreachable;
-        truetype.stbtt_GetPackedQuad(
-            range.packedchar.items.ptr,
-            @intCast(c_int, info.width),
-            @intCast(c_int, info.height),
-            @intCast(c_int, codepoint - range.codepoint_begin),
-            pxpos,
-            pypos,
-            &quad,
-            0,
-        );
-        const yoffset = switch (ypos_type) {
-            .baseline => 0,
-            .top => self.vmetric_ascent * self.scale,
-            .bottom => self.vmetric_descent * self.scale,
-        };
-        return .{
-            .vs = [_]sdl.Vertex{
-                .{
-                    .position = .{ .x = quad.x0, .y = quad.y0 + yoffset },
-                    .color = color,
-                    .tex_coord = .{ .x = quad.s0, .y = quad.t0 },
-                },
-                .{
-                    .position = .{ .x = quad.x1, .y = quad.y0 + yoffset },
-                    .color = color,
-                    .tex_coord = .{ .x = quad.s1, .y = quad.t0 },
-                },
-                .{
-                    .position = .{ .x = quad.x1, .y = quad.y1 + yoffset },
-                    .color = color,
-                    .tex_coord = .{ .x = quad.s1, .y = quad.t1 },
-                },
-                .{
-                    .position = .{ .x = quad.x0, .y = quad.y1 + yoffset },
-                    .color = color,
-                    .tex_coord = .{ .x = quad.s0, .y = quad.t1 },
-                },
+    const idx = self.codepoint_search.get(codepoint) orelse BLK: {
+        for (self.ranges.items) |range, idx| {
+            if (codepoint < range.codepoint_begin or codepoint > range.codepoint_end) continue;
+            self.codepoint_search.put(codepoint, @intCast(u8, idx)) catch unreachable;
+            break :BLK @intCast(u8, idx);
+        } else {
+            return null;
+        }
+    };
+    const range = self.ranges.items[idx];
+    var quad: truetype.stbtt_aligned_quad = undefined;
+    const info = self.tex.query() catch unreachable;
+    truetype.stbtt_GetPackedQuad(
+        range.packedchar.items.ptr,
+        @intCast(c_int, info.width),
+        @intCast(c_int, info.height),
+        @intCast(c_int, codepoint - range.codepoint_begin),
+        pxpos,
+        pypos,
+        &quad,
+        0,
+    );
+    const yoffset = switch (ypos_type) {
+        .baseline => 0,
+        .top => self.vmetric_ascent * self.scale,
+        .bottom => self.vmetric_descent * self.scale,
+    };
+    return .{
+        .vs = [_]sdl.Vertex{
+            .{
+                .position = .{ .x = quad.x0, .y = quad.y0 + yoffset },
+                .color = color,
+                .tex_coord = .{ .x = quad.s0, .y = quad.t0 },
             },
-            .next_x = xpos,
-        };
-    } else {
-        return null;
-    }
+            .{
+                .position = .{ .x = quad.x1, .y = quad.y0 + yoffset },
+                .color = color,
+                .tex_coord = .{ .x = quad.s1, .y = quad.t0 },
+            },
+            .{
+                .position = .{ .x = quad.x1, .y = quad.y1 + yoffset },
+                .color = color,
+                .tex_coord = .{ .x = quad.s1, .y = quad.t1 },
+            },
+            .{
+                .position = .{ .x = quad.x0, .y = quad.y1 + yoffset },
+                .color = color,
+                .tex_coord = .{ .x = quad.s0, .y = quad.t1 },
+            },
+        },
+        .next_x = xpos,
+    };
 }
 
 /// Get sprite of codepoint
-pub fn getSpriteOfCodePoint(self: Atlas, codepoint: u32) ?Sprite {
+pub fn getSpriteOfCodePoint(self: *Atlas, codepoint: u32) ?Sprite {
     if (self.getVerticesOfCodePoint(
         .{ .x = 0, .y = 0 },
         .top,

@@ -58,7 +58,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.begin(.{});
     try j2d.addText(
         .{
-            .atlas = atlas,
+            .atlas = &atlas,
             .pos = sdl.PointF{
                 .x = result.area.x + result.area.width,
                 .y = @intToFloat(f32, size.h) / 2,
