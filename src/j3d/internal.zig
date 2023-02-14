@@ -484,7 +484,7 @@ pub const RenderTarget = struct {
         return d0 > d1;
     }
 
-    pub fn sortTriangles(self: *RenderTarget) void {
+    fn sortTriangles(self: *RenderTarget) void {
         var _indices: [][3]u32 = undefined;
         _indices.ptr = @ptrCast([*][3]u32, self.indices.items.ptr);
         _indices.len = @divTrunc(self.indices.items.len, 3);
@@ -496,7 +496,7 @@ pub const RenderTarget = struct {
         );
     }
 
-    pub fn drawTriangles(self: RenderTarget, color: sdl.Color) void {
+    pub inline fn drawTriangles(self: RenderTarget, rd: sdl.Renderer, color: sdl.Color) !void {
         const col = imgui.sdl.convertColor(color);
         var i: u32 = 0;
         while (i < self.indices.items.len) : (i += 3) {
@@ -509,6 +509,47 @@ pub const RenderTarget = struct {
                 .p3 = .{ v2.position.x, v2.position.y },
                 .col = col,
             });
+        }
+        imgui.sdl.renderDrawList(rd, self.draw_list) catch unreachable;
+    }
+
+    pub inline fn fillTriangles(self: *RenderTarget, rd: sdl.Renderer, sort_by_depth: bool) !void {
+        if (sort_by_depth) {
+            self.sortTriangles();
+
+            // Scan vertices and send them in batches
+            var offset: usize = 0;
+            var last_texture: ?sdl.Texture = null;
+            var i: usize = 0;
+            while (i < self.indices.items.len) : (i += 3) {
+                const idx = self.indices.items[i];
+                if (i > 0 and !isSameTexture(self.textures.items[idx], last_texture)) {
+                    try rd.drawGeometry(
+                        last_texture,
+                        self.vertices.items,
+                        self.indices.items[offset..i],
+                    );
+                    offset = i;
+                }
+                last_texture = self.textures.items[idx];
+            }
+            try rd.drawGeometry(
+                last_texture,
+                self.vertices.items,
+                self.indices.items[offset..],
+            );
+        } else { // Send pre-batched vertices directly
+            var offset: u32 = 0;
+            for (self.batched_indices.items) |size| {
+                assert(size % 3 == 0);
+                try rd.drawGeometry(
+                    self.textures.items[self.indices.items[offset]],
+                    self.vertices.items,
+                    self.indices.items[offset .. offset + size],
+                );
+                offset += size;
+            }
+            assert(offset == @intCast(u32, self.indices.items.len));
         }
     }
 

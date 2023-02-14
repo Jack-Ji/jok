@@ -86,46 +86,9 @@ pub fn end() !void {
     assert(@rem(target.indices.items.len, 3) == 0);
 
     if (wireframe_color) |wc| {
-        target.drawTriangles(wc);
-        imgui.sdl.renderDrawList(rd, target.draw_list) catch unreachable;
+        try target.drawTriangles(rd, wc);
     } else {
-        if (sort_by_depth) {
-            target.sortTriangles();
-
-            // Scan vertices and send them in batches
-            var offset: usize = 0;
-            var last_texture: ?sdl.Texture = null;
-            var i: usize = 0;
-            while (i < target.indices.items.len) : (i += 3) {
-                const idx = target.indices.items[i];
-                if (i > 0 and !internal.isSameTexture(target.textures.items[idx], last_texture)) {
-                    try rd.drawGeometry(
-                        last_texture,
-                        target.vertices.items,
-                        target.indices.items[offset..i],
-                    );
-                    offset = i;
-                }
-                last_texture = target.textures.items[idx];
-            }
-            try rd.drawGeometry(
-                last_texture,
-                target.vertices.items,
-                target.indices.items[offset..],
-            );
-        } else { // Send pre-batched vertices directly
-            var offset: u32 = 0;
-            for (target.batched_indices.items) |size| {
-                assert(size % 3 == 0);
-                try rd.drawGeometry(
-                    target.textures.items[target.indices.items[offset]],
-                    target.vertices.items,
-                    target.indices.items[offset .. offset + size],
-                );
-                offset += size;
-            }
-            assert(offset == @intCast(u32, target.indices.items.len));
-        }
+        try target.fillTriangles(rd, sort_by_depth);
     }
 }
 
