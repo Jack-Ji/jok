@@ -72,7 +72,7 @@ pub fn draw(ctx: *jok.Context) !void {
             .x = @floatCast(f32, 1.3 + std.math.sin(ctx.seconds)),
             .y = @floatCast(f32, 1.3 + std.math.sin(ctx.seconds)),
         });
-        j2d.getTransform().rotateByOrgin(@floatCast(f32, ctx.seconds * 30));
+        j2d.getTransform().rotateByOrgin(@floatCast(f32, ctx.seconds));
         j2d.getTransform().translate(
             .{
                 .x = offset_transformed[0],
