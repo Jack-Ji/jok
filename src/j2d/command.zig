@@ -129,6 +129,19 @@ pub const NgonFillCmd = struct {
     num_segments: u32,
 };
 
+pub const ConvexPolyCmd = struct {
+    points: std.ArrayList(sdl.Vertex),
+    color: u32,
+    thickness: f32,
+    transform: AffineTransform,
+};
+
+pub const ConvexPolyFillCmd = struct {
+    points: std.ArrayList(sdl.Vertex),
+    texture: ?sdl.Texture,
+    transform: AffineTransform,
+};
+
 pub const BezierCubicCmd = struct {
     p1: sdl.PointF,
     p2: sdl.PointF,
@@ -146,25 +159,6 @@ pub const BezierQuadraticCmd = struct {
     color: u32,
     thickness: f32,
     num_segments: u32,
-};
-
-pub const TexturedPolygonCmd = struct {
-    points: std.ArrayList(sdl.Vertex),
-    texture: sdl.Texture,
-    transform: AffineTransform,
-
-    pub fn init(allocator: std.mem.Allocator, texture: sdl.Texture) @This() {
-        return .{
-            .points = std.ArrayList(sdl.Vertex).init(allocator),
-            .texture = texture,
-            .transform = undefined,
-        };
-    }
-
-    pub fn deinit(self: *@This()) void {
-        self.points.deinit();
-        self.* = undefined;
-    }
 };
 
 pub const PathCmd = struct {
@@ -247,9 +241,10 @@ pub const DrawCmd = struct {
         circle_fill: CircleFillCmd,
         ngon: NgonCmd,
         ngon_fill: NgonFillCmd,
+        convex_polygon: ConvexPolyCmd,
+        convex_polygon_fill: ConvexPolyFillCmd,
         bezier_cubic: BezierCubicCmd,
         bezier_quadratic: BezierQuadraticCmd,
-        textured_polygon: TexturedPolygonCmd,
         path: PathCmd,
     },
     depth: f32,
@@ -368,6 +363,46 @@ pub const DrawCmd = struct {
                 .col = c.color,
                 .num_segments = c.num_segments,
             }),
+            .convex_polygon => |c| {
+                dl.pathClear();
+                for (c.points.items) |_p| {
+                    const p = c.transform.transformPoint(_p.position);
+                    dl.pathLineTo(.{ p.x, p.y });
+                }
+                dl.pathStroke(.{
+                    .col = c.color,
+                    .flags = .{ .closed = true },
+                    .thickness = c.thickness,
+                });
+            },
+            .convex_polygon_fill => |c| {
+                if (c.texture) |tex| dl.pushTextureId(tex.ptr);
+                defer if (c.texture != null) dl.popTextureId();
+                const idx_count = (c.points.items.len - 2) * 3;
+                const vtx_count = c.points.items.len;
+                const cur_idx = @intCast(u16, dl.getCurrentIndex());
+                const white_pixel_uv = imgui.getFontTexUvWhitePixel();
+                dl.primReserve(
+                    @intCast(i32, idx_count),
+                    @intCast(i32, vtx_count),
+                );
+                var i: usize = 0;
+                while (i < vtx_count) : (i += 1) {
+                    const p = c.points.items[i];
+                    const pos = c.transform.transformPoint(p.position);
+                    dl.primWriteVtx(
+                        .{ pos.x, pos.y },
+                        if (c.texture != null) .{ p.tex_coord.x, p.tex_coord.y } else white_pixel_uv,
+                        imgui.sdl.convertColor(p.color),
+                    );
+                }
+                i = 2;
+                while (i < vtx_count) : (i += 1) {
+                    dl.primWriteIdx(cur_idx);
+                    dl.primWriteIdx(cur_idx + @intCast(u16, i) - 1);
+                    dl.primWriteIdx(cur_idx + @intCast(u16, i));
+                }
+            },
             .bezier_cubic => |c| dl.addBezierCubic(.{
                 .p1 = .{ c.p1.x, c.p1.y },
                 .p2 = .{ c.p2.x, c.p2.y },
@@ -385,33 +420,6 @@ pub const DrawCmd = struct {
                 .thickness = c.thickness,
                 .num_segments = c.num_segments,
             }),
-            .textured_polygon => |c| {
-                dl.pushTextureId(c.texture.ptr);
-                defer dl.popTextureId();
-                const idx_count = (c.points.items.len - 2) * 3;
-                const vtx_count = c.points.items.len;
-                const cur_idx = @intCast(u16, dl.getCurrentIndex());
-                dl.primReserve(
-                    @intCast(i32, idx_count),
-                    @intCast(i32, vtx_count),
-                );
-                var i: usize = 0;
-                while (i < vtx_count) : (i += 1) {
-                    const p = c.points.items[i];
-                    const pos = c.transform.transformPoint(p.position);
-                    dl.primWriteVtx(
-                        .{ pos.x, pos.y },
-                        .{ p.tex_coord.x, p.tex_coord.y },
-                        imgui.sdl.convertColor(p.color),
-                    );
-                }
-                i = 2;
-                while (i < vtx_count) : (i += 1) {
-                    dl.primWriteIdx(cur_idx);
-                    dl.primWriteIdx(cur_idx + @intCast(u16, i) - 1);
-                    dl.primWriteIdx(cur_idx + @intCast(u16, i));
-                }
-            },
             .path => |c| {
                 dl.pathClear();
                 for (c.cmds.items) |_pc| {

@@ -158,6 +158,172 @@ pub fn getTransform() *AffineTransform {
     return &transform;
 }
 
+pub const AddImage = struct {
+    uv0: sdl.PointF = .{ .x = 0, .y = 0 },
+    uv1: sdl.PointF = .{ .x = 1, .y = 1 },
+    tint_color: sdl.Color = sdl.Color.white,
+    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    rotate_degree: f32 = 0,
+    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    flip_h: bool = false,
+    flip_v: bool = false,
+    depth: f32 = 0.5,
+};
+pub fn addImage(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImage) !void {
+    const scale = transform.getScale();
+    const pos = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
+    const sprite = Sprite{
+        .width = rect.width,
+        .height = rect.height,
+        .uv0 = opt.uv0,
+        .uv1 = opt.uv1,
+        .tex = texture,
+    };
+    try sprite.render(&draw_commands, .{
+        .pos = pos,
+        .tint_color = opt.tint_color,
+        .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
+        .rotate_degree = opt.rotate_degree,
+        .anchor_point = opt.anchor_point,
+        .flip_h = opt.flip_h,
+        .flip_v = opt.flip_v,
+        .depth = opt.depth,
+    });
+}
+
+pub const AddImageRounded = struct {
+    uv0: sdl.PointF = .{ .x = 0, .y = 0 },
+    uv1: sdl.PointF = .{ .x = 1, .y = 1 },
+    tint_color: sdl.Color = sdl.Color.white,
+    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    flip_h: bool = false,
+    flip_v: bool = false,
+    rounding: f32 = 4,
+    depth: f32 = 0.5,
+};
+pub fn addImageRounded(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImageRounded) !void {
+    const scale = transform.getScale();
+    const pmin = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
+    const pmax = sdl.PointF{
+        .x = pmin.x + rect.width * scale.x,
+        .y = pmin.y + rect.height * scale.y,
+    };
+    var uv0 = opt.uv0;
+    var uv1 = opt.uv1;
+    if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
+    if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
+    try draw_commands.append(.{
+        .cmd = .{
+            .image_rounded = .{
+                .texture = texture,
+                .pmin = pmin,
+                .pmax = pmax,
+                .uv0 = uv0,
+                .uv1 = uv1,
+                .rounding = opt.rounding,
+                .tint_color = imgui.sdl.convertColor(opt.tint_color),
+            },
+        },
+        .depth = opt.depth,
+    });
+}
+
+pub fn addScene(scene: *const Scene) !void {
+    try scene.render(&draw_commands, .{ .transform = transform });
+}
+
+pub fn addEffects(ps: *const ParticleSystem) !void {
+    for (ps.effects.items) |eff| {
+        try eff.render(&draw_commands, .{ .transform = transform });
+    }
+}
+
+pub const AddSprite = struct {
+    pos: sdl.PointF,
+    tint_color: sdl.Color = sdl.Color.white,
+    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    rotate_degree: f32 = 0,
+    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    flip_h: bool = false,
+    flip_v: bool = false,
+    depth: f32 = 0.5,
+};
+pub fn addSprite(sprite: Sprite, opt: AddSprite) !void {
+    const scale = transform.getScale();
+    try sprite.render(&draw_commands, .{
+        .pos = transform.transformPoint(opt.pos),
+        .tint_color = opt.tint_color,
+        .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
+        .rotate_degree = opt.rotate_degree,
+        .anchor_point = opt.anchor_point,
+        .flip_h = opt.flip_h,
+        .flip_v = opt.flip_v,
+        .depth = opt.depth,
+    });
+}
+
+pub const AddText = struct {
+    atlas: Atlas,
+    pos: sdl.PointF,
+    ypos_type: Atlas.YPosType = .top,
+    tint_color: sdl.Color = sdl.Color.white,
+    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    rotate_degree: f32 = 0,
+    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    depth: f32 = 0.5,
+};
+pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
+    const text = jok.imgui.format(fmt, args);
+    if (text.len == 0) return;
+
+    var pos = transform.transformPoint(opt.pos);
+    var scale = transform.getScale();
+    scale.x *= opt.scale.x;
+    scale.y *= opt.scale.y;
+    const angle = jok.utils.math.degreeToRadian(opt.rotate_degree);
+    const mat = zmath.mul(
+        zmath.mul(
+            zmath.translation(-pos.x, -pos.y, 0),
+            zmath.rotationZ(angle),
+        ),
+        zmath.translation(pos.x, pos.y, 0),
+    );
+    var i: u32 = 0;
+    while (i < text.len) {
+        const size = try unicode.utf8ByteSequenceLength(text[i]);
+        const cp = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
+        if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, sdl.Color.white, cp)) |cs| {
+            const v = zmath.mul(
+                zmath.f32x4(
+                    cs.vs[0].position.x,
+                    pos.y + (cs.vs[0].position.y - pos.y) * scale.y,
+                    0,
+                    1,
+                ),
+                mat,
+            );
+            const draw_pos = sdl.PointF{ .x = v[0], .y = v[1] };
+            const sprite = Sprite{
+                .width = cs.vs[1].position.x - cs.vs[0].position.x,
+                .height = cs.vs[3].position.y - cs.vs[0].position.y,
+                .uv0 = cs.vs[0].tex_coord,
+                .uv1 = cs.vs[2].tex_coord,
+                .tex = opt.atlas.tex,
+            };
+            try sprite.render(&draw_commands, .{
+                .pos = draw_pos,
+                .tint_color = opt.tint_color,
+                .scale = scale,
+                .rotate_degree = opt.rotate_degree,
+                .anchor_point = opt.anchor_point,
+                .depth = opt.depth,
+            });
+            pos.x += (cs.next_x - pos.x) * scale.x;
+        }
+        i += size;
+    }
+}
+
 pub const AddLine = struct {
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
@@ -514,215 +680,74 @@ pub fn addBezierQuadratic(
     });
 }
 
-pub const AddImage = struct {
-    uv0: sdl.PointF = .{ .x = 0, .y = 0 },
-    uv1: sdl.PointF = .{ .x = 1, .y = 1 },
-    tint_color: sdl.Color = sdl.Color.white,
-    scale: sdl.PointF = .{ .x = 1, .y = 1 },
-    rotate_degree: f32 = 0,
-    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
-    flip_h: bool = false,
-    flip_v: bool = false,
+pub const AddPoly = struct {
+    thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
-pub fn addImage(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImage) !void {
-    const scale = transform.getScale();
-    const pos = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
-    const sprite = Sprite{
-        .width = rect.width,
-        .height = rect.height,
-        .uv0 = opt.uv0,
-        .uv1 = opt.uv1,
-        .tex = texture,
-    };
-    try sprite.render(&draw_commands, .{
-        .pos = pos,
-        .tint_color = opt.tint_color,
-        .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
-        .rotate_degree = opt.rotate_degree,
-        .anchor_point = opt.anchor_point,
-        .flip_h = opt.flip_h,
-        .flip_v = opt.flip_v,
-        .depth = opt.depth,
-    });
-}
-
-pub const AddImageRounded = struct {
-    uv0: sdl.PointF = .{ .x = 0, .y = 0 },
-    uv1: sdl.PointF = .{ .x = 1, .y = 1 },
-    tint_color: sdl.Color = sdl.Color.white,
-    scale: sdl.PointF = .{ .x = 1, .y = 1 },
-    flip_h: bool = false,
-    flip_v: bool = false,
-    rounding: f32 = 4,
-    depth: f32 = 0.5,
-};
-pub fn addImageRounded(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImageRounded) !void {
-    const scale = transform.getScale();
-    const pmin = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
-    const pmax = sdl.PointF{
-        .x = pmin.x + rect.width * scale.x,
-        .y = pmin.y + rect.height * scale.y,
-    };
-    var uv0 = opt.uv0;
-    var uv1 = opt.uv1;
-    if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
-    if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
+pub fn addConvexPoly(poly: ConvexPoly, color: sdl.Color, opt: AddPoly) !void {
+    if (!poly.finished) return error.PathNotFinished;
     try draw_commands.append(.{
         .cmd = .{
-            .image_rounded = .{
-                .texture = texture,
-                .pmin = pmin,
-                .pmax = pmax,
-                .uv0 = uv0,
-                .uv1 = uv1,
-                .rounding = opt.rounding,
-                .tint_color = imgui.sdl.convertColor(opt.tint_color),
+            .convex_polygon = .{
+                .points = poly.points,
+                .color = imgui.sdl.convertColor(color),
+                .thickness = opt.thickness,
+                .transform = transform,
             },
         },
         .depth = opt.depth,
     });
 }
 
-pub fn addScene(scene: *const Scene) !void {
-    try scene.render(&draw_commands, .{ .transform = transform });
-}
-
-pub fn addEffects(ps: *const ParticleSystem) !void {
-    for (ps.effects.items) |eff| {
-        try eff.render(&draw_commands, .{ .transform = transform });
-    }
-}
-
-pub const AddSprite = struct {
-    pos: sdl.PointF,
-    tint_color: sdl.Color = sdl.Color.white,
-    scale: sdl.PointF = .{ .x = 1, .y = 1 },
-    rotate_degree: f32 = 0,
-    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
-    flip_h: bool = false,
-    flip_v: bool = false,
+pub const FillPoly = struct {
     depth: f32 = 0.5,
 };
-pub fn addSprite(sprite: Sprite, opt: AddSprite) !void {
-    const scale = transform.getScale();
-    try sprite.render(&draw_commands, .{
-        .pos = transform.transformPoint(opt.pos),
-        .tint_color = opt.tint_color,
-        .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
-        .rotate_degree = opt.rotate_degree,
-        .anchor_point = opt.anchor_point,
-        .flip_h = opt.flip_h,
-        .flip_v = opt.flip_v,
-        .depth = opt.depth,
-    });
-}
-
-pub const AddText = struct {
-    atlas: Atlas,
-    pos: sdl.PointF,
-    ypos_type: Atlas.YPosType = .top,
-    tint_color: sdl.Color = sdl.Color.white,
-    scale: sdl.PointF = .{ .x = 1, .y = 1 },
-    rotate_degree: f32 = 0,
-    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
-    depth: f32 = 0.5,
-};
-pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
-    const text = jok.imgui.format(fmt, args);
-    if (text.len == 0) return;
-
-    var pos = transform.transformPoint(opt.pos);
-    var scale = transform.getScale();
-    scale.x *= opt.scale.x;
-    scale.y *= opt.scale.y;
-    const angle = jok.utils.math.degreeToRadian(opt.rotate_degree);
-    const mat = zmath.mul(
-        zmath.mul(
-            zmath.translation(-pos.x, -pos.y, 0),
-            zmath.rotationZ(angle),
-        ),
-        zmath.translation(pos.x, pos.y, 0),
-    );
-    var i: u32 = 0;
-    while (i < text.len) {
-        const size = try unicode.utf8ByteSequenceLength(text[i]);
-        const cp = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
-        if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, sdl.Color.white, cp)) |cs| {
-            const v = zmath.mul(
-                zmath.f32x4(
-                    cs.vs[0].position.x,
-                    pos.y + (cs.vs[0].position.y - pos.y) * scale.y,
-                    0,
-                    1,
-                ),
-                mat,
-            );
-            const draw_pos = sdl.PointF{ .x = v[0], .y = v[1] };
-            const sprite = Sprite{
-                .width = cs.vs[1].position.x - cs.vs[0].position.x,
-                .height = cs.vs[3].position.y - cs.vs[0].position.y,
-                .uv0 = cs.vs[0].tex_coord,
-                .uv1 = cs.vs[2].tex_coord,
-                .tex = opt.atlas.tex,
-            };
-            try sprite.render(&draw_commands, .{
-                .pos = draw_pos,
-                .tint_color = opt.tint_color,
-                .scale = scale,
-                .rotate_degree = opt.rotate_degree,
-                .anchor_point = opt.anchor_point,
-                .depth = opt.depth,
-            });
-            pos.x += (cs.next_x - pos.x) * scale.x;
-        }
-        i += size;
-    }
-}
-
-pub const AddTexturedPolygon = struct {
-    depth: f32 = 0.5,
-};
-pub fn addTexturedPolygon(poly: TexturedPolygon, opt: AddTexturedPolygon) !void {
+pub fn addConvexPolyFilled(poly: ConvexPoly, opt: FillPoly) !void {
     if (!poly.finished) return error.PathNotFinished;
-    var cmd = poly.cmd;
-    cmd.transform = transform;
     try draw_commands.append(.{
-        .cmd = .{ .textured_polygon = cmd },
+        .cmd = .{
+            .convex_polygon_fill = .{
+                .points = poly.points,
+                .texture = poly.texture,
+                .transform = transform,
+            },
+        },
         .depth = opt.depth,
     });
 }
 
-pub const TexturedPolygon = struct {
-    cmd: dc.TexturedPolygonCmd,
+pub const ConvexPoly = struct {
+    texture: ?sdl.Texture,
+    points: std.ArrayList(sdl.Vertex),
     finished: bool = false,
 
-    pub fn begin(allocator: std.mem.Allocator, texture: sdl.Texture) TexturedPolygon {
+    pub fn begin(allocator: std.mem.Allocator, texture: ?sdl.Texture) ConvexPoly {
         return .{
-            .cmd = dc.TexturedPolygonCmd.init(allocator, texture),
+            .texture = texture,
+            .points = std.ArrayList(sdl.Vertex).init(allocator),
         };
     }
 
-    pub fn end(self: *TexturedPolygon) void {
+    pub fn end(self: *ConvexPoly) void {
         self.finished = true;
     }
 
-    pub fn deinit(self: *TexturedPolygon) void {
-        self.cmd.deinit();
+    pub fn deinit(self: *ConvexPoly) void {
+        self.points.deinit();
         self.* = undefined;
     }
 
-    pub fn reset(self: *TexturedPolygon, texture: ?sdl.Texture) void {
-        self.cmd.points.clearRetainingCapacity();
-        if (texture) |tex| self.cmd.texture = tex;
+    pub fn reset(self: *ConvexPoly, texture: ?sdl.Texture) void {
+        self.texture = texture;
+        self.points.clearRetainingCapacity();
         self.finished = false;
     }
 
-    pub fn addPoint(self: *TexturedPolygon, p: sdl.Vertex) !void {
+    pub fn addPoint(self: *ConvexPoly, p: sdl.Vertex) !void {
         try self.cmd.points.append(p);
     }
 
-    pub fn addNPoints(self: *TexturedPolygon, ps: []sdl.Vertex) !void {
+    pub fn addNPoints(self: *ConvexPoly, ps: []sdl.Vertex) !void {
         try self.cmd.points.appendSlice(ps);
     }
 };
