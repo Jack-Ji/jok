@@ -36,7 +36,7 @@ pub const Context = struct {
     always_on_top: bool = undefined,
 
     // Elapsed time of game
-    seconds: f64 = 0,
+    seconds: f32 = 0,
 
     // Delta time between update/draw
     delta_seconds: f32 = 0,
@@ -50,7 +50,7 @@ pub const Context = struct {
     _pc_freq: f64 = 0,
 
     _frame_count: u32 = 0,
-    _last_fps_refresh_time: f64 = 0,
+    _last_fps_refresh_time: f32 = 0,
 
     pub fn init(allocator: std.mem.Allocator) !Context {
         try checkSys();

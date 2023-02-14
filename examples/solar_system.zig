@@ -104,7 +104,7 @@ pub fn update(ctx: *jok.Context) !void {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
 
-    earth_orbit.setTransform(zmath.mul(zmath.translation(2, 0, 0), zmath.rotationY(@floatCast(f32, ctx.seconds))));
+    earth_orbit.setTransform(zmath.mul(zmath.translation(2, 0, 0), zmath.rotationY(ctx.seconds)));
     moon_orbit.setTransform(zmath.mul(zmath.translation(0.3, 0, 0), zmath.rotationY(@floatCast(f32, ctx.seconds * 12))));
 }
 

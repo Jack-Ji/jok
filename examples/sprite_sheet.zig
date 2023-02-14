@@ -52,16 +52,16 @@ pub fn draw(ctx: *jok.Context) !void {
         .scale = .{ .x = 2, .y = 2 },
         .flip_h = true,
         .flip_v = true,
-        //.rotate_degree = @floatCast(f32, ctx.seconds) * 30,
+        //.rotate_degree = ctx.seconds * 30,
     });
     try j2d.addSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .tint_color = sdl.Color.rgb(255, 0, 0),
         .scale = .{
-            .x = 4 + 2 * @cos(@floatCast(f32, ctx.seconds)),
-            .y = 4 + 2 * @sin(@floatCast(f32, ctx.seconds)),
+            .x = 4 + 2 * @cos(ctx.seconds),
+            .y = 4 + 2 * @sin(ctx.seconds),
         },
-        .rotate_degree = @floatCast(f32, ctx.seconds) * 30,
+        .rotate_degree = ctx.seconds * 30,
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
         .depth = 0.6,
     });

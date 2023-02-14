@@ -124,7 +124,7 @@ pub fn draw(ctx: *jok.Context) !void {
             zmath.mul(
                 zmath.mul(
                     zmath.scaling(0.1, 0.1, 0.1),
-                    zmath.matFromAxisAngle(rotation_axises.items[i], std.math.pi / 3.0 * @floatCast(f32, ctx.seconds)),
+                    zmath.matFromAxisAngle(rotation_axises.items[i], std.math.pi / 3.0 * ctx.seconds),
                 ),
                 tr,
             ),

@@ -62,7 +62,7 @@ pub fn draw(ctx: *jok.Context) !void {
         const offset_origin = jok.zmath.f32x4(row * 50, col * 50, 0, 1);
         const rotate_m = jok.zmath.matFromAxisAngle(
             jok.zmath.f32x4(center_x, center_y, 1, 0),
-            @floatCast(f32, ctx.seconds),
+            ctx.seconds,
         );
         const translate_m = jok.zmath.translation(center_x, center_y, 0);
         const offset_transformed = jok.zmath.mul(jok.zmath.mul(offset_origin, rotate_m), translate_m);
@@ -72,7 +72,7 @@ pub fn draw(ctx: *jok.Context) !void {
             .x = @floatCast(f32, 1.3 + std.math.sin(ctx.seconds)),
             .y = @floatCast(f32, 1.3 + std.math.sin(ctx.seconds)),
         });
-        j2d.getTransform().rotateByOrgin(@floatCast(f32, ctx.seconds));
+        j2d.getTransform().rotateByOrgin(ctx.seconds);
         j2d.getTransform().translate(
             .{
                 .x = offset_transformed[0],
@@ -102,28 +102,28 @@ pub fn draw(ctx: *jok.Context) !void {
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
     try j3d.addIcosahedron(
         zmath.mul(
-            zmath.rotationY(@floatCast(f32, ctx.seconds)),
+            zmath.rotationY(ctx.seconds),
             zmath.translation(-3, 3, 0),
         ),
         .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
     try j3d.addTorus(
         zmath.mul(
-            zmath.rotationY(@floatCast(f32, ctx.seconds)),
+            zmath.rotationY(ctx.seconds),
             zmath.translation(3, 3, 0),
         ),
         .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
     try j3d.addParametricSphere(
         zmath.mul(
-            zmath.rotationY(@floatCast(f32, ctx.seconds)),
+            zmath.rotationY(ctx.seconds),
             zmath.translation(3, -3, 0),
         ),
         .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
     try j3d.addTetrahedron(
         zmath.mul(
-            zmath.rotationY(@floatCast(f32, ctx.seconds)),
+            zmath.rotationY(ctx.seconds),
             zmath.translation(-3, -3, 0),
         ),
         .{ .rdopt = .{ .lighting = .{}, .color = color } },

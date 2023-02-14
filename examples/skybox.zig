@@ -137,7 +137,7 @@ pub fn draw(ctx: *jok.Context) !void {
             zmath.translation(-0.5, -0.5, -0.5),
             zmath.mul(
                 zmath.scaling(0.5, 0.5, 0.5),
-                zmath.rotationY(@floatCast(f32, ctx.seconds) * std.math.pi),
+                zmath.rotationY(ctx.seconds * std.math.pi),
             ),
         ),
         null,
