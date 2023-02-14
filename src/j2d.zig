@@ -191,6 +191,7 @@ pub fn addImage(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImage) !void
     });
 }
 
+/// NOTE: Rounded image is always axis-aligned
 pub const AddImageRounded = struct {
     uv0: sdl.PointF = .{ .x = 0, .y = 0 },
     uv1: sdl.PointF = .{ .x = 1, .y = 1 },
@@ -342,6 +343,7 @@ pub fn addLine(p1: sdl.PointF, p2: sdl.PointF, color: sdl.Color, opt: AddLine) !
     });
 }
 
+/// NOTE: Rectangle is always axis-aligned
 pub const AddRect = struct {
     thickness: f32 = 1.0,
     rounding: f32 = 0,
@@ -368,6 +370,7 @@ pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, opt: AddRect) !void {
     });
 }
 
+/// NOTE: Rectangle is always axis-aligned
 pub const FillRect = struct {
     rounding: f32 = 0,
     depth: f32 = 0.5,
@@ -392,6 +395,7 @@ pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) !voi
     });
 }
 
+/// NOTE: Rectangle is always axis-aligned
 pub const FillRectMultiColor = struct {
     depth: f32 = 0.5,
 };
@@ -864,6 +868,7 @@ pub const Path = struct {
         });
     }
 
+    /// NOTE: Rectangle is always axis-aligned
     pub const Rect = struct {
         rounding: f32 = 0,
     };
