@@ -27,7 +27,7 @@ pub fn update(ctx: *jok.Context) !void {
 pub fn draw(ctx: *jok.Context) !void {
     const fb_size = ctx.getFramebufferSize();
     const scale_step = jok.utils.math.mapf(
-        @floatCast(f32, math.sin(ctx.seconds)),
+        math.sin(ctx.seconds),
         -1,
         1,
         0.71,

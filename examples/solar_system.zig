@@ -105,7 +105,7 @@ pub fn update(ctx: *jok.Context) !void {
     }
 
     earth_orbit.setTransform(zmath.mul(zmath.translation(2, 0, 0), zmath.rotationY(ctx.seconds)));
-    moon_orbit.setTransform(zmath.mul(zmath.translation(0.3, 0, 0), zmath.rotationY(@floatCast(f32, ctx.seconds * 12))));
+    moon_orbit.setTransform(zmath.mul(zmath.translation(0.3, 0, 0), zmath.rotationY(ctx.seconds * 12)));
 }
 
 pub fn draw(ctx: *jok.Context) !void {

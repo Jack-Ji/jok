@@ -69,8 +69,8 @@ pub fn draw(ctx: *jok.Context) !void {
 
         j2d.getTransform().setToIdentity();
         j2d.getTransform().scale(.{
-            .x = @floatCast(f32, 1.3 + std.math.sin(ctx.seconds)),
-            .y = @floatCast(f32, 1.3 + std.math.sin(ctx.seconds)),
+            .x = 1.3 + std.math.sin(ctx.seconds),
+            .y = 1.3 + std.math.sin(ctx.seconds),
         });
         j2d.getTransform().rotateByOrgin(ctx.seconds);
         j2d.getTransform().translate(

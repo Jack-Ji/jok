@@ -66,10 +66,10 @@ pub fn draw(ctx: *jok.Context) !void {
                 @floatToInt(u8, 128 + @sin(ctx.seconds * 10) * 127),
             ),
             .scale = .{
-                .x = @floatCast(f32, 4 + 3 * @sin(ctx.seconds)),
-                .y = @floatCast(f32, 4 + 3 * @cos(ctx.seconds)),
+                .x = 4 + 3 * @sin(ctx.seconds),
+                .y = 4 + 3 * @cos(ctx.seconds),
             },
-            .rotate_degree = @floatCast(f32, ctx.seconds * 30),
+            .rotate_degree = ctx.seconds * 30,
         },
         "jok!",
         .{},
