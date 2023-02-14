@@ -58,6 +58,8 @@ Now in your code you may import and use jok:
 const std = @import("std");
 const sdl = @import("sdl");
 const jok = @import("jok");
+const j2d = jok.j2d;
+const j3d = jok.j3d;
 
 pub const jok_window_width: u32 = 400;
 pub const jok_window_height: u32 = 300;
@@ -75,7 +77,19 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    // your game rendering code
+  // your 2d drawing
+  {
+      try j2d.begin(.{});
+      // ......
+      try j2d.end();
+  }
+
+  // your 3d drawing
+  {
+      try j3d.begin(.{});
+      // ......
+      try j3d.end();
+  }
 }
 
 pub fn quit(ctx: *jok.Context) void {
