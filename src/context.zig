@@ -37,6 +37,7 @@ pub const Context = struct {
 
     // Elapsed time of game
     seconds: f32 = 0,
+    seconds_real: f64 = 0,
 
     // Delta time between update/draw
     delta_seconds: f32 = 0,
@@ -50,7 +51,7 @@ pub const Context = struct {
     _pc_freq: f64 = 0,
 
     _frame_count: u32 = 0,
-    _last_fps_refresh_time: f32 = 0,
+    _last_fps_refresh_time: f64 = 0,
 
     pub fn init(allocator: std.mem.Allocator) !Context {
         try checkSys();
@@ -157,6 +158,7 @@ pub const Context = struct {
                 self._accumulated_pc -= fps_pc_threshold;
                 self.delta_seconds = fps_delta_seconds;
                 self.seconds += self.delta_seconds;
+                self.seconds_real += self.delta_seconds;
 
                 updateFn(self) catch |e| {
                     log.err("got error in `update`: {}", .{e});
@@ -180,6 +182,7 @@ pub const Context = struct {
             );
             self._last_pc = pc;
             self.seconds += self.delta_seconds;
+            self.seconds_real += self.delta_seconds;
 
             updateFn(self) catch |e| {
                 log.err("got error in `update`: {}", .{e});
@@ -207,14 +210,14 @@ pub const Context = struct {
     /// Update frame stats once per second
     inline fn updateFrameStats(self: *Context) void {
         self._frame_count += 1;
-        if ((self.seconds - self._last_fps_refresh_time) >= 1.0) {
-            const t = self.seconds - self._last_fps_refresh_time;
+        if ((self.seconds_real - self._last_fps_refresh_time) >= 1.0) {
+            const t = self.seconds_real - self._last_fps_refresh_time;
             self.fps = @floatCast(
                 f32,
                 @intToFloat(f64, self._frame_count) / t,
             );
             self.average_cpu_time = (1.0 / self.fps) * 1000.0;
-            self._last_fps_refresh_time = self.seconds;
+            self._last_fps_refresh_time = self.seconds_real;
             self._frame_count = 0;
         }
     }
