@@ -205,55 +205,84 @@ pub fn addMesh(
     );
 }
 
-pub fn addAxises(pos: [3]f32, radius: f32, length: f32) !void {
-    const scale_cylinder = zmath.scaling(radius, radius, length);
-    const scale_cone = zmath.scaling(radius * 2, radius * 2, length / 10);
-    const move_cylinder = zmath.translation(pos[0], pos[1], pos[2]);
-    const rotate_angle = math.pi / 2.0;
+pub const AxisDrawOption = struct {
+    radius: f32 = 0.1,
+    length: f32 = 4,
+    pos: [3]f32 = .{ 0, 0, 0 },
+    euler_degrees: [3]f32 = .{ 0, 0, 0 },
+    color_x: sdl.Color = sdl.Color.red,
+    color_y: sdl.Color = sdl.Color.green,
+    color_z: sdl.Color = sdl.Color.blue,
+};
+pub fn addAxises(opt: AxisDrawOption) !void {
+    const scale_cylinder = zmath.scaling(opt.radius, opt.radius, opt.length);
+    const scale_cone = zmath.scaling(opt.radius * 2, opt.radius * 2, opt.length / 10);
+    const move_cylinder = zmath.translation(opt.pos[0], opt.pos[1], opt.pos[2]);
+    const rotation = zmath.matFromRollPitchYaw(
+        jok.utils.math.degreeToRadian(opt.euler_degrees[0]),
+        jok.utils.math.degreeToRadian(opt.euler_degrees[1]),
+        jok.utils.math.degreeToRadian(opt.euler_degrees[2]),
+    );
+    const right_angle = math.pi / 2.0;
 
     // X axis
     try addCone(
         zmath.mul(
-            zmath.mul(scale_cone, zmath.rotationY(rotate_angle)),
-            zmath.mul(zmath.translation(length, 0, 0), move_cylinder),
+            zmath.mul(
+                zmath.mul(scale_cone, zmath.rotationY(right_angle)),
+                rotation,
+            ),
+            zmath.mul(zmath.translation(opt.length, 0, 0), move_cylinder),
         ),
-        .{ .rdopt = .{ .color = sdl.Color.red } },
+        .{ .rdopt = .{ .color = opt.color_x } },
     );
     try addCylinder(
         zmath.mul(
-            zmath.mul(scale_cylinder, zmath.rotationY(rotate_angle)),
+            zmath.mul(
+                zmath.mul(scale_cylinder, zmath.rotationY(right_angle)),
+                rotation,
+            ),
             move_cylinder,
         ),
-        .{ .rdopt = .{ .color = sdl.Color.red }, .stacks = 10 },
+        .{ .rdopt = .{ .color = opt.color_x }, .stacks = 10 },
     );
 
     // Y axis
     try addCone(
         zmath.mul(
-            zmath.mul(scale_cone, zmath.rotationX(-rotate_angle)),
-            zmath.mul(zmath.translation(0, length, 0), move_cylinder),
+            zmath.mul(
+                zmath.mul(scale_cone, zmath.rotationX(-right_angle)),
+                rotation,
+            ),
+            zmath.mul(zmath.translation(0, opt.length, 0), move_cylinder),
         ),
-        .{ .rdopt = .{ .color = sdl.Color.green } },
+        .{ .rdopt = .{ .color = opt.color_y } },
     );
     try addCylinder(
         zmath.mul(
-            zmath.mul(scale_cylinder, zmath.rotationX(-rotate_angle)),
+            zmath.mul(
+                zmath.mul(scale_cylinder, zmath.rotationX(-right_angle)),
+                rotation,
+            ),
             move_cylinder,
         ),
-        .{ .rdopt = .{ .color = sdl.Color.green }, .stacks = 10 },
+        .{ .rdopt = .{ .color = opt.color_y }, .stacks = 10 },
     );
 
     // Z axis
     try addCone(
         zmath.mul(
-            scale_cone,
-            zmath.mul(zmath.translation(0, 0, length), move_cylinder),
+            zmath.mul(scale_cone, rotation),
+            zmath.mul(zmath.translation(0, 0, opt.length), move_cylinder),
         ),
-        .{ .rdopt = .{ .color = sdl.Color.blue } },
+        .{ .rdopt = .{ .color = opt.color_z } },
     );
     try addCylinder(
-        zmath.mul(scale_cylinder, move_cylinder),
-        .{ .rdopt = .{ .color = sdl.Color.blue }, .stacks = 10 },
+        zmath.mul(
+            zmath.mul(scale_cylinder, rotation),
+            move_cylinder,
+        ),
+        .{ .rdopt = .{ .color = opt.color_z }, .stacks = 10 },
     );
 }
 
@@ -303,7 +332,7 @@ pub fn addCube(model: zmath.Mat, opt: CubeDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, camera, mesh.aabb, opt.rdopt);
+    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
 }
 
 pub const PlaneDrawOption = struct {
