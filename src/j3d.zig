@@ -205,6 +205,58 @@ pub fn addMesh(
     );
 }
 
+pub fn addAxises(pos: [3]f32, radius: f32, length: f32) !void {
+    const scale_cylinder = zmath.scaling(radius, radius, length);
+    const scale_cone = zmath.scaling(radius * 2, radius * 2, length / 10);
+    const move_cylinder = zmath.translation(pos[0], pos[1], pos[2]);
+    const rotate_angle = math.pi / 2.0;
+
+    // X axis
+    try addCone(
+        zmath.mul(
+            zmath.mul(scale_cone, zmath.rotationY(rotate_angle)),
+            zmath.mul(zmath.translation(length, 0, 0), move_cylinder),
+        ),
+        .{ .rdopt = .{ .color = sdl.Color.red } },
+    );
+    try addCylinder(
+        zmath.mul(
+            zmath.mul(scale_cylinder, zmath.rotationY(rotate_angle)),
+            move_cylinder,
+        ),
+        .{ .rdopt = .{ .color = sdl.Color.red }, .stacks = 10 },
+    );
+
+    // Y axis
+    try addCone(
+        zmath.mul(
+            zmath.mul(scale_cone, zmath.rotationX(-rotate_angle)),
+            zmath.mul(zmath.translation(0, length, 0), move_cylinder),
+        ),
+        .{ .rdopt = .{ .color = sdl.Color.green } },
+    );
+    try addCylinder(
+        zmath.mul(
+            zmath.mul(scale_cylinder, zmath.rotationX(-rotate_angle)),
+            move_cylinder,
+        ),
+        .{ .rdopt = .{ .color = sdl.Color.green }, .stacks = 10 },
+    );
+
+    // Z axis
+    try addCone(
+        zmath.mul(
+            scale_cone,
+            zmath.mul(zmath.translation(0, 0, length), move_cylinder),
+        ),
+        .{ .rdopt = .{ .color = sdl.Color.blue } },
+    );
+    try addCylinder(
+        zmath.mul(scale_cylinder, move_cylinder),
+        .{ .rdopt = .{ .color = sdl.Color.blue }, .stacks = 10 },
+    );
+}
+
 pub const CubeDrawOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
