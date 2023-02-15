@@ -124,15 +124,16 @@ pub fn draw(ctx: *jok.Context) !void {
         light_pos2[2] = v[2];
         lighting_opt.?.lights_num = 2;
         lighting_opt.?.lights[0] = .{
-            .point = .{
+            .spot = .{
                 .position = zmath.f32x4(light_pos1[0], light_pos1[1], light_pos1[2], 1),
+                .direction = zmath.f32x4(0, -1, 0, 0),
                 .attenuation_linear = 0.002,
                 .attenuation_quadratic = 0.001,
             },
         };
         lighting_opt.?.lights[1] = .{
             .point = .{
-                .diffuse = zmath.f32x4(0.5, 0.5, 1.0, 1),
+                .diffuse = zmath.f32x4(1.0, 1.0, 0.7, 1),
                 .position = zmath.f32x4(light_pos2[0], light_pos2[1], light_pos2[2], 1),
                 .attenuation_linear = 0.002,
                 .attenuation_quadratic = 0.001,
@@ -336,9 +337,9 @@ pub fn draw(ctx: *jok.Context) !void {
             .{
                 .rdopt = .{
                     .color = sdl.Color.rgb(
-                        @floatToInt(u8, lighting_opt.?.lights[0].point.diffuse[0] * 255),
-                        @floatToInt(u8, lighting_opt.?.lights[0].point.diffuse[1] * 255),
-                        @floatToInt(u8, lighting_opt.?.lights[0].point.diffuse[2] * 255),
+                        @floatToInt(u8, lighting_opt.?.lights[0].spot.diffuse[0] * 255),
+                        @floatToInt(u8, lighting_opt.?.lights[0].spot.diffuse[1] * 255),
+                        @floatToInt(u8, lighting_opt.?.lights[0].spot.diffuse[2] * 255),
                     ),
                 },
             },
