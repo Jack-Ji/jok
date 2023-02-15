@@ -117,7 +117,7 @@ pub inline fn triangleArea(tri: [3][2]f32) f32 {
     return @fabs(x1 * y2 + x2 * y3 + x3 * y1 - x2 * y1 - x3 * y2 - x1 * y3) / 2;
 }
 
-/// Get outer rect of triangle
+/// Get bouding rect of triangle
 pub inline fn triangleRect(tri: [3][2]f32) sdl.RectangleF {
     const min_max_x = minAndMax(tri[0][0], tri[1][0], tri[2][0]);
     const min_max_y = minAndMax(tri[0][1], tri[1][1], tri[2][1]);
@@ -126,5 +126,25 @@ pub inline fn triangleRect(tri: [3][2]f32) sdl.RectangleF {
         .y = min_max_y[0],
         .width = min_max_x[1] - min_max_x[0],
         .height = min_max_y[1] - min_max_y[0],
+    };
+}
+
+/// Get bouding rect of points
+pub inline fn getBoundingRect(ps: []sdl.PointF) sdl.RectangleF {
+    var min_x = math.f32_max;
+    var min_y = math.f32_max;
+    var max_x = math.f32_min;
+    var max_y = math.f32_min;
+    for (ps) |p| {
+        if (min_x > p.x) min_x = p.x;
+        if (min_y > p.y) min_y = p.y;
+        if (max_x < p.x) max_x = p.x;
+        if (max_y < p.y) max_y = p.y;
+    }
+    return .{
+        .x = min_x,
+        .y = min_y,
+        .width = max_x - min_x,
+        .height = max_y - min_y,
     };
 }
