@@ -120,10 +120,10 @@ pub fn calcLightColor(
             .point => |light| {
                 const light_dir = zmath.normalize3(light.position - vertex_pos);
                 const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
-                const distance = zmath.length3(light.position - vertex_pos);
-                const attenuation = zmath.f32x4s(1.0) / (zmath.f32x4s(light.constant) +
-                    zmath.f32x4s(light.attenuation_linear) * distance +
-                    zmath.f32x4s(light.attenuation_quadratic) * distance * distance);
+                const distance = zmath.length3(light.position - vertex_pos)[0];
+                const attenuation = 1.0 / (light.constant +
+                    light.attenuation_linear * distance +
+                    light.attenuation_quadratic * distance * distance);
                 final_color += S.calcColor(
                     raw_color,
                     opt.shininess,
@@ -133,14 +133,14 @@ pub fn calcLightColor(
                     light.ambient,
                     light.diffuse,
                     light.specular,
-                ) * attenuation;
+                ) * zmath.f32x4s(attenuation);
             },
             .spot => |light| {
                 const eye_dir = zmath.normalize3(eye_pos - vertex_pos);
-                const distance = zmath.length3(light.position - vertex_pos);
-                const attenuation = zmath.f32x4s(1.0) / (zmath.f32x4s(light.constant) +
-                    zmath.f32x4s(light.attenuation_linear) * distance +
-                    zmath.f32x4s(light.attenuation_quadratic) * distance * distance);
+                const distance = zmath.length3(light.position - vertex_pos)[0];
+                const attenuation = 1.0 / (light.constant +
+                    light.attenuation_linear * distance +
+                    light.attenuation_quadratic * distance * distance);
                 const light_dir = zmath.normalize3(light.position - vertex_pos);
                 const theta = zmath.dot3(light_dir, zmath.normalize3(-light.direction))[0];
                 assert(light.inner_cutoff > light.outer_cutoff);
@@ -156,7 +156,7 @@ pub fn calcLightColor(
                     light.ambient,
                     light.diffuse * intensity,
                     light.specular * intensity,
-                ) * attenuation;
+                ) * zmath.f32x4s(attenuation);
             },
         }
     }
