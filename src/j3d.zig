@@ -209,7 +209,7 @@ pub const AxisDrawOption = struct {
     radius: f32 = 0.1,
     length: f32 = 4,
     pos: [3]f32 = .{ 0, 0, 0 },
-    euler_degrees: [3]f32 = .{ 0, 0, 0 },
+    rotation: zmath.Quat = zmath.matToQuat(zmath.identity()),
     color_x: sdl.Color = sdl.Color.red,
     color_y: sdl.Color = sdl.Color.green,
     color_z: sdl.Color = sdl.Color.blue,
@@ -218,11 +218,7 @@ pub fn addAxises(opt: AxisDrawOption) !void {
     const scale_cylinder = zmath.scaling(opt.radius, opt.radius, opt.length);
     const scale_cone = zmath.scaling(opt.radius * 2, opt.radius * 2, opt.length / 10);
     const move_cylinder = zmath.translation(opt.pos[0], opt.pos[1], opt.pos[2]);
-    const rotation = zmath.matFromRollPitchYaw(
-        jok.utils.math.degreeToRadian(opt.euler_degrees[0]),
-        jok.utils.math.degreeToRadian(opt.euler_degrees[1]),
-        jok.utils.math.degreeToRadian(opt.euler_degrees[2]),
-    );
+    const rotation = zmath.matFromQuat(opt.rotation);
     const right_angle = math.pi / 2.0;
 
     // X axis
