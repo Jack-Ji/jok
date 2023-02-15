@@ -29,7 +29,7 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    imgui.sdl.newFrame(ctx.*);
+    imgui.sdl.newFrame(ctx);
     defer imgui.sdl.draw();
 
     if (imgui.begin("Control", .{})) {

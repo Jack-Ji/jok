@@ -59,7 +59,7 @@ pub const Context = struct {
             .allocator = allocator,
         };
         try self.initSDL();
-        imgui.sdl.init(self);
+        imgui.sdl.init(&self);
         zmesh.init(self.allocator);
         try jok.j2d.init(self.allocator, self.renderer);
         try jok.j3d.init(self.allocator, self.renderer);

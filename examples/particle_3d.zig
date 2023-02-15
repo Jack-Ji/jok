@@ -167,7 +167,7 @@ pub fn draw(ctx: *jok.Context) !void {
         },
     );
 
-    imgui.sdl.newFrame(ctx.*);
+    imgui.sdl.newFrame(ctx);
     defer imgui.sdl.draw();
     if (imgui.begin("Control", .{})) {
         _ = imgui.checkbox("sort by depth", .{ .v = &sort_by_depth });

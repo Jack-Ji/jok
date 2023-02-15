@@ -163,7 +163,7 @@ pub fn draw(ctx: *jok.Context) !void {
         },
     );
 
-    imgui.sdl.newFrame(ctx.*);
+    imgui.sdl.newFrame(ctx);
     defer imgui.sdl.draw();
     if (imgui.begin("Tint Color", .{})) {
         var cs: [3]f32 = .{

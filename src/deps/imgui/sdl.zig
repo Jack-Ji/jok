@@ -5,7 +5,7 @@ const zgui = @import("zgui");
 const sdl = @import("sdl");
 const imgui = @import("imgui.zig");
 
-pub fn init(ctx: jok.Context) void {
+pub fn init(ctx: *const jok.Context) void {
     zgui.init(ctx.allocator);
 
     if (!ImGui_ImplSDL2_InitForSDLRenderer(ctx.window.ptr, ctx.renderer.ptr)) {
@@ -35,7 +35,7 @@ pub fn deinit() void {
     zgui.deinit();
 }
 
-pub fn newFrame(ctx: jok.Context) void {
+pub fn newFrame(ctx: *const jok.Context) void {
     ImGui_ImplSDLRenderer_NewFrame();
     ImGui_ImplSDL2_NewFrame();
 
