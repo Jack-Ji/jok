@@ -83,9 +83,9 @@ pub fn draw(ctx: *jok.Context) !void {
             .{ .x = 10, .y = 10 },
             .{ .x = -10, .y = 10 },
             sdl.Color.rgb(
-                @floatToInt(u8, 128 + 128 * std.math.sin(ctx.seconds)),
+                @floatToInt(u8, 128 + 127 * std.math.sin(ctx.seconds)),
                 @floatToInt(u8, @intToFloat(f32, i) + std.math.max(0, 155 * std.math.sin(ctx.seconds))),
-                @floatToInt(u8, 128 + 128 * std.math.cos(ctx.seconds)),
+                @floatToInt(u8, 128 + 127 * std.math.cos(ctx.seconds)),
             ),
             .{},
         );
@@ -93,9 +93,9 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.end();
 
     const color = sdl.Color.rgb(
-        @floatToInt(u8, 128 + 128 * std.math.sin(ctx.seconds)),
+        @floatToInt(u8, 128 + 127 * std.math.sin(ctx.seconds)),
         100,
-        @floatToInt(u8, 128 + 128 * std.math.cos(ctx.seconds)),
+        @floatToInt(u8, 128 + 127 * std.math.cos(ctx.seconds)),
     );
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
     try j3d.addIcosahedron(
