@@ -18,8 +18,8 @@ pub const jok_window_height: u32 = 600;
 
 var lighting: bool = true;
 var wireframe: bool = false;
-var light_pos: [3]f32 = .{ 0, 30, 0 };
-var light_color: [3]f32 = .{ 1, 1, 1 };
+var light_pos1: [3]f32 = undefined;
+var light_pos2: [3]f32 = undefined;
 var camera: Camera = undefined;
 var terran: zmesh.Shape = undefined;
 
@@ -112,16 +112,42 @@ pub fn draw(ctx: *jok.Context) !void {
 
     var lighting_opt: ?j3d.lighting.LightingOption = .{};
     if (lighting) {
-        const v = zmath.mul(
-            zmath.f32x4(30, 30, 0, 1),
+        const v1 = zmath.mul(
+            zmath.f32x4(40, 30, 0, 1),
             zmath.rotationY(ctx.seconds),
         );
-        light_pos[0] = v[0];
-        light_pos[1] = v[1];
-        light_pos[2] = v[2];
+        light_pos1[0] = v1[0];
+        light_pos1[1] = v1[1];
+        light_pos1[2] = v1[2];
+        const v2 = zmath.mul(
+            zmath.f32x4(-40, 40, 0, 1),
+            zmath.rotationY(ctx.seconds),
+        );
+        light_pos2[0] = v2[0];
+        light_pos2[1] = v2[1];
+        light_pos2[2] = v2[2];
+        lighting_opt.?.lights_num = 2;
         lighting_opt.?.lights[0] = .{
             .point = .{
-                .position = zmath.f32x4(light_pos[0], light_pos[1], light_pos[2], 1),
+                .position = zmath.f32x4(
+                    light_pos1[0],
+                    light_pos1[1],
+                    light_pos1[2],
+                    1,
+                ),
+                .attenuation_linear = 0.002,
+                .attenuation_quadratic = 0.0001,
+            },
+        };
+        lighting_opt.?.lights[1] = .{
+            .point = .{
+                .diffuse = zmath.f32x4(0.3, 0.9, 0.9, 1),
+                .position = zmath.f32x4(
+                    light_pos2[0],
+                    light_pos2[1],
+                    light_pos2[2],
+                    1,
+                ),
                 .attenuation_linear = 0.002,
                 .attenuation_quadratic = 0.0001,
             },
@@ -320,7 +346,11 @@ pub fn draw(ctx: *jok.Context) !void {
     });
     if (lighting) {
         try j3d.addSubdividedSphere(
-            zmath.translation(light_pos[0], light_pos[1], light_pos[2]),
+            zmath.translation(light_pos1[0], light_pos1[1], light_pos1[2]),
+            .{},
+        );
+        try j3d.addSubdividedSphere(
+            zmath.translation(light_pos2[0], light_pos2[1], light_pos2[2]),
             .{},
         );
     }
