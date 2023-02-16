@@ -50,6 +50,9 @@ pub const SpriteRect = struct {
 // Used allocator
 allocator: std.mem.Allocator,
 
+// Size of sheet
+size: sdl.PointF,
+
 // Packed pixels
 packed_pixels: ?ImagePixels = null,
 
@@ -214,6 +217,10 @@ pub fn create(
     var self = try ctx.allocator.create(Self);
     self.* = .{
         .allocator = ctx.allocator,
+        .size = .{
+            .x = @intToFloat(f32, width),
+            .y = @intToFloat(f32, height),
+        },
         .packed_pixels = if (keep_packed_pixels) ImagePixels{
             .width = width,
             .height = height,

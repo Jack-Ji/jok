@@ -1,4 +1,5 @@
 const std = @import("std");
+const math = std.math;
 const sdl = @import("sdl");
 const jok = @import("jok");
 const font = jok.font;
@@ -25,10 +26,10 @@ pub fn init(ctx: *jok.Context) !void {
                 .fov = std.math.pi / 4.0,
                 .aspect_ratio = ctx.getAspectRatio(),
                 .near = 0.1,
-                .far = 100,
+                .far = 1000,
             },
         },
-        [_]f32{ 7, 0, -27 },
+        [_]f32{ 37, 9, 2 },
         [_]f32{ 0, 0, 0 },
         null,
     );
@@ -120,7 +121,7 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
 
 pub fn update(ctx: *jok.Context) !void {
     // camera movement
-    const distance = ctx.delta_seconds * 20;
+    const distance = ctx.delta_seconds * 10;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -146,7 +147,10 @@ pub fn update(ctx: *jok.Context) !void {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
 
-    //scene.root.setTransform(zmath.rotationX(ctx.seconds));
+    scene.root.setTransform(zmath.mul(
+        zmath.rotationX(ctx.seconds),
+        zmath.rotationY(ctx.seconds),
+    ));
     sprites[12].actor.sprite.tint_color = sdl.Color.rgb(
         @floatToInt(u8, 127 * (1 + @sin(ctx.seconds))),
         @floatToInt(u8, 127 * (1 + @cos(ctx.seconds))),
@@ -156,14 +160,22 @@ pub fn update(ctx: *jok.Context) !void {
 }
 
 pub fn draw(ctx: *jok.Context) !void {
-    try ctx.renderer.copy(
-        sheet.tex,
-        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
-        null,
-    );
-
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
     try j3d.addScene(scene, .{ .lighting = .{} });
+    try j3d.addSprite(
+        zmath.translation(10, -10, -30),
+        .{ .x = 50, .y = 20 },
+        .{
+            .{ .x = 0, .y = 0 },
+            .{ .x = 1, .y = 0.3 },
+        },
+        .{
+            .texture = sheet.tex,
+            .facing_dir = .{ 1, 1, 1 },
+            .tessellation_level = 9,
+        },
+    );
+    try j3d.addAxises(.{});
     try j3d.end();
 
     const ogre_pos = camera.getScreenPosition(ctx.renderer, sprites[13].transform, null);

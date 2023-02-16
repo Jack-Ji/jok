@@ -129,7 +129,6 @@ pub fn addEffects(ps: *ParticleSystem) !void {
 
 pub fn addSprite(
     model: zmath.Mat,
-    pos: [3]f32,
     size: sdl.PointF,
     uv: [2]sdl.PointF,
     opt: TriangleRenderer.SpriteOption,
@@ -139,7 +138,6 @@ pub fn addSprite(
         &target,
         model,
         camera,
-        pos,
         size,
         uv,
         opt,
