@@ -48,12 +48,23 @@ pub fn getSubSprite(
 /// Sprite's drawing params
 pub const RenderOption = struct {
     pos: sdl.PointF,
+
+    /// Tint color
     tint_color: sdl.Color = sdl.Color.white,
+
+    /// Scale of width/height
     scale: sdl.PointF = .{ .x = 1, .y = 1 },
+
+    /// Rotation around anchor-point
     rotate_degree: f32 = 0,
+
+    /// Anchor-point of sprite, around which rotation and translation is calculated
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+
+    /// Horizontal/vertial flipping
     flip_h: bool = false,
     flip_v: bool = false,
+
     depth: f32 = 0.5,
 };
 

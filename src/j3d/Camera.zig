@@ -106,6 +106,14 @@ pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: [3]f32, pitch: f3
     return camera;
 }
 
+/// Get camera's own transform
+pub fn getTransform(self: Self) zmath.Mat {
+    return zmath.mul(zmath.mul(
+        zmath.rotationX(self.pitch),
+        zmath.rotationY(self.yaw),
+    ), zmath.translationV(self.position));
+}
+
 /// Get projection matrix
 pub fn getProjectMatrix(self: Self) zmath.Mat {
     return switch (self.frustrum) {
@@ -147,7 +155,7 @@ pub fn getScreenPosition(
     self: Self,
     renderer: sdl.Renderer,
     model: zmath.Mat,
-    coord: [3]f32,
+    _coord: ?[3]f32,
 ) sdl.PointF {
     const vp = renderer.getViewport();
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
@@ -157,7 +165,11 @@ pub fn getScreenPosition(
         0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
     });
     const mvp = zmath.mul(model, self.getViewProjectMatrix());
-    const clip = zmath.mul(zmath.f32x4(coord[0], coord[1], coord[2], 1), mvp);
+    const coord = if (_coord) |c|
+        zmath.f32x4(c[0], c[1], c[2], 1)
+    else
+        zmath.f32x4(0, 0, 0, 1);
+    const clip = zmath.mul(coord, mvp);
     const ndc = clip / zmath.splat(zmath.Vec, clip[3]);
     const screen = zmath.mul(ndc, ndc_to_screen);
     return .{ .x = screen[0], .y = screen[1] };

@@ -23,6 +23,7 @@ pub const Mesh = struct {
     transform: zmath.Mat,
     shape: zmesh.Shape,
     aabb: ?[6]f32 = null,
+    cull_faces: bool = true,
     color: sdl.Color = sdl.Color.white,
     texture: ?sdl.Texture = null,
     disable_lighting: bool = false,
@@ -31,18 +32,19 @@ pub const Mesh = struct {
 /// Represent a sprite in 3d space
 pub const Sprite = struct {
     transform: zmath.Mat,
-    pos: [3]f32,
     size: sdl.PointF,
     uv: [2]sdl.PointF,
     texture: ?sdl.Texture = null,
     tint_color: sdl.Color = sdl.Color.white,
-    scale_w: f32 = 1.0,
-    scale_h: f32 = 1.0,
+    scale: sdl.PointF = .{ .x = 1.0, .y = 1.0 },
     rotate_degree: f32 = 0,
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
     flip_h: bool = false,
     flip_v: bool = false,
+    facing_dir: ?[3]f32 = null,
     fixed_size: bool = false,
+    disable_lighting: bool = true,
+    tessellation_level: u8 = 0,
 };
 
 /// A movable object in 3d space
@@ -198,7 +200,6 @@ pub fn destroy(self: *Self, destroy_objects: bool) void {
 }
 
 pub const RenderOption = struct {
-    cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,
     object: ?*Object = null,
 };
@@ -213,48 +214,51 @@ pub fn render(
     const o = opt.object orelse self.root;
     switch (o.actor) {
         .position => {},
-        .mesh => |m| {
-            try tri_rd.renderMesh(
-                vp,
-                target,
-                o.transform,
-                camera,
-                m.shape.indices,
-                m.shape.positions,
-                m.shape.normals.?,
-                null,
-                m.shape.texcoords,
-                .{
-                    .aabb = m.aabb,
-                    .cull_faces = opt.cull_faces,
-                    .color = m.color,
-                    .texture = m.texture,
-                    .lighting_opt = if (m.disable_lighting) null else opt.lighting,
-                },
-            );
-        },
-        .sprite => |s| {
-            try tri_rd.renderSprite(
-                vp,
-                target,
-                o.transform,
-                camera,
-                s.pos,
-                s.size,
-                s.uv,
-                .{
-                    .texture = s.texture,
-                    .tint_color = s.tint_color,
-                    .scale_w = s.scale_w,
-                    .scale_h = s.scale_h,
-                    .rotate_degree = s.rotate_degree,
-                    .anchor_point = s.anchor_point,
-                    .flip_h = s.flip_h,
-                    .flip_v = s.flip_v,
-                    .fixed_size = s.fixed_size,
-                },
-            );
-        },
+        .mesh => |m| try tri_rd.renderMesh(
+            vp,
+            target,
+            o.transform,
+            camera,
+            m.shape.indices,
+            m.shape.positions,
+            m.shape.normals.?,
+            null,
+            m.shape.texcoords,
+            .{
+                .aabb = m.aabb,
+                .cull_faces = m.cull_faces,
+                .color = m.color,
+                .texture = m.texture,
+                .lighting_opt = if (m.disable_lighting)
+                    null
+                else
+                    opt.lighting,
+            },
+        ),
+        .sprite => |s| try tri_rd.renderSprite(
+            vp,
+            target,
+            o.transform,
+            camera,
+            s.size,
+            s.uv,
+            .{
+                .texture = s.texture,
+                .tint_color = s.tint_color,
+                .scale = s.scale,
+                .rotate_degree = s.rotate_degree,
+                .anchor_point = s.anchor_point,
+                .flip_h = s.flip_h,
+                .flip_v = s.flip_v,
+                .facing_dir = s.facing_dir,
+                .fixed_size = s.fixed_size,
+                .lighting_opt = if (s.disable_lighting)
+                    null
+                else
+                    opt.lighting,
+                .tessellation_level = s.tessellation_level,
+            },
+        ),
     }
 
     var nopt = opt;

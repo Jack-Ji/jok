@@ -57,7 +57,6 @@ pub fn init(ctx: *jok.Context) !void {
                     zmath.translation(0, 10, 0),
                     zmath.rotationX(angle_step * @intToFloat(f32, i)),
                 ),
-                .pos = .{ 0, 0, 0 },
                 .size = .{ .x = 2, .y = 2 },
                 .uv = .{ sp.uv0, sp.uv1 },
                 .texture = sheet.tex,
@@ -74,12 +73,11 @@ pub fn init(ctx: *jok.Context) !void {
                     zmath.translation(0, 10, 0),
                     zmath.rotationX(angle_step * 12),
                 ),
-                .pos = .{ 0, 0, 0 },
-                .size = .{ .x = 100, .y = 100 },
+                .size = .{ .x = 5, .y = 5 },
                 .uv = .{ sp.uv0, sp.uv1 },
                 .texture = sheet.tex,
                 .anchor_point = .{ .x = 0.5, .y = 0.5 },
-                .fixed_size = true,
+                .facing_dir = .{ 0, 0, 1 },
             },
         });
         try scene.root.addChild(sprites[12]);
@@ -92,11 +90,11 @@ pub fn init(ctx: *jok.Context) !void {
                     zmath.translation(0, 10, 0),
                     zmath.rotationX(angle_step * 13),
                 ),
-                .pos = .{ 0, 0, 0 },
-                .size = .{ .x = 2, .y = 2 },
+                .size = .{ .x = 60, .y = 60 },
                 .uv = .{ sp.uv0, sp.uv1 },
                 .texture = sheet.tex,
                 .anchor_point = .{ .x = 0.5, .y = 0.5 },
+                .fixed_size = true,
             },
         });
         try scene.root.addChild(sprites[13]);
@@ -122,7 +120,7 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
 
 pub fn update(ctx: *jok.Context) !void {
     // camera movement
-    const distance = ctx.delta_seconds * 2;
+    const distance = ctx.delta_seconds * 20;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -148,7 +146,7 @@ pub fn update(ctx: *jok.Context) !void {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
 
-    scene.root.setTransform(zmath.rotationX(ctx.seconds));
+    //scene.root.setTransform(zmath.rotationX(ctx.seconds));
     sprites[12].actor.sprite.tint_color = sdl.Color.rgb(
         @floatToInt(u8, 127 * (1 + @sin(ctx.seconds))),
         @floatToInt(u8, 127 * (1 + @cos(ctx.seconds))),
@@ -168,7 +166,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try j3d.addScene(scene, .{ .lighting = .{} });
     try j3d.end();
 
-    const ogre_pos = camera.getScreenPosition(ctx.renderer, sprites[12].transform, sprites[12].actor.sprite.pos);
+    const ogre_pos = camera.getScreenPosition(ctx.renderer, sprites[13].transform, null);
     _ = try font.debugDraw(
         ctx.renderer,
         .{ .pos = .{ .x = ogre_pos.x + 50, .y = ogre_pos.y } },
