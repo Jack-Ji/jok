@@ -113,9 +113,11 @@ pub fn end() !void {
     }
     for (draw_commands.items) |dcmd| {
         switch (dcmd.cmd) {
-            .image => |c| try all_tex.put(c.texture.ptr, true),
-            .image_rounded => |c| try all_tex.put(c.texture.ptr, true),
             .quad_image => |c| try all_tex.put(c.texture.ptr, true),
+            .image_rounded => |c| try all_tex.put(c.texture.ptr, true),
+            .convex_polygon_fill => |c| {
+                if (c.texture) |tex| try all_tex.put(tex.ptr, true);
+            },
             else => {},
         }
         try dcmd.render(draw_list);
@@ -159,6 +161,7 @@ pub fn getTransform() *AffineTransform {
 }
 
 pub const AddImage = struct {
+    size: ?sdl.PointF = null,
     uv0: sdl.PointF = .{ .x = 0, .y = 0 },
     uv1: sdl.PointF = .{ .x = 1, .y = 1 },
     tint_color: sdl.Color = sdl.Color.white,
@@ -169,18 +172,24 @@ pub const AddImage = struct {
     flip_v: bool = false,
     depth: f32 = 0.5,
 };
-pub fn addImage(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImage) !void {
+pub fn addImage(texture: sdl.Texture, pos: sdl.PointF, opt: AddImage) !void {
     const scale = transform.getScale();
-    const pos = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
+    const size = opt.size orelse BLK: {
+        const info = try texture.query();
+        break :BLK sdl.PointF{
+            .x = @intToFloat(f32, info.width),
+            .y = @intToFloat(f32, info.height),
+        };
+    };
     const sprite = Sprite{
-        .width = rect.width,
-        .height = rect.height,
+        .width = size.x,
+        .height = size.y,
         .uv0 = opt.uv0,
         .uv1 = opt.uv1,
         .tex = texture,
     };
     try sprite.render(&draw_commands, .{
-        .pos = pos,
+        .pos = transform.transformPoint(pos),
         .tint_color = opt.tint_color,
         .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
         .rotate_degree = opt.rotate_degree,
@@ -193,6 +202,7 @@ pub fn addImage(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImage) !void
 
 /// NOTE: Rounded image is always axis-aligned
 pub const AddImageRounded = struct {
+    size: ?sdl.PointF = null,
     uv0: sdl.PointF = .{ .x = 0, .y = 0 },
     uv1: sdl.PointF = .{ .x = 1, .y = 1 },
     tint_color: sdl.Color = sdl.Color.white,
@@ -202,12 +212,19 @@ pub const AddImageRounded = struct {
     rounding: f32 = 4,
     depth: f32 = 0.5,
 };
-pub fn addImageRounded(texture: sdl.Texture, rect: sdl.RectangleF, opt: AddImageRounded) !void {
+pub fn addImageRounded(texture: sdl.Texture, pos: sdl.PointF, opt: AddImageRounded) !void {
     const scale = transform.getScale();
-    const pmin = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
+    const size = opt.size orelse BLK: {
+        const info = try texture.query();
+        break :BLK sdl.PointF{
+            .x = @intToFloat(f32, info.width),
+            .y = @intToFloat(f32, info.height),
+        };
+    };
+    const pmin = transform.transformPoint(pos);
     const pmax = sdl.PointF{
-        .x = pmin.x + rect.width * scale.x,
-        .y = pmin.y + rect.height * scale.y,
+        .x = pmin.x + size.x * scale.x,
+        .y = pmin.y + size.y * scale.y,
     };
     var uv0 = opt.uv0;
     var uv1 = opt.uv1;
@@ -343,13 +360,99 @@ pub fn addLine(p1: sdl.PointF, p2: sdl.PointF, color: sdl.Color, opt: AddLine) !
     });
 }
 
-/// NOTE: Rectangle is always axis-aligned
 pub const AddRect = struct {
     thickness: f32 = 1.0,
-    rounding: f32 = 0,
     depth: f32 = 0.5,
 };
 pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, opt: AddRect) !void {
+    const p1 = sdl.PointF{ .x = rect.x, .y = rect.y };
+    const p2 = sdl.PointF{ .x = p1.x + rect.width, .y = p1.y };
+    const p3 = sdl.PointF{ .x = p1.x + rect.width, .y = p1.y + rect.height };
+    const p4 = sdl.PointF{ .x = p1.x, .y = p1.y + rect.height };
+    try draw_commands.append(.{
+        .cmd = .{
+            .quad = .{
+                .p1 = transform.transformPoint(p1),
+                .p2 = transform.transformPoint(p2),
+                .p3 = transform.transformPoint(p3),
+                .p4 = transform.transformPoint(p4),
+                .color = imgui.sdl.convertColor(color),
+                .thickness = opt.thickness,
+            },
+        },
+        .depth = opt.depth,
+    });
+}
+
+pub const FillRect = struct {
+    depth: f32 = 0.5,
+};
+pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) !void {
+    const p1 = sdl.PointF{ .x = rect.x, .y = rect.y };
+    const p2 = sdl.PointF{ .x = p1.x + rect.width, .y = p1.y };
+    const p3 = sdl.PointF{ .x = p1.x + rect.width, .y = p1.y + rect.height };
+    const p4 = sdl.PointF{ .x = p1.x, .y = p1.y + rect.height };
+    const c = imgui.sdl.convertColor(color);
+    try draw_commands.append(.{
+        .cmd = .{
+            .quad_fill = .{
+                .p1 = transform.transformPoint(p1),
+                .p2 = transform.transformPoint(p2),
+                .p3 = transform.transformPoint(p3),
+                .p4 = transform.transformPoint(p4),
+                .color1 = c,
+                .color2 = c,
+                .color3 = c,
+                .color4 = c,
+            },
+        },
+        .depth = opt.depth,
+    });
+}
+
+pub const FillRectMultiColor = struct {
+    depth: f32 = 0.5,
+};
+pub fn addRectFilledMultiColor(
+    rect: sdl.RectangleF,
+    color_top_left: sdl.Color,
+    color_top_right: sdl.Color,
+    color_bottom_right: sdl.Color,
+    color_bottom_left: sdl.Color,
+    opt: FillRectMultiColor,
+) !void {
+    const p1 = sdl.PointF{ .x = rect.x, .y = rect.y };
+    const p2 = sdl.PointF{ .x = p1.x + rect.width, .y = p1.y };
+    const p3 = sdl.PointF{ .x = p1.x + rect.width, .y = p1.y + rect.height };
+    const p4 = sdl.PointF{ .x = p1.x, .y = p1.y + rect.height };
+    const c1 = imgui.sdl.convertColor(color_top_left);
+    const c2 = imgui.sdl.convertColor(color_top_right);
+    const c3 = imgui.sdl.convertColor(color_bottom_right);
+    const c4 = imgui.sdl.convertColor(color_bottom_left);
+    try draw_commands.append(.{
+        .cmd = .{
+            .quad_fill = .{
+                .p1 = transform.transformPoint(p1),
+                .p2 = transform.transformPoint(p2),
+                .p3 = transform.transformPoint(p3),
+                .p4 = transform.transformPoint(p4),
+                .color1 = c1,
+                .color2 = c2,
+                .color3 = c3,
+                .color4 = c4,
+            },
+        },
+        .depth = opt.depth,
+    });
+}
+
+/// NOTE: Rounded rectangle is always axis-aligned
+pub const AddRectRounded = struct {
+    thickness: f32 = 1.0,
+    rounding: f32 = 4,
+    depth: f32 = 0.5,
+};
+pub fn addRectRounded(rect: sdl.RectangleF, color: sdl.Color, opt: AddRectRounded) !void {
     const scale = transform.getScale();
     const pmin = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
     const pmax = sdl.PointF{
@@ -370,12 +473,12 @@ pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, opt: AddRect) !void {
     });
 }
 
-/// NOTE: Rectangle is always axis-aligned
-pub const FillRect = struct {
-    rounding: f32 = 0,
+/// NOTE: Rounded rectangle is always axis-aligned
+pub const FillRectRounded = struct {
+    rounding: f32 = 4,
     depth: f32 = 0.5,
 };
-pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) !void {
+pub fn addRectRoundedFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRectRounded) !void {
     const scale = transform.getScale();
     const pmin = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
     const pmax = sdl.PointF{
@@ -389,39 +492,6 @@ pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) !voi
                 .pmax = pmax,
                 .color = imgui.sdl.convertColor(color),
                 .rounding = opt.rounding,
-            },
-        },
-        .depth = opt.depth,
-    });
-}
-
-/// NOTE: Rectangle is always axis-aligned
-pub const FillRectMultiColor = struct {
-    depth: f32 = 0.5,
-};
-pub fn addRectFilledMultiColor(
-    rect: sdl.RectangleF,
-    color_top_left: sdl.Color,
-    color_top_right: sdl.Color,
-    color_bottom_right: sdl.Color,
-    color_bottom_left: sdl.Color,
-    opt: FillRectMultiColor,
-) !void {
-    const scale = transform.getScale();
-    const pmin = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
-    const pmax = sdl.PointF{
-        .x = pmin.x + rect.width * scale.x,
-        .y = pmin.y + rect.height * scale.y,
-    };
-    try draw_commands.append(.{
-        .cmd = .{
-            .rect_fill_multicolor = .{
-                .pmin = pmin,
-                .pmax = pmax,
-                .color_ul = imgui.sdl.convertColor(color_top_left),
-                .color_ur = imgui.sdl.convertColor(color_top_right),
-                .color_br = imgui.sdl.convertColor(color_bottom_right),
-                .color_bl = imgui.sdl.convertColor(color_bottom_left),
             },
         },
         .depth = opt.depth,
@@ -466,6 +536,7 @@ pub fn addQuadFilled(
     color: sdl.Color,
     opt: FillQuad,
 ) !void {
+    const c = imgui.sdl.convertColor(color);
     try draw_commands.append(.{
         .cmd = .{
             .quad_fill = .{
@@ -473,7 +544,45 @@ pub fn addQuadFilled(
                 .p2 = transform.transformPoint(p2),
                 .p3 = transform.transformPoint(p3),
                 .p4 = transform.transformPoint(p4),
-                .color = imgui.sdl.convertColor(color),
+                .color1 = c,
+                .color2 = c,
+                .color3 = c,
+                .color4 = c,
+            },
+        },
+        .depth = opt.depth,
+    });
+}
+
+pub const FillQuadMultiColor = struct {
+    depth: f32 = 0.5,
+};
+pub fn addQuadFilledMultiColor(
+    p1: sdl.PointF,
+    p2: sdl.PointF,
+    p3: sdl.PointF,
+    p4: sdl.PointF,
+    color1: sdl.Color,
+    color2: sdl.Color,
+    color3: sdl.Color,
+    color4: sdl.Color,
+    opt: FillQuadMultiColor,
+) !void {
+    const c1 = imgui.sdl.convertColor(color1);
+    const c2 = imgui.sdl.convertColor(color2);
+    const c3 = imgui.sdl.convertColor(color3);
+    const c4 = imgui.sdl.convertColor(color4);
+    try draw_commands.append(.{
+        .cmd = .{
+            .quad_fill = .{
+                .p1 = transform.transformPoint(p1),
+                .p2 = transform.transformPoint(p2),
+                .p3 = transform.transformPoint(p3),
+                .p4 = transform.transformPoint(p4),
+                .color1 = c1,
+                .color2 = c2,
+                .color3 = c3,
+                .color4 = c4,
             },
         },
         .depth = opt.depth,
@@ -515,13 +624,46 @@ pub fn addTriangleFilled(
     color: sdl.Color,
     opt: FillTriangle,
 ) !void {
+    const c = imgui.sdl.convertColor(color);
     try draw_commands.append(.{
         .cmd = .{
             .triangle_fill = .{
                 .p1 = transform.transformPoint(p1),
                 .p2 = transform.transformPoint(p2),
                 .p3 = transform.transformPoint(p3),
-                .color = imgui.sdl.convertColor(color),
+                .color1 = c,
+                .color2 = c,
+                .color3 = c,
+            },
+        },
+        .depth = opt.depth,
+    });
+}
+
+pub const FillTriangleMultiColor = struct {
+    depth: f32 = 0.5,
+};
+pub fn addTriangleFilledMultiColor(
+    p1: sdl.PointF,
+    p2: sdl.PointF,
+    p3: sdl.PointF,
+    color1: sdl.Color,
+    color2: sdl.Color,
+    color3: sdl.Color,
+    opt: FillTriangleMultiColor,
+) !void {
+    const c1 = imgui.sdl.convertColor(color1);
+    const c2 = imgui.sdl.convertColor(color2);
+    const c3 = imgui.sdl.convertColor(color3);
+    try draw_commands.append(.{
+        .cmd = .{
+            .triangle_fill = .{
+                .p1 = transform.transformPoint(p1),
+                .p2 = transform.transformPoint(p2),
+                .p3 = transform.transformPoint(p3),
+                .color1 = c1,
+                .color2 = c2,
+                .color3 = c3,
             },
         },
         .depth = opt.depth,
@@ -868,9 +1010,9 @@ pub const Path = struct {
         });
     }
 
-    /// NOTE: Rectangle is always axis-aligned
+    /// NOTE: Rounded rectangle is always axis-aligned
     pub const Rect = struct {
-        rounding: f32 = 0,
+        rounding: f32 = 4,
     };
     pub fn rect(
         self: *Path,

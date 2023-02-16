@@ -66,7 +66,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.begin(.{ .depth_sort = .back_to_forth });
     try j2d.addImage(
         sheet.tex,
-        .{ .x = 0, .y = 0, .width = 600, .height = 600 },
+        .{ .x = 0, .y = 0 },
         .{},
     );
     try j2d.addScene(scene);

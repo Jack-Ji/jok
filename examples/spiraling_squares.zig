@@ -26,6 +26,12 @@ pub fn update(ctx: *jok.Context) !void {
 
 pub fn draw(ctx: *jok.Context) !void {
     const fb_size = ctx.getFramebufferSize();
+    const rect = sdl.RectangleF{
+        .x = -rect_size / 2,
+        .y = -rect_size / 2,
+        .width = rect_size,
+        .height = rect_size,
+    };
     const scale_step = jok.utils.math.mapf(
         math.sin(ctx.seconds),
         -1,
@@ -55,14 +61,7 @@ pub fn draw(ctx: *jok.Context) !void {
                 .y = @intToFloat(f32, fb_size.h / 4),
             });
             j2d.setTransform(tr);
-            try j2d.addQuad(
-                .{ .x = -rect_size / 2, .y = -rect_size / 2 },
-                .{ .x = rect_size / 2, .y = -rect_size / 2 },
-                .{ .x = rect_size / 2, .y = rect_size / 2 },
-                .{ .x = -rect_size / 2, .y = rect_size / 2 },
-                sdl.Color.white,
-                .{},
-            );
+            try j2d.addRect(rect, sdl.Color.white, .{});
         }
 
         // top-right
@@ -74,14 +73,7 @@ pub fn draw(ctx: *jok.Context) !void {
                 .y = @intToFloat(f32, fb_size.h / 4),
             });
             j2d.setTransform(tr);
-            try j2d.addQuad(
-                .{ .x = -rect_size / 2, .y = -rect_size / 2 },
-                .{ .x = rect_size / 2, .y = -rect_size / 2 },
-                .{ .x = rect_size / 2, .y = rect_size / 2 },
-                .{ .x = -rect_size / 2, .y = rect_size / 2 },
-                sdl.Color.white,
-                .{},
-            );
+            try j2d.addRect(rect, sdl.Color.white, .{});
         }
 
         // bottom-right
@@ -93,14 +85,7 @@ pub fn draw(ctx: *jok.Context) !void {
                 .y = @intToFloat(f32, fb_size.h * 3 / 4),
             });
             j2d.setTransform(tr);
-            try j2d.addQuad(
-                .{ .x = -rect_size / 2, .y = -rect_size / 2 },
-                .{ .x = rect_size / 2, .y = -rect_size / 2 },
-                .{ .x = rect_size / 2, .y = rect_size / 2 },
-                .{ .x = -rect_size / 2, .y = rect_size / 2 },
-                sdl.Color.white,
-                .{},
-            );
+            try j2d.addRect(rect, sdl.Color.white, .{});
         }
 
         // bottom-left
@@ -112,14 +97,7 @@ pub fn draw(ctx: *jok.Context) !void {
                 .y = @intToFloat(f32, fb_size.h * 3 / 4),
             });
             j2d.setTransform(tr);
-            try j2d.addQuad(
-                .{ .x = -rect_size / 2, .y = -rect_size / 2 },
-                .{ .x = rect_size / 2, .y = -rect_size / 2 },
-                .{ .x = rect_size / 2, .y = rect_size / 2 },
-                .{ .x = -rect_size / 2, .y = rect_size / 2 },
-                sdl.Color.white,
-                .{},
-            );
+            try j2d.addRect(rect, sdl.Color.white, .{});
         }
     }
     try j2d.end();

@@ -71,22 +71,16 @@ pub fn draw(ctx: *jok.Context) !void {
             .y = 1.3 + std.math.sin(ctx.seconds),
         });
         j2d.getTransform().rotateByOrgin(ctx.seconds);
-        j2d.getTransform().translate(
-            .{
-                .x = offset_transformed[0],
-                .y = offset_transformed[1],
-            },
-        );
-        try j2d.addQuadFilled(
-            .{ .x = -10, .y = -10 },
-            .{ .x = 10, .y = -10 },
-            .{ .x = 10, .y = 10 },
-            .{ .x = -10, .y = 10 },
-            sdl.Color.rgb(
-                @floatToInt(u8, 128 + 127 * std.math.sin(ctx.seconds)),
-                @floatToInt(u8, @intToFloat(f32, i) + std.math.max(0, 155 * std.math.sin(ctx.seconds))),
-                @floatToInt(u8, 128 + 127 * std.math.cos(ctx.seconds)),
-            ),
+        j2d.getTransform().translate(.{
+            .x = offset_transformed[0],
+            .y = offset_transformed[1],
+        });
+        try j2d.addRectFilledMultiColor(
+            .{ .x = -10, .y = -10, .width = 20, .height = 20 },
+            sdl.Color.white,
+            sdl.Color.red,
+            sdl.Color.green,
+            sdl.Color.blue,
             .{},
         );
     }

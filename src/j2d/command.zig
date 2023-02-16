@@ -4,25 +4,6 @@ const jok = @import("../jok.zig");
 const AffineTransform = @import("AffineTransform.zig");
 const imgui = jok.imgui;
 
-pub const ImageCmd = struct {
-    texture: sdl.Texture,
-    pmin: sdl.PointF,
-    pmax: sdl.PointF,
-    uv0: sdl.PointF,
-    uv1: sdl.PointF,
-    tint_color: u32,
-};
-
-pub const ImageRoundedCmd = struct {
-    texture: sdl.Texture,
-    pmin: sdl.PointF,
-    pmax: sdl.PointF,
-    uv0: sdl.PointF,
-    uv1: sdl.PointF,
-    tint_color: u32,
-    rounding: f32,
-};
-
 pub const QuadImageCmd = struct {
     texture: sdl.Texture,
     p1: sdl.PointF,
@@ -36,6 +17,16 @@ pub const QuadImageCmd = struct {
     tint_color: u32,
 };
 
+pub const ImageRoundedCmd = struct {
+    texture: sdl.Texture,
+    pmin: sdl.PointF,
+    pmax: sdl.PointF,
+    uv0: sdl.PointF,
+    uv1: sdl.PointF,
+    tint_color: u32,
+    rounding: f32,
+};
+
 pub const LineCmd = struct {
     p1: sdl.PointF,
     p2: sdl.PointF,
@@ -43,7 +34,7 @@ pub const LineCmd = struct {
     thickness: f32,
 };
 
-pub const RectCmd = struct {
+pub const RectRoundedCmd = struct {
     pmin: sdl.PointF,
     pmax: sdl.PointF,
     color: u32,
@@ -51,20 +42,11 @@ pub const RectCmd = struct {
     rounding: f32,
 };
 
-pub const RectFillCmd = struct {
+pub const RectFillRoundedCmd = struct {
     pmin: sdl.PointF,
     pmax: sdl.PointF,
     color: u32,
     rounding: f32,
-};
-
-pub const RectFillMultiColorCmd = struct {
-    pmin: sdl.PointF,
-    pmax: sdl.PointF,
-    color_ul: u32,
-    color_ur: u32,
-    color_br: u32,
-    color_bl: u32,
 };
 
 pub const QuadCmd = struct {
@@ -81,7 +63,10 @@ pub const QuadFillCmd = struct {
     p2: sdl.PointF,
     p3: sdl.PointF,
     p4: sdl.PointF,
-    color: u32,
+    color1: u32,
+    color2: u32,
+    color3: u32,
+    color4: u32,
 };
 
 pub const TriangleCmd = struct {
@@ -96,7 +81,9 @@ pub const TriangleFillCmd = struct {
     p1: sdl.PointF,
     p2: sdl.PointF,
     p3: sdl.PointF,
-    color: u32,
+    color1: u32,
+    color2: u32,
+    color3: u32,
 };
 
 pub const CircleCmd = struct {
@@ -183,7 +170,7 @@ pub const PathCmd = struct {
         p3: sdl.PointF,
         num_segments: u32,
     };
-    pub const Rect = struct {
+    pub const RectRounded = struct {
         pmin: sdl.PointF,
         pmax: sdl.PointF,
         rounding: f32,
@@ -193,7 +180,7 @@ pub const PathCmd = struct {
         arc_to: ArcTo,
         bezier_cubic_to: BezierCubicTo,
         bezier_quadratic_to: BezierQuadraticTo,
-        rect: Rect,
+        rect_rounded: RectRounded,
     };
     pub const DrawMethod = enum {
         fill,
@@ -226,13 +213,11 @@ pub const PathCmd = struct {
 
 pub const DrawCmd = struct {
     cmd: union(enum) {
-        image: ImageCmd,
-        image_rounded: ImageRoundedCmd,
         quad_image: QuadImageCmd,
+        image_rounded: ImageRoundedCmd,
         line: LineCmd,
-        rect: RectCmd,
-        rect_fill: RectFillCmd,
-        rect_fill_multicolor: RectFillMultiColorCmd,
+        rect_rounded: RectRoundedCmd,
+        rect_rounded_fill: RectFillRoundedCmd,
         quad: QuadCmd,
         quad_fill: QuadFillCmd,
         triangle: TriangleCmd,
@@ -251,21 +236,6 @@ pub const DrawCmd = struct {
 
     pub fn render(self: DrawCmd, dl: imgui.DrawList) !void {
         switch (self.cmd) {
-            .image => |c| dl.addImage(c.texture.ptr, .{
-                .pmin = .{ c.pmin.x, c.pmin.y },
-                .pmax = .{ c.pmax.x, c.pmax.y },
-                .uvmin = .{ c.uv0.x, c.uv0.y },
-                .uvmax = .{ c.uv1.x, c.uv1.y },
-                .col = c.tint_color,
-            }),
-            .image_rounded => |c| dl.addImageRounded(c.texture.ptr, .{
-                .pmin = .{ c.pmin.x, c.pmin.y },
-                .pmax = .{ c.pmax.x, c.pmax.y },
-                .uvmin = .{ c.uv0.x, c.uv0.y },
-                .uvmax = .{ c.uv1.x, c.uv1.y },
-                .col = c.tint_color,
-                .rounding = c.rounding,
-            }),
             .quad_image => |c| {
                 dl.pushTextureId(c.texture.ptr);
                 defer dl.popTextureId();
@@ -282,32 +252,32 @@ pub const DrawCmd = struct {
                     c.tint_color,
                 );
             },
+            .image_rounded => |c| dl.addImageRounded(c.texture.ptr, .{
+                .pmin = .{ c.pmin.x, c.pmin.y },
+                .pmax = .{ c.pmax.x, c.pmax.y },
+                .uvmin = .{ c.uv0.x, c.uv0.y },
+                .uvmax = .{ c.uv1.x, c.uv1.y },
+                .col = c.tint_color,
+                .rounding = c.rounding,
+            }),
             .line => |c| dl.addLine(.{
                 .p1 = .{ c.p1.x, c.p1.y },
                 .p2 = .{ c.p2.x, c.p2.y },
                 .col = c.color,
                 .thickness = c.thickness,
             }),
-            .rect => |c| dl.addRect(.{
+            .rect_rounded => |c| dl.addRect(.{
                 .pmin = .{ c.pmin.x, c.pmin.y },
                 .pmax = .{ c.pmax.x, c.pmax.y },
                 .col = c.color,
                 .rounding = c.rounding,
                 .thickness = c.thickness,
             }),
-            .rect_fill => |c| dl.addRectFilled(.{
+            .rect_rounded_fill => |c| dl.addRectFilled(.{
                 .pmin = .{ c.pmin.x, c.pmin.y },
                 .pmax = .{ c.pmax.x, c.pmax.y },
                 .col = c.color,
                 .rounding = c.rounding,
-            }),
-            .rect_fill_multicolor => |c| dl.addRectFilledMultiColor(.{
-                .pmin = .{ c.pmin.x, c.pmin.y },
-                .pmax = .{ c.pmax.x, c.pmax.y },
-                .col_upr_left = c.color_ul,
-                .col_upr_right = c.color_ur,
-                .col_bot_right = c.color_br,
-                .col_bot_left = c.color_bl,
             }),
             .quad => |c| dl.addQuad(.{
                 .p1 = .{ c.p1.x, c.p1.y },
@@ -317,13 +287,21 @@ pub const DrawCmd = struct {
                 .col = c.color,
                 .thickness = c.thickness,
             }),
-            .quad_fill => |c| dl.addQuadFilled(.{
-                .p1 = .{ c.p1.x, c.p1.y },
-                .p2 = .{ c.p2.x, c.p2.y },
-                .p3 = .{ c.p3.x, c.p3.y },
-                .p4 = .{ c.p4.x, c.p4.y },
-                .col = c.color,
-            }),
+            .quad_fill => |c| {
+                const white_pixel_uv = imgui.getFontTexUvWhitePixel();
+                const cur_idx = @intCast(u16, dl.getCurrentIndex());
+                dl.primReserve(6, 4);
+                dl.primWriteVtx(.{ c.p1.x, c.p1.y }, white_pixel_uv, c.color1);
+                dl.primWriteVtx(.{ c.p2.x, c.p2.y }, white_pixel_uv, c.color2);
+                dl.primWriteVtx(.{ c.p3.x, c.p3.y }, white_pixel_uv, c.color3);
+                dl.primWriteVtx(.{ c.p4.x, c.p4.y }, white_pixel_uv, c.color4);
+                dl.primWriteIdx(cur_idx);
+                dl.primWriteIdx(cur_idx + 1);
+                dl.primWriteIdx(cur_idx + 2);
+                dl.primWriteIdx(cur_idx);
+                dl.primWriteIdx(cur_idx + 2);
+                dl.primWriteIdx(cur_idx + 3);
+            },
             .triangle => |c| dl.addTriangle(.{
                 .p1 = .{ c.p1.x, c.p1.y },
                 .p2 = .{ c.p2.x, c.p2.y },
@@ -331,12 +309,17 @@ pub const DrawCmd = struct {
                 .col = c.color,
                 .thickness = c.thickness,
             }),
-            .triangle_fill => |c| dl.addTriangleFilled(.{
-                .p1 = .{ c.p1.x, c.p1.y },
-                .p2 = .{ c.p2.x, c.p2.y },
-                .p3 = .{ c.p3.x, c.p3.y },
-                .col = c.color,
-            }),
+            .triangle_fill => |c| {
+                const white_pixel_uv = imgui.getFontTexUvWhitePixel();
+                const cur_idx = @intCast(u16, dl.getCurrentIndex());
+                dl.primReserve(3, 3);
+                dl.primWriteVtx(.{ c.p1.x, c.p1.y }, white_pixel_uv, c.color1);
+                dl.primWriteVtx(.{ c.p2.x, c.p2.y }, white_pixel_uv, c.color2);
+                dl.primWriteVtx(.{ c.p3.x, c.p3.y }, white_pixel_uv, c.color3);
+                dl.primWriteIdx(cur_idx);
+                dl.primWriteIdx(cur_idx + 1);
+                dl.primWriteIdx(cur_idx + 2);
+            },
             .circle => |c| dl.addCircle(.{
                 .p = .{ c.p.x, c.p.y },
                 .r = c.radius,
@@ -458,7 +441,7 @@ pub const DrawCmd = struct {
                                 .num_segments = pc.num_segments,
                             });
                         },
-                        .rect => |pc| {
+                        .rect_rounded => |pc| {
                             const vmin = c.transform.transformPoint(pc.pmin);
                             const scale = c.transform.getScale();
                             const width = (pc.pmax.x - pc.pmin.x) * scale.x;

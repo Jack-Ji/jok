@@ -44,8 +44,8 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.begin(.{ .depth_sort = .back_to_forth });
     try j2d.addImage(
         sheet.tex,
-        .{ .x = 0, .y = 0, .width = 400, .height = 300 },
-        .{},
+        .{ .x = 0, .y = 0 },
+        .{ .depth = 1 },
     );
     try j2d.addSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
