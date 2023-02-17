@@ -7,6 +7,7 @@ const config = @import("config.zig");
 const jok = @import("jok.zig");
 const font = jok.font;
 const zmesh = jok.zmesh;
+const zphysics = jok.zphysics;
 const imgui = jok.imgui;
 const zaudio = jok.zaudio;
 
@@ -55,32 +56,56 @@ pub const Context = struct {
     _last_fps_refresh_time: f64 = 0,
 
     pub fn init(allocator: std.mem.Allocator) !Context {
-        try checkSys();
         var self = Context{ .allocator = allocator };
+
+        // Check and print system info
+        try checkSys();
+
+        // Init SDL window and renderer
         try self.initSDL();
+
+        // Init zmodules
         imgui.sdl.init(&self);
         zmesh.init(self.allocator);
-        try jok.j2d.init(self.allocator, self.renderer);
-        try jok.j3d.init(self.allocator, self.renderer);
         if (bos.use_zaudio) {
             zaudio.init(self.allocator);
         }
-        try font.DebugFontData.init(self.allocator);
+        if (bos.use_zphysics) {
+            zphysics.init(self.allocator, .{});
+        }
+
+        // Init 2d and 3d modules
+        try jok.j2d.init(self.allocator, self.renderer);
+        try jok.j3d.init(self.allocator, self.renderer);
+
+        // Init builtin debug font
+        try font.DebugFont.init(self.allocator);
         self._pc_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
         self._last_pc = sdl.c.SDL_GetPerformanceCounter();
         return self;
     }
 
     pub fn deinit(self: *Context) void {
-        font.DebugFontData.deinit();
+        // Destroy builtin font data
+        font.DebugFont.deinit();
+
+        // Destroy 2d and 3d modules
+        jok.j3d.deinit();
+        jok.j2d.deinit();
+
+        // Destroy zmodules
+        if (bos.use_zphysics) {
+            zphysics.deinit();
+        }
         if (bos.use_zaudio) {
             zaudio.deinit();
         }
-        jok.j3d.deinit();
-        jok.j2d.deinit();
         zmesh.deinit();
         imgui.sdl.deinit();
+
+        // Destroy window and renderer
         self.deinitSDL();
+
         self.* = undefined;
     }
 

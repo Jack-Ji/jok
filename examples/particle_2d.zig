@@ -46,8 +46,8 @@ pub fn init(ctx: *jok.Context) !void {
         1,
         false,
     );
-    font = try jok.font.Font.fromTrueTypeData(ctx.allocator, jok.font.clacon_font_data);
-    atlas = try font.createAtlas(ctx.renderer, 60, &jok.font.codepoint_ranges.default, null);
+    font = try jok.font.Font.fromTrueTypeData(ctx.allocator, jok.font.DebugFont.font_data);
+    atlas = try font.createAtlas(ctx.renderer, 60, null, null);
     ps = try j2d.ParticleSystem.create(ctx.allocator);
     emitter1.sprite = sheet.getSpriteByName("particle");
     emitter2.sprite = atlas.getSpriteOfCodePoint('*');

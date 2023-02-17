@@ -5,6 +5,7 @@ const sdl = @import("sdl");
 const jok = @import("../jok.zig");
 const truetype = jok.stb.truetype;
 const Sprite = jok.j2d.Sprite;
+const codepoint_ranges = @import("codepoint_ranges.zig");
 const Atlas = @This();
 
 const CharRange = struct {
@@ -30,12 +31,13 @@ pub fn create(
     renderer: sdl.Renderer,
     font_info: *const truetype.stbtt_fontinfo,
     font_size: u32,
-    codepoint_ranges: []const [2]u32,
+    _cp_ranges: ?[]const [2]u32,
     map_size: ?u32,
 ) !*Atlas {
-    assert(codepoint_ranges.len > 0);
+    const cp_ranges = _cp_ranges orelse &codepoint_ranges.default;
+    assert(cp_ranges.len > 0);
 
-    var ranges = try std.ArrayList(CharRange).initCapacity(allocator, codepoint_ranges.len);
+    var ranges = try std.ArrayList(CharRange).initCapacity(allocator, cp_ranges.len);
     errdefer ranges.deinit();
     const atlas_size = map_size orelse default_map_size;
     const stb_pixels = try allocator.alloc(u8, atlas_size * atlas_size);
@@ -55,7 +57,7 @@ pub fn create(
         null,
     );
     assert(rc > 0);
-    for (codepoint_ranges) |cs, i| {
+    for (cp_ranges) |cs, i| {
         assert(cs[1] >= cs[0]);
         ranges.appendAssumeCapacity(
             .{

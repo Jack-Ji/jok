@@ -66,8 +66,8 @@ pub fn createAtlas(
     self: Font,
     renderer: sdl.Renderer,
     font_size: u32,
-    codepoint_ranges: []const [2]u32,
+    cp_ranges: ?[]const [2]u32,
     atlas_size: ?u32,
 ) !*Atlas {
-    return Atlas.create(self.allocator, renderer, &self.font_info, font_size, codepoint_ranges, atlas_size);
+    return Atlas.create(self.allocator, renderer, &self.font_info, font_size, cp_ranges, atlas_size);
 }

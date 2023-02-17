@@ -9,7 +9,7 @@ var atlas: *jok.font.Atlas = undefined;
 pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
-    font = try jok.font.Font.fromTrueTypeData(ctx.allocator, jok.font.clacon_font_data);
+    font = try jok.font.Font.fromTrueTypeData(ctx.allocator, jok.font.DebugFont.font_data);
     atlas = try font.createAtlas(ctx.renderer, 40, &jok.font.codepoint_ranges.default, null);
 
     try ctx.renderer.setColorRGB(100, 100, 100);
