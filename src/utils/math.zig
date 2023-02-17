@@ -36,29 +36,11 @@ pub inline fn minAndMax(_x: anytype, _y: anytype, _z: anytype) std.meta.Tuple(&[
     return .{ x, z };
 }
 
-/// Test whether a point is in triangle
-/// Using Barycentric Technique, checkout link https://blackpawn.com/texts/pointinpoly
-pub inline fn isPointInTriangle(tri: [3][2]f32, point: [2]f32) bool {
-    @setEvalBranchQuota(10000);
-
-    const v0 = zmath.f32x4(
-        tri[2][0] - tri[0][0],
-        tri[2][1] - tri[0][1],
-        0,
-        0,
-    );
-    const v1 = zmath.f32x4(
-        tri[1][0] - tri[0][0],
-        tri[1][1] - tri[0][1],
-        0,
-        0,
-    );
-    const v2 = zmath.f32x4(
-        point[0] - tri[0][0],
-        point[1] - tri[0][1],
-        0,
-        0,
-    );
+/// Calculate Barycentric coordinate, checkout link https://blackpawn.com/texts/pointinpoly
+pub inline fn calcBarycentricCoord(tri: [3][2]f32, point: [2]f32) [3]f32 {
+    const v0 = zmath.f32x4(tri[2][0] - tri[0][0], tri[2][1] - tri[0][1], 0, 0);
+    const v1 = zmath.f32x4(tri[1][0] - tri[0][0], tri[1][1] - tri[0][1], 0, 0);
+    const v2 = zmath.f32x4(point[0] - tri[0][0], point[1] - tri[0][1], 0, 0);
     const dot00 = zmath.dot2(v0, v0)[0];
     const dot01 = zmath.dot2(v0, v1)[0];
     const dot02 = zmath.dot2(v0, v2)[0];
@@ -67,7 +49,13 @@ pub inline fn isPointInTriangle(tri: [3][2]f32, point: [2]f32) bool {
     const inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01);
     const u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
     const v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
-    return u >= 0 and v >= 0 and (u + v < 1);
+    return .{ u, v, 1 - u - v };
+}
+
+/// Test whether a point is in triangle
+pub inline fn isPointInTriangle(tri: [3][2]f32, point: [2]f32) bool {
+    const p = calcBarycentricCoord(tri, point);
+    return p[0] >= 0 and p[1] >= 0 and p[2] >= 0;
 }
 
 /// Test whether two triangles intersect
