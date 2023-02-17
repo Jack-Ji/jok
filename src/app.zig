@@ -107,7 +107,7 @@ pub fn main() !void {
             var buf: [128]u8 = undefined;
             const txt = std.fmt.bufPrintZ(
                 &buf,
-                "{s} | {d}x{d} | FPS: {d:.1}, {s} | AVG-CPU: {d:.1}ms | MEM: {:.3} | RD: {s} | B-MODE: {s}",
+                "{s} | {d}x{d} | FPS: {d:.1}, {s} | CPU: {d:.1}ms | MEM: {:.3} | RD: {s} | OPT: {s}",
                 .{
                     config.jok_window_title,
                     ctx.getWindowSize().w,
@@ -117,7 +117,7 @@ pub fn main() !void {
                     ctx.average_cpu_time,
                     std.fmt.fmtIntSizeBin(if (gpa) |a| a.total_requested_bytes else 0),
                     ctx.getRendererName(),
-                    if (builtin.mode == .Debug) "debug" else "release",
+                    @tagName(builtin.mode),
                 },
             ) catch unreachable;
             sdl.c.SDL_SetWindowTitle(ctx.window.ptr, txt.ptr);
