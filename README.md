@@ -45,7 +45,7 @@ pub fn build(b: *std.build.Builder) void {
     );
     exe.install();
 
-    const run_cmd = exe.run();
+    const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
 
     const run_step = b.step("run", "Run game");
