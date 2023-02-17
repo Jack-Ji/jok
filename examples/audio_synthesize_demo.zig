@@ -57,7 +57,7 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     switch (e) {
         .mouse_motion => |me| {
             const fb = ctx.getFramebufferSize();
-            frequency = jok.utils.math.mapf(
+            frequency = jok.utils.math.linearMap(
                 @intToFloat(f32, me.x),
                 0,
                 @intToFloat(f32, fb.w),
@@ -65,7 +65,7 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
                 2000,
             );
             phase_step = frequency * std.math.tau / @intToFloat(f32, audio_spec.sample_rate);
-            amplitude = jok.utils.math.mapf(
+            amplitude = jok.utils.math.linearMap(
                 @intToFloat(f32, me.y),
                 0,
                 @intToFloat(f32, fb.h),

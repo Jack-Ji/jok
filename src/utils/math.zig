@@ -5,11 +5,18 @@ const assert = std.debug.assert;
 const math = std.math;
 const zmath = jok.zmath;
 
-/// Map `v` from [from, to] to [map_from, map_to]
-pub inline fn mapf(v: f32, from: f32, to: f32, map_from: f32, map_to: f32) f32 {
-    if (math.approxEqAbs(f32, from, to, math.epsilon(f32))) return from;
-    const v1 = math.clamp(v, from, to);
-    return map_from + (map_to - map_from) * (v1 - from) / (to - from);
+/// Linearly map `v` from [from, to] to [map_from, map_to]
+pub inline fn linearMap(_v: f32, from: f32, to: f32, map_from: f32, map_to: f32) f32 {
+    const v = if (from < to) math.clamp(_v, from, to) else math.clamp(_v, to, from);
+    return map_from + (map_to - map_from) * (v - from) / (to - from);
+}
+
+/// Smoothly map from [from, to] to [map_from, map_to], checkout link https://en.wikipedia.org/wiki/Smoothstep
+pub inline fn smoothMap(_v: f32, from: f32, to: f32, map_from: f32, map_to: f32) f32 {
+    const v = if (from < to) math.clamp(_v, from, to) else math.clamp(_v, to, from);
+    var step = (v - from) / (to - from);
+    step = step * step * (3 - 2 * step); // smooth to [0, 1], using equation: 3x^2 - 2x^3
+    return map_from + (map_to - map_from) * step;
 }
 
 /// Convert radian to degree

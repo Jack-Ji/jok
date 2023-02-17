@@ -32,7 +32,7 @@ pub fn draw(ctx: *jok.Context) !void {
         .width = rect_size,
         .height = rect_size,
     };
-    const scale_step = jok.utils.math.mapf(
+    const scale_step = jok.utils.math.linearMap(
         math.sin(ctx.seconds),
         -1,
         1,
