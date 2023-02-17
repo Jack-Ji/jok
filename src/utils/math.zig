@@ -37,7 +37,7 @@ pub inline fn minAndMax(_x: anytype, _y: anytype, _z: anytype) std.meta.Tuple(&[
 }
 
 /// Calculate Barycentric coordinate, checkout link https://blackpawn.com/texts/pointinpoly
-pub inline fn calcBarycentricCoord(tri: [3][2]f32, point: [2]f32) [3]f32 {
+pub inline fn barycentricCoord(tri: [3][2]f32, point: [2]f32) [3]f32 {
     const v0 = zmath.f32x4(tri[2][0] - tri[0][0], tri[2][1] - tri[0][1], 0, 0);
     const v1 = zmath.f32x4(tri[1][0] - tri[0][0], tri[1][1] - tri[0][1], 0, 0);
     const v2 = zmath.f32x4(point[0] - tri[0][0], point[1] - tri[0][1], 0, 0);
@@ -54,7 +54,7 @@ pub inline fn calcBarycentricCoord(tri: [3][2]f32, point: [2]f32) [3]f32 {
 
 /// Test whether a point is in triangle
 pub inline fn isPointInTriangle(tri: [3][2]f32, point: [2]f32) bool {
-    const p = calcBarycentricCoord(tri, point);
+    const p = barycentricCoord(tri, point);
     return p[0] >= 0 and p[1] >= 0 and p[2] >= 0;
 }
 
