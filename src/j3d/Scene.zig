@@ -229,7 +229,7 @@ pub fn render(
                 .cull_faces = m.cull_faces,
                 .color = m.color,
                 .texture = m.texture,
-                .lighting_opt = if (m.disable_lighting)
+                .lighting = if (m.disable_lighting)
                     null
                 else
                     opt.lighting,
@@ -252,7 +252,7 @@ pub fn render(
                 .flip_v = s.flip_v,
                 .facing_dir = s.facing_dir,
                 .fixed_size = s.fixed_size,
-                .lighting_opt = if (s.disable_lighting)
+                .lighting = if (s.disable_lighting)
                     null
                 else
                     opt.lighting,

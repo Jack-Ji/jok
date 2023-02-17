@@ -18,7 +18,7 @@ pub const MeshOption = struct {
     cull_faces: bool = true,
     color: sdl.Color = sdl.Color.white,
     texture: ?sdl.Texture = null,
-    lighting_opt: ?lighting.LightingOption = null,
+    lighting: ?lighting.LightingOption = null,
 };
 
 pub const SpriteOption = struct {
@@ -48,7 +48,7 @@ pub const SpriteOption = struct {
     fixed_size: bool = false,
 
     /// Lighting effect (only apply to sprites with explicit direction)
-    lighting_opt: ?lighting.LightingOption = null,
+    lighting: ?lighting.LightingOption = null,
 
     /// Tessellation level (only apply to sprites with explicit direction)
     tessellation_level: u8 = 0,
@@ -115,6 +115,41 @@ pub fn renderMesh(
     assert(if (colors) |cs| cs.len == positions.len else true);
     assert(if (texcoords) |ts| ts.len == positions.len else true);
     if (indices.len == 0) return;
+    const ndc_to_screen = zmath.loadMat43(&[_]f32{
+        0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
+        0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
+        0.0,                              0.0,                                0.5,
+        0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
+    });
+    const mvp = zmath.mul(model, camera.getViewProjectMatrix());
+
+    // Do early test with aabb if possible
+    if (opt.aabb) |ab| {
+        const width = ab[3] - ab[0];
+        const length = ab[5] - ab[2];
+        assert(width >= 0);
+        assert(length >= 0);
+        const v0 = zmath.f32x4(ab[0], ab[1], ab[2], 1.0);
+        const v1 = zmath.f32x4(ab[0], ab[1], ab[2] + length, 1.0);
+        const v2 = zmath.f32x4(ab[0] + width, ab[1], ab[2] + length, 1.0);
+        const v3 = zmath.f32x4(ab[0] + width, ab[1], ab[2], 1.0);
+        const v4 = zmath.f32x4(ab[3] - width, ab[4], ab[5] - length, 1.0);
+        const v5 = zmath.f32x4(ab[3] - width, ab[4], ab[5], 1.0);
+        const v6 = zmath.f32x4(ab[3], ab[4], ab[5], 1.0);
+        const v7 = zmath.f32x4(ab[3], ab[4], ab[5] - length, 1.0);
+        const obb1 = zmath.mul(zmath.Mat{
+            v0, v1, v2, v3,
+        }, mvp);
+        const obb2 = zmath.mul(zmath.Mat{
+            v4, v5, v6, v7,
+        }, mvp);
+
+        // Ignore object outside of viewing space
+        if (internal.isOBBOutside(&[_]zmath.Vec{
+            obb1[0], obb1[1], obb1[2], obb1[3],
+            obb2[0], obb2[1], obb2[2], obb2[3],
+        })) return;
+    }
 
     // Do face-culling and W-pannel clipping
     self.clip_vertices.clearRetainingCapacity();
@@ -128,7 +163,6 @@ pub fn renderMesh(
     try self.clip_texcoords.ensureTotalCapacityPrecise(ensure_size);
     try self.world_positions.ensureTotalCapacityPrecise(ensure_size);
     try self.world_normals.ensureTotalCapacityPrecise(ensure_size);
-    const mvp = zmath.mul(model, camera.getViewProjectMatrix());
     const normal_transform = zmath.transpose(zmath.inverse(model));
     var i: usize = 2;
     while (i < indices.len) : (i += 3) {
@@ -210,12 +244,6 @@ pub fn renderMesh(
     assert(@rem(self.clip_vertices.items.len, 3) == 0);
 
     // Continue with remaining triangles
-    const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
-        0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
-        0.0,                              0.0,                                0.5,
-        0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
-    });
     try target.reserveCapacity(
         self.clip_vertices.items.len,
         self.clip_vertices.items.len,
@@ -266,15 +294,15 @@ pub fn renderMesh(
         const c0_diffuse = if (colors) |_| self.clip_colors.items[idx0] else opt.color;
         const c1_diffuse = if (colors) |_| self.clip_colors.items[idx1] else opt.color;
         const c2_diffuse = if (colors) |_| self.clip_colors.items[idx2] else opt.color;
-        const c0 = if (opt.lighting_opt) |p| BLK: {
+        const c0 = if (opt.lighting) |p| BLK: {
             var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
             break :BLK calc(c0_diffuse, camera.position, world_v0, n0, p);
         } else c0_diffuse;
-        const c1 = if (opt.lighting_opt) |p| BLK: {
+        const c1 = if (opt.lighting) |p| BLK: {
             var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
             break :BLK calc(c1_diffuse, camera.position, world_v1, n1, p);
         } else c1_diffuse;
-        const c2 = if (opt.lighting_opt) |p| BLK: {
+        const c2 = if (opt.lighting) |p| BLK: {
             var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
             break :BLK calc(c2_diffuse, camera.position, world_v2, n2, p);
         } else c2_diffuse;
@@ -375,7 +403,7 @@ pub fn renderSprite(
                 .cull_faces = false,
                 .color = opt.tint_color,
                 .texture = opt.texture,
-                .lighting_opt = opt.lighting_opt,
+                .lighting = opt.lighting,
             },
         );
     } else {
@@ -500,90 +528,4 @@ pub fn renderSprite(
             opt.texture,
         );
     }
-}
-
-/// Test whether all obb's triangles are hidden behind current front triangles
-pub inline fn isOBBHiddenBehind(self: *Self, obb: []zmath.Vec) bool {
-    const S = struct {
-        /// Test whether a triangle is hidden behind another
-        inline fn isTriangleHiddenBehind(
-            front_tri: [3][2]f32,
-            front_depth: f32,
-            _obb: []zmath.Vec,
-            indices: [3]u32,
-        ) bool {
-            const tri = [3][2]f32{
-                .{ _obb[indices[0]][0], _obb[indices[0]][1] },
-                .{ _obb[indices[1]][0], _obb[indices[1]][1] },
-                .{ _obb[indices[2]][0], _obb[indices[2]][1] },
-            };
-            const tri_depth = (_obb[indices[0]][2] + _obb[indices[1]][2] + _obb[indices[2]][2]) / 3.0;
-            return tri_depth > front_depth and
-                utils.math.isPointInTriangle(front_tri, tri[0]) and
-                utils.math.isPointInTriangle(front_tri, tri[1]) and
-                utils.math.isPointInTriangle(front_tri, tri[2]);
-        }
-    };
-
-    assert(obb.len == 8);
-    var obb_visible_flags: u12 = std.math.maxInt(u12);
-    for (self.large_front_triangles.items) |tri| {
-        const front_tri = [3][2]f32{
-            .{ self.vertices.items[tri[0]].position.x, self.vertices.items[tri[0]].position.y },
-            .{ self.vertices.items[tri[1]].position.x, self.vertices.items[tri[1]].position.y },
-            .{ self.vertices.items[tri[2]].position.x, self.vertices.items[tri[2]].position.y },
-        };
-        const front_depth = (self.depths.items[tri[0]] + self.depths.items[tri[1]] + self.depths.items[tri[2]]) / 3.0;
-
-        if ((obb_visible_flags & 0x1) != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 1, 2 }))
-                obb_visible_flags &= ~@as(u12, 0x1);
-        }
-        if (obb_visible_flags & 0x2 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 2, 3 }))
-                obb_visible_flags &= ~@as(u12, 0x2);
-        }
-        if (obb_visible_flags & 0x4 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 3, 7 }))
-                obb_visible_flags &= ~@as(u12, 0x4);
-        }
-        if (obb_visible_flags & 0x8 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 7, 4 }))
-                obb_visible_flags &= ~@as(u12, 0x8);
-        }
-        if (obb_visible_flags & 0x10 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 4, 5 }))
-                obb_visible_flags &= ~@as(u12, 0x10);
-        }
-        if (obb_visible_flags & 0x20 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 0, 5, 1 }))
-                obb_visible_flags &= ~@as(u12, 0x20);
-        }
-        if (obb_visible_flags & 0x40 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 7, 3 }))
-                obb_visible_flags &= ~@as(u12, 0x40);
-        }
-        if (obb_visible_flags & 0x80 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 3, 2 }))
-                obb_visible_flags &= ~@as(u12, 0x80);
-        }
-        if (obb_visible_flags & 0x100 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 2, 1 }))
-                obb_visible_flags &= ~@as(u12, 0x100);
-        }
-        if (obb_visible_flags & 0x200 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 1, 5 }))
-                obb_visible_flags &= ~@as(u12, 0x200);
-        }
-        if (obb_visible_flags & 0x400 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 5, 4 }))
-                obb_visible_flags &= ~@as(u12, 0x400);
-        }
-        if (obb_visible_flags & 0x800 != 0) {
-            if (S.isTriangleHiddenBehind(front_tri, front_depth, obb, .{ 6, 4, 7 }))
-                obb_visible_flags &= ~@as(u12, 0x800);
-        }
-        if (obb_visible_flags == 0) return true;
-    }
-    return false;
 }

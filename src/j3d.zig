@@ -165,7 +165,7 @@ pub fn addShape(
             .cull_faces = opt.cull_faces,
             .color = opt.color,
             .texture = opt.texture,
-            .lighting_opt = opt.lighting,
+            .lighting = opt.lighting,
         },
     );
 }
@@ -198,7 +198,7 @@ pub fn addMesh(
             .cull_faces = opt.rdopt.cull_faces,
             .color = opt.rdopt.color,
             .texture = opt.rdopt.texture,
-            .lighting_opt = opt.rdopt.lighting,
+            .lighting = opt.rdopt.lighting,
         },
     );
 }
@@ -214,7 +214,7 @@ pub const AxisDrawOption = struct {
 };
 pub fn addAxises(opt: AxisDrawOption) !void {
     const scale_cylinder = zmath.scaling(opt.radius, opt.radius, opt.length);
-    const scale_cone = zmath.scaling(opt.radius * 2, opt.radius * 2, opt.length / 10);
+    const scale_cone = zmath.scaling(opt.radius * 2.5, opt.radius * 2.5, opt.length / 9);
     const move_cylinder = zmath.translation(opt.pos[0], opt.pos[1], opt.pos[2]);
     const rotation = zmath.matFromQuat(opt.rotation);
     const right_angle = math.pi / 2.0;
@@ -228,7 +228,7 @@ pub fn addAxises(opt: AxisDrawOption) !void {
             ),
             zmath.mul(zmath.translation(opt.length, 0, 0), move_cylinder),
         ),
-        .{ .rdopt = .{ .color = opt.color_x } },
+        .{ .rdopt = .{ .color = opt.color_x, .cull_faces = false } },
     );
     try addCylinder(
         zmath.mul(
@@ -250,7 +250,7 @@ pub fn addAxises(opt: AxisDrawOption) !void {
             ),
             zmath.mul(zmath.translation(0, opt.length, 0), move_cylinder),
         ),
-        .{ .rdopt = .{ .color = opt.color_y } },
+        .{ .rdopt = .{ .color = opt.color_y, .cull_faces = false } },
     );
     try addCylinder(
         zmath.mul(
@@ -269,7 +269,7 @@ pub fn addAxises(opt: AxisDrawOption) !void {
             zmath.mul(scale_cone, rotation),
             zmath.mul(zmath.translation(0, 0, opt.length), move_cylinder),
         ),
-        .{ .rdopt = .{ .color = opt.color_z } },
+        .{ .rdopt = .{ .color = opt.color_z, .cull_faces = false } },
     );
     try addCylinder(
         zmath.mul(
