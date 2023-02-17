@@ -61,10 +61,8 @@ pub const std_options = struct {
 };
 
 pub fn main() !void {
-    // Basic initialization
+    // Init setup configurations and memory allocator
     config.init(game);
-
-    // Init memory allocator
     const AllocatorType = std.heap.GeneralPurposeAllocator(.{
         .safety = if (@hasDecl(game, "jok_mem_leak_checks") and
             game.jok_mem_leak_checks) true else false,

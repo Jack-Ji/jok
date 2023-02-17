@@ -5,6 +5,7 @@ const sdl = @import("sdl");
 const bos = @import("build_options");
 const config = @import("config.zig");
 const jok = @import("jok.zig");
+const font = jok.font;
 const zmesh = jok.zmesh;
 const imgui = jok.imgui;
 const zaudio = jok.zaudio;
@@ -55,9 +56,7 @@ pub const Context = struct {
 
     pub fn init(allocator: std.mem.Allocator) !Context {
         try checkSys();
-        var self = Context{
-            .allocator = allocator,
-        };
+        var self = Context{ .allocator = allocator };
         try self.initSDL();
         imgui.sdl.init(&self);
         zmesh.init(self.allocator);
@@ -66,12 +65,14 @@ pub const Context = struct {
         if (bos.use_zaudio) {
             zaudio.init(self.allocator);
         }
+        try font.DebugFontData.init(self.allocator);
         self._pc_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
         self._last_pc = sdl.c.SDL_GetPerformanceCounter();
         return self;
     }
 
     pub fn deinit(self: *Context) void {
+        font.DebugFontData.deinit();
         if (bos.use_zaudio) {
             zaudio.deinit();
         }

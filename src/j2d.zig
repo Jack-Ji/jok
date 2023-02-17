@@ -291,7 +291,7 @@ pub const AddText = struct {
     depth: f32 = 0.5,
 };
 pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
-    const text = jok.imgui.format(fmt, args);
+    const text = imgui.format(fmt, args);
     if (text.len == 0) return;
 
     var pos = transform.transformPoint(opt.pos);
