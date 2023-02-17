@@ -13,8 +13,9 @@ const CharRange = struct {
     packedchar: std.ArrayList(truetype.stbtt_packedchar),
 };
 
-const default_map_size = 8192;
+const default_map_size = 2048;
 
+allocator: std.mem.Allocator,
 tex: sdl.Texture,
 ranges: std.ArrayList(CharRange),
 codepoint_search: std.AutoHashMap(u32, u8),
@@ -24,14 +25,14 @@ vmetric_descent: f32,
 vmetric_line_gap: f32,
 
 /// Create font atlas
-pub fn init(
+pub fn create(
     allocator: std.mem.Allocator,
     renderer: sdl.Renderer,
     font_info: *const truetype.stbtt_fontinfo,
     font_size: u32,
     codepoint_ranges: []const [2]u32,
     map_size: ?u32,
-) !Atlas {
+) !*Atlas {
     assert(codepoint_ranges.len > 0);
 
     var ranges = try std.ArrayList(CharRange).initCapacity(allocator, codepoint_ranges.len);
@@ -99,7 +100,9 @@ pub fn init(
     const scale = truetype.stbtt_ScaleForPixelHeight(font_info, @intToFloat(f32, font_size));
     truetype.stbtt_GetFontVMetrics(font_info, &ascent, &descent, &line_gap);
 
-    return Atlas{
+    var atlas = try allocator.create(Atlas);
+    atlas.* = .{
+        .allocator = allocator,
         .tex = tex,
         .ranges = ranges,
         .codepoint_search = std.AutoHashMap(u32, u8).init(allocator),
@@ -108,15 +111,17 @@ pub fn init(
         .vmetric_descent = @intToFloat(f32, descent),
         .vmetric_line_gap = @intToFloat(f32, line_gap),
     };
+    return atlas;
 }
 
-pub fn deinit(self: *Atlas) void {
+pub fn destroy(self: *Atlas) void {
     self.tex.destroy();
     for (self.ranges.items) |r| {
         r.packedchar.deinit();
     }
     self.ranges.deinit();
     self.codepoint_search.deinit();
+    self.allocator.destroy(self);
 }
 
 /// Calculate next line's y coordinate

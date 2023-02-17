@@ -6,7 +6,7 @@ const j2d = jok.j2d;
 var rd: std.rand.DefaultPrng = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var font: *jok.font.Font = undefined;
-var atlas: jok.font.Atlas = undefined;
+var atlas: *jok.font.Atlas = undefined;
 var ps: *j2d.ParticleSystem = undefined;
 
 // fire effect
@@ -47,7 +47,7 @@ pub fn init(ctx: *jok.Context) !void {
         false,
     );
     font = try jok.font.Font.fromTrueTypeData(ctx.allocator, jok.font.clacon_font_data);
-    atlas = try font.initAtlas(ctx.renderer, 60, &jok.font.codepoint_ranges.default, null);
+    atlas = try font.createAtlas(ctx.renderer, 60, &jok.font.codepoint_ranges.default, null);
     ps = try j2d.ParticleSystem.create(ctx.allocator);
     emitter1.sprite = sheet.getSpriteByName("particle");
     emitter2.sprite = atlas.getSpriteOfCodePoint('*');
@@ -98,7 +98,7 @@ pub fn draw(ctx: *jok.Context) !void {
 pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-    atlas.deinit();
+    atlas.destroy();
     font.destroy();
     sheet.destroy();
     ps.destroy();

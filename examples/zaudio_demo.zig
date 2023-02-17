@@ -67,13 +67,13 @@ pub fn update(ctx: *jok.Context) !void {
 
 pub fn draw(ctx: *jok.Context) !void {
     _ = try font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{ .pos = .{ .x = 10, .y = 10 } },
         "Press Z/X to decrease/increase volume of music, current volume: {d:.1}",
         .{music.getVolume()},
     );
     _ = try font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{
             .pos = .{ .x = 10, .y = 100 },
             .color = if (sfx1.isPlaying()) sdl.Color.red else sdl.Color.white,
@@ -82,7 +82,7 @@ pub fn draw(ctx: *jok.Context) !void {
         .{},
     );
     _ = try font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{
             .pos = .{ .x = 200, .y = 150 },
             .color = if (sfx2.isPlaying()) sdl.Color.magenta else sdl.Color.white,

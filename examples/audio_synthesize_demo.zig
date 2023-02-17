@@ -93,31 +93,31 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.end();
 
     _ = try font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{ .pos = .{ .x = 0, .y = 0 } },
         "frequency:{d:.1} amplitude:{d:.3}",
         .{ frequency, amplitude },
     );
     _ = try font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{ .pos = .{ .x = 0, .y = 16 } },
         "Move mouse to left to decrease frequency",
         .{},
     );
     _ = try font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{ .pos = .{ .x = 0, .y = 32 } },
         "Move mouse to right to increase frequency",
         .{},
     );
     _ = try font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{ .pos = .{ .x = 0, .y = 48 } },
         "Move mouse to bottom to decrease amplitude",
         .{},
     );
     _ = try font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{ .pos = .{ .x = 0, .y = 64 } },
         "Move mouse to top to increase amplitude",
         .{},

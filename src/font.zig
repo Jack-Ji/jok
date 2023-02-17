@@ -28,12 +28,11 @@ pub const DrawResult = struct {
     area: sdl.RectangleF,
     next_line_ypos: f32,
 };
-pub fn debugDraw(renderer: sdl.Renderer, opt: DrawOption, comptime fmt: []const u8, args: anytype) !DrawResult {
+pub fn debugDraw(ctx: *const jok.Context, opt: DrawOption, comptime fmt: []const u8, args: anytype) !DrawResult {
     const S = struct {
-        const allocator = std.heap.c_allocator;
         const max_text_size = 1000;
         var font: ?*Font = null;
-        var atlases: std.AutoHashMap(u32, Atlas) = undefined;
+        var atlases: std.AutoHashMap(u32, *Atlas) = undefined;
         var vattrib: std.ArrayList(sdl.Vertex) = undefined;
         var vindices: std.ArrayList(u32) = undefined;
         var text_buf: [1024]u8 = undefined;
@@ -47,28 +46,21 @@ pub fn debugDraw(renderer: sdl.Renderer, opt: DrawOption, comptime fmt: []const 
 
     // Initialize font data and atlases as needed
     if (S.font == null) {
-        S.font = Font.fromTrueTypeData(S.allocator, clacon_font_data) catch unreachable;
-        S.atlases = std.AutoHashMap(u32, Atlas).init(S.allocator);
-        S.vattrib = std.ArrayList(sdl.Vertex).initCapacity(S.allocator, S.max_text_size * 4) catch unreachable;
-        S.vindices = std.ArrayList(u32).initCapacity(S.allocator, S.max_text_size * 6) catch unreachable;
+        S.font = Font.fromTrueTypeData(ctx.allocator, clacon_font_data) catch unreachable;
+        S.atlases = std.AutoHashMap(u32, *Atlas).init(ctx.allocator);
+        S.vattrib = std.ArrayList(sdl.Vertex).initCapacity(ctx.allocator, S.max_text_size * 4) catch unreachable;
+        S.vindices = std.ArrayList(u32).initCapacity(ctx.allocator, S.max_text_size * 6) catch unreachable;
     }
-    var atlas: Atlas = undefined;
-    if (S.atlases.get(opt.font_size)) |a| {
-        atlas = a;
-    } else {
-        atlas = S.font.?.initAtlas(
-            renderer,
+    var atlas = S.atlases.get(opt.font_size) orelse BLK: {
+        var a = S.font.?.createAtlas(
+            ctx.renderer,
             opt.font_size,
-            &[_][2]u32{
-                .{ 0x0020, 0x00FF }, // Basic Latin + Latin Supplement
-                .{ 0x2500, 0x25FF }, // Special marks (block, line, triangle etc)
-                .{ 0x2801, 0x28FF }, // Braille
-                .{ 0x16A0, 0x16F0 }, // Runic
-            },
-            2048,
+            &[_][2]u32{.{ 0x0020, 0x00FF }},
+            1024,
         ) catch unreachable;
-        try S.atlases.put(opt.font_size, atlas);
-    }
+        try S.atlases.put(opt.font_size, a);
+        break :BLK a;
+    };
 
     defer S.vattrib.clearRetainingCapacity();
     defer S.vindices.clearRetainingCapacity();
@@ -83,7 +75,7 @@ pub fn debugDraw(renderer: sdl.Renderer, opt: DrawOption, comptime fmt: []const 
         &S.vattrib,
         &S.vindices,
     );
-    try renderer.drawGeometry(atlas.tex, S.vattrib.items, S.vindices.items);
+    try ctx.renderer.drawGeometry(atlas.tex, S.vattrib.items, S.vindices.items);
     return DrawResult{
         .area = area,
         .next_line_ypos = atlas.getVPosOfNextLine(opt.pos.y),

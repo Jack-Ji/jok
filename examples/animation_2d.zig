@@ -115,7 +115,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.end();
 
     _ = try jok.font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{ .pos = .{ .x = 300, .y = 0 } },
         "Press up/down/left/right to move character around",
         .{},

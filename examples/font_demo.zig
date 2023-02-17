@@ -4,13 +4,13 @@ const jok = @import("jok");
 const j2d = jok.j2d;
 
 var font: *jok.font.Font = undefined;
-var atlas: jok.font.Atlas = undefined;
+var atlas: *jok.font.Atlas = undefined;
 
 pub fn init(ctx: *jok.Context) !void {
     std.log.info("game init", .{});
 
     font = try jok.font.Font.fromTrueTypeData(ctx.allocator, jok.font.clacon_font_data);
-    atlas = try font.initAtlas(ctx.renderer, 40, &jok.font.codepoint_ranges.default, null);
+    atlas = try font.createAtlas(ctx.renderer, 40, &jok.font.codepoint_ranges.default, null);
 
     try ctx.renderer.setColorRGB(100, 100, 100);
 }
@@ -32,7 +32,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try ctx.renderer.setColorRGBA(0, 128, 0, 120);
 
     var result = try jok.font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{
             .pos = sdl.PointF{ .x = 0, .y = 0 },
             .ypos_type = .top,
@@ -44,7 +44,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try ctx.renderer.fillRectF(result.area);
 
     result = try jok.font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{
             .pos = sdl.PointF{ .x = 0, .y = @intToFloat(f32, size.h) / 2 },
             .font_size = 80,
@@ -58,7 +58,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.begin(.{});
     try j2d.addText(
         .{
-            .atlas = &atlas,
+            .atlas = atlas,
             .pos = sdl.PointF{
                 .x = result.area.x + result.area.width,
                 .y = @intToFloat(f32, size.h) / 2,
@@ -80,7 +80,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.end();
 
     result = try jok.font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{
             .pos = sdl.PointF{ .x = 0, .y = @intToFloat(f32, size.h) },
             .ypos_type = .bottom,
@@ -97,6 +97,6 @@ pub fn quit(ctx: *jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 
-    atlas.deinit();
+    atlas.destroy();
     font.destroy();
 }

@@ -67,15 +67,9 @@ pub fn main() !void {
     // Init memory allocator
     const AllocatorType = std.heap.GeneralPurposeAllocator(.{
         .safety = if (@hasDecl(game, "jok_mem_leak_checks") and
-            game.enable_mem_leak_checks)
-            true
-        else
-            false,
+            game.jok_mem_leak_checks) true else false,
         .verbose_log = if (@hasDecl(game, "jok_mem_detail_logs") and
-            game.enable_mem_detail_logs)
-            true
-        else
-            false,
+            game.jok_mem_detail_logs) true else false,
         .enable_memory_limit = true,
     });
     var gpa: ?AllocatorType = null;

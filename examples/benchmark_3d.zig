@@ -139,7 +139,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try j3d.end();
 
     _ = try font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{ .pos = .{ .x = 200, .y = 10 } },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},

@@ -125,7 +125,7 @@ pub fn draw(ctx: *jok.Context) !void {
     text_draw_pos.x += text_speed.x * ctx.delta_seconds;
     text_draw_pos.y += text_speed.y * ctx.delta_seconds;
     const draw_result = try font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{
             .pos = .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
             .font_size = 50,

@@ -100,7 +100,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.end();
 
     _ = try jok.font.debugDraw(
-        ctx.renderer,
+        ctx,
         .{ .pos = .{ .x = 0, .y = 0 } },
         "# of sprites: {d}",
         .{characters.items.len},

@@ -150,12 +150,12 @@ pub const Effect = struct {
         };
     }
 
-    pub fn deinit(self: Effect) void {
+    fn deinit(self: Effect) void {
         self.particles.deinit();
     }
 
     /// Update effect
-    pub fn update(self: *Effect, delta_time: f32) void {
+    fn update(self: *Effect, delta_time: f32) void {
         if (self.effect_duration > 0) {
             self.effect_duration -= delta_time;
             self.burst_countdown -= delta_time;

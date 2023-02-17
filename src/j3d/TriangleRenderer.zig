@@ -97,6 +97,14 @@ pub fn deinit(self: *Self) void {
     self.* = undefined;
 }
 
+inline fn clear(self: *Self) void {
+    self.clip_vertices.clearRetainingCapacity();
+    self.clip_colors.clearRetainingCapacity();
+    self.clip_texcoords.clearRetainingCapacity();
+    self.world_positions.clearRetainingCapacity();
+    self.world_normals.clearRetainingCapacity();
+}
+
 pub fn renderMesh(
     self: *Self,
     vp: sdl.Rectangle,
@@ -152,12 +160,8 @@ pub fn renderMesh(
     }
 
     // Do face-culling and W-pannel clipping
-    self.clip_vertices.clearRetainingCapacity();
-    self.clip_colors.clearRetainingCapacity();
-    self.clip_texcoords.clearRetainingCapacity();
-    self.world_positions.clearRetainingCapacity();
-    self.world_normals.clearRetainingCapacity();
     const ensure_size = indices.len * 2;
+    self.clear();
     try self.clip_vertices.ensureTotalCapacityPrecise(ensure_size);
     try self.clip_colors.ensureTotalCapacityPrecise(ensure_size);
     try self.clip_texcoords.ensureTotalCapacityPrecise(ensure_size);
