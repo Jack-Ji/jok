@@ -207,11 +207,13 @@ pub const RenderToTexture = struct {
     clear_color: ?sdl.Color = null,
 };
 
-/// Render to texture and return it.
-/// `renderer` can be any struct with method `fn draw(sdl.Renderer) !void`
+/// Render to texture and return it. @renderer can be any struct with
+/// method `fn draw(self: @This(), renderer: sdl.Renderer, size: sdl.PointF) !void`
 pub fn renderToTexture(rd: sdl.Renderer, renderer: anytype, opt: RenderToTexture) !sdl.Texture {
     const old_target = sdl.c.SDL_GetRenderTarget(rd.ptr);
     const target = opt.target orelse try createTextureAsTarget(rd, opt.size);
+    const tex_info = try target.query();
+    assert(tex_info.access == .target);
     try rd.setTarget(target);
     defer _ = sdl.c.SDL_SetRenderTarget(rd.ptr, old_target);
 
@@ -225,7 +227,9 @@ pub fn renderToTexture(rd: sdl.Renderer, renderer: anytype, opt: RenderToTexture
     defer rd.setColor(old_color) catch unreachable;
 
     try rd.clear();
-    try renderer.draw(rd);
-
+    try renderer.draw(rd, .{
+        .x = @intToFloat(f32, tex_info.width),
+        .y = @intToFloat(f32, tex_info.height),
+    });
     return target;
 }
