@@ -145,7 +145,7 @@ pub const Context = struct {
             var buf: [128]u8 = undefined;
             const txt = std.fmt.bufPrintZ(
                 &buf,
-                "{s} | {d}x{d} | FPS: {d:.1}, {s} | CPU: {d:.1}ms | RD: {s} | OPT: {s}",
+                "{s} | {d}x{d} | FPS: {d:.1}, {s} | CPU: {d:.1}ms | RENDERER: {s} | OPTIMIZE: {s}",
                 .{
                     self.cfg.jok_window_title,
                     self.getWindowSize().w,
