@@ -6,10 +6,10 @@ const bos = @import("build_options");
 const config = @import("config.zig");
 const jok = @import("jok.zig");
 const font = jok.font;
-const zmesh = jok.zmesh;
-const zphysics = jok.zphysics;
 const imgui = jok.imgui;
+const zmesh = jok.zmesh;
 const zaudio = jok.zaudio;
+const zphysics = jok.zphysics;
 
 const log = std.log.scoped(.jok);
 
