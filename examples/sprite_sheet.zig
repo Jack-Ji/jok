@@ -6,7 +6,7 @@ const j2d = jok.j2d;
 
 var sheet: *j2d.SpriteSheet = undefined;
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     // create sprite sheet
@@ -14,8 +14,8 @@ pub fn init(ctx: *jok.Context) !void {
     sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
         "assets/images",
-        size.w,
-        size.h,
+        @floatToInt(u32, size.x),
+        @floatToInt(u32, size.y),
         1,
         true,
         .{},
@@ -26,19 +26,19 @@ pub fn init(ctx: *jok.Context) !void {
     //    "sheet",
     //);
 
-    try ctx.renderer.setColorRGB(77, 77, 77);
+    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     const sprite = sheet.getSpriteByName("ogre").?;
 
     try j2d.begin(.{ .depth_sort = .back_to_forth });
@@ -52,23 +52,23 @@ pub fn draw(ctx: *jok.Context) !void {
         .scale = .{ .x = 2, .y = 2 },
         .flip_h = true,
         .flip_v = true,
-        //.rotate_degree = ctx.seconds * 30,
+        //.rotate_degree = ctx.seconds() * 30,
     });
     try j2d.addSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .tint_color = sdl.Color.rgb(255, 0, 0),
         .scale = .{
-            .x = 4 + 2 * @cos(ctx.seconds),
-            .y = 4 + 2 * @sin(ctx.seconds),
+            .x = 4 + 2 * @cos(ctx.seconds()),
+            .y = 4 + 2 * @sin(ctx.seconds()),
         },
-        .rotate_degree = ctx.seconds * 30,
+        .rotate_degree = ctx.seconds() * 30,
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
         .depth = 0.6,
     });
     try j2d.end();
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     sheet.destroy();

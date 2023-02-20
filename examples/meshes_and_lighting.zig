@@ -36,7 +36,7 @@ fn uvToPos(uv: *const [2]f32, position: *[3]f32, userdata: ?*anyopaque) callconv
     position[2] = uv[1];
 }
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     camera = Camera.fromPositionAndTarget(
@@ -63,17 +63,17 @@ pub fn init(ctx: *jok.Context) !void {
     terran.scale(100, 20, 100);
     terran.computeNormals();
 
-    try ctx.renderer.setColorRGB(77, 77, 77);
+    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     // camera movement
-    const distance = ctx.delta_seconds * 20;
+    const distance = ctx.deltaSeconds() * 20;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -100,7 +100,7 @@ pub fn update(ctx: *jok.Context) !void {
     }
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     imgui.sdl.newFrame(ctx);
     defer imgui.sdl.draw();
 
@@ -112,12 +112,12 @@ pub fn draw(ctx: *jok.Context) !void {
 
     var lighting_opt: ?j3d.lighting.LightingOption = .{};
     if (lighting) {
-        light_pos1[0] = math.sin(ctx.seconds) * 40;
+        light_pos1[0] = math.sin(ctx.seconds()) * 40;
         light_pos1[1] = 30;
         light_pos1[2] = 0;
         const v = zmath.mul(
             zmath.f32x4(-40, 40, 0, 1),
-            zmath.rotationY(ctx.seconds),
+            zmath.rotationY(ctx.seconds()),
         );
         light_pos2[0] = v[0];
         light_pos2[1] = v[1];
@@ -377,7 +377,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 

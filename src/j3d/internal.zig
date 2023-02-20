@@ -435,9 +435,16 @@ pub const RenderTarget = struct {
         self.* = undefined;
     }
 
-    pub fn clear(self: *RenderTarget, recycle_memory: bool) void {
+    pub fn clear(self: *RenderTarget, rd: sdl.Renderer, recycle_memory: bool) !void {
+        const output_size = try rd.getOutputSize();
         self.draw_list.reset();
-        self.draw_list.pushClipRectFullScreen();
+        self.draw_list.pushClipRect(.{
+            .pmin = .{ 0, 0 },
+            .pmax = .{
+                @intToFloat(f32, output_size.width_pixels),
+                @intToFloat(f32, output_size.height_pixels),
+            },
+        });
         self.draw_list.setDrawListFlags(.{
             .anti_aliased_lines = true,
             .anti_aliased_lines_use_tex = false,

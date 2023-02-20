@@ -19,7 +19,7 @@ var slices: i32 = 1;
 var stacks: i32 = 1;
 var tex: sdl.Texture = undefined;
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     camera = Camera.fromPositionAndTarget(
@@ -37,23 +37,23 @@ pub fn init(ctx: *jok.Context) !void {
     );
 
     tex = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
+        ctx.renderer(),
         "assets/images/image5.jpg",
         .static,
         true,
     );
 
-    try ctx.renderer.setColorRGB(77, 77, 77);
+    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     // camera movement
-    const distance = ctx.delta_seconds * 2;
+    const distance = ctx.deltaSeconds() * 2;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -80,7 +80,7 @@ pub fn update(ctx: *jok.Context) !void {
     }
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     imgui.sdl.newFrame(ctx);
     defer imgui.sdl.draw();
 
@@ -121,7 +121,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try j3d.end();
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 }

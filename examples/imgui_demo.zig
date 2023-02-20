@@ -8,11 +8,11 @@ pub const jok_window_height: u32 = 800;
 
 var tex: sdl.Texture = undefined;
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     tex = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
+        ctx.renderer(),
         "assets/images/image9.jpg",
         .static,
         false,
@@ -35,16 +35,16 @@ pub fn init(ctx: *jok.Context) !void {
     }
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     imgui.sdl.newFrame(ctx);
     defer imgui.sdl.draw();
 
@@ -76,7 +76,7 @@ pub fn draw(ctx: *jok.Context) !void {
         imgui.sameLine(.{});
         imgui.text(
             "{d:.3} ms/frame ({d:.1} fps)",
-            .{ ctx.average_cpu_time, ctx.fps },
+            .{ 1 / ctx.fps(), ctx.fps() },
         );
 
         imgui.separator();
@@ -464,7 +464,7 @@ pub fn draw(ctx: *jok.Context) !void {
     imgui.end();
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 }

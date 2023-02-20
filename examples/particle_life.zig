@@ -370,20 +370,20 @@ fn loadSettings(allocator: std.mem.Allocator) !void {
     }
 }
 
-fn renderGui(ctx: *jok.Context) !void {
+fn renderGui(ctx: jok.Context) !void {
     if (imgui.begin("Settings", .{})) {
         if (imgui.button("START/RESTART", .{})) {
-            try restart(ctx.allocator);
+            try restart(ctx.allocator());
         }
         if (imgui.button("Randomize", .{})) {
             randomnizeSimulation();
-            try restart(ctx.allocator);
+            try restart(ctx.allocator());
         }
         if (imgui.button("Save Model", .{})) {
             try saveSettings();
         }
         if (imgui.button("Load Model", .{})) {
-            try loadSettings(ctx.allocator);
+            try loadSettings(ctx.allocator());
         }
         _ = imgui.sliderFloat(
             "Viscosity/Friction",
@@ -813,7 +813,7 @@ fn renderSimulation() !void {
     try j2d.end();
 }
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     rand_gen = std.rand.DefaultPrng.init(
@@ -821,19 +821,19 @@ pub fn init(ctx: *jok.Context) !void {
     );
     rand = rand_gen.random();
 
-    try restart(ctx.allocator);
+    try restart(ctx.allocator());
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     imgui.sdl.newFrame(ctx);
     defer imgui.sdl.draw();
 
@@ -841,7 +841,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try renderSimulation();
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 

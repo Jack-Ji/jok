@@ -26,7 +26,7 @@ var texcoords = [_][2]f32{
     .{ 1, 0 },
 };
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     camera = j3d.Camera.fromPositionAndTarget(
@@ -54,15 +54,15 @@ pub fn init(ctx: *jok.Context) !void {
     aabb = cube.computeAabb();
 
     tex = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
+        ctx.renderer(),
         "assets/images/image5.jpg",
         .static,
         false,
     );
 
     var rng = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
-    translations = std.ArrayList(zmath.Mat).init(ctx.allocator);
-    rotation_axises = std.ArrayList(zmath.Vec).init(ctx.allocator);
+    translations = std.ArrayList(zmath.Mat).init(ctx.allocator());
+    rotation_axises = std.ArrayList(zmath.Vec).init(ctx.allocator());
     var i: u32 = 0;
     while (i < 5000) : (i += 1) {
         try translations.append(zmath.translation(
@@ -78,18 +78,18 @@ pub fn init(ctx: *jok.Context) !void {
         ));
     }
 
-    try ctx.renderer.setColorRGB(77, 77, 77);
+    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     // camera movement
-    const distance = ctx.delta_seconds * 2;
-    const angle = std.math.pi * ctx.delta_seconds / 2;
+    const distance = ctx.deltaSeconds() * 2;
+    const angle = std.math.pi * ctx.deltaSeconds() / 2;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -116,7 +116,7 @@ pub fn update(ctx: *jok.Context) !void {
     }
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
     for (translations.items) |tr, i| {
         const model = zmath.mul(
@@ -124,7 +124,10 @@ pub fn draw(ctx: *jok.Context) !void {
             zmath.mul(
                 zmath.mul(
                     zmath.scaling(0.1, 0.1, 0.1),
-                    zmath.matFromAxisAngle(rotation_axises.items[i], std.math.pi / 3.0 * ctx.seconds),
+                    zmath.matFromAxisAngle(
+                        rotation_axises.items[i],
+                        std.math.pi / 3.0 * ctx.seconds(),
+                    ),
                 ),
                 tr,
             ),
@@ -146,7 +149,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 

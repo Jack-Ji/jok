@@ -38,10 +38,10 @@ pub const DebugFont = struct {
         vindices.deinit();
     }
 
-    pub fn getAtlas(ctx: *const jok.Context, font_size: u32) !*Atlas {
+    pub fn getAtlas(ctx: jok.Context, font_size: u32) !*Atlas {
         return atlases.get(font_size) orelse BLK: {
             var a = try font.createAtlas(
-                ctx.renderer,
+                ctx.renderer(),
                 font_size,
                 &[_][2]u32{.{ 0x0020, 0x00FF }},
                 1024,
@@ -64,7 +64,7 @@ pub const DrawResult = struct {
     area: sdl.RectangleF,
     next_line_ypos: f32,
 };
-pub fn debugDraw(ctx: *const jok.Context, opt: DrawOption, comptime fmt: []const u8, args: anytype) !DrawResult {
+pub fn debugDraw(ctx: jok.Context, opt: DrawOption, comptime fmt: []const u8, args: anytype) !DrawResult {
     var atlas = try DebugFont.getAtlas(ctx, opt.font_size);
     const text = jok.imgui.format(fmt, args);
     const area = try atlas.appendDrawDataFromUTF8String(
@@ -76,7 +76,11 @@ pub fn debugDraw(ctx: *const jok.Context, opt: DrawOption, comptime fmt: []const
         &DebugFont.vattrib,
         &DebugFont.vindices,
     );
-    try ctx.renderer.drawGeometry(atlas.tex, DebugFont.vattrib.items, DebugFont.vindices.items);
+    try ctx.renderer().drawGeometry(
+        atlas.tex,
+        DebugFont.vattrib.items,
+        DebugFont.vindices.items,
+    );
     defer DebugFont.vattrib.clearRetainingCapacity();
     defer DebugFont.vindices.clearRetainingCapacity();
     return DrawResult{

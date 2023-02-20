@@ -9,24 +9,24 @@ pub const jok_window_height: u32 = 768;
 
 var path: j2d.Path = undefined;
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    path = j2d.Path.begin(ctx.allocator);
+    path = j2d.Path.begin(ctx.allocator());
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) !void {
-    const statechange = math.sin(ctx.seconds) * 0.2;
-    const scale = @intToFloat(f32, ctx.getFramebufferSize().h) / 4;
+pub fn draw(ctx: jok.Context) !void {
+    const statechange = math.sin(ctx.seconds()) * 0.2;
+    const scale = ctx.getFramebufferSize().y / 4;
 
     path.reset();
     var i: usize = 0;
@@ -46,15 +46,15 @@ pub fn draw(ctx: *jok.Context) !void {
     var transform = j2d.AffineTransform.init();
     transform.scale(.{ .x = scale, .y = scale });
     transform.translate(.{
-        .x = @intToFloat(f32, ctx.getFramebufferSize().w / 2),
-        .y = @intToFloat(f32, ctx.getFramebufferSize().h / 2),
+        .x = ctx.getFramebufferSize().x / 2,
+        .y = ctx.getFramebufferSize().y / 2,
     });
     try j2d.begin(.{ .transform = transform });
     try j2d.addPath(path, .{});
     try j2d.end();
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 

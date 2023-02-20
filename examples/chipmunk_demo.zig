@@ -6,7 +6,7 @@ const cp = jok.chipmunk;
 var rng: std.rand.Xoshiro256 = undefined;
 var world: cp.World = undefined;
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     rng = std.rand.DefaultPrng.init(
@@ -148,20 +148,20 @@ pub fn init(ctx: *jok.Context) !void {
     });
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
-    world.update(ctx.delta_seconds);
+pub fn update(ctx: jok.Context) !void {
+    world.update(ctx.delta.seconds());
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     try world.debugDraw(ctx.renderer);
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     world.deinit();

@@ -33,23 +33,23 @@ const emitter2 = j3d.ParticleSystem.Effect.FireEmitter(
     2.75,
 );
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     rand = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
     tex0 = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
+        ctx.renderer(),
         "assets/images/white-circle.png",
         .static,
         false,
     );
     tex1 = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
+        ctx.renderer(),
         "assets/images/ogre.png",
         .static,
         false,
     );
-    ps = try j3d.ParticleSystem.create(ctx.allocator);
+    ps = try j3d.ParticleSystem.create(ctx.allocator());
     camera = j3d.Camera.fromPositionAndTarget(
         .{
             .perspective = .{
@@ -95,13 +95,13 @@ pub fn init(ctx: *jok.Context) !void {
     );
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
-    const distance = ctx.delta_seconds * 100;
+pub fn update(ctx: jok.Context) !void {
+    const distance = ctx.deltaSeconds() * 100;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -127,10 +127,10 @@ pub fn update(ctx: *jok.Context) !void {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
 
-    ps.update(ctx.delta_seconds);
+    ps.update(ctx.deltaSeconds());
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{ .camera = camera, .sort_by_depth = sort_by_depth });
     try j3d.addPlane(
         zmath.mul(
@@ -175,7 +175,7 @@ pub fn draw(ctx: *jok.Context) !void {
     imgui.end();
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     ps.destroy();

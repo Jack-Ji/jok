@@ -59,7 +59,7 @@ pub fn deinit() void {
 }
 
 pub fn begin(opt: BeginOption) !void {
-    target.clear(false);
+    try target.clear(rd, false);
     camera = opt.camera orelse BLK: {
         const fsize = try rd.getOutputSize();
         const ratio = @intToFloat(f32, fsize.width_pixels) / @intToFloat(f32, fsize.width_pixels);
@@ -92,8 +92,8 @@ pub fn end() !void {
     }
 }
 
-pub fn clearMemory() void {
-    target.clear(true);
+pub fn clearMemory() !void {
+    try target.clear(true);
 }
 
 pub fn addSkybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {

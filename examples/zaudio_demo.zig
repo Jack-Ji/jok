@@ -9,7 +9,7 @@ var music: *zaudio.Sound = undefined;
 var sfx1: *zaudio.Sound = undefined;
 var sfx2: *zaudio.Sound = undefined;
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     _ = ctx;
     std.log.info("game init", .{});
 
@@ -36,7 +36,7 @@ pub fn init(ctx: *jok.Context) !void {
     sfx2.setPan(1);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     switch (e) {
         .key_up => |key| {
@@ -61,11 +61,11 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     }
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     _ = try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 10, .y = 10 } },
@@ -92,7 +92,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     music.destroy();

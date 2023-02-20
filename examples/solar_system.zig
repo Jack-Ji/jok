@@ -17,7 +17,7 @@ var sun: *Scene.Object = undefined;
 var earth: *Scene.Object = undefined;
 var moon: *Scene.Object = undefined;
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     camera = Camera.fromPositionAndTarget(
@@ -37,10 +37,10 @@ pub fn init(ctx: *jok.Context) !void {
     sphere.computeNormals();
 
     // Init solar system
-    scene = try Scene.create(ctx.allocator);
-    earth_orbit = try Scene.Object.create(ctx.allocator, .{ .position = .{} });
-    moon_orbit = try Scene.Object.create(ctx.allocator, .{ .position = .{} });
-    sun = try Scene.Object.create(ctx.allocator, .{
+    scene = try Scene.create(ctx.allocator());
+    earth_orbit = try Scene.Object.create(ctx.allocator(), .{ .position = .{} });
+    moon_orbit = try Scene.Object.create(ctx.allocator(), .{ .position = .{} });
+    sun = try Scene.Object.create(ctx.allocator(), .{
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.6)),
             .shape = sphere,
@@ -48,14 +48,14 @@ pub fn init(ctx: *jok.Context) !void {
             .disable_lighting = true,
         },
     });
-    earth = try Scene.Object.create(ctx.allocator, .{
+    earth = try Scene.Object.create(ctx.allocator(), .{
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.2)),
             .shape = sphere,
             .color = sdl.Color.rgb(0, 0, 255),
         },
     });
-    moon = try Scene.Object.create(ctx.allocator, .{
+    moon = try Scene.Object.create(ctx.allocator(), .{
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.06)),
             .shape = sphere,
@@ -68,17 +68,17 @@ pub fn init(ctx: *jok.Context) !void {
     try earth_orbit.addChild(moon_orbit);
     try moon_orbit.addChild(moon);
 
-    try ctx.renderer.setColorRGB(80, 80, 80);
+    try ctx.renderer().setColorRGB(80, 80, 80);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     // camera movement
-    const distance = ctx.delta_seconds * 2;
+    const distance = ctx.deltaSeconds() * 2;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -104,11 +104,15 @@ pub fn update(ctx: *jok.Context) !void {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
 
-    earth_orbit.setTransform(zmath.mul(zmath.translation(2, 0, 0), zmath.rotationY(ctx.seconds)));
-    moon_orbit.setTransform(zmath.mul(zmath.translation(0.3, 0, 0), zmath.rotationY(ctx.seconds * 12)));
+    earth_orbit.setTransform(
+        zmath.mul(zmath.translation(2, 0, 0), zmath.rotationY(ctx.seconds())),
+    );
+    moon_orbit.setTransform(
+        zmath.mul(zmath.translation(0.3, 0, 0), zmath.rotationY(ctx.seconds() * 12)),
+    );
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     var lighting_opt = j3d.lighting.LightingOption{};
     lighting_opt.lights[0] = j3d.lighting.Light{
         .point = .{
@@ -140,7 +144,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 

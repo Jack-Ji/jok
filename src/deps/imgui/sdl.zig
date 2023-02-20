@@ -5,14 +5,16 @@ const zgui = @import("zgui");
 const sdl = @import("sdl");
 const imgui = @import("imgui.zig");
 
-pub fn init(ctx: *const jok.Context) void {
-    zgui.init(ctx.allocator);
+pub fn init(ctx: jok.Context) void {
+    zgui.init(ctx.allocator());
 
-    if (!ImGui_ImplSDL2_InitForSDLRenderer(ctx.window.ptr, ctx.renderer.ptr)) {
+    const window = ctx.window();
+    const renderer = ctx.renderer();
+    if (!ImGui_ImplSDL2_InitForSDLRenderer(window.ptr, renderer.ptr)) {
         unreachable;
     }
 
-    if (!ImGui_ImplSDLRenderer_Init(ctx.renderer.ptr)) {
+    if (!ImGui_ImplSDLRenderer_Init(renderer.ptr)) {
         unreachable;
     }
 
@@ -35,12 +37,12 @@ pub fn deinit() void {
     zgui.deinit();
 }
 
-pub fn newFrame(ctx: *const jok.Context) void {
+pub fn newFrame(ctx: jok.Context) void {
     ImGui_ImplSDLRenderer_NewFrame();
     ImGui_ImplSDL2_NewFrame();
 
     const fb_size = ctx.getFramebufferSize();
-    imgui.io.setDisplaySize(@intToFloat(f32, fb_size.w), @intToFloat(f32, fb_size.h));
+    imgui.io.setDisplaySize(fb_size.x, fb_size.y);
     imgui.io.setDisplayFramebufferScale(1.0, 1.0);
 
     imgui.newFrame();

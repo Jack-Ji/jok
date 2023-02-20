@@ -13,22 +13,22 @@ var p3: [2]f32 = .{ 100, 10 };
 var p4: [2]f32 = .{ 220, 50 };
 var p5: [2]f32 = .{ 150, 80 };
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     _ = ctx;
 
     std.log.info("game init", .{});
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     imgui.sdl.newFrame(ctx);
     defer imgui.sdl.draw();
 
@@ -105,7 +105,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.end();
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 }

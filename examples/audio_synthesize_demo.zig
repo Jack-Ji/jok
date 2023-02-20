@@ -14,9 +14,7 @@ var phase: f32 = 0;
 var phase_step: f32 = undefined;
 var amplitude: f32 = 0.1;
 
-fn audioCallback(ptr: ?*anyopaque, buf: [*c]u8, size: c_int) callconv(.C) void {
-    var ctx = @ptrCast(*jok.Context, @alignCast(@alignOf(*jok.Context), ptr));
-    _ = ctx;
+fn audioCallback(_: ?*anyopaque, buf: [*c]u8, size: c_int) callconv(.C) void {
     const audio_buf = @ptrCast([*]f32, @alignCast(@alignOf([*]f32), buf));
     const buf_size = @intCast(u32, size) / @sizeOf(f32);
     assert(@intCast(u32, size) % @sizeOf(f32) == 0);
@@ -30,7 +28,7 @@ fn audioCallback(ptr: ?*anyopaque, buf: [*c]u8, size: c_int) callconv(.C) void {
     }
 }
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     const result = try sdl.openAudioDevice(.{
@@ -42,7 +40,7 @@ pub fn init(ctx: *jok.Context) !void {
                 sdl.AudioFormat.f32_msb,
             .channel_count = 2,
             .callback = audioCallback,
-            .userdata = ctx,
+            .userdata = @as(?*anyopaque, null),
         },
     });
     audio_device = result.device;
@@ -50,17 +48,17 @@ pub fn init(ctx: *jok.Context) !void {
     phase_step = frequency * std.math.tau / @intToFloat(f32, audio_spec.sample_rate);
     audio_device.pause(false);
 
-    try ctx.renderer.setColorRGB(77, 77, 77);
+    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     switch (e) {
         .mouse_motion => |me| {
             const fb = ctx.getFramebufferSize();
             frequency = jok.utils.math.linearMap(
                 @intToFloat(f32, me.x),
                 0,
-                @intToFloat(f32, fb.w),
+                fb.x,
                 40,
                 2000,
             );
@@ -68,7 +66,7 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
             amplitude = jok.utils.math.linearMap(
                 @intToFloat(f32, me.y),
                 0,
-                @intToFloat(f32, fb.h),
+                fb.y,
                 1.0,
                 0,
             );
@@ -77,11 +75,11 @@ pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
     }
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     var ms = ctx.getMouseState();
     try j2d.begin(.{});
     try j2d.addCircleFilled(
@@ -124,7 +122,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 }

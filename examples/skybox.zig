@@ -23,7 +23,7 @@ var texcoords = [_][2]f32{
 var skybox_textures: [6]sdl.Texture = undefined;
 var skybox_tint_color: sdl.Color = sdl.Color.white;
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     camera = j3d.Camera.fromPositionAndTarget(
@@ -49,60 +49,60 @@ pub fn init(ctx: *jok.Context) !void {
     cube.computeNormals();
     cube.texcoords = texcoords[0..];
     tex = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
+        ctx.renderer(),
         "assets/images/image5.jpg",
         .static,
         false,
     );
 
     skybox_textures[0] = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
+        ctx.renderer(),
         "assets/images/skybox/right.jpg",
         .static,
         true,
     );
     skybox_textures[1] = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
+        ctx.renderer(),
         "assets/images/skybox/left.jpg",
         .static,
         true,
     );
     skybox_textures[2] = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
+        ctx.renderer(),
         "assets/images/skybox/top.jpg",
         .static,
         true,
     );
     skybox_textures[3] = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
+        ctx.renderer(),
         "assets/images/skybox/bottom.jpg",
         .static,
         true,
     );
     skybox_textures[4] = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
+        ctx.renderer(),
         "assets/images/skybox/front.jpg",
         .static,
         true,
     );
     skybox_textures[5] = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer,
+        ctx.renderer(),
         "assets/images/skybox/back.jpg",
         .static,
         true,
     );
 
-    try ctx.renderer.setColorRGB(77, 77, 77);
+    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     // camera movement
-    const distance = ctx.delta_seconds * 2;
+    const distance = ctx.deltaSeconds() * 2;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -129,7 +129,7 @@ pub fn update(ctx: *jok.Context) !void {
     }
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
     try j3d.addShape(
         cube,
@@ -137,7 +137,7 @@ pub fn draw(ctx: *jok.Context) !void {
             zmath.translation(-0.5, -0.5, -0.5),
             zmath.mul(
                 zmath.scaling(0.5, 0.5, 0.5),
-                zmath.rotationY(ctx.seconds * std.math.pi),
+                zmath.rotationY(ctx.seconds() * std.math.pi),
             ),
         ),
         null,
@@ -180,7 +180,7 @@ pub fn draw(ctx: *jok.Context) !void {
     imgui.end();
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 

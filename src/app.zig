@@ -15,11 +15,11 @@ comptime {
     {
         @compileError(
             \\You must provide following 5 public api in your game code:
-            \\    pub fn init(ctx: *jok.Context) !void
-            \\    pub fn event(ctx: *jok.Context, e: sdl.Event) !void
-            \\    pub fn update(ctx: *jok.Context) !void
-            \\    pub fn draw(ctx: *jok.Context) !void
-            \\    pub fn quit(ctx: *jok.Context) void
+            \\    pub fn init(ctx: jok.Context) !void
+            \\    pub fn event(ctx: jok.Context, e: sdl.Event) !void
+            \\    pub fn update(ctx: jok.Context) !void
+            \\    pub fn draw(ctx: jok.Context) !void
+            \\    pub fn quit(ctx: jok.Context) void
         );
     }
     switch (@typeInfo(@typeInfo(@TypeOf(game.init)).Fn.return_type.?)) {
@@ -55,41 +55,23 @@ comptime {
 /// Jok configuration
 const jok_config = config.init(game);
 
-/// Allocator type
-const AllocatorType = std.heap.GeneralPurposeAllocator(.{
-    .safety = jok_config.jok_mem_leak_checks,
-    .verbose_log = jok_config.jok_mem_detail_logs,
-    .enable_memory_limit = true,
-});
-
 /// Options for zig executable
 pub const std_options = struct {
     pub const log_level = jok_config.jok_log_level;
 };
 
 pub fn main() !void {
-    // Init setup configurations and memory allocator
-    var gpa: ?AllocatorType = null;
-    var allocator = if (jok_config.jok_allocator) |a| a else BLK: {
-        gpa = AllocatorType{};
-        break :BLK gpa.?.allocator();
-    };
-    defer if (gpa) |*a| {
-        if (a.deinit()) {
-            @panic("jok: memory leaks happened!");
-        }
-    };
-
-    // Init application context
-    var ctx = try jok.Context.init(allocator, jok_config);
-    defer ctx.deinit();
+    // Init context
+    var jok_ctx = try jok.JokContext(jok_config).create();
+    defer jok_ctx.destroy();
 
     // Init game object
-    try game.init(&ctx);
-    defer game.quit(&ctx);
+    var ctx = jok_ctx.context();
+    try game.init(ctx);
+    defer game.quit(ctx);
 
-    // Start Game loop
-    while (!ctx.quit) {
-        ctx.tick(game.event, game.update, game.draw);
+    // Start game loop
+    while (jok_ctx._running) {
+        jok_ctx.tick(game.event, game.update, game.draw);
     }
 }

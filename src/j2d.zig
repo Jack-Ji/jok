@@ -66,8 +66,15 @@ pub fn deinit() void {
 }
 
 pub fn begin(opt: BeginOption) !void {
+    const output_size = try rd.getOutputSize();
     draw_list.reset();
-    draw_list.pushClipRectFullScreen();
+    draw_list.pushClipRect(.{
+        .pmin = .{ 0, 0 },
+        .pmax = .{
+            @intToFloat(f32, output_size.width_pixels),
+            @intToFloat(f32, output_size.height_pixels),
+        },
+    });
     draw_list.pushTextureId(imgui.io.getFontsTexId());
     draw_commands.clearRetainingCapacity();
     all_tex.clearRetainingCapacity();
@@ -134,7 +141,7 @@ pub fn end() !void {
     try imgui.sdl.renderDrawList(rd, draw_list);
 }
 
-pub fn clearMemory() void {
+pub fn clearMemory() !void {
     draw_list.clearMemory();
     draw_commands.clearAndFree();
     all_tex.clearAndFree();

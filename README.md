@@ -65,19 +65,19 @@ const j3d = jok.j3d;
 pub const jok_window_width: u32 = 400;
 pub const jok_window_height: u32 = 300;
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     // your init code
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     // your event processing code
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     // your game state updating code
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
   // your 2d drawing
   {
       try j2d.begin(.{});
@@ -93,7 +93,7 @@ pub fn draw(ctx: *jok.Context) !void {
   }
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     // your deinit code
 }
 ```

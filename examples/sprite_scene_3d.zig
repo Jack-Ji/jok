@@ -17,7 +17,7 @@ var sprites: [14]*Scene.Object = undefined;
 var sphere_mesh: jok.zmesh.Shape = undefined;
 var sphere_obj: *Scene.Object = undefined;
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     camera = Camera.fromPositionAndTarget(
@@ -46,13 +46,13 @@ pub fn init(ctx: *jok.Context) !void {
 
     // Init scene
     var buf: [10]u8 = undefined;
-    scene = try Scene.create(ctx.allocator);
+    scene = try Scene.create(ctx.allocator());
     const angle_step = std.math.tau / @as(f32, 14.0);
     var i: u32 = 0;
     while (i < 12) : (i += 1) {
         const name = try std.fmt.bufPrint(&buf, "image{d}", .{i + 1});
         const sp = sheet.getSpriteByName(name).?;
-        sprites[i] = try Scene.Object.create(ctx.allocator, .{
+        sprites[i] = try Scene.Object.create(ctx.allocator(), .{
             .sprite = .{
                 .transform = zmath.mul(
                     zmath.translation(0, 10, 0),
@@ -68,7 +68,7 @@ pub fn init(ctx: *jok.Context) !void {
     }
     {
         const sp = sheet.getSpriteByName("ogre").?;
-        sprites[12] = try Scene.Object.create(ctx.allocator, .{
+        sprites[12] = try Scene.Object.create(ctx.allocator(), .{
             .sprite = .{
                 .transform = zmath.mul(
                     zmath.translation(0, 10, 0),
@@ -85,7 +85,7 @@ pub fn init(ctx: *jok.Context) !void {
     }
     {
         const sp = sheet.getSpriteByName("sphinx").?;
-        sprites[13] = try Scene.Object.create(ctx.allocator, .{
+        sprites[13] = try Scene.Object.create(ctx.allocator(), .{
             .sprite = .{
                 .transform = zmath.mul(
                     zmath.translation(0, 10, 0),
@@ -102,7 +102,7 @@ pub fn init(ctx: *jok.Context) !void {
     }
 
     sphere_mesh = jok.zmesh.Shape.initSubdividedSphere(1);
-    sphere_obj = try Scene.Object.create(ctx.allocator, .{
+    sphere_obj = try Scene.Object.create(ctx.allocator(), .{
         .mesh = .{
             .transform = zmath.identity(),
             .shape = sphere_mesh,
@@ -111,17 +111,17 @@ pub fn init(ctx: *jok.Context) !void {
     });
     try scene.root.addChild(sphere_obj);
 
-    try ctx.renderer.setColorRGB(80, 80, 80);
+    try ctx.renderer().setColorRGB(80, 80, 80);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     // camera movement
-    const distance = ctx.delta_seconds * 10;
+    const distance = ctx.deltaSeconds() * 10;
     if (ctx.isKeyPressed(.w)) {
         camera.move(.forward, distance);
     }
@@ -148,18 +148,18 @@ pub fn update(ctx: *jok.Context) !void {
     }
 
     scene.root.setTransform(zmath.mul(
-        zmath.rotationX(ctx.seconds),
-        zmath.rotationY(ctx.seconds),
+        zmath.rotationX(ctx.seconds()),
+        zmath.rotationY(ctx.seconds()),
     ));
     sprites[12].actor.sprite.tint_color = sdl.Color.rgb(
-        @floatToInt(u8, 127 * (1 + @sin(ctx.seconds))),
-        @floatToInt(u8, 127 * (1 + @cos(ctx.seconds))),
+        @floatToInt(u8, 127 * (1 + @sin(ctx.seconds()))),
+        @floatToInt(u8, 127 * (1 + @cos(ctx.seconds()))),
         100,
     );
-    sprites[13].actor.sprite.rotate_degree = ctx.seconds * 180;
+    sprites[13].actor.sprite.rotate_degree = ctx.seconds() * 180;
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
     try j3d.addScene(scene, .{ .lighting = .{} });
     try j3d.addSprite(
@@ -178,7 +178,7 @@ pub fn draw(ctx: *jok.Context) !void {
     try j3d.addAxises(.{});
     try j3d.end();
 
-    const ogre_pos = camera.getScreenPosition(ctx.renderer, sprites[13].transform, null);
+    const ogre_pos = camera.getScreenPosition(ctx.renderer(), sprites[13].transform, null);
     _ = try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = ogre_pos.x + 50, .y = ogre_pos.y } },
@@ -203,7 +203,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 

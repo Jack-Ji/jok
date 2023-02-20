@@ -11,20 +11,20 @@ const rect_num = 1000;
 pub const jok_window_width: u32 = 2 * rect_size;
 pub const jok_window_height: u32 = 2 * rect_size;
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     _ = ctx;
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     _ = ctx;
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     const fb_size = ctx.getFramebufferSize();
     const rect = sdl.RectangleF{
         .x = -rect_size / 2,
@@ -33,7 +33,7 @@ pub fn draw(ctx: *jok.Context) !void {
         .height = rect_size,
     };
     const scale_step = jok.utils.math.linearMap(
-        math.sin(ctx.seconds),
+        math.sin(ctx.seconds()),
         -1,
         1,
         0.71,
@@ -57,8 +57,8 @@ pub fn draw(ctx: *jok.Context) !void {
             var tr = transform.clone();
             tr.rotateByOrgin(-angle_step * step);
             tr.translate(.{
-                .x = @intToFloat(f32, fb_size.w / 4),
-                .y = @intToFloat(f32, fb_size.h / 4),
+                .x = fb_size.x / 4,
+                .y = fb_size.y / 4,
             });
             j2d.setTransform(tr);
             try j2d.addRect(rect, sdl.Color.white, .{});
@@ -69,8 +69,8 @@ pub fn draw(ctx: *jok.Context) !void {
             var tr = transform.clone();
             tr.rotateByOrgin(angle_step * step);
             tr.translate(.{
-                .x = @intToFloat(f32, fb_size.w * 3 / 4),
-                .y = @intToFloat(f32, fb_size.h / 4),
+                .x = fb_size.x * 3 / 4,
+                .y = fb_size.y / 4,
             });
             j2d.setTransform(tr);
             try j2d.addRect(rect, sdl.Color.white, .{});
@@ -81,8 +81,8 @@ pub fn draw(ctx: *jok.Context) !void {
             var tr = transform.clone();
             tr.rotateByOrgin(-angle_step * step);
             tr.translate(.{
-                .x = @intToFloat(f32, fb_size.w * 3 / 4),
-                .y = @intToFloat(f32, fb_size.h * 3 / 4),
+                .x = fb_size.x * 3 / 4,
+                .y = fb_size.y * 3 / 4,
             });
             j2d.setTransform(tr);
             try j2d.addRect(rect, sdl.Color.white, .{});
@@ -93,8 +93,8 @@ pub fn draw(ctx: *jok.Context) !void {
             var tr = transform.clone();
             tr.rotateByOrgin(angle_step * step);
             tr.translate(.{
-                .x = @intToFloat(f32, fb_size.w / 4),
-                .y = @intToFloat(f32, fb_size.h * 3 / 4),
+                .x = fb_size.x / 4,
+                .y = fb_size.y * 3 / 4,
             });
             j2d.setTransform(tr);
             try j2d.addRect(rect, sdl.Color.white, .{});
@@ -103,6 +103,6 @@ pub fn draw(ctx: *jok.Context) !void {
     try j2d.end();
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
 }

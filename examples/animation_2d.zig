@@ -10,7 +10,7 @@ var animation: []const u8 = "player_down";
 var pos = sdl.PointF{ .x = 200, .y = 200 };
 var flip_h = false;
 
-pub fn init(ctx: *jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     // create sprite sheet
@@ -18,13 +18,13 @@ pub fn init(ctx: *jok.Context) !void {
     sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
         "assets/images",
-        size.w,
-        size.h,
+        @floatToInt(u32, size.x),
+        @floatToInt(u32, size.y),
         1,
         true,
         .{},
     );
-    as = try j2d.AnimationSystem.create(ctx.allocator);
+    as = try j2d.AnimationSystem.create(ctx.allocator());
     const player = sheet.getSpriteByName("player").?;
     try as.add(
         "player_left_right",
@@ -57,33 +57,33 @@ pub fn init(ctx: *jok.Context) !void {
         false,
     );
 
-    try ctx.renderer.setColorRGB(77, 77, 77);
+    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
-pub fn event(ctx: *jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-pub fn update(ctx: *jok.Context) !void {
+pub fn update(ctx: jok.Context) !void {
     var force_replay = false;
     if (ctx.isKeyPressed(.up)) {
-        pos.y -= velocity * ctx.delta_seconds;
+        pos.y -= velocity * ctx.deltaSeconds();
         animation = "player_up";
         flip_h = false;
         force_replay = true;
     } else if (ctx.isKeyPressed(.down)) {
-        pos.y += velocity * ctx.delta_seconds;
+        pos.y += velocity * ctx.deltaSeconds();
         animation = "player_down";
         flip_h = false;
         force_replay = true;
     } else if (ctx.isKeyPressed(.right)) {
-        pos.x += velocity * ctx.delta_seconds;
+        pos.x += velocity * ctx.deltaSeconds();
         animation = "player_left_right";
         flip_h = true;
         force_replay = true;
     } else if (ctx.isKeyPressed(.left)) {
-        pos.x -= velocity * ctx.delta_seconds;
+        pos.x -= velocity * ctx.deltaSeconds();
         animation = "player_left_right";
         flip_h = false;
         force_replay = true;
@@ -91,10 +91,10 @@ pub fn update(ctx: *jok.Context) !void {
     if (force_replay and try as.isOver(animation)) {
         try as.reset(animation);
     }
-    as.update(ctx.delta_seconds);
+    as.update(ctx.deltaSeconds());
 }
 
-pub fn draw(ctx: *jok.Context) !void {
+pub fn draw(ctx: jok.Context) !void {
     try j2d.begin(.{});
     try j2d.addSprite(
         sheet.getSpriteByName("player").?,
@@ -122,7 +122,7 @@ pub fn draw(ctx: *jok.Context) !void {
     );
 }
 
-pub fn quit(ctx: *jok.Context) void {
+pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     sheet.destroy();
