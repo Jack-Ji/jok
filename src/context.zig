@@ -15,6 +15,9 @@ const log = std.log.scoped(.jok);
 
 /// Application context
 pub const Context = struct {
+    // Setup configuration
+    cfg: config.Config,
+
     // Default allocator
     allocator: std.mem.Allocator,
 
@@ -55,11 +58,11 @@ pub const Context = struct {
     _frame_count: u32 = 0,
     _last_fps_refresh_time: f64 = 0,
 
-    pub fn init(allocator: std.mem.Allocator) !Context {
-        var self = Context{ .allocator = allocator };
+    pub fn init(allocator: std.mem.Allocator, cfg: config.Config) !Context {
+        var self = Context{ .cfg = cfg, .allocator = allocator };
 
         // Check and print system info
-        try checkSys();
+        try self.checkSys();
 
         // Init SDL window and renderer
         try self.initSDL();
@@ -119,11 +122,11 @@ pub const Context = struct {
         while (sdl.pollNativeEvent()) |e| {
             _ = imgui.sdl.processEvent(e);
             const we = sdl.Event.from(e);
-            if (config.jok_exit_on_recv_esc and we == .key_up and
+            if (self.cfg.jok_exit_on_recv_esc and we == .key_up and
                 we.key_up.scancode == .escape)
             {
                 self.kill();
-            } else if (config.jok_exit_on_recv_quit and we == .quit) {
+            } else if (self.cfg.jok_exit_on_recv_quit and we == .quit) {
                 self.kill();
             } else {
                 eventFn(self, we) catch |err| {
@@ -137,7 +140,25 @@ pub const Context = struct {
         }
 
         self.internalLoop(updateFn, drawFn);
-        self.updateFrameStats();
+
+        if (self.updateFrameStats() and self.cfg.jok_framestat_display) {
+            var buf: [128]u8 = undefined;
+            const txt = std.fmt.bufPrintZ(
+                &buf,
+                "{s} | {d}x{d} | FPS: {d:.1}, {s} | CPU: {d:.1}ms | RD: {s} | OPT: {s}",
+                .{
+                    self.cfg.jok_window_title,
+                    self.getWindowSize().w,
+                    self.getWindowSize().h,
+                    self.fps,
+                    self.cfg.jok_fps_limit.str(),
+                    self.average_cpu_time,
+                    self.getRendererName(),
+                    @tagName(builtin.mode),
+                },
+            ) catch unreachable;
+            sdl.c.SDL_SetWindowTitle(self.window.ptr, txt.ptr);
+        }
     }
 
     /// Internal game loop
@@ -146,7 +167,7 @@ pub const Context = struct {
         comptime updateFn: *const fn (*Context) anyerror!void,
         comptime drawFn: *const fn (*Context) anyerror!void,
     ) void {
-        const fps_pc_threshold: u64 = switch (config.jok_fps_limit) {
+        const fps_pc_threshold: u64 = switch (self.cfg.jok_fps_limit) {
             .none => 0,
             .auto => if (self.is_software) @divTrunc(@floatToInt(u64, self._pc_freq), 30) else 0,
             .manual => |fps| @floatToInt(u64, self._pc_freq) / @intCast(u64, fps),
@@ -234,7 +255,7 @@ pub const Context = struct {
     }
 
     /// Update frame stats once per second
-    inline fn updateFrameStats(self: *Context) void {
+    inline fn updateFrameStats(self: *Context) bool {
         self._frame_count += 1;
         if ((self.seconds_real - self._last_fps_refresh_time) >= 1.0) {
             const t = self.seconds_real - self._last_fps_refresh_time;
@@ -245,7 +266,9 @@ pub const Context = struct {
             self.average_cpu_time = (1.0 / self.fps) * 1000.0;
             self._last_fps_refresh_time = self.seconds_real;
             self._frame_count = 0;
+            return true;
         }
+        return false;
     }
 
     /// Get renderer's name
@@ -369,7 +392,7 @@ pub const Context = struct {
     }
 
     /// Check system information
-    fn checkSys() !void {
+    fn checkSys(self: *const Context) !void {
         const target = builtin.target;
         var sdl_version: sdl.c.SDL_version = undefined;
         sdl.c.SDL_GetVersion(&sdl_version);
@@ -389,7 +412,7 @@ pub const Context = struct {
         ,
             .{
                 std.meta.tagName(builtin.mode),
-                std.meta.tagName(config.jok_log_level),
+                std.meta.tagName(self.cfg.jok_log_level),
                 builtin.zig_version,
                 std.meta.tagName(target.cpu.arch),
                 std.meta.tagName(target.abi),
@@ -406,7 +429,7 @@ pub const Context = struct {
             return sdl.makeError();
         }
 
-        if (config.jok_exit_on_recv_esc) {
+        if (self.cfg.jok_exit_on_recv_esc) {
             log.info("Press ESC to exit game", .{});
         }
     }
@@ -423,52 +446,52 @@ pub const Context = struct {
             .mouse_capture = true,
             .mouse_focus = true,
         };
-        if (config.jok_window_borderless) {
+        if (self.cfg.jok_window_borderless) {
             window_flags.borderless = true;
         }
-        if (config.jok_window_minimized) {
+        if (self.cfg.jok_window_minimized) {
             window_flags.dim = .minimized;
         }
-        if (config.jok_window_maximized) {
+        if (self.cfg.jok_window_maximized) {
             window_flags.dim = .maximized;
         }
         self.window = try sdl.createWindow(
-            config.jok_window_title,
-            config.jok_window_pos_x,
-            config.jok_window_pos_y,
-            config.jok_window_width,
-            config.jok_window_height,
+            self.cfg.jok_window_title,
+            self.cfg.jok_window_pos_x,
+            self.cfg.jok_window_pos_y,
+            self.cfg.jok_window_width,
+            self.cfg.jok_window_height,
             window_flags,
         );
-        if (config.jok_window_min_size) |size| {
+        if (self.cfg.jok_window_min_size) |size| {
             sdl.c.SDL_SetWindowMinimumSize(
                 self.window.ptr,
                 size.width,
                 size.height,
             );
         }
-        if (config.jok_window_max_size) |size| {
+        if (self.cfg.jok_window_max_size) |size| {
             sdl.c.SDL_SetWindowMaximumSize(
                 self.window.ptr,
                 size.width,
                 size.height,
             );
         }
-        self.toggleResizable(config.jok_window_resizable);
-        self.toggleFullscreeen(config.jok_window_fullscreen);
-        self.toggleAlwaysOnTop(config.jok_window_always_on_top);
+        self.toggleResizable(self.cfg.jok_window_resizable);
+        self.toggleFullscreeen(self.cfg.jok_window_fullscreen);
+        self.toggleAlwaysOnTop(self.cfg.jok_window_always_on_top);
 
         // Apply mouse mode
-        switch (config.jok_mouse_mode) {
+        switch (self.cfg.jok_mouse_mode) {
             .normal => {
-                if (config.jok_window_fullscreen) {
+                if (self.cfg.jok_window_fullscreen) {
                     sdl.c.SDL_SetWindowGrab(self.window.ptr, sdl.c.SDL_FALSE);
                 }
                 _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_ENABLE);
                 _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_FALSE);
             },
             .hide => {
-                if (config.jok_window_fullscreen) {
+                if (self.cfg.jok_window_fullscreen) {
                     sdl.c.SDL_SetWindowGrab(self.window.ptr, sdl.c.SDL_TRUE);
                 }
                 _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
@@ -483,18 +506,18 @@ pub const Context = struct {
             null,
             .{
                 .accelerated = true,
-                .present_vsync = config.jok_fps_limit == .auto,
+                .present_vsync = self.cfg.jok_fps_limit == .auto,
                 .target_texture = true,
             },
         ) catch blk: {
-            if (config.jok_software_renderer) {
+            if (self.cfg.jok_software_renderer) {
                 log.warn("hardware accelerated renderer isn't supported, fallback to software backend", .{});
                 break :blk try sdl.createRenderer(
                     self.window,
                     null,
                     .{
                         .software = true,
-                        .present_vsync = config.jok_fps_limit == .auto, // Doesn't matter actually, vsync won't work anyway
+                        .present_vsync = self.cfg.jok_fps_limit == .auto, // Doesn't matter actually, vsync won't work anyway
                         .target_texture = true,
                     },
                 );

@@ -16,26 +16,39 @@ pub const codepoint_ranges = @import("font/codepoint_ranges.zig");
 /// Embedded font data
 pub const DebugFont = struct {
     pub const font_data = @embedFile("font/clacon2.ttf");
+    pub var font: *Font = undefined;
 
-    var font: *Font = undefined;
     var atlases: std.AutoHashMap(u32, *Atlas) = undefined;
     var vattrib: std.ArrayList(sdl.Vertex) = undefined;
     var vindices: std.ArrayList(u32) = undefined;
 
     pub fn init(allocator: std.mem.Allocator) !void {
-        DebugFont.font = try Font.fromTrueTypeData(allocator, font_data);
-        DebugFont.atlases = std.AutoHashMap(u32, *Atlas).init(allocator);
-        DebugFont.vattrib = try std.ArrayList(sdl.Vertex).initCapacity(allocator, 100);
-        DebugFont.vindices = try std.ArrayList(u32).initCapacity(allocator, 100);
+        font = try Font.fromTrueTypeData(allocator, font_data);
+        atlases = std.AutoHashMap(u32, *Atlas).init(allocator);
+        vattrib = try std.ArrayList(sdl.Vertex).initCapacity(allocator, 100);
+        vindices = try std.ArrayList(u32).initCapacity(allocator, 100);
     }
 
     pub fn deinit() void {
-        DebugFont.font.destroy();
-        var it = DebugFont.atlases.iterator();
+        font.destroy();
+        var it = atlases.iterator();
         while (it.next()) |a| a.value_ptr.*.destroy();
-        DebugFont.atlases.deinit();
-        DebugFont.vattrib.deinit();
-        DebugFont.vindices.deinit();
+        atlases.deinit();
+        vattrib.deinit();
+        vindices.deinit();
+    }
+
+    pub fn getAtlas(ctx: *const jok.Context, font_size: u32) !*Atlas {
+        return atlases.get(font_size) orelse BLK: {
+            var a = try font.createAtlas(
+                ctx.renderer,
+                font_size,
+                &[_][2]u32{.{ 0x0020, 0x00FF }},
+                1024,
+            );
+            try atlases.put(font_size, a);
+            break :BLK a;
+        };
     }
 };
 
@@ -52,20 +65,7 @@ pub const DrawResult = struct {
     next_line_ypos: f32,
 };
 pub fn debugDraw(ctx: *const jok.Context, opt: DrawOption, comptime fmt: []const u8, args: anytype) !DrawResult {
-    var atlas = DebugFont.atlases.get(opt.font_size) orelse BLK: {
-        var a = try DebugFont.font.createAtlas(
-            ctx.renderer,
-            opt.font_size,
-            &[_][2]u32{.{ 0x0020, 0x00FF }},
-            1024,
-        );
-        try DebugFont.atlases.put(opt.font_size, a);
-        break :BLK a;
-    };
-
-    defer DebugFont.vattrib.clearRetainingCapacity();
-    defer DebugFont.vindices.clearRetainingCapacity();
-
+    var atlas = try DebugFont.getAtlas(ctx, opt.font_size);
     const text = jok.imgui.format(fmt, args);
     const area = try atlas.appendDrawDataFromUTF8String(
         text,
@@ -77,6 +77,8 @@ pub fn debugDraw(ctx: *const jok.Context, opt: DrawOption, comptime fmt: []const
         &DebugFont.vindices,
     );
     try ctx.renderer.drawGeometry(atlas.tex, DebugFont.vattrib.items, DebugFont.vindices.items);
+    defer DebugFont.vattrib.clearRetainingCapacity();
+    defer DebugFont.vindices.clearRetainingCapacity();
     return DrawResult{
         .area = area,
         .next_line_ypos = atlas.getVPosOfNextLine(opt.pos.y),
