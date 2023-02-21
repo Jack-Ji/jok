@@ -17,6 +17,7 @@ normals: std.ArrayList([3]f32),
 texcoords: std.ArrayList([2]f32),
 aabb: ?[6]f32,
 tex: ?sdl.Texture,
+own_texture: bool,
 
 pub fn init(allocator: std.mem.Allocator) Self {
     return .{
@@ -26,6 +27,7 @@ pub fn init(allocator: std.mem.Allocator) Self {
         .texcoords = std.ArrayList([2]f32).init(allocator),
         .aabb = null,
         .tex = null,
+        .own_texture = false,
     };
 }
 
@@ -178,6 +180,7 @@ pub fn fromGltf(
                 false,
             );
         }
+        self.own_texture = true;
     }
     if (opt.compute_aabb) self.computeAabb();
     return self;
@@ -188,6 +191,7 @@ pub fn deinit(self: *Self) void {
     self.positions.deinit();
     self.normals.deinit();
     self.texcoords.deinit();
+    if (self.own_texture) self.tex.?.destroy();
     self.* = undefined;
 }
 
