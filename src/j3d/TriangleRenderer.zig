@@ -113,13 +113,13 @@ pub fn renderMesh(
     camera: Camera,
     indices: []const u16,
     positions: []const [3]f32,
-    normals: []const [3]f32,
+    normals: ?[]const [3]f32,
     colors: ?[]const sdl.Color,
     texcoords: ?[]const [2]f32,
     opt: MeshOption,
 ) !void {
     assert(@rem(indices.len, 3) == 0);
-    assert(normals.len == positions.len);
+    assert(if (normals) |ns| ns.len == positions.len else true);
     assert(if (colors) |cs| cs.len == positions.len else true);
     assert(if (texcoords) |ts| ts.len == positions.len else true);
     if (indices.len == 0) return;
@@ -176,9 +176,6 @@ pub fn renderMesh(
         const v0 = zmath.f32x4(positions[idx0][0], positions[idx0][1], positions[idx0][2], 1.0);
         const v1 = zmath.f32x4(positions[idx1][0], positions[idx1][1], positions[idx1][2], 1.0);
         const v2 = zmath.f32x4(positions[idx2][0], positions[idx2][1], positions[idx2][2], 1.0);
-        const n0 = zmath.f32x4(normals[idx0][0], normals[idx0][1], normals[idx0][2], 0);
-        const n1 = zmath.f32x4(normals[idx1][0], normals[idx1][1], normals[idx1][2], 0);
-        const n2 = zmath.f32x4(normals[idx2][0], normals[idx2][1], normals[idx2][2], 0);
 
         // Ignore triangles facing away from camera (front faces' vertices are clock-wise organized)
         if (opt.cull_faces) {
@@ -201,24 +198,28 @@ pub fn renderMesh(
             v2,
             zmath.f32x4(0.0, 0.0, 0.0, 1.0),
         }, model);
-        var tri_world_normals = zmath.mul(zmath.Mat{
-            n0,
-            n1,
-            n2,
-            zmath.f32x4s(0),
-        }, normal_transform);
-        tri_world_normals[0] = zmath.normalize3(tri_world_normals[0]);
-        tri_world_normals[1] = zmath.normalize3(tri_world_normals[1]);
-        tri_world_normals[2] = zmath.normalize3(tri_world_normals[2]);
-        tri_world_normals[0][3] = 0;
-        tri_world_normals[1][3] = 0;
-        tri_world_normals[2][3] = 0;
         const tri_clip_positions = zmath.mul(zmath.Mat{
             v0,
             v1,
             v2,
             zmath.f32x4(0.0, 0.0, 0.0, 1.0),
         }, mvp);
+        var tri_world_normals: ?[3]zmath.Vec = if (normals) |ns| BLK: {
+            const n0 = zmath.f32x4(ns[idx0][0], ns[idx0][1], ns[idx0][2], 0);
+            const n1 = zmath.f32x4(ns[idx1][0], ns[idx1][1], ns[idx1][2], 0);
+            const n2 = zmath.f32x4(ns[idx2][0], ns[idx2][1], ns[idx2][2], 0);
+            var vs = zmath.mul(zmath.Mat{
+                n0, n1, n2, zmath.f32x4s(0),
+            }, normal_transform);
+            vs[0][3] = 0;
+            vs[1][3] = 0;
+            vs[2][3] = 0;
+            break :BLK .{
+                zmath.normalize3(vs[0]),
+                zmath.normalize3(vs[1]),
+                zmath.normalize3(vs[2]),
+            };
+        } else null;
         const tri_colors: ?[3]sdl.Color = if (colors) |cs|
             [3]sdl.Color{ cs[idx0], cs[idx1], cs[idx2] }
         else
@@ -233,8 +234,8 @@ pub fn renderMesh(
             null;
         internal.clipTriangle(
             tri_world_positions[0..3],
-            tri_world_normals[0..3],
             tri_clip_positions[0..3],
+            tri_world_normals,
             tri_colors,
             tri_texcoords,
             &self.clip_vertices,
@@ -263,9 +264,6 @@ pub fn renderMesh(
         const world_v0 = self.world_positions.items[idx0];
         const world_v1 = self.world_positions.items[idx1];
         const world_v2 = self.world_positions.items[idx2];
-        const n0 = self.world_normals.items[idx0];
-        const n1 = self.world_normals.items[idx1];
-        const n2 = self.world_normals.items[idx2];
         const ndc0 = clip_v0 / zmath.splat(zmath.Vec, clip_v0[3]);
         const ndc1 = clip_v1 / zmath.splat(zmath.Vec, clip_v1[3]);
         const ndc2 = clip_v2 / zmath.splat(zmath.Vec, clip_v2[3]);
@@ -298,15 +296,21 @@ pub fn renderMesh(
         const c0_diffuse = if (colors) |_| self.clip_colors.items[idx0] else opt.color;
         const c1_diffuse = if (colors) |_| self.clip_colors.items[idx1] else opt.color;
         const c2_diffuse = if (colors) |_| self.clip_colors.items[idx2] else opt.color;
-        const c0 = if (opt.lighting) |p| BLK: {
+        const c0 = if (normals != null and opt.lighting != null) BLK: {
+            const n0 = self.world_normals.items[idx0];
+            const p = opt.lighting.?;
             var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
             break :BLK calc(c0_diffuse, camera.position, world_v0, n0, p);
         } else c0_diffuse;
-        const c1 = if (opt.lighting) |p| BLK: {
+        const c1 = if (normals != null and opt.lighting != null) BLK: {
+            const n1 = self.world_normals.items[idx1];
+            const p = opt.lighting.?;
             var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
             break :BLK calc(c1_diffuse, camera.position, world_v1, n1, p);
         } else c1_diffuse;
-        const c2 = if (opt.lighting) |p| BLK: {
+        const c2 = if (normals != null and opt.lighting != null) BLK: {
+            const n2 = self.world_normals.items[idx2];
+            const p = opt.lighting.?;
             var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
             break :BLK calc(c2_diffuse, camera.position, world_v2, n2, p);
         } else c2_diffuse;

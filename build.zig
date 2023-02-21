@@ -45,6 +45,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "audio_synthesize_demo", .opt = .{} },
         .{ .name = "hypocycloids", .opt = .{} },
         .{ .name = "spiraling_squares", .opt = .{} },
+        .{ .name = "gltf", .opt = .{} },
     };
     const build_examples = b.step("examples", "compile and install all examples");
     inline for (examples) |demo| {
