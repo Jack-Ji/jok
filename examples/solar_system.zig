@@ -7,6 +7,7 @@ const zmesh = jok.zmesh;
 const j3d = jok.j3d;
 const Camera = j3d.Camera;
 const Scene = j3d.Scene;
+const Mesh = j3d.Mesh;
 
 var camera: Camera = undefined;
 var sphere: zmesh.Shape = undefined;
@@ -43,7 +44,7 @@ pub fn init(ctx: jok.Context) !void {
     sun = try Scene.Object.create(ctx.allocator(), .{
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.6)),
-            .shape = sphere,
+            .mesh = try Mesh.fromShape(ctx.allocator(), sphere, .{}),
             .color = sdl.Color.rgb(255, 255, 0),
             .disable_lighting = true,
         },
@@ -51,14 +52,14 @@ pub fn init(ctx: jok.Context) !void {
     earth = try Scene.Object.create(ctx.allocator(), .{
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.2)),
-            .shape = sphere,
+            .mesh = try Mesh.fromShape(ctx.allocator(), sphere, .{}),
             .color = sdl.Color.rgb(0, 0, 255),
         },
     });
     moon = try Scene.Object.create(ctx.allocator(), .{
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.06)),
-            .shape = sphere,
+            .mesh = try Mesh.fromShape(ctx.allocator(), sphere, .{}),
             .color = sdl.Color.rgb(192, 192, 192),
         },
     });

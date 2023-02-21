@@ -105,7 +105,11 @@ pub fn init(ctx: jok.Context) !void {
     sphere_obj = try Scene.Object.create(ctx.allocator(), .{
         .mesh = .{
             .transform = zmath.identity(),
-            .shape = sphere_mesh,
+            .mesh = try j3d.Mesh.fromShape(
+                ctx.allocator(),
+                sphere_mesh,
+                .{},
+            ),
             .color = sdl.Color.white,
         },
     });

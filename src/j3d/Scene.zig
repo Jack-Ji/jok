@@ -5,10 +5,10 @@ const math = std.math;
 const internal = @import("internal.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
+const Mesh = @import("Mesh.zig");
 const sdl = @import("sdl");
 const jok = @import("../jok.zig");
 const zmath = jok.zmath;
-const zmesh = jok.zmesh;
 const j3d = jok.j3d;
 const lighting = j3d.lighting;
 const Self = @This();
@@ -19,10 +19,9 @@ pub const Position = struct {
 };
 
 /// Represent a mesh object in 3d space
-pub const Mesh = struct {
+pub const MeshObj = struct {
     transform: zmath.Mat,
-    shape: zmesh.Shape,
-    aabb: ?[6]f32 = null,
+    mesh: Mesh,
     cull_faces: bool = true,
     color: sdl.Color = sdl.Color.white,
     texture: ?sdl.Texture = null,
@@ -30,7 +29,7 @@ pub const Mesh = struct {
 };
 
 /// Represent a sprite in 3d space
-pub const Sprite = struct {
+pub const SpriteObj = struct {
     transform: zmath.Mat,
     size: sdl.PointF,
     uv: [2]sdl.PointF,
@@ -50,8 +49,8 @@ pub const Sprite = struct {
 /// A movable object in 3d space
 pub const Actor = union(enum) {
     position: Position,
-    mesh: Mesh,
-    sprite: Sprite,
+    mesh: MeshObj,
+    sprite: SpriteObj,
 
     inline fn calcTransform(actor: Actor, parent_m: zmath.Mat) zmath.Mat {
         return switch (actor) {
@@ -104,6 +103,9 @@ pub const Object = struct {
     pub fn destroy(o: *Object, recursive: bool) void {
         if (recursive) {
             for (o.children.items) |c| c.destroy(true);
+        }
+        if (o.actor == .mesh) {
+            o.actor.mesh.mesh.deinit();
         }
         o.removeSelf();
         o.children.deinit();
@@ -219,16 +221,22 @@ pub fn render(
             target,
             o.transform,
             camera,
-            m.shape.indices,
-            m.shape.positions,
-            m.shape.normals.?,
+            m.mesh.indices.items,
+            m.mesh.positions.items,
+            if (m.mesh.normals.items.len == 0)
+                null
+            else
+                m.mesh.normals.items,
             null,
-            m.shape.texcoords,
+            if (m.mesh.texcoords.items.len == 0)
+                null
+            else
+                m.mesh.texcoords.items,
             .{
-                .aabb = m.aabb,
+                .aabb = m.mesh.aabb,
                 .cull_faces = m.cull_faces,
                 .color = m.color,
-                .texture = m.texture,
+                .texture = m.texture orelse m.mesh.tex,
                 .lighting = if (m.disable_lighting)
                     null
                 else

@@ -38,7 +38,9 @@ pub fn fromShape(
     try self.indices.appendSlice(shape.indices);
     try self.positions.appendSlice(shape.positions);
     try self.normals.appendSlice(shape.normals.?);
-    try self.texcoords.appendSlice(shape.texcoords.?);
+    if (shape.texcoords) |ts| {
+        try self.texcoords.appendSlice(ts);
+    }
     if (opt.compute_aabb) self.computeAabb();
     return self;
 }
