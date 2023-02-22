@@ -239,7 +239,6 @@ pub fn getScreenPixels(allocator: std.mem.Allocator, rd: sdl.Renderer, rect: ?sd
     const height = if (rect) |r| r.height else fb_size.height_pixels;
     const pixel_size = @intCast(usize, channels * width * height);
     var pixels = try allocator.alloc(u8, pixel_size);
-    defer allocator.free(pixels);
     try rd.readPixels(rect, format, pixels.ptr, @intCast(u32, channels * width));
     return .{
         .allocator = allocator,
