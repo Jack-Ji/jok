@@ -4,8 +4,8 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const j2d = jok.j2d;
 
-pub const jok_window_width: u32 = 1024;
-pub const jok_window_height: u32 = 768;
+pub const jok_window_width = 1024;
+pub const jok_window_height = 768;
 
 var path: j2d.Path = undefined;
 

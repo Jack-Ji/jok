@@ -7,8 +7,8 @@ const imgui = jok.imgui;
 const nfd = jok.nfd;
 const j2d = jok.j2d;
 
-pub const jok_window_width: u32 = 1200;
-pub const jok_window_height: u32 = 800;
+pub const jok_window_width = 1200;
+pub const jok_window_height = 800;
 
 // Image positions
 const xshift = 50;

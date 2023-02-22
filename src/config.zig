@@ -131,11 +131,16 @@ pub fn init(comptime game: anytype) Config {
             if (std.mem.eql(u8, o.name, f.name)) {
                 const CfgFieldType = @TypeOf(@field(cfg, f.name));
                 const GameFieldType = @TypeOf(@field(game, f.name));
-                if (CfgFieldType != GameFieldType) {
+                const cfg_type = @typeInfo(CfgFieldType);
+                const game_type = @typeInfo(GameFieldType);
+                if (CfgFieldType == GameFieldType or
+                    (cfg_type == .Int and game_type == .ComptimeInt) or
+                    (cfg_type == .Optional and cfg_type.Optional.child == GameFieldType))
+                {
+                    @field(cfg, f.name) = @field(game, o.name);
+                } else {
                     @compileError("Validation of setup options failed, invalid type for option `" ++
                         f.name ++ "`, expecting " ++ @typeName(CfgFieldType) ++ ", get " ++ @typeName(GameFieldType));
-                } else {
-                    @field(cfg, f.name) = @field(game, o.name);
                 }
                 break;
             }

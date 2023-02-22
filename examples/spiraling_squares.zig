@@ -8,8 +8,8 @@ const j2d = jok.j2d;
 
 const rect_size = 400;
 const rect_num = 1000;
-pub const jok_window_width: u32 = 2 * rect_size;
-pub const jok_window_height: u32 = 2 * rect_size;
+pub const jok_window_width = 2 * rect_size;
+pub const jok_window_height = 2 * rect_size;
 
 pub fn init(ctx: jok.Context) !void {
     _ = ctx;

@@ -3,8 +3,8 @@ const sdl = @import("sdl");
 const jok = @import("jok");
 const imgui = jok.imgui;
 
-pub const jok_window_width: u32 = 1200;
-pub const jok_window_height: u32 = 800;
+pub const jok_window_width = 1200;
+pub const jok_window_height = 800;
 
 var tex: sdl.Texture = undefined;
 

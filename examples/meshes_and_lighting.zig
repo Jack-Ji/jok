@@ -13,8 +13,8 @@ const j3d = jok.j3d;
 const Camera = j3d.Camera;
 
 pub const jok_window_resizable = true;
-pub const jok_window_width: u32 = 800;
-pub const jok_window_height: u32 = 600;
+pub const jok_window_width = 800;
+pub const jok_window_height = 600;
 
 var lighting: bool = true;
 var wireframe: bool = false;
