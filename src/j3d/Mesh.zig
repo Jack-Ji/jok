@@ -7,8 +7,8 @@ const Vector = @import("Vector.zig");
 const zmesh = jok.zmesh;
 const Self = @This();
 
-pub const ImportOption = struct {
-    compute_aabb: bool = true,
+pub const Error = error{
+    InvalidFormat,
 };
 
 indices: std.ArrayList(u16),
@@ -19,24 +19,29 @@ aabb: ?[6]f32,
 tex: ?sdl.Texture,
 own_texture: bool,
 
-pub fn init(allocator: std.mem.Allocator) Self {
+pub fn init(allocator: std.mem.Allocator, tex: ?sdl.Texture) Self {
     return .{
         .indices = std.ArrayList(u16).init(allocator),
         .positions = std.ArrayList([3]f32).init(allocator),
         .normals = std.ArrayList([3]f32).init(allocator),
         .texcoords = std.ArrayList([2]f32).init(allocator),
         .aabb = null,
-        .tex = null,
+        .tex = tex,
         .own_texture = false,
     };
 }
 
+/// Init mesh with zmesh.Shape
+pub const ShapeOption = struct {
+    compute_aabb: bool = true,
+    tex: ?sdl.Texture = null,
+};
 pub fn fromShape(
     allocator: std.mem.Allocator,
     shape: zmesh.Shape,
-    opt: ImportOption,
+    opt: ShapeOption,
 ) !Self {
-    var self = init(allocator);
+    var self = init(allocator, opt.tex);
     try self.indices.appendSlice(shape.indices);
     try self.positions.appendSlice(shape.positions);
     try self.normals.appendSlice(shape.normals.?);
@@ -47,13 +52,17 @@ pub fn fromShape(
     return self;
 }
 
+/// Init mesh with GLTF model file
+pub const GltfOption = struct {
+    compute_aabb: bool = true,
+};
 pub fn fromGltf(
     allocator: std.mem.Allocator,
     rd: sdl.Renderer,
     file_path: [:0]const u8,
-    opt: ImportOption,
+    opt: GltfOption,
 ) !Self {
-    var self = init(allocator);
+    var self = init(allocator, null);
     const data = try zmesh.io.parseAndLoadFile(file_path);
     defer zmesh.io.freeData(data);
 
@@ -195,6 +204,30 @@ pub fn deinit(self: *Self) void {
     self.* = undefined;
 }
 
+/// Add new geometry data
+pub fn appendTriangles(
+    self: *Self,
+    indices: []u16,
+    positions: [][3]f32,
+    normals: ?[][3]f32,
+    texcoords: ?[][3]f32,
+) !void {
+    if (indices.len == 0) return;
+    assert(@rem(indices.len, 3) == 0);
+    assert(if (normals) |ns| positions.len == ns.len else true);
+    assert(if (texcoords) |ts| positions.len == ts.len else true);
+    if ((self.normals.items.len > 0 and normals == null) or
+        (self.indices.items.len > 0 and self.normals.items.len == 0 and normals != null))
+    {
+        return error.InvalidFormat;
+    }
+    try self.indices.appendSlice(indices);
+    try self.positions.appendSlice(positions);
+    if (normals) |ns| try self.normals.appendSlice(ns);
+    if (texcoords) |ts| try self.texcoords.appendSlice(ts);
+}
+
+/// Compute AABB of mesh
 pub fn computeAabb(self: *Self) void {
     var aabb_min = Vector.new(
         self.positions.items[0][0],
@@ -216,4 +249,12 @@ pub fn computeAabb(self: *Self) void {
         aabb_min.x(), aabb_min.y(), aabb_min.z(),
         aabb_max.x(), aabb_max.y(), aabb_max.z(),
     };
+}
+
+/// Remap texture coordinates to new range
+pub fn remapTexcoords(self: *Self, uv0: sdl.PointF, uv1: sdl.PointF) void {
+    for (self.texcoords.items) |*ts| {
+        ts[0] = jok.utils.math.linearMap(ts[0], 0, 1, uv0.x, uv1.x);
+        ts[1] = jok.utils.math.linearMap(ts[1], 0, 1, uv0.y, uv1.y);
+    }
 }
