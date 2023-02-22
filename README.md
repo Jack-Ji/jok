@@ -63,8 +63,8 @@ const jok = @import("jok");
 const j2d = jok.j2d;
 const j3d = jok.j3d;
 
-pub const jok_window_width: u32 = 400;
-pub const jok_window_height: u32 = 300;
+pub const jok_window_width = 400;
+pub const jok_window_height = 300;
 
 pub fn init(ctx: jok.Context) !void {
     // your init code
@@ -104,7 +104,7 @@ The game is deemed as a separate package to `jok`'s runtime as a matter of fact.
 Your responsibility is to provide 5 pub functions: `init/event/update/draw/quit`, that's all (pretty much).
 
 Of course, you can customize some setup settings, such as width/height/title/position of window,
-which is given by defining some constants using predefined names (they're all prefixed with `jok_`).
+by defining some public constants using predefined names (they're all prefixed with `jok_`).
 Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig) to see available options.
 
 ## What's supported platforms?
