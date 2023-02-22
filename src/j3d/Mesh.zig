@@ -35,6 +35,7 @@ pub fn init(allocator: std.mem.Allocator, tex: ?sdl.Texture) Self {
 pub const ShapeOption = struct {
     compute_aabb: bool = true,
     tex: ?sdl.Texture = null,
+    uvs: ?[2]sdl.PointF = null,
 };
 pub fn fromShape(
     allocator: std.mem.Allocator,
@@ -47,6 +48,9 @@ pub fn fromShape(
     try self.normals.appendSlice(shape.normals.?);
     if (shape.texcoords) |ts| {
         try self.texcoords.appendSlice(ts);
+        if (opt.tex != null and opt.uvs != null) {
+            self.remapTexcoords(opt.uvs.?[0], opt.uvs.?[1]);
+        }
     }
     if (opt.compute_aabb) self.computeAabb();
     return self;
@@ -55,6 +59,8 @@ pub fn fromShape(
 /// Init mesh with GLTF model file
 pub const GltfOption = struct {
     compute_aabb: bool = true,
+    tex: ?sdl.Texture = null,
+    uvs: ?[2]sdl.PointF = null,
 };
 pub fn fromGltf(
     allocator: std.mem.Allocator,
@@ -153,7 +159,12 @@ pub fn fromGltf(
             }
         }
     }
-    if (data.images_count > 0) {
+    if (opt.tex) |t| {
+        self.tex = t;
+        if (opt.uvs != null) {
+            self.remapTexcoords(opt.uvs.?[0], opt.uvs.?[1]);
+        }
+    } else if (data.images_count > 0) {
         const image = data.images.?[0];
         if (image.uri) |p| {
             // Read external file
@@ -188,7 +199,7 @@ pub fn fromGltf(
                 .static,
                 false,
             );
-        }
+        } else unreachable;
         self.own_texture = true;
     }
     if (opt.compute_aabb) self.computeAabb();
