@@ -11,7 +11,7 @@ pub const Error = error{
 };
 
 /// Get # of channels from pixel format
-pub inline fn getChannels(format: sdl.Texture.Format) u32 {
+pub inline fn getChannels(format: sdl.PixelFormatEnum) u32 {
     return switch (format) {
         .rgb888, .bgr888 => @as(u32, 3),
         .rgba8888, .abgr8888 => @as(u32, 4),
@@ -20,7 +20,7 @@ pub inline fn getChannels(format: sdl.Texture.Format) u32 {
 }
 
 /// Get appropriate 4-channel pixel format from endian
-pub inline fn getFormatByEndian() sdl.Texture.Format {
+pub inline fn getFormatByEndian() sdl.PixelFormatEnum {
     return switch (native_endian) {
         .Big => .rgba8888,
         .Little => .abgr8888,
@@ -144,7 +144,7 @@ pub fn savePixelsToFile(
     pixels: []const u8,
     width: u32,
     height: u32,
-    format: sdl.Texture.Format,
+    format: sdl.PixelFormatEnum,
     path: [:0]const u8,
     opt: EncodingOption,
 ) !void {
@@ -215,6 +215,56 @@ pub fn saveSurfaceToFile(surface: sdl.Surface, path: [:0]const u8, opt: Encoding
         @intCast(u32, surface.ptr.w),
         @intCast(u32, surface.ptr.h),
         format,
+        path,
+        opt,
+    );
+}
+
+/// Read pixels from screen
+pub fn getScreenPixels(allocator: std.mem.Allocator, rd: sdl.Renderer, rect: ?sdl.Rectangle) !struct {
+    allocator: std.mem.Allocator,
+    format: sdl.PixelFormatEnum,
+    pixels: []u8,
+    width: u32,
+    height: u32,
+
+    pub fn destroy(self: @This()) void {
+        self.allocator.free(self.pixels);
+    }
+} {
+    const format = getFormatByEndian();
+    const channels = @intCast(c_int, getChannels(format));
+    const fb_size = try rd.getOutputSize();
+    const width = if (rect) |r| r.width else fb_size.width_pixels;
+    const height = if (rect) |r| r.height else fb_size.height_pixels;
+    const pixel_size = @intCast(usize, channels * width * height);
+    var pixels = try allocator.alloc(u8, pixel_size);
+    defer allocator.free(pixels);
+    try rd.readPixels(rect, format, pixels.ptr, @intCast(u32, channels * width));
+    return .{
+        .allocator = allocator,
+        .format = format,
+        .pixels = pixels,
+        .width = @intCast(u32, width),
+        .height = @intCast(u32, height),
+    };
+}
+
+/// Take screenshot and save to file, **slow**
+pub fn saveScreenToFile(
+    allocator: std.mem.Allocator,
+    rd: sdl.Renderer,
+    rect: ?sdl.Rectangle,
+    path: [:0]const u8,
+    opt: EncodingOption,
+) !void {
+    const data = try getScreenPixels(allocator, rd, rect);
+    defer data.destroy();
+    try savePixelsToFile(
+        data.pixels,
+        data.width,
+        data.height,
+        data.format,
         path,
         opt,
     );

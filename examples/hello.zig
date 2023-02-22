@@ -41,8 +41,17 @@ pub fn init(ctx: jok.Context) !void {
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     switch (e) {
         .key_down => |k| {
-            if (k.scancode == .f1)
+            if (k.scancode == .f1) {
                 ctx.toggleFullscreeen(null);
+            } else if (k.scancode == .f2) {
+                try jok.utils.gfx.saveScreenToFile(
+                    ctx.allocator(),
+                    ctx.renderer(),
+                    null,
+                    "screenshot.png",
+                    .{},
+                );
+            }
         },
         else => {},
     }
@@ -159,6 +168,12 @@ pub fn draw(ctx: jok.Context) !void {
         ctx,
         .{ .pos = .{ .x = 0, .y = 0 } },
         "Press F1 to toggle fullscreen",
+        .{},
+    );
+    _ = try font.debugDraw(
+        ctx,
+        .{ .pos = .{ .x = 0, .y = 17 } },
+        "Press F2 to take screenshot",
         .{},
     );
 }
