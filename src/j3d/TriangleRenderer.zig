@@ -111,7 +111,7 @@ pub fn renderMesh(
     target: *internal.RenderTarget,
     model: zmath.Mat,
     camera: Camera,
-    indices: []const u16,
+    indices: []const u32,
     positions: []const [3]f32,
     normals: ?[]const [3]f32,
     colors: ?[]const sdl.Color,
@@ -220,6 +220,10 @@ pub fn renderMesh(
                 zmath.normalize3(vs[2]),
             };
         } else null;
+        if (tri_world_normals) |ns| {
+            std.debug.print("{any}\n", .{normals.?[idx0]});
+            assert(!math.isNan(ns[0][0]));
+        }
         const tri_colors: ?[3]sdl.Color = if (colors) |cs|
             [3]sdl.Color{ cs[idx0], cs[idx1], cs[idx2] }
         else

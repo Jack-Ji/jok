@@ -16,7 +16,7 @@ pub const SubMesh = struct {
     mesh: *Self,
     children: std.ArrayList(*SubMesh),
     model: zmath.Mat,
-    indices: std.ArrayList(u16),
+    indices: std.ArrayList(u32),
     positions: std.ArrayList([3]f32),
     normals: std.ArrayList([3]f32),
     colors: std.ArrayList(sdl.Color),
@@ -29,7 +29,7 @@ pub const SubMesh = struct {
             .mesh = mesh,
             .children = std.ArrayList(*SubMesh).init(allocator),
             .model = zmath.identity(),
-            .indices = std.ArrayList(u16).init(allocator),
+            .indices = std.ArrayList(u32).init(allocator),
             .positions = std.ArrayList([3]f32).init(allocator),
             .normals = std.ArrayList([3]f32).init(allocator),
             .colors = std.ArrayList(sdl.Color).init(allocator),
@@ -42,7 +42,7 @@ pub const SubMesh = struct {
     /// Add new geometry data
     pub fn appendTriangles(
         self: *SubMesh,
-        indices: []u16,
+        indices: []u32,
         positions: [][3]f32,
         normals: ?[][3]f32,
         colors: ?[]sdl.Color,
@@ -61,7 +61,7 @@ pub const SubMesh = struct {
         {
             return error.InvalidFormat;
         }
-        const index_offset = @intCast(u16, self.positions.items.len);
+        const index_offset = @intCast(u32, self.positions.items.len);
         try self.indices.ensureTotalCapacity(self.indices.items.len + indices.len);
         for (indices) |idx| self.indices.appendAssumeCapacity(idx + index_offset);
         try self.positions.appendSlice(positions);
@@ -258,7 +258,7 @@ fn loadNodeTree(
             const num_vertices: u32 = @intCast(u32, prim.attributes[0].data.count);
 
             // Indices.
-            const index_offset = @intCast(u16, m.positions.items.len);
+            const index_offset = @intCast(u32, m.positions.items.len);
             if (prim.indices) |accessor| {
                 const num_indices: u32 = @intCast(u32, accessor.count);
                 try m.indices.ensureTotalCapacity(m.indices.items.len + num_indices);
@@ -291,7 +291,7 @@ fn loadNodeTree(
                     const src = @ptrCast([*]const u32, data_addr);
                     var i: u32 = 0;
                     while (i < num_indices) : (i += 1) {
-                        m.indices.appendAssumeCapacity(@intCast(u16, src[i]) + index_offset);
+                        m.indices.appendAssumeCapacity(src[i] + index_offset);
                     }
                 } else {
                     unreachable;
@@ -301,7 +301,7 @@ fn loadNodeTree(
                 try m.indices.ensureTotalCapacity(num_vertices);
                 var i: u32 = 0;
                 while (i < num_vertices) : (i += 1) {
-                    m.indices.appendAssumeCapacity(@intCast(u16, i));
+                    m.indices.appendAssumeCapacity(i + index_offset);
                 }
             }
 

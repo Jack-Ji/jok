@@ -93,9 +93,7 @@ pub fn createGame(
     bos.addOption(bool, "use_ztracy", opt.use_ztracy);
     const sdl_sdk = Sdk.init(b, null);
     const zmath_pkg = zmath.Package.build(b, .{});
-    const zmesh_pkg = zmesh.Package.build(b, target, optimize, .{
-        .options = .{ .shape_use_32bit_indices = false },
-    });
+    const zmesh_pkg = zmesh.Package.build(b, target, optimize, .{});
     const znoise_pkg = znoise.Package.build(b, target, optimize, .{});
     const zpool_pkg = zpool.Package.build(b, .{});
     const zflecs_pkg = zflecs.Package.build(b, target, optimize, .{});
