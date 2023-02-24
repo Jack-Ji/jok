@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const sdl = @import("sdl");
 const jok = @import("jok");
+const sdl = jok.sdl;
 const config = jok.config;
 const game = @import("game");
 

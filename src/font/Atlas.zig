@@ -57,7 +57,7 @@ pub fn create(
         null,
     );
     assert(rc > 0);
-    for (cp_ranges) |cs, i| {
+    for (cp_ranges, 0..) |cs, i| {
         assert(cs[1] >= cs[0]);
         ranges.appendAssumeCapacity(
             .{
@@ -78,7 +78,7 @@ pub fn create(
         );
     }
     truetype.stbtt_PackEnd(&pack_ctx);
-    for (stb_pixels) |px, i| {
+    for (stb_pixels, 0..) |px, i| {
         real_pixels[i * 4] = px;
         real_pixels[i * 4 + 1] = px;
         real_pixels[i * 4 + 2] = px;
@@ -268,7 +268,7 @@ pub inline fn getVerticesOfCodePoint(
     var pypos = &ypos;
 
     const idx = self.codepoint_search.get(codepoint) orelse BLK: {
-        for (self.ranges.items) |range, idx| {
+        for (self.ranges.items, 0..) |range, idx| {
             if (codepoint < range.codepoint_begin or codepoint > range.codepoint_end) continue;
             self.codepoint_search.put(codepoint, @intCast(u8, idx)) catch unreachable;
             break :BLK @intCast(u8, idx);

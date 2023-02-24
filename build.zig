@@ -3,7 +3,6 @@ const builtin = @import("builtin");
 const Sdk = @import("src/deps/sdl/Sdk.zig");
 const stb = @import("src/deps/stb/build.zig");
 const imgui = @import("src/deps/imgui/build.zig");
-const chipmunk = @import("src/deps/chipmunk/build.zig");
 const nfd = @import("src/deps/nfd/build.zig");
 const zmath = @import("src/deps/zmath/build.zig");
 const zmesh = @import("src/deps/zmesh/build.zig");
@@ -25,7 +24,6 @@ pub fn build(b: *std.Build) void {
     const examples = [_]struct { name: []const u8, opt: BuildOptions }{
         .{ .name = "hello", .opt = .{} },
         .{ .name = "imgui_demo", .opt = .{} },
-        //.{ .name = "chipmunk_demo", .opt = .{ .use_chipmunk = true } },
         .{ .name = "sprite_sheet", .opt = .{} },
         .{ .name = "sprite_scene", .opt = .{} },
         .{ .name = "sprite_benchmark", .opt = .{} },
@@ -130,12 +128,10 @@ pub fn createGame(
         .target = target,
         .optimize = optimize,
     });
-    exe.addModule("sdl", sdl_sdk.getWrapperModule());
     exe.addModule("jok", jok);
     exe.addModule("game", b.createModule(.{
         .source_file = .{ .path = root_file },
         .dependencies = &.{
-            .{ .name = "sdl", .module = sdl_sdk.getWrapperModule() },
             .{ .name = "jok", .module = jok },
         },
     }));
@@ -146,9 +142,6 @@ pub fn createGame(
     imgui.link(exe);
     zmesh_pkg.link(exe);
     znoise_pkg.link(exe);
-    if (opt.use_chipmunk) {
-        chipmunk.link(exe);
-    }
     if (opt.use_nfd) {
         nfd.link(exe);
     }

@@ -74,7 +74,7 @@ pub const Object = struct {
             if (p == o) return;
 
             // Leave old parent
-            for (p.children.items) |_c, idx| {
+            for (p.children.items, 0..) |_c, idx| {
                 if (_c == c) {
                     _ = p.children.swapRemove(idx);
                     break;
@@ -92,7 +92,7 @@ pub const Object = struct {
         if (c.parent) |p| {
             if (p != o) return;
 
-            for (o.children.items) |_c, idx| {
+            for (o.children.items, 0..) |_c, idx| {
                 if (_c == c) {
                     _ = o.children.swapRemove(idx);
                     break;
@@ -107,7 +107,7 @@ pub const Object = struct {
     pub fn removeSelf(o: *Object) void {
         if (o.parent) |p| {
             // Leave old parent
-            for (p.children.items) |c, idx| {
+            for (p.children.items, 0..) |c, idx| {
                 if (o == c) {
                     _ = p.children.swapRemove(idx);
                     break;

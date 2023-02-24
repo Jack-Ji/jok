@@ -1,8 +1,8 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const builtin = @import("builtin");
-const sdl = @import("sdl");
 const jok = @import("jok");
+const sdl = jok.sdl;
 const j2d = jok.j2d;
 const font = jok.font;
 

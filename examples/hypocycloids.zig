@@ -1,7 +1,7 @@
 const std = @import("std");
 const math = std.math;
-const sdl = @import("sdl");
 const jok = @import("jok");
+const sdl = jok.sdl;
 const j2d = jok.j2d;
 
 pub const jok_window_width = 1024;

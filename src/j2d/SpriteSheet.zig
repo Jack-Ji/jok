@@ -99,7 +99,7 @@ pub fn create(
     defer allocator.free(images);
 
     // Load images' data
-    for (sources) |s, i| {
+    for (sources, 0..) |s, i| {
         switch (s.image) {
             .file_path => |path| {
                 var image_width: c_int = undefined;
@@ -170,7 +170,7 @@ pub fn create(
     // Merge textures and upload to gpu
     const inv_width = 1.0 / @intToFloat(f32, width);
     const inv_height = 1.0 / @intToFloat(f32, height);
-    for (stb_rects) |r, i| {
+    for (stb_rects, 0..) |r, i| {
         assert(r.was_packed == 1);
         rects[i] = .{
             .s0 = @intToFloat(f32, r.x) * inv_width,
@@ -208,7 +208,7 @@ pub fn create(
     errdefer tex.destroy();
 
     // Fill search tree, abort if name collision happens
-    for (sources) |s, i| {
+    for (sources, 0..) |s, i| {
         try tree.putNoClobber(
             try std.fmt.allocPrint(allocator, "{s}", .{s.name}),
             @intCast(u32, i),
@@ -379,7 +379,7 @@ pub fn fromSinglePicture(
     errdefer allocator.free(rects);
 
     // Fill search tree, abort if name collision happens
-    for (sprites) |sp, i| {
+    for (sprites, 0..) |sp, i| {
         var sr = SpriteRect{
             .width = std.math.min(sp.rect.width, tex_width - sp.rect.x),
             .height = std.math.min(sp.rect.height, tex_height - sp.rect.y),

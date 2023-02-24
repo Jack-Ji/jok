@@ -1,6 +1,6 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = @import("sdl");
+const sdl = jok.sdl;
 const font = jok.font;
 const j2d = jok.j2d;
 

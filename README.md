@@ -58,8 +58,8 @@ Now in your code you may import and use jok:
 
 ```zig
 const std = @import("std");
-const sdl = @import("sdl");
 const jok = @import("jok");
+const sdl = jok.sdl;
 const j2d = jok.j2d;
 const j3d = jok.j3d;
 

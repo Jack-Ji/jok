@@ -105,7 +105,7 @@ pub fn render(
     vp[3] = zmath.f32x4s(0);
     vp = zmath.mul(vp, camera.getProjectMatrix());
 
-    for (self.box_planes) |plane, idx| {
+    for (self.box_planes, 0..) |plane, idx| {
         self.clip_vertices.clearRetainingCapacity();
         self.clip_texcoords.clearRetainingCapacity();
 

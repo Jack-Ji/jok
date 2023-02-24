@@ -1,6 +1,6 @@
 const std = @import("std");
-const sdl = @import("sdl");
 const jok = @import("jok");
+const sdl = jok.sdl;
 const j2d = jok.j2d;
 
 pub const jok_fps_limit: jok.config.FpsLimit = .none;

@@ -154,7 +154,7 @@ fn unpackAccumulativeOffsets(
     @setEvalBranchQuota(10000);
     assert(offsets.len == results.len);
     var base_codepoint = _base_codepoint;
-    for (offsets) |off, i| {
+    for (offsets, 0..) |off, i| {
         base_codepoint += off;
         results[i][0] = base_codepoint;
         results[i][1] = base_codepoint;

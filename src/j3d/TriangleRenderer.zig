@@ -75,7 +75,7 @@ pub fn init(allocator: std.mem.Allocator) Self {
         .world_normals = std.ArrayList(zmath.Vec).init(allocator),
         .planes = undefined,
     };
-    for (self.planes) |*p, i| {
+    for (&self.planes, 0..) |*p, i| {
         p.* = zmesh.Shape.initPlane(
             @intCast(i32, i + 1),
             @intCast(i32, i + 1),
@@ -91,7 +91,7 @@ pub fn deinit(self: *Self) void {
     self.clip_texcoords.deinit();
     self.world_positions.deinit();
     self.world_normals.deinit();
-    for (self.planes) |*p| {
+    for (&self.planes) |*p| {
         p.deinit();
     }
     self.* = undefined;

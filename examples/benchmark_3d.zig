@@ -1,6 +1,6 @@
 const std = @import("std");
-const sdl = @import("sdl");
 const jok = @import("jok");
+const sdl = jok.sdl;
 const font = jok.font;
 const j3d = jok.j3d;
 const zmath = jok.zmath;
@@ -118,7 +118,7 @@ pub fn update(ctx: jok.Context) !void {
 
 pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
-    for (translations.items) |tr, i| {
+    for (translations.items, 0..) |tr, i| {
         const model = zmath.mul(
             zmath.translation(-0.5, -0.5, -0.5),
             zmath.mul(
