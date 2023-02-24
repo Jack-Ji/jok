@@ -3,8 +3,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const internal = @import("internal.zig");
-const TriangleRenderer = @import("TriangleRenderer.zig");
-const Camera = @import("Camera.zig");
 const Mesh = @import("Mesh.zig");
 const sdl = @import("sdl");
 const jok = @import("../jok.zig");
@@ -21,7 +19,7 @@ pub const Position = struct {
 /// Represent a mesh object in 3d space
 pub const MeshObj = struct {
     transform: zmath.Mat,
-    mesh: Mesh,
+    mesh: *Mesh,
     cull_faces: bool = true,
     color: sdl.Color = sdl.Color.white,
     texture: ?sdl.Texture = null,
@@ -105,7 +103,7 @@ pub const Object = struct {
             for (o.children.items) |c| c.destroy(true);
         }
         if (o.actor == .mesh) {
-            o.actor.mesh.mesh.deinit();
+            o.actor.mesh.mesh.destroy();
         }
         o.removeSelf();
         o.children.deinit();
@@ -203,51 +201,26 @@ pub fn destroy(self: *Self, destroy_objects: bool) void {
 
 pub const RenderOption = struct {
     lighting: ?lighting.LightingOption = null,
-    object: ?*Object = null,
 };
-pub fn render(
-    self: Self,
-    tri_rd: *TriangleRenderer,
-    vp: sdl.Rectangle,
-    target: *internal.RenderTarget,
-    camera: Camera,
-    opt: RenderOption,
-) !void {
-    const o = opt.object orelse self.root;
+pub fn render(self: Self, object: ?*Object, opt: RenderOption) !void {
+    const o = object orelse self.root;
     switch (o.actor) {
         .position => {},
-        .mesh => |m| try tri_rd.renderMesh(
-            vp,
-            target,
+        .mesh => |m| try j3d.addMesh(
             o.transform,
-            camera,
-            m.mesh.indices.items,
-            m.mesh.positions.items,
-            if (m.mesh.normals.items.len == 0)
-                null
-            else
-                m.mesh.normals.items,
-            null,
-            if (m.mesh.texcoords.items.len == 0)
-                null
-            else
-                m.mesh.texcoords.items,
+            m.mesh,
             .{
-                .aabb = m.mesh.aabb,
                 .cull_faces = m.cull_faces,
                 .color = m.color,
-                .texture = m.texture orelse m.mesh.tex,
+                .texture = m.texture,
                 .lighting = if (m.disable_lighting)
                     null
                 else
                     opt.lighting,
             },
         ),
-        .sprite => |s| try tri_rd.renderSprite(
-            vp,
-            target,
+        .sprite => |s| try j3d.addSprite(
             o.transform,
-            camera,
             s.size,
             s.uv,
             .{
@@ -269,9 +242,7 @@ pub fn render(
         ),
     }
 
-    var nopt = opt;
     for (o.children.items) |c| {
-        nopt.object = c;
-        try self.render(tri_rd, vp, target, camera, nopt);
+        try self.render(c, opt);
     }
 }

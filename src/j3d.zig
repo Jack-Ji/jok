@@ -108,13 +108,7 @@ pub fn addSkybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {
 }
 
 pub fn addScene(scene: *const Scene, opt: Scene.RenderOption) !void {
-    try scene.render(
-        &tri_rd,
-        rd.getViewport(),
-        &target,
-        camera,
-        opt,
-    );
+    try scene.render(null, opt);
 }
 
 pub fn addEffects(ps: *ParticleSystem) !void {
@@ -171,31 +165,43 @@ pub fn addShape(
     );
 }
 
-pub fn addMesh(model: zmath.Mat, mesh: Mesh, opt: RenderOption) !void {
-    try tri_rd.renderMesh(
-        rd.getViewport(),
-        &target,
-        model,
-        camera,
-        mesh.indices.items,
-        mesh.positions.items,
-        if (mesh.normals.items.len == 0)
-            null
-        else
-            mesh.normals.items,
-        null,
-        if (mesh.texcoords.items.len == 0)
-            null
-        else
-            mesh.texcoords.items,
-        .{
-            .aabb = mesh.aabb,
-            .cull_faces = opt.cull_faces,
-            .color = opt.color,
-            .texture = opt.texture orelse mesh.tex,
-            .lighting = opt.lighting,
-        },
-    );
+pub fn addMesh(model: zmath.Mat, mesh: *const Mesh, opt: RenderOption) !void {
+    const S = struct {
+        fn renderSubMesh(_model: zmath.Mat, m: *const Mesh.SubMesh, _opt: RenderOption) !void {
+            try tri_rd.renderMesh(
+                rd.getViewport(),
+                &target,
+                zmath.mul(m.model, _model),
+                camera,
+                m.indices.items,
+                m.positions.items,
+                if (m.normals.items.len == 0)
+                    null
+                else
+                    m.normals.items,
+                if (m.colors.items.len == 0)
+                    null
+                else
+                    m.colors.items,
+                if (m.texcoords.items.len == 0)
+                    null
+                else
+                    m.texcoords.items,
+                .{
+                    .aabb = m.aabb,
+                    .cull_faces = _opt.cull_faces,
+                    .color = _opt.color,
+                    .texture = _opt.texture orelse m.getTexture(),
+                    .lighting = _opt.lighting,
+                },
+            );
+            for (m.children.items) |c| {
+                try renderSubMesh(_model, c, _opt);
+            }
+        }
+    };
+
+    try S.renderSubMesh(model, mesh.root, opt);
 }
 
 pub const AxisDrawOption = struct {

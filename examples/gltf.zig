@@ -11,9 +11,9 @@ const j3d = jok.j3d;
 var lighting: bool = true;
 var wireframe: bool = false;
 var camera: j3d.Camera = undefined;
-var mesh1: j3d.Mesh = undefined;
-var mesh2: j3d.Mesh = undefined;
-var mesh3: j3d.Mesh = undefined;
+var mesh1: *j3d.Mesh = undefined;
+var mesh2: *j3d.Mesh = undefined;
+var mesh3: *j3d.Mesh = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -164,7 +164,7 @@ pub fn draw(ctx: jok.Context) !void {
 pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-    mesh1.deinit();
-    mesh2.deinit();
-    mesh3.deinit();
+    mesh1.destroy();
+    mesh2.destroy();
+    mesh3.destroy();
 }
