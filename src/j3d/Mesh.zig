@@ -180,53 +180,15 @@ pub fn fromGltf(
     if (opt.tex) |t| { // Use external texture
         const tex_id = @ptrToInt(t.ptr);
         try self.textures.put(tex_id, t);
-    } else { // Load textures
+    } else {
         self.own_textures = true;
-        var image_index: usize = 0;
-        while (image_index < data.images_count) : (image_index += 1) {
-            const image = data.images.?[image_index];
-            var tex: sdl.Texture = undefined;
-            if (image.uri) |p| { // Read external file
-                const uri_path = std.mem.sliceTo(p, '\x00');
-                const dir = std.fs.path.dirname(file_path);
-                tex = if (dir) |d| BLK: {
-                    const path = try std.fs.path.joinZ(
-                        allocator,
-                        &.{ d, uri_path },
-                    );
-                    defer allocator.free(path);
-                    break :BLK try jok.utils.gfx.createTextureFromFile(
-                        rd,
-                        path,
-                        .static,
-                        false,
-                    );
-                } else try jok.utils.gfx.createTextureFromFile(
-                    rd,
-                    uri_path,
-                    .static,
-                    false,
-                );
-            } else if (image.buffer_view) |v| { // Read embedded file
-                var file_data: []u8 = undefined;
-                file_data.ptr = @ptrCast([*]u8, v.buffer.data.?) + v.offset;
-                file_data.len = v.size;
-                tex = try jok.utils.gfx.createTextureFromFileData(
-                    rd,
-                    file_data,
-                    .static,
-                    false,
-                );
-            } else unreachable;
-            const tex_id = @ptrToInt(&data.images.?[image_index]);
-            try self.textures.put(tex_id, tex);
-        }
     }
 
     // Load the scene/nodes
+    const dir = std.fs.path.dirname(file_path);
     var node_index: usize = 0;
     while (node_index < data.scene.?.nodes_count) : (node_index += 1) {
-        try self.loadNodeTree(data.scene.?.nodes.?[node_index], self.root, opt);
+        try self.loadNodeTree(rd, dir, data.scene.?.nodes.?[node_index], self.root, opt);
     }
     return self;
 }
@@ -254,7 +216,14 @@ pub fn createSubMesh(self: *Self, parent: ?*SubMesh) !*SubMesh {
     return m;
 }
 
-fn loadNodeTree(self: *Self, node: *zmesh.io.zcgltf.Node, parent: *SubMesh, opt: GltfOption) !void {
+fn loadNodeTree(
+    self: *Self,
+    rd: sdl.Renderer,
+    dir: ?[]const u8,
+    node: *zmesh.io.zcgltf.Node,
+    parent: *SubMesh,
+    opt: GltfOption,
+) !void {
     var m = try self.createSubMesh(parent);
 
     // Load transforms
@@ -281,8 +250,8 @@ fn loadNodeTree(self: *Self, node: *zmesh.io.zcgltf.Node, parent: *SubMesh, opt:
         ));
     }
 
-    // Load vertex attributes
     if (node.mesh) |mesh| {
+        // Load vertex attributes
         var prim_index: usize = 0;
         while (prim_index < mesh.primitives_count) : (prim_index += 1) {
             const prim = &mesh.primitives[prim_index];
@@ -398,8 +367,46 @@ fn loadNodeTree(self: *Self, node: *zmesh.io.zcgltf.Node, parent: *SubMesh, opt:
                 if (mat.has_pbr_metallic_roughness != 0 and
                     mat.pbr_metallic_roughness.base_color_texture.texture != null)
                 {
-                    m.tex_id = @ptrToInt(mat.pbr_metallic_roughness.base_color_texture.texture.?.image.?);
-                    assert(self.textures.get(m.tex_id) != null);
+                    const image = mat.pbr_metallic_roughness.base_color_texture.texture.?.image.?;
+                    m.tex_id = @ptrToInt(image);
+                    assert(m.tex_id != 0);
+
+                    // Lazily load textures
+                    if (self.textures.get(m.tex_id) == null) {
+                        var tex: sdl.Texture = undefined;
+                        if (image.uri) |p| { // Read external file
+                            const uri_path = std.mem.sliceTo(p, '\x00');
+                            tex = if (dir) |d| BLK: {
+                                const path = try std.fs.path.joinZ(
+                                    self.allocator,
+                                    &.{ d, uri_path },
+                                );
+                                defer self.allocator.free(path);
+                                break :BLK try jok.utils.gfx.createTextureFromFile(
+                                    rd,
+                                    path,
+                                    .static,
+                                    false,
+                                );
+                            } else try jok.utils.gfx.createTextureFromFile(
+                                rd,
+                                uri_path,
+                                .static,
+                                false,
+                            );
+                        } else if (image.buffer_view) |v| { // Read embedded file
+                            var file_data: []u8 = undefined;
+                            file_data.ptr = @ptrCast([*]u8, v.buffer.data.?) + v.offset;
+                            file_data.len = v.size;
+                            tex = try jok.utils.gfx.createTextureFromFileData(
+                                rd,
+                                file_data,
+                                .static,
+                                false,
+                            );
+                        } else unreachable;
+                        try self.textures.put(m.tex_id, tex);
+                    }
                 }
             }
 
@@ -411,6 +418,6 @@ fn loadNodeTree(self: *Self, node: *zmesh.io.zcgltf.Node, parent: *SubMesh, opt:
     // Load children
     var node_index: usize = 0;
     while (node_index < node.children_count) : (node_index += 1) {
-        try self.loadNodeTree(node.children.?[node_index], m, opt);
+        try self.loadNodeTree(rd, dir, node.children.?[node_index], m, opt);
     }
 }
