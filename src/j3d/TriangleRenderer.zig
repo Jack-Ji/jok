@@ -220,10 +220,6 @@ pub fn renderMesh(
                 zmath.normalize3(vs[2]),
             };
         } else null;
-        if (tri_world_normals) |ns| {
-            std.debug.print("{any}\n", .{normals.?[idx0]});
-            assert(!math.isNan(ns[0][0]));
-        }
         const tri_colors: ?[3]sdl.Color = if (colors) |cs|
             [3]sdl.Color{ cs[idx0], cs[idx1], cs[idx2] }
         else
