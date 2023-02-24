@@ -70,7 +70,6 @@ pub fn build(b: *std.Build) void {
 }
 
 pub const BuildOptions = struct {
-    use_chipmunk: bool = false,
     use_nfd: bool = false,
     use_zaudio: bool = false,
     use_zphysics: bool = false,
@@ -88,7 +87,6 @@ pub fn createGame(
 ) *std.build.LibExeObjStep {
     // Initialize jok module
     const bos = b.addOptions();
-    bos.addOption(bool, "use_chipmunk", opt.use_chipmunk);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
     bos.addOption(bool, "use_zaudio", opt.use_zaudio);
     bos.addOption(bool, "use_zphysics", opt.use_zphysics);
