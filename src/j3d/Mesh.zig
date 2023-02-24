@@ -266,7 +266,7 @@ fn loadNodeTree(
                 const buffer_view = accessor.buffer_view.?;
 
                 assert(accessor.stride == buffer_view.stride or buffer_view.stride == 0);
-                assert(accessor.stride * accessor.count == buffer_view.size);
+                assert(accessor.stride * accessor.count <= buffer_view.size);
                 assert(buffer_view.buffer.data != null);
 
                 const data_addr = @alignCast(4, @ptrCast([*]const u8, buffer_view.buffer.data) +
