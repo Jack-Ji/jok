@@ -151,7 +151,7 @@ pub fn fromShape(
 ) !*Self {
     var self = try create(allocator, 1);
     errdefer self.destroy();
-    try self.root.primitives[0].appendTriangles(
+    try self.root.meshes[0].appendTriangles(
         shape.indices,
         shape.positions,
         shape.normals,
@@ -161,14 +161,14 @@ pub fn fromShape(
     if (shape.texcoords != null) {
         if (opt.tex) |t| {
             const tex_id = @ptrToInt(t.ptr);
-            self.root.tex_id = tex_id;
+            self.root.meshes[0].tex_id = tex_id;
             try self.textures.put(tex_id, t);
             if (opt.uvs != null) {
-                self.root.primitives[0].remapTexcoords(opt.uvs.?[0], opt.uvs.?[1]);
+                self.root.meshes[0].remapTexcoords(opt.uvs.?[0], opt.uvs.?[1]);
             }
         }
     }
-    if (opt.compute_aabb) self.root.computeAabb();
+    if (opt.compute_aabb) self.root.meshes[0].computeAabb();
     return self;
 }
 
