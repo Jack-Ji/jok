@@ -119,9 +119,9 @@ pub fn renderMesh(
     opt: MeshOption,
 ) !void {
     assert(@rem(indices.len, 3) == 0);
-    assert(if (normals) |ns| ns.len == positions.len else true);
-    assert(if (colors) |cs| cs.len == positions.len else true);
-    assert(if (texcoords) |ts| ts.len == positions.len else true);
+    assert(if (normals) |ns| ns.len >= positions.len else true);
+    assert(if (colors) |cs| cs.len >= positions.len else true);
+    assert(if (texcoords) |ts| ts.len >= positions.len else true);
     if (indices.len == 0) return;
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
         0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
@@ -388,11 +388,9 @@ pub fn renderSprite(
         assert(shape.texcoords.?.len == row_count * row_count);
         const tex_coord_step_x = (uv1.x - uv0.x) / @intToFloat(f32, opt.tessellation_level + 1);
         const tex_coord_step_y = (uv1.y - uv0.y) / @intToFloat(f32, opt.tessellation_level + 1);
-        var x: u32 = 0;
-        while (x < row_count) : (x += 1) {
+        for (0..row_count) |x| {
             const tx = uv0.x + tex_coord_step_x * @intToFloat(f32, x);
-            var y: u32 = 0;
-            while (y < row_count) : (y += 1) {
+            for (0..row_count) |y| {
                 shape.texcoords.?[x * row_count + y] =
                     .{ tx, uv0.y + tex_coord_step_y * @intToFloat(f32, y) };
             }

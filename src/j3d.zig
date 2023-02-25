@@ -168,33 +168,35 @@ pub fn addShape(
 pub fn addMesh(model: zmath.Mat, mesh: *const Mesh, opt: RenderOption) !void {
     const S = struct {
         fn renderSubMesh(_model: zmath.Mat, m: *const Mesh.SubMesh, _opt: RenderOption) !void {
-            try tri_rd.renderMesh(
-                rd.getViewport(),
-                &target,
-                zmath.mul(m.model, _model),
-                camera,
-                m.indices.items,
-                m.positions.items,
-                if (m.normals.items.len == 0)
-                    null
-                else
-                    m.normals.items,
-                if (m.colors.items.len == 0)
-                    null
-                else
-                    m.colors.items,
-                if (m.texcoords.items.len == 0)
-                    null
-                else
-                    m.texcoords.items,
-                .{
-                    .aabb = m.aabb,
-                    .cull_faces = _opt.cull_faces,
-                    .color = _opt.color,
-                    .texture = _opt.texture orelse m.getTexture(),
-                    .lighting = _opt.lighting,
-                },
-            );
+            for (m.meshes) |sm| {
+                try tri_rd.renderMesh(
+                    rd.getViewport(),
+                    &target,
+                    zmath.mul(m.global_transform, _model),
+                    camera,
+                    sm.indices.items,
+                    sm.positions.items,
+                    if (sm.normals.items.len == 0)
+                        null
+                    else
+                        sm.normals.items,
+                    if (sm.colors.items.len == 0)
+                        null
+                    else
+                        sm.colors.items,
+                    if (sm.texcoords.items.len == 0)
+                        null
+                    else
+                        sm.texcoords.items,
+                    .{
+                        .aabb = sm.aabb,
+                        .cull_faces = _opt.cull_faces,
+                        .color = _opt.color,
+                        .texture = _opt.texture orelse sm.getTexture(),
+                        .lighting = _opt.lighting,
+                    },
+                );
+            }
             for (m.children.items) |c| {
                 try renderSubMesh(_model, c, _opt);
             }
