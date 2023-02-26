@@ -105,13 +105,15 @@ pub const SubMesh = struct {
     };
 
     children: std.ArrayList(*SubMesh),
-    transform: zmath.Mat,
+    l_transform: zmath.Mat,
+    g_transform: zmath.Mat,
     meshes: []SubSubMesh,
 
     fn init(allocator: std.mem.Allocator, mesh: *Self, mesh_count: usize) !SubMesh {
         var self = SubMesh{
             .children = std.ArrayList(*SubMesh).init(allocator),
-            .transform = zmath.identity(),
+            .l_transform = zmath.identity(),
+            .g_transform = zmath.identity(),
             .meshes = try allocator.alloc(SubSubMesh, mesh_count),
         };
         for (self.meshes) |*m| m.* = SubSubMesh.init(allocator, mesh);
@@ -233,7 +235,8 @@ fn loadNodeTree(
     opt: GltfOption,
 ) !void {
     var m = try self.createSubMesh(parent, if (node.mesh) |mesh| mesh.primitives_count else 0);
-    m.transform = zmath.loadMat(&node.transformWorld());
+    m.l_transform = zmath.loadMat(&node.transformLocal());
+    m.g_transform = zmath.loadMat(&node.transformWorld());
 
     if (node.mesh) |mesh| {
         for (0..mesh.primitives_count, m.meshes) |prim_index, *ssm| {

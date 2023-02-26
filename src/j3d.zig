@@ -172,7 +172,7 @@ pub fn addMesh(model: zmath.Mat, mesh: *const Mesh, opt: RenderOption) !void {
                 try tri_rd.renderMesh(
                     rd.getViewport(),
                     &target,
-                    zmath.mul(m.transform, _model),
+                    zmath.mul(m.g_transform, _model),
                     camera,
                     sm.indices.items,
                     sm.positions.items,
