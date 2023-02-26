@@ -63,7 +63,9 @@ pub fn begin(opt: BeginOption) !void {
     try target.clear(rd, false);
     camera = opt.camera orelse BLK: {
         const fsize = try rd.getOutputSize();
-        const ratio = @intToFloat(f32, fsize.width_pixels) / @intToFloat(f32, fsize.width_pixels);
+        const ratio =
+            @intToFloat(f32, fsize.width_pixels) /
+            @intToFloat(f32, fsize.height_pixels);
         break :BLK Camera.fromPositionAndTarget(
             .{
                 .perspective = .{
@@ -167,7 +169,7 @@ pub fn addShape(
 
 pub fn addMesh(model: zmath.Mat, mesh: *const Mesh, opt: RenderOption) !void {
     const S = struct {
-        fn renderSubMesh(_model: zmath.Mat, m: *const Mesh.SubMesh, _opt: RenderOption) !void {
+        fn renderNode(_model: zmath.Mat, m: *const Mesh.Node, _opt: RenderOption) !void {
             for (m.meshes) |sm| {
                 try tri_rd.renderMesh(
                     rd.getViewport(),
@@ -198,12 +200,12 @@ pub fn addMesh(model: zmath.Mat, mesh: *const Mesh, opt: RenderOption) !void {
                 );
             }
             for (m.children.items) |c| {
-                try renderSubMesh(_model, c, _opt);
+                try renderNode(_model, c, _opt);
             }
         }
     };
 
-    try S.renderSubMesh(model, mesh.root, opt);
+    try S.renderNode(model, mesh.root, opt);
 }
 
 pub const AxisDrawOption = struct {

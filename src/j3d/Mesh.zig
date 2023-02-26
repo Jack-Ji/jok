@@ -12,8 +12,8 @@ pub const Error = error{
     InvalidFormat,
 };
 
-pub const SubMesh = struct {
-    pub const SubSubMesh = struct {
+pub const Node = struct {
+    pub const SubMesh = struct {
         mesh: *Self,
         indices: std.ArrayList(u32),
         positions: std.ArrayList([3]f32),
@@ -23,7 +23,7 @@ pub const SubMesh = struct {
         aabb: ?[6]f32,
         tex_id: usize,
 
-        pub fn init(allocator: std.mem.Allocator, mesh: *Self) SubSubMesh {
+        pub fn init(allocator: std.mem.Allocator, mesh: *Self) SubMesh {
             return .{
                 .mesh = mesh,
                 .indices = std.ArrayList(u32).init(allocator),
@@ -38,7 +38,7 @@ pub const SubMesh = struct {
 
         /// Add new geometry data
         pub fn appendTriangles(
-            self: *SubSubMesh,
+            self: *SubMesh,
             indices: []u32,
             positions: [][3]f32,
             normals: ?[][3]f32,
@@ -68,7 +68,7 @@ pub const SubMesh = struct {
         }
 
         /// Compute AABB of mesh
-        pub fn computeAabb(self: *SubSubMesh) void {
+        pub fn computeAabb(self: *SubMesh) void {
             var aabb_min = Vector.new(
                 self.positions.items[0][0],
                 self.positions.items[0][1],
@@ -91,7 +91,7 @@ pub const SubMesh = struct {
         }
 
         /// Remap texture coordinates to new range
-        pub fn remapTexcoords(self: *SubSubMesh, uv0: sdl.PointF, uv1: sdl.PointF) void {
+        pub fn remapTexcoords(self: *SubMesh, uv0: sdl.PointF, uv1: sdl.PointF) void {
             for (self.texcoords.items) |*ts| {
                 ts[0] = jok.utils.math.linearMap(ts[0], 0, 1, uv0.x, uv1.x);
                 ts[1] = jok.utils.math.linearMap(ts[1], 0, 1, uv0.y, uv1.y);
@@ -99,31 +99,31 @@ pub const SubMesh = struct {
         }
 
         /// Get texture
-        pub fn getTexture(self: *const SubSubMesh) ?sdl.Texture {
+        pub fn getTexture(self: *const SubMesh) ?sdl.Texture {
             return self.mesh.textures.get(self.tex_id);
         }
     };
 
-    children: std.ArrayList(*SubMesh),
+    children: std.ArrayList(*Node),
     l_transform: zmath.Mat,
     g_transform: zmath.Mat,
-    meshes: []SubSubMesh,
+    meshes: []SubMesh,
 
-    fn init(allocator: std.mem.Allocator, mesh: *Self, mesh_count: usize) !SubMesh {
-        var self = SubMesh{
-            .children = std.ArrayList(*SubMesh).init(allocator),
+    fn init(allocator: std.mem.Allocator, mesh: *Self, mesh_count: usize) !Node {
+        var self = Node{
+            .children = std.ArrayList(*Node).init(allocator),
             .l_transform = zmath.identity(),
             .g_transform = zmath.identity(),
-            .meshes = try allocator.alloc(SubSubMesh, mesh_count),
+            .meshes = try allocator.alloc(SubMesh, mesh_count),
         };
-        for (self.meshes) |*m| m.* = SubSubMesh.init(allocator, mesh);
+        for (self.meshes) |*m| m.* = SubMesh.init(allocator, mesh);
         return self;
     }
 };
 
 allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
-root: *SubMesh,
+root: *Node,
 textures: std.AutoHashMap(usize, sdl.Texture),
 own_textures: bool,
 
@@ -132,7 +132,7 @@ pub fn create(allocator: std.mem.Allocator, mesh_count: usize) !*Self {
     errdefer allocator.destroy(self);
     self.allocator = allocator;
     self.arena = std.heap.ArenaAllocator.init(allocator);
-    self.root = try self.createSubMesh(null, mesh_count);
+    self.root = try self.createNode(null, mesh_count);
     self.textures = std.AutoHashMap(usize, sdl.Texture).init(self.arena.allocator());
     self.own_textures = false;
     return self;
@@ -217,11 +217,11 @@ pub fn destroy(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-pub fn createSubMesh(self: *Self, parent: ?*SubMesh, mesh_count: usize) !*SubMesh {
+pub fn createNode(self: *Self, parent: ?*Node, mesh_count: usize) !*Node {
     const allocator = self.arena.allocator();
-    var m = try allocator.create(SubMesh);
+    var m = try allocator.create(Node);
     errdefer allocator.destroy(m);
-    m.* = try SubMesh.init(allocator, self, mesh_count);
+    m.* = try Node.init(allocator, self, mesh_count);
     if (parent) |p| try p.children.append(m);
     return m;
 }
@@ -231,34 +231,34 @@ fn loadNodeTree(
     rd: sdl.Renderer,
     dir: ?[]const u8,
     node: *zmesh.io.zcgltf.Node,
-    parent: *SubMesh,
+    parent: *Node,
     opt: GltfOption,
 ) !void {
-    var m = try self.createSubMesh(parent, if (node.mesh) |mesh| mesh.primitives_count else 0);
+    var m = try self.createNode(parent, if (node.mesh) |mesh| mesh.primitives_count else 0);
     m.l_transform = zmath.loadMat(&node.transformLocal());
     m.g_transform = zmath.loadMat(&node.transformWorld());
 
     if (node.mesh) |mesh| {
-        for (0..mesh.primitives_count, m.meshes) |prim_index, *ssm| {
+        for (0..mesh.primitives_count, m.meshes) |prim_index, *sm| {
             const prim = &mesh.primitives[prim_index];
 
             // Load material
             var transform: ?zmesh.io.zcgltf.TextureTransform = null;
             if (opt.tex) |t| {
-                ssm.tex_id = @ptrToInt(t.ptr);
+                sm.tex_id = @ptrToInt(t.ptr);
                 if (opt.uvs != null) {
-                    ssm.remapTexcoords(opt.uvs.?[0], opt.uvs.?[1]);
+                    sm.remapTexcoords(opt.uvs.?[0], opt.uvs.?[1]);
                 }
             } else if (prim.material) |mat| {
                 if (mat.has_pbr_metallic_roughness != 0 and
                     mat.pbr_metallic_roughness.base_color_texture.texture != null)
                 {
                     const image = mat.pbr_metallic_roughness.base_color_texture.texture.?.image.?;
-                    ssm.tex_id = @ptrToInt(image);
-                    assert(ssm.tex_id != 0);
+                    sm.tex_id = @ptrToInt(image);
+                    assert(sm.tex_id != 0);
 
                     // Lazily load textures
-                    if (self.textures.get(ssm.tex_id) == null) {
+                    if (self.textures.get(sm.tex_id) == null) {
                         var tex: sdl.Texture = undefined;
                         if (image.uri) |p| { // Read external file
                             const uri_path = std.mem.sliceTo(p, '\x00');
@@ -291,7 +291,7 @@ fn loadNodeTree(
                                 false,
                             );
                         } else unreachable;
-                        try self.textures.put(ssm.tex_id, tex);
+                        try self.textures.put(sm.tex_id, tex);
                     }
 
                     if (mat.pbr_metallic_roughness.base_color_texture.has_transform != 0) {
@@ -302,10 +302,10 @@ fn loadNodeTree(
 
             // Indices.
             const num_vertices: u32 = @intCast(u32, prim.attributes[0].data.count);
-            const index_offset = @intCast(u32, ssm.positions.items.len);
+            const index_offset = @intCast(u32, sm.positions.items.len);
             if (prim.indices) |accessor| {
                 const num_indices: u32 = @intCast(u32, accessor.count);
-                try ssm.indices.ensureTotalCapacity(ssm.indices.items.len + num_indices);
+                try sm.indices.ensureTotalCapacity(sm.indices.items.len + num_indices);
 
                 const buffer_view = accessor.buffer_view.?;
                 assert(accessor.stride == buffer_view.stride or buffer_view.stride == 0);
@@ -317,28 +317,28 @@ fn loadNodeTree(
                     assert(accessor.component_type == .r_8u);
                     const src = @intToPtr([*]const u8, data_addr);
                     for (0..num_indices) |i| {
-                        ssm.indices.appendAssumeCapacity(src[i] + index_offset);
+                        sm.indices.appendAssumeCapacity(src[i] + index_offset);
                     }
                 } else if (accessor.stride == 2) {
                     assert(accessor.component_type == .r_16u);
                     const src = @intToPtr([*]const u16, data_addr);
                     for (0..num_indices) |i| {
-                        ssm.indices.appendAssumeCapacity(src[i] + index_offset);
+                        sm.indices.appendAssumeCapacity(src[i] + index_offset);
                     }
                 } else if (accessor.stride == 4) {
                     assert(accessor.component_type == .r_32u);
                     const src = @intToPtr([*]const u32, data_addr);
                     for (0..num_indices) |i| {
-                        ssm.indices.appendAssumeCapacity(src[i] + index_offset);
+                        sm.indices.appendAssumeCapacity(src[i] + index_offset);
                     }
                 } else {
                     unreachable;
                 }
             } else {
                 assert(@rem(num_vertices, 3) == 0);
-                try ssm.indices.ensureTotalCapacity(num_vertices);
+                try sm.indices.ensureTotalCapacity(num_vertices);
                 for (0..num_vertices) |i| {
-                    ssm.indices.appendAssumeCapacity(@intCast(u32, i) + index_offset);
+                    sm.indices.appendAssumeCapacity(@intCast(u32, i) + index_offset);
                 }
             }
 
@@ -357,24 +357,24 @@ fn loadNodeTree(
                         assert(accessor.type == .vec3);
                         assert(accessor.component_type == .r_32f);
                         const slice = @intToPtr([*]const [3]f32, data_addr)[0..num_vertices];
-                        try ssm.positions.appendSlice(slice);
+                        try sm.positions.appendSlice(slice);
                     } else if (attrib.type == .normal) {
                         assert(accessor.type == .vec3);
                         assert(accessor.component_type == .r_32f);
                         const slice = @intToPtr([*]const [3]f32, data_addr)[0..num_vertices];
-                        try ssm.normals.appendSlice(slice);
+                        try sm.normals.appendSlice(slice);
                     } else if (attrib.type == .color) {
                         assert(accessor.component_type == .r_32f);
                         if (accessor.type == .vec3) {
                             const slice = @intToPtr([*]const [3]f32, data_addr)[0..num_vertices];
-                            for (slice) |c| try ssm.colors.append(sdl.Color.rgb(
+                            for (slice) |c| try sm.colors.append(sdl.Color.rgb(
                                 @floatToInt(u8, 255 * c[0]),
                                 @floatToInt(u8, 255 * c[1]),
                                 @floatToInt(u8, 255 * c[2]),
                             ));
                         } else if (accessor.type == .vec4) {
                             const slice = @intToPtr([*]const [4]f32, data_addr)[0..num_vertices];
-                            for (slice) |c| try ssm.colors.append(sdl.Color.rgba(
+                            for (slice) |c| try sm.colors.append(sdl.Color.rgba(
                                 @floatToInt(u8, 255 * c[0]),
                                 @floatToInt(u8, 255 * c[1]),
                                 @floatToInt(u8, 255 * c[2]),
@@ -385,17 +385,17 @@ fn loadNodeTree(
                         assert(accessor.type == .vec2);
                         assert(accessor.component_type == .r_32f);
                         const slice = @intToPtr([*]const [2]f32, data_addr)[0..num_vertices];
-                        try ssm.texcoords.ensureTotalCapacity(ssm.texcoords.items.len + slice.len);
+                        try sm.texcoords.ensureTotalCapacity(sm.texcoords.items.len + slice.len);
                         if (transform) |tr| {
                             for (slice) |ts| {
-                                ssm.texcoords.appendAssumeCapacity(.{
+                                sm.texcoords.appendAssumeCapacity(.{
                                     zmath.clamp(tr.offset[0] + ts[0] * tr.scale[0], 0.0, 1.0),
                                     zmath.clamp(tr.offset[1] + ts[1] * tr.scale[1], 0.0, 1.0),
                                 });
                             }
                         } else {
                             for (slice) |ts| {
-                                ssm.texcoords.appendAssumeCapacity(.{
+                                sm.texcoords.appendAssumeCapacity(.{
                                     zmath.clamp(ts[0], 0.0, 1.0),
                                     zmath.clamp(ts[1], 0.0, 1.0),
                                 });
@@ -406,7 +406,7 @@ fn loadNodeTree(
             }
 
             // Compute AABB
-            if (opt.compute_aabb) ssm.computeAabb();
+            if (opt.compute_aabb) sm.computeAabb();
         }
     }
 
