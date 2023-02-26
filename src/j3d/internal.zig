@@ -157,7 +157,7 @@ pub inline fn clipTriangle(
     world_positions: *std.ArrayList(zmath.Vec),
     world_normals: *std.ArrayList(zmath.Vec),
 ) void {
-    const clip_plane_w = 0.0001;
+    const clip_plane_w = 0.001;
     var world_v0 = tri_world_positions[0];
     var world_v1 = tri_world_positions[1];
     var world_v2 = tri_world_positions[2];
