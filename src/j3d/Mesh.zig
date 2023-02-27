@@ -219,27 +219,27 @@ pub fn destroy(self: *Self) void {
 
 pub fn createNode(self: *Self, parent: ?*Node, mesh_count: usize) !*Node {
     const allocator = self.arena.allocator();
-    var m = try allocator.create(Node);
-    errdefer allocator.destroy(m);
-    m.* = try Node.init(allocator, self, mesh_count);
-    if (parent) |p| try p.children.append(m);
-    return m;
+    var node = try allocator.create(Node);
+    errdefer allocator.destroy(node);
+    node.* = try Node.init(allocator, self, mesh_count);
+    if (parent) |p| try p.children.append(node);
+    return node;
 }
 
 fn loadNodeTree(
     self: *Self,
     rd: sdl.Renderer,
     dir: ?[]const u8,
-    node: *zmesh.io.zcgltf.Node,
+    gltf_node: *zmesh.io.zcgltf.Node,
     parent: *Node,
     opt: GltfOption,
 ) !void {
-    var m = try self.createNode(parent, if (node.mesh) |mesh| mesh.primitives_count else 0);
-    m.l_transform = zmath.loadMat(&node.transformLocal());
-    m.g_transform = zmath.loadMat(&node.transformWorld());
+    var node = try self.createNode(parent, if (gltf_node.mesh) |mesh| mesh.primitives_count else 0);
+    node.l_transform = zmath.loadMat(&gltf_node.transformLocal());
+    node.g_transform = zmath.loadMat(&gltf_node.transformWorld());
 
-    if (node.mesh) |mesh| {
-        for (0..mesh.primitives_count, m.meshes) |prim_index, *sm| {
+    if (gltf_node.mesh) |mesh| {
+        for (0..mesh.primitives_count, node.meshes) |prim_index, *sm| {
             const prim = &mesh.primitives[prim_index];
 
             // Load material
@@ -411,7 +411,7 @@ fn loadNodeTree(
     }
 
     // Load children
-    for (0..node.children_count) |node_index| {
-        try self.loadNodeTree(rd, dir, node.children.?[node_index], m, opt);
+    for (0..gltf_node.children_count) |node_index| {
+        try self.loadNodeTree(rd, dir, gltf_node.children.?[node_index], node, opt);
     }
 }
