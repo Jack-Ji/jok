@@ -231,6 +231,21 @@ pub fn getScreenPixels(allocator: std.mem.Allocator, rd: sdl.Renderer, rect: ?sd
     pub fn destroy(self: @This()) void {
         self.allocator.free(self.pixels);
     }
+
+    pub fn createTexture(self: @This(), _rd: sdl.Renderer) !sdl.Texture {
+        return try createTextureFromPixels(
+            _rd,
+            self.pixels,
+            self.format,
+            .static,
+            self.width,
+            self.height,
+        );
+    }
+
+    pub fn saveToFile(self: @This(), path: [:0]const u8, opt: EncodingOption) !void {
+        try savePixelsToFile(self.pixels, self.width, self.height, self.format, path, opt);
+    }
 } {
     const format = getFormatByEndian();
     const channels = @intCast(c_int, getChannels(format));
@@ -259,14 +274,7 @@ pub fn saveScreenToFile(
 ) !void {
     const data = try getScreenPixels(allocator, rd, rect);
     defer data.destroy();
-    try savePixelsToFile(
-        data.pixels,
-        data.width,
-        data.height,
-        data.format,
-        path,
-        opt,
-    );
+    try data.saveToFile(path, opt);
 }
 
 /// Create texture for offscreen rendering

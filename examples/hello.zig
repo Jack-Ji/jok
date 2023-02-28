@@ -9,6 +9,8 @@ const j3d = jok.j3d;
 var camera: j3d.Camera = undefined;
 var text_draw_pos: sdl.PointF = undefined;
 var text_speed: sdl.PointF = undefined;
+var screenshot_time: i64 = -1;
+var screenshot_tex: ?sdl.Texture = null;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -44,13 +46,15 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
             if (k.scancode == .f1) {
                 ctx.toggleFullscreeen(null);
             } else if (k.scancode == .f2) {
-                try jok.utils.gfx.saveScreenToFile(
+                const pixels = try jok.utils.gfx.getScreenPixels(
                     ctx.allocator(),
                     ctx.renderer(),
                     null,
-                    "screenshot.png",
-                    .{},
                 );
+                defer pixels.destroy();
+                try pixels.saveToFile("screenshot.png", .{});
+                screenshot_tex = try pixels.createTexture(ctx.renderer());
+                screenshot_time = std.time.timestamp();
             }
         },
         else => {},
@@ -136,6 +140,23 @@ pub fn draw(ctx: jok.Context) !void {
     );
     try j3d.end();
 
+    if (screenshot_tex) |tex| {
+        if (std.time.timestamp() - screenshot_time < 5) {
+            try j2d.begin(.{});
+            try j2d.addRectRoundedFilled(
+                .{ .x = 600, .y = 0, .width = 160, .height = 120 },
+                sdl.Color.rgba(255, 255, 255, 200),
+                .{},
+            );
+            try j2d.addImageRounded(tex, .{ .x = 605, .y = 5 }, .{
+                .size = .{ .x = 150, .y = 110 },
+            });
+            try j2d.end();
+        } else {
+            screenshot_tex = null;
+        }
+    }
+
     text_draw_pos.x += text_speed.x * ctx.deltaSeconds();
     text_draw_pos.y += text_speed.y * ctx.deltaSeconds();
     const draw_result = try font.debugDraw(
@@ -181,4 +202,6 @@ pub fn draw(ctx: jok.Context) !void {
 pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
+
+    if (screenshot_tex) |tex| tex.destroy();
 }

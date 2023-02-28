@@ -468,7 +468,7 @@ pub fn addRectRounded(rect: sdl.RectangleF, color: sdl.Color, opt: AddRectRounde
     };
     try draw_commands.append(.{
         .cmd = .{
-            .rect = .{
+            .rect_rounded = .{
                 .pmin = pmin,
                 .pmax = pmax,
                 .color = imgui.sdl.convertColor(color),
@@ -494,7 +494,7 @@ pub fn addRectRoundedFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRec
     };
     try draw_commands.append(.{
         .cmd = .{
-            .rect_fill = .{
+            .rect_rounded_fill = .{
                 .pmin = pmin,
                 .pmax = pmax,
                 .color = imgui.sdl.convertColor(color),
@@ -1032,7 +1032,7 @@ pub const Path = struct {
             .y = pmin.y + r.height,
         };
         try self.path.cmds.append(.{
-            .rect = .{
+            .rect_rounded = .{
                 .pmin = pmin,
                 .pmax = pmax,
                 .rounding = opt.rounding,
