@@ -153,8 +153,6 @@ pub fn EasingSystem(comptime T: type) type {
 pub fn EaseScalar(comptime T: type) type {
     return struct {
         pub fn ease(x: f32, from: T, to: T) T {
-            if (x <= 0) return from;
-            if (x >= 1) return to;
             return switch (T) {
                 f32 => from + (to - from) * x,
                 f64 => from + (to - from) * @floatCast(f64, x),

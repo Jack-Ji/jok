@@ -62,7 +62,7 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
                 screenshot_time = std.time.timestamp();
                 try point_easing_system.add(
                     &screenshot_pos,
-                    .in_out_quint,
+                    .in_out_circ,
                     easing.easePointF,
                     1,
                     .{ .x = 0, .y = 0 },
@@ -70,7 +70,7 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
                 );
                 try point_easing_system.add(
                     &screenshot_size,
-                    .in_out_cubic,
+                    .out_bounce,
                     easing.easePointF,
                     1,
                     .{ .x = 800, .y = 600 },

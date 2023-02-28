@@ -20,6 +20,7 @@ A minimal 2d/3d game framework for zig.
 * 3D sprite rendering
 * 3D particle system
 * 3D scene management
+* Friendly easing system
 * Font rendering/loading
 * Sound/Music playing/mixing
 * Fully integrated Dear-ImGui
