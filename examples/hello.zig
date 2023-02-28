@@ -5,12 +5,16 @@ const font = jok.font;
 const zmath = jok.zmath;
 const j2d = jok.j2d;
 const j3d = jok.j3d;
+const easing = jok.utils.easing;
 
 var camera: j3d.Camera = undefined;
 var text_draw_pos: sdl.PointF = undefined;
 var text_speed: sdl.PointF = undefined;
 var screenshot_time: i64 = -1;
 var screenshot_tex: ?sdl.Texture = null;
+var screenshot_pos: sdl.PointF = undefined;
+var screenshot_size: sdl.PointF = undefined;
+var point_easing_system: *easing.EasingSystem(sdl.PointF) = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -38,6 +42,7 @@ pub fn init(ctx: jok.Context) !void {
         .x = 100,
         .y = 100,
     };
+    point_easing_system = try easing.EasingSystem(sdl.PointF).create(ctx.allocator());
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -55,6 +60,22 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
                 try pixels.saveToFile("screenshot.png", .{});
                 screenshot_tex = try pixels.createTexture(ctx.renderer());
                 screenshot_time = std.time.timestamp();
+                try point_easing_system.add(
+                    &screenshot_pos,
+                    .in_out_quint,
+                    easing.easePointF,
+                    1,
+                    .{ .x = 0, .y = 0 },
+                    .{ .x = 600, .y = 0 },
+                );
+                try point_easing_system.add(
+                    &screenshot_size,
+                    .in_out_cubic,
+                    easing.easePointF,
+                    1,
+                    .{ .x = 800, .y = 600 },
+                    .{ .x = 160, .y = 120 },
+                );
             }
         },
         else => {},
@@ -62,7 +83,7 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    _ = ctx;
+    try point_easing_system.update(ctx.deltaSeconds());
 }
 
 pub fn draw(ctx: jok.Context) !void {
@@ -144,15 +165,31 @@ pub fn draw(ctx: jok.Context) !void {
         if (std.time.timestamp() - screenshot_time < 5) {
             try j2d.begin(.{});
             try j2d.addRectRoundedFilled(
-                .{ .x = 600, .y = 0, .width = 160, .height = 120 },
+                .{
+                    .x = screenshot_pos.x,
+                    .y = screenshot_pos.y,
+                    .width = screenshot_size.x,
+                    .height = screenshot_size.y,
+                },
                 sdl.Color.rgba(255, 255, 255, 200),
                 .{},
             );
-            try j2d.addImageRounded(tex, .{ .x = 605, .y = 5 }, .{
-                .size = .{ .x = 150, .y = 110 },
-            });
+            try j2d.addImageRounded(
+                tex,
+                .{
+                    .x = screenshot_pos.x + 5,
+                    .y = screenshot_pos.y + 5,
+                },
+                .{
+                    .size = .{
+                        .x = screenshot_size.x - 10,
+                        .y = screenshot_size.y - 10,
+                    },
+                },
+            );
             try j2d.end();
         } else {
+            tex.destroy();
             screenshot_tex = null;
         }
     }
@@ -204,4 +241,5 @@ pub fn quit(ctx: jok.Context) void {
     std.log.info("game quit", .{});
 
     if (screenshot_tex) |tex| tex.destroy();
+    point_easing_system.destroy();
 }

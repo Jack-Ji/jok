@@ -1,8 +1,8 @@
-/// Graphics functions
+/// Graphics utils
 pub const gfx = @import("utils/gfx.zig");
 
-/// Math functions
+/// Math utils
 pub const math = @import("utils/math.zig");
 
-/// Easing functions
+/// Easing utils
 pub const easing = @import("utils/easing.zig");
