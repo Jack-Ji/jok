@@ -95,8 +95,8 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    try point_easing_system.update(ctx.deltaSeconds());
-    try color_easing_system.update(ctx.deltaSeconds());
+    point_easing_system.update(ctx.deltaSeconds());
+    color_easing_system.update(ctx.deltaSeconds());
 }
 
 pub fn draw(ctx: jok.Context) !void {

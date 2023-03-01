@@ -1,4 +1,4 @@
-/// Different kinds of easing functions (x goes from 0 to 1)
+/// Easing system
 /// Checkout link: https://easings.net
 const std = @import("std");
 const math = std.math;
@@ -7,7 +7,7 @@ const sdl = @import("sdl");
 const jok = @import("../jok.zig");
 const zmath = jok.zmath;
 
-pub const EasingType = enum {
+pub const EasingType = enum(u8) {
     linear,
     in_sin,
     out_sin,
@@ -40,44 +40,6 @@ pub const EasingType = enum {
     out_bounce,
     in_out_bounce,
 };
-
-pub const EasingFn = *const fn (f32) f32;
-
-pub fn getEasingFn(t: EasingType) EasingFn {
-    return switch (t) {
-        .linear => linear,
-        .in_sin => sin.in,
-        .out_sin => sin.out,
-        .in_out_sin => sin.inOut,
-        .in_quad => quad.in,
-        .out_quad => quad.out,
-        .in_out_quad => quad.inOut,
-        .in_cubic => cubic.in,
-        .out_cubic => cubic.out,
-        .in_out_cubic => cubic.inOut,
-        .in_quart => quart.in,
-        .out_quart => quart.out,
-        .in_out_quart => quart.inOut,
-        .in_quint => quint.in,
-        .out_quint => quint.out,
-        .in_out_quint => quint.inOut,
-        .in_expo => expo.in,
-        .out_expo => expo.out,
-        .in_out_expo => expo.inOut,
-        .in_circ => circ.in,
-        .out_circ => circ.out,
-        .in_out_circ => circ.inOut,
-        .in_back => back.in,
-        .out_back => back.out,
-        .in_out_back => back.inOut,
-        .in_elastic => elastic.in,
-        .out_elastic => elastic.out,
-        .in_out_elastic => elastic.inOut,
-        .in_bounce => bounce.in,
-        .out_bounce => bounce.out,
-        .in_out_bounce => bounce.inOut,
-    };
-}
 
 pub fn EasingSystem(comptime T: type) type {
     return struct {
@@ -113,7 +75,11 @@ pub fn EasingSystem(comptime T: type) type {
             self.allocator.destroy(self);
         }
 
-        pub fn update(self: *Self, delta_time: f32) !void {
+        pub fn count(self: *const Self) usize {
+            return self.vars.count();
+        }
+
+        pub fn update(self: *Self, delta_time: f32) void {
             if (self.vars.count() == 0) return;
 
             var it = self.vars.valueIterator();
@@ -122,7 +88,7 @@ pub fn EasingSystem(comptime T: type) type {
                 const x = vptr.easing_fn(math.min(1.0, vptr.life_passed / vptr.life_total));
                 vptr.v.* = vptr.easing_apply_fn(x, vptr.from, vptr.to);
                 if (vptr.life_passed >= vptr.life_total) {
-                    try self.arrived.append(vptr.v);
+                    self.arrived.appendAssumeCapacity(vptr.v);
                 }
             }
             for (self.arrived.items) |v| _ = self.vars.remove(v);
@@ -148,6 +114,7 @@ pub fn EasingSystem(comptime T: type) type {
                 .from = from orelse v.*,
                 .to = to,
             });
+            try self.arrived.ensureTotalCapacity(self.vars.count());
         }
     };
 }
@@ -221,6 +188,50 @@ pub fn easeColor(x: f32, _from: sdl.Color, _to: sdl.Color) sdl.Color {
     const to = @Vector(4, u8){ _to.r, _to.g, _to.b, _to.a };
     const c = es.ease(x, from, to);
     return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
+}
+
+///////////////////////////////////////////////////////////////////////
+///
+/// Different kinds of easing functions (x goes from 0 to 1)
+///
+///////////////////////////////////////////////////////////////////////
+
+const EasingFn = *const fn (f32) f32;
+
+fn getEasingFn(t: EasingType) EasingFn {
+    return switch (t) {
+        .linear => linear,
+        .in_sin => sin.in,
+        .out_sin => sin.out,
+        .in_out_sin => sin.inOut,
+        .in_quad => quad.in,
+        .out_quad => quad.out,
+        .in_out_quad => quad.inOut,
+        .in_cubic => cubic.in,
+        .out_cubic => cubic.out,
+        .in_out_cubic => cubic.inOut,
+        .in_quart => quart.in,
+        .out_quart => quart.out,
+        .in_out_quart => quart.inOut,
+        .in_quint => quint.in,
+        .out_quint => quint.out,
+        .in_out_quint => quint.inOut,
+        .in_expo => expo.in,
+        .out_expo => expo.out,
+        .in_out_expo => expo.inOut,
+        .in_circ => circ.in,
+        .out_circ => circ.out,
+        .in_out_circ => circ.inOut,
+        .in_back => back.in,
+        .out_back => back.out,
+        .in_out_back => back.inOut,
+        .in_elastic => elastic.in,
+        .out_elastic => elastic.out,
+        .in_out_elastic => elastic.inOut,
+        .in_bounce => bounce.in,
+        .out_bounce => bounce.out,
+        .in_out_bounce => bounce.inOut,
+    };
 }
 
 fn linear(x: f32) f32 {
