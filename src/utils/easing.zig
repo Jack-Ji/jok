@@ -81,8 +81,8 @@ pub fn getEasingFn(t: EasingType) EasingFn {
 
 pub fn EasingSystem(comptime T: type) type {
     return struct {
-        pub const EasingApplyFn = *const fn (x: f32, from: T, to: T) T;
-        pub const EasingValue = struct {
+        const EasingApplyFn = *const fn (x: f32, from: T, to: T) T;
+        const EasingValue = struct {
             easing_fn: EasingFn,
             easing_apply_fn: EasingApplyFn,
             life_total: f32,

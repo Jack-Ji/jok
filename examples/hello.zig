@@ -54,6 +54,7 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
             if (k.scancode == .f1) {
                 ctx.toggleFullscreeen(null);
             } else if (k.scancode == .f2) {
+                const fb_size = ctx.getFramebufferSize();
                 const pixels = try jok.utils.gfx.getScreenPixels(
                     ctx.allocator(),
                     ctx.renderer(),
@@ -69,15 +70,15 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
                     easing.easePointF,
                     1,
                     .{ .x = 0, .y = 0 },
-                    .{ .x = 600, .y = 0 },
+                    .{ .x = fb_size.x * 0.75, .y = 0 },
                 );
                 try point_easing_system.add(
                     &screenshot_size,
                     .out_bounce,
                     easing.easePointF,
                     1,
-                    .{ .x = 800, .y = 600 },
-                    .{ .x = 160, .y = 120 },
+                    fb_size,
+                    .{ .x = fb_size.x / 5, .y = fb_size.y / 5 },
                 );
                 try color_easing_system.add(
                     &screenshot_tint_color,
