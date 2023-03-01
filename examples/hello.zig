@@ -14,7 +14,9 @@ var screenshot_time: i64 = -1;
 var screenshot_tex: ?sdl.Texture = null;
 var screenshot_pos: sdl.PointF = undefined;
 var screenshot_size: sdl.PointF = undefined;
+var screenshot_tint_color: sdl.Color = undefined;
 var point_easing_system: *easing.EasingSystem(sdl.PointF) = undefined;
+var color_easing_system: *easing.EasingSystem(sdl.Color) = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -43,6 +45,7 @@ pub fn init(ctx: jok.Context) !void {
         .y = 100,
     };
     point_easing_system = try easing.EasingSystem(sdl.PointF).create(ctx.allocator());
+    color_easing_system = try easing.EasingSystem(sdl.Color).create(ctx.allocator());
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -76,6 +79,14 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
                     .{ .x = 800, .y = 600 },
                     .{ .x = 160, .y = 120 },
                 );
+                try color_easing_system.add(
+                    &screenshot_tint_color,
+                    .in_out_quad,
+                    easing.easeColor,
+                    1,
+                    .{ .r = 0, .g = 0, .b = 0, .a = 0 },
+                    sdl.Color.white,
+                );
             }
         },
         else => {},
@@ -84,6 +95,7 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 
 pub fn update(ctx: jok.Context) !void {
     try point_easing_system.update(ctx.deltaSeconds());
+    try color_easing_system.update(ctx.deltaSeconds());
 }
 
 pub fn draw(ctx: jok.Context) !void {
@@ -185,6 +197,7 @@ pub fn draw(ctx: jok.Context) !void {
                         .x = screenshot_size.x - 10,
                         .y = screenshot_size.y - 10,
                     },
+                    .tint_color = screenshot_tint_color,
                 },
             );
             try j2d.end();
@@ -242,4 +255,5 @@ pub fn quit(ctx: jok.Context) void {
 
     if (screenshot_tex) |tex| tex.destroy();
     point_easing_system.destroy();
+    color_easing_system.destroy();
 }

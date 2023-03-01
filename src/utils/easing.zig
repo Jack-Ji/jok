@@ -114,6 +114,8 @@ pub fn EasingSystem(comptime T: type) type {
         }
 
         pub fn update(self: *Self, delta_time: f32) !void {
+            if (self.vars.count() == 0) return;
+
             var it = self.vars.valueIterator();
             while (it.next()) |vptr| {
                 vptr.life_passed += delta_time;
@@ -164,6 +166,47 @@ pub fn EaseScalar(comptime T: type) type {
     };
 }
 
+pub fn EaseVector(comptime N: u32, comptime T: type) type {
+    const Vec = @Vector(N, T);
+
+    return struct {
+        fn convert(comptime T1: type, comptime T2: type, v: @Vector(N, T1)) @Vector(N, T2) {
+            var result = @splat(N, @as(T2, 0));
+            comptime var i: u32 = 0;
+            inline while (i < N) : (i += 1) {
+                switch (T1) {
+                    f32, f64 => switch (T2) {
+                        f32, f64 => result[i] = @floatCast(T2, v[i]),
+                        c_int, i8, i16, i32, i64, u8, u16, u32, u64 => result[i] = @floatToInt(T2, v[i]),
+                        else => unreachable,
+                    },
+                    c_int, i8, i16, i32, i64, u8, u16, u32, u64 => switch (T2) {
+                        f32, f64 => result[i] = @intToFloat(T2, v[i]),
+                        c_int, i8, i16, i32, i64, u8, u16, u32, u64 => result[i] = @intCast(T2, v[i]),
+                        else => unreachable,
+                    },
+                    else => unreachable,
+                }
+            }
+            return result;
+        }
+
+        pub fn ease(x: f32, from: Vec, to: Vec) Vec {
+            return switch (T) {
+                f32 => from + (to - from) * @splat(N, x),
+                f64 => from + (to - from) * @splat(N, @floatCast(f64, x)),
+                c_int, i8, i16, i32, i64, u8, u16, u32, u64 => BLK: {
+                    const from_f64 = convert(T, f64, from);
+                    const to_f64 = convert(T, f64, to);
+                    const result_f64 = from_f64 + (to_f64 - from_f64) * @splat(N, @floatCast(f64, x));
+                    break :BLK convert(f64, T, result_f64);
+                },
+                else => unreachable,
+            };
+        }
+    };
+}
+
 pub fn easePointF(x: f32, from: sdl.PointF, to: sdl.PointF) sdl.PointF {
     const es = EaseScalar(f32);
     return .{
@@ -172,18 +215,12 @@ pub fn easePointF(x: f32, from: sdl.PointF, to: sdl.PointF) sdl.PointF {
     };
 }
 
-pub fn easeColor(x: f32, from: sdl.Color, to: sdl.Color) sdl.Color {
-    const es = EaseScalar(u8);
-    return .{
-        .r = es.ease(x, from.r, to.r),
-        .g = es.ease(x, from.g, to.g),
-        .b = es.ease(x, from.b, to.b),
-        .a = es.ease(x, from.a, to.a),
-    };
-}
-
-pub fn easeVec(x: f32, from: zmath.Vec, to: zmath.Vec) zmath.Vec {
-    return zmath.lerp(from, to, x);
+pub fn easeColor(x: f32, _from: sdl.Color, _to: sdl.Color) sdl.Color {
+    const es = EaseVector(4, u8);
+    const from = @Vector(4, u8){ _from.r, _from.g, _from.b, _from.a };
+    const to = @Vector(4, u8){ _to.r, _to.g, _to.b, _to.a };
+    const c = es.ease(x, from, to);
+    return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
 }
 
 fn linear(x: f32) f32 {
