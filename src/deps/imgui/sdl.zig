@@ -5,7 +5,7 @@ const zgui = @import("zgui");
 const sdl = @import("sdl");
 const imgui = @import("imgui.zig");
 
-pub fn init(ctx: jok.Context) void {
+pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     zgui.init(ctx.allocator());
 
     const window = ctx.window();
@@ -19,6 +19,10 @@ pub fn init(ctx: jok.Context) void {
     }
 
     zgui.getStyle().scaleAllSizes(ctx.getPixelRatio());
+
+    if (!enable_ini_file) {
+        zgui.io.setIniFilename(null);
+    }
 
     const font = zgui.io.addFontFromMemory(jok.font.DebugFont.font_data, 16);
     zgui.io.setDefaultFont(font);

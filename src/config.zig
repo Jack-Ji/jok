@@ -65,6 +65,9 @@ pub const Config = struct {
 
     /// Exit game when get quit event
     jok_exit_on_recv_quit: bool = false,
+
+    /// Whether let IMGUI load/save ini file
+    jok_imgui_ini_file: bool = false,
 };
 
 /// Graphics flushing method
@@ -118,6 +121,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_mouse_mode", .desc = "mouse mode setting" },
         .{ .name = "jok_exit_on_recv_esc", .desc = "whether exit game when esc is pressed" },
         .{ .name = "jok_exit_on_recv_quit", .desc = "whether exit game when getting quit event" },
+        .{ .name = "jok_imgui_ini_file", .desc = "whether let IMGUI load/save ini file" },
     };
     const game_struct = @typeInfo(game).Struct;
     for (game_struct.decls) |f| {

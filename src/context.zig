@@ -206,7 +206,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             try self.initSDL();
 
             // Init zmodules
-            imgui.sdl.init(self._ctx);
+            imgui.sdl.init(self._ctx, cfg.jok_imgui_ini_file);
             zmesh.init(self._allocator);
             if (bos.use_zaudio) {
                 zaudio.init(self._allocator);
