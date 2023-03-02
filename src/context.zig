@@ -289,7 +289,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 var buf: [128]u8 = undefined;
                 const txt = std.fmt.bufPrintZ(
                     &buf,
-                    "{s} | {d}x{d} | FPS: {d:.1}, {s} | CPU: {d:.1}ms | MEM: {:.3} | RENDERER: {s} | OPTIMIZE: {s}",
+                    "{s} | {d}x{d} | FPS: {d:.1}, {s} | FRAMETIME: {d:.1}ms | MEM: {:.3} | RENDERER: {s}",
                     .{
                         cfg.jok_window_title,
                         getWindowSize(self).x,
@@ -299,7 +299,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         self._average_cpu_time,
                         std.fmt.fmtIntSizeBin(gpa.total_requested_bytes),
                         if (self._is_software) "software" else "hardware",
-                        @tagName(builtin.mode),
                     },
                 ) catch unreachable;
                 sdl.c.SDL_SetWindowTitle(self._window.ptr, txt.ptr);
