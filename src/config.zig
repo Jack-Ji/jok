@@ -9,6 +9,9 @@ pub const Config = struct {
     /// FPS limiting (auto means vsync)
     jok_fps_limit: FpsLimit = .auto,
 
+    /// Whether let user control graphics refreshing
+    jok_manual_refreshing: bool = false,
+
     /// Display frame stats on title bar
     jok_framestat_display: bool = true,
 
@@ -100,6 +103,7 @@ pub fn init(comptime game: anytype) Config {
     const options = [_]struct { name: []const u8, desc: []const u8 }{
         .{ .name = "jok_log_level", .desc = "logging level" },
         .{ .name = "jok_fps_limit", .desc = "fps limit setting" },
+        .{ .name = "jok_manual_refreshing", .desc = "whether let user control graphics refreshing" },
         .{ .name = "jok_framestat_display", .desc = "whether refresh and display frame statistics on title-bar of window" },
         .{ .name = "jok_allocator", .desc = "default memory allocator" },
         .{ .name = "jok_mem_leak_checks", .desc = "whether default memory allocator check memleak when exiting" },

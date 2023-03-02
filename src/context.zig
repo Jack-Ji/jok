@@ -25,6 +25,7 @@ pub const Context = struct {
         fps: *const fn (ctx: *anyopaque) f32,
         window: *const fn (ctx: *anyopaque) sdl.Window,
         renderer: *const fn (ctx: *anyopaque) sdl.Renderer,
+        refresh: *const fn (ctx: *anyopaque) void,
         kill: *const fn (ctx: *anyopaque) void,
         toggleResizable: *const fn (ctx: *anyopaque, on_off: ?bool) void,
         toggleFullscreeen: *const fn (ctx: *anyopaque, on_off: ?bool) void,
@@ -77,6 +78,11 @@ pub const Context = struct {
     /// Get SDL renderer
     pub fn renderer(self: Context) sdl.Renderer {
         return self.vtable.renderer(self.ctx);
+    }
+
+    /// Refresh graphics
+    pub fn refresh(self: Context) void {
+        self.vtable.refresh(self.ctx);
     }
 
     /// Kill application
@@ -150,6 +156,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
     return struct {
         var gpa: AllocatorType = .{};
+        const refresh_default_value = if (cfg.jok_manual_refreshing) false else {};
 
         // Application Context
         _ctx: Context = undefined,
@@ -166,6 +173,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
         // Renderer
         _renderer: sdl.Renderer = undefined,
         _is_software: bool = false,
+
+        // Manual refreshing flag
+        _refresh: @TypeOf(refresh_default_value) = refresh_default_value,
 
         // Resizable mode
         _resizable: bool = undefined,
@@ -313,7 +323,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
         ) void {
             const fps_pc_threshold: u64 = switch (cfg.jok_fps_limit) {
                 .none => 0,
-                .auto => if (self._is_software) @divTrunc(@floatToInt(u64, self._pc_freq), 30) else 0,
+                .auto => if (cfg.jok_manual_refreshing or self._is_software)
+                    @divTrunc(@floatToInt(u64, self._pc_freq), 30)
+                else
+                    0,
                 .manual => |_fps| @floatToInt(u64, self._pc_freq) / @intCast(u64, _fps),
             };
             const max_accumulated = @floatToInt(u64, self._pc_freq * 0.5);
@@ -386,6 +399,13 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
 
             // Do rendering
+            if (cfg.jok_manual_refreshing) {
+                if (self._refresh) {
+                    self._refresh = false;
+                } else {
+                    return;
+                }
+            }
             self._renderer.clear() catch unreachable;
             drawFn(self._ctx) catch |e| {
                 log.err("got error in `draw`: {}", .{e});
@@ -571,6 +591,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .fps = fps,
                     .window = window,
                     .renderer = renderer,
+                    .refresh = refresh,
                     .kill = kill,
                     .toggleResizable = toggleResizable,
                     .toggleFullscreeen = toggleFullscreeen,
@@ -639,6 +660,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn renderer(ptr: *anyopaque) sdl.Renderer {
             var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
             return self._renderer;
+        }
+
+        /// Refresh graphics
+        fn refresh(ptr: *anyopaque) void {
+            if (cfg.jok_manual_refreshing) {
+                var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+                self._refresh = true;
+            }
         }
 
         /// Kill app
