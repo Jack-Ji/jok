@@ -3,7 +3,6 @@ A minimal 2d/3d game framework for zig.
 
 ## What you need?
 * zig compiler (latest version)
-* SDL library
 * Any code editor you like
 
 ## Features
@@ -26,8 +25,7 @@ A minimal 2d/3d game framework for zig.
 * Fully integrated Dear-ImGui
 
 ## How to start?
-Copy or clone repo (recursively) to `libs` subdirectory of the root of your project.
-Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig).
+Copy or clone repo to `libs` subdirectory of the root of your project.
 Then in your `build.zig` add:
 
 ```zig
