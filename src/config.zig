@@ -71,6 +71,9 @@ pub const Config = struct {
 
     /// Whether let IMGUI load/save ini file
     jok_imgui_ini_file: bool = false,
+
+    /// Prebuild atlas for debug font
+    jok_prebuild_atlas: ?u32 = 16,
 };
 
 /// Graphics flushing method
@@ -126,6 +129,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_exit_on_recv_esc", .desc = "whether exit game when esc is pressed" },
         .{ .name = "jok_exit_on_recv_quit", .desc = "whether exit game when getting quit event" },
         .{ .name = "jok_imgui_ini_file", .desc = "whether let IMGUI load/save ini file" },
+        .{ .name = "jok_prebuild_atlas", .desc = "whether prebuild atlas for debug font" },
     };
     const game_struct = @typeInfo(game).Struct;
     for (game_struct.decls) |f| {

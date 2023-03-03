@@ -26,6 +26,22 @@ const EasingBlock = struct {
 pub fn init(ctx: jok.Context) !void {
     point_easing_system =
         try easing.EasingSystem(sdl.PointF).create(ctx.allocator());
+    for (&blocks, 0..) |*b, i| {
+        try point_easing_system.add(
+            &b.pos,
+            @intToEnum(easing.EasingType, @intCast(u8, i)),
+            easing.easePointF,
+            2,
+            .{
+                .x = 150,
+                .y = 1 + @intToFloat(f32, i) * 25,
+            },
+            .{
+                .x = 680,
+                .y = 1 + @intToFloat(f32, i) * 25,
+            },
+        );
+    }
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
