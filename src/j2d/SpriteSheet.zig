@@ -175,13 +175,13 @@ pub fn create(
         rects[i] = .{
             .s0 = @intToFloat(f32, r.x) * inv_width,
             .t0 = @intToFloat(f32, r.y) * inv_height,
-            .s1 = @intToFloat(f32, r.x + r.w - gap) * inv_width,
-            .t1 = @intToFloat(f32, r.y + r.h - gap) * inv_height,
-            .width = @intToFloat(f32, r.w - gap),
-            .height = @intToFloat(f32, r.h - gap),
+            .s1 = @intToFloat(f32, r.x + r.w - @intCast(c_int, gap)) * inv_width,
+            .t1 = @intToFloat(f32, r.y + r.h - @intCast(c_int, gap)) * inv_height,
+            .width = @intToFloat(f32, r.w - @intCast(c_int, gap)),
+            .height = @intToFloat(f32, r.h - @intCast(c_int, gap)),
         };
         const y_begin: u32 = @intCast(u32, r.y);
-        const y_end: u32 = @intCast(u32, r.y + r.h - gap);
+        const y_end: u32 = @intCast(u32, r.y + r.h - @intCast(c_int, gap));
         const src_pixels = images[i].pixels;
         const dst_stride: u32 = width * 4;
         const src_stride: u32 = src_pixels.width * 4;

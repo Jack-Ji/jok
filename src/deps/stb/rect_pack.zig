@@ -1,4 +1,4 @@
-pub const stbrp_coord = c_ushort;
+pub const stbrp_coord = c_int;
 pub const struct_stbrp_node = extern struct {
     x: stbrp_coord,
     y: stbrp_coord,
