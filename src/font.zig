@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const sdl = @import("sdl");
 const jok = @import("jok.zig");
+const sdl = jok.sdl;
 const imgui = jok.imgui;
 
 /// Wrapper of truetype font

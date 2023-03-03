@@ -1,6 +1,6 @@
 const bos = @import("build_options");
 
-pub const sdl = @import("sdl");
+pub const sdl = @import("sdl/sdl.zig");
 pub const stb = @import("stb/stb.zig");
 pub const imgui = @import("imgui/imgui.zig");
 pub const zmath = @import("zmath");

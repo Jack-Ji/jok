@@ -1,8 +1,8 @@
 /// mesh data imported from zmesh.Shape and model file
 const std = @import("std");
 const assert = std.debug.assert;
-const sdl = @import("sdl");
 const jok = @import("../jok.zig");
+const sdl = jok.sdl;
 const Vector = @import("Vector.zig");
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;

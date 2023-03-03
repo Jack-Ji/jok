@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const Sdk = @import("src/deps/sdl/Sdk.zig");
+const sdl = @import("src/deps/sdl/build.zig");
 const stb = @import("src/deps/stb/build.zig");
 const imgui = @import("src/deps/imgui/build.zig");
 const nfd = @import("src/deps/nfd/build.zig");
@@ -92,7 +92,6 @@ pub fn createGame(
     bos.addOption(bool, "use_zaudio", opt.use_zaudio);
     bos.addOption(bool, "use_zphysics", opt.use_zphysics);
     bos.addOption(bool, "use_ztracy", opt.use_ztracy);
-    const sdl_sdk = Sdk.init(b, null);
     const zmath_pkg = zmath.Package.build(b, .{});
     const zmesh_pkg = zmesh.Package.build(b, target, optimize, .{});
     const znoise_pkg = znoise.Package.build(b, target, optimize, .{});
@@ -105,7 +104,6 @@ pub fn createGame(
         .source_file = .{ .path = thisDir() ++ "/src/jok.zig" },
         .dependencies = &.{
             .{ .name = "build_options", .module = bos.createModule() },
-            .{ .name = "sdl", .module = sdl_sdk.getWrapperModule() },
             .{ .name = "zgui", .module = imgui.getZguiModule(b, target, optimize) },
             .{ .name = "zmath", .module = zmath_pkg.zmath },
             .{ .name = "zmesh", .module = zmesh_pkg.zmesh },
@@ -134,7 +132,7 @@ pub fn createGame(
     }));
 
     // Link libraries
-    sdl_sdk.link(exe, .dynamic);
+    sdl.link(exe);
     stb.link(exe);
     imgui.link(exe);
     zmesh_pkg.link(exe);

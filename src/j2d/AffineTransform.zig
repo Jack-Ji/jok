@@ -4,8 +4,8 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
-const sdl = @import("sdl");
 const jok = @import("../jok.zig");
+const sdl = jok.sdl;
 const zmath = jok.zmath;
 const Self = @This();
 

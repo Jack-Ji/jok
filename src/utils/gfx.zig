@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const sdl = @import("sdl");
 const jok = @import("../jok.zig");
+const sdl = jok.sdl;
 const native_endian = @import("builtin").target.cpu.arch.endian();
 const stb = jok.stb;
 

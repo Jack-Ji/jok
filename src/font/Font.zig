@@ -1,8 +1,8 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const sdl = @import("sdl");
 const Atlas = @import("Atlas.zig");
 const jok = @import("../jok.zig");
+const sdl = jok.sdl;
 const truetype = jok.stb.truetype;
 const Font = @This();
 

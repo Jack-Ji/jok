@@ -28,7 +28,6 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
 
     exe.addIncludePath(thisDir() ++ "/zgui/libs");
     exe.addIncludePath(thisDir() ++ "/c");
-    exe.addIncludePath(thisDir() ++ "/c/SDL2");
     exe.addCSourceFile(thisDir() ++ "/c/imgui_impl_sdl.cpp", cflags);
     exe.addCSourceFile(thisDir() ++ "/c/imgui_impl_sdlrenderer.cpp", cflags);
 }
