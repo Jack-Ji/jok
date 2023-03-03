@@ -1,6 +1,6 @@
 const std = @import("std");
-const sdl = @import("sdl");
 const jok = @import("../jok.zig");
+const sdl = jok.sdl;
 const AffineTransform = @import("AffineTransform.zig");
 const imgui = jok.imgui;
 

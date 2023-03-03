@@ -1,12 +1,12 @@
 /// Particle system
 const std = @import("std");
 const assert = std.debug.assert;
-const sdl = @import("sdl");
 const internal = @import("internal.zig");
 const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
 const jok = @import("../jok.zig");
+const sdl = jok.sdl;
 const j3d = jok.j3d;
 const zmesh = jok.zmesh;
 const zmath = jok.zmath;

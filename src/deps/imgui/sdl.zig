@@ -1,8 +1,8 @@
 const std = @import("std");
 const math = std.math;
 const jok = @import("../../jok.zig");
+const sdl = jok.sdl;
 const zgui = @import("zgui");
-const sdl = @import("sdl");
 const imgui = @import("imgui.zig");
 
 pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
