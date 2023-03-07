@@ -139,6 +139,7 @@ pub fn createGame(
     imgui.link(exe);
     zmesh_pkg.link(exe);
     znoise_pkg.link(exe);
+    zflecs_pkg.link(exe);
     if (opt.use_nfd) {
         nfd.link(exe);
     }
