@@ -60,6 +60,9 @@ pub const Config = struct {
     /// Window always on top
     jok_window_always_on_top: bool = false,
 
+    /// Whether show IME UI
+    jok_window_ime_ui: bool = false,
+
     /// Mouse mode
     jok_mouse_mode: MouseMode = .normal,
 
@@ -124,6 +127,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_window_borderless", .desc = "whether window is borderless" },
         .{ .name = "jok_window_minimized", .desc = "whether window is minimized when startup" },
         .{ .name = "jok_window_maximized", .desc = "whether window is maximized when startup" },
+        .{ .name = "jok_window_ime_ui", .desc = "whether show ime ui" },
         .{ .name = "jok_window_always_on_top", .desc = "whether window is locked to most front layer" },
         .{ .name = "jok_mouse_mode", .desc = "mouse mode setting" },
         .{ .name = "jok_exit_on_recv_esc", .desc = "whether exit game when esc is pressed" },

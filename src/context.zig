@@ -504,6 +504,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             if (cfg.jok_window_maximized) {
                 window_flags.dim = .maximized;
             }
+            if (cfg.jok_window_ime_ui) {
+                sdl.setHint("SDL_IME_SHOW_UI", "1");
+            }
             self._window = try sdl.createWindow(
                 cfg.jok_window_title,
                 cfg.jok_window_pos_x,
