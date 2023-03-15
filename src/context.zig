@@ -495,14 +495,18 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .mouse_capture = true,
                 .mouse_focus = true,
             };
+            var window_width: usize = 0;
+            var window_height: usize = 0;
             if (cfg.jok_window_borderless) {
                 window_flags.borderless = true;
             }
-            if (cfg.jok_window_minimized) {
-                window_flags.dim = .minimized;
-            }
-            if (cfg.jok_window_maximized) {
-                window_flags.dim = .maximized;
+            switch (cfg.jok_window_size) {
+                .minimized => window_flags.dim = .minimized,
+                .maximized => window_flags.dim = .maximized,
+                .custom => |size| {
+                    window_width = @as(usize, size.width);
+                    window_height = @as(usize, size.height);
+                },
             }
             if (cfg.jok_window_ime_ui) {
                 sdl.setHint("SDL_IME_SHOW_UI", "1");
@@ -511,8 +515,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 cfg.jok_window_title,
                 cfg.jok_window_pos_x,
                 cfg.jok_window_pos_y,
-                cfg.jok_window_width,
-                cfg.jok_window_height,
+                window_width,
+                window_height,
                 window_flags,
             );
             if (cfg.jok_window_min_size) |size| {

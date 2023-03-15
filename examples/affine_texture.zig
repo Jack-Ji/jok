@@ -10,8 +10,6 @@ const j3d = jok.j3d;
 const Camera = j3d.Camera;
 
 pub const jok_window_resizable = true;
-pub const jok_window_width = 800;
-pub const jok_window_height = 600;
 
 var wireframe: bool = true;
 var camera: Camera = undefined;

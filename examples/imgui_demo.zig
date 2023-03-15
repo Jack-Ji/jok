@@ -3,8 +3,9 @@ const jok = @import("jok");
 const sdl = jok.sdl;
 const imgui = jok.imgui;
 
-pub const jok_window_width = 1200;
-pub const jok_window_height = 800;
+pub const jok_window_size = jok.config.WindowSize{
+    .custom = .{ .width = 1200, .height = 800 },
+};
 
 var tex: sdl.Texture = undefined;
 

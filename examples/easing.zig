@@ -4,7 +4,9 @@ const sdl = jok.sdl;
 const j2d = jok.j2d;
 const easing = jok.utils.easing;
 
-pub const jok_window_height = 800;
+pub const jok_window_size = jok.config.WindowSize{
+    .custom = .{ .width = 800, .height = 800 },
+};
 
 var point_easing_system: *easing.EasingSystem(sdl.PointF) = undefined;
 var blocks: [31]EasingBlock = undefined;

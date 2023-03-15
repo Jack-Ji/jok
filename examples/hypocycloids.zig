@@ -4,8 +4,9 @@ const jok = @import("jok");
 const sdl = jok.sdl;
 const j2d = jok.j2d;
 
-pub const jok_window_width = 1024;
-pub const jok_window_height = 768;
+pub const jok_window_size = jok.config.WindowSize{
+    .custom = .{ .width = 1024, .height = 768 },
+};
 
 var path: j2d.Path = undefined;
 

@@ -7,8 +7,9 @@ const imgui = jok.imgui;
 const nfd = jok.nfd;
 const j2d = jok.j2d;
 
-pub const jok_window_width = 1200;
-pub const jok_window_height = 800;
+pub const jok_window_size = jok.config.WindowSize{
+    .custom = .{ .width = 1200, .height = 800 },
+};
 
 // Image positions
 const xshift = 50;
@@ -177,17 +178,17 @@ fn interaction(
                 p1.vx *= -1;
                 p1.x = 0;
             }
-            if (p1.x > jok_window_width) {
+            if (p1.x > jok_window_size.custom.width) {
                 p1.vx *= -1;
-                p1.x = jok_window_width;
+                p1.x = jok_window_size.custom.width;
             }
             if (p1.y < 0) {
                 p1.vy *= -1;
                 p1.y = 0;
             }
-            if (p1.y > jok_window_height) {
+            if (p1.y > jok_window_size.custom.height) {
                 p1.vy *= -1;
-                p1.y = jok_window_height;
+                p1.y = jok_window_size.custom.height;
             }
         }
     }
