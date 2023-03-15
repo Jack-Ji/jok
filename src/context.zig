@@ -495,14 +495,19 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .mouse_capture = true,
                 .mouse_focus = true,
             };
-            var window_width: usize = 0;
-            var window_height: usize = 0;
+            var window_width: usize = 800;
+            var window_height: usize = 600;
             if (cfg.jok_window_borderless) {
                 window_flags.borderless = true;
             }
             switch (cfg.jok_window_size) {
-                .minimized => window_flags.dim = .minimized,
-                .maximized => window_flags.dim = .maximized,
+                .maximized => {
+                    window_flags.dim = .maximized;
+                },
+                .fullscreen => {
+                    self._fullscreen = true;
+                    window_flags.dim = .fullscreen;
+                },
                 .custom => |size| {
                     window_width = @as(usize, size.width);
                     window_height = @as(usize, size.height);
@@ -534,20 +539,22 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 );
             }
             toggleResizable(self, cfg.jok_window_resizable);
-            toggleFullscreeen(self, cfg.jok_window_fullscreen);
             toggleAlwaysOnTop(self, cfg.jok_window_always_on_top);
 
             // Apply mouse mode
             switch (cfg.jok_mouse_mode) {
                 .normal => {
-                    if (cfg.jok_window_fullscreen) {
+                    if (cfg.jok_window_size == .fullscreen) {
                         sdl.c.SDL_SetWindowGrab(self._window.ptr, sdl.c.SDL_FALSE);
+                        _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
+                        _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_TRUE);
+                    } else {
+                        _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_ENABLE);
+                        _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_FALSE);
                     }
-                    _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_ENABLE);
-                    _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_FALSE);
                 },
                 .hide => {
-                    if (cfg.jok_window_fullscreen) {
+                    if (cfg.jok_window_size == .fullscreen) {
                         sdl.c.SDL_SetWindowGrab(self._window.ptr, sdl.c.SDL_TRUE);
                     }
                     _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);

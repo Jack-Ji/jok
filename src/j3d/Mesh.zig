@@ -121,10 +121,22 @@ pub const Node = struct {
     }
 };
 
+pub const Animation = struct {
+    node: *Node,
+
+    fn init(allocator: std.mem.Allocator, mesh: *Self, anim: zmesh.io.zcgltf.Animation) !Animation {
+        // TODO
+        _ = allocator;
+        _ = anim;
+        return .{ .node = mesh.root };
+    }
+};
+
 allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
 root: *Node,
 textures: std.AutoHashMap(usize, sdl.Texture),
+animations: std.StringHashMap(Animation),
 own_textures: bool,
 
 pub fn create(allocator: std.mem.Allocator, mesh_count: usize) !*Self {
@@ -134,6 +146,7 @@ pub fn create(allocator: std.mem.Allocator, mesh_count: usize) !*Self {
     self.arena = std.heap.ArenaAllocator.init(allocator);
     self.root = try self.createNode(null, mesh_count);
     self.textures = std.AutoHashMap(usize, sdl.Texture).init(self.arena.allocator());
+    self.animations = std.StringHashMap(Animation).init(self.arena.allocator());
     self.own_textures = false;
     return self;
 }
@@ -203,6 +216,13 @@ pub fn fromGltf(
     while (node_index < data.scene.?.nodes_count) : (node_index += 1) {
         try self.loadNodeTree(rd, dir, data.scene.?.nodes.?[node_index], self.root, opt);
     }
+
+    // Load animations
+    var animation_index: usize = 0;
+    while (animation_index < data.animations_count) : (animation_index += 1) {
+        try self.loadAnimation(data.animations.?[animation_index]);
+    }
+
     return self;
 }
 
@@ -414,4 +434,17 @@ fn loadNodeTree(
     for (0..gltf_node.children_count) |node_index| {
         try self.loadNodeTree(rd, dir, gltf_node.children.?[node_index], node, opt);
     }
+}
+
+fn loadAnimation(self: *Self, anim: zmesh.io.zcgltf.Animation) !void {
+    const name = try self.arena.allocator().dupe(
+        u8,
+        std.mem.sliceTo(anim.name.?, 0),
+    );
+    errdefer self.arena.allocator().free(name);
+
+    try self.animations.put(
+        name,
+        try Animation.init(self.arena.allocator(), self, anim),
+    );
 }

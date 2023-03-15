@@ -44,9 +44,6 @@ pub const Config = struct {
     // Resizable switch
     jok_window_resizable: bool = false,
 
-    /// Display switch
-    jok_window_fullscreen: bool = false,
-
     /// Borderless window
     jok_window_borderless: bool = false,
 
@@ -74,8 +71,8 @@ pub const Config = struct {
 
 /// Initial size of window
 pub const WindowSize = union(enum) {
-    minimized,
     maximized,
+    fullscreen,
     custom: struct { width: u32, height: u32 },
 };
 
@@ -122,7 +119,6 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_window_min_size", .desc = "minimum size of window" },
         .{ .name = "jok_window_max_size", .desc = "maximum size of window" },
         .{ .name = "jok_window_resizable", .desc = "whether window is resizable" },
-        .{ .name = "jok_window_fullscreen", .desc = "whether use fullscreen mode" },
         .{ .name = "jok_window_borderless", .desc = "whether window is borderless" },
         .{ .name = "jok_window_ime_ui", .desc = "whether show ime ui" },
         .{ .name = "jok_window_always_on_top", .desc = "whether window is locked to most front layer" },
@@ -150,7 +146,8 @@ pub fn init(comptime game: anytype) Config {
             if (std.mem.eql(u8, o.name, f.name)) {
                 if (CfgFieldType == GameFieldType or
                     (cfg_type == .Int and game_type == .ComptimeInt) or
-                    (cfg_type == .Optional and cfg_type.Optional.child == GameFieldType))
+                    (cfg_type == .Optional and cfg_type.Optional.child == GameFieldType) or
+                    (cfg_type == .Union and cfg_type.Union.tag_type == GameFieldType))
                 {
                     @field(cfg, f.name) = @field(game, o.name);
                 } else {
