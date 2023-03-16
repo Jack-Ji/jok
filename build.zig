@@ -85,7 +85,7 @@ pub fn createGame(
     target: std.zig.CrossTarget,
     optimize: std.builtin.Mode,
     opt: BuildOptions,
-) *std.build.LibExeObjStep {
+) *std.Build.CompileStep {
     // Initialize jok module
     const bos = b.addOptions();
     bos.addOption(bool, "use_nfd", opt.use_nfd);
