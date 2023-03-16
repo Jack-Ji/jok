@@ -4,6 +4,7 @@ pub const Package = struct {
     pub const Options = struct {
         use_double_precision: bool = false,
         enable_asserts: bool = false,
+        enable_cross_platform_determinism: bool = true,
     };
 
     options: Options,
@@ -22,6 +23,7 @@ pub const Package = struct {
         const step = b.addOptions();
         step.addOption(bool, "use_double_precision", args.options.use_double_precision);
         step.addOption(bool, "enable_asserts", args.options.enable_asserts);
+        step.addOption(bool, "enable_cross_platform_determinism", args.options.enable_cross_platform_determinism);
 
         const zphysics_options = step.createModule();
 
@@ -46,6 +48,7 @@ pub const Package = struct {
         const flags = &.{
             "-std=c++17",
             "-DJPH_COMPILER_MINGW",
+            if (args.options.enable_cross_platform_determinism) "-DJPH_CROSS_PLATFORM_DETERMINISTIC" else "",
             if (args.options.use_double_precision) "-DJPH_DOUBLE_PRECISION" else "",
             if (args.options.enable_asserts or zphysics_c_cpp.optimize == .Debug) "-DJPH_ENABLE_ASSERTS" else "",
             "-fno-sanitize=undefined",
@@ -59,10 +62,12 @@ pub const Package = struct {
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Core/Factory.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Core/IssueReporting.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Core/JobSystemThreadPool.cpp", flags);
+        zphysics_c_cpp.addCSourceFile(src_dir ++ "/Core/JobSystemWithBarrier.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Core/LinearCurve.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Core/Memory.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Core/Profiler.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Core/RTTI.cpp", flags);
+        zphysics_c_cpp.addCSourceFile(src_dir ++ "/Core/Semaphore.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Core/StringTools.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Core/TickCounter.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Geometry/ConvexHullBuilder.cpp", flags);
@@ -147,6 +152,7 @@ pub const Package = struct {
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Physics/Constraints/PulleyConstraint.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Physics/DeterminismLog.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Physics/IslandBuilder.cpp", flags);
+        zphysics_c_cpp.addCSourceFile(src_dir ++ "/Physics/LargeIslandSplitter.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Physics/PhysicsLock.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Physics/PhysicsScene.cpp", flags);
         zphysics_c_cpp.addCSourceFile(src_dir ++ "/Physics/PhysicsSystem.cpp", flags);

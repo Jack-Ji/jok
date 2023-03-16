@@ -1,4 +1,4 @@
-pub const version = @import("std").SemanticVersion{ .major = 0, .minor = 0, .patch = 4 };
+pub const version = @import("std").SemanticVersion{ .major = 0, .minor = 0, .patch = 5 };
 
 const std = @import("std");
 const assert = std.debug.assert;
@@ -6,6 +6,7 @@ const options = @import("zphysics_options");
 const c = @cImport({
     if (options.use_double_precision) @cDefine("JPH_DOUBLE_PRECISION", "");
     if (options.enable_asserts) @cDefine("JPH_ENABLE_ASSERTS", "");
+    if (options.enable_cross_platform_determinism) @cDefine("JPH_CROSS_PLATFORM_DETERMINISTIC", "");
     @cInclude("JoltPhysicsC.h");
 });
 
@@ -539,6 +540,7 @@ pub const BodyCreationSettings = extern struct {
     motion_type: MotionType = .dynamic,
     allow_dynamic_or_kinematic: bool = false,
     is_sensor: bool = false,
+    use_manifold_reduction: bool = true,
     motion_quality: MotionQuality = .discrete,
     allow_sleeping: bool = true,
     friction: f32 = 0.2,
@@ -559,6 +561,8 @@ pub const BodyCreationSettings = extern struct {
         assert(@offsetOf(BodyCreationSettings, "is_sensor") == @offsetOf(c.JPC_BodyCreationSettings, "is_sensor"));
         assert(@offsetOf(BodyCreationSettings, "shape") == @offsetOf(c.JPC_BodyCreationSettings, "shape"));
         assert(@offsetOf(BodyCreationSettings, "user_data") == @offsetOf(c.JPC_BodyCreationSettings, "user_data"));
+        assert(@offsetOf(BodyCreationSettings, "motion_quality") ==
+            @offsetOf(c.JPC_BodyCreationSettings, "motion_quality"));
     }
 };
 
@@ -1105,7 +1109,12 @@ pub const BodyInterface = opaque {
             &impulse,
         );
     }
-    pub fn addImpulseAtPosition(body_iface: *BodyInterface, body_id: BodyId, impulse: [3]f32, position: [3]Real) void {
+    pub fn addImpulseAtPosition(
+        body_iface: *BodyInterface,
+        body_id: BodyId,
+        impulse: [3]f32,
+        position: [3]Real,
+    ) void {
         return c.JPC_BodyInterface_AddImpulseAtPosition(
             @ptrCast(*c.JPC_BodyInterface, body_iface),
             body_id,
@@ -2175,6 +2184,14 @@ pub const Shape = opaque {
         user6 = c.JPC_SHAPE_SUB_TYPE_USER6,
         user7 = c.JPC_SHAPE_SUB_TYPE_USER7,
         user8 = c.JPC_SHAPE_SUB_TYPE_USER8,
+        user_convex1 = c.JPC_SHAPE_SUB_TYPE_USER_CONVEX1,
+        user_convex2 = c.JPC_SHAPE_SUB_TYPE_USER_CONVEX2,
+        user_convex3 = c.JPC_SHAPE_SUB_TYPE_USER_CONVEX3,
+        user_convex4 = c.JPC_SHAPE_SUB_TYPE_USER_CONVEX4,
+        user_convex5 = c.JPC_SHAPE_SUB_TYPE_USER_CONVEX5,
+        user_convex6 = c.JPC_SHAPE_SUB_TYPE_USER_CONVEX6,
+        user_convex7 = c.JPC_SHAPE_SUB_TYPE_USER_CONVEX7,
+        user_convex8 = c.JPC_SHAPE_SUB_TYPE_USER_CONVEX8,
     };
 
     fn Methods(comptime T: type) type {
@@ -2303,6 +2320,7 @@ test "zphysics.BodyCreationSettings" {
     try expect(bcs0.motion_type == bcs1.motion_type);
     try expect(bcs0.allow_dynamic_or_kinematic == bcs1.allow_dynamic_or_kinematic);
     try expect(bcs0.is_sensor == bcs1.is_sensor);
+    try expect(bcs0.use_manifold_reduction == bcs1.use_manifold_reduction);
     try expect(bcs0.motion_quality == bcs1.motion_quality);
     try expect(bcs0.allow_sleeping == bcs1.allow_sleeping);
     try expect(approxEql(f32, bcs0.friction, bcs1.friction, 0.0001));
