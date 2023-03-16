@@ -29,9 +29,9 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
 
     zgui.plot.init();
 
-    // NOTE: workaround for initializing imgui's internal state
+    // Initialize imgui's internal state
     newFrame(ctx);
-    defer draw();
+    draw();
 }
 
 pub fn deinit() void {
@@ -115,7 +115,7 @@ pub inline fn convertColor(color: sdl.Color) u32 {
         (@intCast(u32, color.a) << 24);
 }
 
-// Those functions are defined in `imgui_impl_sdl.cpp` and 'imgui_impl_sdlrenderer.cpp`
+// These functions are defined in `imgui_impl_sdl.cpp` and 'imgui_impl_sdlrenderer.cpp`
 extern fn ImGui_ImplSDL2_InitForSDLRenderer(window: *const anyopaque, renderer: *const anyopaque) bool;
 extern fn ImGui_ImplSDL2_NewFrame() void;
 extern fn ImGui_ImplSDL2_Shutdown() void;
