@@ -2,7 +2,7 @@
 A minimal 2d/3d game framework for zig.
 
 ## What you need?
-* zig compiler (latest version)
+* zig compiler (latest version, download [in here](https://ziglang.org/download/))
 * SDL library
 * Any code editor you like
 
