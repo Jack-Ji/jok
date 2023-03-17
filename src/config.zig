@@ -22,8 +22,11 @@ pub const Config = struct {
     jok_mem_leak_checks: bool = true,
     jok_mem_detail_logs: bool = false,
 
-    /// Whether fallback to software renderer
-    jok_software_renderer: bool = true,
+    /// Whether use pure-software renderer
+    jok_software_renderer: bool = false,
+
+    /// Whether fallback to software renderer when gpu isn't found
+    jok_software_renderer_fallback: bool = true,
 
     /// Window's title
     jok_window_title: [:0]const u8 = "jok",
@@ -111,7 +114,8 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_allocator", .desc = "default memory allocator" },
         .{ .name = "jok_mem_leak_checks", .desc = "whether default memory allocator check memleak when exiting" },
         .{ .name = "jok_mem_detail_logs", .desc = "whether default memory allocator print detailed memory alloc/free logs" },
-        .{ .name = "jok_software_renderer", .desc = "whether fallback to software renderer when hardware acceleration isn't available" },
+        .{ .name = "jok_software_renderer", .desc = "whether use software renderer" },
+        .{ .name = "jok_software_renderer_fallback", .desc = "whether fallback to software renderer when hardware acceleration isn't available" },
         .{ .name = "jok_window_title", .desc = "title of window" },
         .{ .name = "jok_window_pos_x", .desc = "horizontal position of window" },
         .{ .name = "jok_window_pos_y", .desc = "vertical position of window" },

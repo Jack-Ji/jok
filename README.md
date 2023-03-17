@@ -2,11 +2,12 @@
 A minimal 2d/3d game framework for zig.
 
 ## What you need?
-* zig compiler (latest version, download [in here](https://ziglang.org/download/))
-* SDL library
+* Latest zig compiler (download in [here](https://ziglang.org/download/))
+* SDL library (download in [here](https://libsdl.org/), or use your beloved package manager)
 * Any code editor you like
 
 ## Features
+* Pure-software rendering support (No GPU? That's OK!)
 * 2D sprite rendering
 * 2D sprite sheet generation/save/load
 * 2D animation system

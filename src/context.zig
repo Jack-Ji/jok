@@ -290,7 +290,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     kill(self);
                 } else {
                     eventFn(self._ctx, we) catch |err| {
-                        log.err("got error in `event`: {}", .{err});
+                        log.err("Got error in `event`: {}", .{err});
                         if (@errorReturnTrace()) |trace| {
                             std.debug.dumpStackTrace(trace.*);
                             break;
@@ -371,7 +371,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     self._seconds_real += self._delta_seconds;
 
                     updateFn(self._ctx) catch |e| {
-                        log.err("got error in `update`: {}", .{e});
+                        log.err("Got error in `update`: {}", .{e});
                         if (@errorReturnTrace()) |trace| {
                             std.debug.dumpStackTrace(trace.*);
                             kill(self);
@@ -395,7 +395,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._seconds_real += self._delta_seconds;
 
                 updateFn(self._ctx) catch |e| {
-                    log.err("got error in `update`: {}", .{e});
+                    log.err("Got error in `update`: {}", .{e});
                     if (@errorReturnTrace()) |trace| {
                         std.debug.dumpStackTrace(trace.*);
                         kill(self);
@@ -414,7 +414,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
             self._renderer.clear() catch unreachable;
             drawFn(self._ctx) catch |e| {
-                log.err("got error in `draw`: {}", .{e});
+                log.err("Got error in `draw`: {}", .{e});
                 if (@errorReturnTrace()) |trace| {
                     std.debug.dumpStackTrace(trace.*);
                     kill(self);
@@ -568,13 +568,13 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._window,
                 null,
                 .{
-                    .accelerated = true,
+                    .software = cfg.jok_software_renderer,
                     .present_vsync = cfg.jok_fps_limit == .auto,
                     .target_texture = true,
                 },
             ) catch blk: {
-                if (cfg.jok_software_renderer) {
-                    log.warn("hardware accelerated renderer isn't supported, fallback to software backend", .{});
+                if (cfg.jok_software_renderer_fallback) {
+                    log.warn("Hardware accelerated renderer isn't supported, fallback to software backend", .{});
                     break :blk try sdl.createRenderer(
                         self._window,
                         null,
@@ -584,6 +584,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                             .target_texture = true,
                         },
                     );
+                } else {
+                    @panic("Failed to create renderer!");
                 }
             };
             const rdinfo = try self._renderer.getInfo();

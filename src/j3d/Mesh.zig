@@ -437,6 +437,8 @@ fn loadNodeTree(
 }
 
 fn loadAnimation(self: *Self, anim: zmesh.io.zcgltf.Animation) !void {
+    if (anim.name == null) return;
+
     const name = try self.arena.allocator().dupe(
         u8,
         std.mem.sliceTo(anim.name.?, 0),
