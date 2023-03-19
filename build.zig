@@ -136,7 +136,7 @@ pub fn createGame(
     // Link libraries
     sdl_sdk.link(exe, .dynamic);
     stb.link(exe);
-    imgui.link(exe);
+    imgui.link(b, exe);
     zmesh_pkg.link(exe);
     znoise_pkg.link(exe);
     zflecs_pkg.link(exe);

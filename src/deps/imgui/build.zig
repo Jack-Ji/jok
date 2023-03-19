@@ -14,9 +14,9 @@ pub fn getZguiModule(
     return pkg.zgui;
 }
 
-pub fn link(exe: *std.Build.CompileStep) void {
+pub fn link(b: *std.Build, exe: *std.Build.CompileStep) void {
     const pkg = zgui.Package.build(
-        exe.builder,
+        b,
         exe.target,
         exe.optimize,
         .{
