@@ -6,12 +6,14 @@ const sdl = jok.sdl;
 const Vector = @import("Vector.zig");
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
+const j3d = jok.j3d;
 const Self = @This();
 
 pub const Error = error{
     InvalidFormat,
 };
 
+pub const GltfNode = zmesh.io.zcgltf.Node;
 pub const Node = struct {
     pub const SubMesh = struct {
         mesh: *Self,
@@ -104,14 +106,26 @@ pub const Node = struct {
         }
     };
 
+    parent: ?*Node,
     children: std.ArrayList(*Node),
+    scale: zmath.Mat,
+    rotation: zmath.Mat,
+    translation: zmath.Mat,
     l_transform: zmath.Mat,
     g_transform: zmath.Mat,
     meshes: []SubMesh,
 
-    fn init(allocator: std.mem.Allocator, mesh: *Self, mesh_count: usize) !Node {
+    fn initRoot(
+        allocator: std.mem.Allocator,
+        mesh: *Self,
+        mesh_count: usize,
+    ) !Node {
         var self = Node{
+            .parent = null,
             .children = std.ArrayList(*Node).init(allocator),
+            .scale = zmath.identity(),
+            .rotation = zmath.identity(),
+            .translation = zmath.identity(),
             .l_transform = zmath.identity(),
             .g_transform = zmath.identity(),
             .meshes = try allocator.alloc(SubMesh, mesh_count),
@@ -119,20 +133,61 @@ pub const Node = struct {
         for (self.meshes) |*m| m.* = SubMesh.init(allocator, mesh);
         return self;
     }
+
+    fn init(
+        allocator: std.mem.Allocator,
+        mesh: *Self,
+        parent: ?*Node,
+        gltf_node: *const GltfNode,
+    ) !Node {
+        const submesh_count = if (gltf_node.mesh) |m| m.primitives_count else 0;
+        var self = Node{
+            .parent = parent,
+            .children = std.ArrayList(*Node).init(allocator),
+            .scale = zmath.scaling(gltf_node.scale[0], gltf_node.scale[1], gltf_node.scale[2]),
+            .rotation = zmath.quatToMat(@as(zmath.Quat, zmath.f32x4(
+                gltf_node.rotation[0],
+                gltf_node.rotation[1],
+                gltf_node.rotation[2],
+                gltf_node.rotation[3],
+            ))),
+            .translation = zmath.translation(gltf_node.translation[0], gltf_node.translation[1], gltf_node.translation[2]),
+            .l_transform = zmath.loadMat(&gltf_node.transformLocal()),
+            .g_transform = zmath.loadMat(&gltf_node.transformWorld()),
+            .meshes = try allocator.alloc(SubMesh, submesh_count),
+        };
+        for (self.meshes) |*m| m.* = SubMesh.init(allocator, mesh);
+        return self;
+    }
+
+    fn getWorldTransform(node: *const Node, model: zmath.Mat) zmath.Mat {
+        var mat = zmath.mul(node.l_transform, model);
+        var parent = node.parent;
+        while (parent) |p| {
+            mat = zmath.mul(p.l_transform, mat);
+            parent = p.parent;
+        }
+        return mat;
+    }
 };
 
+pub const GltfAnimation = zmesh.io.zcgltf.Animation;
+pub const GltfAnimationPathType = zmesh.io.zcgltf.AnimationPathType;
+pub const GltfInterpolationType = zmesh.io.zcgltf.InterpolationType;
 pub const Animation = struct {
     const Channel = struct {
         node: *Node,
-        path: zmesh.io.zcgltf.AnimationPathType,
-        interpolation: zmesh.io.zcgltf.InterpolationType,
+        path: GltfAnimationPathType,
+        interpolation: GltfInterpolationType,
         timesteps: []f32,
         samples: []zmath.Vec,
     };
+    mesh: *Self,
     channels: []Channel,
 
-    fn init(allocator: std.mem.Allocator, mesh: *Self, gltf_anim: zmesh.io.zcgltf.Animation) !?Animation {
+    fn init(allocator: std.mem.Allocator, mesh: *Self, gltf_anim: GltfAnimation) !?Animation {
         var anim = Animation{
+            .mesh = mesh,
             .channels = try allocator.alloc(Channel, gltf_anim.channels_count),
         };
         for (gltf_anim.channels[0..gltf_anim.channels_count], 0..gltf_anim.channels_count) |ch, i| {
@@ -180,7 +235,7 @@ pub const Animation = struct {
                     }
                 },
                 else => {
-                    // TODO weghts isn't supported for now
+                    // TODO weghts isn't supported
                     continue;
                 },
             }
@@ -188,7 +243,7 @@ pub const Animation = struct {
                 .linear => {},
                 .step => {},
                 .cubic_spline => {
-                    // TODO cubis-spline interpolation isn't supported for now
+                    // TODO cubis-spline interpolation isn't supported
                     continue;
                 },
             }
@@ -203,13 +258,32 @@ pub const Animation = struct {
         }
         return if (anim.channels.len == 0) null else anim;
     }
+
+    pub fn render(
+        anim: Animation,
+        tri_rd: *j3d.TriangleRenderer,
+        model: zmath.Mat,
+        playtime: f32,
+        opt: j3d.RenderOption,
+    ) !void {
+        _ = anim;
+        _ = tri_rd;
+        _ = model;
+        _ = playtime;
+        _ = opt;
+        //for (anim.channels) |*ch| {
+        //    var node = ch.node;
+        //    if (playtime >= ch.timesteps[ch.timesteps.len - 1]) {
+        //    }
+        //}
+    }
 };
 
 allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
 root: *Node,
 textures: std.AutoHashMap(usize, sdl.Texture),
-nodes_map: std.AutoHashMap(*zmesh.io.zcgltf.Node, *Node),
+nodes_map: std.AutoHashMap(*const GltfNode, *Node),
 animations: std.StringHashMap(Animation),
 own_textures: bool,
 
@@ -218,9 +292,9 @@ pub fn create(allocator: std.mem.Allocator, mesh_count: usize) !*Self {
     errdefer allocator.destroy(self);
     self.allocator = allocator;
     self.arena = std.heap.ArenaAllocator.init(allocator);
-    self.root = try self.createNode(null, mesh_count);
+    self.root = try self.createRootNode(mesh_count);
     self.textures = std.AutoHashMap(usize, sdl.Texture).init(self.arena.allocator());
-    self.nodes_map = std.AutoHashMap(*zmesh.io.zcgltf.Node, *Node).init(self.arena.allocator());
+    self.nodes_map = std.AutoHashMap(*const GltfNode, *Node).init(self.arena.allocator());
     self.animations = std.StringHashMap(Animation).init(self.arena.allocator());
     self.own_textures = false;
     return self;
@@ -312,12 +386,20 @@ pub fn destroy(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-pub fn createNode(self: *Self, parent: ?*Node, mesh_count: usize) !*Node {
+pub fn createNode(self: *Self, parent: ?*Node, gltf_node: *const GltfNode) !*Node {
     const allocator = self.arena.allocator();
     var node = try allocator.create(Node);
     errdefer allocator.destroy(node);
-    node.* = try Node.init(allocator, self, mesh_count);
+    node.* = try Node.init(allocator, self, parent, gltf_node);
     if (parent) |p| try p.children.append(node);
+    return node;
+}
+
+fn createRootNode(self: *Self, mesh_count: usize) !*Node {
+    const allocator = self.arena.allocator();
+    var node = try allocator.create(Node);
+    errdefer allocator.destroy(node);
+    node.* = try Node.initRoot(allocator, self, mesh_count);
     return node;
 }
 
@@ -325,14 +407,12 @@ fn loadNodeTree(
     self: *Self,
     rd: sdl.Renderer,
     dir: ?[]const u8,
-    gltf_node: *zmesh.io.zcgltf.Node,
+    gltf_node: *const GltfNode,
     parent: *Node,
     opt: GltfOption,
 ) !void {
-    var node = try self.createNode(parent, if (gltf_node.mesh) |mesh| mesh.primitives_count else 0);
+    var node = try self.createNode(parent, gltf_node);
     try self.nodes_map.put(gltf_node, node);
-    node.l_transform = zmath.loadMat(&gltf_node.transformLocal());
-    node.g_transform = zmath.loadMat(&gltf_node.transformWorld());
 
     if (gltf_node.mesh) |mesh| {
         for (0..mesh.primitives_count, node.meshes) |prim_index, *sm| {
@@ -512,7 +592,7 @@ fn loadNodeTree(
     }
 }
 
-fn loadAnimation(self: *Self, gltf_anim: zmesh.io.zcgltf.Animation) !void {
+fn loadAnimation(self: *Self, gltf_anim: GltfAnimation) !void {
     if (gltf_anim.name == null) return;
 
     const name = try self.arena.allocator().dupe(
