@@ -122,13 +122,86 @@ pub const Node = struct {
 };
 
 pub const Animation = struct {
-    node: *Node,
+    const AnimType = enum {
+        scale,
+        rotation,
+        translation,
+        weights,
+    };
+    const Channel = struct {
+        node: *Node,
+        anim_type: AnimType,
+        timesteps: []f32,
+        samples: []zmath.Vec,
+    };
+    channels: []Channel,
 
-    fn init(allocator: std.mem.Allocator, mesh: *Self, anim: zmesh.io.zcgltf.Animation) !Animation {
-        // TODO
-        _ = allocator;
-        _ = anim;
-        return .{ .node = mesh.root };
+    fn init(allocator: std.mem.Allocator, mesh: *Self, gltf_anim: zmesh.io.zcgltf.Animation) !?Animation {
+        var anim = Animation{
+            .channels = try allocator.alloc(Channel, gltf_anim.channels_count),
+        };
+        for (gltf_anim.channels[0..gltf_anim.channels_count], 0..gltf_anim.channels_count) |ch, i| {
+            var timesteps = try allocator.alloc(f32, ch.sampler.input.unpackFloatsCount());
+            _ = ch.sampler.input.unpackFloats(timesteps);
+            var samples = try allocator.alloc(zmath.Vec, ch.sampler.output.count);
+            var anim_type: AnimType = undefined;
+            switch (ch.target_path) {
+                .scale => {
+                    anim_type = .scale;
+                    var xs: [3]f32 = undefined;
+                    for (0..ch.sampler.output.count) |j| {
+                        const ret = ch.sampler.output.readFloat(j * 3, &xs);
+                        assert(ret == true);
+                        samples[j] = zmath.f32x4(
+                            xs[0],
+                            xs[1],
+                            xs[2],
+                            0,
+                        );
+                    }
+                },
+                .rotation => {
+                    anim_type = .rotation;
+                    var xs: [4]f32 = undefined;
+                    for (0..ch.sampler.output.count) |j| {
+                        const ret = ch.sampler.output.readFloat(j * 3, &xs);
+                        assert(ret == true);
+                        samples[j] = zmath.f32x4(
+                            xs[0],
+                            xs[1],
+                            xs[2],
+                            xs[3],
+                        );
+                    }
+                },
+                .translation => {
+                    anim_type = .translation;
+                    var xs: [3]f32 = undefined;
+                    for (0..ch.sampler.output.count) |j| {
+                        const ret = ch.sampler.output.readFloat(j * 3, &xs);
+                        assert(ret == true);
+                        samples[j] = zmath.f32x4(
+                            xs[0],
+                            xs[1],
+                            xs[2],
+                            0,
+                        );
+                    }
+                },
+                else => {
+                    // TODO weghts isn't supported for now
+                    continue;
+                },
+            }
+            assert(timesteps.len == samples.len);
+            anim.channels[i] = Channel{
+                .node = mesh.nodes_map.get(ch.target_node.?).?,
+                .anim_type = anim_type,
+                .timesteps = timesteps,
+                .samples = samples,
+            };
+        }
+        return if (anim.channels.len == 0) null else anim;
     }
 };
 
@@ -136,6 +209,7 @@ allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
 root: *Node,
 textures: std.AutoHashMap(usize, sdl.Texture),
+nodes_map: std.AutoHashMap(*zmesh.io.zcgltf.Node, *Node),
 animations: std.StringHashMap(Animation),
 own_textures: bool,
 
@@ -146,6 +220,7 @@ pub fn create(allocator: std.mem.Allocator, mesh_count: usize) !*Self {
     self.arena = std.heap.ArenaAllocator.init(allocator);
     self.root = try self.createNode(null, mesh_count);
     self.textures = std.AutoHashMap(usize, sdl.Texture).init(self.arena.allocator());
+    self.nodes_map = std.AutoHashMap(*zmesh.io.zcgltf.Node, *Node).init(self.arena.allocator());
     self.animations = std.StringHashMap(Animation).init(self.arena.allocator());
     self.own_textures = false;
     return self;
@@ -255,6 +330,7 @@ fn loadNodeTree(
     opt: GltfOption,
 ) !void {
     var node = try self.createNode(parent, if (gltf_node.mesh) |mesh| mesh.primitives_count else 0);
+    try self.nodes_map.put(gltf_node, node);
     node.l_transform = zmath.loadMat(&gltf_node.transformLocal());
     node.g_transform = zmath.loadMat(&gltf_node.transformWorld());
 
@@ -436,17 +512,16 @@ fn loadNodeTree(
     }
 }
 
-fn loadAnimation(self: *Self, anim: zmesh.io.zcgltf.Animation) !void {
-    if (anim.name == null) return;
+fn loadAnimation(self: *Self, gltf_anim: zmesh.io.zcgltf.Animation) !void {
+    if (gltf_anim.name == null) return;
 
     const name = try self.arena.allocator().dupe(
         u8,
-        std.mem.sliceTo(anim.name.?, 0),
+        std.mem.sliceTo(gltf_anim.name.?, 0),
     );
     errdefer self.arena.allocator().free(name);
 
-    try self.animations.put(
-        name,
-        try Animation.init(self.arena.allocator(), self, anim),
-    );
+    if (try Animation.init(self.arena.allocator(), self, gltf_anim)) |anim| {
+        try self.animations.put(name, anim);
+    }
 }
