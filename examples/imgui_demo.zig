@@ -3,6 +3,7 @@ const jok = @import("jok");
 const sdl = jok.sdl;
 const imgui = jok.imgui;
 
+pub const jok_window_ime_ui = true;
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1200, .height = 800 },
 };

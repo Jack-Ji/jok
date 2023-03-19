@@ -516,7 +516,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 },
             }
             if (cfg.jok_window_ime_ui) {
-                sdl.setHint("SDL_IME_SHOW_UI", "1");
+                _ = sdl.setHint("SDL_IME_SHOW_UI", "1");
             }
             self._window = try sdl.createWindow(
                 cfg.jok_window_title,
