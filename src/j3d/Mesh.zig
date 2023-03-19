@@ -122,15 +122,10 @@ pub const Node = struct {
 };
 
 pub const Animation = struct {
-    const AnimType = enum {
-        scale,
-        rotation,
-        translation,
-        weights,
-    };
     const Channel = struct {
         node: *Node,
-        anim_type: AnimType,
+        path: zmesh.io.zcgltf.AnimationPathType,
+        interpolation: zmesh.io.zcgltf.InterpolationType,
         timesteps: []f32,
         samples: []zmath.Vec,
     };
@@ -144,10 +139,8 @@ pub const Animation = struct {
             var timesteps = try allocator.alloc(f32, ch.sampler.input.unpackFloatsCount());
             _ = ch.sampler.input.unpackFloats(timesteps);
             var samples = try allocator.alloc(zmath.Vec, ch.sampler.output.count);
-            var anim_type: AnimType = undefined;
             switch (ch.target_path) {
                 .scale => {
-                    anim_type = .scale;
                     var xs: [3]f32 = undefined;
                     for (0..ch.sampler.output.count) |j| {
                         const ret = ch.sampler.output.readFloat(j * 3, &xs);
@@ -161,7 +154,6 @@ pub const Animation = struct {
                     }
                 },
                 .rotation => {
-                    anim_type = .rotation;
                     var xs: [4]f32 = undefined;
                     for (0..ch.sampler.output.count) |j| {
                         const ret = ch.sampler.output.readFloat(j * 3, &xs);
@@ -175,7 +167,6 @@ pub const Animation = struct {
                     }
                 },
                 .translation => {
-                    anim_type = .translation;
                     var xs: [3]f32 = undefined;
                     for (0..ch.sampler.output.count) |j| {
                         const ret = ch.sampler.output.readFloat(j * 3, &xs);
@@ -193,10 +184,19 @@ pub const Animation = struct {
                     continue;
                 },
             }
+            switch (ch.sampler.interpolation) {
+                .linear => {},
+                .step => {},
+                .cubic_spline => {
+                    // TODO cubis-spline interpolation isn't supported for now
+                    continue;
+                },
+            }
             assert(timesteps.len == samples.len);
             anim.channels[i] = Channel{
                 .node = mesh.nodes_map.get(ch.target_node.?).?,
-                .anim_type = anim_type,
+                .path = ch.target_path,
+                .interpolation = ch.sampler.interpolation,
                 .timesteps = timesteps,
                 .samples = samples,
             };
