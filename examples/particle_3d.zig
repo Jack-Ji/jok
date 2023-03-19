@@ -128,6 +128,11 @@ pub fn update(ctx: jok.Context) !void {
     }
 
     ps.update(ctx.deltaSeconds());
+
+    if (imgui.begin("Control", .{})) {
+        _ = imgui.checkbox("sort by depth", .{ .v = &sort_by_depth });
+    }
+    imgui.end();
 }
 
 pub fn draw(ctx: jok.Context) !void {
@@ -166,13 +171,6 @@ pub fn draw(ctx: jok.Context) !void {
             camera.dir[0],camera.dir[1],camera.dir[2],
         },
     );
-
-    imgui.sdl.newFrame(ctx);
-    defer imgui.sdl.draw();
-    if (imgui.begin("Control", .{})) {
-        _ = imgui.checkbox("sort by depth", .{ .v = &sort_by_depth });
-    }
-    imgui.end();
 }
 
 pub fn quit(ctx: jok.Context) void {

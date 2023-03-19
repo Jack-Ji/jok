@@ -127,6 +127,20 @@ pub fn update(ctx: jok.Context) !void {
     if (ctx.isKeyPressed(.down)) {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
+
+    if (imgui.begin("Tint Color", .{})) {
+        var cs: [3]f32 = .{
+            @intToFloat(f32, skybox_tint_color.r) / 255,
+            @intToFloat(f32, skybox_tint_color.g) / 255,
+            @intToFloat(f32, skybox_tint_color.b) / 255,
+        };
+        if (imgui.colorEdit3("Tint Color", .{ .col = &cs })) {
+            skybox_tint_color.r = @floatToInt(u8, cs[0] * 255);
+            skybox_tint_color.g = @floatToInt(u8, cs[1] * 255);
+            skybox_tint_color.b = @floatToInt(u8, cs[2] * 255);
+        }
+    }
+    imgui.end();
 }
 
 pub fn draw(ctx: jok.Context) !void {
@@ -162,22 +176,6 @@ pub fn draw(ctx: jok.Context) !void {
             camera.dir[0],camera.dir[1],camera.dir[2],
         },
     );
-
-    imgui.sdl.newFrame(ctx);
-    defer imgui.sdl.draw();
-    if (imgui.begin("Tint Color", .{})) {
-        var cs: [3]f32 = .{
-            @intToFloat(f32, skybox_tint_color.r) / 255, 
-            @intToFloat(f32, skybox_tint_color.g) / 255, 
-            @intToFloat(f32, skybox_tint_color.b) / 255, 
-        };
-        if (imgui.colorEdit3("Tint Color", .{.col=&cs})) {
-            skybox_tint_color.r = @floatToInt(u8, cs[0] * 255);
-            skybox_tint_color.g = @floatToInt(u8, cs[1] * 255);
-            skybox_tint_color.b = @floatToInt(u8, cs[2] * 255);
-        }
-    }
-    imgui.end();
 }
 
 pub fn quit(ctx: jok.Context) void {

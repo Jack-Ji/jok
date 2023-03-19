@@ -76,11 +76,6 @@ pub fn update(ctx: jok.Context) !void {
     if (ctx.isKeyPressed(.down)) {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
-}
-
-pub fn draw(ctx: jok.Context) !void {
-    imgui.sdl.newFrame(ctx);
-    defer imgui.sdl.draw();
 
     if (imgui.begin("Control Panel", .{})) {
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
@@ -90,6 +85,10 @@ pub fn draw(ctx: jok.Context) !void {
         stacks = math.clamp(stacks, 1, 100);
     }
     imgui.end();
+}
+
+pub fn draw(ctx: jok.Context) !void {
+    _ = ctx;
 
     const mat = zmath.mul(
         zmath.mul(
@@ -111,12 +110,14 @@ pub fn draw(ctx: jok.Context) !void {
     try j3d.addPlane(mat, plane_opt);
     try j3d.end();
 
-    try j3d.begin(.{
-        .camera = camera,
-        .wireframe_color = sdl.Color.green,
-    });
-    try j3d.addPlane(mat, plane_opt);
-    try j3d.end();
+    if (wireframe) {
+        try j3d.begin(.{
+            .camera = camera,
+            .wireframe_color = sdl.Color.green,
+        });
+        try j3d.addPlane(mat, plane_opt);
+        try j3d.end();
+    }
 }
 
 pub fn quit(ctx: jok.Context) void {

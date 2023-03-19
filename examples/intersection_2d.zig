@@ -26,12 +26,6 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 
 pub fn update(ctx: jok.Context) !void {
     _ = ctx;
-}
-
-pub fn draw(ctx: jok.Context) !void {
-    imgui.sdl.newFrame(ctx);
-    defer imgui.sdl.draw();
-
     if (imgui.begin("Control", .{})) {
         imgui.separator();
         imgui.text("triangle 0", .{});
@@ -46,7 +40,10 @@ pub fn draw(ctx: jok.Context) !void {
         _ = imgui.dragFloat2("p5", .{ .v = &p5 });
     }
     imgui.end();
+}
 
+pub fn draw(ctx: jok.Context) !void {
+    _ = ctx;
     var tri_color = sdl.Color.white;
     var tri_thickness = @as(f32, 2);
     const tri0 = [_][2]f32{

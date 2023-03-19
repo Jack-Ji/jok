@@ -86,18 +86,15 @@ pub fn update(ctx: jok.Context) !void {
     if (ctx.isKeyPressed(.down)) {
         camera.rotate(-std.math.pi / 180.0, 0);
     }
-}
-
-pub fn draw(ctx: jok.Context) !void {
-    imgui.sdl.newFrame(ctx);
-    defer imgui.sdl.draw();
 
     if (imgui.begin("Control Panel", .{})) {
         _ = imgui.checkbox("lighting", .{ .v = &lighting });
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
     }
     imgui.end();
+}
 
+pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{
         .camera = camera,
         .sort_by_depth = true,

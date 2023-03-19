@@ -338,6 +338,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const max_accumulated = @floatToInt(u64, self._pc_freq * 0.5);
 
             // Update game
+            imgui.sdl.newFrame(self.context());
             if (fps_pc_threshold > 0) {
                 while (true) {
                     const pc = sdl.c.SDL_GetPerformanceCounter();
@@ -421,6 +422,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     return;
                 }
             };
+            imgui.sdl.draw();
             self._renderer.present();
         }
 

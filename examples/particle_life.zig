@@ -371,7 +371,7 @@ fn loadSettings(allocator: std.mem.Allocator) !void {
     }
 }
 
-fn renderGui(ctx: jok.Context) !void {
+fn updateGui(ctx: jok.Context) !void {
     if (imgui.begin("Settings", .{})) {
         if (imgui.button("START/RESTART", .{})) {
             try restart(ctx.allocator());
@@ -549,32 +549,6 @@ fn renderGui(ctx: jok.Context) !void {
 }
 
 fn renderSimulation() !void {
-    // Simulation step forward
-    if (number_w > 0) {
-        interaction(white.?, green.?, power_wg, v_wg);
-        interaction(white.?, red.?, power_wr, v_wr);
-        interaction(white.?, white.?, power_ww, v_ww);
-        interaction(white.?, blue.?, power_wb, v_wb);
-    }
-    if (number_r > 0) {
-        interaction(red.?, green.?, power_rg, v_rg);
-        interaction(red.?, red.?, power_rr, v_rr);
-        interaction(red.?, white.?, power_rw, v_rw);
-        interaction(red.?, blue.?, power_rb, v_rb);
-    }
-    if (number_g > 0) {
-        interaction(green.?, green.?, power_gg, v_gg);
-        interaction(green.?, red.?, power_gr, v_gr);
-        interaction(green.?, white.?, power_gw, v_gw);
-        interaction(green.?, blue.?, power_gb, v_gb);
-    }
-    if (number_b > 0) {
-        interaction(blue.?, green.?, power_bg, v_bg);
-        interaction(blue.?, red.?, power_br, v_br);
-        interaction(blue.?, white.?, power_bw, v_bw);
-        interaction(blue.?, blue.?, power_bb, v_bb);
-    }
-
     try j2d.begin(.{});
     if (number_w > 0) try drawPoints(white.?);
     if (number_r > 0) try drawPoints(red.?);
@@ -831,14 +805,37 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    _ = ctx;
+    // Simulation step forward
+    if (number_w > 0) {
+        interaction(white.?, green.?, power_wg, v_wg);
+        interaction(white.?, red.?, power_wr, v_wr);
+        interaction(white.?, white.?, power_ww, v_ww);
+        interaction(white.?, blue.?, power_wb, v_wb);
+    }
+    if (number_r > 0) {
+        interaction(red.?, green.?, power_rg, v_rg);
+        interaction(red.?, red.?, power_rr, v_rr);
+        interaction(red.?, white.?, power_rw, v_rw);
+        interaction(red.?, blue.?, power_rb, v_rb);
+    }
+    if (number_g > 0) {
+        interaction(green.?, green.?, power_gg, v_gg);
+        interaction(green.?, red.?, power_gr, v_gr);
+        interaction(green.?, white.?, power_gw, v_gw);
+        interaction(green.?, blue.?, power_gb, v_gb);
+    }
+    if (number_b > 0) {
+        interaction(blue.?, green.?, power_bg, v_bg);
+        interaction(blue.?, red.?, power_br, v_br);
+        interaction(blue.?, white.?, power_bw, v_bw);
+        interaction(blue.?, blue.?, power_bb, v_bb);
+    }
+
+    try updateGui(ctx);
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    imgui.sdl.newFrame(ctx);
-    defer imgui.sdl.draw();
-
-    try renderGui(ctx);
+    _ = ctx;
     try renderSimulation();
 }
 

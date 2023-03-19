@@ -42,13 +42,6 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    _ = ctx;
-}
-
-pub fn draw(ctx: jok.Context) !void {
-    imgui.sdl.newFrame(ctx);
-    defer imgui.sdl.draw();
-
     var mouse_state = ctx.getMouseState();
     imgui.setNextWindowPos(.{
         .x = @intToFloat(f32, mouse_state.x + 10),
@@ -463,6 +456,10 @@ pub fn draw(ctx: jok.Context) !void {
         }
     }
     imgui.end();
+}
+
+pub fn draw(ctx: jok.Context) !void {
+    _ = ctx;
 }
 
 pub fn quit(ctx: jok.Context) void {
