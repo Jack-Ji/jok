@@ -3,7 +3,9 @@ const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const sdl = jok.sdl;
+const internal = @import("internal.zig");
 const Vector = @import("Vector.zig");
+const Camera = @import("Camera.zig");
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 const j3d = jok.j3d;
@@ -160,11 +162,15 @@ pub const Node = struct {
         return self;
     }
 
-    fn getWorldTransform(node: *const Node, model: zmath.Mat) zmath.Mat {
-        var mat = zmath.mul(node.l_transform, model);
+    fn calcLocalTransform(node: *const Node) zmath.Mat {
+        return zmath.mul(zmath.mul(node.scale, node.rotation), node.translation);
+    }
+
+    fn calcWorldTransform(node: *const Node, model: zmath.Mat) zmath.Mat {
+        var mat = zmath.mul(node.calcLocalTransform(), model);
         var parent = node.parent;
         while (parent) |p| {
-            mat = zmath.mul(p.l_transform, mat);
+            mat = zmath.mul(p.calcLocalTransform(), mat);
             parent = p.parent;
         }
         return mat;
@@ -393,6 +399,55 @@ pub fn createNode(self: *Self, parent: ?*Node, gltf_node: *const GltfNode) !*Nod
     node.* = try Node.init(allocator, self, parent, gltf_node);
     if (parent) |p| try p.children.append(node);
     return node;
+}
+
+pub fn render(
+    self: *const Self,
+    viewpoint: sdl.Rectangle,
+    target: *internal.RenderTarget,
+    camera: Camera,
+    tri_rd: *j3d.TriangleRenderer,
+    model: zmath.Mat,
+    opt: j3d.RenderOption,
+) !void {
+    const S = struct {
+        fn renderNode(_model: zmath.Mat, m: *const Node, _opt: j3d.RenderOption) !void {
+            for (m.meshes) |sm| {
+                try tri_rd.renderMesh(
+                    viewpoint,
+                    target,
+                    zmath.mul(m.g_transform, _model),
+                    camera,
+                    sm.indices.items,
+                    sm.positions.items,
+                    if (sm.normals.items.len == 0)
+                        null
+                    else
+                        sm.normals.items,
+                    if (sm.colors.items.len == 0)
+                        null
+                    else
+                        sm.colors.items,
+                    if (sm.texcoords.items.len == 0)
+                        null
+                    else
+                        sm.texcoords.items,
+                    .{
+                        .aabb = sm.aabb,
+                        .cull_faces = _opt.cull_faces,
+                        .color = _opt.color,
+                        .texture = _opt.texture orelse sm.getTexture(),
+                        .lighting = _opt.lighting,
+                    },
+                );
+            }
+            for (m.children.items) |c| {
+                try renderNode(_model, c, _opt);
+            }
+        }
+    };
+
+    try S.renderNode(model, self.root, opt);
 }
 
 fn createRootNode(self: *Self, mesh_count: usize) !*Node {

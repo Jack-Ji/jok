@@ -168,44 +168,14 @@ pub fn addShape(
 }
 
 pub fn addMesh(model: zmath.Mat, mesh: *const Mesh, opt: RenderOption) !void {
-    const S = struct {
-        fn renderNode(_model: zmath.Mat, m: *const Mesh.Node, _opt: RenderOption) !void {
-            for (m.meshes) |sm| {
-                try tri_rd.renderMesh(
-                    rd.getViewport(),
-                    &target,
-                    zmath.mul(m.g_transform, _model),
-                    camera,
-                    sm.indices.items,
-                    sm.positions.items,
-                    if (sm.normals.items.len == 0)
-                        null
-                    else
-                        sm.normals.items,
-                    if (sm.colors.items.len == 0)
-                        null
-                    else
-                        sm.colors.items,
-                    if (sm.texcoords.items.len == 0)
-                        null
-                    else
-                        sm.texcoords.items,
-                    .{
-                        .aabb = sm.aabb,
-                        .cull_faces = _opt.cull_faces,
-                        .color = _opt.color,
-                        .texture = _opt.texture orelse sm.getTexture(),
-                        .lighting = _opt.lighting,
-                    },
-                );
-            }
-            for (m.children.items) |c| {
-                try renderNode(_model, c, _opt);
-            }
-        }
-    };
-
-    try S.renderNode(model, mesh.root, opt);
+    try mesh.render(
+        rd.getViewport(),
+        &target,
+        camera,
+        &tri_rd,
+        model,
+        opt,
+    );
 }
 
 pub const AxisDrawOption = struct {
