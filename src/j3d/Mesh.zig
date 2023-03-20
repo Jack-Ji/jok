@@ -339,21 +339,116 @@ pub const Animation = struct {
 
     pub fn render(
         anim: Animation,
-        tri_rd: *TriangleRenderer,
+        viewport: sdl.Rectangle,
+        target: *internal.RenderTarget,
         model: zmath.Mat,
+        camera: Camera,
+        tri_rd: *TriangleRenderer,
         playtime: f32,
         opt: RenderOption,
     ) !void {
-        _ = anim;
-        _ = tri_rd;
-        _ = model;
-        _ = playtime;
-        _ = opt;
-        //for (anim.channels) |*ch| {
-        //    var node = ch.node;
-        //    if (playtime >= ch.timesteps[ch.timesteps.len - 1]) {
-        //    }
-        //}
+        // Update TRS property of nodes
+        for (anim.channels) |*ch| {
+            var node = ch.node;
+            switch (ch.path) {
+                .translation => {
+                    node.translation = zmath.translationV(
+                        if (playtime <= ch.timesteps[0])
+                            ch.samples[0]
+                        else if (playtime >= ch.timesteps[ch.timesteps.len - 1])
+                            ch.samples[ch.timesteps.len - 1]
+                        else BLK: {
+                            var index: usize = 0;
+                            for (ch.timesteps) |t| {
+                                if (playtime < t) {
+                                    break;
+                                }
+                                index += 1;
+                            }
+                            switch (ch.interpolation) {
+                                .linear => {
+                                    const v0 = ch.samples[index];
+                                    const v1 = ch.samples[index + 1];
+                                    const t = (playtime - ch.timesteps[index]) /
+                                        (ch.timesteps[index + 1] - ch.timesteps[index]);
+                                    break :BLK zmath.lerp(v0, v1, t);
+                                },
+                                .step => break :BLK ch.samples[index],
+                                else => continue,
+                            }
+                        },
+                    );
+                },
+                .rotation => {
+                    node.scale = zmath.matFromQuat(@as(
+                        zmath.Quat,
+                        if (playtime <= ch.timesteps[0])
+                            ch.samples[0]
+                        else if (playtime >= ch.timesteps[ch.timesteps.len - 1])
+                            ch.samples[ch.timesteps.len - 1]
+                        else BLK: {
+                            var index: usize = 0;
+                            for (ch.timesteps) |t| {
+                                if (playtime < t) {
+                                    break;
+                                }
+                                index += 1;
+                            }
+                            switch (ch.interpolation) {
+                                .linear => {
+                                    const v0 = @as(zmath.Quat, ch.samples[index]);
+                                    const v1 = @as(zmath.Quat, ch.samples[index + 1]);
+                                    const t = (playtime - ch.timesteps[index]) /
+                                        (ch.timesteps[index + 1] - ch.timesteps[index]);
+                                    break :BLK zmath.slerp(v0, v1, t);
+                                },
+                                .step => break :BLK ch.samples[index],
+                                else => continue,
+                            }
+                        },
+                    ));
+                },
+                .scale => {
+                    node.scale = zmath.scalingV(
+                        if (playtime <= ch.timesteps[0])
+                            ch.samples[0]
+                        else if (playtime >= ch.timesteps[ch.timesteps.len - 1])
+                            ch.samples[ch.timesteps.len - 1]
+                        else BLK: {
+                            var index: usize = 0;
+                            for (ch.timesteps) |t| {
+                                if (playtime < t) {
+                                    break;
+                                }
+                                index += 1;
+                            }
+                            switch (ch.interpolation) {
+                                .linear => {
+                                    const v0 = ch.samples[index];
+                                    const v1 = ch.samples[index + 1];
+                                    const t = (playtime - ch.timesteps[index]) /
+                                        (ch.timesteps[index + 1] - ch.timesteps[index]);
+                                    break :BLK zmath.lerp(v0, v1, t);
+                                },
+                                .step => break :BLK ch.samples[index],
+                                else => continue,
+                            }
+                        },
+                    );
+                },
+                else => continue,
+            }
+        }
+
+        // Render the mesh
+        try anim.mesh.root.render(
+            viewport,
+            target,
+            model,
+            camera,
+            tri_rd,
+            opt,
+        );
     }
 };
 
