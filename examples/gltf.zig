@@ -102,14 +102,20 @@ pub fn draw(ctx: jok.Context) !void {
     });
     try j3d.addMesh(
         mesh1,
-        zmath.scalingV(zmath.f32x4s(3)),
+        zmath.mul(
+            zmath.rotationX(-std.math.pi / 2.0),
+            zmath.scalingV(zmath.f32x4s(3)),
+        ),
         .{
             .lighting = if (lighting) .{} else null,
         },
     );
     try j3d.addMesh(
         mesh2,
-        zmath.translation(-4, 0, 0),
+        zmath.mul(
+            zmath.rotationX(-std.math.pi / 2.0),
+            zmath.translation(-4, 0, 0),
+        ),
         .{
             .color = sdl.Color.cyan,
             .lighting = if (lighting) .{} else null,

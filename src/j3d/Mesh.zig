@@ -114,8 +114,6 @@ pub const Node = struct {
     scale: zmath.Mat,
     rotation: zmath.Mat,
     translation: zmath.Mat,
-    l_transform: zmath.Mat,
-    g_transform: zmath.Mat,
     meshes: []SubMesh,
 
     fn initRoot(
@@ -129,8 +127,6 @@ pub const Node = struct {
             .scale = zmath.identity(),
             .rotation = zmath.identity(),
             .translation = zmath.identity(),
-            .l_transform = zmath.identity(),
-            .g_transform = zmath.identity(),
             .meshes = try allocator.alloc(SubMesh, mesh_count),
         };
         for (self.meshes) |*m| m.* = SubMesh.init(allocator, mesh);
@@ -147,16 +143,31 @@ pub const Node = struct {
         var self = Node{
             .parent = parent,
             .children = std.ArrayList(*Node).init(allocator),
-            .scale = zmath.scaling(gltf_node.scale[0], gltf_node.scale[1], gltf_node.scale[2]),
-            .rotation = zmath.quatToMat(@as(zmath.Quat, zmath.f32x4(
-                gltf_node.rotation[0],
-                gltf_node.rotation[1],
-                gltf_node.rotation[2],
-                gltf_node.rotation[3],
-            ))),
-            .translation = zmath.translation(gltf_node.translation[0], gltf_node.translation[1], gltf_node.translation[2]),
-            .l_transform = zmath.loadMat(&gltf_node.transformLocal()),
-            .g_transform = zmath.loadMat(&gltf_node.transformWorld()),
+            .scale = if (gltf_node.has_scale == 1)
+                zmath.scaling(
+                    gltf_node.scale[0],
+                    gltf_node.scale[1],
+                    gltf_node.scale[2],
+                )
+            else
+                zmath.identity(),
+            .rotation = if (gltf_node.has_rotation == 1)
+                zmath.quatToMat(@as(zmath.Quat, zmath.f32x4(
+                    gltf_node.rotation[0],
+                    gltf_node.rotation[1],
+                    gltf_node.rotation[2],
+                    gltf_node.rotation[3],
+                )))
+            else
+                zmath.identity(),
+            .translation = if (gltf_node.has_translation == 1)
+                zmath.translation(
+                    gltf_node.translation[0],
+                    gltf_node.translation[1],
+                    gltf_node.translation[2],
+                )
+            else
+                zmath.identity(),
             .meshes = try allocator.alloc(SubMesh, submesh_count),
         };
         for (self.meshes) |*m| m.* = SubMesh.init(allocator, mesh);
@@ -164,7 +175,10 @@ pub const Node = struct {
     }
 
     fn calcLocalTransform(node: *const Node) zmath.Mat {
-        return zmath.mul(zmath.mul(node.scale, node.rotation), node.translation);
+        return zmath.mul(
+            zmath.mul(node.scale, node.rotation),
+            node.translation,
+        );
     }
 
     fn calcWorldTransform(node: *const Node, model: zmath.Mat) zmath.Mat {
@@ -190,7 +204,7 @@ pub const Node = struct {
             try tri_rd.renderMesh(
                 viewport,
                 target,
-                zmath.mul(node.g_transform, model),
+                node.calcWorldTransform(model),
                 camera,
                 sm.indices.items,
                 sm.positions.items,
@@ -216,7 +230,14 @@ pub const Node = struct {
             );
         }
         for (node.children.items) |c| {
-            try c.render(viewport, target, model, camera, tri_rd, opt);
+            try c.render(
+                viewport,
+                target,
+                model,
+                camera,
+                tri_rd,
+                opt,
+            );
         }
     }
 };
@@ -454,7 +475,14 @@ pub fn render(
     tri_rd: *TriangleRenderer,
     opt: j3d.RenderOption,
 ) !void {
-    try self.root.render(viewport, target, model, camera, tri_rd, opt);
+    try self.root.render(
+        viewport,
+        target,
+        model,
+        camera,
+        tri_rd,
+        opt,
+    );
 }
 
 fn createRootNode(self: *Self, mesh_count: usize) !*Node {
