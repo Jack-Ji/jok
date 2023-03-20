@@ -262,15 +262,19 @@ pub const Animation = struct {
     };
     mesh: *Self,
     channels: []Channel,
+    duration: f32,
 
     fn init(allocator: std.mem.Allocator, mesh: *Self, gltf_anim: GltfAnimation) !?Animation {
         var anim = Animation{
             .mesh = mesh,
             .channels = try allocator.alloc(Channel, gltf_anim.channels_count),
+            .duration = 0,
         };
         for (gltf_anim.channels[0..gltf_anim.channels_count], 0..gltf_anim.channels_count) |ch, i| {
             var timesteps = try allocator.alloc(f32, ch.sampler.input.unpackFloatsCount());
             _ = ch.sampler.input.unpackFloats(timesteps);
+            assert(std.sort.isSorted(f32, timesteps, {}, std.sort.asc(f32)));
+            anim.duration = @max(anim.duration, timesteps[timesteps.len - 1]);
             var samples = try allocator.alloc(zmath.Vec, ch.sampler.output.count);
             switch (ch.target_path) {
                 .scale => {
