@@ -5,6 +5,7 @@ const jok = @import("../jok.zig");
 const sdl = jok.sdl;
 const internal = @import("internal.zig");
 const Vector = @import("Vector.zig");
+const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
@@ -175,6 +176,49 @@ pub const Node = struct {
         }
         return mat;
     }
+
+    fn render(
+        node: *const Node,
+        viewport: sdl.Rectangle,
+        target: *internal.RenderTarget,
+        model: zmath.Mat,
+        camera: Camera,
+        tri_rd: *TriangleRenderer,
+        opt: j3d.RenderOption,
+    ) !void {
+        for (node.meshes) |sm| {
+            try tri_rd.renderMesh(
+                viewport,
+                target,
+                zmath.mul(node.g_transform, model),
+                camera,
+                sm.indices.items,
+                sm.positions.items,
+                if (sm.normals.items.len == 0)
+                    null
+                else
+                    sm.normals.items,
+                if (sm.colors.items.len == 0)
+                    null
+                else
+                    sm.colors.items,
+                if (sm.texcoords.items.len == 0)
+                    null
+                else
+                    sm.texcoords.items,
+                .{
+                    .aabb = sm.aabb,
+                    .cull_faces = opt.cull_faces,
+                    .color = opt.color,
+                    .texture = opt.texture orelse sm.getTexture(),
+                    .lighting = opt.lighting,
+                },
+            );
+        }
+        for (node.children.items) |c| {
+            try c.render(viewport, target, model, camera, tri_rd, opt);
+        }
+    }
 };
 
 pub const GltfAnimation = zmesh.io.zcgltf.Animation;
@@ -267,7 +311,7 @@ pub const Animation = struct {
 
     pub fn render(
         anim: Animation,
-        tri_rd: *j3d.TriangleRenderer,
+        tri_rd: *TriangleRenderer,
         model: zmath.Mat,
         playtime: f32,
         opt: j3d.RenderOption,
@@ -403,51 +447,14 @@ pub fn createNode(self: *Self, parent: ?*Node, gltf_node: *const GltfNode) !*Nod
 
 pub fn render(
     self: *const Self,
-    viewpoint: sdl.Rectangle,
+    viewport: sdl.Rectangle,
     target: *internal.RenderTarget,
-    camera: Camera,
-    tri_rd: *j3d.TriangleRenderer,
     model: zmath.Mat,
+    camera: Camera,
+    tri_rd: *TriangleRenderer,
     opt: j3d.RenderOption,
 ) !void {
-    const S = struct {
-        fn renderNode(_model: zmath.Mat, m: *const Node, _opt: j3d.RenderOption) !void {
-            for (m.meshes) |sm| {
-                try tri_rd.renderMesh(
-                    viewpoint,
-                    target,
-                    zmath.mul(m.g_transform, _model),
-                    camera,
-                    sm.indices.items,
-                    sm.positions.items,
-                    if (sm.normals.items.len == 0)
-                        null
-                    else
-                        sm.normals.items,
-                    if (sm.colors.items.len == 0)
-                        null
-                    else
-                        sm.colors.items,
-                    if (sm.texcoords.items.len == 0)
-                        null
-                    else
-                        sm.texcoords.items,
-                    .{
-                        .aabb = sm.aabb,
-                        .cull_faces = _opt.cull_faces,
-                        .color = _opt.color,
-                        .texture = _opt.texture orelse sm.getTexture(),
-                        .lighting = _opt.lighting,
-                    },
-                );
-            }
-            for (m.children.items) |c| {
-                try renderNode(_model, c, _opt);
-            }
-        }
-    };
-
-    try S.renderNode(model, self.root, opt);
+    try self.root.render(viewport, target, model, camera, tri_rd, opt);
 }
 
 fn createRootNode(self: *Self, mesh_count: usize) !*Node {

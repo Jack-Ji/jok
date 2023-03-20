@@ -116,10 +116,10 @@ pub fn addScene(scene: *const Scene, opt: Scene.RenderOption) !void {
 pub fn addEffects(ps: *ParticleSystem) !void {
     for (ps.effects.items) |eff| {
         try eff.render(
-            &tri_rd,
             rd.getViewport(),
             &target,
             camera,
+            &tri_rd,
         );
     }
 }
@@ -167,13 +167,13 @@ pub fn addShape(
     );
 }
 
-pub fn addMesh(model: zmath.Mat, mesh: *const Mesh, opt: RenderOption) !void {
+pub fn addMesh(mesh: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
     try mesh.render(
         rd.getViewport(),
         &target,
+        model,
         camera,
         &tri_rd,
-        model,
         opt,
     );
 }

@@ -89,17 +89,17 @@ pub fn deinit(self: *Self) void {
 
 pub fn render(
     self: *Self,
-    viewpoint: sdl.Rectangle,
+    viewport: sdl.Rectangle,
     target: *internal.RenderTarget,
     camera: Camera,
     textures: [6]sdl.Texture, // cube textures: right/left/top/bottom/front/back
     color: ?sdl.Color, // tint color
 ) !void {
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * @intToFloat(f32, viewpoint.width), 0.0,                                       0.0,
-        0.0,                                     -0.5 * @intToFloat(f32, viewpoint.height), 0.0,
-        0.0,                                     0.0,                                       0.5,
-        0.5 * @intToFloat(f32, viewpoint.width), 0.5 * @intToFloat(f32, viewpoint.height),  0.5,
+        0.5 * @intToFloat(f32, viewport.width), 0.0,                                      0.0,
+        0.0,                                    -0.5 * @intToFloat(f32, viewport.height), 0.0,
+        0.0,                                    0.0,                                      0.5,
+        0.5 * @intToFloat(f32, viewport.width), 0.5 * @intToFloat(f32, viewport.height),  0.5,
     });
     var vp = camera.getViewMatrix();
     vp[3] = zmath.f32x4s(0);

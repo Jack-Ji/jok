@@ -107,7 +107,7 @@ inline fn clear(self: *Self) void {
 
 pub fn renderMesh(
     self: *Self,
-    vp: sdl.Rectangle,
+    viewport: sdl.Rectangle,
     target: *internal.RenderTarget,
     model: zmath.Mat,
     camera: Camera,
@@ -124,10 +124,10 @@ pub fn renderMesh(
     assert(if (texcoords) |ts| ts.len >= positions.len else true);
     if (indices.len == 0) return;
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
-        0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
-        0.0,                              0.0,                                0.5,
-        0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
+        0.5 * @intToFloat(f32, viewport.width), 0.0,                                      0.0,
+        0.0,                                    -0.5 * @intToFloat(f32, viewport.height), 0.0,
+        0.0,                                    0.0,                                      0.5,
+        0.5 * @intToFloat(f32, viewport.width), 0.5 * @intToFloat(f32, viewport.height),  0.5,
     });
     const mvp = zmath.mul(model, camera.getViewProjectMatrix());
 
@@ -336,7 +336,7 @@ pub fn renderMesh(
 
 pub fn renderSprite(
     self: *Self,
-    vp: sdl.Rectangle,
+    viewport: sdl.Rectangle,
     target: *internal.RenderTarget,
     _model: zmath.Mat,
     camera: Camera,
@@ -396,7 +396,7 @@ pub fn renderSprite(
             }
         }
         try self.renderMesh(
-            vp,
+            viewport,
             target,
             transform,
             camera,
@@ -434,8 +434,8 @@ pub fn renderSprite(
             if (ndc_center[2] <= -1 or ndc_center[2] >= 1) {
                 return;
             }
-            const size_x = size.x / @intToFloat(f32, vp.width) * 2;
-            const size_y = size.y / @intToFloat(f32, vp.height) * 2;
+            const size_x = size.x / @intToFloat(f32, viewport.width) * 2;
+            const size_y = size.y / @intToFloat(f32, viewport.height) * 2;
             const m_scale = zmath.scaling(size_x * opt.scale.x, size_y * opt.scale.y, 1);
             const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
             const m_translate = zmath.translation(ndc_center[0], ndc_center[1], 0);
@@ -495,10 +495,10 @@ pub fn renderSprite(
 
         // Calculate screen coordinate
         const ndc_to_screen = zmath.loadMat43(&[_]f32{
-            0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
-            0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
-            0.0,                              0.0,                                0.5,
-            0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
+            0.5 * @intToFloat(f32, viewport.width), 0.0,                                      0.0,
+            0.0,                                    -0.5 * @intToFloat(f32, viewport.height), 0.0,
+            0.0,                                    0.0,                                      0.5,
+            0.5 * @intToFloat(f32, viewport.width), 0.5 * @intToFloat(f32, viewport.height),  0.5,
         });
         const ndcs = zmath.Mat{
             ndc0,

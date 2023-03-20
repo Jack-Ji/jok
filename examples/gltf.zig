@@ -101,21 +101,22 @@ pub fn draw(ctx: jok.Context) !void {
         .wireframe_color = if (wireframe) sdl.Color.green else null,
     });
     try j3d.addMesh(
-        zmath.scalingV(zmath.f32x4s(3)),
         mesh1,
+        zmath.scalingV(zmath.f32x4s(3)),
         .{
             .lighting = if (lighting) .{} else null,
         },
     );
     try j3d.addMesh(
-        zmath.translation(-4, 0, 0),
         mesh2,
+        zmath.translation(-4, 0, 0),
         .{
             .color = sdl.Color.cyan,
             .lighting = if (lighting) .{} else null,
         },
     );
     try j3d.addMesh(
+        mesh3,
         zmath.mul(
             zmath.rotationY(-std.math.pi / 6.0),
             zmath.mul(
@@ -123,7 +124,6 @@ pub fn draw(ctx: jok.Context) !void {
                 zmath.translation(4, 0, 0),
             ),
         ),
-        mesh3,
         .{
             .lighting = if (lighting) .{} else null,
         },

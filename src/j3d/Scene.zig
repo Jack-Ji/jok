@@ -207,8 +207,8 @@ pub fn render(self: Self, object: ?*Object, opt: RenderOption) !void {
     switch (o.actor) {
         .position => {},
         .mesh => |m| try j3d.addMesh(
-            o.transform,
             m.mesh,
+            o.transform,
             .{
                 .cull_faces = m.cull_faces,
                 .color = m.color,
