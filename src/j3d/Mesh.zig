@@ -261,16 +261,16 @@ pub const Animation = struct {
         samples: []zmath.Vec,
     };
     mesh: *Self,
-    channels: []Channel,
+    channels: std.ArrayList(Channel),
     duration: f32,
 
     fn init(allocator: std.mem.Allocator, mesh: *Self, gltf_anim: GltfAnimation) !?Animation {
         var anim = Animation{
             .mesh = mesh,
-            .channels = try allocator.alloc(Channel, gltf_anim.channels_count),
+            .channels = std.ArrayList(Channel).init(allocator),
             .duration = 0,
         };
-        for (gltf_anim.channels[0..gltf_anim.channels_count], 0..gltf_anim.channels_count) |ch, i| {
+        for (gltf_anim.channels[0..gltf_anim.channels_count]) |ch| {
             var timesteps = try allocator.alloc(f32, ch.sampler.input.unpackFloatsCount());
             _ = ch.sampler.input.unpackFloats(timesteps);
             assert(std.sort.isSorted(f32, timesteps, {}, std.sort.asc(f32)));
@@ -330,15 +330,15 @@ pub const Animation = struct {
                 },
             }
             assert(timesteps.len == samples.len);
-            anim.channels[i] = Channel{
+            try anim.channels.append(Channel{
                 .node = mesh.nodes_map.get(ch.target_node.?).?,
                 .path = ch.target_path,
                 .interpolation = ch.sampler.interpolation,
                 .timesteps = timesteps,
                 .samples = samples,
-            };
+            });
         }
-        return if (anim.channels.len == 0) null else anim;
+        return if (anim.channels.items.len == 0) null else anim;
     }
 
     pub fn render(
@@ -378,7 +378,7 @@ pub const Animation = struct {
                                     break :BLK zmath.lerp(v0, v1, t);
                                 },
                                 .step => break :BLK ch.samples[index],
-                                else => continue,
+                                else => @panic("unrechable"),
                             }
                         },
                     );
@@ -407,7 +407,7 @@ pub const Animation = struct {
                                     break :BLK zmath.slerp(v0, v1, t);
                                 },
                                 .step => break :BLK ch.samples[index],
-                                else => continue,
+                                else => @panic("unrechable"),
                             }
                         },
                     ));
@@ -435,7 +435,7 @@ pub const Animation = struct {
                                     break :BLK zmath.lerp(v0, v1, t);
                                 },
                                 .step => break :BLK ch.samples[index],
-                                else => continue,
+                                else => @panic("unrechable"),
                             }
                         },
                     );
