@@ -174,7 +174,12 @@ pub fn addMesh(mesh: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
         model,
         camera,
         &tri_rd,
-        opt,
+        .{
+            .texture = opt.texture,
+            .color = opt.color,
+            .cull_faces = opt.cull_faces,
+            .lighting = opt.lighting,
+        },
     );
 }
 

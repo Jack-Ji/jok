@@ -7,13 +7,20 @@ const internal = @import("internal.zig");
 const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
+const lighting = @import("lighting.zig");
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
-const j3d = jok.j3d;
 const Self = @This();
 
 pub const Error = error{
     InvalidFormat,
+};
+
+pub const RenderOption = struct {
+    texture: ?sdl.Texture = null,
+    color: sdl.Color = sdl.Color.white,
+    cull_faces: bool = true,
+    lighting: ?lighting.LightingOption = null,
 };
 
 pub const GltfNode = zmesh.io.zcgltf.Node;
@@ -198,7 +205,7 @@ pub const Node = struct {
         model: zmath.Mat,
         camera: Camera,
         tri_rd: *TriangleRenderer,
-        opt: j3d.RenderOption,
+        opt: RenderOption,
     ) !void {
         for (node.meshes) |sm| {
             try tri_rd.renderMesh(
@@ -335,7 +342,7 @@ pub const Animation = struct {
         tri_rd: *TriangleRenderer,
         model: zmath.Mat,
         playtime: f32,
-        opt: j3d.RenderOption,
+        opt: RenderOption,
     ) !void {
         _ = anim;
         _ = tri_rd;
@@ -473,7 +480,7 @@ pub fn render(
     model: zmath.Mat,
     camera: Camera,
     tri_rd: *TriangleRenderer,
-    opt: j3d.RenderOption,
+    opt: RenderOption,
 ) !void {
     try self.root.render(
         viewport,
