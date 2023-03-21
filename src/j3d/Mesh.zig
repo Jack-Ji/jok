@@ -361,7 +361,7 @@ pub const Animation = struct {
         return if (anim.channels.items.len == 0) null else anim;
     }
 
-    pub fn render(
+    fn render(
         anim: *Animation,
         viewport: sdl.Rectangle,
         target: *internal.RenderTarget,
