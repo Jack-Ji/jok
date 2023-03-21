@@ -14,6 +14,7 @@ const Self = @This();
 
 pub const Error = error{
     InvalidFormat,
+    InvalidAnimation,
 };
 
 pub const RenderOption = struct {
@@ -21,6 +22,8 @@ pub const RenderOption = struct {
     color: sdl.Color = sdl.Color.white,
     cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,
+    animation_name: ?[]const u8 = null,
+    animation_playtime: f32 = 0,
 };
 
 pub const GltfNode = zmesh.io.zcgltf.Node;
@@ -121,6 +124,7 @@ pub const Node = struct {
     scale: zmath.Mat,
     rotation: zmath.Mat,
     translation: zmath.Mat,
+    matrix: zmath.Mat,
     meshes: []SubMesh,
 
     fn initRoot(
@@ -134,6 +138,7 @@ pub const Node = struct {
             .scale = zmath.identity(),
             .rotation = zmath.identity(),
             .translation = zmath.identity(),
+            .matrix = zmath.identity(),
             .meshes = try allocator.alloc(SubMesh, mesh_count),
         };
         for (self.meshes) |*m| m.* = SubMesh.init(allocator, mesh);
@@ -150,15 +155,27 @@ pub const Node = struct {
         var self = Node{
             .parent = parent,
             .children = std.ArrayList(*Node).init(allocator),
-            .scale = if (gltf_node.has_scale == 1)
+            .scale = undefined,
+            .rotation = undefined,
+            .translation = undefined,
+            .matrix = undefined,
+            .meshes = try allocator.alloc(SubMesh, submesh_count),
+        };
+        if (gltf_node.has_matrix == 1) {
+            self.matrix = zmath.loadMat(&gltf_node.transformLocal());
+            self.translation = zmath.translationV(zmath.util.getTranslationVec(self.matrix));
+            self.rotation = zmath.quatToMat(zmath.util.getRotationQuat(self.matrix));
+            self.scale = zmath.scalingV(zmath.util.getScaleVec(self.matrix));
+        } else {
+            self.scale = if (gltf_node.has_scale == 1)
                 zmath.scaling(
                     gltf_node.scale[0],
                     gltf_node.scale[1],
                     gltf_node.scale[2],
                 )
             else
-                zmath.identity(),
-            .rotation = if (gltf_node.has_rotation == 1)
+                zmath.identity();
+            self.rotation = if (gltf_node.has_rotation == 1)
                 zmath.quatToMat(@as(zmath.Quat, zmath.f32x4(
                     gltf_node.rotation[0],
                     gltf_node.rotation[1],
@@ -166,17 +183,17 @@ pub const Node = struct {
                     gltf_node.rotation[3],
                 )))
             else
-                zmath.identity(),
-            .translation = if (gltf_node.has_translation == 1)
+                zmath.identity();
+            self.translation = if (gltf_node.has_translation == 1)
                 zmath.translation(
                     gltf_node.translation[0],
                     gltf_node.translation[1],
                     gltf_node.translation[2],
                 )
             else
-                zmath.identity(),
-            .meshes = try allocator.alloc(SubMesh, submesh_count),
-        };
+                zmath.identity();
+            self.matrix = self.calcLocalTransform();
+        }
         for (self.meshes) |*m| m.* = SubMesh.init(allocator, mesh);
         return self;
     }
@@ -189,13 +206,13 @@ pub const Node = struct {
     }
 
     fn calcWorldTransform(node: *const Node, model: zmath.Mat) zmath.Mat {
-        var mat = zmath.mul(node.calcLocalTransform(), model);
+        var mat = node.calcLocalTransform();
         var parent = node.parent;
         while (parent) |p| {
-            mat = zmath.mul(p.calcLocalTransform(), mat);
+            mat = zmath.mul(mat, p.calcLocalTransform());
             parent = p.parent;
         }
-        return mat;
+        return zmath.mul(mat, model);
     }
 
     fn render(
@@ -211,7 +228,10 @@ pub const Node = struct {
             try tri_rd.renderMesh(
                 viewport,
                 target,
-                node.calcWorldTransform(model),
+                if (opt.animation_name == null)
+                    zmath.mul(node.matrix, model)
+                else
+                    node.calcWorldTransform(model),
                 camera,
                 sm.indices.items,
                 sm.positions.items,
@@ -342,29 +362,29 @@ pub const Animation = struct {
     }
 
     pub fn render(
-        anim: Animation,
+        anim: *Animation,
         viewport: sdl.Rectangle,
         target: *internal.RenderTarget,
         model: zmath.Mat,
         camera: Camera,
         tri_rd: *TriangleRenderer,
-        playtime: f32,
         opt: RenderOption,
     ) !void {
         // Update TRS property of nodes
-        for (anim.channels) |*ch| {
+        for (anim.channels.items) |*ch| {
             var node = ch.node;
             switch (ch.path) {
                 .translation => {
                     node.translation = zmath.translationV(
-                        if (playtime <= ch.timesteps[0])
+                        if (opt.animation_playtime <= ch.timesteps[0])
                             ch.samples[0]
-                        else if (playtime >= ch.timesteps[ch.timesteps.len - 1])
+                        else if (opt.animation_playtime >= ch.timesteps[ch.timesteps.len - 1])
                             ch.samples[ch.timesteps.len - 1]
                         else BLK: {
                             var index: usize = 0;
                             for (ch.timesteps) |t| {
-                                if (playtime < t) {
+                                if (opt.animation_playtime < t) {
+                                    index -= 1;
                                     break;
                                 }
                                 index += 1;
@@ -373,7 +393,7 @@ pub const Animation = struct {
                                 .linear => {
                                     const v0 = ch.samples[index];
                                     const v1 = ch.samples[index + 1];
-                                    const t = (playtime - ch.timesteps[index]) /
+                                    const t = (opt.animation_playtime - ch.timesteps[index]) /
                                         (ch.timesteps[index + 1] - ch.timesteps[index]);
                                     break :BLK zmath.lerp(v0, v1, t);
                                 },
@@ -384,16 +404,17 @@ pub const Animation = struct {
                     );
                 },
                 .rotation => {
-                    node.scale = zmath.matFromQuat(@as(
+                    node.rotation = zmath.matFromQuat(@as(
                         zmath.Quat,
-                        if (playtime <= ch.timesteps[0])
+                        if (opt.animation_playtime <= ch.timesteps[0])
                             ch.samples[0]
-                        else if (playtime >= ch.timesteps[ch.timesteps.len - 1])
+                        else if (opt.animation_playtime >= ch.timesteps[ch.timesteps.len - 1])
                             ch.samples[ch.timesteps.len - 1]
                         else BLK: {
                             var index: usize = 0;
                             for (ch.timesteps) |t| {
-                                if (playtime < t) {
+                                if (opt.animation_playtime < t) {
+                                    index -= 1;
                                     break;
                                 }
                                 index += 1;
@@ -402,7 +423,7 @@ pub const Animation = struct {
                                 .linear => {
                                     const v0 = @as(zmath.Quat, ch.samples[index]);
                                     const v1 = @as(zmath.Quat, ch.samples[index + 1]);
-                                    const t = (playtime - ch.timesteps[index]) /
+                                    const t = (opt.animation_playtime - ch.timesteps[index]) /
                                         (ch.timesteps[index + 1] - ch.timesteps[index]);
                                     break :BLK zmath.slerp(v0, v1, t);
                                 },
@@ -414,14 +435,15 @@ pub const Animation = struct {
                 },
                 .scale => {
                     node.scale = zmath.scalingV(
-                        if (playtime <= ch.timesteps[0])
+                        if (opt.animation_playtime <= ch.timesteps[0])
                             ch.samples[0]
-                        else if (playtime >= ch.timesteps[ch.timesteps.len - 1])
+                        else if (opt.animation_playtime >= ch.timesteps[ch.timesteps.len - 1])
                             ch.samples[ch.timesteps.len - 1]
                         else BLK: {
                             var index: usize = 0;
                             for (ch.timesteps) |t| {
-                                if (playtime < t) {
+                                if (opt.animation_playtime < t) {
+                                    index -= 1;
                                     break;
                                 }
                                 index += 1;
@@ -430,7 +452,7 @@ pub const Animation = struct {
                                 .linear => {
                                     const v0 = ch.samples[index];
                                     const v1 = ch.samples[index + 1];
-                                    const t = (playtime - ch.timesteps[index]) /
+                                    const t = (opt.animation_playtime - ch.timesteps[index]) /
                                         (ch.timesteps[index + 1] - ch.timesteps[index]);
                                     break :BLK zmath.lerp(v0, v1, t);
                                 },
@@ -581,14 +603,13 @@ pub fn render(
     tri_rd: *TriangleRenderer,
     opt: RenderOption,
 ) !void {
-    try self.root.render(
-        viewport,
-        target,
-        model,
-        camera,
-        tri_rd,
-        opt,
-    );
+    if (opt.animation_name) |name| {
+        const anim = self.animations.getPtr(name);
+        if (anim == null) return error.InvalidAnimation;
+        try anim.?.render(viewport, target, model, camera, tri_rd, opt);
+    } else {
+        try self.root.render(viewport, target, model, camera, tri_rd, opt);
+    }
 }
 
 fn createRootNode(self: *Self, mesh_count: usize) !*Node {
@@ -608,6 +629,7 @@ fn loadNodeTree(
     opt: GltfOption,
 ) !void {
     var node = try self.createNode(parent, gltf_node);
+    node.matrix = zmath.mul(node.matrix, parent.matrix);
     try self.nodes_map.put(gltf_node, node);
 
     if (gltf_node.mesh) |mesh| {

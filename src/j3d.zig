@@ -167,7 +167,12 @@ pub fn addShape(
     );
 }
 
-pub fn addMesh(mesh: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
+pub const MeshDrawOption = struct {
+    rdopt: RenderOption = .{},
+    animation_name: ?[]const u8 = null,
+    animation_playtime: f32 = 0,
+};
+pub fn addMesh(mesh: *const Mesh, model: zmath.Mat, opt: MeshDrawOption) !void {
     try mesh.render(
         rd.getViewport(),
         &target,
@@ -175,10 +180,12 @@ pub fn addMesh(mesh: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
         camera,
         &tri_rd,
         .{
-            .texture = opt.texture,
-            .color = opt.color,
-            .cull_faces = opt.cull_faces,
-            .lighting = opt.lighting,
+            .texture = opt.rdopt.texture,
+            .color = opt.rdopt.color,
+            .cull_faces = opt.rdopt.cull_faces,
+            .lighting = opt.rdopt.lighting,
+            .animation_name = opt.animation_name,
+            .animation_playtime = opt.animation_playtime,
         },
     );
 }
