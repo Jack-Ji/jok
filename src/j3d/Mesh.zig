@@ -811,15 +811,13 @@ fn loadNodeTree(
 }
 
 fn loadAnimation(self: *Self, gltf_anim: GltfAnimation) !void {
-    if (gltf_anim.name == null) return;
-
     const name = try self.arena.allocator().dupe(
         u8,
-        std.mem.sliceTo(gltf_anim.name.?, 0),
+        std.mem.sliceTo(gltf_anim.name orelse "default", 0),
     );
     errdefer self.arena.allocator().free(name);
 
     if (try Animation.init(self.arena.allocator(), self, gltf_anim)) |anim| {
-        try self.animations.put(name, anim);
+        try self.animations.putNoClobber(name, anim);
     }
 }
