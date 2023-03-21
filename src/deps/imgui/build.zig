@@ -8,14 +8,14 @@ pub fn getZguiModule(
     target: std.zig.CrossTarget,
     optimize: std.builtin.Mode,
 ) *std.Build.Module {
-    const pkg = zgui.Package.build(b, target, optimize, .{
+    const pkg = zgui.package(b, target, optimize, .{
         .options = .{ .backend = .no_backend },
     });
     return pkg.zgui;
 }
 
 pub fn link(b: *std.Build, exe: *std.Build.CompileStep) void {
-    const pkg = zgui.Package.build(
+    const pkg = zgui.package(
         b,
         exe.target,
         exe.optimize,

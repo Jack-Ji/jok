@@ -239,7 +239,7 @@ pub fn draw(ctx: jok.Context) !void {
     _ = try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 0, .y = 0 } },
-        "Press F1 to take screenshot",
+        "Press F1 to toggle fullscreen",
         .{},
     );
     _ = try font.debugDraw(

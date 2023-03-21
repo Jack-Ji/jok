@@ -74,7 +74,7 @@ pub const BuildOptions = struct {
     use_nfd: bool = false,
     use_zaudio: bool = false,
     use_zphysics: bool = false,
-    use_ztracy: bool = false,
+    enable_ztracy: bool = false,
 };
 
 /// Create game executable
@@ -91,16 +91,17 @@ pub fn createGame(
     bos.addOption(bool, "use_nfd", opt.use_nfd);
     bos.addOption(bool, "use_zaudio", opt.use_zaudio);
     bos.addOption(bool, "use_zphysics", opt.use_zphysics);
-    bos.addOption(bool, "use_ztracy", opt.use_ztracy);
     const sdl_sdk = Sdk.init(b, null);
-    const zmath_pkg = zmath.Package.build(b, .{});
-    const zmesh_pkg = zmesh.Package.build(b, target, optimize, .{});
-    const znoise_pkg = znoise.Package.build(b, target, optimize, .{});
-    const zpool_pkg = zpool.Package.build(b, .{});
-    const zflecs_pkg = zflecs.Package.build(b, target, optimize, .{});
-    const zaudio_pkg = zaudio.Package.build(b, target, optimize, .{});
-    const zphysics_pkg = zphysics.Package.build(b, target, optimize, .{});
-    const ztracy_pkg = ztracy.Package.build(b, target, optimize, .{});
+    const zmath_pkg = zmath.package(b, target, optimize, .{});
+    const zmesh_pkg = zmesh.package(b, target, optimize, .{});
+    const znoise_pkg = znoise.package(b, target, optimize, .{});
+    const zpool_pkg = zpool.package(b, target, optimize, .{});
+    const zflecs_pkg = zflecs.package(b, target, optimize, .{});
+    const zaudio_pkg = zaudio.package(b, target, optimize, .{});
+    const zphysics_pkg = zphysics.package(b, target, optimize, .{});
+    const ztracy_pkg = ztracy.package(b, target, optimize, .{
+        .options = .{ .enable_ztracy = opt.enable_ztracy },
+    });
     const jok = b.createModule(.{
         .source_file = .{ .path = thisDir() ++ "/src/jok.zig" },
         .dependencies = &.{
@@ -140,6 +141,7 @@ pub fn createGame(
     zmesh_pkg.link(exe);
     znoise_pkg.link(exe);
     zflecs_pkg.link(exe);
+    ztracy_pkg.link(exe);
     if (opt.use_nfd) {
         nfd.link(exe);
     }
@@ -148,9 +150,6 @@ pub fn createGame(
     }
     if (opt.use_zphysics) {
         zphysics_pkg.link(exe);
-    }
-    if (opt.use_ztracy) {
-        ztracy_pkg.link(exe);
     }
 
     return exe;
