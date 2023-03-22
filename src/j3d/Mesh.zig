@@ -341,9 +341,9 @@ pub const Animation = struct {
 
             var timesteps = try allocator.alloc(f32, ch.sampler.input.unpackFloatsCount());
             _ = ch.sampler.input.unpackFloats(timesteps);
+            assert(timesteps.len == samples.len);
             assert(std.sort.isSorted(f32, timesteps, {}, std.sort.asc(f32)));
             anim.duration = @max(anim.duration, timesteps[timesteps.len - 1]);
-            assert(timesteps.len == samples.len);
 
             try anim.channels.append(Channel{
                 .node = mesh.nodes_map.get(ch.target_node.?).?,
