@@ -299,10 +299,10 @@ pub const Animation = struct {
             switch (ch.target_path) {
                 .scale => {
                     var xs: [3]f32 = undefined;
-                    for (0..ch.sampler.output.count) |j| {
-                        const ret = ch.sampler.output.readFloat(j * 3, &xs);
+                    for (0..ch.sampler.output.count) |i| {
+                        const ret = ch.sampler.output.readFloat(i, &xs);
                         assert(ret == true);
-                        samples[j] = zmath.f32x4(
+                        samples[i] = zmath.f32x4(
                             xs[0],
                             xs[1],
                             xs[2],
@@ -312,10 +312,10 @@ pub const Animation = struct {
                 },
                 .rotation => {
                     var xs: [4]f32 = undefined;
-                    for (0..ch.sampler.output.count) |j| {
-                        const ret = ch.sampler.output.readFloat(j * 3, &xs);
+                    for (0..ch.sampler.output.count) |i| {
+                        const ret = ch.sampler.output.readFloat(i, &xs);
                         assert(ret == true);
-                        samples[j] = zmath.f32x4(
+                        samples[i] = zmath.f32x4(
                             xs[0],
                             xs[1],
                             xs[2],
@@ -325,10 +325,10 @@ pub const Animation = struct {
                 },
                 .translation => {
                     var xs: [3]f32 = undefined;
-                    for (0..ch.sampler.output.count) |j| {
-                        const ret = ch.sampler.output.readFloat(j * 3, &xs);
+                    for (0..ch.sampler.output.count) |i| {
+                        const ret = ch.sampler.output.readFloat(i, &xs);
                         assert(ret == true);
-                        samples[j] = zmath.f32x4(
+                        samples[i] = zmath.f32x4(
                             xs[0],
                             xs[1],
                             xs[2],
