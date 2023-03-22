@@ -224,14 +224,15 @@ pub const Node = struct {
         tri_rd: *TriangleRenderer,
         opt: RenderOption,
     ) !void {
+        const matrix = if (opt.animation_name == null)
+            zmath.mul(node.matrix, model)
+        else
+            node.calcWorldTransform(model);
         for (node.meshes) |sm| {
             try tri_rd.renderMesh(
                 viewport,
                 target,
-                if (opt.animation_name == null)
-                    zmath.mul(node.matrix, model)
-                else
-                    node.calcWorldTransform(model),
+                matrix,
                 camera,
                 sm.indices.items,
                 sm.positions.items,
@@ -291,10 +292,9 @@ pub const Animation = struct {
             .duration = 0,
         };
         for (gltf_anim.channels[0..gltf_anim.channels_count]) |ch| {
-            var timesteps = try allocator.alloc(f32, ch.sampler.input.unpackFloatsCount());
-            _ = ch.sampler.input.unpackFloats(timesteps);
-            assert(std.sort.isSorted(f32, timesteps, {}, std.sort.asc(f32)));
-            anim.duration = @max(anim.duration, timesteps[timesteps.len - 1]);
+            if (ch.target_path == .weights) continue; // TODO weights path not supported
+            if (ch.sampler.interpolation == .cubic_spline) continue; // TODO cubis-spline not supported
+
             var samples = try allocator.alloc(zmath.Vec, ch.sampler.output.count);
             switch (ch.target_path) {
                 .scale => {
@@ -336,20 +336,15 @@ pub const Animation = struct {
                         );
                     }
                 },
-                else => {
-                    // TODO weghts isn't supported
-                    continue;
-                },
+                else => unreachable,
             }
-            switch (ch.sampler.interpolation) {
-                .linear => {},
-                .step => {},
-                .cubic_spline => {
-                    // TODO cubis-spline interpolation isn't supported
-                    continue;
-                },
-            }
+
+            var timesteps = try allocator.alloc(f32, ch.sampler.input.unpackFloatsCount());
+            _ = ch.sampler.input.unpackFloats(timesteps);
+            assert(std.sort.isSorted(f32, timesteps, {}, std.sort.asc(f32)));
+            anim.duration = @max(anim.duration, timesteps[timesteps.len - 1]);
             assert(timesteps.len == samples.len);
+
             try anim.channels.append(Channel{
                 .node = mesh.nodes_map.get(ch.target_node.?).?,
                 .path = ch.target_path,

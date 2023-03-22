@@ -410,6 +410,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 if (self._refresh) {
                     self._refresh = false;
                 } else {
+                    imgui.sdl.draw();
                     return;
                 }
             }
