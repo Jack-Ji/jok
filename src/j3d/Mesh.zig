@@ -365,7 +365,7 @@ pub const Animation = struct {
         tri_rd: *TriangleRenderer,
         opt: RenderOption,
     ) !void {
-        // Update TRS property of nodes
+        // Update TRS property of skeleton nodes
         for (anim.channels.items) |*ch| {
             var node = ch.node;
             switch (ch.path) {
@@ -599,8 +599,17 @@ pub fn render(
     opt: RenderOption,
 ) !void {
     if (opt.animation_name) |name| {
-        const anim = self.animations.getPtr(name);
-        if (anim == null) return error.InvalidAnimation;
+        var anim = self.animations.getPtr(name);
+        if (anim == null) {
+            if (self.animations.count() != 1 or
+                !std.mem.eql(u8, name, "default"))
+            {
+                return error.InvalidAnimation;
+            }
+            var it = self.animations.valueIterator();
+            anim = it.next();
+            assert(anim != null);
+        }
         try anim.?.render(viewport, target, model, camera, tri_rd, opt);
     } else {
         try self.root.render(viewport, target, model, camera, tri_rd, opt);
