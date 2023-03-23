@@ -128,13 +128,14 @@ pub const Node = struct {
     meshes: []SubMesh,
     skin: ?*Skin = null,
 
-    fn initRoot(
+    fn init(
         allocator: std.mem.Allocator,
         mesh: *Self,
+        parent: ?*Node,
         mesh_count: usize,
     ) !Node {
         var self = Node{
-            .parent = null,
+            .parent = parent,
             .children = std.ArrayList(*Node).init(allocator),
             .scale = zmath.identity(),
             .rotation = zmath.identity(),
@@ -146,27 +147,24 @@ pub const Node = struct {
         return self;
     }
 
-    fn init(
+    fn fromGltfNode(
         allocator: std.mem.Allocator,
         mesh: *Self,
-        parent: ?*Node,
+        parent: *Node,
         gltf_node: *const GltfNode,
     ) !Node {
-        const submesh_count = if (gltf_node.mesh) |m| m.primitives_count else 0;
-        var self = Node{
-            .parent = parent,
-            .children = std.ArrayList(*Node).init(allocator),
-            .scale = undefined,
-            .rotation = undefined,
-            .translation = undefined,
-            .matrix = undefined,
-            .meshes = try allocator.alloc(SubMesh, submesh_count),
-        };
+        var self = try Node.init(
+            allocator,
+            mesh,
+            parent,
+            if (gltf_node.mesh) |m| m.primitives_count else 0,
+        );
         if (gltf_node.has_matrix == 1) {
-            self.matrix = zmath.loadMat(&gltf_node.transformLocal());
-            self.translation = zmath.translationV(zmath.util.getTranslationVec(self.matrix));
-            self.rotation = zmath.quatToMat(zmath.util.getRotationQuat(self.matrix));
-            self.scale = zmath.scalingV(zmath.util.getScaleVec(self.matrix));
+            const m = zmath.loadMat(&gltf_node.transformLocal());
+            self.matrix = zmath.loadMat(&gltf_node.transformWorld());
+            self.translation = zmath.translationV(zmath.util.getTranslationVec(m));
+            self.rotation = zmath.quatToMat(zmath.util.getRotationQuat(m));
+            self.scale = zmath.scalingV(zmath.util.getScaleVec(m));
         } else {
             self.scale = if (gltf_node.has_scale == 1)
                 zmath.scaling(
@@ -193,7 +191,7 @@ pub const Node = struct {
                 )
             else
                 zmath.identity();
-            self.matrix = self.calcLocalTransform();
+            self.matrix = zmath.mul(self.calcLocalTransform(), parent.matrix);
         }
         for (self.meshes) |*m| m.* = SubMesh.init(allocator, mesh);
         return self;
@@ -286,7 +284,7 @@ pub const Animation = struct {
     channels: std.ArrayList(Channel),
     duration: f32,
 
-    fn init(allocator: std.mem.Allocator, mesh: *Self, gltf_anim: GltfAnimation) !?Animation {
+    fn fromGltfAnimation(allocator: std.mem.Allocator, mesh: *Self, gltf_anim: GltfAnimation) !?Animation {
         var anim = Animation{
             .mesh = mesh,
             .channels = std.ArrayList(Channel).init(allocator),
@@ -479,7 +477,7 @@ pub const Skin = struct {
     inverse_matrices: []zmath.Mat,
     nodes: []*Node,
 
-    fn init(allocator: std.mem.Allocator, mesh: *Self, gltf_skin: *const GltfSkin) !Skin {
+    fn fromGltfSkin(allocator: std.mem.Allocator, mesh: *Self, gltf_skin: *const GltfSkin) !Skin {
         assert(gltf_skin.joints_count > 0);
         var matrices = try allocator.alloc(zmath.Mat, gltf_skin.joints_count);
         var xs: [16]f32 = undefined;
@@ -619,15 +617,6 @@ pub fn destroy(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-pub fn createNode(self: *Self, parent: ?*Node, gltf_node: *const GltfNode) !*Node {
-    const allocator = self.arena.allocator();
-    var node = try allocator.create(Node);
-    errdefer allocator.destroy(node);
-    node.* = try Node.init(allocator, self, parent, gltf_node);
-    if (parent) |p| try p.children.append(node);
-    return node;
-}
-
 pub fn render(
     self: *const Self,
     viewport: sdl.Rectangle,
@@ -659,7 +648,7 @@ fn createRootNode(self: *Self, mesh_count: usize) !*Node {
     const allocator = self.arena.allocator();
     var node = try allocator.create(Node);
     errdefer allocator.destroy(node);
-    node.* = try Node.initRoot(allocator, self, mesh_count);
+    node.* = try Node.init(allocator, self, null, mesh_count);
     return node;
 }
 
@@ -671,8 +660,9 @@ fn loadNodeTree(
     parent: *Node,
     opt: GltfOption,
 ) !void {
-    var node = try self.createNode(parent, gltf_node);
-    node.matrix = zmath.mul(node.matrix, parent.matrix);
+    var node = try self.arena.allocator().create(Node);
+    node.* = try Node.fromGltfNode(self.arena.allocator(), self, parent, gltf_node);
+    try parent.children.append(node);
     try self.nodes_map.putNoClobber(gltf_node, node);
 
     if (gltf_node.mesh) |mesh| {
@@ -860,7 +850,7 @@ fn loadAnimation(self: *Self, gltf_anim: GltfAnimation) !void {
     );
     errdefer self.arena.allocator().free(name);
 
-    if (try Animation.init(self.arena.allocator(), self, gltf_anim)) |anim| {
+    if (try Animation.fromGltfAnimation(self.arena.allocator(), self, gltf_anim)) |anim| {
         try self.animations.putNoClobber(name, anim);
     }
 }
@@ -869,6 +859,6 @@ fn loadSkin(self: *Self, gltf_skin: *const GltfSkin) !void {
     const allocator = self.arena.allocator();
     var skin = try allocator.create(Skin);
     errdefer allocator.destroy(skin);
-    skin.* = try Skin.init(allocator, self, gltf_skin);
+    skin.* = try Skin.fromGltfSkin(allocator, self, gltf_skin);
     try self.skins_map.putNoClobber(gltf_skin, skin);
 }
