@@ -11,17 +11,25 @@ const lighting = j3d.lighting;
 const Camera = j3d.Camera;
 const utils = jok.utils;
 const internal = @import("internal.zig");
+const Mesh = @import("Mesh.zig");
 const Self = @This();
 
-pub const MeshOption = struct {
+pub const SkeletonAnimation = struct {
+    skin: *Mesh.Skin,
+    joints: []const [4]u8,
+    weights: []const [4]f32,
+};
+
+pub const RenderMeshOption = struct {
     aabb: ?[6]f32 = null,
     cull_faces: bool = true,
     color: sdl.Color = sdl.Color.white,
     texture: ?sdl.Texture = null,
     lighting: ?lighting.LightingOption = null,
+    animation: ?SkeletonAnimation = null,
 };
 
-pub const SpriteOption = struct {
+pub const RenderSpriteOption = struct {
     /// Binded texture
     texture: ?sdl.Texture = null,
 
@@ -116,7 +124,7 @@ pub fn renderMesh(
     normals: ?[]const [3]f32,
     colors: ?[]const sdl.Color,
     texcoords: ?[]const [2]f32,
-    opt: MeshOption,
+    opt: RenderMeshOption,
 ) !void {
     assert(@rem(indices.len, 3) == 0);
     assert(if (normals) |ns| ns.len >= positions.len else true);
@@ -129,7 +137,8 @@ pub fn renderMesh(
         0.0,                                    0.0,                                      0.5,
         0.5 * @intToFloat(f32, viewport.width), 0.5 * @intToFloat(f32, viewport.height),  0.5,
     });
-    const mvp = zmath.mul(model, camera.getViewProjectMatrix());
+    const vp = camera.getViewProjectMatrix();
+    const mvp = zmath.mul(model, vp);
 
     // Do early test with aabb if possible
     if (opt.aabb) |ab| {
@@ -177,34 +186,48 @@ pub fn renderMesh(
         const v1 = zmath.f32x4(positions[idx1][0], positions[idx1][1], positions[idx1][2], 1.0);
         const v2 = zmath.f32x4(positions[idx2][0], positions[idx2][1], positions[idx2][2], 1.0);
 
+        // Transform vertices to world space, calculate skin matrix by the way
+        var skin_mat_v0 = zmath.identity();
+        var skin_mat_v1 = zmath.identity();
+        var skin_mat_v2 = zmath.identity();
+        const world_v0 = if (opt.animation) |a| BLK: {
+            skin_mat_v0 = a.skin.calcSkinMatrix(a.joints[idx0], a.weights[idx0], model);
+            break :BLK zmath.mul(v0, skin_mat_v0);
+        } else zmath.mul(v0, model);
+        const world_v1 = if (opt.animation) |a| BLK: {
+            skin_mat_v1 = a.skin.calcSkinMatrix(a.joints[idx1], a.weights[idx1], model);
+            break :BLK zmath.mul(v1, skin_mat_v1);
+        } else zmath.mul(v1, model);
+        const world_v2 = if (opt.animation) |a| BLK: {
+            skin_mat_v2 = a.skin.calcSkinMatrix(a.joints[idx2], a.weights[idx2], model);
+            break :BLK zmath.mul(v2, skin_mat_v2);
+        } else zmath.mul(v2, model);
+
         // Ignore triangles facing away from camera (front faces' vertices are clock-wise organized)
         if (opt.cull_faces) {
-            const world_positions = zmath.mul(zmath.Mat{
-                v0,
-                v1,
-                v2,
-                zmath.f32x4(0.0, 0.0, 0.0, 1.0),
-            }, model);
-            const face_dir = zmath.cross3(world_positions[1] - world_positions[0], world_positions[2] - world_positions[0]);
-            const camera_dir = (world_positions[0] + world_positions[1] + world_positions[2]) /
-                zmath.splat(zmath.Vec, 3.0) - camera.position;
+            const face_dir = zmath.cross3(world_v1 - world_v0, world_v2 - world_v0);
+            const camera_dir = (world_v0 + world_v1 + world_v2) / zmath.splat(zmath.Vec, 3.0) - camera.position;
             if (zmath.dot3(face_dir, camera_dir)[0] >= 0) continue;
         }
 
-        // Clip triangles behind camera
-        const tri_world_positions = zmath.mul(zmath.Mat{
-            v0,
-            v1,
-            v2,
-            zmath.f32x4(0.0, 0.0, 0.0, 1.0),
-        }, model);
-        const tri_clip_positions = zmath.mul(zmath.Mat{
-            v0,
-            v1,
-            v2,
-            zmath.f32x4(0.0, 0.0, 0.0, 1.0),
-        }, mvp);
-        var tri_world_normals: ?[3]zmath.Vec = if (normals) |ns| BLK: {
+        // Prepare inputs for clipping algorithm
+        var clip_v0: zmath.Vec = undefined;
+        var clip_v1: zmath.Vec = undefined;
+        var clip_v2: zmath.Vec = undefined;
+        if (opt.animation != null) {
+            const mvp_v0 = zmath.mul(skin_mat_v0, vp);
+            const mvp_v1 = zmath.mul(skin_mat_v1, vp);
+            const mvp_v2 = zmath.mul(skin_mat_v2, vp);
+            clip_v0 = zmath.mul(v0, mvp_v0);
+            clip_v1 = zmath.mul(v1, mvp_v1);
+            clip_v2 = zmath.mul(v2, mvp_v2);
+        } else {
+            const clip_positions = zmath.mul(zmath.Mat{ v0, v1, v2, zmath.f32x4s(0.0) }, mvp);
+            clip_v0 = clip_positions[0];
+            clip_v1 = clip_positions[1];
+            clip_v2 = clip_positions[2];
+        }
+        const tri_world_normals: ?[3]zmath.Vec = if (normals) |ns| BLK: {
             const n0 = zmath.f32x4(ns[idx0][0], ns[idx0][1], ns[idx0][2], 0);
             const n1 = zmath.f32x4(ns[idx1][0], ns[idx1][1], ns[idx1][2], 0);
             const n2 = zmath.f32x4(ns[idx2][0], ns[idx2][1], ns[idx2][2], 0);
@@ -232,9 +255,11 @@ pub fn renderMesh(
             }
         else
             null;
+
+        // Clip triangles behind camera
         internal.clipTriangle(
-            tri_world_positions[0..3],
-            tri_clip_positions[0..3],
+            &.{ world_v0, world_v1, world_v2 },
+            &.{ clip_v0, clip_v1, clip_v2 },
             tri_world_normals,
             tri_colors,
             tri_texcoords,
@@ -342,7 +367,7 @@ pub fn renderSprite(
     camera: Camera,
     size: sdl.PointF,
     uv: [2]sdl.PointF,
-    opt: SpriteOption,
+    opt: RenderSpriteOption,
 ) !void {
     assert(size.x > 0 and size.y > 0);
     assert(opt.scale.x >= 0 and opt.scale.y >= 0);

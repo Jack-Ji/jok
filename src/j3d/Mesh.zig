@@ -63,8 +63,8 @@ pub const Node = struct {
             normals: ?[][3]f32,
             colors: ?[]sdl.Color,
             texcoords: ?[][2]f32,
-            joints: ?[4]u8,
-            weights: ?[4]f32,
+            joints: ?[][4]u8,
+            weights: ?[][4]f32,
         ) !void {
             if (indices.len == 0) return;
             assert(@rem(indices.len, 3) == 0);
@@ -139,6 +139,7 @@ pub const Node = struct {
     rotation: zmath.Mat,
     translation: zmath.Mat,
     matrix: zmath.Mat,
+    _skin_matrix: ?zmath.Mat = null,
     meshes: []SubMesh,
     skin: ?*Skin = null,
 
@@ -218,18 +219,21 @@ pub const Node = struct {
         );
     }
 
-    fn calcWorldTransform(node: *const Node, model: zmath.Mat) zmath.Mat {
+    fn calcWorldTransform(node: *Node) zmath.Mat {
+        if (node._skin_matrix) |m| return m;
+
         var mat = node.calcLocalTransform();
         var parent = node.parent;
         while (parent) |p| {
             mat = zmath.mul(mat, p.calcLocalTransform());
             parent = p.parent;
         }
-        return zmath.mul(mat, model);
+        node._skin_matrix = mat;
+        return mat;
     }
 
     fn render(
-        node: *const Node,
+        node: *Node,
         viewport: sdl.Rectangle,
         target: *internal.RenderTarget,
         model: zmath.Mat,
@@ -240,7 +244,7 @@ pub const Node = struct {
         const matrix = if (opt.animation_name == null)
             zmath.mul(node.matrix, model)
         else
-            node.calcWorldTransform(model);
+            zmath.mul(node.calcWorldTransform(), model);
         for (node.meshes) |sm| {
             try tri_rd.renderMesh(
                 viewport,
@@ -262,11 +266,22 @@ pub const Node = struct {
                 else
                     sm.texcoords.items,
                 .{
-                    .aabb = sm.aabb,
+                    .aabb = if (opt.animation_name == null) // NOTE: Ignore aabb when animation is active
+                        sm.aabb
+                    else
+                        null,
                     .cull_faces = opt.cull_faces,
                     .color = opt.color,
                     .texture = opt.texture orelse sm.getTexture(),
                     .lighting = opt.lighting,
+                    .animation = if (opt.animation_name == null or node.skin == null)
+                        null
+                    else
+                        .{
+                            .skin = node.skin.?,
+                            .joints = sm.joints.items,
+                            .weights = sm.weights.items,
+                        },
                 },
             );
         }
@@ -472,6 +487,9 @@ pub const Animation = struct {
                 },
                 else => continue,
             }
+
+            // Invalidate cached skin matrix
+            node._skin_matrix = null;
         }
 
         // Render the mesh
@@ -505,6 +523,32 @@ pub const Skin = struct {
             nodes[i] = mesh.nodes_map.get(gltf_skin.joints[i]).?;
         }
         return .{ .inverse_matrices = matrices, .nodes = nodes };
+    }
+
+    /// Calculate skin matrix
+    pub fn calcSkinMatrix(self: *Skin, joints: [4]u8, weights: [4]f32, model: zmath.Mat) zmath.Mat {
+        const S = struct {
+            const m_zero = zmath.Mat{
+                zmath.f32x4s(0),
+                zmath.f32x4s(0),
+                zmath.f32x4s(0),
+                zmath.f32x4s(0),
+            };
+        };
+        var skin_m = S.m_zero;
+        for (0..4) |i| {
+            const j = joints[i];
+            const w = weights[i];
+            const m = zmath.mul(zmath.mul(
+                self.inverse_matrices[j],
+                self.nodes[j].calcWorldTransform(),
+            ), w);
+            skin_m[0] += m[0];
+            skin_m[1] += m[1];
+            skin_m[2] += m[2];
+            skin_m[3] += m[3];
+        }
+        return zmath.mul(skin_m, model);
     }
 };
 
@@ -550,6 +594,8 @@ pub fn fromShape(
         shape.normals,
         null,
         shape.texcoords,
+        null,
+        null,
     );
     if (shape.texcoords != null) {
         if (opt.tex) |t| {

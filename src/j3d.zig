@@ -128,7 +128,7 @@ pub fn addSprite(
     model: zmath.Mat,
     size: sdl.PointF,
     uv: [2]sdl.PointF,
-    opt: TriangleRenderer.SpriteOption,
+    opt: TriangleRenderer.RenderSpriteOption,
 ) !void {
     try tri_rd.renderSprite(
         rd.getViewport(),
