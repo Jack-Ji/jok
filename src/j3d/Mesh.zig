@@ -323,6 +323,7 @@ pub const Animation = struct {
             if (ch.target_path == .weights) continue; // TODO weights path not supported
             if (ch.sampler.interpolation == .cubic_spline) continue; // TODO cubis-spline not supported
 
+            assert(ch.sampler.output.component_type == .r_32f);
             var samples = try allocator.alloc(zmath.Vec, ch.sampler.output.count);
             switch (ch.target_path) {
                 .scale => {
