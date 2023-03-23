@@ -35,6 +35,8 @@ pub const Node = struct {
         normals: std.ArrayList([3]f32),
         colors: std.ArrayList(sdl.Color),
         texcoords: std.ArrayList([2]f32),
+        joints: std.ArrayList([4]u8),
+        weights: std.ArrayList([4]f32),
         aabb: ?[6]f32,
         tex_id: usize,
 
@@ -46,30 +48,40 @@ pub const Node = struct {
                 .normals = std.ArrayList([3]f32).init(allocator),
                 .colors = std.ArrayList(sdl.Color).init(allocator),
                 .texcoords = std.ArrayList([2]f32).init(allocator),
+                .joints = std.ArrayList([4]u8).init(allocator),
+                .weights = std.ArrayList([4]f32).init(allocator),
                 .aabb = null,
                 .tex_id = 0,
             };
         }
 
-        /// Add new geometry data
-        pub fn appendTriangles(
+        /// Push attributes data
+        pub fn appendAttributes(
             self: *SubMesh,
             indices: []u32,
             positions: [][3]f32,
             normals: ?[][3]f32,
             colors: ?[]sdl.Color,
             texcoords: ?[][2]f32,
+            joints: ?[4]u8,
+            weights: ?[4]f32,
         ) !void {
             if (indices.len == 0) return;
             assert(@rem(indices.len, 3) == 0);
             assert(if (normals) |ns| positions.len == ns.len else true);
             assert(if (texcoords) |ts| positions.len == ts.len else true);
+            assert(if (joints) |js| positions.len == js.len else true);
+            assert(if (weights) |ws| positions.len == ws.len else true);
             if ((self.normals.items.len > 0 and normals == null) or
                 (self.indices.items.len > 0 and self.normals.items.len == 0 and normals != null) or
                 (self.colors.items.len > 0 and colors == null) or
                 (self.indices.items.len > 0 and self.colors.items.len == 0 and colors != null) or
                 (self.texcoords.items.len > 0 and texcoords == null) or
-                (self.indices.items.len > 0 and self.texcoords.items.len == 0 and texcoords != null))
+                (self.indices.items.len > 0 and self.texcoords.items.len == 0 and texcoords != null) or
+                (self.joints.items.len > 0 and joints == null) or
+                (self.indices.items.len > 0 and self.joints.items.len == 0 and joints != null) or
+                (self.weights.items.len > 0 and weights == null) or
+                (self.indices.items.len > 0 and self.weights.items.len == 0 and weights != null))
             {
                 return error.InvalidFormat;
             }
@@ -80,6 +92,8 @@ pub const Node = struct {
             if (normals) |ns| try self.normals.appendSlice(ns);
             if (colors) |cs| try self.colors.appendSlice(cs);
             if (texcoords) |ts| try self.texcoords.appendSlice(ts);
+            if (joints) |js| try self.joints.appendSlice(js);
+            if (weights) |ws| try self.weights.appendSlice(ws);
         }
 
         /// Compute AABB of mesh
@@ -530,7 +544,7 @@ pub fn fromShape(
 ) !*Self {
     var self = try create(allocator, 1);
     errdefer self.destroy();
-    try self.root.meshes[0].appendTriangles(
+    try self.root.meshes[0].appendAttributes(
         shape.indices,
         shape.positions,
         shape.normals,
@@ -828,6 +842,50 @@ fn loadNodeTree(
                                 });
                             }
                         }
+                    } else if (attrib.type == .joints) {
+                        assert(accessor.type == .vec4);
+                        try sm.joints.ensureTotalCapacity(sm.joints.items.len + num_vertices);
+                        if (accessor.component_type == .r_8u) {
+                            const slice = @intToPtr([*]const [4]u8, data_addr)[0..num_vertices];
+                            try sm.joints.appendSlice(slice);
+                        } else if (accessor.component_type == .r_16u) {
+                            const slice = @intToPtr([*]const [4]u16, data_addr)[0..num_vertices];
+                            for (slice) |xs| {
+                                sm.joints.appendAssumeCapacity([4]u8{
+                                    @intCast(u8, xs[0]),
+                                    @intCast(u8, xs[1]),
+                                    @intCast(u8, xs[2]),
+                                    @intCast(u8, xs[3]),
+                                });
+                            }
+                        } else unreachable;
+                    } else if (attrib.type == .weights) {
+                        assert(accessor.type == .vec4);
+                        try sm.weights.ensureTotalCapacity(sm.weights.items.len + num_vertices);
+                        if (accessor.component_type == .r_32f) {
+                            const slice = @intToPtr([*]const [4]f32, data_addr)[0..num_vertices];
+                            try sm.weights.appendSlice(slice);
+                        } else if (accessor.component_type == .r_8u) {
+                            const slice = @intToPtr([*]const [4]u8, data_addr)[0..num_vertices];
+                            for (slice) |xs| {
+                                sm.weights.appendAssumeCapacity([4]f32{
+                                    @intToFloat(f32, xs[0]) / 255.0,
+                                    @intToFloat(f32, xs[1]) / 255.0,
+                                    @intToFloat(f32, xs[2]) / 255.0,
+                                    @intToFloat(f32, xs[3]) / 255.0,
+                                });
+                            }
+                        } else if (accessor.component_type == .r_16u) {
+                            const slice = @intToPtr([*]const [4]u16, data_addr)[0..num_vertices];
+                            for (slice) |xs| {
+                                sm.weights.appendAssumeCapacity([4]f32{
+                                    @intToFloat(f32, xs[0]) / 65535.0,
+                                    @intToFloat(f32, xs[1]) / 65535.0,
+                                    @intToFloat(f32, xs[2]) / 65535.0,
+                                    @intToFloat(f32, xs[3]) / 65535.0,
+                                });
+                            }
+                        } else unreachable;
                     }
                 }
             }
