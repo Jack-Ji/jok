@@ -238,7 +238,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Misc.
             self._pc_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
             self._last_pc = sdl.c.SDL_GetPerformanceCounter();
-
             return self;
         }
 
@@ -329,7 +328,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         ) void {
             const fps_pc_threshold: u64 = switch (cfg.jok_fps_limit) {
                 .none => 0,
-                .auto => if (cfg.jok_manual_refreshing or self._is_software)
+                .auto => if (!cfg.jok_manual_refreshing and self._is_software)
                     @divTrunc(@floatToInt(u64, self._pc_freq), 30)
                 else
                     0,
@@ -409,8 +408,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
             if (cfg.jok_manual_refreshing) {
                 if (self._refresh) {
                     self._refresh = false;
-                } else {
+                } else if (!imgui.io.getWantCaptureKeyboard() and !imgui.io.getWantCaptureMouse()) {
+                    // Skip calling draw function when GUI panels don't have focus
                     imgui.sdl.draw();
+                    self._renderer.present();
                     return;
                 }
             }
@@ -423,13 +424,13 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     return;
                 }
             };
+            self._frame_count += 1;
             imgui.sdl.draw();
             self._renderer.present();
         }
 
         /// Update frame stats once per second
         inline fn updateFrameStats(self: *@This()) bool {
-            self._frame_count += 1;
             if ((self._seconds_real - self._last_fps_refresh_time) >= 1.0) {
                 const t = self._seconds_real - self._last_fps_refresh_time;
                 self._fps = @floatCast(
