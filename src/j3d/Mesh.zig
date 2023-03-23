@@ -139,7 +139,7 @@ pub const Node = struct {
     rotation: zmath.Mat,
     translation: zmath.Mat,
     matrix: zmath.Mat,
-    _skin_matrix: ?zmath.Mat = null,
+    _world_matrix: ?zmath.Mat = null,
     meshes: []SubMesh,
     skin: ?*Skin = null,
 
@@ -220,7 +220,7 @@ pub const Node = struct {
     }
 
     fn calcWorldTransform(node: *Node) zmath.Mat {
-        if (node._skin_matrix) |m| return m;
+        if (node._world_matrix) |m| return m;
 
         var mat = node.calcLocalTransform();
         var parent = node.parent;
@@ -228,7 +228,7 @@ pub const Node = struct {
             mat = zmath.mul(mat, p.calcLocalTransform());
             parent = p.parent;
         }
-        node._skin_matrix = mat;
+        node._world_matrix = mat;
         return mat;
     }
 
@@ -489,7 +489,7 @@ pub const Animation = struct {
             }
 
             // Invalidate cached skin matrix
-            node._skin_matrix = null;
+            node._world_matrix = null;
         }
 
         // Render the mesh

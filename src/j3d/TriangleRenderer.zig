@@ -130,6 +130,7 @@ pub fn renderMesh(
     assert(if (normals) |ns| ns.len >= positions.len else true);
     assert(if (colors) |cs| cs.len >= positions.len else true);
     assert(if (texcoords) |ts| ts.len >= positions.len else true);
+    assert(if (opt.animation) |anim| anim.joints.len == anim.weights.len else true);
     if (indices.len == 0) return;
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
         0.5 * @intToFloat(f32, viewport.width), 0.0,                                      0.0,
@@ -231,16 +232,28 @@ pub fn renderMesh(
             const n0 = zmath.f32x4(ns[idx0][0], ns[idx0][1], ns[idx0][2], 0);
             const n1 = zmath.f32x4(ns[idx1][0], ns[idx1][1], ns[idx1][2], 0);
             const n2 = zmath.f32x4(ns[idx2][0], ns[idx2][1], ns[idx2][2], 0);
-            var vs = zmath.mul(zmath.Mat{
-                n0, n1, n2, zmath.f32x4s(0),
-            }, normal_transform);
-            vs[0][3] = 0;
-            vs[1][3] = 0;
-            vs[2][3] = 0;
+            var world_n0: zmath.Vec = undefined;
+            var world_n1: zmath.Vec = undefined;
+            var world_n2: zmath.Vec = undefined;
+            if (opt.animation == null) {
+                const vs = zmath.mul(zmath.Mat{
+                    n0, n1, n2, zmath.f32x4s(0),
+                }, normal_transform);
+                world_n0 = vs[0];
+                world_n1 = vs[1];
+                world_n2 = vs[2];
+            } else {
+                world_n0 = zmath.mul(n0, zmath.transpose(zmath.inverse(skin_mat_v0)));
+                world_n1 = zmath.mul(n1, zmath.transpose(zmath.inverse(skin_mat_v1)));
+                world_n2 = zmath.mul(n2, zmath.transpose(zmath.inverse(skin_mat_v2)));
+            }
+            world_n0[3] = 0;
+            world_n1[3] = 0;
+            world_n2[3] = 0;
             break :BLK .{
-                zmath.normalize3(vs[0]),
-                zmath.normalize3(vs[1]),
-                zmath.normalize3(vs[2]),
+                zmath.normalize3(world_n0),
+                zmath.normalize3(world_n1),
+                zmath.normalize3(world_n2),
             };
         } else null;
         const tri_colors: ?[3]sdl.Color = if (colors) |cs|

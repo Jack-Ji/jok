@@ -10,6 +10,7 @@ const j3d = jok.j3d;
 
 var lighting: bool = true;
 var wireframe: bool = false;
+var playtime: f32 = 1.0;
 var camera: j3d.Camera = undefined;
 var mesh1: *j3d.Mesh = undefined;
 var mesh2: *j3d.Mesh = undefined;
@@ -52,6 +53,7 @@ pub fn init(ctx: jok.Context) !void {
     );
 
     try ctx.renderer().setColorRGB(77, 77, 77);
+    ctx.refresh();
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -90,6 +92,12 @@ pub fn update(ctx: jok.Context) !void {
     if (imgui.begin("Control Panel", .{})) {
         _ = imgui.checkbox("lighting", .{ .v = &lighting });
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
+        if (imgui.dragFloat("playtime", .{
+            .v = &playtime,
+            .speed = 0.01,
+        })) {
+            ctx.refresh();
+        }
     }
     imgui.end();
 }
@@ -107,6 +115,8 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .lighting = if (lighting) .{} else null,
             },
+            .animation_name = "default",
+            .animation_playtime = playtime,
         },
     );
     try j3d.addMesh(
