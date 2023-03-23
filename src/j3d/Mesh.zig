@@ -126,6 +126,7 @@ pub const Node = struct {
     translation: zmath.Mat,
     matrix: zmath.Mat,
     meshes: []SubMesh,
+    skin: ?*Skin = null,
 
     fn initRoot(
         allocator: std.mem.Allocator,
@@ -393,7 +394,7 @@ pub const Animation = struct {
                                     break :BLK zmath.lerp(v0, v1, t);
                                 },
                                 .step => break :BLK ch.samples[index],
-                                else => @panic("unrechable"),
+                                else => unreachable,
                             }
                         },
                     );
@@ -423,7 +424,7 @@ pub const Animation = struct {
                                     break :BLK zmath.slerp(v0, v1, t);
                                 },
                                 .step => break :BLK ch.samples[index],
-                                else => @panic("unrechable"),
+                                else => unreachable,
                             }
                         },
                     ));
@@ -473,12 +474,35 @@ pub const Animation = struct {
     }
 };
 
+pub const GltfSkin = zmesh.io.zcgltf.Skin;
+pub const Skin = struct {
+    inverse_matrices: []zmath.Mat,
+    nodes: []*Node,
+
+    fn init(allocator: std.mem.Allocator, mesh: *Self, gltf_skin: *const GltfSkin) !Skin {
+        assert(gltf_skin.joints_count > 0);
+        var matrices = try allocator.alloc(zmath.Mat, gltf_skin.joints_count);
+        var xs: [16]f32 = undefined;
+        for (0..gltf_skin.joints_count) |i| {
+            const ret = gltf_skin.inverse_bind_matrices.?.readFloat(i, &xs);
+            assert(ret == true);
+            matrices[i] = zmath.loadMat(&xs);
+        }
+        var nodes = try allocator.alloc(*Node, gltf_skin.joints_count);
+        for (0..gltf_skin.joints_count) |i| {
+            nodes[i] = mesh.nodes_map.get(gltf_skin.joints[i]).?;
+        }
+        return .{ .inverse_matrices = matrices, .nodes = nodes };
+    }
+};
+
 allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
 root: *Node,
 textures: std.AutoHashMap(usize, sdl.Texture),
 nodes_map: std.AutoHashMap(*const GltfNode, *Node),
 animations: std.StringHashMap(Animation),
+skins_map: std.AutoHashMap(*const GltfSkin, *Skin),
 own_textures: bool,
 
 pub fn create(allocator: std.mem.Allocator, mesh_count: usize) !*Self {
@@ -490,6 +514,7 @@ pub fn create(allocator: std.mem.Allocator, mesh_count: usize) !*Self {
     self.textures = std.AutoHashMap(usize, sdl.Texture).init(self.arena.allocator());
     self.nodes_map = std.AutoHashMap(*const GltfNode, *Node).init(self.arena.allocator());
     self.animations = std.StringHashMap(Animation).init(self.arena.allocator());
+    self.skins_map = std.AutoHashMap(*const GltfSkin, *Skin).init(self.arena.allocator());
     self.own_textures = false;
     return self;
 }
@@ -561,9 +586,23 @@ pub fn fromGltf(
     }
 
     // Load animations
-    var animation_index: usize = 0;
-    while (animation_index < data.animations_count) : (animation_index += 1) {
-        try self.loadAnimation(data.animations.?[animation_index]);
+    var index: usize = 0;
+    while (index < data.animations_count) : (index += 1) {
+        try self.loadAnimation(data.animations.?[index]);
+    }
+    index = 0;
+    while (index < data.skins_count) : (index += 1) {
+        try self.loadSkin(&data.skins.?[index]);
+    }
+
+    // Connect nodes and skins
+    var it = self.nodes_map.iterator();
+    while (it.next()) |kv| {
+        const gltf_node = kv.key_ptr.*;
+        const node = kv.value_ptr.*;
+        if (gltf_node.skin) |s| {
+            node.skin = self.skins_map.get(s).?;
+        }
     }
 
     return self;
@@ -634,7 +673,7 @@ fn loadNodeTree(
 ) !void {
     var node = try self.createNode(parent, gltf_node);
     node.matrix = zmath.mul(node.matrix, parent.matrix);
-    try self.nodes_map.put(gltf_node, node);
+    try self.nodes_map.putNoClobber(gltf_node, node);
 
     if (gltf_node.mesh) |mesh| {
         for (0..mesh.primitives_count, node.meshes) |prim_index, *sm| {
@@ -689,7 +728,7 @@ fn loadNodeTree(
                                 false,
                             );
                         } else unreachable;
-                        try self.textures.put(sm.tex_id, tex);
+                        try self.textures.putNoClobber(sm.tex_id, tex);
                     }
 
                     if (mat.pbr_metallic_roughness.base_color_texture.has_transform != 0) {
@@ -824,4 +863,12 @@ fn loadAnimation(self: *Self, gltf_anim: GltfAnimation) !void {
     if (try Animation.init(self.arena.allocator(), self, gltf_anim)) |anim| {
         try self.animations.putNoClobber(name, anim);
     }
+}
+
+fn loadSkin(self: *Self, gltf_skin: *const GltfSkin) !void {
+    const allocator = self.arena.allocator();
+    var skin = try allocator.create(Skin);
+    errdefer allocator.destroy(skin);
+    skin.* = try Skin.init(allocator, self, gltf_skin);
+    try self.skins_map.putNoClobber(gltf_skin, skin);
 }
