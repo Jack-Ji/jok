@@ -719,7 +719,7 @@ pub fn render(
     }
 }
 
-inline fn getAnimation(self: Self, name: []const u8) ?*Animation {
+pub inline fn getAnimation(self: Self, name: []const u8) ?*Animation {
     var anim = self.animations.getPtr(name);
     if (anim == null) {
         if (self.animations.count() == 1 and
