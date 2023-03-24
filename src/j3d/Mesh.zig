@@ -507,9 +507,14 @@ pub const Animation = struct {
                 },
                 else => continue,
             }
+        }
 
-            // Invalidate cached skin matrix
-            node._world_matrix = null;
+        // Invalidate cached skin matrix
+        var it = anim.mesh.nodes_map.valueIterator();
+        while (it.next()) |node| {
+            if (node.*.is_joint) {
+                node.*._world_matrix = null;
+            }
         }
 
         // Render the mesh
