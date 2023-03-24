@@ -411,7 +411,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 } else if (!imgui.io.getWantCaptureKeyboard() and !imgui.io.getWantCaptureMouse()) {
                     // Skip calling draw function when GUI panels don't have focus
                     imgui.sdl.draw();
-                    self._renderer.present();
                     return;
                 }
             }

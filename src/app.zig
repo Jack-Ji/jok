@@ -70,6 +70,14 @@ pub fn main() !void {
     try game.init(ctx);
     defer game.quit(ctx);
 
+    if (jok_config.jok_manual_refreshing) {
+        // Make sure UI is showing at startup
+        jok.imgui.sdl.newFrame(ctx);
+        try game.update(ctx);
+        try game.draw(ctx);
+        jok.imgui.sdl.draw();
+    }
+
     // Start game loop
     while (jok_ctx._running) {
         jok_ctx.tick(game.event, game.update, game.draw);
