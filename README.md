@@ -16,7 +16,8 @@ A minimal 2d/3d game framework for zig.
 * 2D scene management
 * 3D skybox rendering
 * 3D mesh rendering
-* 3D model loading/rendering (GLTF 2.0)
+* 3D model loading/rendering (glTF 2.0)
+* 3D skeleton animation (glTF 2.0)
 * 3D lighting effect (very minimal)
 * 3D sprite rendering
 * 3D particle system

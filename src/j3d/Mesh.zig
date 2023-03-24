@@ -133,6 +133,7 @@ pub const Node = struct {
         }
     };
 
+    mesh: *Self,
     parent: ?*Node,
     children: std.ArrayList(*Node),
     scale: zmath.Mat,
@@ -142,6 +143,7 @@ pub const Node = struct {
     _world_matrix: ?zmath.Mat = null,
     meshes: []SubMesh,
     skin: ?*Skin = null,
+    is_joint: bool = false,
 
     fn init(
         allocator: std.mem.Allocator,
@@ -150,6 +152,7 @@ pub const Node = struct {
         mesh_count: usize,
     ) !Node {
         var self = Node{
+            .mesh = mesh,
             .parent = parent,
             .children = std.ArrayList(*Node).init(allocator),
             .scale = zmath.identity(),
@@ -239,12 +242,23 @@ pub const Node = struct {
         model: zmath.Mat,
         camera: Camera,
         tri_rd: *TriangleRenderer,
+        anim: ?*Animation,
         opt: RenderOption,
     ) !void {
-        const matrix = if (opt.animation_name == null)
-            zmath.mul(node.matrix, model)
-        else
-            zmath.mul(node.calcWorldTransform(), model);
+        const matrix = if (anim) |a| BLK: {
+            if (a.isSkeletonAnimation()) {
+                if (node.is_joint) {
+                    break :BLK zmath.mul(node.calcWorldTransform(), model);
+                } else {
+                    // According to glTF spec: only the joint transforms are applied to the
+                    // skinned mesh; the transform of the skinned mesh node MUST be ignored.
+                    break :BLK model;
+                }
+            } else {
+                break :BLK zmath.mul(node.calcWorldTransform(), model);
+            }
+        } else zmath.mul(node.matrix, model);
+
         for (node.meshes) |sm| {
             try tri_rd.renderMesh(
                 viewport,
@@ -292,6 +306,7 @@ pub const Node = struct {
                 model,
                 camera,
                 tri_rd,
+                anim,
                 opt,
             );
         }
@@ -383,6 +398,10 @@ pub const Animation = struct {
             });
         }
         return if (anim.channels.items.len == 0) null else anim;
+    }
+
+    fn isSkeletonAnimation(anim: Animation) bool {
+        return anim.channels.items[0].node.is_joint;
     }
 
     fn render(
@@ -500,6 +519,7 @@ pub const Animation = struct {
             model,
             camera,
             tri_rd,
+            anim,
             opt,
         );
     }
@@ -522,6 +542,7 @@ pub const Skin = struct {
         var nodes = try allocator.alloc(*Node, gltf_skin.joints_count);
         for (0..gltf_skin.joints_count) |i| {
             nodes[i] = mesh.nodes_map.get(gltf_skin.joints[i]).?;
+            nodes[i].is_joint = true;
         }
         return .{ .inverse_matrices = matrices, .nodes = nodes };
     }
@@ -688,21 +709,28 @@ pub fn render(
     opt: RenderOption,
 ) !void {
     if (opt.animation_name) |name| {
-        var anim = self.animations.getPtr(name);
-        if (anim == null) {
-            if (self.animations.count() != 1 or
-                !std.mem.eql(u8, name, "default"))
-            {
-                return error.InvalidAnimation;
-            }
+        if (self.getAnimation(name)) |anim| {
+            try anim.render(viewport, target, model, camera, tri_rd, opt);
+        } else {
+            return error.InvalidAnimation;
+        }
+    } else {
+        try self.root.render(viewport, target, model, camera, tri_rd, null, opt);
+    }
+}
+
+inline fn getAnimation(self: Self, name: []const u8) ?*Animation {
+    var anim = self.animations.getPtr(name);
+    if (anim == null) {
+        if (self.animations.count() == 1 and
+            std.mem.eql(u8, name, "default"))
+        {
             var it = self.animations.valueIterator();
             anim = it.next();
             assert(anim != null);
         }
-        try anim.?.render(viewport, target, model, camera, tri_rd, opt);
-    } else {
-        try self.root.render(viewport, target, model, camera, tri_rd, opt);
     }
+    return anim;
 }
 
 fn createRootNode(self: *Self, mesh_count: usize) !*Node {
