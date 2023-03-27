@@ -62,8 +62,24 @@ pub fn init(ctx: jok.Context) !void {
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
-    _ = ctx;
-    _ = e;
+    switch (e) {
+        .mouse_motion => |me| {
+            const mouse_state = ctx.getMouseState();
+            if (!mouse_state.buttons.getPressed(.left)) {
+                return;
+            }
+
+            camera.rotateAround(
+                null,
+                @intToFloat(f32, me.delta_x) * 0.01,
+                @intToFloat(f32, me.delta_y) * 0.01,
+            );
+        },
+        .mouse_wheel => |me| {
+            camera.zoomBy(@intToFloat(f32, me.delta_y) * -0.1);
+        },
+        else => {},
+    }
 }
 
 pub fn update(ctx: jok.Context) !void {

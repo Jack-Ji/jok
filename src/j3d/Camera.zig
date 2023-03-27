@@ -195,6 +195,51 @@ pub fn rotate(self: *Self, pitch: f32, yaw: f32) void {
     self.updateVectors();
 }
 
+/// Change zoom relatively (by radian)
+pub fn zoomBy(self: *Self, delta: f32) void {
+    if (self.frustrum == .orthographic) return;
+    self.frustrum.perspective.fov = math.clamp(
+        self.frustrum.perspective.fov + delta,
+        math.pi * 0.05,
+        math.pi * 0.95,
+    );
+}
+
+/// Rotate camera around given point (in radians)
+pub fn rotateAround(self: *Self, point: ?[3]f32, delta_angle_h: f32, delta_angle_v: f32) void {
+    const center = if (point) |p|
+        zmath.f32x4(p[0], p[1], p[2], 1)
+    else
+        zmath.f32x4(0, 0, 0, 1);
+    const v = self.position - center;
+    var angle_h = math.atan2(
+        f32,
+        v[0],
+        v[2],
+    );
+    var angle_v = math.atan2(
+        f32,
+        v[1],
+        math.sqrt(v[0] * v[0] + v[2] * v[2]),
+    );
+    angle_h = zmath.modAngle(angle_h + delta_angle_h);
+    angle_v = zmath.clamp(angle_v + delta_angle_v, -math.pi * 0.45, math.pi * 0.45);
+    const transform = zmath.mul(
+        zmath.rotationX(-angle_v),
+        zmath.rotationY(angle_h),
+    );
+    const new_pos = zmath.mul(
+        zmath.f32x4(0, 0, zmath.length3(v)[0], 1),
+        transform,
+    ) + center;
+    self.* = fromPositionAndTarget(
+        self.frustrum,
+        .{ new_pos[0], new_pos[1], new_pos[2] },
+        point orelse .{ 0, 0, 0 },
+        .{ self.world_up[0], self.world_up[1], self.world_up[2] },
+    );
+}
+
 /// Update vectors: direction/right/up
 fn updateVectors(self: *Self) void {
     self.pitch = math.clamp(
@@ -216,16 +261,16 @@ fn updateVectors(self: *Self) void {
 /// NOTE: assuming mouse's coordinate is relative to top-left corner of viewport
 pub fn getRayTestTarget(
     self: Self,
-    viewport_w: u32,
-    viewport_h: u32,
+    renderer: sdl.Renderer,
     mouse_x: u32,
     mouse_y: u32,
 ) zmath.Vec {
     assert(self.frustrum == .perspective);
     const far_plane: f32 = 10000.0;
+    const vp = renderer.getViewport();
     const tanfov = @tan(0.5 * self.frustrum.perspective.fov);
-    const width = @intToFloat(f32, viewport_w);
-    const height = @intToFloat(f32, viewport_h);
+    const width = @intToFloat(f32, vp.width);
+    const height = @intToFloat(f32, vp.height);
     const aspect = width / height;
 
     const ray_forward = self.dir * far_plane;
@@ -238,6 +283,6 @@ pub fn getRayTestTarget(
 
     var ray_to = ray_to_center - hor * zmath.splat(zmath.Vec, 0.5) - vertical * zmath.splat(zmath.Vec, 0.5);
     ray_to = ray_to + dhor * zmath.splat(zmath.Vec, @intToFloat(f32, mouse_x));
-    ray_to = ray_to + dvert * zmath.splat(zmath.Vec, @intToFloat(f32, viewport_h - mouse_y));
+    ray_to = ray_to + dvert * zmath.splat(zmath.Vec, @intToFloat(f32, vp.height - mouse_y));
     return ray_to;
 }
