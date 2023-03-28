@@ -91,28 +91,28 @@ pub fn update(ctx: jok.Context) !void {
     const distance = ctx.deltaSeconds() * 2;
     const angle = std.math.pi * ctx.deltaSeconds() / 2;
     if (ctx.isKeyPressed(.w)) {
-        camera.move(.forward, distance);
+        camera.moveBy(.forward, distance);
     }
     if (ctx.isKeyPressed(.s)) {
-        camera.move(.backward, distance);
+        camera.moveBy(.backward, distance);
     }
     if (ctx.isKeyPressed(.a)) {
-        camera.move(.left, distance);
+        camera.moveBy(.left, distance);
     }
     if (ctx.isKeyPressed(.d)) {
-        camera.move(.right, distance);
+        camera.moveBy(.right, distance);
     }
     if (ctx.isKeyPressed(.left)) {
-        camera.rotate(0, -angle);
+        camera.rotateBy(0, -angle);
     }
     if (ctx.isKeyPressed(.right)) {
-        camera.rotate(0, angle);
+        camera.rotateBy(0, angle);
     }
     if (ctx.isKeyPressed(.up)) {
-        camera.rotate(angle, 0);
+        camera.rotateBy(angle, 0);
     }
     if (ctx.isKeyPressed(.down)) {
-        camera.rotate(-angle, 0);
+        camera.rotateBy(-angle, 0);
     }
 }
 

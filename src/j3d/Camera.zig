@@ -176,7 +176,7 @@ pub fn getScreenPosition(
 }
 
 /// Move camera
-pub fn move(self: *Self, direction: MoveDirection, distance: f32) void {
+pub fn moveBy(self: *Self, direction: MoveDirection, distance: f32) void {
     var movement = switch (direction) {
         .forward => self.dir * zmath.splat(zmath.Vec, distance),
         .backward => self.dir * zmath.splat(zmath.Vec, -distance),
@@ -189,9 +189,9 @@ pub fn move(self: *Self, direction: MoveDirection, distance: f32) void {
 }
 
 /// Rotate camera (in radians)
-pub fn rotate(self: *Self, pitch: f32, yaw: f32) void {
-    self.pitch += pitch;
-    self.yaw += yaw;
+pub fn rotateBy(self: *Self, delta_pitch: f32, delta_yaw: f32) void {
+    self.pitch += delta_pitch;
+    self.yaw += delta_yaw;
     self.updateVectors();
 }
 
@@ -206,7 +206,7 @@ pub fn zoomBy(self: *Self, delta: f32) void {
 }
 
 /// Rotate camera around given point (in radians)
-pub fn rotateAround(self: *Self, point: ?[3]f32, delta_angle_h: f32, delta_angle_v: f32) void {
+pub fn rotateAroundBy(self: *Self, point: ?[3]f32, delta_angle_h: f32, delta_angle_v: f32) void {
     const center = if (point) |p|
         zmath.f32x4(p[0], p[1], p[2], 1)
     else

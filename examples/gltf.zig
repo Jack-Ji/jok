@@ -69,7 +69,7 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
                 return;
             }
 
-            camera.rotateAround(
+            camera.rotateAroundBy(
                 null,
                 @intToFloat(f32, me.delta_x) * 0.01,
                 @intToFloat(f32, me.delta_y) * 0.01,
@@ -86,28 +86,28 @@ pub fn update(ctx: jok.Context) !void {
     // camera movement
     const distance = ctx.deltaSeconds() * 5;
     if (ctx.isKeyPressed(.w)) {
-        camera.move(.forward, distance);
+        camera.moveBy(.forward, distance);
     }
     if (ctx.isKeyPressed(.s)) {
-        camera.move(.backward, distance);
+        camera.moveBy(.backward, distance);
     }
     if (ctx.isKeyPressed(.a)) {
-        camera.move(.left, distance);
+        camera.moveBy(.left, distance);
     }
     if (ctx.isKeyPressed(.d)) {
-        camera.move(.right, distance);
+        camera.moveBy(.right, distance);
     }
     if (ctx.isKeyPressed(.left)) {
-        camera.rotate(0, -std.math.pi / 180.0);
+        camera.rotateBy(0, -std.math.pi / 180.0);
     }
     if (ctx.isKeyPressed(.right)) {
-        camera.rotate(0, std.math.pi / 180.0);
+        camera.rotateBy(0, std.math.pi / 180.0);
     }
     if (ctx.isKeyPressed(.up)) {
-        camera.rotate(std.math.pi / 180.0, 0);
+        camera.rotateBy(std.math.pi / 180.0, 0);
     }
     if (ctx.isKeyPressed(.down)) {
-        camera.rotate(-std.math.pi / 180.0, 0);
+        camera.rotateBy(-std.math.pi / 180.0, 0);
     }
 
     var buf: [256]u8 = undefined;
