@@ -38,13 +38,13 @@ const jok = @import("libs/jok/build.zig");
 
 pub fn build(b: *std.build.Builder) void {
     const target = b.standardTargetOptions(.{});
-    const mode = b.standardReleaseOptions(.{});
+    const optimize = b.standardOptimizeOptions(.{});
     const exe = jok.createGame(
         b, 
         "mygame",
         "src/main.zig",
         target,
-        mode,
+        optimize,
         .{},
     );
     exe.install();
@@ -65,9 +65,6 @@ const jok = @import("jok");
 const sdl = jok.sdl;
 const j2d = jok.j2d;
 const j3d = jok.j3d;
-
-pub const jok_window_width = 400;
-pub const jok_window_height = 300;
 
 pub fn init(ctx: jok.Context) !void {
     // your init code
