@@ -61,6 +61,8 @@ pub fn init(ctx: jok.Context) !void {
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+    if (imgui.io.getWantCaptureMouse()) return;
+
     switch (e) {
         .mouse_motion => |me| {
             const mouse_state = ctx.getMouseState();

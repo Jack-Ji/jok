@@ -188,7 +188,7 @@ pub fn moveBy(self: *Self, direction: MoveDirection, distance: f32) void {
     self.position = self.position + movement;
 }
 
-/// Rotate camera (in radians)
+/// Rotate camera around axises (in radians)
 pub fn rotateBy(self: *Self, delta_pitch: f32, delta_yaw: f32) void {
     self.pitch += delta_pitch;
     self.yaw += delta_yaw;
