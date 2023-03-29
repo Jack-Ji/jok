@@ -5,7 +5,6 @@ const imgui = jok.imgui;
 const font = jok.font;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
-const j2d = jok.j2d;
 const j3d = jok.j3d;
 
 var lighting: bool = true;
@@ -214,7 +213,7 @@ pub fn draw(ctx: jok.Context) !void {
         .sort_by_depth = true,
         .wireframe_color = if (wireframe) sdl.Color.green else null,
     });
-    try j3d.addMesh(
+    try j3d.mesh(
         mesh1,
         zmath.scalingV(zmath.f32x4s(3)),
         .{
@@ -225,7 +224,7 @@ pub fn draw(ctx: jok.Context) !void {
             .animation_playtime = animation_playtime1,
         },
     );
-    try j3d.addMesh(
+    try j3d.mesh(
         mesh2,
         zmath.translation(-4, 0, 0),
         .{
@@ -237,7 +236,7 @@ pub fn draw(ctx: jok.Context) !void {
             .animation_playtime = animation_playtime2,
         },
     );
-    try j3d.addMesh(
+    try j3d.mesh(
         mesh3,
         zmath.mul(
             zmath.rotationY(-std.math.pi / 6.0),
@@ -254,7 +253,7 @@ pub fn draw(ctx: jok.Context) !void {
             .animation_playtime = animation_playtime3,
         },
     );
-    try j3d.addAxises(.{ .radius = 0.01, .length = 0.5 });
+    try j3d.axises(.{ .radius = 0.01, .length = 0.5 });
     try j3d.end();
 
     _ = try font.debugDraw(

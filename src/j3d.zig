@@ -99,7 +99,7 @@ pub fn clearMemory() !void {
     try target.clear(true);
 }
 
-pub fn addSkybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {
+pub fn skybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {
     try skybox_rd.render(
         rd.getViewport(),
         &target,
@@ -109,11 +109,11 @@ pub fn addSkybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {
     );
 }
 
-pub fn addScene(scene: *const Scene, opt: Scene.RenderOption) !void {
-    try scene.render(null, opt);
+pub fn scene(s: *const Scene, opt: Scene.RenderOption) !void {
+    try s.render(null, opt);
 }
 
-pub fn addEffects(ps: *ParticleSystem) !void {
+pub fn effects(ps: *ParticleSystem) !void {
     for (ps.effects.items) |eff| {
         try eff.render(
             rd.getViewport(),
@@ -124,7 +124,7 @@ pub fn addEffects(ps: *ParticleSystem) !void {
     }
 }
 
-pub fn addSprite(
+pub fn sprite(
     model: zmath.Mat,
     size: sdl.PointF,
     uv: [2]sdl.PointF,
@@ -141,8 +141,8 @@ pub fn addSprite(
     );
 }
 
-pub fn addShape(
-    shape: zmesh.Shape,
+pub fn shape(
+    s: zmesh.Shape,
     model: zmath.Mat,
     aabb: ?[6]f32,
     opt: RenderOption,
@@ -152,11 +152,11 @@ pub fn addShape(
         &target,
         model,
         camera,
-        shape.indices,
-        shape.positions,
-        shape.normals.?,
+        s.indices,
+        s.positions,
+        s.normals.?,
         null,
-        shape.texcoords,
+        s.texcoords,
         .{
             .aabb = aabb,
             .cull_faces = opt.cull_faces,
@@ -167,13 +167,13 @@ pub fn addShape(
     );
 }
 
-pub const MeshDrawOption = struct {
+pub const MeshOption = struct {
     rdopt: RenderOption = .{},
     animation_name: ?[]const u8 = null,
     animation_playtime: f32 = 0,
 };
-pub fn addMesh(mesh: *const Mesh, model: zmath.Mat, opt: MeshDrawOption) !void {
-    try mesh.render(
+pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: MeshOption) !void {
+    try m.render(
         rd.getViewport(),
         &target,
         model,
@@ -190,7 +190,7 @@ pub fn addMesh(mesh: *const Mesh, model: zmath.Mat, opt: MeshDrawOption) !void {
     );
 }
 
-pub const AxisDrawOption = struct {
+pub const AxisOption = struct {
     radius: f32 = 0.1,
     length: f32 = 4,
     pos: [3]f32 = .{ 0, 0, 0 },
@@ -199,7 +199,7 @@ pub const AxisDrawOption = struct {
     color_y: sdl.Color = sdl.Color.green,
     color_z: sdl.Color = sdl.Color.blue,
 };
-pub fn addAxises(opt: AxisDrawOption) !void {
+pub fn axises(opt: AxisOption) !void {
     const scale_cylinder = zmath.scaling(opt.radius, opt.radius, opt.length);
     const scale_cone = zmath.scaling(opt.radius * 2.5, opt.radius * 2.5, opt.length / 9);
     const move_cylinder = zmath.translation(opt.pos[0], opt.pos[1], opt.pos[2]);
@@ -207,7 +207,7 @@ pub fn addAxises(opt: AxisDrawOption) !void {
     const right_angle = math.pi / 2.0;
 
     // X axis
-    try addCone(
+    try cone(
         zmath.mul(
             zmath.mul(
                 zmath.mul(scale_cone, zmath.rotationY(right_angle)),
@@ -217,7 +217,7 @@ pub fn addAxises(opt: AxisDrawOption) !void {
         ),
         .{ .rdopt = .{ .color = opt.color_x, .cull_faces = false } },
     );
-    try addCylinder(
+    try cylinder(
         zmath.mul(
             zmath.mul(
                 zmath.mul(scale_cylinder, zmath.rotationY(right_angle)),
@@ -229,7 +229,7 @@ pub fn addAxises(opt: AxisDrawOption) !void {
     );
 
     // Y axis
-    try addCone(
+    try cone(
         zmath.mul(
             zmath.mul(
                 zmath.mul(scale_cone, zmath.rotationX(-right_angle)),
@@ -239,7 +239,7 @@ pub fn addAxises(opt: AxisDrawOption) !void {
         ),
         .{ .rdopt = .{ .color = opt.color_y, .cull_faces = false } },
     );
-    try addCylinder(
+    try cylinder(
         zmath.mul(
             zmath.mul(
                 zmath.mul(scale_cylinder, zmath.rotationX(-right_angle)),
@@ -251,14 +251,14 @@ pub fn addAxises(opt: AxisDrawOption) !void {
     );
 
     // Z axis
-    try addCone(
+    try cone(
         zmath.mul(
             zmath.mul(scale_cone, rotation),
             zmath.mul(zmath.translation(0, 0, opt.length), move_cylinder),
         ),
         .{ .rdopt = .{ .color = opt.color_z, .cull_faces = false } },
     );
-    try addCylinder(
+    try cylinder(
         zmath.mul(
             zmath.mul(scale_cylinder, rotation),
             move_cylinder,
@@ -267,11 +267,11 @@ pub fn addAxises(opt: AxisDrawOption) !void {
     );
 }
 
-pub const CubeDrawOption = struct {
+pub const CubeOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
 };
-pub fn addCube(model: zmath.Mat, opt: CubeDrawOption) !void {
+pub fn cube(model: zmath.Mat, opt: CubeOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -281,7 +281,7 @@ pub fn addCube(model: zmath.Mat, opt: CubeDrawOption) !void {
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: CubeDrawOption) []u8 {
+        fn getKey(_opt: CubeOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}",
@@ -294,7 +294,7 @@ pub fn addCube(model: zmath.Mat, opt: CubeDrawOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
             break :BLK s;
@@ -313,16 +313,16 @@ pub fn addCube(model: zmath.Mat, opt: CubeDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const PlaneDrawOption = struct {
+pub const PlaneOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
     slices: u32 = 10,
     stacks: u32 = 10,
 };
-pub fn addPlane(model: zmath.Mat, opt: PlaneDrawOption) !void {
+pub fn plane(model: zmath.Mat, opt: PlaneOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -332,7 +332,7 @@ pub fn addPlane(model: zmath.Mat, opt: PlaneDrawOption) !void {
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: PlaneDrawOption) []u8 {
+        fn getKey(_opt: PlaneOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}-{d}",
@@ -345,7 +345,7 @@ pub fn addPlane(model: zmath.Mat, opt: PlaneDrawOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         assert(opt.slices > 0);
         assert(opt.stacks > 0);
         const key = S.getKey(opt);
@@ -366,16 +366,16 @@ pub fn addPlane(model: zmath.Mat, opt: PlaneDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const ParametricSphereDrawOption = struct {
+pub const ParametricSphereOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
     slices: u32 = 15,
     stacks: u32 = 15,
 };
-pub fn addParametricSphere(model: zmath.Mat, opt: ParametricSphereDrawOption) !void {
+pub fn parametricSphere(model: zmath.Mat, opt: ParametricSphereOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -385,7 +385,7 @@ pub fn addParametricSphere(model: zmath.Mat, opt: ParametricSphereDrawOption) !v
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: ParametricSphereDrawOption) []u8 {
+        fn getKey(_opt: ParametricSphereOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}-{d}",
@@ -398,7 +398,7 @@ pub fn addParametricSphere(model: zmath.Mat, opt: ParametricSphereDrawOption) !v
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         assert(opt.slices > 0);
         assert(opt.stacks > 0);
         const key = S.getKey(opt);
@@ -419,15 +419,15 @@ pub fn addParametricSphere(model: zmath.Mat, opt: ParametricSphereDrawOption) !v
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const SubdividedSphereDrawOption = struct {
+pub const SubdividedSphereOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
     sub_num: u32 = 2,
 };
-pub fn addSubdividedSphere(model: zmath.Mat, opt: SubdividedSphereDrawOption) !void {
+pub fn subdividedSphere(model: zmath.Mat, opt: SubdividedSphereOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -437,7 +437,7 @@ pub fn addSubdividedSphere(model: zmath.Mat, opt: SubdividedSphereDrawOption) !v
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: SubdividedSphereDrawOption) []u8 {
+        fn getKey(_opt: SubdividedSphereOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}",
@@ -450,7 +450,7 @@ pub fn addSubdividedSphere(model: zmath.Mat, opt: SubdividedSphereDrawOption) !v
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         assert(opt.sub_num > 0);
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
@@ -470,16 +470,16 @@ pub fn addSubdividedSphere(model: zmath.Mat, opt: SubdividedSphereDrawOption) !v
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const HemisphereDrawOption = struct {
+pub const HemisphereOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
     slices: u32 = 15,
     stacks: u32 = 15,
 };
-pub fn addHemisphere(model: zmath.Mat, opt: HemisphereDrawOption) !void {
+pub fn hemisphere(model: zmath.Mat, opt: HemisphereOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -489,7 +489,7 @@ pub fn addHemisphere(model: zmath.Mat, opt: HemisphereDrawOption) !void {
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: HemisphereDrawOption) []u8 {
+        fn getKey(_opt: HemisphereOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}-{d}",
@@ -502,7 +502,7 @@ pub fn addHemisphere(model: zmath.Mat, opt: HemisphereDrawOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         assert(opt.slices > 0);
         assert(opt.stacks > 0);
         const key = S.getKey(opt);
@@ -523,16 +523,16 @@ pub fn addHemisphere(model: zmath.Mat, opt: HemisphereDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const ConeDrawOption = struct {
+pub const ConeOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
     slices: u32 = 15,
     stacks: u32 = 1,
 };
-pub fn addCone(model: zmath.Mat, opt: ConeDrawOption) !void {
+pub fn cone(model: zmath.Mat, opt: ConeOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -542,7 +542,7 @@ pub fn addCone(model: zmath.Mat, opt: ConeDrawOption) !void {
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: ConeDrawOption) []u8 {
+        fn getKey(_opt: ConeOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}-{d}",
@@ -555,7 +555,7 @@ pub fn addCone(model: zmath.Mat, opt: ConeDrawOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         assert(opt.slices > 0);
         assert(opt.stacks > 0);
         const key = S.getKey(opt);
@@ -576,16 +576,16 @@ pub fn addCone(model: zmath.Mat, opt: ConeDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const CylinderDrawOption = struct {
+pub const CylinderOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
     slices: u32 = 20,
     stacks: u32 = 1,
 };
-pub fn addCylinder(model: zmath.Mat, opt: CylinderDrawOption) !void {
+pub fn cylinder(model: zmath.Mat, opt: CylinderOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -595,7 +595,7 @@ pub fn addCylinder(model: zmath.Mat, opt: CylinderDrawOption) !void {
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: CylinderDrawOption) []u8 {
+        fn getKey(_opt: CylinderOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}-{d}",
@@ -608,7 +608,7 @@ pub fn addCylinder(model: zmath.Mat, opt: CylinderDrawOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         assert(opt.slices > 0);
         assert(opt.stacks > 0);
         const key = S.getKey(opt);
@@ -629,10 +629,10 @@ pub fn addCylinder(model: zmath.Mat, opt: CylinderDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const DiskDrawOption = struct {
+pub const DiskOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
     radius: f32 = 1,
@@ -640,7 +640,7 @@ pub const DiskDrawOption = struct {
     center: [3]f32 = .{ 0, 0, 0 },
     normal: [3]f32 = .{ 0, 0, 1 },
 };
-pub fn addDisk(model: zmath.Mat, opt: DiskDrawOption) !void {
+pub fn disk(model: zmath.Mat, opt: DiskOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -650,7 +650,7 @@ pub fn addDisk(model: zmath.Mat, opt: DiskDrawOption) !void {
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [64]u8 = undefined;
 
-        fn getKey(_opt: DiskDrawOption) []u8 {
+        fn getKey(_opt: DiskOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d:.3}-{d}-({d:.3}/{d:.3}/{d:.3})-({d:.3}/{d:.3}/{d:.3})",
@@ -667,7 +667,7 @@ pub fn addDisk(model: zmath.Mat, opt: DiskDrawOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         assert(opt.radius > 0);
         assert(opt.slices > 0);
         const key = S.getKey(opt);
@@ -688,17 +688,17 @@ pub fn addDisk(model: zmath.Mat, opt: DiskDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const TorusDrawOption = struct {
+pub const TorusOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
     radius: f32 = 0.2,
     slices: u32 = 15,
     stacks: u32 = 20,
 };
-pub fn addTorus(model: zmath.Mat, opt: TorusDrawOption) !void {
+pub fn torus(model: zmath.Mat, opt: TorusOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -708,7 +708,7 @@ pub fn addTorus(model: zmath.Mat, opt: TorusDrawOption) !void {
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [64]u8 = undefined;
 
-        fn getKey(_opt: TorusDrawOption) []u8 {
+        fn getKey(_opt: TorusOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d:.3}-{d}-{d}",
@@ -721,7 +721,7 @@ pub fn addTorus(model: zmath.Mat, opt: TorusDrawOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         assert(opt.radius > 0);
         assert(opt.slices > 0);
         assert(opt.stacks > 0);
@@ -743,14 +743,14 @@ pub fn addTorus(model: zmath.Mat, opt: TorusDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const IcosahedronDrawOption = struct {
+pub const IcosahedronOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
 };
-pub fn addIcosahedron(model: zmath.Mat, opt: IcosahedronDrawOption) !void {
+pub fn icosahedron(model: zmath.Mat, opt: IcosahedronOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -760,7 +760,7 @@ pub fn addIcosahedron(model: zmath.Mat, opt: IcosahedronDrawOption) !void {
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: IcosahedronDrawOption) []u8 {
+        fn getKey(_opt: IcosahedronOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}",
@@ -773,7 +773,7 @@ pub fn addIcosahedron(model: zmath.Mat, opt: IcosahedronDrawOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
             break :BLK s;
@@ -792,14 +792,14 @@ pub fn addIcosahedron(model: zmath.Mat, opt: IcosahedronDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const DodecahedronDrawOption = struct {
+pub const DodecahedronOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
 };
-pub fn addDodecahedron(model: zmath.Mat, opt: DodecahedronDrawOption) !void {
+pub fn dodecahedron(model: zmath.Mat, opt: DodecahedronOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -809,7 +809,7 @@ pub fn addDodecahedron(model: zmath.Mat, opt: DodecahedronDrawOption) !void {
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: DodecahedronDrawOption) []u8 {
+        fn getKey(_opt: DodecahedronOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}",
@@ -822,7 +822,7 @@ pub fn addDodecahedron(model: zmath.Mat, opt: DodecahedronDrawOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
             break :BLK s;
@@ -841,14 +841,14 @@ pub fn addDodecahedron(model: zmath.Mat, opt: DodecahedronDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const OctahedronDrawOption = struct {
+pub const OctahedronOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
 };
-pub fn addOctahedron(model: zmath.Mat, opt: OctahedronDrawOption) !void {
+pub fn octahedron(model: zmath.Mat, opt: OctahedronOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -858,7 +858,7 @@ pub fn addOctahedron(model: zmath.Mat, opt: OctahedronDrawOption) !void {
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: OctahedronDrawOption) []u8 {
+        fn getKey(_opt: OctahedronOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}",
@@ -871,7 +871,7 @@ pub fn addOctahedron(model: zmath.Mat, opt: OctahedronDrawOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
             break :BLK s;
@@ -890,14 +890,14 @@ pub fn addOctahedron(model: zmath.Mat, opt: OctahedronDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const TetrahedronDrawOption = struct {
+pub const TetrahedronOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
 };
-pub fn addTetrahedron(model: zmath.Mat, opt: TetrahedronDrawOption) !void {
+pub fn tetrahedron(model: zmath.Mat, opt: TetrahedronOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -907,7 +907,7 @@ pub fn addTetrahedron(model: zmath.Mat, opt: TetrahedronDrawOption) !void {
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: TetrahedronDrawOption) []u8 {
+        fn getKey(_opt: TetrahedronOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}",
@@ -920,7 +920,7 @@ pub fn addTetrahedron(model: zmath.Mat, opt: TetrahedronDrawOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
             break :BLK s;
@@ -939,16 +939,16 @@ pub fn addTetrahedron(model: zmath.Mat, opt: TetrahedronDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }
 
-pub const RockDrawOption = struct {
+pub const RockOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
     seed: i32 = 3,
     sub_num: u32 = 1,
 };
-pub fn addRock(model: zmath.Mat, opt: RockDrawOption) !void {
+pub fn rock(model: zmath.Mat, opt: RockOption) !void {
     const S = struct {
         const Shape = struct {
             shape: zmesh.Shape,
@@ -958,7 +958,7 @@ pub fn addRock(model: zmath.Mat, opt: RockDrawOption) !void {
         var meshes: ?std.StringHashMap(*Shape) = null;
         var buf: [32]u8 = undefined;
 
-        fn getKey(_opt: RockDrawOption) []u8 {
+        fn getKey(_opt: RockOption) []u8 {
             return std.fmt.bufPrint(
                 &buf,
                 "{?:.5}-{d}-{d}",
@@ -971,7 +971,7 @@ pub fn addRock(model: zmath.Mat, opt: RockDrawOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var mesh = BLK: {
+    var m = BLK: {
         assert(opt.sub_num > 0);
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
@@ -991,5 +991,5 @@ pub fn addRock(model: zmath.Mat, opt: RockDrawOption) !void {
         break :BLK m;
     };
 
-    try addShape(mesh.shape, model, mesh.aabb, opt.rdopt);
+    try shape(m.shape, model, m.aabb, opt.rdopt);
 }

@@ -16,7 +16,7 @@ const EasingBlock = struct {
     pos: sdl.PointF,
 
     fn draw(self: @This()) !void {
-        try j2d.addRectRoundedFilled(.{
+        try j2d.rectRoundedFilled(.{
             .x = self.pos.x,
             .y = self.pos.y,
             .width = 20,
@@ -80,7 +80,7 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try j2d.begin(.{});
     for (blocks, 0..) |b, i| {
-        try j2d.addRectFilled(
+        try j2d.rectFilled(
             .{
                 .x = 150,
                 .y = @intToFloat(f32, i) * 25,
@@ -94,7 +94,7 @@ pub fn draw(ctx: jok.Context) !void {
             ),
             .{},
         );
-        try j2d.addText(
+        try j2d.text(
             .{
                 .atlas = try jok.font.DebugFont.getAtlas(ctx, 16),
                 .pos = .{ .x = 10, .y = @intToFloat(f32, i) * 25 },
@@ -103,7 +103,7 @@ pub fn draw(ctx: jok.Context) !void {
             .{@tagName(@intToEnum(easing.EasingType, @intCast(u8, i)))},
         );
         try b.draw();
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = 0, .y = @intToFloat(f32, i) * 25 + 20 },
             .{ .x = 750, .y = @intToFloat(f32, i) * 25 + 20 },
             sdl.Color.white,

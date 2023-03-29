@@ -127,7 +127,7 @@ pub fn draw(ctx: jok.Context) !void {
             .x = offset_transformed[0],
             .y = offset_transformed[1],
         });
-        try j2d.addRectFilledMultiColor(
+        try j2d.rectFilledMultiColor(
             .{ .x = -10, .y = -10, .width = 20, .height = 20 },
             sdl.Color.white,
             sdl.Color.red,
@@ -144,28 +144,28 @@ pub fn draw(ctx: jok.Context) !void {
         @floatToInt(u8, 128 + 127 * std.math.cos(ctx.seconds())),
     );
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
-    try j3d.addIcosahedron(
+    try j3d.icosahedron(
         zmath.mul(
             zmath.rotationY(ctx.seconds()),
             zmath.translation(-3, 3, 0),
         ),
         .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
-    try j3d.addTorus(
+    try j3d.torus(
         zmath.mul(
             zmath.rotationY(ctx.seconds()),
             zmath.translation(3, 3, 0),
         ),
         .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
-    try j3d.addParametricSphere(
+    try j3d.parametricSphere(
         zmath.mul(
             zmath.rotationY(ctx.seconds()),
             zmath.translation(3, -3, 0),
         ),
         .{ .rdopt = .{ .lighting = .{}, .color = color } },
     );
-    try j3d.addTetrahedron(
+    try j3d.tetrahedron(
         zmath.mul(
             zmath.rotationY(ctx.seconds()),
             zmath.translation(-3, -3, 0),
@@ -177,7 +177,7 @@ pub fn draw(ctx: jok.Context) !void {
     if (screenshot_tex) |tex| {
         if (std.time.timestamp() - screenshot_time < 5) {
             try j2d.begin(.{});
-            try j2d.addRectRoundedFilled(
+            try j2d.rectRoundedFilled(
                 .{
                     .x = screenshot_pos.x,
                     .y = screenshot_pos.y,
@@ -187,7 +187,7 @@ pub fn draw(ctx: jok.Context) !void {
                 sdl.Color.rgba(255, 255, 255, 200),
                 .{},
             );
-            try j2d.addImageRounded(
+            try j2d.imageRounded(
                 tex,
                 .{
                     .x = screenshot_pos.x + 5,

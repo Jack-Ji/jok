@@ -82,7 +82,7 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     var ms = ctx.getMouseState();
     try j2d.begin(.{});
-    try j2d.addCircleFilled(
+    try j2d.circleFilled(
         .{ .x = @intToFloat(f32, ms.x), .y = @intToFloat(f32, ms.y) },
         10,
         sdl.Color.white,

@@ -93,7 +93,7 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try j2d.begin(.{});
     for (characters.items) |c| {
-        try j2d.addSprite(c.sprite, .{
+        try j2d.sprite(c.sprite, .{
             .pos = c.pos,
         });
     }

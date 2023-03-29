@@ -147,10 +147,10 @@ pub fn clearMemory() !void {
     all_tex.clearAndFree();
 }
 
-pub fn pushClipRect(rect: sdl.RectangleF, intersect_with_current: bool) void {
+pub fn pushClipRect(r: sdl.RectangleF, intersect_with_current: bool) void {
     draw_list.pushClipRect(.{
-        .pmin = .{ rect.x, rect.y },
-        .pmax = .{ rect.x + rect.width, rect.y + rect.height },
+        .pmin = .{ r.x, r.y },
+        .pmax = .{ r.x + r.width, r.y + r.height },
         .intersect_with_current = intersect_with_current,
     });
 }
@@ -167,7 +167,7 @@ pub fn getTransform() *AffineTransform {
     return &transform;
 }
 
-pub const AddImage = struct {
+pub const ImageOption = struct {
     size: ?sdl.PointF = null,
     uv0: sdl.PointF = .{ .x = 0, .y = 0 },
     uv1: sdl.PointF = .{ .x = 1, .y = 1 },
@@ -179,7 +179,7 @@ pub const AddImage = struct {
     flip_v: bool = false,
     depth: f32 = 0.5,
 };
-pub fn addImage(texture: sdl.Texture, pos: sdl.PointF, opt: AddImage) !void {
+pub fn image(texture: sdl.Texture, pos: sdl.PointF, opt: ImageOption) !void {
     const scale = transform.getScale();
     const size = opt.size orelse BLK: {
         const info = try texture.query();
@@ -188,14 +188,14 @@ pub fn addImage(texture: sdl.Texture, pos: sdl.PointF, opt: AddImage) !void {
             .y = @intToFloat(f32, info.height),
         };
     };
-    const sprite = Sprite{
+    const s = Sprite{
         .width = size.x,
         .height = size.y,
         .uv0 = opt.uv0,
         .uv1 = opt.uv1,
         .tex = texture,
     };
-    try sprite.render(&draw_commands, .{
+    try s.render(&draw_commands, .{
         .pos = transform.transformPoint(pos),
         .tint_color = opt.tint_color,
         .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
@@ -208,7 +208,7 @@ pub fn addImage(texture: sdl.Texture, pos: sdl.PointF, opt: AddImage) !void {
 }
 
 /// NOTE: Rounded image is always axis-aligned
-pub const AddImageRounded = struct {
+pub const ImageRoundedOption = struct {
     size: ?sdl.PointF = null,
     uv0: sdl.PointF = .{ .x = 0, .y = 0 },
     uv1: sdl.PointF = .{ .x = 1, .y = 1 },
@@ -219,7 +219,7 @@ pub const AddImageRounded = struct {
     rounding: f32 = 4,
     depth: f32 = 0.5,
 };
-pub fn addImageRounded(texture: sdl.Texture, pos: sdl.PointF, opt: AddImageRounded) !void {
+pub fn imageRounded(texture: sdl.Texture, pos: sdl.PointF, opt: ImageRoundedOption) !void {
     const scale = transform.getScale();
     const size = opt.size orelse BLK: {
         const info = try texture.query();
@@ -253,17 +253,17 @@ pub fn addImageRounded(texture: sdl.Texture, pos: sdl.PointF, opt: AddImageRound
     });
 }
 
-pub fn addScene(scene: *const Scene) !void {
-    try scene.render(&draw_commands, .{ .transform = transform });
+pub fn scene(s: *const Scene) !void {
+    try s.render(&draw_commands, .{ .transform = transform });
 }
 
-pub fn addEffects(ps: *const ParticleSystem) !void {
+pub fn effects(ps: *const ParticleSystem) !void {
     for (ps.effects.items) |eff| {
         try eff.render(&draw_commands, .{ .transform = transform });
     }
 }
 
-pub const AddSprite = struct {
+pub const SpriteOption = struct {
     pos: sdl.PointF,
     tint_color: sdl.Color = sdl.Color.white,
     scale: sdl.PointF = .{ .x = 1, .y = 1 },
@@ -273,9 +273,9 @@ pub const AddSprite = struct {
     flip_v: bool = false,
     depth: f32 = 0.5,
 };
-pub fn addSprite(sprite: Sprite, opt: AddSprite) !void {
+pub fn sprite(s: Sprite, opt: SpriteOption) !void {
     const scale = transform.getScale();
-    try sprite.render(&draw_commands, .{
+    try s.render(&draw_commands, .{
         .pos = transform.transformPoint(opt.pos),
         .tint_color = opt.tint_color,
         .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
@@ -287,7 +287,7 @@ pub fn addSprite(sprite: Sprite, opt: AddSprite) !void {
     });
 }
 
-pub const AddText = struct {
+pub const TextOption = struct {
     atlas: *Atlas,
     pos: sdl.PointF,
     ypos_type: Atlas.YPosType = .top,
@@ -297,9 +297,9 @@ pub const AddText = struct {
     anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
     depth: f32 = 0.5,
 };
-pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
-    const text = imgui.format(fmt, args);
-    if (text.len == 0) return;
+pub fn text(opt: TextOption, comptime fmt: []const u8, args: anytype) !void {
+    const txt = imgui.format(fmt, args);
+    if (txt.len == 0) return;
 
     var pos = transform.transformPoint(opt.pos);
     var scale = transform.getScale();
@@ -314,9 +314,9 @@ pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
         zmath.translation(pos.x, pos.y, 0),
     );
     var i: u32 = 0;
-    while (i < text.len) {
-        const size = try unicode.utf8ByteSequenceLength(text[i]);
-        const cp = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
+    while (i < txt.len) {
+        const size = try unicode.utf8ByteSequenceLength(txt[i]);
+        const cp = @intCast(u32, try unicode.utf8Decode(txt[i .. i + size]));
         if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, sdl.Color.white, cp)) |cs| {
             const v = zmath.mul(
                 zmath.f32x4(
@@ -328,14 +328,14 @@ pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
                 mat,
             );
             const draw_pos = sdl.PointF{ .x = v[0], .y = v[1] };
-            const sprite = Sprite{
+            const s = Sprite{
                 .width = cs.vs[1].position.x - cs.vs[0].position.x,
                 .height = cs.vs[3].position.y - cs.vs[0].position.y,
                 .uv0 = cs.vs[0].tex_coord,
                 .uv1 = cs.vs[2].tex_coord,
                 .tex = opt.atlas.tex,
             };
-            try sprite.render(&draw_commands, .{
+            try s.render(&draw_commands, .{
                 .pos = draw_pos,
                 .tint_color = opt.tint_color,
                 .scale = scale,
@@ -349,11 +349,11 @@ pub fn addText(opt: AddText, comptime fmt: []const u8, args: anytype) !void {
     }
 }
 
-pub const AddLine = struct {
+pub const LineOption = struct {
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
-pub fn addLine(p1: sdl.PointF, p2: sdl.PointF, color: sdl.Color, opt: AddLine) !void {
+pub fn line(p1: sdl.PointF, p2: sdl.PointF, color: sdl.Color, opt: LineOption) !void {
     try draw_commands.append(.{
         .cmd = .{
             .line = .{
@@ -367,15 +367,15 @@ pub fn addLine(p1: sdl.PointF, p2: sdl.PointF, color: sdl.Color, opt: AddLine) !
     });
 }
 
-pub const AddRect = struct {
+pub const RectOption = struct {
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
-pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, opt: AddRect) !void {
-    const p1 = sdl.PointF{ .x = rect.x, .y = rect.y };
-    const p2 = sdl.PointF{ .x = p1.x + rect.width, .y = p1.y };
-    const p3 = sdl.PointF{ .x = p1.x + rect.width, .y = p1.y + rect.height };
-    const p4 = sdl.PointF{ .x = p1.x, .y = p1.y + rect.height };
+pub fn rect(r: sdl.RectangleF, color: sdl.Color, opt: RectOption) !void {
+    const p1 = sdl.PointF{ .x = r.x, .y = r.y };
+    const p2 = sdl.PointF{ .x = p1.x + r.width, .y = p1.y };
+    const p3 = sdl.PointF{ .x = p1.x + r.width, .y = p1.y + r.height };
+    const p4 = sdl.PointF{ .x = p1.x, .y = p1.y + r.height };
     try draw_commands.append(.{
         .cmd = .{
             .quad = .{
@@ -394,11 +394,11 @@ pub fn addRect(rect: sdl.RectangleF, color: sdl.Color, opt: AddRect) !void {
 pub const FillRect = struct {
     depth: f32 = 0.5,
 };
-pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) !void {
-    const p1 = sdl.PointF{ .x = rect.x, .y = rect.y };
-    const p2 = sdl.PointF{ .x = p1.x + rect.width, .y = p1.y };
-    const p3 = sdl.PointF{ .x = p1.x + rect.width, .y = p1.y + rect.height };
-    const p4 = sdl.PointF{ .x = p1.x, .y = p1.y + rect.height };
+pub fn rectFilled(r: sdl.RectangleF, color: sdl.Color, opt: FillRect) !void {
+    const p1 = sdl.PointF{ .x = r.x, .y = r.y };
+    const p2 = sdl.PointF{ .x = p1.x + r.width, .y = p1.y };
+    const p3 = sdl.PointF{ .x = p1.x + r.width, .y = p1.y + r.height };
+    const p4 = sdl.PointF{ .x = p1.x, .y = p1.y + r.height };
     const c = imgui.sdl.convertColor(color);
     try draw_commands.append(.{
         .cmd = .{
@@ -420,18 +420,18 @@ pub fn addRectFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRect) !voi
 pub const FillRectMultiColor = struct {
     depth: f32 = 0.5,
 };
-pub fn addRectFilledMultiColor(
-    rect: sdl.RectangleF,
+pub fn rectFilledMultiColor(
+    r: sdl.RectangleF,
     color_top_left: sdl.Color,
     color_top_right: sdl.Color,
     color_bottom_right: sdl.Color,
     color_bottom_left: sdl.Color,
     opt: FillRectMultiColor,
 ) !void {
-    const p1 = sdl.PointF{ .x = rect.x, .y = rect.y };
-    const p2 = sdl.PointF{ .x = p1.x + rect.width, .y = p1.y };
-    const p3 = sdl.PointF{ .x = p1.x + rect.width, .y = p1.y + rect.height };
-    const p4 = sdl.PointF{ .x = p1.x, .y = p1.y + rect.height };
+    const p1 = sdl.PointF{ .x = r.x, .y = r.y };
+    const p2 = sdl.PointF{ .x = p1.x + r.width, .y = p1.y };
+    const p3 = sdl.PointF{ .x = p1.x + r.width, .y = p1.y + r.height };
+    const p4 = sdl.PointF{ .x = p1.x, .y = p1.y + r.height };
     const c1 = imgui.sdl.convertColor(color_top_left);
     const c2 = imgui.sdl.convertColor(color_top_right);
     const c3 = imgui.sdl.convertColor(color_bottom_right);
@@ -454,17 +454,17 @@ pub fn addRectFilledMultiColor(
 }
 
 /// NOTE: Rounded rectangle is always axis-aligned
-pub const AddRectRounded = struct {
+pub const RectRoundedOption = struct {
     thickness: f32 = 1.0,
     rounding: f32 = 4,
     depth: f32 = 0.5,
 };
-pub fn addRectRounded(rect: sdl.RectangleF, color: sdl.Color, opt: AddRectRounded) !void {
+pub fn rectRounded(r: sdl.RectangleF, color: sdl.Color, opt: RectRoundedOption) !void {
     const scale = transform.getScale();
-    const pmin = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
+    const pmin = transform.transformPoint(.{ .x = r.x, .y = r.y });
     const pmax = sdl.PointF{
-        .x = pmin.x + rect.width * scale.x,
-        .y = pmin.y + rect.height * scale.y,
+        .x = pmin.x + r.width * scale.x,
+        .y = pmin.y + r.height * scale.y,
     };
     try draw_commands.append(.{
         .cmd = .{
@@ -485,12 +485,12 @@ pub const FillRectRounded = struct {
     rounding: f32 = 4,
     depth: f32 = 0.5,
 };
-pub fn addRectRoundedFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRectRounded) !void {
+pub fn rectRoundedFilled(r: sdl.RectangleF, color: sdl.Color, opt: FillRectRounded) !void {
     const scale = transform.getScale();
-    const pmin = transform.transformPoint(.{ .x = rect.x, .y = rect.y });
+    const pmin = transform.transformPoint(.{ .x = r.x, .y = r.y });
     const pmax = sdl.PointF{
-        .x = pmin.x + rect.width * scale.x,
-        .y = pmin.y + rect.height * scale.y,
+        .x = pmin.x + r.width * scale.x,
+        .y = pmin.y + r.height * scale.y,
     };
     try draw_commands.append(.{
         .cmd = .{
@@ -505,17 +505,17 @@ pub fn addRectRoundedFilled(rect: sdl.RectangleF, color: sdl.Color, opt: FillRec
     });
 }
 
-pub const AddQuad = struct {
+pub const QuadOption = struct {
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
-pub fn addQuad(
+pub fn quad(
     p1: sdl.PointF,
     p2: sdl.PointF,
     p3: sdl.PointF,
     p4: sdl.PointF,
     color: sdl.Color,
-    opt: AddQuad,
+    opt: QuadOption,
 ) !void {
     try draw_commands.append(.{
         .cmd = .{
@@ -535,7 +535,7 @@ pub fn addQuad(
 pub const FillQuad = struct {
     depth: f32 = 0.5,
 };
-pub fn addQuadFilled(
+pub fn quadFilled(
     p1: sdl.PointF,
     p2: sdl.PointF,
     p3: sdl.PointF,
@@ -564,7 +564,7 @@ pub fn addQuadFilled(
 pub const FillQuadMultiColor = struct {
     depth: f32 = 0.5,
 };
-pub fn addQuadFilledMultiColor(
+pub fn quadFilledMultiColor(
     p1: sdl.PointF,
     p2: sdl.PointF,
     p3: sdl.PointF,
@@ -596,16 +596,16 @@ pub fn addQuadFilledMultiColor(
     });
 }
 
-pub const AddTriangle = struct {
+pub const TriangleOption = struct {
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
-pub fn addTriangle(
+pub fn triangle(
     p1: sdl.PointF,
     p2: sdl.PointF,
     p3: sdl.PointF,
     color: sdl.Color,
-    opt: AddTriangle,
+    opt: TriangleOption,
 ) !void {
     try draw_commands.append(.{
         .cmd = .{
@@ -624,7 +624,7 @@ pub fn addTriangle(
 pub const FillTriangle = struct {
     depth: f32 = 0.5,
 };
-pub fn addTriangleFilled(
+pub fn triangleFilled(
     p1: sdl.PointF,
     p2: sdl.PointF,
     p3: sdl.PointF,
@@ -650,7 +650,7 @@ pub fn addTriangleFilled(
 pub const FillTriangleMultiColor = struct {
     depth: f32 = 0.5,
 };
-pub fn addTriangleFilledMultiColor(
+pub fn triangleFilledMultiColor(
     p1: sdl.PointF,
     p2: sdl.PointF,
     p3: sdl.PointF,
@@ -677,16 +677,16 @@ pub fn addTriangleFilledMultiColor(
     });
 }
 
-pub const AddCircle = struct {
+pub const CircleOption = struct {
     thickness: f32 = 1.0,
     num_segments: u32 = 0,
     depth: f32 = 0.5,
 };
-pub fn addCircle(
+pub fn circle(
     center: sdl.PointF,
     radius: f32,
     color: sdl.Color,
-    opt: AddCircle,
+    opt: CircleOption,
 ) !void {
     const scale = transform.getScale();
     try draw_commands.append(.{
@@ -707,7 +707,7 @@ pub const FillCircle = struct {
     num_segments: u32 = 0,
     depth: f32 = 0.5,
 };
-pub fn addCircleFilled(
+pub fn circleFilled(
     center: sdl.PointF,
     radius: f32,
     color: sdl.Color,
@@ -727,16 +727,16 @@ pub fn addCircleFilled(
     });
 }
 
-pub const AddNgon = struct {
+pub const NgonOption = struct {
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
-pub fn addNgon(
+pub fn ngon(
     center: sdl.PointF,
     radius: f32,
     color: sdl.Color,
     num_segments: u32,
-    opt: AddNgon,
+    opt: NgonOption,
 ) !void {
     const scale = transform.getScale();
     try draw_commands.append(.{
@@ -756,7 +756,7 @@ pub fn addNgon(
 pub const FillNgon = struct {
     depth: f32 = 0.5,
 };
-pub fn addNgonFilled(
+pub fn ngonFilled(
     center: sdl.PointF,
     radius: f32,
     color: sdl.Color,
@@ -777,18 +777,18 @@ pub fn addNgonFilled(
     });
 }
 
-pub const AddBezierCubic = struct {
+pub const BezierCubicOption = struct {
     thickness: f32 = 1.0,
     num_segments: u32 = 0,
     depth: f32 = 0.5,
 };
-pub fn addBezierCubic(
+pub fn bezierCubic(
     p1: sdl.PointF,
     p2: sdl.PointF,
     p3: sdl.PointF,
     p4: sdl.PointF,
     color: sdl.Color,
-    opt: AddBezierCubic,
+    opt: BezierCubicOption,
 ) !void {
     try draw_commands.append(.{
         .cmd = .{
@@ -806,17 +806,17 @@ pub fn addBezierCubic(
     });
 }
 
-pub const AddBezierQuadratic = struct {
+pub const BezierQuadraticOption = struct {
     thickness: f32 = 1.0,
     num_segments: u32 = 0,
     depth: f32 = 0.5,
 };
-pub fn addBezierQuadratic(
+pub fn bezierQuadratic(
     p1: sdl.PointF,
     p2: sdl.PointF,
     p3: sdl.PointF,
     color: sdl.Color,
-    opt: AddBezierQuadratic,
+    opt: BezierQuadraticOption,
 ) !void {
     try draw_commands.append(.{
         .cmd = .{
@@ -833,11 +833,11 @@ pub fn addBezierQuadratic(
     });
 }
 
-pub const AddPoly = struct {
+pub const PolyOption = struct {
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
-pub fn addConvexPoly(poly: ConvexPoly, color: sdl.Color, opt: AddPoly) !void {
+pub fn convexPoly(poly: ConvexPoly, color: sdl.Color, opt: PolyOption) !void {
     if (!poly.finished) return error.PathNotFinished;
     try draw_commands.append(.{
         .cmd = .{
@@ -855,7 +855,7 @@ pub fn addConvexPoly(poly: ConvexPoly, color: sdl.Color, opt: AddPoly) !void {
 pub const FillPoly = struct {
     depth: f32 = 0.5,
 };
-pub fn addConvexPolyFilled(poly: ConvexPoly, opt: FillPoly) !void {
+pub fn convexPolyFilled(poly: ConvexPoly, opt: FillPoly) !void {
     if (!poly.finished) return error.PathNotFinished;
     try draw_commands.append(.{
         .cmd = .{
@@ -896,21 +896,21 @@ pub const ConvexPoly = struct {
         self.finished = false;
     }
 
-    pub fn addPoint(self: *ConvexPoly, p: sdl.Vertex) !void {
+    pub fn point(self: *ConvexPoly, p: sdl.Vertex) !void {
         try self.cmd.points.append(p);
     }
 
-    pub fn addNPoints(self: *ConvexPoly, ps: []sdl.Vertex) !void {
+    pub fn nPoints(self: *ConvexPoly, ps: []sdl.Vertex) !void {
         try self.cmd.points.appendSlice(ps);
     }
 };
 
-pub const AddPath = struct {
+pub const PathOption = struct {
     depth: f32 = 0.5,
 };
-pub fn addPath(path: Path, opt: AddPath) !void {
-    if (!path.finished) return error.PathNotFinished;
-    var rpath = path.path;
+pub fn path(p: Path, opt: PathOption) !void {
+    if (!p.finished) return error.PathNotFinished;
+    var rpath = p.path;
     rpath.transform = transform;
     try draw_commands.append(.{
         .cmd = .{ .path = rpath },

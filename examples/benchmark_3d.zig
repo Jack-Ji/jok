@@ -132,7 +132,7 @@ pub fn draw(ctx: jok.Context) !void {
                 tr,
             ),
         );
-        try j3d.addShape(
+        try j3d.shape(
             cube,
             model,
             aabb,

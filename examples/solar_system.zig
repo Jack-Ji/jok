@@ -124,7 +124,7 @@ pub fn draw(ctx: jok.Context) !void {
     };
 
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
-    try j3d.addScene(scene, .{ .lighting = lighting_opt });
+    try j3d.scene(scene, .{ .lighting = lighting_opt });
     try j3d.end();
 
     _ = try font.debugDraw(

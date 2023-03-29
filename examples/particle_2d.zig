@@ -94,7 +94,7 @@ pub fn draw(ctx: jok.Context) !void {
     _ = ctx;
 
     try j2d.begin(.{ .blend_method = .additive });
-    try j2d.addEffects(ps);
+    try j2d.effects(ps);
     try j2d.end();
 }
 

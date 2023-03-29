@@ -165,8 +165,8 @@ pub fn update(ctx: jok.Context) !void {
 
 pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
-    try j3d.addScene(scene, .{ .lighting = .{} });
-    try j3d.addSprite(
+    try j3d.scene(scene, .{ .lighting = .{} });
+    try j3d.sprite(
         zmath.translation(10, -10, -30),
         .{ .x = 50, .y = 20 },
         .{
@@ -179,7 +179,7 @@ pub fn draw(ctx: jok.Context) !void {
             .tessellation_level = 9,
         },
     );
-    try j3d.addAxises(.{});
+    try j3d.axises(.{});
     try j3d.end();
 
     const ogre_pos = camera.getScreenPosition(ctx.renderer(), sprites[13].transform, null);

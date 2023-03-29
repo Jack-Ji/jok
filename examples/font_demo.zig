@@ -56,7 +56,7 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().fillRectF(result.area);
 
     try j2d.begin(.{});
-    try j2d.addText(
+    try j2d.text(
         .{
             .atlas = atlas,
             .pos = sdl.PointF{

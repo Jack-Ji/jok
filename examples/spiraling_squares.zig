@@ -62,7 +62,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .y = fb_size.y / 4,
             });
             j2d.setTransform(tr);
-            try j2d.addRect(rect, sdl.Color.white, .{});
+            try j2d.rect(rect, sdl.Color.white, .{});
         }
 
         // top-right
@@ -74,7 +74,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .y = fb_size.y / 4,
             });
             j2d.setTransform(tr);
-            try j2d.addRect(rect, sdl.Color.white, .{});
+            try j2d.rect(rect, sdl.Color.white, .{});
         }
 
         // bottom-right
@@ -86,7 +86,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .y = fb_size.y * 3 / 4,
             });
             j2d.setTransform(tr);
-            try j2d.addRect(rect, sdl.Color.white, .{});
+            try j2d.rect(rect, sdl.Color.white, .{});
         }
 
         // bottom-left
@@ -98,7 +98,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .y = fb_size.y * 3 / 4,
             });
             j2d.setTransform(tr);
-            try j2d.addRect(rect, sdl.Color.white, .{});
+            try j2d.rect(rect, sdl.Color.white, .{});
         }
     }
     try j2d.end();

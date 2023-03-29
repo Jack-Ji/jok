@@ -2,7 +2,6 @@ const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
 const sdl = jok.sdl;
-const j2d = jok.j2d;
 const j3d = jok.j3d;
 const zmath = jok.zmath;
 const font = jok.font;
@@ -137,7 +136,7 @@ pub fn update(ctx: jok.Context) !void {
 
 pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{ .camera = camera, .sort_by_depth = sort_by_depth });
-    try j3d.addPlane(
+    try j3d.plane(
         zmath.mul(
             zmath.mul(
                 zmath.rotationX(-math.pi * 0.5),
@@ -152,7 +151,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addEffects(ps);
+    try j3d.effects(ps);
     try j3d.end();
 
     _ = try font.debugDraw(

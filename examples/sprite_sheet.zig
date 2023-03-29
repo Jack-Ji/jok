@@ -42,19 +42,19 @@ pub fn draw(ctx: jok.Context) !void {
     const sprite = sheet.getSpriteByName("ogre").?;
 
     try j2d.begin(.{ .depth_sort = .back_to_forth });
-    try j2d.addImage(
+    try j2d.image(
         sheet.tex,
         .{ .x = 0, .y = 0 },
         .{ .depth = 1 },
     );
-    try j2d.addSprite(sprite, .{
+    try j2d.sprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .scale = .{ .x = 2, .y = 2 },
         .flip_h = true,
         .flip_v = true,
         //.rotate_degree = ctx.seconds() * 30,
     });
-    try j2d.addSprite(sprite, .{
+    try j2d.sprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .tint_color = sdl.Color.rgb(255, 0, 0),
         .scale = .{

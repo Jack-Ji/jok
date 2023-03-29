@@ -206,7 +206,7 @@ pub fn render(self: Self, object: ?*Object, opt: RenderOption) !void {
     const o = object orelse self.root;
     switch (o.actor) {
         .position => {},
-        .mesh => |m| try j3d.addMesh(
+        .mesh => |m| try j3d.mesh(
             m.mesh,
             o.transform,
             .{
@@ -221,7 +221,7 @@ pub fn render(self: Self, object: ?*Object, opt: RenderOption) !void {
                 },
             },
         ),
-        .sprite => |s| try j3d.addSprite(
+        .sprite => |s| try j3d.sprite(
             o.transform,
             s.size,
             s.uv,

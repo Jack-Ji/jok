@@ -96,7 +96,7 @@ pub fn update(ctx: jok.Context) !void {
 
 pub fn draw(ctx: jok.Context) !void {
     try j2d.begin(.{});
-    try j2d.addSprite(
+    try j2d.sprite(
         sheet.getSpriteByName("player").?,
         .{
             .pos = .{ .x = 0, .y = 50 },
@@ -104,7 +104,7 @@ pub fn draw(ctx: jok.Context) !void {
             .scale = .{ .x = 4, .y = 4 },
         },
     );
-    try j2d.addSprite(
+    try j2d.sprite(
         try as.getCurrentFrame(animation),
         .{
             .pos = pos,

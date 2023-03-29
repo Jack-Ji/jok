@@ -143,7 +143,7 @@ pub fn draw(ctx: jok.Context) !void {
         .sort_by_depth = true,
         .wireframe_color = if (wireframe) sdl.Color.green else null,
     });
-    try j3d.addShape(
+    try j3d.shape(
         terran,
         zmath.identity(),
         null,
@@ -152,7 +152,7 @@ pub fn draw(ctx: jok.Context) !void {
             .color = sdl.Color.rgb(130, 160, 190),
         },
     );
-    try j3d.addCube(
+    try j3d.cube(
         zmath.mul(
             zmath.scaling(5, 5, 5),
             zmath.translation(30, 5, 10),
@@ -164,7 +164,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addParametricSphere(
+    try j3d.parametricSphere(
         zmath.mul(
             zmath.scaling(5, 5, 5),
             zmath.translation(-30, 10, -20),
@@ -176,7 +176,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addSubdividedSphere(
+    try j3d.subdividedSphere(
         zmath.mul(
             zmath.scaling(5, 5, 5),
             zmath.translation(-20, 10, -20),
@@ -188,7 +188,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addHemisphere(
+    try j3d.hemisphere(
         zmath.mul(
             zmath.scaling(5, 5, 5),
             zmath.translation(-15, 5, -10),
@@ -200,7 +200,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addCone(
+    try j3d.cone(
         zmath.mul(
             zmath.mul(
                 zmath.scaling(5, 5, 20),
@@ -215,7 +215,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addCylinder(
+    try j3d.cylinder(
         zmath.mul(
             zmath.mul(
                 zmath.scaling(5, 5, 20),
@@ -231,7 +231,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addDisk(
+    try j3d.disk(
         zmath.mul(
             zmath.mul(
                 zmath.scaling(5, 5, 1),
@@ -247,7 +247,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addTorus(
+    try j3d.torus(
         zmath.mul(
             zmath.scaling(8, 8, 8),
             zmath.translation(-5, 15, 25),
@@ -259,7 +259,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addIcosahedron(
+    try j3d.icosahedron(
         zmath.mul(
             zmath.scaling(8, 8, 8),
             zmath.translation(-30, 15, 35),
@@ -271,7 +271,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addDodecahedron(
+    try j3d.dodecahedron(
         zmath.mul(
             zmath.scaling(8, 8, 8),
             zmath.translation(-20, 10, 15),
@@ -283,7 +283,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addOctahedron(
+    try j3d.octahedron(
         zmath.mul(
             zmath.scaling(8, 8, 8),
             zmath.translation(36, 10, 0),
@@ -295,7 +295,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addTetrahedron(
+    try j3d.tetrahedron(
         zmath.mul(
             zmath.scaling(12, 12, 12),
             zmath.translation(14, 5, 28),
@@ -307,7 +307,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         },
     );
-    try j3d.addRock(
+    try j3d.rock(
         zmath.mul(
             zmath.scaling(6, 6, 6),
             zmath.translation(35, 5, 35),
@@ -321,13 +321,13 @@ pub fn draw(ctx: jok.Context) !void {
             .sub_num = 2,
         },
     );
-    try j3d.addAxises(.{
+    try j3d.axises(.{
         .pos = .{ 0, 5, 0 },
         .radius = 0.3,
         .length = 15,
     });
     if (lighting) {
-        try j3d.addSubdividedSphere(
+        try j3d.subdividedSphere(
             zmath.translation(light_pos1[0], light_pos1[1], light_pos1[2]),
             .{
                 .rdopt = .{
@@ -339,7 +339,7 @@ pub fn draw(ctx: jok.Context) !void {
                 },
             },
         );
-        try j3d.addSubdividedSphere(
+        try j3d.subdividedSphere(
             zmath.translation(light_pos2[0], light_pos2[1], light_pos2[2]),
             .{
                 .rdopt = .{

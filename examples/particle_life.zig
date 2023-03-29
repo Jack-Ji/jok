@@ -92,7 +92,7 @@ const Point = struct {
     color: sdl.Color = sdl.Color.black,
 
     fn draw(p: Point) !void {
-        try j2d.addCircleFilled(
+        try j2d.circleFilled(
             .{ .x = p.x, .y = p.y },
             3,
             p.color,
@@ -555,14 +555,14 @@ fn renderSimulation() !void {
     if (number_g > 0) try drawPoints(green.?);
     if (number_b > 0) try drawPoints(blue.?);
     if (show_model) {
-        try j2d.addCircleFilled(
+        try j2d.circleFilled(
             .{ .x = xshift, .y = yshift },
             150,
             sdl.Color.black,
             .{},
         );
 
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = p1x, .y = p1y - 10 },
             .{ .x = p2x, .y = p2y - 10 },
             sdl.Color.rgb(
@@ -574,7 +574,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = p1x, .y = p1y + 10 },
             .{ .x = p2x, .y = p2y + 10 },
             sdl.Color.rgb(
@@ -586,7 +586,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p1x, .y = p1y - 10 },
             sdl.Color.rgb(
@@ -598,7 +598,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p1x, .y = p1y + 10 },
             sdl.Color.rgb(
@@ -611,7 +611,7 @@ fn renderSimulation() !void {
             },
         );
 
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = p4x - 10, .y = p4y },
             .{ .x = p1x - 10, .y = p1y },
             sdl.Color.rgb(
@@ -623,7 +623,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = p4x + 10, .y = p4y },
             .{ .x = p1x + 10, .y = p1y },
             sdl.Color.rgb(
@@ -636,7 +636,7 @@ fn renderSimulation() !void {
             },
         );
 
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = p2x - 10, .y = p2y },
             .{ .x = p3x - 10, .y = p3y },
             sdl.Color.rgb(
@@ -648,7 +648,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = p2x + 10, .y = p2y },
             .{ .x = p3x + 10, .y = p3y },
             sdl.Color.rgb(
@@ -661,7 +661,7 @@ fn renderSimulation() !void {
             },
         );
 
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = p2x, .y = p2y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
             sdl.Color.rgb(
@@ -673,7 +673,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = p2x, .y = p2y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
             sdl.Color.rgb(
@@ -686,7 +686,7 @@ fn renderSimulation() !void {
             },
         );
 
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
             sdl.Color.rgb(
@@ -698,7 +698,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.addLine(
+        try j2d.line(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
             sdl.Color.rgb(
@@ -711,7 +711,7 @@ fn renderSimulation() !void {
             },
         );
 
-        try j2d.addCircle(
+        try j2d.circle(
             .{ .x = p1x - 20, .y = p1y - 20 },
             rr + 20,
             sdl.Color.rgb(
@@ -723,7 +723,7 @@ fn renderSimulation() !void {
                 .thickness = 2,
             },
         );
-        try j2d.addCircle(
+        try j2d.circle(
             .{ .x = p2x + 20, .y = p2y - 20 },
             rr + 20,
             sdl.Color.rgb(
@@ -735,7 +735,7 @@ fn renderSimulation() !void {
                 .thickness = 2,
             },
         );
-        try j2d.addCircle(
+        try j2d.circle(
             .{ .x = p3x + 20, .y = p3y + 20 },
             rr + 20,
             sdl.Color.rgb(
@@ -747,7 +747,7 @@ fn renderSimulation() !void {
                 .thickness = 2,
             },
         );
-        try j2d.addCircle(
+        try j2d.circle(
             .{ .x = p4x - 20, .y = p4y + 20 },
             rr + 20,
             sdl.Color.rgb(
@@ -760,25 +760,25 @@ fn renderSimulation() !void {
             },
         );
 
-        try j2d.addCircleFilled(
+        try j2d.circleFilled(
             .{ .x = p1x, .y = p1y },
             rr,
             sdl.Color.rgb(100, 250, 10),
             .{},
         );
-        try j2d.addCircleFilled(
+        try j2d.circleFilled(
             .{ .x = p2x, .y = p2y },
             rr,
             sdl.Color.rgb(250, 10, 100),
             .{},
         );
-        try j2d.addCircleFilled(
+        try j2d.circleFilled(
             .{ .x = p3x, .y = p3y },
             rr,
             sdl.Color.rgb(250, 250, 250),
             .{},
         );
-        try j2d.addCircleFilled(
+        try j2d.circleFilled(
             .{ .x = p4x, .y = p4y },
             rr,
             sdl.Color.rgb(100, 100, 250),

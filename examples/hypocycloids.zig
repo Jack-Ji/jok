@@ -51,7 +51,7 @@ pub fn draw(ctx: jok.Context) !void {
         .y = ctx.getFramebufferSize().y / 2,
     });
     try j2d.begin(.{ .transform = transform });
-    try j2d.addPath(path, .{});
+    try j2d.path(path, .{});
     try j2d.end();
 }
 

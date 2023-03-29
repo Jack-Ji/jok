@@ -97,7 +97,7 @@ pub fn draw(ctx: jok.Context) !void {
         ),
         zmath.scaling(10, 1, 10),
     );
-    const plane_opt = j3d.PlaneDrawOption{
+    const plane_opt = j3d.PlaneOption{
         .rdopt = .{
             .cull_faces = false,
             .texture = tex,
@@ -107,7 +107,7 @@ pub fn draw(ctx: jok.Context) !void {
     };
 
     try j3d.begin(.{ .camera = camera });
-    try j3d.addPlane(mat, plane_opt);
+    try j3d.plane(mat, plane_opt);
     try j3d.end();
 
     if (wireframe) {
@@ -115,7 +115,7 @@ pub fn draw(ctx: jok.Context) !void {
             .camera = camera,
             .wireframe_color = sdl.Color.green,
         });
-        try j3d.addPlane(mat, plane_opt);
+        try j3d.plane(mat, plane_opt);
         try j3d.end();
     }
 }

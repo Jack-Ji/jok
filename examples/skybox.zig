@@ -145,7 +145,7 @@ pub fn update(ctx: jok.Context) !void {
 
 pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
-    try j3d.addShape(
+    try j3d.shape(
         cube,
         zmath.mul(
             zmath.translation(-0.5, -0.5, -0.5),
@@ -157,7 +157,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{ .texture = tex },
     );
-    try j3d.addSkybox(skybox_textures, skybox_tint_color);
+    try j3d.skybox(skybox_textures, skybox_tint_color);
     try j3d.end();
 
     _ = try font.debugDraw(
