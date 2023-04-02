@@ -182,7 +182,7 @@ pub fn draw(ctx: jok.Context) !void {
     try j3d.axises(.{});
     try j3d.end();
 
-    const ogre_pos = camera.getScreenPosition(ctx.renderer(), sprites[13].transform, null);
+    const ogre_pos = camera.calcScreenPosition(ctx.renderer(), sprites[13].transform, null);
     _ = try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = ogre_pos.x + 50, .y = ogre_pos.y } },
