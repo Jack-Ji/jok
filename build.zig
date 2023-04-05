@@ -45,6 +45,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "spiraling_squares", .opt = .{} },
         .{ .name = "easing", .opt = .{} },
         .{ .name = "gltf", .opt = .{} },
+        .{ .name = "generative_art", .opt = .{} },
     };
     const build_examples = b.step("examples", "compile and install all examples");
     inline for (examples) |demo| {

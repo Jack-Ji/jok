@@ -314,12 +314,12 @@ pub fn renderToTexture(rd: sdl.Renderer, renderer: anytype, opt: RenderToTexture
     try rd.setDrawBlendMode(.none);
     defer rd.setDrawBlendMode(old_blend_mode) catch unreachable;
 
-    const old_color = try rd.getColor();
-    const color = opt.clear_color orelse sdl.Color.rgba(0, 0, 0, 0);
-    try rd.setColor(color);
-    defer rd.setColor(old_color) catch unreachable;
-
-    try rd.clear();
+    if (opt.clear_color) |c| {
+        const old_color = try rd.getColor();
+        try rd.setColor(c);
+        try rd.clear();
+        try rd.setColor(old_color);
+    }
     try renderer.draw(rd, .{
         .x = @intToFloat(f32, tex_info.width),
         .y = @intToFloat(f32, tex_info.height),
