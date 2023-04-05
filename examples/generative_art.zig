@@ -12,8 +12,8 @@ pub const jok_window_size = jok.config.WindowSize{
 };
 
 var rot: f32 = 0.3;
-const ntex = 300;
-const render_interval = 5.0 / @as(f32, ntex);
+const ntex = 50;
+const render_interval = 2.0 / @as(f32, ntex);
 var targets = std.TailQueue(sdl.Texture){};
 var render_time: f32 = render_interval;
 var clear_color: ?sdl.Color = sdl.Color.rgba(0, 0, 0, 0);
@@ -94,7 +94,7 @@ pub fn draw(ctx: jok.Context) !void {
             jok.utils.math.linearMap(@intToFloat(f32, idx), 0, ntex, 0, 255),
         );
         try j2d.image(n.data, .{ .x = 0, .y = 0 }, .{
-            .tint_color = sdl.Color.rgba(c, c, c, c),
+            .tint_color = sdl.Color.rgba(255, 255, 255, c),
         });
         idx += 1;
         node = n.next;
