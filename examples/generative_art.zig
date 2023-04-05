@@ -13,7 +13,7 @@ pub const jok_window_size = jok.config.WindowSize{
 
 var rot: f32 = 0.3;
 const ntex = 300;
-const render_interval = 10.0 / @as(f32, ntex);
+const render_interval = 5.0 / @as(f32, ntex);
 var targets = std.TailQueue(sdl.Texture){};
 var render_time: f32 = render_interval;
 var clear_color: ?sdl.Color = sdl.Color.rgba(0, 0, 0, 0);
