@@ -33,8 +33,8 @@ pub fn inverseTransformPoint(self: Self, p: sdl.PointF) sdl.PointF {
     return .{ .x = v[0], .y = v[1] };
 }
 
-pub fn invert(self: Self) void {
-    self.mat = zmath.inverse(self.mat);
+pub fn invert(self: Self) Self {
+    return .{ .mat = zmath.inverse(self.mat) };
 }
 
 pub fn setToIdentity(self: *Self) void {
