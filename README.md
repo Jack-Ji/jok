@@ -123,7 +123,6 @@ It's also very **WIP**, please do expect some breaking changes in the future.
 * [SDL2](https://www.libsdl.org) (zlib license)
 * [zig-gamedev](https://github.com/michal-z/zig-gamedev) (MIT license)
 * [stb headers](https://github.com/nothings/stb) (MIT license)
-* [chipmunk](https://chipmunk-physics.net/) (MIT license)
 * [nativefiledialog](https://github.com/mlabbe/nativefiledialog) (zlib license)
 
 ## Built-in Fonts
