@@ -12,6 +12,7 @@ var wireframe: bool = false;
 var animation_name1: ?[]const u8 = null;
 var animation_name2: ?[]const u8 = null;
 var animation_name3: ?[]const u8 = null;
+var animation_transition: f32 = 0.0;
 var animation_playtime1: f32 = 0.0;
 var animation_playtime2: f32 = 0.0;
 var animation_playtime3: f32 = 0.0;
@@ -179,6 +180,7 @@ pub fn update(ctx: jok.Context) !void {
                     },
                 )) {
                     animation_name3 = name.*;
+                    animation_transition = 0.0;
                 }
             }
             imgui.endCombo();
@@ -201,6 +203,7 @@ pub fn update(ctx: jok.Context) !void {
         }
     }
     if (animation_name3) |a| {
+        animation_transition += ctx.deltaSeconds() / 0.5;
         const duration = mesh3.getAnimation(a).?.duration;
         animation_playtime3 += ctx.deltaSeconds();
         if (animation_playtime3 > duration) {
@@ -252,6 +255,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .lighting = if (lighting) .{} else null,
             },
             .animation_name = animation_name3,
+            .animation_transition = animation_transition,
             .animation_playtime = animation_playtime3,
         },
     );

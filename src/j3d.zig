@@ -170,6 +170,7 @@ pub fn shape(
 pub const MeshOption = struct {
     rdopt: RenderOption = .{},
     animation_name: ?[]const u8 = null,
+    animation_transition: f32 = 1.0,
     animation_playtime: f32 = 0,
 };
 pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: MeshOption) !void {
@@ -185,6 +186,7 @@ pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: MeshOption) !void {
             .cull_faces = opt.rdopt.cull_faces,
             .lighting = opt.rdopt.lighting,
             .animation_name = opt.animation_name,
+            .animation_transition = opt.animation_transition,
             .animation_playtime = opt.animation_playtime,
         },
     );
