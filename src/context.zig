@@ -25,7 +25,6 @@ pub const Context = struct {
         fps: *const fn (ctx: *anyopaque) f32,
         window: *const fn (ctx: *anyopaque) sdl.Window,
         renderer: *const fn (ctx: *anyopaque) sdl.Renderer,
-        refresh: *const fn (ctx: *anyopaque) void,
         kill: *const fn (ctx: *anyopaque) void,
         toggleResizable: *const fn (ctx: *anyopaque, on_off: ?bool) void,
         toggleFullscreeen: *const fn (ctx: *anyopaque, on_off: ?bool) void,
@@ -78,11 +77,6 @@ pub const Context = struct {
     /// Get SDL renderer
     pub fn renderer(self: Context) sdl.Renderer {
         return self.vtable.renderer(self.ctx);
-    }
-
-    /// Refresh graphics
-    pub fn refresh(self: Context) void {
-        self.vtable.refresh(self.ctx);
     }
 
     /// Kill application
@@ -156,7 +150,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
     return struct {
         var gpa: AllocatorType = .{};
-        const refresh_default_value = if (cfg.jok_manual_refreshing) false else {};
 
         // Application Context
         _ctx: Context = undefined,
@@ -173,9 +166,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
         // Renderer
         _renderer: sdl.Renderer = undefined,
         _is_software: bool = false,
-
-        // Manual refreshing flag
-        _refresh: @TypeOf(refresh_default_value) = refresh_default_value,
 
         // Resizable mode
         _resizable: bool = undefined,
@@ -328,7 +318,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         ) void {
             const fps_pc_threshold: u64 = switch (cfg.jok_fps_limit) {
                 .none => 0,
-                .auto => if (!cfg.jok_manual_refreshing and self._is_software)
+                .auto => if (self._is_software)
                     @divTrunc(@floatToInt(u64, self._pc_freq), 30)
                 else
                     0,
@@ -405,15 +395,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
 
             // Do rendering
-            if (cfg.jok_manual_refreshing) {
-                if (self._refresh) {
-                    self._refresh = false;
-                } else if (!imgui.io.getWantCaptureKeyboard() and !imgui.io.getWantCaptureMouse()) {
-                    // Skip calling draw function when GUI panels don't have focus
-                    imgui.sdl.draw();
-                    return;
-                }
-            }
             self._renderer.clear() catch unreachable;
             drawFn(self._ctx) catch |e| {
                 log.err("Got error in `draw`: {}", .{e});
@@ -423,9 +404,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     return;
                 }
             };
-            self._frame_count += 1;
             imgui.sdl.draw();
             self._renderer.present();
+            self._frame_count += 1;
         }
 
         /// Update frame stats once per second
@@ -616,7 +597,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .fps = fps,
                     .window = window,
                     .renderer = renderer,
-                    .refresh = refresh,
                     .kill = kill,
                     .toggleResizable = toggleResizable,
                     .toggleFullscreeen = toggleFullscreeen,
@@ -685,14 +665,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn renderer(ptr: *anyopaque) sdl.Renderer {
             var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
             return self._renderer;
-        }
-
-        /// Refresh graphics
-        fn refresh(ptr: *anyopaque) void {
-            if (cfg.jok_manual_refreshing) {
-                var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
-                self._refresh = true;
-            }
         }
 
         /// Kill app

@@ -69,7 +69,6 @@ pub fn init(ctx: jok.Context) !void {
     animation3_3 = try j3d.Animation.create(ctx.allocator(), mesh3.getAnimation("Run").?);
 
     try ctx.renderer().setColorRGB(77, 77, 77);
-    ctx.refresh();
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
