@@ -26,11 +26,6 @@ pub const RenderOption = struct {
     playtime: f32 = 0,
 };
 
-const AnimationType = enum {
-    regular,
-    skeleton,
-};
-
 const Transform = struct {
     scale: zmath.Vec,
     rotation: zmath.Vec,

@@ -122,7 +122,6 @@ pub fn update(ctx: jok.Context) !void {
         camera.rotateBy(-std.math.pi / 180.0, 0);
     }
 
-    var buf: [256]u8 = undefined;
     if (imgui.begin("Control Panel", .{})) {
         _ = imgui.checkbox("lighting", .{ .v = &lighting });
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
@@ -130,7 +129,7 @@ pub fn update(ctx: jok.Context) !void {
         imgui.separatorText("Play Animation");
 
         if (imgui.beginCombo("CesiumMan", .{
-            .preview_value = try std.fmt.bufPrintZ(&buf, "{s}", .{
+            .preview_value = imgui.formatZ("{s}", .{
                 if (animation1) |a| a.getName() else "none",
             }),
         })) {
@@ -138,7 +137,7 @@ pub fn update(ctx: jok.Context) !void {
                 animation1 = null;
             }
             if (imgui.selectable(
-                try std.fmt.bufPrintZ(&buf, "{s}", .{animation1_1.getName()}),
+                imgui.formatZ("{s}", .{animation1_1.getName()}),
                 .{ .selected = animation1 == animation1_1 },
             )) {
                 animation1 = animation1_1;
@@ -148,7 +147,7 @@ pub fn update(ctx: jok.Context) !void {
         }
 
         if (imgui.beginCombo("RiggedSimple", .{
-            .preview_value = try std.fmt.bufPrintZ(&buf, "{s}", .{
+            .preview_value = imgui.formatZ("{s}", .{
                 if (animation2) |a| a.getName() else "none",
             }),
         })) {
@@ -156,7 +155,7 @@ pub fn update(ctx: jok.Context) !void {
                 animation2 = null;
             }
             if (imgui.selectable(
-                try std.fmt.bufPrintZ(&buf, "{s}", .{animation2_1.getName()}),
+                imgui.formatZ("{s}", .{animation2_1.getName()}),
                 .{ .selected = animation2 == animation2_1 },
             )) {
                 animation2 = animation2_1;
@@ -166,7 +165,7 @@ pub fn update(ctx: jok.Context) !void {
         }
 
         if (imgui.beginCombo("Fox", .{
-            .preview_value = try std.fmt.bufPrintZ(&buf, "{s}", .{
+            .preview_value = imgui.formatZ("{s}", .{
                 if (animation3) |a| a.getName() else "none",
             }),
         })) {
@@ -174,7 +173,7 @@ pub fn update(ctx: jok.Context) !void {
                 animation3 = null;
             }
             if (imgui.selectable(
-                try std.fmt.bufPrintZ(&buf, "{s}", .{animation3_1.getName()}),
+                imgui.formatZ("{s}", .{animation3_1.getName()}),
                 .{ .selected = animation3 == animation3_1 },
             )) {
                 animation3_old = animation3;
@@ -183,7 +182,7 @@ pub fn update(ctx: jok.Context) !void {
                 animation_transition3 = 0;
             }
             if (imgui.selectable(
-                try std.fmt.bufPrintZ(&buf, "{s}", .{animation3_2.getName()}),
+                imgui.formatZ("{s}", .{animation3_2.getName()}),
                 .{ .selected = animation3 == animation3_2 },
             )) {
                 animation3_old = animation3;
@@ -192,7 +191,7 @@ pub fn update(ctx: jok.Context) !void {
                 animation_transition3 = 0;
             }
             if (imgui.selectable(
-                try std.fmt.bufPrintZ(&buf, "{s}", .{animation3_3.getName()}),
+                imgui.formatZ("{s}", .{animation3_3.getName()}),
                 .{ .selected = animation3 == animation3_3 },
             )) {
                 animation3_old = animation3;

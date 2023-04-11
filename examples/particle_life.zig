@@ -275,10 +275,9 @@ fn saveSettings() !void {
     if (path) |p| {
         defer p.deinit();
 
-        var buf: [64]u8 = undefined;
         var realpath = p.path;
         if (!std.mem.endsWith(u8, p.path, ".txt")) {
-            realpath = try std.fmt.bufPrintZ(&buf, "{s}.txt", .{p.path});
+            realpath = imgui.formatZ("{s}.txt", .{p.path});
         }
 
         var f = try std.fs.cwd().createFile(realpath, .{});
