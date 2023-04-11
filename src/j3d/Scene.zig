@@ -210,15 +210,13 @@ pub fn render(self: Self, object: ?*Object, opt: RenderOption) !void {
             m.mesh,
             o.transform,
             .{
-                .rdopt = .{
-                    .cull_faces = m.cull_faces,
-                    .color = m.color,
-                    .texture = m.texture,
-                    .lighting = if (m.disable_lighting)
-                        null
-                    else
-                        opt.lighting,
-                },
+                .cull_faces = m.cull_faces,
+                .color = m.color,
+                .texture = m.texture,
+                .lighting = if (m.disable_lighting)
+                    null
+                else
+                    opt.lighting,
             },
         ),
         .sprite => |s| try j3d.sprite(

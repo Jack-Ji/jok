@@ -9,17 +9,23 @@ const j3d = jok.j3d;
 
 var lighting: bool = true;
 var wireframe: bool = false;
-var animation_name1: ?[]const u8 = null;
-var animation_name2: ?[]const u8 = null;
-var animation_name3: ?[]const u8 = null;
-var animation_transition: f32 = 0.0;
-var animation_playtime1: f32 = 0.0;
-var animation_playtime2: f32 = 0.0;
-var animation_playtime3: f32 = 0.0;
 var camera: j3d.Camera = undefined;
 var mesh1: *j3d.Mesh = undefined;
 var mesh2: *j3d.Mesh = undefined;
 var mesh3: *j3d.Mesh = undefined;
+var animation1_1: *j3d.Animation = undefined;
+var animation2_1: *j3d.Animation = undefined;
+var animation3_1: *j3d.Animation = undefined;
+var animation3_2: *j3d.Animation = undefined;
+var animation3_3: *j3d.Animation = undefined;
+var animation1: ?*j3d.Animation = null;
+var animation2: ?*j3d.Animation = null;
+var animation3: ?*j3d.Animation = null;
+var animation3_old: ?*j3d.Animation = null;
+var animation_playtime1: f32 = 0.0;
+var animation_playtime2: f32 = 0.0;
+var animation_playtime3: f32 = 0.0;
+var animation_transition3: f32 = 0.0;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -56,6 +62,11 @@ pub fn init(ctx: jok.Context) !void {
         "assets/models/Fox/Fox.gltf",
         .{},
     );
+    animation1_1 = try j3d.Animation.create(ctx.allocator(), mesh1.getAnimation("default").?);
+    animation2_1 = try j3d.Animation.create(ctx.allocator(), mesh2.getAnimation("default").?);
+    animation3_1 = try j3d.Animation.create(ctx.allocator(), mesh3.getAnimation("Walk").?);
+    animation3_2 = try j3d.Animation.create(ctx.allocator(), mesh3.getAnimation("Survey").?);
+    animation3_3 = try j3d.Animation.create(ctx.allocator(), mesh3.getAnimation("Run").?);
 
     try ctx.renderer().setColorRGB(77, 77, 77);
     ctx.refresh();
@@ -121,93 +132,97 @@ pub fn update(ctx: jok.Context) !void {
 
         if (imgui.beginCombo("CesiumMan", .{
             .preview_value = try std.fmt.bufPrintZ(&buf, "{s}", .{
-                animation_name1 orelse "none",
+                if (animation1) |a| a.getName() else "none",
             }),
         })) {
-            if (imgui.selectable("none", .{ .selected = animation_name1 == null })) {
-                animation_name1 = null;
+            if (imgui.selectable("none", .{ .selected = animation1 == null })) {
+                animation1 = null;
             }
-            var it = mesh1.animations.keyIterator();
-            while (it.next()) |name| {
-                if (imgui.selectable(
-                    try std.fmt.bufPrintZ(&buf, "{s}", .{name.*}),
-                    .{
-                        .selected = std.mem.eql(u8, name.*, animation_name1 orelse "none"),
-                    },
-                )) {
-                    animation_name1 = name.*;
-                }
+            if (imgui.selectable(
+                try std.fmt.bufPrintZ(&buf, "{s}", .{animation1_1.getName()}),
+                .{ .selected = animation1 == animation1_1 },
+            )) {
+                animation1 = animation1_1;
+                animation_playtime1 = 0;
             }
             imgui.endCombo();
         }
 
         if (imgui.beginCombo("RiggedSimple", .{
             .preview_value = try std.fmt.bufPrintZ(&buf, "{s}", .{
-                animation_name2 orelse "none",
+                if (animation2) |a| a.getName() else "none",
             }),
         })) {
-            if (imgui.selectable("none", .{ .selected = animation_name2 == null })) {
-                animation_name2 = null;
+            if (imgui.selectable("none", .{ .selected = animation2 == null })) {
+                animation2 = null;
             }
-            var it = mesh2.animations.keyIterator();
-            while (it.next()) |name| {
-                if (imgui.selectable(
-                    try std.fmt.bufPrintZ(&buf, "{s}", .{name.*}),
-                    .{
-                        .selected = std.mem.eql(u8, name.*, animation_name2 orelse "none"),
-                    },
-                )) {
-                    animation_name2 = name.*;
-                }
+            if (imgui.selectable(
+                try std.fmt.bufPrintZ(&buf, "{s}", .{animation2_1.getName()}),
+                .{ .selected = animation2 == animation2_1 },
+            )) {
+                animation2 = animation2_1;
+                animation_playtime2 = 0;
             }
             imgui.endCombo();
         }
 
         if (imgui.beginCombo("Fox", .{
             .preview_value = try std.fmt.bufPrintZ(&buf, "{s}", .{
-                animation_name3 orelse "none",
+                if (animation3) |a| a.getName() else "none",
             }),
         })) {
-            if (imgui.selectable("none", .{ .selected = animation_name3 == null })) {
-                animation_name3 = null;
+            if (imgui.selectable("none", .{ .selected = animation3 == null })) {
+                animation3 = null;
             }
-            var it = mesh3.animations.keyIterator();
-            while (it.next()) |name| {
-                if (imgui.selectable(
-                    try std.fmt.bufPrintZ(&buf, "{s}", .{name.*}),
-                    .{
-                        .selected = std.mem.eql(u8, name.*, animation_name3 orelse "none"),
-                    },
-                )) {
-                    animation_name3 = name.*;
-                    animation_transition = 0.0;
-                }
+            if (imgui.selectable(
+                try std.fmt.bufPrintZ(&buf, "{s}", .{animation3_1.getName()}),
+                .{ .selected = animation3 == animation3_1 },
+            )) {
+                animation3_old = animation3;
+                animation3 = animation3_1;
+                animation_playtime3 = 0;
+                animation_transition3 = 0;
+            }
+            if (imgui.selectable(
+                try std.fmt.bufPrintZ(&buf, "{s}", .{animation3_2.getName()}),
+                .{ .selected = animation3 == animation3_2 },
+            )) {
+                animation3_old = animation3;
+                animation3 = animation3_2;
+                animation_playtime3 = 0;
+                animation_transition3 = 0;
+            }
+            if (imgui.selectable(
+                try std.fmt.bufPrintZ(&buf, "{s}", .{animation3_3.getName()}),
+                .{ .selected = animation3 == animation3_3 },
+            )) {
+                animation3_old = animation3;
+                animation3 = animation3_3;
+                animation_playtime3 = 0;
+                animation_transition3 = 0;
             }
             imgui.endCombo();
         }
     }
     imgui.end();
 
-    if (animation_name1) |a| {
-        const duration = mesh1.getAnimation(a).?.duration;
+    if (animation1) |a| {
         animation_playtime1 += ctx.deltaSeconds();
-        if (animation_playtime1 > duration) {
-            animation_playtime1 -= duration;
+        if (animation_playtime1 > a.getDuration()) {
+            animation_playtime1 -= a.getDuration();
         }
     }
-    if (animation_name2) |a| {
-        const duration = mesh2.getAnimation(a).?.duration;
+    if (animation2) |a| {
         animation_playtime2 += ctx.deltaSeconds();
-        if (animation_playtime2 > duration) {
-            animation_playtime2 -= duration;
+        if (animation_playtime2 > a.getDuration()) {
+            animation_playtime2 -= a.getDuration();
         }
     }
-    if (animation_name3) |a| {
-        animation_transition += ctx.deltaSeconds() / 0.5;
-        const duration = mesh3.getAnimation(a).?.duration;
+    if (animation3) |a| {
+        animation_transition3 += ctx.deltaSeconds() / 0.5;
         animation_playtime3 += ctx.deltaSeconds();
-        if (animation_playtime3 > duration) {
-            animation_playtime3 -= duration;
+        if (animation_playtime3 > a.getDuration()) {
+            animation_playtime3 -= a.getDuration();
         }
     }
 }
@@ -218,47 +233,81 @@ pub fn draw(ctx: jok.Context) !void {
         .sort_by_depth = true,
         .wireframe_color = if (wireframe) sdl.Color.green else null,
     });
-    try j3d.mesh(
-        mesh1,
-        zmath.scalingV(zmath.f32x4s(3)),
-        .{
-            .rdopt = .{
+    if (animation1) |a| {
+        try j3d.animation(
+            a,
+            zmath.scalingV(zmath.f32x4s(3)),
+            .{
+                .lighting = if (lighting) .{} else null,
+                .playtime = animation_playtime1,
+            },
+        );
+    } else {
+        try j3d.mesh(
+            mesh1,
+            zmath.scalingV(zmath.f32x4s(3)),
+            .{
                 .lighting = if (lighting) .{} else null,
             },
-            .animation_name = animation_name1,
-            .animation_playtime = animation_playtime1,
-        },
-    );
-    try j3d.mesh(
-        mesh2,
-        zmath.translation(-4, 0, 0),
-        .{
-            .rdopt = .{
+        );
+    }
+    if (animation2) |a| {
+        try j3d.animation(
+            a,
+            zmath.translation(-4, 0, 0),
+            .{
+                .color = sdl.Color.cyan,
+                .lighting = if (lighting) .{} else null,
+                .playtime = animation_playtime2,
+            },
+        );
+    } else {
+        try j3d.mesh(
+            mesh2,
+            zmath.translation(-4, 0, 0),
+            .{
                 .color = sdl.Color.cyan,
                 .lighting = if (lighting) .{} else null,
             },
-            .animation_name = animation_name2,
-            .animation_playtime = animation_playtime2,
-        },
-    );
-    try j3d.mesh(
-        mesh3,
-        zmath.mul(
-            zmath.rotationY(-std.math.pi / 6.0),
+        );
+    }
+    if (animation3) |a| {
+        try j3d.animation(
+            a,
             zmath.mul(
-                zmath.scalingV(zmath.f32x4s(0.03)),
-                zmath.translation(4, 0, 0),
+                zmath.rotationY(-std.math.pi / 6.0),
+                zmath.mul(
+                    zmath.scalingV(zmath.f32x4s(0.03)),
+                    zmath.translation(4, 0, 0),
+                ),
             ),
-        ),
-        .{
-            .rdopt = .{
+            .{
+                .lighting = if (lighting) .{} else null,
+                .transition = if (animation3_old) |ao|
+                    .{
+                        .from = ao,
+                        .progress = animation_transition3,
+                    }
+                else
+                    null,
+                .playtime = animation_playtime3,
+            },
+        );
+    } else {
+        try j3d.mesh(
+            mesh3,
+            zmath.mul(
+                zmath.rotationY(-std.math.pi / 6.0),
+                zmath.mul(
+                    zmath.scalingV(zmath.f32x4s(0.03)),
+                    zmath.translation(4, 0, 0),
+                ),
+            ),
+            .{
                 .lighting = if (lighting) .{} else null,
             },
-            .animation_name = animation_name3,
-            .animation_transition = animation_transition,
-            .animation_playtime = animation_playtime3,
-        },
-    );
+        );
+    }
     try j3d.axises(.{ .radius = 0.01, .length = 0.5 });
     try j3d.end();
 
@@ -286,4 +335,9 @@ pub fn quit(ctx: jok.Context) void {
     mesh1.destroy();
     mesh2.destroy();
     mesh3.destroy();
+    animation1_1.destroy();
+    animation2_1.destroy();
+    animation3_1.destroy();
+    animation3_2.destroy();
+    animation3_3.destroy();
 }

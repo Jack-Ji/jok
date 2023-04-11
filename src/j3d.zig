@@ -11,6 +11,7 @@ const internal = @import("j3d/internal.zig");
 const TriangleRenderer = @import("j3d/TriangleRenderer.zig");
 const SkyboxRenderer = @import("j3d/SkyboxRenderer.zig");
 pub const Mesh = @import("j3d/Mesh.zig");
+pub const Animation = @import("j3d/Animation.zig");
 pub const lighting = @import("j3d/lighting.zig");
 pub const ParticleSystem = @import("j3d/ParticleSystem.zig");
 pub const Camera = @import("j3d/Camera.zig");
@@ -167,13 +168,7 @@ pub fn shape(
     );
 }
 
-pub const MeshOption = struct {
-    rdopt: RenderOption = .{},
-    animation_name: ?[]const u8 = null,
-    animation_transition: f32 = 1.0,
-    animation_playtime: f32 = 0,
-};
-pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: MeshOption) !void {
+pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
     try m.render(
         rd.getViewport(),
         &target,
@@ -181,15 +176,16 @@ pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: MeshOption) !void {
         camera,
         &tri_rd,
         .{
-            .texture = opt.rdopt.texture,
-            .color = opt.rdopt.color,
-            .cull_faces = opt.rdopt.cull_faces,
-            .lighting = opt.rdopt.lighting,
-            .animation_name = opt.animation_name,
-            .animation_transition = opt.animation_transition,
-            .animation_playtime = opt.animation_playtime,
+            .texture = opt.texture,
+            .color = opt.color,
+            .cull_faces = opt.cull_faces,
+            .lighting = opt.lighting,
         },
     );
+}
+
+pub fn animation(anim: *Animation, model: zmath.Mat, opt: Animation.RenderOption) !void {
+    try anim.render(rd.getViewport(), &target, model, camera, &tri_rd, opt);
 }
 
 pub const AxisOption = struct {

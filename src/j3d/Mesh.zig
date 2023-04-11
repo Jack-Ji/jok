@@ -23,9 +23,6 @@ pub const RenderOption = struct {
     color: sdl.Color = sdl.Color.white,
     cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,
-    animation_name: ?[]const u8 = null,
-    animation_transition: f32 = 1.0,
-    animation_playtime: f32 = 0,
 };
 
 pub const GltfNode = zmesh.io.zcgltf.Node;
@@ -145,10 +142,6 @@ pub const Node = struct {
     meshes: []SubMesh,
     skin: ?*Skin = null,
     is_joint: bool = false,
-    _scale: zmath.Vec = zmath.f32x4s(1.0),
-    _rotation: zmath.Vec = zmath.f32x4s(0),
-    _translation: zmath.Vec = zmath.f32x4s(0),
-    _world_matrix: ?zmath.Mat = null,
 
     fn init(
         allocator: std.mem.Allocator,
@@ -232,24 +225,6 @@ pub const Node = struct {
         );
     }
 
-    fn calcWorldTransform(node: *Node) zmath.Mat {
-        if (node._world_matrix) |m| return m;
-
-        var mat = node.calcLocalTransform();
-        var parent = node.parent;
-        while (parent) |p| {
-            mat = zmath.mul(mat, p.calcLocalTransform());
-            parent = p.parent;
-        }
-        node._world_matrix = mat;
-        return mat;
-    }
-
-    const AnimationType = enum {
-        none,
-        regular,
-        skeleton,
-    };
     fn render(
         node: *Node,
         viewport: sdl.Rectangle,
@@ -257,25 +232,13 @@ pub const Node = struct {
         model: zmath.Mat,
         camera: Camera,
         tri_rd: *TriangleRenderer,
-        animation_type: AnimationType,
         opt: RenderOption,
     ) !void {
-        const matrix = switch (animation_type) {
-            .none => zmath.mul(node.matrix, model),
-            .regular => zmath.mul(node.calcWorldTransform(), model),
-            .skeleton => if (node.is_joint)
-                zmath.mul(node.calcWorldTransform(), model)
-            else
-                // According to glTF spec: only the joint transforms are applied to the
-                // skinned mesh; the transform of the skinned mesh node MUST be ignored.
-                model,
-        };
-
         for (node.meshes) |sm| {
             try tri_rd.renderMesh(
                 viewport,
                 target,
-                matrix,
+                zmath.mul(node.matrix, model),
                 camera,
                 sm.indices.items,
                 sm.positions.items,
@@ -292,22 +255,12 @@ pub const Node = struct {
                 else
                     sm.texcoords.items,
                 .{
-                    .aabb = if (opt.animation_name == null) // NOTE: Ignore aabb when animation is active
-                        sm.aabb
-                    else
-                        null,
+                    .aabb = sm.aabb,
                     .cull_faces = opt.cull_faces,
                     .color = opt.color,
                     .texture = opt.texture orelse sm.getTexture(),
                     .lighting = opt.lighting,
-                    .animation = if (opt.animation_name == null or node.skin == null)
-                        null
-                    else
-                        .{
-                            .skin = node.skin.?,
-                            .joints = sm.joints.items,
-                            .weights = sm.weights.items,
-                        },
+                    .animation = null,
                 },
             );
         }
@@ -318,7 +271,6 @@ pub const Node = struct {
                 model,
                 camera,
                 tri_rd,
-                animation_type,
                 opt,
             );
         }
@@ -337,12 +289,14 @@ pub const Animation = struct {
         samples: []zmath.Vec,
     };
     mesh: *Self,
+    name: []const u8,
     channels: std.ArrayList(Channel),
     duration: f32,
 
-    fn fromGltfAnimation(allocator: std.mem.Allocator, mesh: *Self, gltf_anim: GltfAnimation) !?Animation {
+    fn fromGltfAnimation(allocator: std.mem.Allocator, mesh: *Self, gltf_anim: GltfAnimation, name: []const u8) !?Animation {
         var anim = Animation{
             .mesh = mesh,
+            .name = name,
             .channels = std.ArrayList(Channel).init(allocator),
             .duration = 0,
         };
@@ -412,105 +366,8 @@ pub const Animation = struct {
         return if (anim.channels.items.len == 0) null else anim;
     }
 
-    fn isSkeletonAnimation(anim: Animation) bool {
+    pub fn isSkeletonAnimation(anim: Animation) bool {
         return anim.channels.items[0].node.is_joint;
-    }
-
-    fn updateTRS(anim: *Animation, playtime: f32, _transition: f32) void {
-        const transition = zmath.clamp(_transition, 0.0, 1.0);
-        for (anim.channels.items) |*ch| {
-            var node = ch.node;
-            switch (ch.path) {
-                .translation => {
-                    const v = if (playtime <= ch.timesteps[0])
-                        ch.samples[0]
-                    else if (playtime >= ch.timesteps[ch.timesteps.len - 1])
-                        ch.samples[ch.timesteps.len - 1]
-                    else BLK: {
-                        var index: usize = 0;
-                        for (ch.timesteps) |t| {
-                            if (playtime < t) {
-                                index -= 1;
-                                break;
-                            }
-                            index += 1;
-                        }
-                        switch (ch.interpolation) {
-                            .linear => {
-                                const v0 = ch.samples[index];
-                                const v1 = ch.samples[index + 1];
-                                const t = (playtime - ch.timesteps[index]) /
-                                    (ch.timesteps[index + 1] - ch.timesteps[index]);
-                                break :BLK zmath.lerp(v0, v1, t);
-                            },
-                            .step => break :BLK ch.samples[index],
-                            else => unreachable,
-                        }
-                    };
-                    node.translation = zmath.lerp(node._translation, v, transition);
-                },
-                .rotation => {
-                    const v = @as(
-                        zmath.Quat,
-                        if (playtime <= ch.timesteps[0])
-                            ch.samples[0]
-                        else if (playtime >= ch.timesteps[ch.timesteps.len - 1])
-                            ch.samples[ch.timesteps.len - 1]
-                        else BLK: {
-                            var index: usize = 0;
-                            for (ch.timesteps) |t| {
-                                if (playtime < t) {
-                                    index -= 1;
-                                    break;
-                                }
-                                index += 1;
-                            }
-                            switch (ch.interpolation) {
-                                .linear => {
-                                    const v0 = @as(zmath.Quat, ch.samples[index]);
-                                    const v1 = @as(zmath.Quat, ch.samples[index + 1]);
-                                    const t = (playtime - ch.timesteps[index]) /
-                                        (ch.timesteps[index + 1] - ch.timesteps[index]);
-                                    break :BLK zmath.slerp(v0, v1, t);
-                                },
-                                .step => break :BLK ch.samples[index],
-                                else => unreachable,
-                            }
-                        },
-                    );
-                    node.rotation = zmath.slerp(node._rotation, v, transition);
-                },
-                .scale => {
-                    const v = if (playtime <= ch.timesteps[0])
-                        ch.samples[0]
-                    else if (playtime >= ch.timesteps[ch.timesteps.len - 1])
-                        ch.samples[ch.timesteps.len - 1]
-                    else BLK: {
-                        var index: usize = 0;
-                        for (ch.timesteps) |t| {
-                            if (playtime < t) {
-                                index -= 1;
-                                break;
-                            }
-                            index += 1;
-                        }
-                        switch (ch.interpolation) {
-                            .linear => {
-                                const v0 = ch.samples[index];
-                                const v1 = ch.samples[index + 1];
-                                const t = (playtime - ch.timesteps[index]) /
-                                    (ch.timesteps[index + 1] - ch.timesteps[index]);
-                                break :BLK zmath.lerp(v0, v1, t);
-                            },
-                            .step => break :BLK ch.samples[index],
-                            else => @panic("unrechable"),
-                        }
-                    };
-                    node.scale = zmath.lerp(node._scale, v, transition);
-                },
-                else => continue,
-            }
-        }
     }
 };
 
@@ -534,32 +391,6 @@ pub const Skin = struct {
             nodes[i].is_joint = true;
         }
         return .{ .inverse_matrices = matrices, .nodes = nodes };
-    }
-
-    /// Calculate skin matrix
-    pub fn calcSkinMatrix(self: *Skin, joints: [4]u8, weights: [4]f32, model: zmath.Mat) zmath.Mat {
-        const S = struct {
-            const m_zero = zmath.Mat{
-                zmath.f32x4s(0),
-                zmath.f32x4s(0),
-                zmath.f32x4s(0),
-                zmath.f32x4s(0),
-            };
-        };
-        var skin_m = S.m_zero;
-        for (0..4) |i| {
-            const j = joints[i];
-            const w = weights[i];
-            const m = zmath.mul(zmath.mul(
-                self.inverse_matrices[j],
-                self.nodes[j].calcWorldTransform(),
-            ), w);
-            skin_m[0] += m[0];
-            skin_m[1] += m[1];
-            skin_m[2] += m[2];
-            skin_m[3] += m[3];
-        }
-        return zmath.mul(skin_m, model);
     }
 };
 
@@ -688,15 +519,6 @@ pub fn destroy(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-fn backupTRS(self: *const Self) void {
-    var it = self.nodes_map.valueIterator();
-    while (it.next()) |node| {
-        node.*._scale = node.*.scale;
-        node.*._rotation = node.*.rotation;
-        node.*._translation = node.*.translation;
-    }
-}
-
 pub fn render(
     self: *const Self,
     viewport: sdl.Rectangle,
@@ -706,39 +528,12 @@ pub fn render(
     tri_rd: *TriangleRenderer,
     opt: RenderOption,
 ) !void {
-    var animation_type: Node.AnimationType = .none;
-    if (opt.animation_name) |name| {
-        animation_type = .regular;
-
-        // Save old TRS
-        if (math.approxEqAbs(f32, opt.animation_transition, 0.0, 0.1)) {
-            self.backupTRS();
-        }
-
-        // Reset world matrix
-        var it = self.nodes_map.valueIterator();
-        while (it.next()) |node| {
-            node.*._world_matrix = null;
-        }
-
-        // Update TRS of nodes
-        if (self.getAnimation(name)) |anim| {
-            anim.updateTRS(opt.animation_playtime, opt.animation_transition);
-            if (anim.isSkeletonAnimation()) {
-                animation_type = .skeleton;
-            }
-        } else {
-            return error.InvalidAnimation;
-        }
-    }
-
     try self.root.render(
         viewport,
         target,
         model,
         camera,
         tri_rd,
-        animation_type,
         opt,
     );
 }
@@ -1007,7 +802,7 @@ fn loadAnimation(self: *Self, gltf_anim: GltfAnimation) !void {
     );
     errdefer self.arena.allocator().free(name);
 
-    if (try Animation.fromGltfAnimation(self.arena.allocator(), self, gltf_anim)) |anim| {
+    if (try Animation.fromGltfAnimation(self.arena.allocator(), self, gltf_anim, name)) |anim| {
         try self.animations.putNoClobber(name, anim);
     }
 }

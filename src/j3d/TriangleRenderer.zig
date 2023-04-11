@@ -12,9 +12,11 @@ const Camera = j3d.Camera;
 const utils = jok.utils;
 const internal = @import("internal.zig");
 const Mesh = @import("Mesh.zig");
+const Animation = @import("Animation.zig");
 const Self = @This();
 
 pub const SkeletonAnimation = struct {
+    anim: *Animation,
     skin: *Mesh.Skin,
     joints: []const [4]u8,
     weights: []const [4]f32,
@@ -192,15 +194,15 @@ pub fn renderMesh(
         var skin_mat_v1 = zmath.identity();
         var skin_mat_v2 = zmath.identity();
         const world_v0 = if (opt.animation) |a| BLK: {
-            skin_mat_v0 = a.skin.calcSkinMatrix(a.joints[idx0], a.weights[idx0], model);
+            skin_mat_v0 = a.anim.getSkinMatrix(a.skin, a.joints[idx0], a.weights[idx0], model);
             break :BLK zmath.mul(v0, skin_mat_v0);
         } else zmath.mul(v0, model);
         const world_v1 = if (opt.animation) |a| BLK: {
-            skin_mat_v1 = a.skin.calcSkinMatrix(a.joints[idx1], a.weights[idx1], model);
+            skin_mat_v1 = a.anim.getSkinMatrix(a.skin, a.joints[idx1], a.weights[idx1], model);
             break :BLK zmath.mul(v1, skin_mat_v1);
         } else zmath.mul(v1, model);
         const world_v2 = if (opt.animation) |a| BLK: {
-            skin_mat_v2 = a.skin.calcSkinMatrix(a.joints[idx2], a.weights[idx2], model);
+            skin_mat_v2 = a.anim.getSkinMatrix(a.skin, a.joints[idx2], a.weights[idx2], model);
             break :BLK zmath.mul(v2, skin_mat_v2);
         } else zmath.mul(v2, model);
 
