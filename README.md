@@ -7,7 +7,7 @@ A minimal 2d/3d game framework for zig.
 * Any code editor you like
 
 ## Features
-* Pure-software rendering support (No GPU? That's OK!)
+* Pure-software rendering support
 * 2D sprite rendering
 * 2D sprite sheet generation/save/load
 * 2D animation system
@@ -17,14 +17,13 @@ A minimal 2d/3d game framework for zig.
 * 3D skybox rendering
 * 3D mesh rendering
 * 3D model loading/rendering (glTF 2.0)
-* 3D skeleton animation rendering (glTF 2.0)
-* 3D skeleton animation transition/blending (glTF 2.0)
-* 3D lighting effect (very minimal)
+* 3D skeleton animation rendering/blending
+* 3D lighting effect (Blinn-Phong model)
 * 3D sprite rendering
 * 3D particle system
 * 3D scene management
 * Friendly easing system
-* Font rendering/loading
+* Font loading/rendering (TrueType)
 * Sound/Music playing/mixing
 * Fully integrated Dear-ImGui
 
