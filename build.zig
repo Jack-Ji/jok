@@ -8,9 +8,7 @@ const zmath = @import("src/deps/zmath/build.zig");
 const zmesh = @import("src/deps/zmesh/build.zig");
 const znoise = @import("src/deps/znoise/build.zig");
 const zpool = @import("src/deps/zpool/build.zig");
-const zflecs = @import("src/deps/zflecs/build.zig");
 const zaudio = @import("src/deps/zaudio/build.zig");
-const zphysics = @import("src/deps/zphysics/build.zig");
 const ztracy = @import("src/deps/ztracy/build.zig");
 
 pub fn build(b: *std.Build) void {
@@ -74,7 +72,6 @@ pub fn build(b: *std.Build) void {
 pub const BuildOptions = struct {
     use_nfd: bool = false,
     use_zaudio: bool = false,
-    use_zphysics: bool = false,
     enable_ztracy: bool = false,
 };
 
@@ -91,15 +88,11 @@ pub fn createGame(
     const bos = b.addOptions();
     bos.addOption(bool, "use_nfd", opt.use_nfd);
     bos.addOption(bool, "use_zaudio", opt.use_zaudio);
-    bos.addOption(bool, "use_zphysics", opt.use_zphysics);
     const sdl_sdk = Sdk.init(b, null);
     const zmath_pkg = zmath.package(b, target, optimize, .{});
     const zmesh_pkg = zmesh.package(b, target, optimize, .{});
     const znoise_pkg = znoise.package(b, target, optimize, .{});
-    const zpool_pkg = zpool.package(b, target, optimize, .{});
-    const zflecs_pkg = zflecs.package(b, target, optimize, .{});
     const zaudio_pkg = zaudio.package(b, target, optimize, .{});
-    const zphysics_pkg = zphysics.package(b, target, optimize, .{});
     const ztracy_pkg = ztracy.package(b, target, optimize, .{
         .options = .{ .enable_ztracy = opt.enable_ztracy },
     });
@@ -112,10 +105,7 @@ pub fn createGame(
             .{ .name = "zmath", .module = zmath_pkg.zmath },
             .{ .name = "zmesh", .module = zmesh_pkg.zmesh },
             .{ .name = "znoise", .module = znoise_pkg.znoise },
-            .{ .name = "zflecs", .module = zflecs_pkg.zflecs },
-            .{ .name = "zpool", .module = zpool_pkg.zpool },
             .{ .name = "zaudio", .module = zaudio_pkg.zaudio },
-            .{ .name = "zphysics", .module = zphysics_pkg.zphysics },
             .{ .name = "ztracy", .module = ztracy_pkg.ztracy },
         },
     });
@@ -141,16 +131,12 @@ pub fn createGame(
     imgui.link(b, exe);
     zmesh_pkg.link(exe);
     znoise_pkg.link(exe);
-    zflecs_pkg.link(exe);
     ztracy_pkg.link(exe);
     if (opt.use_nfd) {
         nfd.link(exe);
     }
     if (opt.use_zaudio) {
         zaudio_pkg.link(exe);
-    }
-    if (opt.use_zphysics) {
-        zphysics_pkg.link(exe);
     }
 
     return exe;

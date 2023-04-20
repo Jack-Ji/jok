@@ -7,7 +7,6 @@ pub const zmath = @import("zmath");
 pub const zmesh = @import("zmesh");
 pub const znoise = @import("znoise");
 pub const zpool = @import("zpool");
-pub const zflecs = @import("zflecs");
 pub const ztracy = @import("ztracy");
 
 pub const nfd = if (bos.use_nfd)
@@ -17,10 +16,5 @@ else
 
 pub const zaudio = if (bos.use_zaudio)
     @import("zaudio")
-else
-    null;
-
-pub const zphysics = if (bos.use_zphysics)
-    @import("zphysics")
 else
     null;

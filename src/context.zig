@@ -9,7 +9,6 @@ const font = jok.font;
 const imgui = jok.imgui;
 const zmesh = jok.zmesh;
 const zaudio = jok.zaudio;
-const zphysics = jok.zphysics;
 
 const log = std.log.scoped(.jok);
 
@@ -211,9 +210,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             if (bos.use_zaudio) {
                 zaudio.init(self._allocator);
             }
-            if (bos.use_zphysics) {
-                zphysics.init(self._allocator, .{});
-            }
 
             // Init 2d and 3d modules
             try jok.j2d.init(self._allocator, self._renderer);
@@ -240,9 +236,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             jok.j2d.deinit();
 
             // Destroy zmodules
-            if (bos.use_zphysics) {
-                zphysics.deinit();
-            }
             if (bos.use_zaudio) {
                 zaudio.deinit();
             }

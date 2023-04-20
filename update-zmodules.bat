@@ -6,9 +6,6 @@ cp -r %ZMODULES%/system-sdk src/deps
 rm -rf src/deps/zaudio
 cp -r %ZMODULES%/zaudio src/deps
 
-rm -rf src/deps/zphysics
-cp -r %ZMODULES%/zphysics src/deps
-
 rm -rf src/deps/zmath
 cp -r %ZMODULES%/zmath src/deps
 
@@ -20,9 +17,6 @@ cp -r %ZMODULES%/znoise src/deps
 
 rm -rf src/deps/zpool
 cp -r %ZMODULES%/zpool src/deps
-
-rm -rf src/deps/zflecs
-cp -r %ZMODULES%/zflecs src/deps
 
 rm -rf src/deps/ztracy
 cp -r %ZMODULES%/ztracy src/deps
