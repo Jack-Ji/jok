@@ -249,7 +249,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._allocator.destroy(self);
 
             // Destory memory allocator
-            if (gpa.deinit()) {
+            if (gpa.deinit() == .leak) {
                 @panic("jok: memory leaks happened!");
             }
         }

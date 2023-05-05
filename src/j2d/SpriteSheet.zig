@@ -83,7 +83,7 @@ pub fn create(
     const allocator = ctx.allocator();
     var pixels = try allocator.alloc(u8, width * height * 4);
     errdefer allocator.free(pixels);
-    std.mem.set(u8, pixels, 0);
+    @memset(pixels, 0);
 
     var tree = std.StringHashMap(u32).init(allocator);
     var rects = try allocator.alloc(SpriteRect, sources.len);
@@ -189,8 +189,7 @@ pub fn create(
         while (y < y_end) : (y += 1) {
             const dst_offset: u32 = y * dst_stride + @intCast(u32, r.x) * 4;
             const src_offset: u32 = (y - y_begin) * src_stride;
-            std.mem.copy(
-                u8,
+            @memcpy(
                 pixels[dst_offset .. dst_offset + src_stride],
                 src_pixels.data[src_offset .. src_offset + src_stride],
             );

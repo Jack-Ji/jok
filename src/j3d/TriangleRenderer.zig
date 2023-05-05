@@ -401,17 +401,17 @@ pub fn renderSprite(
     // Transform coordinate and render to ouput
     if (opt.facing_dir) |dir| {
         // Create suitable model matrix
-        const forward_dir = zmath.f32x4(0, 0, 1, 0);
-        const facing_normal = zmath.normalize3(zmath.f32x4(dir[0], dir[1], dir[2], 0));
-        const facing_xz_normal = zmath.normalize3(zmath.f32x4(dir[0], 0, dir[2], 0));
-        const pitch = -math.acos(zmath.clamp(zmath.dot3(facing_normal, facing_xz_normal)[0], -1, 1));
-        const yaw = if (dir[0] > 0)
-            math.cos(zmath.clamp(zmath.dot3(facing_xz_normal, forward_dir)[0], -1, 1))
+        const forward_dir = zmath.f32x4(0.0, 0.0, 1.0, 0.0);
+        const facing_normal = zmath.normalize3(zmath.f32x4(dir[0], dir[1], dir[2], 0.0));
+        const facing_xz_normal = zmath.normalize3(zmath.f32x4(dir[0], 0, dir[2], 0.0));
+        const pitch = -math.acos(zmath.clamp(zmath.dot3(facing_normal, facing_xz_normal)[0], -1.0, 1.0));
+        const yaw = if (dir[0] > 0.0)
+            math.cos(zmath.clamp(zmath.dot3(facing_xz_normal, forward_dir)[0], -1.0, 1.0))
         else
-            -math.cos(zmath.clamp(zmath.dot3(facing_xz_normal, forward_dir)[0], -1, 1));
+            -math.cos(zmath.clamp(zmath.dot3(facing_xz_normal, forward_dir)[0], -1.0, 1.0));
         const m_rotate1 = zmath.mul(zmath.rotationX(math.pi), zmath.rotationY(math.pi));
-        const m_translate = zmath.translation(-opt.anchor_point.x, opt.anchor_point.y, 0);
-        const m_scale = zmath.scaling(size.x * opt.scale.x, size.y * opt.scale.y, 1);
+        const m_translate = zmath.translation(-opt.anchor_point.x, opt.anchor_point.y, 0.0);
+        const m_scale = zmath.scaling(size.x * opt.scale.x, size.y * opt.scale.y, 1.0);
         const m_rotate2 = zmath.mul(
             zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree)),
             zmath.mul(zmath.rotationX(pitch), zmath.rotationY(yaw)),
