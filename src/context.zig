@@ -438,15 +438,15 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 \\    Memory        : {d}MB
             ,
                 .{
-                    std.meta.tagName(builtin.mode),
-                    std.meta.tagName(cfg.jok_log_level),
+                    @tagName(builtin.mode),
+                    @tagName(cfg.jok_log_level),
                     builtin.zig_version,
-                    std.meta.tagName(target.cpu.arch),
-                    std.meta.tagName(target.abi),
+                    @tagName(target.cpu.arch),
+                    @tagName(target.abi),
                     sdl_version.major,
                     sdl_version.minor,
                     sdl_version.patch,
-                    std.meta.tagName(target.os.tag),
+                    @tagName(target.os.tag),
                     ram_size,
                 },
             );
