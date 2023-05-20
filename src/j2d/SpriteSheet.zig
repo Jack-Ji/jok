@@ -308,7 +308,7 @@ pub fn fromSheetFiles(ctx: jok.Context, path: []const u8) !*Self {
     const json_path = try std.fmt.bufPrint(&path_buf, "{s}.json", .{path});
     var json_content = try std.fs.cwd().readFileAlloc(allocator, json_path, 1 << 30);
     defer allocator.free(json_content);
-    var parser = json.Parser.init(allocator, false);
+    var parser = json.Parser.init(allocator, .alloc_always);
     defer parser.deinit();
     var json_tree = try parser.parse(json_content);
     defer json_tree.deinit();
