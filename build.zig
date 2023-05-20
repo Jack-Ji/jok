@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const Sdk = @import("src/deps/sdl/Sdk.zig");
+const sdl = @import("src/deps/sdl/build.zig");
 const stb = @import("src/deps/stb/build.zig");
 const imgui = @import("src/deps/imgui/build.zig");
 const nfd = @import("src/deps/nfd/build.zig");
@@ -88,7 +88,7 @@ pub fn createGame(
     const bos = b.addOptions();
     bos.addOption(bool, "use_nfd", opt.use_nfd);
     bos.addOption(bool, "use_zaudio", opt.use_zaudio);
-    const sdl_sdk = Sdk.init(b, null);
+    const sdl_sdk = sdl.init(b, null);
     const zmath_pkg = zmath.package(b, target, optimize, .{});
     const zmesh_pkg = zmesh.package(b, target, optimize, .{});
     const znoise_pkg = znoise.package(b, target, optimize, .{});
