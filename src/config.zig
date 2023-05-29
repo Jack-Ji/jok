@@ -60,7 +60,7 @@ pub const Config = struct {
     jok_exit_on_recv_esc: bool = true,
 
     /// Exit game when get quit event
-    jok_exit_on_recv_quit: bool = false,
+    jok_exit_on_recv_quit: bool = true,
 
     /// Whether let imgui load/save ini file
     jok_imgui_ini_file: bool = false,
