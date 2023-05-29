@@ -519,7 +519,7 @@ pub const RenderTarget = struct {
         var _indices: [][3]u32 = undefined;
         _indices.ptr = @ptrCast([*][3]u32, self.indices.items.ptr);
         _indices.len = @divTrunc(self.indices.items.len, 3);
-        std.sort.sort(
+        std.sort.pdq(
             [3]u32,
             _indices,
             self,

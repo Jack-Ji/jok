@@ -264,7 +264,7 @@ pub fn fromPicturesInDir(
     defer arena.deinit();
     var it = dir.iterate();
     while (try it.next()) |entry| {
-        if (entry.kind != .File) continue;
+        if (entry.kind != .file) continue;
         if (entry.name.len < 5) continue;
         if ((opt.accept_png and std.mem.eql(u8, ".png", entry.name[entry.name.len - 4 ..])) or
             (opt.accept_jpg and std.mem.eql(u8, ".jpg", entry.name[entry.name.len - 4 ..])))
