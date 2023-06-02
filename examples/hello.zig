@@ -122,7 +122,7 @@ pub fn draw(ctx: jok.Context) !void {
             .x = 1.3 + std.math.sin(ctx.seconds()),
             .y = 1.3 + std.math.sin(ctx.seconds()),
         });
-        j2d.getTransform().rotateByOrgin(ctx.seconds());
+        j2d.getTransform().rotateByOrigin(ctx.seconds());
         j2d.getTransform().translate(.{
             .x = offset_transformed[0],
             .y = offset_transformed[1],
