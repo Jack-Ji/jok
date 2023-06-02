@@ -56,7 +56,7 @@ pub fn draw(ctx: jok.Context) !void {
         // top-left
         {
             var tr = transform.clone();
-            tr.rotateByOrgin(-angle_step * step);
+            tr.rotateByOrigin(-angle_step * step);
             tr.translate(.{
                 .x = fb_size.x / 4,
                 .y = fb_size.y / 4,
@@ -68,7 +68,7 @@ pub fn draw(ctx: jok.Context) !void {
         // top-right
         {
             var tr = transform.clone();
-            tr.rotateByOrgin(angle_step * step);
+            tr.rotateByOrigin(angle_step * step);
             tr.translate(.{
                 .x = fb_size.x * 3 / 4,
                 .y = fb_size.y / 4,
@@ -80,7 +80,7 @@ pub fn draw(ctx: jok.Context) !void {
         // bottom-right
         {
             var tr = transform.clone();
-            tr.rotateByOrgin(-angle_step * step);
+            tr.rotateByOrigin(-angle_step * step);
             tr.translate(.{
                 .x = fb_size.x * 3 / 4,
                 .y = fb_size.y * 3 / 4,
@@ -92,7 +92,7 @@ pub fn draw(ctx: jok.Context) !void {
         // bottom-left
         {
             var tr = transform.clone();
-            tr.rotateByOrgin(angle_step * step);
+            tr.rotateByOrigin(angle_step * step);
             tr.translate(.{
                 .x = fb_size.x / 4,
                 .y = fb_size.y * 3 / 4,

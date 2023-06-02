@@ -65,7 +65,7 @@ pub fn setToScaleY(self: *Self, s: f32) void {
     self.mat = zmath.scaling(1, s, 0);
 }
 
-pub fn setToRotateByOrgin(self: *Self, radian: f32) void {
+pub fn setToRotateByOrigin(self: *Self, radian: f32) void {
     self.mat = zmath.rotationZ(radian);
 }
 
@@ -117,7 +117,7 @@ pub fn scaleY(self: *Self, s: f32) void {
     self.mat = zmath.mul(self.mat, zmath.scaling(1, s, 0));
 }
 
-pub fn rotateByOrgin(self: *Self, radian: f32) void {
+pub fn rotateByOrigin(self: *Self, radian: f32) void {
     self.mat = zmath.mul(self.mat, zmath.rotationZ(radian));
 }
 
