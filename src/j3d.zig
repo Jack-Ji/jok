@@ -100,6 +100,7 @@ pub fn clearMemory() !void {
     try target.clear(true);
 }
 
+/// Textures' order: right/left/top/bottom/front/back
 pub fn skybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {
     try skybox_rd.render(
         rd.getViewport(),
