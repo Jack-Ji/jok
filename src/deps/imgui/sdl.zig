@@ -1,5 +1,4 @@
 const std = @import("std");
-const math = std.math;
 const jok = @import("../../jok.zig");
 const sdl = jok.sdl;
 const zgui = @import("zgui");
@@ -77,10 +76,10 @@ pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) !void {
 
         // Apply clip rect
         var clip_rect: sdl.Rectangle = undefined;
-        clip_rect.x = math.min(0, @floatToInt(c_int, cmd.clip_rect[0]));
-        clip_rect.y = math.min(0, @floatToInt(c_int, cmd.clip_rect[1]));
-        clip_rect.width = math.min(fb_size.width_pixels, @floatToInt(c_int, cmd.clip_rect[2] - cmd.clip_rect[0]));
-        clip_rect.height = math.min(fb_size.height_pixels, @floatToInt(c_int, cmd.clip_rect[3] - cmd.clip_rect[1]));
+        clip_rect.x = @min(0, @floatToInt(c_int, cmd.clip_rect[0]));
+        clip_rect.y = @min(0, @floatToInt(c_int, cmd.clip_rect[1]));
+        clip_rect.width = @min(fb_size.width_pixels, @floatToInt(c_int, cmd.clip_rect[2] - cmd.clip_rect[0]));
+        clip_rect.height = @min(fb_size.height_pixels, @floatToInt(c_int, cmd.clip_rect[3] - cmd.clip_rect[1]));
         if (clip_rect.width <= 0 or clip_rect.height <= 0) continue;
         try rd.setClipRect(clip_rect);
 

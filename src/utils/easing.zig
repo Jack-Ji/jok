@@ -85,7 +85,7 @@ pub fn EasingSystem(comptime T: type) type {
             var it = self.vars.valueIterator();
             while (it.next()) |vptr| {
                 vptr.life_passed += delta_time;
-                const x = vptr.easing_fn(math.min(1.0, vptr.life_passed / vptr.life_total));
+                const x = vptr.easing_fn(@min(1.0, vptr.life_passed / vptr.life_total));
                 vptr.v.* = vptr.easing_apply_fn(x, vptr.from, vptr.to);
                 if (vptr.life_passed >= vptr.life_total) {
                     self.arrived.appendAssumeCapacity(vptr.v);
@@ -322,23 +322,23 @@ const quint = struct {
 
 const expo = struct {
     fn in(x: f32) f32 {
-        return if (math.approxEqAbs(f32, x, 0, math.f32_epsilon))
+        return if (math.approxEqAbs(f32, x, 0, math.floatEps(f32)))
             0
         else
             math.pow(f32, 2, 10 * x - 10);
     }
 
     fn out(x: f32) f32 {
-        return if (math.approxEqAbs(f32, x, 1, math.f32_epsilon))
+        return if (math.approxEqAbs(f32, x, 1, math.floatEps(f32)))
             1
         else
             1 - math.pow(f32, 2, -10 * x);
     }
 
     fn inOut(x: f32) f32 {
-        return if (math.approxEqAbs(f32, x, 0, math.f32_epsilon))
+        return if (math.approxEqAbs(f32, x, 0, math.floatEps(f32)))
             0
-        else if (math.approxEqAbs(f32, x, 1, math.f32_epsilon))
+        else if (math.approxEqAbs(f32, x, 1, math.floatEps(f32)))
             1
         else if (x < 0.5)
             math.pow(f32, 2, 20 * x - 10) / 2
@@ -390,9 +390,9 @@ const back = struct {
 const elastic = struct {
     fn in(x: f32) f32 {
         const c4 = (2.0 * math.pi) / 3.0;
-        return if (math.approxEqAbs(f32, x, 0, math.f32_epsilon))
+        return if (math.approxEqAbs(f32, x, 0, math.floatEps(f32)))
             0
-        else if (math.approxEqAbs(f32, x, 1, math.f32_epsilon))
+        else if (math.approxEqAbs(f32, x, 1, math.floatEps(f32)))
             1
         else
             -math.pow(f32, 2, 10 * x - 10) * math.sin((x * 10 - 10.75) * c4);
@@ -400,9 +400,9 @@ const elastic = struct {
 
     fn out(x: f32) f32 {
         const c4 = (2.0 * math.pi) / 3.0;
-        return if (math.approxEqAbs(f32, x, 0, math.f32_epsilon))
+        return if (math.approxEqAbs(f32, x, 0, math.floatEps(f32)))
             0
-        else if (math.approxEqAbs(f32, x, 1, math.f32_epsilon))
+        else if (math.approxEqAbs(f32, x, 1, math.floatEps(f32)))
             1
         else
             math.pow(f32, 2, -10 * x) * math.sin((x * 10 - 0.75) * c4) + 1;
@@ -410,9 +410,9 @@ const elastic = struct {
 
     fn inOut(x: f32) f32 {
         const c5 = (2.0 * math.pi) / 4.5;
-        return if (math.approxEqAbs(f32, x, 0, math.f32_epsilon))
+        return if (math.approxEqAbs(f32, x, 0, math.floatEps(f32)))
             0
-        else if (math.approxEqAbs(f32, x, 1, math.f32_epsilon))
+        else if (math.approxEqAbs(f32, x, 1, math.floatEps(f32)))
             1
         else if (x < 0.5)
             -(math.pow(f32, 2, 20 * x - 10) * math.sin((20 * x - 11.125) * c5)) / 2

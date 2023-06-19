@@ -519,10 +519,10 @@ pub fn renderSprite(
         }
 
         // Test visibility
-        var min_x: f32 = math.f32_max;
-        var min_y: f32 = math.f32_max;
-        var max_x: f32 = math.f32_min;
-        var max_y: f32 = math.f32_min;
+        var min_x: f32 = math.floatMax(f32);
+        var min_y: f32 = math.floatMax(f32);
+        var max_x: f32 = math.floatMin(f32);
+        var max_y: f32 = math.floatMin(f32);
         for ([_]zmath.Vec{ ndc0, ndc1, ndc2, ndc3 }) |p| {
             if (min_x > p[0]) min_x = p[0];
             if (min_y > p[1]) min_y = p[1];

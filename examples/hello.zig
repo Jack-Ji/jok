@@ -217,7 +217,7 @@ pub fn draw(ctx: jok.Context) !void {
             .font_size = 50,
             .color = sdl.Color.rgb(
                 255,
-                @floatToInt(u8, std.math.max(0, 255 * std.math.cos(ctx.seconds()))),
+                @floatToInt(u8, @max(0, 255 * std.math.cos(ctx.seconds()))),
                 0,
             ),
         },

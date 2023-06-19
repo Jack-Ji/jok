@@ -98,7 +98,7 @@ pub inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) boo
             const r = @fabs(axis[0]) + @fabs(axis[1]) + @fabs(axis[2]);
 
             const mm = jok.utils.math.minAndMax(p0, p1, p2);
-            return math.max(-mm[1], mm[0]) > r;
+            return @max(-mm[1], mm[0]) > r;
         }
     };
 
@@ -133,9 +133,9 @@ pub inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) boo
     // Next, we have 3 face normals from the AABB
     // for these tests we are conceptually checking if the bounding box
     // of the triangle intersects the bounding box of the AABB
-    if (math.max3(v0[0], v1[0], v2[0]) < -1 or math.min3(v0[0], v1[0], v2[0]) > 1) return true;
-    if (math.max3(v0[1], v1[1], v2[1]) < -1 or math.min3(v0[1], v1[1], v2[1]) > 1) return true;
-    if (math.max3(v0[2], v1[2], v2[2]) < -1 or math.min3(v0[2], v1[2], v2[2]) > 1) return true;
+    if (@max(v0[0], @max(v1[0], v2[0])) < -1 or @min(v0[0], @min(v1[0], v2[0])) > 1) return true;
+    if (@max(v0[1], @max(v1[1], v2[1])) < -1 or @min(v0[1], @min(v1[1], v2[1])) > 1) return true;
+    if (@max(v0[2], @max(v1[2], v2[2])) < -1 or @min(v0[2], @min(v1[2], v2[2])) > 1) return true;
 
     // Finally, test if AABB intersects triangle plane
     const plane_n = zmath.normalize3(zmath.cross3(f0, f1));

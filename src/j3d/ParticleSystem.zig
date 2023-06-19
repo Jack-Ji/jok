@@ -319,7 +319,7 @@ pub const Particle = struct {
             self.color = self.color_initial;
         } else {
             assert(self.color_fade_age > 0);
-            const c1 = std.math.max(self.age, 0.0) / self.color_fade_age;
+            const c1 = @max(self.age, 0.0) / self.color_fade_age;
             const c2 = 1.0 - c1;
             self.color = .{
                 .r = lerpColorElement(self.color_initial.r, self.color_final.r, c1, c2),

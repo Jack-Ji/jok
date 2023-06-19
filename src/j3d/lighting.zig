@@ -89,9 +89,9 @@ pub fn calcLightColor(
     };
 
     if (opt.lights_num == 0) return material_color;
-    assert(math.approxEqAbs(f32, eye_pos[3], 1.0, math.f32_epsilon));
-    assert(math.approxEqAbs(f32, vertex_pos[3], 1.0, math.f32_epsilon));
-    assert(math.approxEqAbs(f32, normal[3], 0, math.f32_epsilon));
+    assert(math.approxEqAbs(f32, eye_pos[3], 1.0, math.floatEps(f32)));
+    assert(math.approxEqAbs(f32, vertex_pos[3], 1.0, math.floatEps(f32)));
+    assert(math.approxEqAbs(f32, normal[3], 0, math.floatEps(f32)));
     const ts = zmath.f32x4s(1.0 / 255.0);
     const raw_color = zmath.f32x4(
         @intToFloat(f32, material_color.r),
