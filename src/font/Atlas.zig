@@ -71,7 +71,7 @@ pub fn create(
             &pack_ctx,
             font_info.data,
             0,
-            @intToFloat(f32, font_size),
+            @floatFromInt(f32, font_size),
             @intCast(c_int, cs[0]),
             @intCast(c_int, cs[1] - cs[0] + 1),
             ranges.items[i].packedchar.items.ptr,
@@ -99,7 +99,7 @@ pub fn create(
     var ascent: c_int = undefined;
     var descent: c_int = undefined;
     var line_gap: c_int = undefined;
-    const scale = truetype.stbtt_ScaleForPixelHeight(font_info, @intToFloat(f32, font_size));
+    const scale = truetype.stbtt_ScaleForPixelHeight(font_info, @floatFromInt(f32, font_size));
     truetype.stbtt_GetFontVMetrics(font_info, &ascent, &descent, &line_gap);
 
     var atlas = try allocator.create(Atlas);
@@ -109,9 +109,9 @@ pub fn create(
         .ranges = ranges,
         .codepoint_search = std.AutoHashMap(u32, u8).init(allocator),
         .scale = scale,
-        .vmetric_ascent = @intToFloat(f32, ascent),
-        .vmetric_descent = @intToFloat(f32, descent),
-        .vmetric_line_gap = @intToFloat(f32, line_gap),
+        .vmetric_ascent = @floatFromInt(f32, ascent),
+        .vmetric_descent = @floatFromInt(f32, descent),
+        .vmetric_line_gap = @floatFromInt(f32, line_gap),
     };
     return atlas;
 }

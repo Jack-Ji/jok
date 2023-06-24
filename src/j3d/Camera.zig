@@ -241,10 +241,10 @@ pub fn calcScreenPosition(
 ) sdl.PointF {
     const vp = renderer.getViewport();
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * @intToFloat(f32, vp.width), 0.0,                                0.0,
-        0.0,                              -0.5 * @intToFloat(f32, vp.height), 0.0,
-        0.0,                              0.0,                                0.5,
-        0.5 * @intToFloat(f32, vp.width), 0.5 * @intToFloat(f32, vp.height),  0.5,
+        0.5 * @floatFromInt(f32, vp.width), 0.0,                                  0.0,
+        0.0,                                -0.5 * @floatFromInt(f32, vp.height), 0.0,
+        0.0,                                0.0,                                  0.5,
+        0.5 * @floatFromInt(f32, vp.width), 0.5 * @floatFromInt(f32, vp.height),  0.5,
     });
     const mvp = zmath.mul(model, self.getViewProjectMatrix());
     const coord = if (_coord) |c|
@@ -270,8 +270,8 @@ pub fn clacRayTestTarget(
     const far_plane = _test_distance orelse 10000.0;
     const ray_forward = self.dir * far_plane;
     const vp = renderer.getViewport();
-    const width = @intToFloat(f32, vp.width);
-    const height = @intToFloat(f32, vp.height);
+    const width = @floatFromInt(f32, vp.width);
+    const height = @floatFromInt(f32, vp.height);
     switch (self.frustrum) {
         .orthographic => |p| {
             const hor = self.right * zmath.splat(zmath.Vec, p.width);

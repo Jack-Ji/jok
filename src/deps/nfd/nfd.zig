@@ -21,7 +21,7 @@ pub const FilePath = struct {
     const Self = @This();
 
     pub fn deinit(self: Self) void {
-        std.c.free(@intToPtr(*anyopaque, @ptrToInt(self.path.ptr)));
+        std.c.free(@ptrFromInt(*anyopaque, @intFromPtr(self.path.ptr)));
     }
 };
 

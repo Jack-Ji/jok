@@ -328,10 +328,10 @@ fn loadSettings(allocator: std.mem.Allocator) !void {
             return;
         }
 
-        number_r = @floatToInt(i32, floats.items[0]);
-        number_g = @floatToInt(i32, floats.items[1]);
-        number_w = @floatToInt(i32, floats.items[2]);
-        number_b = @floatToInt(i32, floats.items[3]);
+        number_r = @intFromFloat(i32, floats.items[0]);
+        number_g = @intFromFloat(i32, floats.items[1]);
+        number_w = @intFromFloat(i32, floats.items[2]);
+        number_b = @intFromFloat(i32, floats.items[3]);
         power_rr = floats.items[4];
         power_rg = floats.items[5];
         power_rw = floats.items[6];
@@ -565,8 +565,8 @@ fn renderSimulation() !void {
             .{ .x = p1x, .y = p1y - 10 },
             .{ .x = p2x, .y = p2y - 10 },
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_gr),
-                @floatToInt(u8, 150 + power_gr),
+                @intFromFloat(u8, 150 - power_gr),
+                @intFromFloat(u8, 150 + power_gr),
                 150,
             ),
             .{
@@ -577,8 +577,8 @@ fn renderSimulation() !void {
             .{ .x = p1x, .y = p1y + 10 },
             .{ .x = p2x, .y = p2y + 10 },
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_rg),
-                @floatToInt(u8, 150 + power_rg),
+                @intFromFloat(u8, 150 - power_rg),
+                @intFromFloat(u8, 150 + power_rg),
                 150,
             ),
             .{
@@ -589,8 +589,8 @@ fn renderSimulation() !void {
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p1x, .y = p1y - 10 },
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_gw),
-                @floatToInt(u8, 150 + power_gw),
+                @intFromFloat(u8, 150 - power_gw),
+                @intFromFloat(u8, 150 + power_gw),
                 150,
             ),
             .{
@@ -601,8 +601,8 @@ fn renderSimulation() !void {
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p1x, .y = p1y + 10 },
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_wg),
-                @floatToInt(u8, 150 + power_wg),
+                @intFromFloat(u8, 150 - power_wg),
+                @intFromFloat(u8, 150 + power_wg),
                 150,
             ),
             .{
@@ -614,8 +614,8 @@ fn renderSimulation() !void {
             .{ .x = p4x - 10, .y = p4y },
             .{ .x = p1x - 10, .y = p1y },
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_gb),
-                @floatToInt(u8, 150 + power_gb),
+                @intFromFloat(u8, 150 - power_gb),
+                @intFromFloat(u8, 150 + power_gb),
                 150,
             ),
             .{
@@ -626,8 +626,8 @@ fn renderSimulation() !void {
             .{ .x = p4x + 10, .y = p4y },
             .{ .x = p1x + 10, .y = p1y },
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_bg),
-                @floatToInt(u8, 150 + power_bg),
+                @intFromFloat(u8, 150 - power_bg),
+                @intFromFloat(u8, 150 + power_bg),
                 150,
             ),
             .{
@@ -639,8 +639,8 @@ fn renderSimulation() !void {
             .{ .x = p2x - 10, .y = p2y },
             .{ .x = p3x - 10, .y = p3y },
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_rw),
-                @floatToInt(u8, 150 + power_rw),
+                @intFromFloat(u8, 150 - power_rw),
+                @intFromFloat(u8, 150 + power_rw),
                 150,
             ),
             .{
@@ -651,8 +651,8 @@ fn renderSimulation() !void {
             .{ .x = p2x + 10, .y = p2y },
             .{ .x = p3x + 10, .y = p3y },
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_wr),
-                @floatToInt(u8, 150 + power_wr),
+                @intFromFloat(u8, 150 - power_wr),
+                @intFromFloat(u8, 150 + power_wr),
                 150,
             ),
             .{
@@ -664,8 +664,8 @@ fn renderSimulation() !void {
             .{ .x = p2x, .y = p2y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_rb),
-                @floatToInt(u8, 150 + power_rb),
+                @intFromFloat(u8, 150 - power_rb),
+                @intFromFloat(u8, 150 + power_rb),
                 150,
             ),
             .{
@@ -676,8 +676,8 @@ fn renderSimulation() !void {
             .{ .x = p2x, .y = p2y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_br),
-                @floatToInt(u8, 150 + power_br),
+                @intFromFloat(u8, 150 - power_br),
+                @intFromFloat(u8, 150 + power_br),
                 150,
             ),
             .{
@@ -689,8 +689,8 @@ fn renderSimulation() !void {
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_wb),
-                @floatToInt(u8, 150 + power_wb),
+                @intFromFloat(u8, 150 - power_wb),
+                @intFromFloat(u8, 150 + power_wb),
                 150,
             ),
             .{
@@ -701,8 +701,8 @@ fn renderSimulation() !void {
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_bw),
-                @floatToInt(u8, 150 + power_bw),
+                @intFromFloat(u8, 150 - power_bw),
+                @intFromFloat(u8, 150 + power_bw),
                 150,
             ),
             .{
@@ -714,8 +714,8 @@ fn renderSimulation() !void {
             .{ .x = p1x - 20, .y = p1y - 20 },
             rr + 20,
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_gg),
-                @floatToInt(u8, 150 + power_gg),
+                @intFromFloat(u8, 150 - power_gg),
+                @intFromFloat(u8, 150 + power_gg),
                 150,
             ),
             .{
@@ -726,8 +726,8 @@ fn renderSimulation() !void {
             .{ .x = p2x + 20, .y = p2y - 20 },
             rr + 20,
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_rr),
-                @floatToInt(u8, 150 + power_rr),
+                @intFromFloat(u8, 150 - power_rr),
+                @intFromFloat(u8, 150 + power_rr),
                 150,
             ),
             .{
@@ -738,8 +738,8 @@ fn renderSimulation() !void {
             .{ .x = p3x + 20, .y = p3y + 20 },
             rr + 20,
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_ww),
-                @floatToInt(u8, 150 + power_ww),
+                @intFromFloat(u8, 150 - power_ww),
+                @intFromFloat(u8, 150 + power_ww),
                 150,
             ),
             .{
@@ -750,8 +750,8 @@ fn renderSimulation() !void {
             .{ .x = p4x - 20, .y = p4y + 20 },
             rr + 20,
             sdl.Color.rgb(
-                @floatToInt(u8, 150 - power_bb),
-                @floatToInt(u8, 150 + power_bb),
+                @intFromFloat(u8, 150 - power_bb),
+                @intFromFloat(u8, 150 + power_bb),
                 150,
             ),
             .{

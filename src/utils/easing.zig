@@ -125,8 +125,8 @@ pub fn EaseScalar(comptime T: type) type {
             return switch (T) {
                 f32 => from + (to - from) * x,
                 f64 => from + (to - from) * @floatCast(f64, x),
-                c_int, i8, i16, i32, i64 => from + @floatToInt(T, @intToFloat(f32, to - from) * x),
-                u8, u16, u32, u64 => from + @floatToInt(T, @intToFloat(f32, @intCast(i64, to) - @intCast(i64, from)) * x),
+                c_int, i8, i16, i32, i64 => from + @intFromFloat(T, @floatFromInt(f32, to - from) * x),
+                u8, u16, u32, u64 => from + @intFromFloat(T, @floatFromInt(f32, @intCast(i64, to) - @intCast(i64, from)) * x),
                 else => unreachable,
             };
         }
@@ -144,11 +144,11 @@ pub fn EaseVector(comptime N: u32, comptime T: type) type {
                 switch (T1) {
                     f32, f64 => switch (T2) {
                         f32, f64 => result[i] = @floatCast(T2, v[i]),
-                        c_int, i8, i16, i32, i64, u8, u16, u32, u64 => result[i] = @floatToInt(T2, v[i]),
+                        c_int, i8, i16, i32, i64, u8, u16, u32, u64 => result[i] = @intFromFloat(T2, v[i]),
                         else => unreachable,
                     },
                     c_int, i8, i16, i32, i64, u8, u16, u32, u64 => switch (T2) {
-                        f32, f64 => result[i] = @intToFloat(T2, v[i]),
+                        f32, f64 => result[i] = @floatFromInt(T2, v[i]),
                         c_int, i8, i16, i32, i64, u8, u16, u32, u64 => result[i] = @intCast(T2, v[i]),
                         else => unreachable,
                     },

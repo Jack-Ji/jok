@@ -45,8 +45,8 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 pub fn update(ctx: jok.Context) !void {
     var mouse_state = ctx.getMouseState();
     imgui.setNextWindowPos(.{
-        .x = @intToFloat(f32, mouse_state.x + 10),
-        .y = @intToFloat(f32, mouse_state.y + 10),
+        .x = @floatFromInt(f32, mouse_state.x + 10),
+        .y = @floatFromInt(f32, mouse_state.y + 10),
     });
     if (imgui.begin(
         "mouse context",

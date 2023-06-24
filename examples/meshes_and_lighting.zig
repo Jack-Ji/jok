@@ -332,9 +332,9 @@ pub fn draw(ctx: jok.Context) !void {
             .{
                 .rdopt = .{
                     .color = sdl.Color.rgb(
-                        @floatToInt(u8, lighting_opt.?.lights[0].spot.diffuse[0] * 255),
-                        @floatToInt(u8, lighting_opt.?.lights[0].spot.diffuse[1] * 255),
-                        @floatToInt(u8, lighting_opt.?.lights[0].spot.diffuse[2] * 255),
+                        @intFromFloat(u8, lighting_opt.?.lights[0].spot.diffuse[0] * 255),
+                        @intFromFloat(u8, lighting_opt.?.lights[0].spot.diffuse[1] * 255),
+                        @intFromFloat(u8, lighting_opt.?.lights[0].spot.diffuse[2] * 255),
                     ),
                 },
             },
@@ -344,9 +344,9 @@ pub fn draw(ctx: jok.Context) !void {
             .{
                 .rdopt = .{
                     .color = sdl.Color.rgb(
-                        @floatToInt(u8, lighting_opt.?.lights[1].point.diffuse[0] * 255),
-                        @floatToInt(u8, lighting_opt.?.lights[1].point.diffuse[1] * 255),
-                        @floatToInt(u8, lighting_opt.?.lights[1].point.diffuse[2] * 255),
+                        @intFromFloat(u8, lighting_opt.?.lights[1].point.diffuse[0] * 255),
+                        @intFromFloat(u8, lighting_opt.?.lights[1].point.diffuse[1] * 255),
+                        @intFromFloat(u8, lighting_opt.?.lights[1].point.diffuse[2] * 255),
                     ),
                 },
             },

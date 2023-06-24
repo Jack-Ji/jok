@@ -70,7 +70,7 @@ pub fn draw(ctx: jok.Context) !void {
                     ));
                     tr.rotateByPoint(
                         .{ .x = size.x / 2, .y = size.y / 2 },
-                        jok.utils.math.degreeToRadian(rot + 360.0 * @intToFloat(f32, i) / @intToFloat(f32, ncircle)),
+                        jok.utils.math.degreeToRadian(rot + 360.0 * @floatFromInt(f32, i) / @floatFromInt(f32, ncircle)),
                     );
                     j2d.setTransform(tr);
                     try j2d.circleFilled(.{ .x = 0, .y = 0 }, 10, sdl.Color.green, .{});
@@ -89,9 +89,9 @@ pub fn draw(ctx: jok.Context) !void {
     var node = targets.first;
     var idx: u32 = 0;
     while (node) |n| {
-        const c = @floatToInt(
+        const c = @intFromFloat(
             u8,
-            jok.utils.math.linearMap(@intToFloat(f32, idx), 0, ntex, 0, 255),
+            jok.utils.math.linearMap(@floatFromInt(f32, idx), 0, ntex, 0, 255),
         );
         try j2d.image(n.data, .{ .x = 0, .y = 0 }, .{
             .tint_color = sdl.Color.rgba(255, 255, 255, c),

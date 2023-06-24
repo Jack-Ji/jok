@@ -94,9 +94,9 @@ pub fn calcLightColor(
     assert(math.approxEqAbs(f32, normal[3], 0, math.floatEps(f32)));
     const ts = zmath.f32x4s(1.0 / 255.0);
     const raw_color = zmath.f32x4(
-        @intToFloat(f32, material_color.r),
-        @intToFloat(f32, material_color.g),
-        @intToFloat(f32, material_color.b),
+        @floatFromInt(f32, material_color.r),
+        @floatFromInt(f32, material_color.g),
+        @floatFromInt(f32, material_color.b),
         0,
     ) * ts;
 
@@ -167,9 +167,9 @@ pub fn calcLightColor(
         zmath.f32x4s(1),
     );
     return .{
-        .r = @floatToInt(u8, final_color[0] * 255),
-        .g = @floatToInt(u8, final_color[1] * 255),
-        .b = @floatToInt(u8, final_color[2] * 255),
+        .r = @intFromFloat(u8, final_color[0] * 255),
+        .g = @intFromFloat(u8, final_color[1] * 255),
+        .b = @intFromFloat(u8, final_color[2] * 255),
         .a = material_color.a,
     };
 }

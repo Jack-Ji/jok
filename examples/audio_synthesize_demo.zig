@@ -45,7 +45,7 @@ pub fn init(ctx: jok.Context) !void {
     });
     audio_device = result.device;
     audio_spec = result.obtained_spec;
-    phase_step = frequency * std.math.tau / @intToFloat(f32, audio_spec.sample_rate);
+    phase_step = frequency * std.math.tau / @floatFromInt(f32, audio_spec.sample_rate);
     audio_device.pause(false);
 
     try ctx.renderer().setColorRGB(77, 77, 77);
@@ -56,15 +56,15 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
         .mouse_motion => |me| {
             const fb = ctx.getFramebufferSize();
             frequency = jok.utils.math.linearMap(
-                @intToFloat(f32, me.x),
+                @floatFromInt(f32, me.x),
                 0,
                 fb.x,
                 40,
                 2000,
             );
-            phase_step = frequency * std.math.tau / @intToFloat(f32, audio_spec.sample_rate);
+            phase_step = frequency * std.math.tau / @floatFromInt(f32, audio_spec.sample_rate);
             amplitude = jok.utils.math.linearMap(
-                @intToFloat(f32, me.y),
+                @floatFromInt(f32, me.y),
                 0,
                 fb.y,
                 1.0,
@@ -83,7 +83,7 @@ pub fn draw(ctx: jok.Context) !void {
     var ms = ctx.getMouseState();
     try j2d.begin(.{});
     try j2d.circleFilled(
-        .{ .x = @intToFloat(f32, ms.x), .y = @intToFloat(f32, ms.y) },
+        .{ .x = @floatFromInt(f32, ms.x), .y = @floatFromInt(f32, ms.y) },
         10,
         sdl.Color.white,
         .{},

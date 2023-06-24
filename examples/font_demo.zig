@@ -64,9 +64,9 @@ pub fn draw(ctx: jok.Context) !void {
                 .y = size.y / 2,
             },
             .tint_color = sdl.Color.rgb(
-                @floatToInt(u8, 128 + @sin(ctx.seconds()) * 127),
-                @floatToInt(u8, 128 + @cos(ctx.seconds()) * 127),
-                @floatToInt(u8, 128 + @sin(ctx.seconds()) * 127),
+                @intFromFloat(u8, 128 + @sin(ctx.seconds()) * 127),
+                @intFromFloat(u8, 128 + @cos(ctx.seconds()) * 127),
+                @intFromFloat(u8, 128 + @sin(ctx.seconds()) * 127),
             ),
             .scale = .{
                 .x = 4 + 3 * @sin(ctx.seconds()),

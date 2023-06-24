@@ -168,17 +168,17 @@ pub fn create(
     }
 
     // Merge textures and upload to gpu
-    const inv_width = 1.0 / @intToFloat(f32, width);
-    const inv_height = 1.0 / @intToFloat(f32, height);
+    const inv_width = 1.0 / @floatFromInt(f32, width);
+    const inv_height = 1.0 / @floatFromInt(f32, height);
     for (stb_rects, 0..) |r, i| {
         assert(r.was_packed == 1);
         rects[i] = .{
-            .s0 = @intToFloat(f32, r.x) * inv_width,
-            .t0 = @intToFloat(f32, r.y) * inv_height,
-            .s1 = @intToFloat(f32, r.x + r.w - @intCast(c_int, gap)) * inv_width,
-            .t1 = @intToFloat(f32, r.y + r.h - @intCast(c_int, gap)) * inv_height,
-            .width = @intToFloat(f32, r.w - @intCast(c_int, gap)),
-            .height = @intToFloat(f32, r.h - @intCast(c_int, gap)),
+            .s0 = @floatFromInt(f32, r.x) * inv_width,
+            .t0 = @floatFromInt(f32, r.y) * inv_height,
+            .s1 = @floatFromInt(f32, r.x + r.w - @intCast(c_int, gap)) * inv_width,
+            .t1 = @floatFromInt(f32, r.y + r.h - @intCast(c_int, gap)) * inv_height,
+            .width = @floatFromInt(f32, r.w - @intCast(c_int, gap)),
+            .height = @floatFromInt(f32, r.h - @intCast(c_int, gap)),
         };
         const y_begin: u32 = @intCast(u32, r.y);
         const y_end: u32 = @intCast(u32, r.y + r.h - @intCast(c_int, gap));
@@ -218,8 +218,8 @@ pub fn create(
     self.* = .{
         .allocator = allocator,
         .size = .{
-            .x = @intToFloat(f32, width),
-            .y = @intToFloat(f32, height),
+            .x = @floatFromInt(f32, width),
+            .y = @floatFromInt(f32, height),
         },
         .packed_pixels = if (keep_packed_pixels) ImagePixels{
             .width = width,
@@ -306,24 +306,22 @@ pub fn fromSheetFiles(ctx: jok.Context, path: []const u8) !*Self {
     // Load sprites info
     const allocator = ctx.allocator();
     const json_path = try std.fmt.bufPrint(&path_buf, "{s}.json", .{path});
-    var json_content = try std.fs.cwd().readFileAlloc(allocator, json_path, 1 << 30);
-    defer allocator.free(json_content);
-    var parser = json.Parser.init(allocator, .alloc_if_needed);
-    defer parser.deinit();
-    var json_tree = try parser.parse(json_content);
-    defer json_tree.deinit();
-    if (json_tree.root != .Object) return error.InvalidJson;
-    const rect_count = json_tree.root.Object.count();
+    var file = try std.fs.cwd().openFile(json_path, .{});
+    defer file.close();
+    var parsed = try json.parseFromTokenSource(json.Value, allocator, file.reader(), .{});
+    defer parsed.deinit();
+    if (parsed.value != .object) return error.InvalidJson;
+    const rect_count = parsed.value.object.count();
     assert(rect_count > 0);
     var rects = try allocator.alloc(SpriteRect, rect_count);
     errdefer allocator.free(rects);
     var search_tree = std.StringHashMap(u32).init(allocator);
     errdefer search_tree.deinit();
-    var it = json_tree.root.Object.iterator();
+    var it = parsed.value.object.iterator();
     var i: u32 = 0;
     while (it.next()) |entry| : (i += 1) {
         const name = entry.key_ptr.*;
-        const info = entry.value_ptr.*.Object;
+        const info = entry.value_ptr.*.object;
         rects[i] = SpriteRect{
             .s0 = @floatCast(f32, info.get("s0").?.Float),
             .t0 = @floatCast(f32, info.get("t0").?.Float),
@@ -369,8 +367,8 @@ pub fn fromSinglePicture(
     errdefer tex.destroy();
 
     const info = try tex.query();
-    const tex_width = @intToFloat(f32, info.width);
-    const tex_height = @intToFloat(f32, info.height);
+    const tex_width = @floatFromInt(f32, info.width);
+    const tex_height = @floatFromInt(f32, info.height);
 
     const allocator = ctx.allocator();
     var tree = std.StringHashMap(u32).init(allocator);
@@ -442,20 +440,20 @@ pub fn saveToFiles(self: Self, path: []const u8) !void {
     var arena_allocator = std.heap.ArenaAllocator.init(self.allocator);
     defer arena_allocator.deinit();
     var json_root = json.Value{
-        .Object = json.ObjectMap.init(arena_allocator.allocator()),
+        .object = json.ObjectMap.init(arena_allocator.allocator()),
     };
     var it = self.search_tree.iterator();
     while (it.next()) |entry| {
         const name = entry.key_ptr.*;
         const rect = self.rects[entry.value_ptr.*];
         var obj = json.ObjectMap.init(arena_allocator.allocator());
-        try obj.put("s0", json.Value{ .Float = @as(f64, rect.s0) });
-        try obj.put("t0", json.Value{ .Float = @as(f64, rect.t0) });
-        try obj.put("s1", json.Value{ .Float = @as(f64, rect.s1) });
-        try obj.put("t1", json.Value{ .Float = @as(f64, rect.t1) });
-        try obj.put("width", json.Value{ .Float = @as(f64, rect.width) });
-        try obj.put("height", json.Value{ .Float = @as(f64, rect.height) });
-        try json_root.Object.put(name, json.Value{ .Object = obj });
+        try obj.put("s0", json.Value{ .float = @as(f64, rect.s0) });
+        try obj.put("t0", json.Value{ .float = @as(f64, rect.t0) });
+        try obj.put("s1", json.Value{ .float = @as(f64, rect.s1) });
+        try obj.put("t1", json.Value{ .float = @as(f64, rect.t1) });
+        try obj.put("width", json.Value{ .float = @as(f64, rect.width) });
+        try obj.put("height", json.Value{ .float = @as(f64, rect.height) });
+        try json_root.object.put(name, json.Value{ .object = obj });
     }
     try json_root.jsonStringify(
         .{ .whitespace = json.StringifyOptions.Whitespace{} },
@@ -480,8 +478,8 @@ pub fn getSpriteByName(self: *Self, name: []const u8) ?Sprite {
 /// Get sprite by rectangle
 pub fn getSpriteByRectangle(self: *Self, rect: sdl.RectangleF) Sprite {
     const info = try self.tex.query();
-    const tex_width = @intToFloat(f32, info.width);
-    const tex_height = @intToFloat(f32, info.height);
+    const tex_width = @floatFromInt(f32, info.width);
+    const tex_height = @floatFromInt(f32, info.height);
     var sp = Sprite{
         .width = std.math.min(rect.width, tex_width - rect.x),
         .height = std.math.min(rect.height, tex_height - rect.y),

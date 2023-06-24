@@ -32,8 +32,8 @@ pub fn init(ctx: jok.Context) !void {
                 },
             },
         },
-        @floatToInt(u32, size.x),
-        @floatToInt(u32, size.y),
+        @intFromFloat(u32, size.x),
+        @intFromFloat(u32, size.y),
         1,
         false,
     );
@@ -56,8 +56,8 @@ pub fn update(ctx: jok.Context) !void {
     if (mouse.buttons.getPressed(.left)) {
         var rd = rand_gen.random();
         const pos = sdl.PointF{
-            .x = @intToFloat(f32, mouse.x),
-            .y = @intToFloat(f32, mouse.y),
+            .x = @floatFromInt(f32, mouse.x),
+            .y = @floatFromInt(f32, mouse.y),
         };
         var i: u32 = 0;
         while (i < 10) : (i += 1) {

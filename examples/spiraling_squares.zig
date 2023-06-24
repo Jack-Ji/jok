@@ -46,7 +46,7 @@ pub fn draw(ctx: jok.Context) !void {
     try j2d.begin(.{});
     var i: u32 = 0;
     while (i < rect_num) : (i += 1) {
-        const step = @intToFloat(f32, i);
+        const step = @floatFromInt(f32, i);
         var transform = j2d.AffineTransform.init();
         transform.scale(.{
             .x = math.pow(f32, scale_step, step),

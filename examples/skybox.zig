@@ -130,14 +130,14 @@ pub fn update(ctx: jok.Context) !void {
 
     if (imgui.begin("Tint Color", .{})) {
         var cs: [3]f32 = .{
-            @intToFloat(f32, skybox_tint_color.r) / 255,
-            @intToFloat(f32, skybox_tint_color.g) / 255,
-            @intToFloat(f32, skybox_tint_color.b) / 255,
+            @floatFromInt(f32, skybox_tint_color.r) / 255,
+            @floatFromInt(f32, skybox_tint_color.g) / 255,
+            @floatFromInt(f32, skybox_tint_color.b) / 255,
         };
         if (imgui.colorEdit3("Tint Color", .{ .col = &cs })) {
-            skybox_tint_color.r = @floatToInt(u8, cs[0] * 255);
-            skybox_tint_color.g = @floatToInt(u8, cs[1] * 255);
-            skybox_tint_color.b = @floatToInt(u8, cs[2] * 255);
+            skybox_tint_color.r = @intFromFloat(u8, cs[0] * 255);
+            skybox_tint_color.g = @intFromFloat(u8, cs[1] * 255);
+            skybox_tint_color.b = @intFromFloat(u8, cs[2] * 255);
         }
     }
     imgui.end();

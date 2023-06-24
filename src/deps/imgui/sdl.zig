@@ -76,30 +76,30 @@ pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) !void {
 
         // Apply clip rect
         var clip_rect: sdl.Rectangle = undefined;
-        clip_rect.x = @min(0, @floatToInt(c_int, cmd.clip_rect[0]));
-        clip_rect.y = @min(0, @floatToInt(c_int, cmd.clip_rect[1]));
-        clip_rect.width = @min(fb_size.width_pixels, @floatToInt(c_int, cmd.clip_rect[2] - cmd.clip_rect[0]));
-        clip_rect.height = @min(fb_size.height_pixels, @floatToInt(c_int, cmd.clip_rect[3] - cmd.clip_rect[1]));
+        clip_rect.x = @min(0, @intFromFloat(c_int, cmd.clip_rect[0]));
+        clip_rect.y = @min(0, @intFromFloat(c_int, cmd.clip_rect[1]));
+        clip_rect.width = @min(fb_size.width_pixels, @intFromFloat(c_int, cmd.clip_rect[2] - cmd.clip_rect[0]));
+        clip_rect.height = @min(fb_size.height_pixels, @intFromFloat(c_int, cmd.clip_rect[3] - cmd.clip_rect[1]));
         if (clip_rect.width <= 0 or clip_rect.height <= 0) continue;
         try rd.setClipRect(clip_rect);
 
         // Bind texture and draw
-        const xy = @ptrToInt(vs_ptr + @intCast(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "pos");
-        const uv = @ptrToInt(vs_ptr + @intCast(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "uv");
-        const cs = @ptrToInt(vs_ptr + @intCast(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "color");
-        const is = @ptrToInt(is_ptr + cmd.idx_offset);
+        const xy = @intFromPtr(vs_ptr + @intCast(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "pos");
+        const uv = @intFromPtr(vs_ptr + @intCast(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "uv");
+        const cs = @intFromPtr(vs_ptr + @intCast(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "color");
+        const is = @intFromPtr(is_ptr + cmd.idx_offset);
         const tex = cmd.texture_id;
         _ = sdl.c.SDL_RenderGeometryRaw(
             rd.ptr,
             @ptrCast(?*sdl.c.SDL_Texture, tex),
-            @intToPtr([*c]const f32, xy),
+            @ptrFromInt([*c]const f32, xy),
             @sizeOf(imgui.DrawVert),
-            @intToPtr([*c]const sdl.c.SDL_Color, cs),
+            @ptrFromInt([*c]const sdl.c.SDL_Color, cs),
             @sizeOf(imgui.DrawVert),
-            @intToPtr([*c]const f32, uv),
+            @ptrFromInt([*c]const f32, uv),
             @sizeOf(imgui.DrawVert),
             @intCast(c_int, vs_count) - @intCast(c_int, cmd.vtx_offset),
-            @intToPtr([*c]const u16, is),
+            @ptrFromInt([*c]const u16, is),
             @intCast(c_int, cmd.elem_count),
             @sizeOf(imgui.DrawIdx),
         );

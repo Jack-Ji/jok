@@ -72,7 +72,7 @@ pub fn createTextureFromFile(
     var height: c_int = undefined;
     var channels: c_int = undefined;
 
-    stb.image.stbi_set_flip_vertically_on_load(@boolToInt(flip));
+    stb.image.stbi_set_flip_vertically_on_load(@intFromBool(flip));
     var image_data = stb.image.stbi_load(
         image_file.ptr,
         &width,
@@ -107,7 +107,7 @@ pub fn createTextureFromFileData(
     var height: c_int = undefined;
     var channels: c_int = undefined;
 
-    stb.image.stbi_set_flip_vertically_on_load(@boolToInt(flip));
+    stb.image.stbi_set_flip_vertically_on_load(@intFromBool(flip));
     var image_data = stb.image.stbi_load_from_memory(
         file_data.ptr,
         @intCast(c_int, file_data.len),
@@ -153,7 +153,7 @@ pub fn savePixelsToFile(
 
     // Encode file
     var result: c_int = undefined;
-    stb.image.stbi_flip_vertically_on_write(@boolToInt(opt.flip_on_write));
+    stb.image.stbi_flip_vertically_on_write(@intFromBool(opt.flip_on_write));
     switch (opt.format) {
         .png => {
             stb.image.stbi_write_png_compression_level =
@@ -205,7 +205,7 @@ pub fn savePixelsToFile(
 
 /// Save surface to file
 pub fn saveSurfaceToFile(surface: sdl.Surface, path: [:0]const u8, opt: EncodingOption) !void {
-    const format = @intToEnum(sdl.PixelFormatEnum, surface.ptr.format.*.format);
+    const format = @enumFromInt(sdl.PixelFormatEnum, surface.ptr.format.*.format);
     var channels = getChannels(format);
     const pixels = @ptrCast([*]const u8, surface.ptr.pixels.?);
     const size = @intCast(usize, surface.ptr.w * surface.ptr.h * channels);
@@ -321,8 +321,8 @@ pub fn renderToTexture(rd: sdl.Renderer, renderer: anytype, opt: RenderToTexture
         try rd.setColor(old_color);
     }
     try renderer.draw(rd, .{
-        .x = @intToFloat(f32, tex_info.width),
-        .y = @intToFloat(f32, tex_info.height),
+        .x = @floatFromInt(f32, tex_info.width),
+        .y = @floatFromInt(f32, tex_info.height),
     });
     return target;
 }

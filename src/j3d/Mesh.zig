@@ -441,7 +441,7 @@ pub fn fromShape(
     );
     if (shape.texcoords != null) {
         if (opt.tex) |t| {
-            const tex_id = @ptrToInt(t.ptr);
+            const tex_id = @intFromPtr(t.ptr);
             self.root.meshes[0].tex_id = tex_id;
             try self.textures.put(tex_id, t);
             if (opt.uvs != null) {
@@ -472,7 +472,7 @@ pub fn fromGltf(
     errdefer self.destroy();
 
     if (opt.tex) |t| { // Use external texture
-        const tex_id = @ptrToInt(t.ptr);
+        const tex_id = @intFromPtr(t.ptr);
         try self.textures.put(tex_id, t);
     } else {
         self.own_textures = true;
@@ -580,7 +580,7 @@ fn loadNodeTree(
             // Load material
             var transform: ?zmesh.io.zcgltf.TextureTransform = null;
             if (opt.tex) |t| {
-                sm.tex_id = @ptrToInt(t.ptr);
+                sm.tex_id = @intFromPtr(t.ptr);
                 if (opt.uvs != null) {
                     sm.remapTexcoords(opt.uvs.?[0], opt.uvs.?[1]);
                 }
@@ -589,7 +589,7 @@ fn loadNodeTree(
                     mat.pbr_metallic_roughness.base_color_texture.texture != null)
                 {
                     const image = mat.pbr_metallic_roughness.base_color_texture.texture.?.image.?;
-                    sm.tex_id = @ptrToInt(image);
+                    sm.tex_id = @intFromPtr(image);
                     assert(sm.tex_id != 0);
 
                     // Lazily load textures
@@ -647,22 +647,22 @@ fn loadNodeTree(
                 assert(accessor.stride * accessor.count <= buffer_view.size);
                 assert(buffer_view.buffer.data != null);
 
-                const data_addr = @ptrToInt(buffer_view.buffer.data.?) + accessor.offset + buffer_view.offset;
+                const data_addr = @intFromPtr(buffer_view.buffer.data.?) + accessor.offset + buffer_view.offset;
                 if (accessor.stride == 1) {
                     assert(accessor.component_type == .r_8u);
-                    const src = @intToPtr([*]const u8, data_addr);
+                    const src = @ptrFromInt([*]const u8, data_addr);
                     for (0..num_indices) |i| {
                         sm.indices.appendAssumeCapacity(src[i] + index_offset);
                     }
                 } else if (accessor.stride == 2) {
                     assert(accessor.component_type == .r_16u);
-                    const src = @intToPtr([*]const u16, data_addr);
+                    const src = @ptrFromInt([*]const u16, data_addr);
                     for (0..num_indices) |i| {
                         sm.indices.appendAssumeCapacity(src[i] + index_offset);
                     }
                 } else if (accessor.stride == 4) {
                     assert(accessor.component_type == .r_32u);
-                    const src = @intToPtr([*]const u32, data_addr);
+                    const src = @ptrFromInt([*]const u32, data_addr);
                     for (0..num_indices) |i| {
                         sm.indices.appendAssumeCapacity(src[i] + index_offset);
                     }
@@ -687,39 +687,39 @@ fn loadNodeTree(
                     assert(accessor.stride == buffer_view.stride or buffer_view.stride == 0);
                     assert(accessor.stride * accessor.count <= buffer_view.size);
 
-                    const data_addr = @ptrToInt(buffer_view.buffer.data.?) + accessor.offset + buffer_view.offset;
+                    const data_addr = @intFromPtr(buffer_view.buffer.data.?) + accessor.offset + buffer_view.offset;
                     if (attrib.type == .position) {
                         assert(accessor.type == .vec3);
                         assert(accessor.component_type == .r_32f);
-                        const slice = @intToPtr([*]const [3]f32, data_addr)[0..num_vertices];
+                        const slice = @ptrFromInt([*]const [3]f32, data_addr)[0..num_vertices];
                         try sm.positions.appendSlice(slice);
                     } else if (attrib.type == .normal) {
                         assert(accessor.type == .vec3);
                         assert(accessor.component_type == .r_32f);
-                        const slice = @intToPtr([*]const [3]f32, data_addr)[0..num_vertices];
+                        const slice = @ptrFromInt([*]const [3]f32, data_addr)[0..num_vertices];
                         try sm.normals.appendSlice(slice);
                     } else if (attrib.type == .color) {
                         assert(accessor.component_type == .r_32f);
                         if (accessor.type == .vec3) {
-                            const slice = @intToPtr([*]const [3]f32, data_addr)[0..num_vertices];
+                            const slice = @ptrFromInt([*]const [3]f32, data_addr)[0..num_vertices];
                             for (slice) |c| try sm.colors.append(sdl.Color.rgb(
-                                @floatToInt(u8, 255 * c[0]),
-                                @floatToInt(u8, 255 * c[1]),
-                                @floatToInt(u8, 255 * c[2]),
+                                @intFromFloat(u8, 255 * c[0]),
+                                @intFromFloat(u8, 255 * c[1]),
+                                @intFromFloat(u8, 255 * c[2]),
                             ));
                         } else if (accessor.type == .vec4) {
-                            const slice = @intToPtr([*]const [4]f32, data_addr)[0..num_vertices];
+                            const slice = @ptrFromInt([*]const [4]f32, data_addr)[0..num_vertices];
                             for (slice) |c| try sm.colors.append(sdl.Color.rgba(
-                                @floatToInt(u8, 255 * c[0]),
-                                @floatToInt(u8, 255 * c[1]),
-                                @floatToInt(u8, 255 * c[2]),
-                                @floatToInt(u8, 255 * c[3]),
+                                @intFromFloat(u8, 255 * c[0]),
+                                @intFromFloat(u8, 255 * c[1]),
+                                @intFromFloat(u8, 255 * c[2]),
+                                @intFromFloat(u8, 255 * c[3]),
                             ));
                         }
                     } else if (attrib.type == .texcoord) {
                         assert(accessor.type == .vec2);
                         assert(accessor.component_type == .r_32f);
-                        const slice = @intToPtr([*]const [2]f32, data_addr)[0..num_vertices];
+                        const slice = @ptrFromInt([*]const [2]f32, data_addr)[0..num_vertices];
                         try sm.texcoords.ensureTotalCapacity(sm.texcoords.items.len + slice.len);
                         if (transform) |tr| {
                             for (slice) |ts| {
@@ -740,10 +740,10 @@ fn loadNodeTree(
                         assert(accessor.type == .vec4);
                         try sm.joints.ensureTotalCapacity(sm.joints.items.len + num_vertices);
                         if (accessor.component_type == .r_8u) {
-                            const slice = @intToPtr([*]const [4]u8, data_addr)[0..num_vertices];
+                            const slice = @ptrFromInt([*]const [4]u8, data_addr)[0..num_vertices];
                             try sm.joints.appendSlice(slice);
                         } else if (accessor.component_type == .r_16u) {
-                            const slice = @intToPtr([*]const [4]u16, data_addr)[0..num_vertices];
+                            const slice = @ptrFromInt([*]const [4]u16, data_addr)[0..num_vertices];
                             for (slice) |xs| {
                                 sm.joints.appendAssumeCapacity([4]u8{
                                     @intCast(u8, xs[0]),
@@ -757,26 +757,26 @@ fn loadNodeTree(
                         assert(accessor.type == .vec4);
                         try sm.weights.ensureTotalCapacity(sm.weights.items.len + num_vertices);
                         if (accessor.component_type == .r_32f) {
-                            const slice = @intToPtr([*]const [4]f32, data_addr)[0..num_vertices];
+                            const slice = @ptrFromInt([*]const [4]f32, data_addr)[0..num_vertices];
                             try sm.weights.appendSlice(slice);
                         } else if (accessor.component_type == .r_8u) {
-                            const slice = @intToPtr([*]const [4]u8, data_addr)[0..num_vertices];
+                            const slice = @ptrFromInt([*]const [4]u8, data_addr)[0..num_vertices];
                             for (slice) |xs| {
                                 sm.weights.appendAssumeCapacity([4]f32{
-                                    @intToFloat(f32, xs[0]) / 255.0,
-                                    @intToFloat(f32, xs[1]) / 255.0,
-                                    @intToFloat(f32, xs[2]) / 255.0,
-                                    @intToFloat(f32, xs[3]) / 255.0,
+                                    @floatFromInt(f32, xs[0]) / 255.0,
+                                    @floatFromInt(f32, xs[1]) / 255.0,
+                                    @floatFromInt(f32, xs[2]) / 255.0,
+                                    @floatFromInt(f32, xs[3]) / 255.0,
                                 });
                             }
                         } else if (accessor.component_type == .r_16u) {
-                            const slice = @intToPtr([*]const [4]u16, data_addr)[0..num_vertices];
+                            const slice = @ptrFromInt([*]const [4]u16, data_addr)[0..num_vertices];
                             for (slice) |xs| {
                                 sm.weights.appendAssumeCapacity([4]f32{
-                                    @intToFloat(f32, xs[0]) / 65535.0,
-                                    @intToFloat(f32, xs[1]) / 65535.0,
-                                    @intToFloat(f32, xs[2]) / 65535.0,
-                                    @intToFloat(f32, xs[3]) / 65535.0,
+                                    @floatFromInt(f32, xs[0]) / 65535.0,
+                                    @floatFromInt(f32, xs[1]) / 65535.0,
+                                    @floatFromInt(f32, xs[2]) / 65535.0,
+                                    @floatFromInt(f32, xs[3]) / 65535.0,
                                 });
                             }
                         } else unreachable;

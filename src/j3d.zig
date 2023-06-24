@@ -65,8 +65,8 @@ pub fn begin(opt: BeginOption) !void {
     camera = opt.camera orelse BLK: {
         const fsize = try rd.getOutputSize();
         const ratio =
-            @intToFloat(f32, fsize.width_pixels) /
-            @intToFloat(f32, fsize.height_pixels);
+            @floatFromInt(f32, fsize.width_pixels) /
+            @floatFromInt(f32, fsize.height_pixels);
         break :BLK Camera.fromPositionAndTarget(
             .{
                 .perspective = .{

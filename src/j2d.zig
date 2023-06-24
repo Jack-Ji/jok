@@ -71,8 +71,8 @@ pub fn begin(opt: BeginOption) !void {
     draw_list.pushClipRect(.{
         .pmin = .{ 0, 0 },
         .pmax = .{
-            @intToFloat(f32, output_size.width_pixels),
-            @intToFloat(f32, output_size.height_pixels),
+            @floatFromInt(f32, output_size.width_pixels),
+            @floatFromInt(f32, output_size.height_pixels),
         },
     });
     draw_list.pushTextureId(imgui.io.getFontsTexId());
@@ -184,8 +184,8 @@ pub fn image(texture: sdl.Texture, pos: sdl.PointF, opt: ImageOption) !void {
     const size = opt.size orelse BLK: {
         const info = try texture.query();
         break :BLK sdl.PointF{
-            .x = @intToFloat(f32, info.width),
-            .y = @intToFloat(f32, info.height),
+            .x = @floatFromInt(f32, info.width),
+            .y = @floatFromInt(f32, info.height),
         };
     };
     const s = Sprite{
@@ -224,8 +224,8 @@ pub fn imageRounded(texture: sdl.Texture, pos: sdl.PointF, opt: ImageRoundedOpti
     const size = opt.size orelse BLK: {
         const info = try texture.query();
         break :BLK sdl.PointF{
-            .x = @intToFloat(f32, info.width),
-            .y = @intToFloat(f32, info.height),
+            .x = @floatFromInt(f32, info.width),
+            .y = @floatFromInt(f32, info.height),
         };
     };
     const pmin = transform.transformPoint(pos);
