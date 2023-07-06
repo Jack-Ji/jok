@@ -21,7 +21,7 @@ pub const FilePath = struct {
     const Self = @This();
 
     pub fn deinit(self: Self) void {
-        std.c.free(@ptrFromInt(*anyopaque, @intFromPtr(self.path.ptr)));
+        std.c.free(@as(*anyopaque, @constCast(@ptrCast(self.path.ptr))));
     }
 };
 
@@ -82,7 +82,7 @@ pub const MultipleFilePath = struct {
     }
 
     pub fn getCount(self: Self) u32 {
-        return @intCast(u32, self.pathset.count);
+        return @as(u32, self.pathset.count);
     }
 
     pub fn getPath(self: Self, index: u32) [:0]const u8 {

@@ -15,9 +15,9 @@ var phase_step: f32 = undefined;
 var amplitude: f32 = 0.1;
 
 fn audioCallback(_: ?*anyopaque, buf: [*c]u8, size: c_int) callconv(.C) void {
-    const audio_buf = @ptrCast([*]f32, @alignCast(@alignOf([*]f32), buf));
-    const buf_size = @intCast(u32, size) / @sizeOf(f32);
-    assert(@intCast(u32, size) % @sizeOf(f32) == 0);
+    const audio_buf = @as([*]f32, @ptrCast(@alignCast(buf)));
+    const buf_size = @as(u32, @intCast(size)) / @sizeOf(f32);
+    assert(@as(u32, @intCast(size)) % @sizeOf(f32) == 0);
 
     var i: u32 = 0;
     while (i < buf_size) : (i += 2) {
@@ -45,7 +45,7 @@ pub fn init(ctx: jok.Context) !void {
     });
     audio_device = result.device;
     audio_spec = result.obtained_spec;
-    phase_step = frequency * std.math.tau / @floatFromInt(f32, audio_spec.sample_rate);
+    phase_step = frequency * std.math.tau / @as(f32, @floatFromInt(audio_spec.sample_rate));
     audio_device.pause(false);
 
     try ctx.renderer().setColorRGB(77, 77, 77);
@@ -56,15 +56,15 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
         .mouse_motion => |me| {
             const fb = ctx.getFramebufferSize();
             frequency = jok.utils.math.linearMap(
-                @floatFromInt(f32, me.x),
+                @floatFromInt(me.x),
                 0,
                 fb.x,
                 40,
                 2000,
             );
-            phase_step = frequency * std.math.tau / @floatFromInt(f32, audio_spec.sample_rate);
+            phase_step = frequency * std.math.tau / @as(f32, @floatFromInt(audio_spec.sample_rate));
             amplitude = jok.utils.math.linearMap(
-                @floatFromInt(f32, me.y),
+                @floatFromInt(me.y),
                 0,
                 fb.y,
                 1.0,
@@ -83,7 +83,7 @@ pub fn draw(ctx: jok.Context) !void {
     var ms = ctx.getMouseState();
     try j2d.begin(.{});
     try j2d.circleFilled(
-        .{ .x = @floatFromInt(f32, ms.x), .y = @floatFromInt(f32, ms.y) },
+        .{ .x = @floatFromInt(ms.x), .y = @floatFromInt(ms.y) },
         10,
         sdl.Color.white,
         .{},

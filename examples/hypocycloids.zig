@@ -35,8 +35,8 @@ pub fn draw(ctx: jok.Context) !void {
         var point = sdl.PointF{ .x = 0, .y = 0 };
         var j: usize = 0;
         while (j < 5) : (j += 1) {
-            const angle = jok.utils.math.degreeToRadian(@floatFromInt(f32, i) / 4 * math.pow(f32, @as(f32, 3.0), @floatFromInt(f32, j)));
-            const off = math.pow(f32, 0.4 + statechange, @floatFromInt(f32, j));
+            const angle = jok.utils.math.degreeToRadian(@as(f32, @floatFromInt(i)) / 4 * math.pow(f32, 3.0, @as(f32, @floatFromInt(j))));
+            const off = math.pow(f32, 0.4 + statechange, @as(f32, @floatFromInt(j)));
             point.x += math.cos(angle) * off;
             point.y += math.sin(angle) * off;
         }

@@ -56,7 +56,7 @@ pub fn init(ctx: jok.Context) !void {
             .sprite = .{
                 .transform = zmath.mul(
                     zmath.translation(0, 10, 0),
-                    zmath.rotationX(angle_step * @floatFromInt(f32, i)),
+                    zmath.rotationX(angle_step * @as(f32, @floatFromInt(i))),
                 ),
                 .size = .{ .x = 2, .y = 2 },
                 .uv = .{ sp.uv0, sp.uv1 },
@@ -156,8 +156,8 @@ pub fn update(ctx: jok.Context) !void {
         zmath.rotationY(ctx.seconds()),
     ));
     sprites[12].actor.sprite.tint_color = sdl.Color.rgb(
-        @intFromFloat(u8, 127 * (1 + @sin(ctx.seconds()))),
-        @intFromFloat(u8, 127 * (1 + @cos(ctx.seconds()))),
+        @intFromFloat(127 * (1 + @sin(ctx.seconds()))),
+        @intFromFloat(127 * (1 + @cos(ctx.seconds()))),
         100,
     );
     sprites[13].actor.sprite.rotate_degree = ctx.seconds() * 180;

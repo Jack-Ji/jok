@@ -87,8 +87,8 @@ pub fn init(allocator: std.mem.Allocator) Self {
     };
     for (&self.planes, 0..) |*p, i| {
         p.* = zmesh.Shape.initPlane(
-            @intCast(i32, i + 1),
-            @intCast(i32, i + 1),
+            @intCast(i + 1),
+            @intCast(i + 1),
         );
         p.computeNormals();
     }
@@ -135,10 +135,10 @@ pub fn renderMesh(
     assert(if (opt.animation) |anim| anim.joints.len == anim.weights.len else true);
     if (indices.len == 0) return;
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * @floatFromInt(f32, viewport.width), 0.0,                                        0.0,
-        0.0,                                      -0.5 * @floatFromInt(f32, viewport.height), 0.0,
-        0.0,                                      0.0,                                        0.5,
-        0.5 * @floatFromInt(f32, viewport.width), 0.5 * @floatFromInt(f32, viewport.height),  0.5,
+        0.5 * @as(f32, @floatFromInt(viewport.width)), 0.0,                                             0.0,
+        0.0,                                           -0.5 * @as(f32, @floatFromInt(viewport.height)), 0.0,
+        0.0,                                           0.0,                                             0.5,
+        0.5 * @as(f32, @floatFromInt(viewport.width)), 0.5 * @as(f32, @floatFromInt(viewport.height)),  0.5,
     });
     const vp = camera.getViewProjectMatrix();
     const mvp = zmath.mul(model, vp);
@@ -426,13 +426,13 @@ pub fn renderSprite(
         const shape = self.planes[opt.tessellation_level];
         const row_count = opt.tessellation_level + 2;
         assert(shape.texcoords.?.len == row_count * row_count);
-        const tex_coord_step_x = (uv1.x - uv0.x) / @floatFromInt(f32, opt.tessellation_level + 1);
-        const tex_coord_step_y = (uv1.y - uv0.y) / @floatFromInt(f32, opt.tessellation_level + 1);
+        const tex_coord_step_x = (uv1.x - uv0.x) / @as(f32, @floatFromInt(opt.tessellation_level + 1));
+        const tex_coord_step_y = (uv1.y - uv0.y) / @as(f32, @floatFromInt(opt.tessellation_level + 1));
         for (0..row_count) |x| {
-            const tx = uv0.x + tex_coord_step_x * @floatFromInt(f32, x);
+            const tx = uv0.x + tex_coord_step_x * @as(f32, @floatFromInt(x));
             for (0..row_count) |y| {
                 shape.texcoords.?[x * row_count + y] =
-                    .{ tx, uv0.y + tex_coord_step_y * @floatFromInt(f32, y) };
+                    .{ tx, uv0.y + tex_coord_step_y * @as(f32, @floatFromInt(y)) };
             }
         }
         try self.renderMesh(
@@ -474,8 +474,8 @@ pub fn renderSprite(
             if (ndc_center[2] <= -1 or ndc_center[2] >= 1) {
                 return;
             }
-            const size_x = size.x / @floatFromInt(f32, viewport.width) * 2;
-            const size_y = size.y / @floatFromInt(f32, viewport.height) * 2;
+            const size_x = size.x / @as(f32, @floatFromInt(viewport.width)) * 2;
+            const size_y = size.y / @as(f32, @floatFromInt(viewport.height)) * 2;
             const m_scale = zmath.scaling(size_x * opt.scale.x, size_y * opt.scale.y, 1);
             const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
             const m_translate = zmath.translation(ndc_center[0], ndc_center[1], 0);
@@ -535,10 +535,10 @@ pub fn renderSprite(
 
         // Calculate screen coordinate
         const ndc_to_screen = zmath.loadMat43(&[_]f32{
-            0.5 * @floatFromInt(f32, viewport.width), 0.0,                                        0.0,
-            0.0,                                      -0.5 * @floatFromInt(f32, viewport.height), 0.0,
-            0.0,                                      0.0,                                        0.5,
-            0.5 * @floatFromInt(f32, viewport.width), 0.5 * @floatFromInt(f32, viewport.height),  0.5,
+            0.5 * @as(f32, @floatFromInt(viewport.width)), 0.0,                                             0.0,
+            0.0,                                           -0.5 * @as(f32, @floatFromInt(viewport.height)), 0.0,
+            0.0,                                           0.0,                                             0.5,
+            0.5 * @as(f32, @floatFromInt(viewport.width)), 0.5 * @as(f32, @floatFromInt(viewport.height)),  0.5,
         });
         const ndcs = zmath.Mat{
             ndc0,

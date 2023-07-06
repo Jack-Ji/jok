@@ -83,12 +83,12 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 
             camera.rotateAroundBy(
                 null,
-                @floatFromInt(f32, me.delta_x) * 0.01,
-                @floatFromInt(f32, me.delta_y) * 0.01,
+                @as(f32, @floatFromInt(me.delta_x)) * 0.01,
+                @as(f32, @floatFromInt(me.delta_y)) * 0.01,
             );
         },
         .mouse_wheel => |me| {
-            camera.zoomBy(@floatFromInt(f32, me.delta_y) * -0.1);
+            camera.zoomBy(@as(f32, @floatFromInt(me.delta_y)) * -0.1);
         },
         else => {},
     }

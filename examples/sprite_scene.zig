@@ -16,8 +16,8 @@ pub fn init(ctx: jok.Context) !void {
     sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
         "assets/images",
-        @intFromFloat(u32, size.x),
-        @intFromFloat(u32, size.y),
+        @intFromFloat(size.x),
+        @intFromFloat(size.y),
         1,
         true,
         .{},

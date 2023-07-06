@@ -67,7 +67,7 @@ pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) !void {
     const old_clip_rect = try rd.getClipRect();
     defer rd.setClipRect(old_clip_rect) catch unreachable;
 
-    const commands = dl.getCmdBufferData()[0..@intCast(u32, dl.getCmdBufferLength())];
+    const commands = dl.getCmdBufferData()[0..@as(u32, @intCast(dl.getCmdBufferLength()))];
     const vs_ptr = dl.getVertexBufferData();
     const vs_count = dl.getVertexBufferLength();
     const is_ptr = dl.getIndexBufferData();
@@ -76,31 +76,31 @@ pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) !void {
 
         // Apply clip rect
         var clip_rect: sdl.Rectangle = undefined;
-        clip_rect.x = @min(0, @intFromFloat(c_int, cmd.clip_rect[0]));
-        clip_rect.y = @min(0, @intFromFloat(c_int, cmd.clip_rect[1]));
-        clip_rect.width = @min(fb_size.width_pixels, @intFromFloat(c_int, cmd.clip_rect[2] - cmd.clip_rect[0]));
-        clip_rect.height = @min(fb_size.height_pixels, @intFromFloat(c_int, cmd.clip_rect[3] - cmd.clip_rect[1]));
+        clip_rect.x = @min(0, @as(c_int, @intFromFloat(cmd.clip_rect[0])));
+        clip_rect.y = @min(0, @as(c_int, @intFromFloat(cmd.clip_rect[1])));
+        clip_rect.width = @min(fb_size.width_pixels, @as(c_int, @intFromFloat(cmd.clip_rect[2] - cmd.clip_rect[0])));
+        clip_rect.height = @min(fb_size.height_pixels, @as(c_int, @intFromFloat(cmd.clip_rect[3] - cmd.clip_rect[1])));
         if (clip_rect.width <= 0 or clip_rect.height <= 0) continue;
         try rd.setClipRect(clip_rect);
 
         // Bind texture and draw
-        const xy = @intFromPtr(vs_ptr + @intCast(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "pos");
-        const uv = @intFromPtr(vs_ptr + @intCast(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "uv");
-        const cs = @intFromPtr(vs_ptr + @intCast(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "color");
+        const xy = @intFromPtr(vs_ptr + @as(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "pos");
+        const uv = @intFromPtr(vs_ptr + @as(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "uv");
+        const cs = @intFromPtr(vs_ptr + @as(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "color");
         const is = @intFromPtr(is_ptr + cmd.idx_offset);
         const tex = cmd.texture_id;
         _ = sdl.c.SDL_RenderGeometryRaw(
             rd.ptr,
-            @ptrCast(?*sdl.c.SDL_Texture, tex),
-            @ptrFromInt([*c]const f32, xy),
+            @as(?*sdl.c.SDL_Texture, @ptrCast(tex)),
+            @as([*c]const f32, @ptrFromInt(xy)),
             @sizeOf(imgui.DrawVert),
-            @ptrFromInt([*c]const sdl.c.SDL_Color, cs),
+            @as([*c]const sdl.c.SDL_Color, @ptrFromInt(cs)),
             @sizeOf(imgui.DrawVert),
-            @ptrFromInt([*c]const f32, uv),
+            @as([*c]const f32, @ptrFromInt(uv)),
             @sizeOf(imgui.DrawVert),
-            @intCast(c_int, vs_count) - @intCast(c_int, cmd.vtx_offset),
-            @ptrFromInt([*c]const u16, is),
-            @intCast(c_int, cmd.elem_count),
+            @as(c_int, vs_count) - @as(c_int, @intCast(cmd.vtx_offset)),
+            @as([*c]const u16, @ptrFromInt(is)),
+            @intCast(cmd.elem_count),
             @sizeOf(imgui.DrawIdx),
         );
     }
@@ -108,10 +108,10 @@ pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) !void {
 
 /// Convert SDL color to imgui integer
 pub inline fn convertColor(color: sdl.Color) u32 {
-    return @intCast(u32, color.r) |
-        (@intCast(u32, color.g) << 8) |
-        (@intCast(u32, color.b) << 16) |
-        (@intCast(u32, color.a) << 24);
+    return @as(u32, color.r) |
+        (@as(u32, color.g) << 8) |
+        (@as(u32, color.b) << 16) |
+        (@as(u32, color.a) << 24);
 }
 
 // These functions are defined in `imgui_impl_sdl.cpp` and 'imgui_impl_sdlrenderer.cpp`

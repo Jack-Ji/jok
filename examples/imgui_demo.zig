@@ -45,8 +45,8 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 pub fn update(ctx: jok.Context) !void {
     var mouse_state = ctx.getMouseState();
     imgui.setNextWindowPos(.{
-        .x = @floatFromInt(f32, mouse_state.x + 10),
-        .y = @floatFromInt(f32, mouse_state.y + 10),
+        .x = @floatFromInt(mouse_state.x + 10),
+        .y = @floatFromInt(mouse_state.y + 10),
     });
     if (imgui.begin(
         "mouse context",
@@ -171,7 +171,7 @@ pub fn update(ctx: jok.Context) !void {
             const items = [_][:0]const u8{ "aaa", "bbb", "ccc", "ddd", "eee", "FFF", "ggg", "hhh" };
             if (imgui.beginCombo("Combo 0", .{ .preview_value = items[static.selection_index] })) {
                 for (items, 0..) |item, index| {
-                    const i = @intCast(u32, index);
+                    const i = @as(u32, @intCast(index));
                     if (imgui.selectable(item, .{ .selected = static.selection_index == i }))
                         static.selection_index = i;
                 }
@@ -349,7 +349,7 @@ pub fn update(ctx: jok.Context) !void {
             const items = [_][:0]const u8{ "aaa", "bbb", "ccc", "ddd", "eee", "FFF", "ggg", "hhh" };
             if (imgui.beginListBox("List Box 0", .{})) {
                 for (items, 0..) |item, index| {
-                    const i = @intCast(u32, index);
+                    const i = @as(u32, @intCast(index));
                     if (imgui.selectable(item, .{ .selected = static.selection_index == i }))
                         static.selection_index = i;
                 }

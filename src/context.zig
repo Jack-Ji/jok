@@ -222,7 +222,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
 
             // Misc.
-            self._pc_freq = @floatFromInt(f64, sdl.c.SDL_GetPerformanceFrequency());
+            self._pc_freq = @as(f64, @floatFromInt(sdl.c.SDL_GetPerformanceFrequency()));
             self._last_pc = sdl.c.SDL_GetPerformanceCounter();
             return self;
         }
@@ -312,12 +312,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const fps_pc_threshold: u64 = switch (cfg.jok_fps_limit) {
                 .none => 0,
                 .auto => if (self._is_software)
-                    @divTrunc(@intFromFloat(u64, self._pc_freq), 30)
+                    @divTrunc(@as(u64, @intFromFloat(self._pc_freq)), 30)
                 else
                     0,
-                .manual => |_fps| @intFromFloat(u64, self._pc_freq) / @intCast(u64, _fps),
+                .manual => |_fps| @as(u64, @intFromFloat(self._pc_freq)) / @as(u64, @intCast(_fps)),
             };
-            const max_accumulated = @intFromFloat(u64, self._pc_freq * 0.5);
+            const max_accumulated = @as(u64, @intFromFloat(self._pc_freq * 0.5));
 
             // Update game
             imgui.sdl.newFrame(self.context());
@@ -327,10 +327,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     self._accumulated_pc += pc - self._last_pc;
                     self._last_pc = pc;
                     if (self._accumulated_pc < fps_pc_threshold) {
-                        const sleep_ms = @intFromFloat(
-                            u32,
-                            @floatFromInt(f64, (fps_pc_threshold - self._accumulated_pc) * 1000) / self._pc_freq,
-                        );
+                        const sleep_ms = @as(u32, @intFromFloat(
+                            @as(f64, @floatFromInt((fps_pc_threshold - self._accumulated_pc) * 1000)) / self._pc_freq,
+                        ));
                         sdl.delay(sleep_ms);
                     } else {
                         break;
@@ -342,10 +341,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
                 // Perform as many update as we can, with fixed step
                 var step_count: u32 = 0;
-                const fps_delta_seconds = @floatCast(
-                    f32,
-                    @floatFromInt(f64, fps_pc_threshold) / self._pc_freq,
-                );
+                const fps_delta_seconds = @as(f32, @floatCast(
+                    @as(f64, @floatFromInt(fps_pc_threshold)) / self._pc_freq,
+                ));
                 while (self._accumulated_pc >= fps_pc_threshold) {
                     step_count += 1;
                     self._accumulated_pc -= fps_pc_threshold;
@@ -365,14 +363,13 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 assert(step_count > 0);
 
                 // Set delta time between `draw`
-                self._delta_seconds = @floatFromInt(f32, step_count) * fps_delta_seconds;
+                self._delta_seconds = @as(f32, @floatFromInt(step_count)) * fps_delta_seconds;
             } else {
                 // Perform one update
                 const pc = sdl.c.SDL_GetPerformanceCounter();
-                self._delta_seconds = @floatCast(
-                    f32,
-                    @floatFromInt(f64, pc - self._last_pc) / self._pc_freq,
-                );
+                self._delta_seconds = @as(f32, @floatCast(
+                    @as(f64, @floatFromInt(pc - self._last_pc)) / self._pc_freq,
+                ));
                 self._last_pc = pc;
                 self._seconds += self._delta_seconds;
                 self._seconds_real += self._delta_seconds;
@@ -406,10 +403,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
         inline fn updateFrameStats(self: *@This()) bool {
             if ((self._seconds_real - self._last_fps_refresh_time) >= 1.0) {
                 const t = self._seconds_real - self._last_fps_refresh_time;
-                self._fps = @floatCast(
-                    f32,
-                    @floatFromInt(f64, self._frame_count) / t,
-                );
+                self._fps = @as(f32, @floatCast(
+                    @as(f64, @floatFromInt(self._frame_count)) / t,
+                ));
                 self._average_cpu_time = (1.0 / self._fps) * 1000.0;
                 self._last_fps_refresh_time = self._seconds_real;
                 self._frame_count = 0;
@@ -614,61 +610,61 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Get meomry allocator
         fn allocator(ptr: *anyopaque) std.mem.Allocator {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             return self._allocator;
         }
 
         /// Get application running status
         fn running(ptr: *anyopaque) bool {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             return self._running;
         }
 
         /// Get running seconds of application
         fn seconds(ptr: *anyopaque) f32 {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             return self._seconds;
         }
 
         /// Get running seconds of application (double precision)
         fn realSeconds(ptr: *anyopaque) f64 {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             return self._seconds_real;
         }
 
         /// Get delta time between frames
         fn deltaSeconds(ptr: *anyopaque) f32 {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             return self._delta_seconds;
         }
 
         /// Get FPS of application
         fn fps(ptr: *anyopaque) f32 {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             return self._fps;
         }
 
         /// Get SDL window
         fn window(ptr: *anyopaque) sdl.Window {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             return self._window;
         }
 
         /// Get SDL renderer
         fn renderer(ptr: *anyopaque) sdl.Renderer {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             return self._renderer;
         }
 
         /// Kill app
         fn kill(ptr: *anyopaque) void {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             self._running = false;
         }
 
         /// Toggle resizable
         fn toggleResizable(ptr: *anyopaque, on_off: ?bool) void {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             if (on_off) |state| {
                 self._resizable = state;
             } else {
@@ -682,7 +678,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Toggle fullscreen
         fn toggleFullscreeen(ptr: *anyopaque, on_off: ?bool) void {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             if (on_off) |state| {
                 self._fullscreen = state;
             } else {
@@ -696,7 +692,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Toggle always-on-top
         fn toggleAlwaysOnTop(ptr: *anyopaque, on_off: ?bool) void {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             if (on_off) |state| {
                 self._always_on_top = state;
             } else {
@@ -710,37 +706,37 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Get position of window
         fn getWindowPosition(ptr: *anyopaque) sdl.PointF {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             var x: c_int = undefined;
             var y: c_int = undefined;
             sdl.c.SDL_GetWindowPosition(self._window.ptr, &x, &y);
-            return .{ .x = @floatFromInt(f32, x), .y = @floatFromInt(f32, y) };
+            return .{ .x = @floatFromInt(x), .y = @floatFromInt(y) };
         }
 
         /// Get size of window
         fn getWindowSize(ptr: *anyopaque) sdl.PointF {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             var w: c_int = undefined;
             var h: c_int = undefined;
             sdl.c.SDL_GetWindowSize(self._window.ptr, &w, &h);
-            return .{ .x = @floatFromInt(f32, w), .y = @floatFromInt(f32, h) };
+            return .{ .x = @floatFromInt(w), .y = @floatFromInt(h) };
         }
 
         /// Get size of framebuffer
         fn getFramebufferSize(ptr: *anyopaque) sdl.PointF {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             const fsize = self._renderer.getOutputSize() catch unreachable;
             return .{
-                .x = @floatFromInt(f32, fsize.width_pixels),
-                .y = @floatFromInt(f32, fsize.height_pixels),
+                .x = @floatFromInt(fsize.width_pixels),
+                .y = @floatFromInt(fsize.height_pixels),
             };
         }
 
         /// Get aspect ratio of drawing area
         fn getAspectRatio(ptr: *anyopaque) f32 {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             const fsize = self._renderer.getOutputSize() catch unreachable;
-            return @floatFromInt(f32, fsize.width_pixels) / @floatFromInt(f32, fsize.width_pixels);
+            return @as(f32, @floatFromInt(fsize.width_pixels)) / @as(f32, @floatFromInt(fsize.width_pixels));
         }
 
         /// Get pixel ratio
@@ -763,14 +759,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Move mouse to given position (relative to window)
         fn setMousePosition(ptr: *anyopaque, xrel: f32, yrel: f32) void {
-            var self = @ptrCast(*@This(), @alignCast(@alignOf(*@This()), ptr));
+            var self: *@This() = @ptrCast(@alignCast(ptr));
             var w: i32 = undefined;
             var h: i32 = undefined;
             sdl.c.SDL_GetWindowSize(self._window.ptr, &w, &h);
             sdl.c.SDL_WarpMouseInWindow(
                 self._window.ptr,
-                @intFromFloat(i32, @floatFromInt(f32, w) * xrel),
-                @intFromFloat(i32, @floatFromInt(f32, h) * yrel),
+                @intFromFloat(@as(f32, @floatFromInt(w)) * xrel),
+                @intFromFloat(@as(f32, @floatFromInt(h)) * yrel),
             );
         }
     };

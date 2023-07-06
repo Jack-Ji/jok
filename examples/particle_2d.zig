@@ -30,7 +30,7 @@ const emitter2 = j2d.ParticleSystem.Effect.FireEmitter(
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    rd = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
+    rd = std.rand.DefaultPrng.init(@intCast(std.time.timestamp()));
     sheet = try j2d.SpriteSheet.create(
         ctx,
         &[_]j2d.SpriteSheet.ImageSource{

@@ -107,8 +107,8 @@ pub fn draw(ctx: jok.Context) !void {
     try j2d.begin(.{});
     var i: u32 = 0;
     while (i < 100) : (i += 1) {
-        const row = @floatFromInt(f32, i / 10) - 5;
-        const col = @floatFromInt(f32, i % 10) - 5;
+        const row = @as(f32, @floatFromInt(i / 10)) - 5;
+        const col = @as(f32, @floatFromInt(i % 10)) - 5;
         const offset_origin = jok.zmath.f32x4(row * 50, col * 50, 0, 1);
         const rotate_m = jok.zmath.matFromAxisAngle(
             jok.zmath.f32x4(center_x, center_y, 1, 0),
@@ -139,9 +139,9 @@ pub fn draw(ctx: jok.Context) !void {
     try j2d.end();
 
     const color = sdl.Color.rgb(
-        @intFromFloat(u8, 128 + 127 * std.math.sin(ctx.seconds())),
+        @intFromFloat(128 + 127 * std.math.sin(ctx.seconds())),
         100,
-        @intFromFloat(u8, 128 + 127 * std.math.cos(ctx.seconds())),
+        @intFromFloat(128 + 127 * std.math.cos(ctx.seconds())),
     );
     try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
     try j3d.icosahedron(
@@ -217,7 +217,7 @@ pub fn draw(ctx: jok.Context) !void {
             .font_size = 50,
             .color = sdl.Color.rgb(
                 255,
-                @intFromFloat(u8, @max(0, 255 * std.math.cos(ctx.seconds()))),
+                @intFromFloat(@max(0, 255 * std.math.cos(ctx.seconds()))),
                 0,
             ),
         },

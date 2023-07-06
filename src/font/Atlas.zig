@@ -50,8 +50,8 @@ pub fn create(
     var rc = truetype.stbtt_PackBegin(
         &pack_ctx,
         stb_pixels.ptr,
-        @intCast(c_int, atlas_size),
-        @intCast(c_int, atlas_size),
+        @intCast(atlas_size),
+        @intCast(atlas_size),
         0,
         1,
         null,
@@ -71,9 +71,9 @@ pub fn create(
             &pack_ctx,
             font_info.data,
             0,
-            @floatFromInt(f32, font_size),
-            @intCast(c_int, cs[0]),
-            @intCast(c_int, cs[1] - cs[0] + 1),
+            @floatFromInt(font_size),
+            @intCast(cs[0]),
+            @intCast(cs[1] - cs[0] + 1),
             ranges.items[i].packedchar.items.ptr,
         );
     }
@@ -99,7 +99,7 @@ pub fn create(
     var ascent: c_int = undefined;
     var descent: c_int = undefined;
     var line_gap: c_int = undefined;
-    const scale = truetype.stbtt_ScaleForPixelHeight(font_info, @floatFromInt(f32, font_size));
+    const scale = truetype.stbtt_ScaleForPixelHeight(font_info, @floatFromInt(font_size));
     truetype.stbtt_GetFontVMetrics(font_info, &ascent, &descent, &line_gap);
 
     var atlas = try allocator.create(Atlas);
@@ -109,9 +109,9 @@ pub fn create(
         .ranges = ranges,
         .codepoint_search = std.AutoHashMap(u32, u8).init(allocator),
         .scale = scale,
-        .vmetric_ascent = @floatFromInt(f32, ascent),
-        .vmetric_descent = @floatFromInt(f32, descent),
-        .vmetric_line_gap = @floatFromInt(f32, line_gap),
+        .vmetric_ascent = @floatFromInt(ascent),
+        .vmetric_descent = @floatFromInt(descent),
+        .vmetric_line_gap = @floatFromInt(line_gap),
     };
     return atlas;
 }
@@ -169,7 +169,7 @@ pub fn getBoundingBox(
     var i: u32 = 0;
     while (i < text.len) {
         const size = try unicode.utf8ByteSequenceLength(text[i]);
-        const codepoint = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
+        const codepoint = @as(u32, @intCast(try unicode.utf8Decode(text[i .. i + size])));
         if (self.getVerticesOfCodePoint(pos, ypos_type, sdl.Color.white, codepoint)) |cs| {
             switch (box_type) {
                 .aligned => {
@@ -224,9 +224,9 @@ pub fn appendDrawDataFromUTF8String(
     var i: u32 = 0;
     while (i < text.len) {
         const size = try unicode.utf8ByteSequenceLength(text[i]);
-        const codepoint = @intCast(u32, try unicode.utf8Decode(text[i .. i + size]));
+        const codepoint = @as(u32, @intCast(try unicode.utf8Decode(text[i .. i + size])));
         if (self.getVerticesOfCodePoint(pos, ypos_type, color, codepoint)) |cs| {
-            const base_index = @intCast(u32, vattrib.items.len);
+            const base_index = @as(u32, @intCast(vattrib.items.len));
             try vattrib.appendSlice(&cs.vs);
             try vindices.appendSlice(&[_]u32{
                 base_index,
@@ -270,8 +270,8 @@ pub inline fn getVerticesOfCodePoint(
     const idx = self.codepoint_search.get(codepoint) orelse BLK: {
         for (self.ranges.items, 0..) |range, idx| {
             if (codepoint < range.codepoint_begin or codepoint > range.codepoint_end) continue;
-            self.codepoint_search.put(codepoint, @intCast(u8, idx)) catch unreachable;
-            break :BLK @intCast(u8, idx);
+            self.codepoint_search.put(codepoint, @intCast(idx)) catch unreachable;
+            break :BLK @as(u8, @intCast(idx));
         } else {
             return null;
         }
@@ -281,9 +281,9 @@ pub inline fn getVerticesOfCodePoint(
     const info = self.tex.query() catch unreachable;
     truetype.stbtt_GetPackedQuad(
         range.packedchar.items.ptr,
-        @intCast(c_int, info.width),
-        @intCast(c_int, info.height),
-        @intCast(c_int, codepoint - range.codepoint_begin),
+        @intCast(info.width),
+        @intCast(info.height),
+        @intCast(codepoint - range.codepoint_begin),
         pxpos,
         pypos,
         &quad,

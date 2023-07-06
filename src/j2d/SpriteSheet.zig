@@ -113,13 +113,13 @@ pub fn create(
                     4, // Alpha channel is required
                 );
                 assert(image_data != null);
-                var image_len = image_width * image_height * 4;
+                var image_len = @as(usize, @intCast(image_width * image_height * 4));
                 images[i] = .{
                     .is_file = false,
                     .pixels = .{
-                        .data = image_data[0..@intCast(usize, image_len)],
-                        .width = @intCast(u32, image_width),
-                        .height = @intCast(u32, image_height),
+                        .data = image_data[0..image_len],
+                        .width = @intCast(image_width),
+                        .height = @intCast(image_height),
                         .format = jok.utils.gfx.getFormatByEndian(),
                     },
                 };
@@ -136,9 +136,9 @@ pub fn create(
             },
         }
         stb_rects[i] = std.mem.zeroes(stb_rect_pack.stbrp_rect);
-        stb_rects[i].id = @intCast(c_int, i);
-        stb_rects[i].w = @intCast(c_ushort, images[i].pixels.width + gap);
-        stb_rects[i].h = @intCast(c_ushort, images[i].pixels.height + gap);
+        stb_rects[i].id = @intCast(i);
+        stb_rects[i].w = @intCast(images[i].pixels.width + gap);
+        stb_rects[i].h = @intCast(images[i].pixels.height + gap);
     }
     defer {
         // Free file-images' data when we're done
@@ -153,41 +153,41 @@ pub fn create(
     var pack_ctx: stb_rect_pack.stbrp_context = undefined;
     stb_rect_pack.stbrp_init_target(
         &pack_ctx,
-        @intCast(c_int, width),
-        @intCast(c_int, height),
+        @intCast(width),
+        @intCast(height),
         stb_nodes.ptr,
-        @intCast(c_int, stb_nodes.len),
+        @intCast(stb_nodes.len),
     );
     const rc = stb_rect_pack.stbrp_pack_rects(
         &pack_ctx,
         stb_rects.ptr,
-        @intCast(c_int, stb_rects.len),
+        @intCast(stb_rects.len),
     );
     if (rc == 0) {
         return error.TextureNotLargeEnough;
     }
 
     // Merge textures and upload to gpu
-    const inv_width = 1.0 / @floatFromInt(f32, width);
-    const inv_height = 1.0 / @floatFromInt(f32, height);
+    const inv_width = 1.0 / @as(f32, @floatFromInt(width));
+    const inv_height = 1.0 / @as(f32, @floatFromInt(height));
     for (stb_rects, 0..) |r, i| {
         assert(r.was_packed == 1);
         rects[i] = .{
-            .s0 = @floatFromInt(f32, r.x) * inv_width,
-            .t0 = @floatFromInt(f32, r.y) * inv_height,
-            .s1 = @floatFromInt(f32, r.x + r.w - @intCast(c_int, gap)) * inv_width,
-            .t1 = @floatFromInt(f32, r.y + r.h - @intCast(c_int, gap)) * inv_height,
-            .width = @floatFromInt(f32, r.w - @intCast(c_int, gap)),
-            .height = @floatFromInt(f32, r.h - @intCast(c_int, gap)),
+            .s0 = @as(f32, @floatFromInt(r.x)) * inv_width,
+            .t0 = @as(f32, @floatFromInt(r.y)) * inv_height,
+            .s1 = @as(f32, @floatFromInt(r.x + r.w - @as(c_int, @intCast(gap)))) * inv_width,
+            .t1 = @as(f32, @floatFromInt(r.y + r.h - @as(c_int, @intCast(gap)))) * inv_height,
+            .width = @floatFromInt(r.w - @as(c_int, @intCast(gap))),
+            .height = @floatFromInt(r.h - @as(c_int, @intCast(gap))),
         };
-        const y_begin: u32 = @intCast(u32, r.y);
-        const y_end: u32 = @intCast(u32, r.y + r.h - @intCast(c_int, gap));
+        const y_begin: u32 = @intCast(r.y);
+        const y_end: u32 = @intCast(r.y + r.h - @as(c_int, @intCast(gap)));
         const src_pixels = images[i].pixels;
         const dst_stride: u32 = width * 4;
         const src_stride: u32 = src_pixels.width * 4;
         var y: u32 = y_begin;
         while (y < y_end) : (y += 1) {
-            const dst_offset: u32 = y * dst_stride + @intCast(u32, r.x) * 4;
+            const dst_offset: u32 = y * dst_stride + @as(u32, @intCast(r.x)) * 4;
             const src_offset: u32 = (y - y_begin) * src_stride;
             @memcpy(
                 pixels[dst_offset .. dst_offset + src_stride],
@@ -210,7 +210,7 @@ pub fn create(
     for (sources, 0..) |s, i| {
         try tree.putNoClobber(
             try std.fmt.allocPrint(allocator, "{s}", .{s.name}),
-            @intCast(u32, i),
+            @intCast(i),
         );
     }
 
@@ -218,8 +218,8 @@ pub fn create(
     self.* = .{
         .allocator = allocator,
         .size = .{
-            .x = @floatFromInt(f32, width),
-            .y = @floatFromInt(f32, height),
+            .x = @floatFromInt(width),
+            .y = @floatFromInt(height),
         },
         .packed_pixels = if (keep_packed_pixels) ImagePixels{
             .width = width,
@@ -323,12 +323,12 @@ pub fn fromSheetFiles(ctx: jok.Context, path: []const u8) !*Self {
         const name = entry.key_ptr.*;
         const info = entry.value_ptr.*.object;
         rects[i] = SpriteRect{
-            .s0 = @floatCast(f32, info.get("s0").?.Float),
-            .t0 = @floatCast(f32, info.get("t0").?.Float),
-            .s1 = @floatCast(f32, info.get("s1").?.Float),
-            .t1 = @floatCast(f32, info.get("t1").?.Float),
-            .width = @floatCast(f32, info.get("width").?.Float),
-            .height = @floatCast(f32, info.get("height").?.Float),
+            .s0 = @floatCast(info.get("s0").?.Float),
+            .t0 = @floatCast(info.get("t0").?.Float),
+            .s1 = @floatCast(info.get("s1").?.Float),
+            .t1 = @floatCast(info.get("t1").?.Float),
+            .width = @floatCast(info.get("width").?.Float),
+            .height = @floatCast(info.get("height").?.Float),
         };
         try search_tree.putNoClobber(
             try std.fmt.allocPrint(allocator, "{s}", .{name}),
@@ -367,8 +367,8 @@ pub fn fromSinglePicture(
     errdefer tex.destroy();
 
     const info = try tex.query();
-    const tex_width = @floatFromInt(f32, info.width);
-    const tex_height = @floatFromInt(f32, info.height);
+    const tex_width = @as(f32, @floatFromInt(info.width));
+    const tex_height = @as(f32, @floatFromInt(info.height));
 
     const allocator = ctx.allocator();
     var tree = std.StringHashMap(u32).init(allocator);
@@ -388,7 +388,7 @@ pub fn fromSinglePicture(
         rects[i] = sr;
         try tree.putNoClobber(
             try std.fmt.allocPrint(allocator, "{s}", .{sp.name}),
-            @intCast(u32, i),
+            @intCast(i),
         );
     }
 
@@ -478,8 +478,8 @@ pub fn getSpriteByName(self: *Self, name: []const u8) ?Sprite {
 /// Get sprite by rectangle
 pub fn getSpriteByRectangle(self: *Self, rect: sdl.RectangleF) Sprite {
     const info = try self.tex.query();
-    const tex_width = @floatFromInt(f32, info.width);
-    const tex_height = @floatFromInt(f32, info.height);
+    const tex_width = @as(f32, @floatFromInt(info.width));
+    const tex_height = @as(f32, @floatFromInt(info.height));
     var sp = Sprite{
         .width = std.math.min(rect.width, tex_width - rect.x),
         .height = std.math.min(rect.height, tex_height - rect.y),

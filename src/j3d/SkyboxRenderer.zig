@@ -96,10 +96,10 @@ pub fn render(
     color: ?sdl.Color, // tint color
 ) !void {
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * @floatFromInt(f32, viewport.width), 0.0,                                        0.0,
-        0.0,                                      -0.5 * @floatFromInt(f32, viewport.height), 0.0,
-        0.0,                                      0.0,                                        0.5,
-        0.5 * @floatFromInt(f32, viewport.width), 0.5 * @floatFromInt(f32, viewport.height),  0.5,
+        0.5 * @as(f32, @floatFromInt(viewport.width)), 0.0,                                             0.0,
+        0.0,                                           -0.5 * @as(f32, @floatFromInt(viewport.height)), 0.0,
+        0.0,                                           0.0,                                             0.5,
+        0.5 * @as(f32, @floatFromInt(viewport.width)), 0.5 * @as(f32, @floatFromInt(viewport.height)),  0.5,
     });
     var vp = camera.getViewMatrix();
     vp[3] = zmath.f32x4s(0);

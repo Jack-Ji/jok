@@ -65,8 +65,8 @@ pub fn begin(opt: BeginOption) !void {
     camera = opt.camera orelse BLK: {
         const fsize = try rd.getOutputSize();
         const ratio =
-            @floatFromInt(f32, fsize.width_pixels) /
-            @floatFromInt(f32, fsize.height_pixels);
+            @as(f32, @floatFromInt(fsize.width_pixels)) /
+            @as(f32, @floatFromInt(fsize.height_pixels));
         break :BLK Camera.fromPositionAndTarget(
             .{
                 .perspective = .{
@@ -353,7 +353,7 @@ pub fn plane(model: zmath.Mat, opt: PlaneOption) !void {
         }
 
         var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initPlane(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
+        m.shape = zmesh.Shape.initPlane(@intCast(opt.slices), @intCast(opt.stacks));
         m.shape.unweld();
         if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
@@ -406,7 +406,7 @@ pub fn parametricSphere(model: zmath.Mat, opt: ParametricSphereOption) !void {
         }
 
         var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initParametricSphere(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
+        m.shape = zmesh.Shape.initParametricSphere(@intCast(opt.slices), @intCast(opt.stacks));
         m.shape.unweld();
         if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
@@ -457,7 +457,7 @@ pub fn subdividedSphere(model: zmath.Mat, opt: SubdividedSphereOption) !void {
         }
 
         var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initSubdividedSphere(@intCast(i32, opt.sub_num));
+        m.shape = zmesh.Shape.initSubdividedSphere(@intCast(opt.sub_num));
         m.shape.unweld();
         if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
@@ -510,7 +510,7 @@ pub fn hemisphere(model: zmath.Mat, opt: HemisphereOption) !void {
         }
 
         var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initHemisphere(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
+        m.shape = zmesh.Shape.initHemisphere(@intCast(opt.slices), @intCast(opt.stacks));
         m.shape.unweld();
         if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
@@ -563,7 +563,7 @@ pub fn cone(model: zmath.Mat, opt: ConeOption) !void {
         }
 
         var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initCone(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
+        m.shape = zmesh.Shape.initCone(@intCast(opt.slices), @intCast(opt.stacks));
         m.shape.unweld();
         if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
@@ -616,7 +616,7 @@ pub fn cylinder(model: zmath.Mat, opt: CylinderOption) !void {
         }
 
         var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initCylinder(@intCast(i32, opt.slices), @intCast(i32, opt.stacks));
+        m.shape = zmesh.Shape.initCylinder(@intCast(opt.slices), @intCast(opt.stacks));
         m.shape.unweld();
         if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
@@ -675,7 +675,7 @@ pub fn disk(model: zmath.Mat, opt: DiskOption) !void {
         }
 
         var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initDisk(opt.radius, @intCast(i32, opt.slices), &opt.center, &opt.normal);
+        m.shape = zmesh.Shape.initDisk(opt.radius, @intCast(opt.slices), &opt.center, &opt.normal);
         m.shape.unweld();
         if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
@@ -730,7 +730,7 @@ pub fn torus(model: zmath.Mat, opt: TorusOption) !void {
         }
 
         var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initTorus(@intCast(i32, opt.slices), @intCast(i32, opt.stacks), opt.radius);
+        m.shape = zmesh.Shape.initTorus(@intCast(opt.slices), @intCast(opt.stacks), opt.radius);
         m.shape.unweld();
         if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);
@@ -978,7 +978,7 @@ pub fn rock(model: zmath.Mat, opt: RockOption) !void {
         }
 
         var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initRock(@intCast(i32, opt.seed), @intCast(i32, opt.sub_num));
+        m.shape = zmesh.Shape.initRock(@intCast(opt.seed), @intCast(opt.sub_num));
         m.shape.unweld();
         if (opt.weld_threshold) |w| {
             m.shape.weld(w, null);

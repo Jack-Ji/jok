@@ -88,11 +88,11 @@ pub fn createTextureFromFile(
 
     return try createTextureFromPixels(
         renderer,
-        image_data[0..@intCast(u32, width * height * channels)],
+        image_data[0..@as(u32, @intCast(width * height * channels))],
         getFormatByEndian(),
         access,
-        @intCast(u32, width),
-        @intCast(u32, height),
+        @intCast(width),
+        @intCast(height),
     );
 }
 
@@ -110,7 +110,7 @@ pub fn createTextureFromFileData(
     stb.image.stbi_set_flip_vertically_on_load(@intFromBool(flip));
     var image_data = stb.image.stbi_load_from_memory(
         file_data.ptr,
-        @intCast(c_int, file_data.len),
+        @intCast(file_data.len),
         &width,
         &height,
         &channels,
@@ -124,11 +124,11 @@ pub fn createTextureFromFileData(
 
     return try createTextureFromPixels(
         renderer,
-        image_data[0..@intCast(u32, width * height * channels)],
+        image_data[0..@as(u32, @intCast(width * height * channels))],
         getFormatByEndian(),
         access,
-        @intCast(u32, width),
-        @intCast(u32, height),
+        @intCast(width),
+        @intCast(height),
     );
 }
 
@@ -149,7 +149,7 @@ pub fn savePixelsToFile(
     opt: EncodingOption,
 ) !void {
     var channels = getChannels(format);
-    assert(pixels.len == @intCast(usize, width * height * channels));
+    assert(pixels.len == @as(usize, width * height * channels));
 
     // Encode file
     var result: c_int = undefined;
@@ -157,22 +157,22 @@ pub fn savePixelsToFile(
     switch (opt.format) {
         .png => {
             stb.image.stbi_write_png_compression_level =
-                @intCast(c_int, opt.png_compress_level);
+                @as(c_int, opt.png_compress_level);
             result = stb.image.stbi_write_png(
                 path.ptr,
-                @intCast(c_int, width),
-                @intCast(c_int, height),
-                @intCast(c_int, channels),
+                @intCast(width),
+                @intCast(height),
+                @intCast(channels),
                 pixels.ptr,
-                @intCast(c_int, width * channels),
+                @intCast(width * channels),
             );
         },
         .bmp => {
             result = stb.image.stbi_write_bmp(
                 path.ptr,
-                @intCast(c_int, width),
-                @intCast(c_int, height),
-                @intCast(c_int, channels),
+                @intCast(width),
+                @intCast(height),
+                @intCast(channels),
                 pixels.ptr,
             );
         },
@@ -181,20 +181,20 @@ pub fn savePixelsToFile(
                 if (opt.tga_rle_compress) 1 else 0;
             result = stb.image.stbi_write_tga(
                 path.ptr,
-                @intCast(c_int, width),
-                @intCast(c_int, height),
-                @intCast(c_int, channels),
+                @intCast(width),
+                @intCast(height),
+                @intCast(channels),
                 pixels.ptr,
             );
         },
         .jpg => {
             result = stb.image.stbi_write_jpg(
                 path.ptr,
-                @intCast(c_int, width),
-                @intCast(c_int, height),
-                @intCast(c_int, channels),
+                @intCast(width),
+                @intCast(height),
+                @intCast(channels),
                 pixels.ptr,
-                @intCast(c_int, @intCast(c_int, std.math.clamp(opt.jpg_quality, 1, 100))),
+                @intCast(@as(c_int, std.math.clamp(opt.jpg_quality, 1, 100))),
             );
         },
     }
@@ -205,15 +205,15 @@ pub fn savePixelsToFile(
 
 /// Save surface to file
 pub fn saveSurfaceToFile(surface: sdl.Surface, path: [:0]const u8, opt: EncodingOption) !void {
-    const format = @enumFromInt(sdl.PixelFormatEnum, surface.ptr.format.*.format);
+    const format = @as(sdl.PixelFormatEnum, @enumFromInt(surface.ptr.format.*.format));
     var channels = getChannels(format);
-    const pixels = @ptrCast([*]const u8, surface.ptr.pixels.?);
-    const size = @intCast(usize, surface.ptr.w * surface.ptr.h * channels);
+    const pixels = @as([*]const u8, @ptrCast(surface.ptr.pixels.?));
+    const size = @as(usize, surface.ptr.w * surface.ptr.h * channels);
     assert(surface.ptr.h * surface.ptr.pitch == size);
     try savePixelsToFile(
         pixels[0..size],
-        @intCast(u32, surface.ptr.w),
-        @intCast(u32, surface.ptr.h),
+        @intCast(surface.ptr.w),
+        @intCast(surface.ptr.h),
         format,
         path,
         opt,
@@ -248,19 +248,19 @@ pub fn getScreenPixels(allocator: std.mem.Allocator, rd: sdl.Renderer, rect: ?sd
     }
 } {
     const format = getFormatByEndian();
-    const channels = @intCast(c_int, getChannels(format));
+    const channels = @as(c_int, @intCast(getChannels(format)));
     const fb_size = try rd.getOutputSize();
     const width = if (rect) |r| r.width else fb_size.width_pixels;
     const height = if (rect) |r| r.height else fb_size.height_pixels;
-    const pixel_size = @intCast(usize, channels * width * height);
+    const pixel_size = @as(usize, @intCast(channels * width * height));
     var pixels = try allocator.alloc(u8, pixel_size);
-    try rd.readPixels(rect, format, pixels.ptr, @intCast(u32, channels * width));
+    try rd.readPixels(rect, format, pixels.ptr, @intCast(channels * width));
     return .{
         .allocator = allocator,
         .format = format,
         .pixels = pixels,
-        .width = @intCast(u32, width),
-        .height = @intCast(u32, height),
+        .width = @intCast(width),
+        .height = @intCast(height),
     };
 }
 
@@ -287,8 +287,8 @@ pub fn createTextureAsTarget(rd: sdl.Renderer, _size: ?sdl.Point) !sdl.Texture {
         rd,
         getFormatByEndian(),
         .target,
-        @intCast(usize, size.x),
-        @intCast(usize, size.y),
+        @intCast(size.x),
+        @intCast(size.y),
     );
     try tex.setBlendMode(.blend);
     return tex;
@@ -321,8 +321,8 @@ pub fn renderToTexture(rd: sdl.Renderer, renderer: anytype, opt: RenderToTexture
         try rd.setColor(old_color);
     }
     try renderer.draw(rd, .{
-        .x = @floatFromInt(f32, tex_info.width),
-        .y = @floatFromInt(f32, tex_info.height),
+        .x = @floatFromInt(tex_info.width),
+        .y = @floatFromInt(tex_info.height),
     });
     return target;
 }

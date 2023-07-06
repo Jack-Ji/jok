@@ -276,10 +276,10 @@ pub inline fn clipTriangle(
             else
                 null;
             var lerp_color: ?sdl.Color = if (tri_colors) |_| sdl.Color.rgba(
-                @intFromFloat(u8, @floatFromInt(f32, c1.r) + (@floatFromInt(f32, c2.r) - @floatFromInt(f32, c1.r)) * lerp),
-                @intFromFloat(u8, @floatFromInt(f32, c1.g) + (@floatFromInt(f32, c2.g) - @floatFromInt(f32, c1.g)) * lerp),
-                @intFromFloat(u8, @floatFromInt(f32, c1.b) + (@floatFromInt(f32, c2.b) - @floatFromInt(f32, c1.b)) * lerp),
-                @intFromFloat(u8, @floatFromInt(f32, c1.a) + (@floatFromInt(f32, c2.a) - @floatFromInt(f32, c1.a)) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c1.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c1.r))) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c1.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c1.g))) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c1.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c1.b))) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c1.a)) + (@as(f32, @floatFromInt(c2.a)) - @as(f32, @floatFromInt(c1.a))) * lerp),
             ) else null;
             var lerp_texcoord: ?sdl.PointF = if (tri_texcoords) |_| sdl.PointF{
                 .x = t1.x + (t2.x - t1.x) * lerp,
@@ -311,10 +311,10 @@ pub inline fn clipTriangle(
             else
                 null;
             lerp_color = if (tri_colors != null) sdl.Color.rgba(
-                @intFromFloat(u8, @floatFromInt(f32, c0.r) + (@floatFromInt(f32, c2.r) - @floatFromInt(f32, c0.r)) * lerp),
-                @intFromFloat(u8, @floatFromInt(f32, c0.g) + (@floatFromInt(f32, c2.g) - @floatFromInt(f32, c0.g)) * lerp),
-                @intFromFloat(u8, @floatFromInt(f32, c0.b) + (@floatFromInt(f32, c2.b) - @floatFromInt(f32, c0.b)) * lerp),
-                @intFromFloat(u8, @floatFromInt(f32, c0.a) + (@floatFromInt(f32, c2.a) - @floatFromInt(f32, c0.a)) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c0.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c0.r))) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c0.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c0.g))) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c0.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c0.b))) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c0.a)) + (@as(f32, @floatFromInt(c2.a)) - @as(f32, @floatFromInt(c0.a))) * lerp),
             ) else null;
             lerp_texcoord = if (tri_texcoords != null) sdl.PointF{
                 .x = t0.x + (t2.x - t0.x) * lerp,
@@ -336,10 +336,10 @@ pub inline fn clipTriangle(
         else
             null;
         var lerp_color: ?sdl.Color = if (tri_colors != null) sdl.Color.rgba(
-            @intFromFloat(u8, @floatFromInt(f32, c0.r) + (@floatFromInt(f32, c1.r) - @floatFromInt(f32, c0.r)) * lerp),
-            @intFromFloat(u8, @floatFromInt(f32, c0.g) + (@floatFromInt(f32, c1.g) - @floatFromInt(f32, c0.g)) * lerp),
-            @intFromFloat(u8, @floatFromInt(f32, c0.b) + (@floatFromInt(f32, c1.b) - @floatFromInt(f32, c0.b)) * lerp),
-            @intFromFloat(u8, @floatFromInt(f32, c0.a) + (@floatFromInt(f32, c1.a) - @floatFromInt(f32, c0.a)) * lerp),
+            @intFromFloat(@as(f32, @floatFromInt(c0.r)) + (@as(f32, @floatFromInt(c1.r)) - @as(f32, @floatFromInt(c0.r))) * lerp),
+            @intFromFloat(@as(f32, @floatFromInt(c0.g)) + (@as(f32, @floatFromInt(c1.g)) - @as(f32, @floatFromInt(c0.g))) * lerp),
+            @intFromFloat(@as(f32, @floatFromInt(c0.b)) + (@as(f32, @floatFromInt(c1.b)) - @as(f32, @floatFromInt(c0.b))) * lerp),
+            @intFromFloat(@as(f32, @floatFromInt(c0.a)) + (@as(f32, @floatFromInt(c1.a)) - @as(f32, @floatFromInt(c0.a))) * lerp),
         ) else null;
         var lerp_texcoord: ?sdl.PointF = if (tri_texcoords != null) sdl.PointF{
             .x = t0.x + (t1.x - t0.x) * lerp,
@@ -362,10 +362,10 @@ pub inline fn clipTriangle(
             else
                 null;
             lerp_color = if (tri_colors != null) sdl.Color.rgba(
-                @intFromFloat(u8, @floatFromInt(f32, c1.r) + (@floatFromInt(f32, c2.r) - @floatFromInt(f32, c1.r)) * lerp),
-                @intFromFloat(u8, @floatFromInt(f32, c1.g) + (@floatFromInt(f32, c2.g) - @floatFromInt(f32, c1.g)) * lerp),
-                @intFromFloat(u8, @floatFromInt(f32, c1.b) + (@floatFromInt(f32, c2.b) - @floatFromInt(f32, c1.b)) * lerp),
-                @intFromFloat(u8, @floatFromInt(f32, c1.a) + (@floatFromInt(f32, c2.a) - @floatFromInt(f32, c1.a)) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c1.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c1.r))) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c1.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c1.g))) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c1.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c1.b))) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c1.a)) + (@as(f32, @floatFromInt(c2.a)) - @as(f32, @floatFromInt(c1.a))) * lerp),
             ) else null;
             lerp_texcoord = if (tri_texcoords != null) sdl.PointF{
                 .x = t1.x + (t2.x - t1.x) * lerp,
@@ -403,10 +403,10 @@ pub inline fn clipTriangle(
             else
                 null;
             lerp_color = if (tri_colors != null) sdl.Color.rgba(
-                @intFromFloat(u8, @floatFromInt(f32, c0.r) + (@floatFromInt(f32, c2.r) - @floatFromInt(f32, c0.r)) * lerp),
-                @intFromFloat(u8, @floatFromInt(f32, c0.g) + (@floatFromInt(f32, c2.g) - @floatFromInt(f32, c0.g)) * lerp),
-                @intFromFloat(u8, @floatFromInt(f32, c0.b) + (@floatFromInt(f32, c2.b) - @floatFromInt(f32, c0.b)) * lerp),
-                @intFromFloat(u8, @floatFromInt(f32, c0.a) + (@floatFromInt(f32, c2.a) - @floatFromInt(f32, c0.a)) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c0.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c0.r))) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c0.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c0.g))) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c0.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c0.b))) * lerp),
+                @intFromFloat(@as(f32, @floatFromInt(c0.a)) + (@as(f32, @floatFromInt(c2.a)) - @as(f32, @floatFromInt(c0.a))) * lerp),
             ) else null;
             lerp_texcoord = if (tri_texcoords != null) sdl.PointF{
                 .x = t0.x + (t2.x - t0.x) * lerp,
@@ -465,8 +465,8 @@ pub const RenderTarget = struct {
         self.draw_list.pushClipRect(.{
             .pmin = .{ 0, 0 },
             .pmax = .{
-                @floatFromInt(f32, output_size.width_pixels),
-                @floatFromInt(f32, output_size.height_pixels),
+                @as(f32, @floatFromInt(output_size.width_pixels)),
+                @as(f32, @floatFromInt(output_size.height_pixels)),
             },
         });
         self.draw_list.setDrawListFlags(.{
@@ -517,7 +517,7 @@ pub const RenderTarget = struct {
 
     fn sortTriangles(self: *RenderTarget) void {
         var _indices: [][3]u32 = undefined;
-        _indices.ptr = @ptrCast([*][3]u32, self.indices.items.ptr);
+        _indices.ptr = @ptrCast(self.indices.items.ptr);
         _indices.len = @divTrunc(self.indices.items.len, 3);
         std.sort.pdq(
             [3]u32,
@@ -580,7 +580,7 @@ pub const RenderTarget = struct {
                 );
                 offset += size;
             }
-            assert(offset == @intCast(u32, self.indices.items.len));
+            assert(offset == @as(u32, @intCast(self.indices.items.len)));
         }
     }
 
@@ -606,13 +606,13 @@ pub const RenderTarget = struct {
         } else {
             const last_texture = self.textures.items[self.textures.items.len - 1];
             if (isSameTexture(last_texture, texture)) {
-                self.batched_indices.items[self.batched_indices.items.len - 1] += @intCast(u32, indices.len);
+                self.batched_indices.items[self.batched_indices.items.len - 1] += @as(u32, @intCast(indices.len));
             } else {
                 try self.batched_indices.append(indices.len);
             }
         }
 
-        const current_index: u32 = @intCast(u32, self.vertices.items.len);
+        const current_index: u32 = @as(u32, @intCast(self.vertices.items.len));
         for (indices) |idx| {
             self.indices.appendAssumeCapacity(idx + current_index);
         }

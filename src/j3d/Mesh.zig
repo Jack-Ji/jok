@@ -84,7 +84,7 @@ pub const Node = struct {
             {
                 return error.InvalidFormat;
             }
-            const index_offset = @intCast(u32, self.positions.items.len);
+            const index_offset = @as(u32, @intCast(self.positions.items.len));
             try self.indices.ensureTotalCapacity(self.indices.items.len + indices.len);
             for (indices) |idx| self.indices.appendAssumeCapacity(idx + index_offset);
             try self.positions.appendSlice(positions);
@@ -617,7 +617,7 @@ fn loadNodeTree(
                             );
                         } else if (image.buffer_view) |v| { // Read embedded file
                             var file_data: []u8 = undefined;
-                            file_data.ptr = @ptrCast([*]u8, v.buffer.data.?) + v.offset;
+                            file_data.ptr = @as([*]u8, @ptrCast(v.buffer.data.?)) + v.offset;
                             file_data.len = v.size;
                             tex = try jok.utils.gfx.createTextureFromFileData(
                                 rd,
@@ -636,10 +636,10 @@ fn loadNodeTree(
             }
 
             // Indices.
-            const num_vertices: u32 = @intCast(u32, prim.attributes[0].data.count);
-            const index_offset = @intCast(u32, sm.positions.items.len);
+            const num_vertices: u32 = @intCast(prim.attributes[0].data.count);
+            const index_offset = @as(u32, @intCast(sm.positions.items.len));
             if (prim.indices) |accessor| {
-                const num_indices: u32 = @intCast(u32, accessor.count);
+                const num_indices: u32 = @intCast(accessor.count);
                 try sm.indices.ensureTotalCapacity(sm.indices.items.len + num_indices);
 
                 const buffer_view = accessor.buffer_view.?;
@@ -650,19 +650,19 @@ fn loadNodeTree(
                 const data_addr = @intFromPtr(buffer_view.buffer.data.?) + accessor.offset + buffer_view.offset;
                 if (accessor.stride == 1) {
                     assert(accessor.component_type == .r_8u);
-                    const src = @ptrFromInt([*]const u8, data_addr);
+                    const src = @as([*]const u8, @ptrFromInt(data_addr));
                     for (0..num_indices) |i| {
                         sm.indices.appendAssumeCapacity(src[i] + index_offset);
                     }
                 } else if (accessor.stride == 2) {
                     assert(accessor.component_type == .r_16u);
-                    const src = @ptrFromInt([*]const u16, data_addr);
+                    const src = @as([*]const u16, @ptrFromInt(data_addr));
                     for (0..num_indices) |i| {
                         sm.indices.appendAssumeCapacity(src[i] + index_offset);
                     }
                 } else if (accessor.stride == 4) {
                     assert(accessor.component_type == .r_32u);
-                    const src = @ptrFromInt([*]const u32, data_addr);
+                    const src = @as([*]const u32, @ptrFromInt(data_addr));
                     for (0..num_indices) |i| {
                         sm.indices.appendAssumeCapacity(src[i] + index_offset);
                     }
@@ -673,7 +673,7 @@ fn loadNodeTree(
                 assert(@rem(num_vertices, 3) == 0);
                 try sm.indices.ensureTotalCapacity(num_vertices);
                 for (0..num_vertices) |i| {
-                    sm.indices.appendAssumeCapacity(@intCast(u32, i) + index_offset);
+                    sm.indices.appendAssumeCapacity(@as(u32, @intCast(i)) + index_offset);
                 }
             }
 
@@ -691,35 +691,35 @@ fn loadNodeTree(
                     if (attrib.type == .position) {
                         assert(accessor.type == .vec3);
                         assert(accessor.component_type == .r_32f);
-                        const slice = @ptrFromInt([*]const [3]f32, data_addr)[0..num_vertices];
+                        const slice = @as([*]const [3]f32, @ptrFromInt(data_addr))[0..num_vertices];
                         try sm.positions.appendSlice(slice);
                     } else if (attrib.type == .normal) {
                         assert(accessor.type == .vec3);
                         assert(accessor.component_type == .r_32f);
-                        const slice = @ptrFromInt([*]const [3]f32, data_addr)[0..num_vertices];
+                        const slice = @as([*]const [3]f32, @ptrFromInt(data_addr))[0..num_vertices];
                         try sm.normals.appendSlice(slice);
                     } else if (attrib.type == .color) {
                         assert(accessor.component_type == .r_32f);
                         if (accessor.type == .vec3) {
-                            const slice = @ptrFromInt([*]const [3]f32, data_addr)[0..num_vertices];
+                            const slice = @as([*]const [3]f32, @ptrFromInt(data_addr))[0..num_vertices];
                             for (slice) |c| try sm.colors.append(sdl.Color.rgb(
-                                @intFromFloat(u8, 255 * c[0]),
-                                @intFromFloat(u8, 255 * c[1]),
-                                @intFromFloat(u8, 255 * c[2]),
+                                @intFromFloat(255 * c[0]),
+                                @intFromFloat(255 * c[1]),
+                                @intFromFloat(255 * c[2]),
                             ));
                         } else if (accessor.type == .vec4) {
-                            const slice = @ptrFromInt([*]const [4]f32, data_addr)[0..num_vertices];
+                            const slice = @as([*]const [4]f32, @ptrFromInt(data_addr))[0..num_vertices];
                             for (slice) |c| try sm.colors.append(sdl.Color.rgba(
-                                @intFromFloat(u8, 255 * c[0]),
-                                @intFromFloat(u8, 255 * c[1]),
-                                @intFromFloat(u8, 255 * c[2]),
-                                @intFromFloat(u8, 255 * c[3]),
+                                @intFromFloat(255 * c[0]),
+                                @intFromFloat(255 * c[1]),
+                                @intFromFloat(255 * c[2]),
+                                @intFromFloat(255 * c[3]),
                             ));
                         }
                     } else if (attrib.type == .texcoord) {
                         assert(accessor.type == .vec2);
                         assert(accessor.component_type == .r_32f);
-                        const slice = @ptrFromInt([*]const [2]f32, data_addr)[0..num_vertices];
+                        const slice = @as([*]const [2]f32, @ptrFromInt(data_addr))[0..num_vertices];
                         try sm.texcoords.ensureTotalCapacity(sm.texcoords.items.len + slice.len);
                         if (transform) |tr| {
                             for (slice) |ts| {
@@ -740,16 +740,16 @@ fn loadNodeTree(
                         assert(accessor.type == .vec4);
                         try sm.joints.ensureTotalCapacity(sm.joints.items.len + num_vertices);
                         if (accessor.component_type == .r_8u) {
-                            const slice = @ptrFromInt([*]const [4]u8, data_addr)[0..num_vertices];
+                            const slice = @as([*]const [4]u8, @ptrFromInt(data_addr))[0..num_vertices];
                             try sm.joints.appendSlice(slice);
                         } else if (accessor.component_type == .r_16u) {
-                            const slice = @ptrFromInt([*]const [4]u16, data_addr)[0..num_vertices];
+                            const slice = @as([*]const [4]u16, @ptrFromInt(data_addr))[0..num_vertices];
                             for (slice) |xs| {
                                 sm.joints.appendAssumeCapacity([4]u8{
-                                    @intCast(u8, xs[0]),
-                                    @intCast(u8, xs[1]),
-                                    @intCast(u8, xs[2]),
-                                    @intCast(u8, xs[3]),
+                                    @intCast(xs[0]),
+                                    @intCast(xs[1]),
+                                    @intCast(xs[2]),
+                                    @intCast(xs[3]),
                                 });
                             }
                         } else unreachable;
@@ -757,26 +757,26 @@ fn loadNodeTree(
                         assert(accessor.type == .vec4);
                         try sm.weights.ensureTotalCapacity(sm.weights.items.len + num_vertices);
                         if (accessor.component_type == .r_32f) {
-                            const slice = @ptrFromInt([*]const [4]f32, data_addr)[0..num_vertices];
+                            const slice = @as([*]const [4]f32, @ptrFromInt(data_addr))[0..num_vertices];
                             try sm.weights.appendSlice(slice);
                         } else if (accessor.component_type == .r_8u) {
-                            const slice = @ptrFromInt([*]const [4]u8, data_addr)[0..num_vertices];
+                            const slice = @as([*]const [4]u8, @ptrFromInt(data_addr))[0..num_vertices];
                             for (slice) |xs| {
                                 sm.weights.appendAssumeCapacity([4]f32{
-                                    @floatFromInt(f32, xs[0]) / 255.0,
-                                    @floatFromInt(f32, xs[1]) / 255.0,
-                                    @floatFromInt(f32, xs[2]) / 255.0,
-                                    @floatFromInt(f32, xs[3]) / 255.0,
+                                    @as(f32, @floatFromInt(xs[0])) / 255.0,
+                                    @as(f32, @floatFromInt(xs[1])) / 255.0,
+                                    @as(f32, @floatFromInt(xs[2])) / 255.0,
+                                    @as(f32, @floatFromInt(xs[3])) / 255.0,
                                 });
                             }
                         } else if (accessor.component_type == .r_16u) {
-                            const slice = @ptrFromInt([*]const [4]u16, data_addr)[0..num_vertices];
+                            const slice = @as([*]const [4]u16, @ptrFromInt(data_addr))[0..num_vertices];
                             for (slice) |xs| {
                                 sm.weights.appendAssumeCapacity([4]f32{
-                                    @floatFromInt(f32, xs[0]) / 65535.0,
-                                    @floatFromInt(f32, xs[1]) / 65535.0,
-                                    @floatFromInt(f32, xs[2]) / 65535.0,
-                                    @floatFromInt(f32, xs[3]) / 65535.0,
+                                    @as(f32, @floatFromInt(xs[0])) / 65535.0,
+                                    @as(f32, @floatFromInt(xs[1])) / 65535.0,
+                                    @as(f32, @floatFromInt(xs[2])) / 65535.0,
+                                    @as(f32, @floatFromInt(xs[3])) / 65535.0,
                                 });
                             }
                         } else unreachable;

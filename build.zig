@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const assets_install = b.addInstallDirectory(.{
-        .source_dir = "examples/assets",
+        .source_dir = .{ .path = "examples/assets" },
         .install_dir = .bin,
         .install_subdir = "assets",
     });

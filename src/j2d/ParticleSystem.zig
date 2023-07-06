@@ -300,7 +300,7 @@ pub const Particle = struct {
     }
 
     fn lerpColorElement(v1: u8, v2: u8, c1: f32, c2: f32) u8 {
-        return @intFromFloat(u8, @floatFromInt(f32, v1) * c1 + @floatFromInt(f32, v2) * c2);
+        return @intFromFloat(@as(f32, @floatFromInt(v1)) * c1 + @as(f32, @floatFromInt(v2)) * c2);
     }
 
     fn updateColor(self: *Particle) void {

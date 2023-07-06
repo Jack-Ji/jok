@@ -35,7 +35,7 @@ const emitter2 = j3d.ParticleSystem.Effect.FireEmitter(
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    rand = std.rand.DefaultPrng.init(@intCast(u64, std.time.timestamp()));
+    rand = std.rand.DefaultPrng.init(@intCast(std.time.timestamp()));
     tex0 = try jok.utils.gfx.createTextureFromFile(
         ctx.renderer(),
         "assets/images/white-circle.png",

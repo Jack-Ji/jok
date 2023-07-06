@@ -135,11 +135,11 @@ pub const Animation = struct {
         anim.passed_time += delta_tick;
         while (anim.passed_time > anim.frame_interval) : (anim.passed_time -= anim.frame_interval) {
             anim.play_index += 1;
-            if (anim.play_index >= @intCast(u32, anim.frames.len)) {
+            if (anim.play_index >= @as(u32, @intCast(anim.frames.len))) {
                 if (anim.loop) {
                     anim.play_index = 0;
                 } else {
-                    anim.play_index = @intCast(u32, anim.frames.len) - 1;
+                    anim.play_index = @as(u32, @intCast(anim.frames.len)) - 1;
                     anim.is_over = true;
                 }
             }

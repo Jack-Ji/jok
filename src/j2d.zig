@@ -71,8 +71,8 @@ pub fn begin(opt: BeginOption) !void {
     draw_list.pushClipRect(.{
         .pmin = .{ 0, 0 },
         .pmax = .{
-            @floatFromInt(f32, output_size.width_pixels),
-            @floatFromInt(f32, output_size.height_pixels),
+            @as(f32, @floatFromInt(output_size.width_pixels)),
+            @as(f32, @floatFromInt(output_size.height_pixels)),
         },
     });
     draw_list.pushTextureId(imgui.io.getFontsTexId());
@@ -136,7 +136,7 @@ pub fn end() !void {
     };
     var it = all_tex.keyIterator();
     while (it.next()) |k| {
-        _ = sdl.c.SDL_SetTextureBlendMode(k.*, @intCast(c_uint, mode));
+        _ = sdl.c.SDL_SetTextureBlendMode(k.*, @intCast(mode));
     }
     try imgui.sdl.renderDrawList(rd, draw_list);
 }
@@ -184,8 +184,8 @@ pub fn image(texture: sdl.Texture, pos: sdl.PointF, opt: ImageOption) !void {
     const size = opt.size orelse BLK: {
         const info = try texture.query();
         break :BLK sdl.PointF{
-            .x = @floatFromInt(f32, info.width),
-            .y = @floatFromInt(f32, info.height),
+            .x = @floatFromInt(info.width),
+            .y = @floatFromInt(info.height),
         };
     };
     const s = Sprite{
@@ -224,8 +224,8 @@ pub fn imageRounded(texture: sdl.Texture, pos: sdl.PointF, opt: ImageRoundedOpti
     const size = opt.size orelse BLK: {
         const info = try texture.query();
         break :BLK sdl.PointF{
-            .x = @floatFromInt(f32, info.width),
-            .y = @floatFromInt(f32, info.height),
+            .x = @floatFromInt(info.width),
+            .y = @floatFromInt(info.height),
         };
     };
     const pmin = transform.transformPoint(pos);
@@ -316,7 +316,7 @@ pub fn text(opt: TextOption, comptime fmt: []const u8, args: anytype) !void {
     var i: u32 = 0;
     while (i < txt.len) {
         const size = try unicode.utf8ByteSequenceLength(txt[i]);
-        const cp = @intCast(u32, try unicode.utf8Decode(txt[i .. i + size]));
+        const cp = @as(u32, @intCast(try unicode.utf8Decode(txt[i .. i + size])));
         if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, sdl.Color.white, cp)) |cs| {
             const v = zmath.mul(
                 zmath.f32x4(

@@ -124,9 +124,9 @@ pub fn EaseScalar(comptime T: type) type {
         pub fn ease(x: f32, from: T, to: T) T {
             return switch (T) {
                 f32 => from + (to - from) * x,
-                f64 => from + (to - from) * @floatCast(f64, x),
-                c_int, i8, i16, i32, i64 => from + @intFromFloat(T, @floatFromInt(f32, to - from) * x),
-                u8, u16, u32, u64 => from + @intFromFloat(T, @floatFromInt(f32, @intCast(i64, to) - @intCast(i64, from)) * x),
+                f64 => from + (to - from) * @as(f64, @floatCast(x)),
+                c_int, i8, i16, i32, i64 => from + @as(T, @intFromFloat(@as(f32, @floatFromInt(to - from)) * x)),
+                u8, u16, u32, u64 => from + @as(T, @intFromFloat(@as(f32, @floatFromInt(@as(i64, to) - @as(i64, from))) * x)),
                 else => unreachable,
             };
         }
@@ -143,13 +143,13 @@ pub fn EaseVector(comptime N: u32, comptime T: type) type {
             inline while (i < N) : (i += 1) {
                 switch (T1) {
                     f32, f64 => switch (T2) {
-                        f32, f64 => result[i] = @floatCast(T2, v[i]),
-                        c_int, i8, i16, i32, i64, u8, u16, u32, u64 => result[i] = @intFromFloat(T2, v[i]),
+                        f32, f64 => result[i] = @as(T2, v[i]),
+                        c_int, i8, i16, i32, i64, u8, u16, u32, u64 => result[i] = @as(T2, @intFromFloat(v[i])),
                         else => unreachable,
                     },
                     c_int, i8, i16, i32, i64, u8, u16, u32, u64 => switch (T2) {
-                        f32, f64 => result[i] = @floatFromInt(T2, v[i]),
-                        c_int, i8, i16, i32, i64, u8, u16, u32, u64 => result[i] = @intCast(T2, v[i]),
+                        f32, f64 => result[i] = @as(T2, @floatFromInt(v[i])),
+                        c_int, i8, i16, i32, i64, u8, u16, u32, u64 => result[i] = @as(T2, v[i]),
                         else => unreachable,
                     },
                     else => unreachable,
@@ -161,11 +161,11 @@ pub fn EaseVector(comptime N: u32, comptime T: type) type {
         pub fn ease(x: f32, from: Vec, to: Vec) Vec {
             return switch (T) {
                 f32 => from + (to - from) * @splat(N, x),
-                f64 => from + (to - from) * @splat(N, @floatCast(f64, x)),
+                f64 => from + (to - from) * @splat(N, @as(f64, x)),
                 c_int, i8, i16, i32, i64, u8, u16, u32, u64 => BLK: {
                     const from_f64 = convert(T, f64, from);
                     const to_f64 = convert(T, f64, to);
-                    const result_f64 = from_f64 + (to_f64 - from_f64) * @splat(N, @floatCast(f64, x));
+                    const result_f64 = from_f64 + (to_f64 - from_f64) * @splat(N, @as(f64, x));
                     break :BLK convert(f64, T, result_f64);
                 },
                 else => unreachable,

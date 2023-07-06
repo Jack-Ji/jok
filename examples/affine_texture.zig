@@ -102,8 +102,8 @@ pub fn draw(ctx: jok.Context) !void {
             .cull_faces = false,
             .texture = tex,
         },
-        .slices = @intCast(u32, slices),
-        .stacks = @intCast(u32, stacks),
+        .slices = @intCast(slices),
+        .stacks = @intCast(stacks),
     };
 
     try j3d.begin(.{ .camera = camera });

@@ -31,16 +31,16 @@ pub fn init(ctx: jok.Context) !void {
     for (&blocks, 0..) |*b, i| {
         try point_easing_system.add(
             &b.pos,
-            @enumFromInt(easing.EasingType, @intCast(u8, i)),
+            @enumFromInt(@as(u8, @intCast(i))),
             easing.easePointF,
             2,
             .{
                 .x = 150,
-                .y = 1 + @floatFromInt(f32, i) * 25,
+                .y = 1 + @as(f32, @floatFromInt(i)) * 25,
             },
             .{
                 .x = 680,
-                .y = 1 + @floatFromInt(f32, i) * 25,
+                .y = 1 + @as(f32, @floatFromInt(i)) * 25,
             },
         );
     }
@@ -59,16 +59,16 @@ pub fn update(ctx: jok.Context) !void {
             for (&blocks, 0..) |*b, i| {
                 try point_easing_system.add(
                     &b.pos,
-                    @enumFromInt(easing.EasingType, @intCast(u8, i)),
+                    @enumFromInt(@as(u8, @intCast(i))),
                     easing.easePointF,
                     2,
                     .{
                         .x = 150,
-                        .y = 1 + @floatFromInt(f32, i) * 25,
+                        .y = 1 + @as(f32, @floatFromInt(i)) * 25,
                     },
                     .{
                         .x = 680,
-                        .y = 1 + @floatFromInt(f32, i) * 25,
+                        .y = 1 + @as(f32, @floatFromInt(i)) * 25,
                     },
                 );
             }
@@ -83,29 +83,29 @@ pub fn draw(ctx: jok.Context) !void {
         try j2d.rectFilled(
             .{
                 .x = 150,
-                .y = @floatFromInt(f32, i) * 25,
+                .y = @as(f32, @floatFromInt(i)) * 25,
                 .width = 550,
                 .height = 25,
             },
             sdl.Color.rgb(
-                @intCast(u8, i) * 4,
-                @intCast(u8, i) * 4,
-                @intCast(u8, i) * 4,
+                @as(u8, @intCast(i)) * 4,
+                @as(u8, @intCast(i)) * 4,
+                @as(u8, @intCast(i)) * 4,
             ),
             .{},
         );
         try j2d.text(
             .{
                 .atlas = try jok.font.DebugFont.getAtlas(ctx, 16),
-                .pos = .{ .x = 10, .y = @floatFromInt(f32, i) * 25 },
+                .pos = .{ .x = 10, .y = @as(f32, @floatFromInt(i)) * 25 },
             },
             "{s}",
-            .{@tagName(@enumFromInt(easing.EasingType, @intCast(u8, i)))},
+            .{@tagName(@as(easing.EasingType, @enumFromInt(@as(u8, @intCast(i)))))},
         );
         try b.draw();
         try j2d.line(
-            .{ .x = 0, .y = @floatFromInt(f32, i) * 25 + 20 },
-            .{ .x = 750, .y = @floatFromInt(f32, i) * 25 + 20 },
+            .{ .x = 0, .y = @as(f32, @floatFromInt(i)) * 25 + 20 },
+            .{ .x = 750, .y = @as(f32, @floatFromInt(i)) * 25 + 20 },
             sdl.Color.white,
             .{},
         );
