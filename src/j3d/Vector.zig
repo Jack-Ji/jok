@@ -23,6 +23,18 @@ pub fn z(self: Self) f32 {
     return self.data[2];
 }
 
+pub fn setX(self: Self, val: f32) void {
+    self.data[0] = val;
+}
+
+pub fn setY(self: Self, val: f32) void {
+    self.data[1] = val;
+}
+
+pub fn setZ(self: Self, val: f32) void {
+    self.data[2] = val;
+}
+
 /// Set all components to the same given value.
 pub fn set(val: f32) Self {
     const result = @splat(3, val);
@@ -95,6 +107,24 @@ pub fn getAngle(first_vector: Self, second_vector: Self) f32 {
 /// √[x^2 + y^2 + z^2 ...]
 pub fn length(self: Self) f32 {
     return @sqrt(self.dot(self));
+}
+
+/// Return squared length (magnitude) of given vector.
+pub fn lengthSqr(self: Self) f32 {
+    return self.dot(self);
+}
+
+// Limit the length (magnitude) of this vector to the value used for the maxLen parameter.
+// var v = new Vec2.new(10, 20, 2);
+// v = v.limit(5);
+// v == [ 2.2271771, 4.4543543, 0.4454354 ]
+pub fn limit(self: Self, maxLen: f32) Self {
+    var result = self;
+    if (result.lengthSqr() > maxLen * maxLen) {
+        result = result.norm();
+        result = result.scale(maxLen);
+    }
+    return .{ .data = result };
 }
 
 /// Return the distance between two points.
@@ -234,6 +264,20 @@ test "Vectors.toArray" {
 test "Vectors.length" {
     const a = Self.new(1.5, 2.6, 3.7);
     try expectEqual(a.length(), 4.7644519);
+}
+
+test "Vectors.lengthSqr" {
+    const a = Self.new(1.5, 2.6, 3.7);
+    try expectEqual(a.lengthSqr(), 2.27000007e+01);
+}
+
+test "Vectors.limit" {
+    const a = Self.new(10.0, 20.0, 2.0);
+    const res = a.limit(5);
+
+    try expectEqual(res.x(), 2.2271771);
+    try expectEqual(res.y(), 4.4543543);
+    try expectEqual(res.z(), 0.4454354);
 }
 
 test "Vectors.distance" {
