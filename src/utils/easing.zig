@@ -138,7 +138,7 @@ pub fn EaseVector(comptime N: u32, comptime T: type) type {
 
     return struct {
         fn convert(comptime T1: type, comptime T2: type, v: @Vector(N, T1)) @Vector(N, T2) {
-            var result = @splat(N, @as(T2, 0));
+            var result: @Vector(N, T2) = @splat(@as(T2, 0));
             comptime var i: u32 = 0;
             inline while (i < N) : (i += 1) {
                 switch (T1) {
@@ -160,12 +160,12 @@ pub fn EaseVector(comptime N: u32, comptime T: type) type {
 
         pub fn ease(x: f32, from: Vec, to: Vec) Vec {
             return switch (T) {
-                f32 => from + (to - from) * @splat(N, x),
-                f64 => from + (to - from) * @splat(N, @as(f64, x)),
+                f32 => from + (to - from) * @as(Vec, @splat(x)),
+                f64 => from + (to - from) * @as(Vec, @splat(@as(f64, x))),
                 c_int, i8, i16, i32, i64, u8, u16, u32, u64 => BLK: {
                     const from_f64 = convert(T, f64, from);
                     const to_f64 = convert(T, f64, to);
-                    const result_f64 = from_f64 + (to_f64 - from_f64) * @splat(N, @as(f64, x));
+                    const result_f64 = from_f64 + (to_f64 - from_f64) * @as(@Vector(N, f64), @splat(@as(f64, x)));
                     break :BLK convert(f64, T, result_f64);
                 },
                 else => unreachable,

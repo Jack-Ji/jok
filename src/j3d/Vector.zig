@@ -5,7 +5,9 @@ const expectEqual = std.testing.expectEqual;
 const jok = @import("../jok.zig");
 const Self = @This();
 
-data: @Vector(3, f32),
+const Vec = @Vector(3, f32);
+
+data: Vec,
 
 pub fn new(vx: f32, vy: f32, vz: f32) Self {
     return .{ .data = [3]f32{ vx, vy, vz } };
@@ -25,7 +27,7 @@ pub fn z(self: Self) f32 {
 
 /// Set all components to the same given value.
 pub fn set(val: f32) Self {
-    const result = @splat(3, val);
+    const result = @as(Vec, @splat(val));
     return .{ .data = result };
 }
 
@@ -109,7 +111,7 @@ pub fn norm(self: Self) Self {
     if (l == 0) {
         return self;
     }
-    const result = self.data / @splat(3, l);
+    const result = self.data / @as(Vec, @splat(l));
     return .{ .data = result };
 }
 
@@ -150,7 +152,7 @@ pub fn min(first_vector: Self, second_vector: Self) Self {
 
 /// Construct new vector after multiplying each components by a given scalar
 pub fn scale(self: Self, scalar: f32) Self {
-    const result = self.data * @splat(3, scalar);
+    const result = self.data * @as(Vec, @splat(scalar));
     return .{ .data = result };
 }
 
@@ -165,7 +167,7 @@ pub fn lerp(first_vector: Self, second_vector: Self, t: f32) Self {
     const from = first_vector.data;
     const to = second_vector.data;
 
-    const result = from + (to - from) * @splat(3, t);
+    const result = from + (to - from) * @as(Vec, @splat(t));
     return .{ .data = result };
 }
 
