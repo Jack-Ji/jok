@@ -2089,6 +2089,14 @@ ZGUI_API void zguiDrawList_PrimWriteVtx(
 ZGUI_API void zguiDrawList_PrimWriteIdx( ImDrawList* draw_list, ImDrawIdx idx) {
     draw_list->PrimWriteIdx(idx);
 }
+
+ZGUI_API void zguiDrawList_AddCallback(ImDrawList* draw_list, ImDrawCallback callback, void* callback_data) {
+    draw_list->AddCallback(callback, callback_data);
+}
+
+ZGUI_API void zguiDrawList_AddResetRenderStateCallback(ImDrawList* draw_list) {
+    draw_list->AddCallback(ImDrawCallback_ResetRenderState, NULL);
+}
 //--------------------------------------------------------------------------------------------------
 //
 // Viewport
@@ -2354,5 +2362,33 @@ ZGUI_API void zguiPlot_ShowDemoWindow(bool* p_open) {
 ZGUI_API void zguiPlot_EndPlot(void) {
     ImPlot::EndPlot();
 }
+ZGUI_API bool zguiPlot_DragPoint(
+        int id,
+        double* x,
+        double* y,
+        float col[4],
+        float size,
+        ImPlotDragToolFlags flags
+) {
+    return ImPlot::DragPoint(
+        id,
+        x,
+        y,
+        (*(const ImVec4*)&(col[0])),
+        size,
+        flags
+    );
+}
+
+ZGUI_API void zguiPlot_PlotText(
+        const char* text, 
+        double x, double y,
+        const float pix_offset[2],
+        ImPlotTextFlags flags=0
+) {
+    const ImVec2 p(pix_offset[0], pix_offset[1]);
+    ImPlot::PlotText(text, x, y, p, flags);
+}
+
 //--------------------------------------------------------------------------------------------------
 } /* extern "C" */
