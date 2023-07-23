@@ -1,4 +1,4 @@
-ZMODULES=../zig-gamedev/libs
+ZMODULES=../zig-gamedev/libs/
 
 rm -rf src/deps/system-sdk
 cp -r $ZMODULES/system-sdk src/deps
