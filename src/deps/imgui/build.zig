@@ -1,5 +1,6 @@
 const std = @import("std");
 const zgui = @import("zgui/build.zig");
+const builtin = @import("builtin");
 
 const cflags = &.{"-fno-sanitize=undefined"};
 
@@ -26,9 +27,14 @@ pub fn link(b: *std.Build, exe: *std.Build.CompileStep) void {
     exe.addModule("zgui", pkg.zgui);
     pkg.link(exe);
 
+    const host = (std.zig.system.NativeTargetInfo.detect(exe.target) catch unreachable).target;
+    if (host.os.tag == .windows) {
+        exe.addIncludePath(thisDir() ++ "/c/SDL2/windows");
+    } else if (host.os.tag == .linux) {
+        exe.addIncludePath(thisDir() ++ "/c/SDL2/linux");
+    } else unreachable;
     exe.addIncludePath(thisDir() ++ "/zgui/libs");
     exe.addIncludePath(thisDir() ++ "/c");
-    exe.addIncludePath(thisDir() ++ "/c/SDL2");
     exe.addCSourceFile(thisDir() ++ "/c/imgui_impl_sdl.cpp", cflags);
     exe.addCSourceFile(thisDir() ++ "/c/imgui_impl_sdlrenderer.cpp", cflags);
 }
