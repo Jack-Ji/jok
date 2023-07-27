@@ -133,9 +133,6 @@ pub fn init(comptime game: anytype) Config {
         if (!std.mem.startsWith(u8, f.name, "jok_")) {
             continue;
         }
-        if (!f.is_pub) {
-            @compileError("Validation of setup options failed, option `" ++ f.name ++ "` need to be public!");
-        }
         for (options) |o| {
             if (std.meta.fieldIndex(Config, f.name) == null) continue;
 
