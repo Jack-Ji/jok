@@ -6,10 +6,10 @@ pub fn link(exe: *std.Build.CompileStep) void {
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
     flags.append("-fno-sanitize=undefined") catch unreachable;
 
-    exe.addCSourceFile(
-        comptime thisDir() ++ "/c/stb_wrapper.c",
-        flags.items,
-    );
+    exe.addCSourceFile(.{
+        .file = .{ .path = comptime thisDir() ++ "/c/stb_wrapper.c" },
+        .flags = flags.items,
+    });
 }
 
 fn thisDir() []const u8 {

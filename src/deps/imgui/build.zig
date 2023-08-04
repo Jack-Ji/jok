@@ -29,14 +29,20 @@ pub fn link(b: *std.Build, exe: *std.Build.CompileStep) void {
 
     const host = (std.zig.system.NativeTargetInfo.detect(exe.target) catch unreachable).target;
     if (host.os.tag == .windows) {
-        exe.addIncludePath(thisDir() ++ "/c/SDL2/windows");
+        exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/windows" });
     } else if (host.os.tag == .linux) {
-        exe.addIncludePath(thisDir() ++ "/c/SDL2/linux");
+        exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/linux" });
     } else unreachable;
-    exe.addIncludePath(thisDir() ++ "/zgui/libs");
-    exe.addIncludePath(thisDir() ++ "/c");
-    exe.addCSourceFile(thisDir() ++ "/c/imgui_impl_sdl.cpp", cflags);
-    exe.addCSourceFile(thisDir() ++ "/c/imgui_impl_sdlrenderer.cpp", cflags);
+    exe.addIncludePath(.{ .path = thisDir() ++ "/zgui/libs" });
+    exe.addIncludePath(.{ .path = thisDir() ++ "/c" });
+    exe.addCSourceFile(.{
+        .file = .{ .path = thisDir() ++ "/c/imgui_impl_sdl.cpp" },
+        .flags = cflags,
+    });
+    exe.addCSourceFile(.{
+        .file = .{ .path = thisDir() ++ "/c/imgui_impl_sdlrenderer.cpp" },
+        .flags = cflags,
+    });
 }
 
 inline fn thisDir() []const u8 {

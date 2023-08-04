@@ -55,7 +55,7 @@ pub fn build(b: *std.Build) void {
             optimize,
             demo.opt,
         );
-        const install_cmd = b.addInstallArtifact(exe);
+        const install_cmd = b.addInstallArtifact(exe, .{});
         const run_cmd = b.addRunArtifact(exe);
         run_cmd.step.dependOn(&install_cmd.step);
         run_cmd.step.dependOn(&assets_install.step);
