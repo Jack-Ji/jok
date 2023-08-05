@@ -47,7 +47,7 @@ pub fn build(b: *std.build.Builder) void {
         optimize,
         .{},
     );
-    b.addInstallArtifact(exe);
+    b.addInstallArtifact(exe, .{});
 
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
@@ -99,13 +99,20 @@ pub fn quit(ctx: jok.Context) void {
 }
 ```
 
-Noticed yet? That's right, you don't need to write main function, `jok` got your back.
-The game is deemed as a separate package to `jok`'s runtime as a matter of fact. 
-Your responsibility is to provide 5 pub functions: `init/event/update/draw/quit`, that's all (pretty much).
+Now you can run `zig run`, have fun! Please let me know if you have developed something great with this little framework.
 
-Of course, you can customize some setup settings, such as width/height/title/position of window,
-by defining some public constants using predefined names (they're all prefixed with `jok_`).
-Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig) to see available options.
+    Noticed yet? That's right, you don't need to write main function, `jok` got your back.
+    The game is deemed as a separate package to `jok`'s runtime as a matter of fact. 
+    Your responsibility is to provide 5 pub functions: 
+        * init - initialize your game, run only once
+        * event - process events happened between frames (keyboard/mouse/controller/audio/sensor/touch/gesture etc)
+        * update - logic update between frames
+        * draw - render your screen here (60 fps by default)
+        * quit - do something before game is closed
+
+    Of course, you can customize some setup settings, such as width/height/title/position of window,
+    by defining some public constants using predefined names (they're all prefixed with `jok_`).
+    Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig) to see available options.
 
 ## What's supported platforms?
 Theoretically anywhere SDL2 can run. But I'm focusing on PC platforms for now.
