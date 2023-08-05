@@ -99,29 +99,31 @@ pub fn quit(ctx: jok.Context) void {
 }
 ```
 
-Now you can run `zig run`, have fun! Please let me know if you have developed something great with this little framework.
+Now you can run `zig run`, have fun! Please let me know if you have developed something
+great with this little framework.
 
-    Noticed yet? That's right, you don't need to write main function, `jok` got your back.
-    The game is deemed as a separate package to `jok`'s runtime as a matter of fact.  Your
-    responsibility is to provide 5 pub functions: 
-        * init - initialize your game, run only once
-        * event - process events happened between frames (keyboard/mouse/controller etc)
-        * update - logic update between frames
-        * draw - render your screen here (60 fps by default)
-        * quit - do something before game is closed
+Noticed yet? That's right, you don't need to write main function, `jok` got your back.
+The game is deemed as a separate package to `jok`'s runtime as a matter of fact.  Your
+responsibility is to provide 5 pub functions: 
+    * init - initialize your game, run only once
+    * event - process events happened between frames (keyboard/mouse/controller etc)
+    * update - logic update between frames
+    * draw - render your screen here (60 fps by default)
+    * quit - do something before game is closed
 
-    You can customize some setup settings (window width/height, fps, debug level etc), by 
-    defining some public constants using predefined names (they're all prefixed with`jok_`).
-    Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig).
+You can customize some setup settings (window width/height, fps, debug level etc), by 
+defining some public constants using predefined names (they're all prefixed with`jok_`).
+Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig).
 
 ## What's supported platforms?
-Theoretically anywhere SDL2 can run. But I'm focusing on PC platforms for now.
+Theoretically anywhere SDL2 can run. But I'm focusing on PC platforms for now (windows/linux tested).
 
 TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem` with `.Windows` in your build script.
 
 ## Watch out!
 It's way too minimal (perhaps), you can't write shaders (It doesn't mean performance is bad! Checkout
-benchmark example `sprite_benchmark/benchmark_3d`. [And the situation might change in the future.](https://gist.github.com/icculus/f731224bef3906e4c5e8cbed6f98bb08)).
+benchmark example `sprite_benchmark/benchmark_3d`. 
+[And the situation might change in the future.](https://gist.github.com/icculus/f731224bef3906e4c5e8cbed6f98bb08)).
 If you want to achieve something fancy, you should resort to some clever art tricks or algorithms.
 Welcome to old golden time of 90s! Or, you can choose other more powerful/modern libraries/engines.
 It's also very **WIP**, please do expect some breaking changes in the future.
