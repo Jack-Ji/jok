@@ -104,12 +104,12 @@ great with this little framework.
 
 Noticed yet? That's right, you don't need to write main function, `jok` got your back.
 The game is deemed as a separate package to `jok`'s runtime as a matter of fact.  Your
-responsibility is to provide 5 pub functions: 
-    * init - initialize your game, run only once
-    * event - process events happened between frames (keyboard/mouse/controller etc)
-    * update - logic update between frames
-    * draw - render your screen here (60 fps by default)
-    * quit - do something before game is closed
+only responsibility is to provide 5 public functions: 
+* init - initialize your game, run only once
+* event - process events happened between frames (keyboard/mouse/controller etc)
+* update - logic update between frames
+* draw - render your screen here (60 fps by default)
+* quit - do something before game is closed
 
 You can customize some setup settings (window width/height, fps, debug level etc), by 
 defining some public constants using predefined names (they're all prefixed with`jok_`).
