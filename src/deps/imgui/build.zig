@@ -27,10 +27,9 @@ pub fn link(b: *std.Build, exe: *std.Build.CompileStep) void {
     exe.addModule("zgui", pkg.zgui);
     pkg.link(exe);
 
-    const host = (std.zig.system.NativeTargetInfo.detect(exe.target) catch unreachable).target;
-    if (host.os.tag == .windows) {
+    if (exe.target.isWindows()) {
         exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/windows" });
-    } else if (host.os.tag == .linux) {
+    } else if (exe.target.isLinux()) {
         exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/linux" });
     } else unreachable;
     exe.addIncludePath(.{ .path = thisDir() ++ "/zgui/libs" });

@@ -12,13 +12,13 @@ pub fn link(exe: *std.Build.CompileStep) void {
         exe.linkSystemLibrary("shell32");
         exe.linkSystemLibrary("ole32");
         exe.linkSystemLibrary("uuid"); // needed by MinGW
-    } else {
+    } else if (exe.target.isLinux()) {
         exe.linkSystemLibrary("atk-1.0");
         exe.linkSystemLibrary("gdk-3");
         exe.linkSystemLibrary("gtk-3");
         exe.linkSystemLibrary("glib-2.0");
         exe.linkSystemLibrary("gobject-2.0");
-    }
+    } else unreachable;
     exe.addIncludePath(.{ .path = comptime thisDir() ++ "/c/include" });
     exe.addCSourceFile(.{
         .file = .{ .path = comptime thisDir() ++ "/c/nfd_common.c" },
