@@ -126,7 +126,7 @@ benchmark example `sprite_benchmark/benchmark_3d`.
 [And the situation might change in the future.](https://gist.github.com/icculus/f731224bef3906e4c5e8cbed6f98bb08)).
 If you want to achieve something fancy, you should resort to some clever art tricks or algorithms.
 Welcome to old golden time of 90s! Or, you can choose other more powerful/modern libraries/engines.
-It's also very **WIP**, please do expect some breaking changes in the future.
+It's also a bit **WIP**, please do expect some breaking changes in the future.
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
