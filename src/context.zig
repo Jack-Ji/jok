@@ -7,8 +7,8 @@ const jok = @import("jok.zig");
 const sdl = jok.sdl;
 const font = jok.font;
 const imgui = jok.imgui;
+const audio = jok.audio;
 const zmesh = jok.zmesh;
-const zaudio = jok.zaudio;
 
 const log = std.log.scoped(.jok);
 
@@ -24,6 +24,7 @@ pub const Context = struct {
         fps: *const fn (ctx: *anyopaque) f32,
         window: *const fn (ctx: *anyopaque) sdl.Window,
         renderer: *const fn (ctx: *anyopaque) sdl.Renderer,
+        audioEngine: *const fn (ctx: *anyopaque) *audio.Engine,
         kill: *const fn (ctx: *anyopaque) void,
         toggleResizable: *const fn (ctx: *anyopaque, on_off: ?bool) void,
         toggleFullscreeen: *const fn (ctx: *anyopaque, on_off: ?bool) void,
@@ -76,6 +77,11 @@ pub const Context = struct {
     /// Get SDL renderer
     pub fn renderer(self: Context) sdl.Renderer {
         return self.vtable.renderer(self.ctx);
+    }
+
+    /// Get audio engine
+    pub fn audioEngine(self: Context) *audio.Engine {
+        return self.vtable.audioEngine(self.ctx);
     }
 
     /// Kill application
@@ -166,6 +172,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _renderer: sdl.Renderer = undefined,
         _is_software: bool = false,
 
+        // Audio engine
+        _audio_engine: *audio.Engine = undefined,
+
         // Resizable mode
         _resizable: bool = undefined,
 
@@ -204,16 +213,19 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Init SDL window and renderer
             try self.initSDL();
 
-            // Init zmodules
+            // Init imgui
             imgui.sdl.init(self._ctx, cfg.jok_imgui_ini_file);
+
+            // Init zmesh
             zmesh.init(self._allocator);
-            if (bos.use_zaudio) {
-                zaudio.init(self._allocator);
-            }
 
             // Init 2d and 3d modules
             try jok.j2d.init(self._allocator, self._renderer);
             try jok.j3d.init(self._allocator, self._renderer);
+
+            // Init audio engine
+            audio.init(self._allocator);
+            self._audio_engine = try audio.createEngine();
 
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
@@ -231,21 +243,24 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Destroy builtin font data
             font.DebugFont.deinit();
 
+            // Destroy audio engine
+            self._audio_engine.destroy();
+            audio.deinit();
+
             // Destroy 2d and 3d modules
             jok.j3d.deinit();
             jok.j2d.deinit();
 
-            // Destroy zmodules
-            if (bos.use_zaudio) {
-                zaudio.deinit();
-            }
+            // Destroy zmesh
             zmesh.deinit();
+
+            // Destroy imgui
             imgui.sdl.deinit();
 
             // Destroy window and renderer
             self.deinitSDL();
 
-            // Destory itself
+            // Destory self
             self._allocator.destroy(self);
 
             // Destory memory allocator
@@ -586,6 +601,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .fps = fps,
                     .window = window,
                     .renderer = renderer,
+                    .audioEngine = audioEngine,
                     .kill = kill,
                     .toggleResizable = toggleResizable,
                     .toggleFullscreeen = toggleFullscreeen,
@@ -654,6 +670,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn renderer(ptr: *anyopaque) sdl.Renderer {
             var self: *@This() = @ptrCast(@alignCast(ptr));
             return self._renderer;
+        }
+
+        /// Get audio engine
+        fn audioEngine(ptr: *anyopaque) *audio.Engine {
+            var self: *@This() = @ptrCast(@alignCast(ptr));
+            return self._audio_engine;
         }
 
         /// Kill app

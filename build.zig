@@ -1,15 +1,14 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const sdl = @import("src/deps/sdl/build.zig");
-const stb = @import("src/deps/stb/build.zig");
 const imgui = @import("src/deps/imgui/build.zig");
-const nfd = @import("src/deps/nfd/build.zig");
+const audio = @import("src/deps/audio/build.zig");
+const stb = @import("src/deps/stb/build.zig");
 const zmath = @import("src/deps/zmath/build.zig");
 const zmesh = @import("src/deps/zmesh/build.zig");
 const znoise = @import("src/deps/znoise/build.zig");
-const zpool = @import("src/deps/zpool/build.zig");
-const zaudio = @import("src/deps/zaudio/build.zig");
 const ztracy = @import("src/deps/ztracy/build.zig");
+const nfd = @import("src/deps/nfd/build.zig");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -37,8 +36,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "skybox", .opt = .{} },
         .{ .name = "benchmark_3d", .opt = .{} },
         .{ .name = "particle_life", .opt = .{ .use_nfd = true } },
-        .{ .name = "zaudio_demo", .opt = .{ .use_zaudio = true } },
-        .{ .name = "audio_synthesize_demo", .opt = .{} },
+        .{ .name = "audio_demo", .opt = .{} },
         .{ .name = "hypocycloids", .opt = .{} },
         .{ .name = "spiraling_squares", .opt = .{} },
         .{ .name = "easing", .opt = .{} },
@@ -71,7 +69,6 @@ pub fn build(b: *std.Build) void {
 
 pub const BuildOptions = struct {
     use_nfd: bool = false,
-    use_zaudio: bool = false,
     enable_ztracy: bool = false,
 };
 
@@ -87,12 +84,10 @@ pub fn createGame(
     // Initialize jok module
     const bos = b.addOptions();
     bos.addOption(bool, "use_nfd", opt.use_nfd);
-    bos.addOption(bool, "use_zaudio", opt.use_zaudio);
     const sdl_sdk = sdl.init(b, null);
     const zmath_pkg = zmath.package(b, target, optimize, .{});
     const zmesh_pkg = zmesh.package(b, target, optimize, .{});
     const znoise_pkg = znoise.package(b, target, optimize, .{});
-    const zaudio_pkg = zaudio.package(b, target, optimize, .{});
     const ztracy_pkg = ztracy.package(b, target, optimize, .{
         .options = .{ .enable_ztracy = opt.enable_ztracy },
     });
@@ -105,7 +100,6 @@ pub fn createGame(
             .{ .name = "zmath", .module = zmath_pkg.zmath },
             .{ .name = "zmesh", .module = zmesh_pkg.zmesh },
             .{ .name = "znoise", .module = znoise_pkg.znoise },
-            .{ .name = "zaudio", .module = zaudio_pkg.zaudio },
             .{ .name = "ztracy", .module = ztracy_pkg.ztracy },
         },
     });
@@ -127,16 +121,14 @@ pub fn createGame(
 
     // Link libraries
     sdl_sdk.link(exe, .dynamic);
-    stb.link(exe);
     imgui.link(b, exe);
+    audio.link(exe);
+    stb.link(exe);
     zmesh_pkg.link(exe);
     znoise_pkg.link(exe);
     ztracy_pkg.link(exe);
     if (opt.use_nfd) {
         nfd.link(exe);
-    }
-    if (opt.use_zaudio) {
-        zaudio_pkg.link(exe);
     }
 
     return exe;

@@ -24,7 +24,6 @@ pub fn link(b: *std.Build, exe: *std.Build.CompileStep) void {
             .options = .{ .backend = .no_backend },
         },
     );
-    exe.addModule("zgui", pkg.zgui);
     pkg.link(exe);
 
     if (exe.target.isWindows()) {
