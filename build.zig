@@ -69,6 +69,7 @@ pub fn build(b: *std.Build) void {
 
 pub const BuildOptions = struct {
     use_nfd: bool = false,
+    use_ztracy: bool = false,
     enable_ztracy: bool = false,
 };
 
@@ -84,6 +85,7 @@ pub fn createGame(
     // Initialize jok module
     const bos = b.addOptions();
     bos.addOption(bool, "use_nfd", opt.use_nfd);
+    bos.addOption(bool, "use_ztracy", opt.use_ztracy);
     const sdl_sdk = sdl.init(b, null);
     const zmath_pkg = zmath.package(b, target, optimize, .{});
     const zmesh_pkg = zmesh.package(b, target, optimize, .{});
@@ -100,9 +102,11 @@ pub fn createGame(
             .{ .name = "zmath", .module = zmath_pkg.zmath },
             .{ .name = "zmesh", .module = zmesh_pkg.zmesh },
             .{ .name = "znoise", .module = znoise_pkg.znoise },
-            .{ .name = "ztracy", .module = ztracy_pkg.ztracy },
         },
     });
+    if (opt.use_ztracy) {
+        jok.dependencies.put("ztracy", ztracy_pkg.ztracy) catch unreachable;
+    }
 
     // Initialize executable
     const exe = b.addExecutable(.{
@@ -126,9 +130,11 @@ pub fn createGame(
     stb.link(exe);
     zmesh_pkg.link(exe);
     znoise_pkg.link(exe);
-    ztracy_pkg.link(exe);
     if (opt.use_nfd) {
         nfd.link(exe);
+    }
+    if (opt.use_ztracy) {
+        ztracy_pkg.link(exe);
     }
 
     return exe;
