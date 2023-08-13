@@ -105,13 +105,13 @@ pub fn end() !void {
 
     switch (depth_sort) {
         .none => {},
-        .back_to_forth => std.sort.pdq(
+        .back_to_forth => std.sort.block(
             dc.DrawCmd,
             draw_commands.items,
             @as(?*anyopaque, null),
             S.descendCompare,
         ),
-        .forth_to_back => std.sort.pdq(
+        .forth_to_back => std.sort.block(
             dc.DrawCmd,
             draw_commands.items,
             @as(?*anyopaque, null),
