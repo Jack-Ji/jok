@@ -601,7 +601,7 @@ static ma_result ma_context_init__custom_loader(ma_context* pContext, const ma_c
     return result;
 }
 
-ma_context_ex *ma_create_sdl_Context() 
+ma_context_ex *ma_create_sdl_context() 
 {
   ma_result result;
   ma_context_config contextConfig;
@@ -621,7 +621,7 @@ ma_context_ex *ma_create_sdl_Context()
      context initialization routines, one of which will be for SDL. That way, if for example we wanted to add support for another backend,
      we don't need to touch this part of the code. Instead we add logic to ma_context_init__custom_loader() to choose the most appropriate
      custom backend. That will then fill out the other callbacks appropriately.
-     */
+   */
   contextConfig = ma_context_config_init();
   contextConfig.custom.onContextInit = ma_context_init__custom_loader;
 

@@ -12,12 +12,12 @@ fn getContext() *zaudio.Context {
     if (S.sdl_context) |ctx| {
         return ctx;
     } else {
-        S.sdl_context = ma_create_sdl_Context();
+        S.sdl_context = ma_create_sdl_context();
         std.debug.assert(S.sdl_context != null);
         return S.sdl_context.?;
     }
 }
-extern fn ma_create_sdl_Context() ?*zaudio.Context;
+extern fn ma_create_sdl_context() ?*zaudio.Context;
 
 /// Create new engine
 pub fn createEngine() !*zaudio.Engine {

@@ -34,12 +34,25 @@ pub fn init(ctx: jok.Context) !void {
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+    const S = struct {
+        var pcm_frame_index: u64 = undefined;
+    };
+
     _ = ctx;
     switch (e) {
         .key_up => |key| {
             switch (key.scancode) {
                 .z => music.setVolume(music.getVolume() - 0.1),
                 .x => music.setVolume(music.getVolume() + 0.1),
+                .@"return" => {
+                    if (music.isPlaying()) {
+                        S.pcm_frame_index = try music.getCursorInPcmFrames();
+                        try music.stop();
+                    } else {
+                        try music.start();
+                        try music.seekToPcmFrame(S.pcm_frame_index);
+                    }
+                },
                 else => {},
             }
         },
@@ -66,7 +79,13 @@ pub fn draw(ctx: jok.Context) !void {
     _ = try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 10, .y = 10 } },
-        "Press Z/X to decrease/increase volume of music, current volume: {d:.1}",
+        "Press *RETURN* to start/pause playing, current status: {s}",
+        .{if (music.isPlaying()) "playing" else "paused"},
+    );
+    _ = try font.debugDraw(
+        ctx,
+        .{ .pos = .{ .x = 10, .y = 26 } },
+        "Press *Z/X* to decrease/increase volume of music, current volume: {d:.1}",
         .{music.getVolume()},
     );
     _ = try font.debugDraw(
