@@ -5,6 +5,8 @@ const font = jok.font;
 const audio = jok.audio;
 
 var music: *audio.Sound = undefined;
+var music_played_length: u32 = undefined;
+var music_total_length: u32 = undefined;
 var sfx1: *audio.Sound = undefined;
 var sfx2: *audio.Sound = undefined;
 
@@ -15,6 +17,7 @@ pub fn init(ctx: jok.Context) !void {
         "assets/audios/Edge-of-Ocean_Looping.mp3",
         .{},
     );
+    music_total_length = @intFromFloat(try music.getLengthInSeconds());
     music.setLooping(true);
     try music.start();
 
@@ -72,15 +75,26 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    _ = ctx;
+    const S = struct {
+        var last_update_time: f32 = 0;
+    };
+
+    if (ctx.seconds() - S.last_update_time > 1.0) {
+        S.last_update_time = ctx.seconds();
+        music_played_length = @intFromFloat(try music.getCursorInSeconds());
+    }
 }
 
 pub fn draw(ctx: jok.Context) !void {
     _ = try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 10, .y = 10 } },
-        "Press *RETURN* to start/pause playing, current status: {s}",
-        .{if (music.isPlaying()) "playing" else "paused"},
+        "Press *RETURN* to start/pause playing, current status: {s}, progress: {d}/{d}(s)",
+        .{
+            if (music.isPlaying()) "playing" else "paused",
+            music_played_length,
+            music_total_length,
+        },
     );
     _ = try font.debugDraw(
         ctx,
