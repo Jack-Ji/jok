@@ -137,5 +137,5 @@ It's also a bit **WIP**, please do expect some breaking changes in the future.
 ## Built-in Fonts
 * [Classic Console Neue](http://webdraft.hu/fonts/classic-console/) (MIT license)
 
-## Games made in Jok
+## Games made in jok
 * [A Bobby Carrot Game Clone](https://github.com/TheWaWaR/bobby-carrot)
