@@ -30,6 +30,8 @@ pub fn link(b: *std.Build, exe: *std.Build.CompileStep) void {
         exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/windows" });
     } else if (exe.target.isLinux()) {
         exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/linux" });
+    } else if (exe.target.isDarwin()) {
+        exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/macos" });
     } else unreachable;
     exe.addIncludePath(.{ .path = thisDir() ++ "/zgui/libs" });
     exe.addIncludePath(.{ .path = thisDir() ++ "/c" });
