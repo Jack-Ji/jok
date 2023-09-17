@@ -5,6 +5,8 @@ const sdl = jok.sdl;
 const config = jok.config;
 const game = @import("game");
 
+const log = std.log.scoped(.jok);
+
 // Validate exposed game api
 comptime {
     if (!@hasDecl(game, "init") or
@@ -67,7 +69,13 @@ pub fn main() !void {
 
     // Init game object
     var ctx = jok_ctx.context();
-    try game.init(ctx);
+    game.init(ctx) catch |err| {
+        log.err("Init game failed: {}", .{err});
+        if (@errorReturnTrace()) |trace| {
+            std.debug.dumpStackTrace(trace.*);
+            return;
+        }
+    };
     defer game.quit(ctx);
 
     // Start game loop
