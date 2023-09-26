@@ -99,8 +99,8 @@ pub fn quit(ctx: jok.Context) void {
 }
 ```
 
-Now you can run `zig run`, have fun! Please let me know if you have developed something
-great with this little framework.
+Now you can compile and run your game using command `zig build run`, have fun! Please let me know if you have any issue or developed something
+interesting with this little framework.
 
 Noticed yet? That's right, you don't need to write main function, `jok` got your back.
 The game is deemed as a separate package to `jok`'s runtime as a matter of fact.  Your
