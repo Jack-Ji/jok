@@ -225,16 +225,16 @@ pub fn draw(ctx: jok.Context) !void {
         .{},
     );
     if (draw_result.area.x < 0) {
-        text_speed.x = @fabs(text_speed.x);
+        text_speed.x = @abs(text_speed.x);
     }
     if (draw_result.area.x + draw_result.area.width > fb_size.x) {
-        text_speed.x = -@fabs(text_speed.x);
+        text_speed.x = -@abs(text_speed.x);
     }
     if (draw_result.area.y < 0) {
-        text_speed.y = @fabs(text_speed.y);
+        text_speed.y = @abs(text_speed.y);
     }
     if (draw_result.area.y + draw_result.area.height > fb_size.y) {
-        text_speed.y = -@fabs(text_speed.y);
+        text_speed.y = -@abs(text_speed.y);
     }
     _ = try font.debugDraw(
         ctx,

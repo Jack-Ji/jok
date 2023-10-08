@@ -78,13 +78,13 @@ pub fn update(ctx: jok.Context) !void {
     for (characters.items) |*c| {
         const curpos = c.pos;
         if (curpos.x < 0)
-            c.velocity.x = @fabs(c.velocity.x);
+            c.velocity.x = @abs(c.velocity.x);
         if (curpos.x + c.sprite.width > size.x)
-            c.velocity.x = -@fabs(c.velocity.x);
+            c.velocity.x = -@abs(c.velocity.x);
         if (curpos.y < 0)
-            c.velocity.y = @fabs(c.velocity.y);
+            c.velocity.y = @abs(c.velocity.y);
         if (curpos.y + c.sprite.height > size.y)
-            c.velocity.y = -@fabs(c.velocity.y);
+            c.velocity.y = -@abs(c.velocity.y);
         c.pos.x += c.velocity.x * ctx.deltaSeconds();
         c.pos.y += c.velocity.y * ctx.deltaSeconds();
     }

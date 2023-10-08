@@ -109,7 +109,7 @@ pub inline fn triangleArea(tri: [3][2]f32) f32 {
     const y2 = tri[1][1];
     const x3 = tri[2][0];
     const y3 = tri[2][1];
-    return @fabs(x1 * y2 + x2 * y3 + x3 * y1 - x2 * y1 - x3 * y2 - x1 * y3) / 2;
+    return @abs(x1 * y2 + x2 * y3 + x3 * y1 - x2 * y1 - x3 * y2 - x1 * y3) / 2;
 }
 
 /// Get bouding rect of triangle

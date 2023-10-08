@@ -95,7 +95,7 @@ pub inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) boo
             const p2 = zmath.dot3(_v2, axis)[0];
 
             // Project the AABB onto the seperating axis
-            const r = @fabs(axis[0]) + @fabs(axis[1]) + @fabs(axis[2]);
+            const r = @abs(axis[0]) + @abs(axis[1]) + @abs(axis[2]);
 
             const mm = jok.utils.math.minAndMax(p0, p1, p2);
             return @max(-mm[1], mm[0]) > r;
@@ -139,8 +139,8 @@ pub inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) boo
 
     // Finally, test if AABB intersects triangle plane
     const plane_n = zmath.normalize3(zmath.cross3(f0, f1));
-    const r = @fabs(plane_n[0]) + @fabs(plane_n[1]) + @fabs(plane_n[2]);
-    return @fabs(zmath.dot3(plane_n, v0)[0]) > r;
+    const r = @abs(plane_n[0]) + @abs(plane_n[1]) + @abs(plane_n[2]);
+    return @abs(zmath.dot3(plane_n, v0)[0]) > r;
 }
 
 /// Clip triangle in homogeneous space, against panel w=0.0001
