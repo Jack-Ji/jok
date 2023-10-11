@@ -459,8 +459,8 @@ pub const RenderTarget = struct {
         self.* = undefined;
     }
 
-    pub fn clear(self: *RenderTarget, rd: sdl.Renderer, recycle_memory: bool) !void {
-        const output_size = try rd.getOutputSize();
+    pub fn clear(self: *RenderTarget, rd: sdl.Renderer, recycle_memory: bool) void {
+        const output_size = rd.getOutputSize() catch unreachable;
         self.draw_list.reset();
         self.draw_list.pushClipRect(.{
             .pmin = .{ 0, 0 },

@@ -61,7 +61,7 @@ pub fn deinit() void {
 }
 
 pub fn begin(opt: BeginOption) !void {
-    try target.clear(rd, false);
+    target.clear(rd, false);
     camera = opt.camera orelse BLK: {
         const fsize = try rd.getOutputSize();
         const ratio =
@@ -96,8 +96,8 @@ pub fn end() !void {
     }
 }
 
-pub fn clearMemory() !void {
-    try target.clear(true);
+pub fn clearMemory() void {
+    target.clear(true);
 }
 
 /// Textures' order: right/left/top/bottom/front/back

@@ -378,7 +378,7 @@ pub fn renderSprite(
     self: *Self,
     viewport: sdl.Rectangle,
     target: *internal.RenderTarget,
-    _model: zmath.Mat,
+    model: zmath.Mat,
     camera: Camera,
     size: sdl.PointF,
     uv: [2]sdl.PointF,
@@ -390,7 +390,7 @@ pub fn renderSprite(
     assert(opt.anchor_point.y >= 0 and opt.anchor_point.y <= 1);
 
     // Only consider translation
-    const translation = zmath.translationV(zmath.util.getTranslationVec(_model));
+    const translation = zmath.translationV(zmath.util.getTranslationVec(model));
 
     // Swap texture coordinates
     var uv0 = uv[0];

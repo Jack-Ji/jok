@@ -141,7 +141,7 @@ pub fn end() !void {
     try imgui.sdl.renderDrawList(rd, draw_list);
 }
 
-pub fn clearMemory() !void {
+pub fn clearMemory() void {
     draw_list.clearMemory();
     draw_commands.clearAndFree();
     all_tex.clearAndFree();
