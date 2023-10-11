@@ -143,6 +143,57 @@ pub fn sprite(
     );
 }
 
+pub fn line(
+    model: zmath.Mat,
+    p0: [3]f32,
+    p1: [3]f32,
+    color: sdl.Color,
+) !void {
+    _ = color;
+    _ = p1;
+    _ = p0;
+    _ = model;
+}
+
+/// Assume clock-wise organized coordinates
+pub fn triangle(
+    model: zmath.Mat,
+    pos: [3][3]f32,
+    texcoords: ?[3][2]f32,
+    opt: RenderOption,
+) !void {
+    const v0 = zmath.f32x4(
+        pos[1][0] - pos[0][0],
+        pos[1][1] - pos[0][1],
+        pos[1][2] - pos[0][2],
+        0,
+    );
+    const v1 = zmath.f32x4(
+        pos[2][0] - pos[1][0],
+        pos[2][1] - pos[1][1],
+        pos[2][2] - pos[1][2],
+        0,
+    );
+    const normal = zmath.vecToArr3(zmath.cross3(v0, v1));
+    try tri_rd.renderMesh(
+        rd.getViewport(),
+        &target,
+        model,
+        camera,
+        &.{ 0, 1, 2 },
+        &pos,
+        &.{ normal, normal, normal },
+        null,
+        if (texcoords) |tex| &tex else null,
+        .{
+            .cull_faces = opt.cull_faces,
+            .color = opt.color,
+            .texture = opt.texture,
+            .lighting = opt.lighting,
+        },
+    );
+}
+
 pub fn shape(
     s: zmesh.Shape,
     model: zmath.Mat,
