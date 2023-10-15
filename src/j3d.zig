@@ -126,12 +126,7 @@ pub fn effects(ps: *ParticleSystem) !void {
     }
 }
 
-pub fn sprite(
-    model: zmath.Mat,
-    size: sdl.PointF,
-    uv: [2]sdl.PointF,
-    opt: TriangleRenderer.RenderSpriteOption,
-) !void {
+pub fn sprite(model: zmath.Mat, size: sdl.PointF, uv: [2]sdl.PointF, opt: TriangleRenderer.RenderSpriteOption) !void {
     try tri_rd.renderSprite(
         rd.getViewport(),
         &target,
@@ -147,12 +142,7 @@ pub const LineOption = struct {
     color: sdl.Color = sdl.Color.white,
     thickness: f32 = 0.01,
 };
-pub fn line(
-    model: zmath.Mat,
-    _p0: [3]f32,
-    _p1: [3]f32,
-    opt: LineOption,
-) !void {
+pub fn line(model: zmath.Mat, _p0: [3]f32, _p1: [3]f32, opt: LineOption) !void {
     const v0 = zmath.mul(zmath.f32x4(_p0[0], _p0[1], _p0[2], 1), model);
     const v1 = zmath.mul(zmath.f32x4(_p1[0], _p1[1], _p1[2], 1), model);
     const perpv = zmath.normalize3(zmath.cross3(v1 - v0, camera.dir));
@@ -187,13 +177,7 @@ pub const TriangleOption = struct {
     rdopt: RenderOption = .{},
     fill: bool = true,
 };
-pub fn triangle(
-    model: zmath.Mat,
-    pos: [3][3]f32,
-    colors: ?[3]sdl.Color,
-    texcoords: ?[3][2]f32,
-    opt: TriangleOption,
-) !void {
+pub fn triangle(model: zmath.Mat, pos: [3][3]f32, colors: ?[3]sdl.Color, texcoords: ?[3][2]f32, opt: TriangleOption) !void {
     if (opt.fill) {
         const v0 = zmath.f32x4(
             pos[1][0] - pos[0][0],
@@ -232,12 +216,49 @@ pub fn triangle(
     }
 }
 
-pub fn shape(
-    s: zmesh.Shape,
+pub fn triangles(
     model: zmath.Mat,
-    aabb: ?[6]f32,
-    opt: RenderOption,
+    indices: []const u32,
+    pos: []const [3]f32,
+    normals: ?[]const [3]f32,
+    colors: ?[]const [3]sdl.Color,
+    texcoords: ?[]const [2]f32,
+    opt: TriangleOption,
 ) !void {
+    assert(@rem(indices, 3) == 0);
+
+    if (opt.fill) {
+        try tri_rd.renderMesh(
+            rd.getViewport(),
+            &target,
+            model,
+            camera,
+            indices,
+            pos,
+            normals,
+            colors,
+            texcoords,
+            .{
+                .cull_faces = opt.rdopt.cull_faces,
+                .color = opt.rdopt.color,
+                .texture = opt.rdopt.texture,
+                .lighting = opt.rdopt.lighting,
+            },
+        );
+    } else {
+        var i: u32 = 2;
+        while (i < indices) : (i += 2) {
+            const idx0 = indices[i - 2];
+            const idx1 = indices[i - 1];
+            const idx2 = indices[i];
+            try line(model, idx0, idx1, .{ .color = opt.rdopt.color });
+            try line(model, idx1, idx2, .{ .color = opt.rdopt.color });
+            try line(model, idx2, idx0, .{ .color = opt.rdopt.color });
+        }
+    }
+}
+
+pub fn shape(s: zmesh.Shape, model: zmath.Mat, aabb: ?[6]f32, opt: RenderOption) !void {
     try tri_rd.renderMesh(
         rd.getViewport(),
         &target,
