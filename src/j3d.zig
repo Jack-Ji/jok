@@ -143,55 +143,93 @@ pub fn sprite(
     );
 }
 
+pub const LineOption = struct {
+    color: sdl.Color = sdl.Color.white,
+    thickness: f32 = 0.01,
+};
 pub fn line(
     model: zmath.Mat,
-    p0: [3]f32,
-    p1: [3]f32,
-    color: sdl.Color,
+    _p0: [3]f32,
+    _p1: [3]f32,
+    opt: LineOption,
 ) !void {
-    _ = color;
-    _ = p1;
-    _ = p0;
-    _ = model;
-}
-
-/// Assume clock-wise organized coordinates
-pub fn triangle(
-    model: zmath.Mat,
-    pos: [3][3]f32,
-    texcoords: ?[3][2]f32,
-    opt: RenderOption,
-) !void {
-    const v0 = zmath.f32x4(
-        pos[1][0] - pos[0][0],
-        pos[1][1] - pos[0][1],
-        pos[1][2] - pos[0][2],
-        0,
-    );
-    const v1 = zmath.f32x4(
-        pos[2][0] - pos[1][0],
-        pos[2][1] - pos[1][1],
-        pos[2][2] - pos[1][2],
-        0,
-    );
-    const normal = zmath.vecToArr3(zmath.cross3(v0, v1));
+    const v0 = zmath.mul(zmath.f32x4(_p0[0], _p0[1], _p0[2], 1), model);
+    const v1 = zmath.mul(zmath.f32x4(_p1[0], _p1[1], _p1[2], 1), model);
+    const perpv = zmath.normalize3(zmath.cross3(v1 - v0, camera.dir));
+    const veps = zmath.f32x4s(opt.thickness);
+    const p0 = v0 + veps * perpv;
+    const p1 = v0 - veps * perpv;
+    const p2 = v1 - veps * perpv;
+    const p3 = v1 + veps * perpv;
     try tri_rd.renderMesh(
         rd.getViewport(),
         &target,
-        model,
+        zmath.identity(),
         camera,
-        &.{ 0, 1, 2 },
-        &pos,
-        &.{ normal, normal, normal },
+        &.{ 0, 1, 2, 0, 2, 3 },
+        &.{
+            .{ p0[0], p0[1], p0[2] },
+            .{ p1[0], p1[1], p1[2] },
+            .{ p2[0], p2[1], p2[2] },
+            .{ p3[0], p3[1], p3[2] },
+        },
         null,
-        if (texcoords) |tex| &tex else null,
+        null,
+        null,
         .{
-            .cull_faces = opt.cull_faces,
+            .cull_faces = false,
             .color = opt.color,
-            .texture = opt.texture,
-            .lighting = opt.lighting,
         },
     );
+}
+
+pub const TriangleOption = struct {
+    rdopt: RenderOption = .{},
+    fill: bool = true,
+};
+pub fn triangle(
+    model: zmath.Mat,
+    pos: [3][3]f32,
+    colors: ?[3]sdl.Color,
+    texcoords: ?[3][2]f32,
+    opt: TriangleOption,
+) !void {
+    if (opt.fill) {
+        const v0 = zmath.f32x4(
+            pos[1][0] - pos[0][0],
+            pos[1][1] - pos[0][1],
+            pos[1][2] - pos[0][2],
+            0,
+        );
+        const v1 = zmath.f32x4(
+            pos[2][0] - pos[1][0],
+            pos[2][1] - pos[1][1],
+            pos[2][2] - pos[1][2],
+            0,
+        );
+        const normal = zmath.vecToArr3(zmath.cross3(v0, v1));
+        try tri_rd.renderMesh(
+            rd.getViewport(),
+            &target,
+            model,
+            camera,
+            &.{ 0, 1, 2 },
+            &pos,
+            &.{ normal, normal, normal },
+            if (colors) |cs| &cs else null,
+            if (texcoords) |tex| &tex else null,
+            .{
+                .cull_faces = opt.rdopt.cull_faces,
+                .color = opt.rdopt.color,
+                .texture = opt.rdopt.texture,
+                .lighting = opt.rdopt.lighting,
+            },
+        );
+    } else {
+        try line(model, pos[0], pos[1], .{ .color = opt.rdopt.color });
+        try line(model, pos[1], pos[2], .{ .color = opt.rdopt.color });
+        try line(model, pos[2], pos[0], .{ .color = opt.rdopt.color });
+    }
 }
 
 pub fn shape(
