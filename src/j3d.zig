@@ -175,6 +175,7 @@ pub fn line(model: zmath.Mat, _p0: [3]f32, _p1: [3]f32, opt: LineOption) !void {
 
 pub const TriangleOption = struct {
     rdopt: RenderOption = .{},
+    aabb: ?[6]f32,
     fill: bool = true,
 };
 pub fn triangle(model: zmath.Mat, pos: [3][3]f32, colors: ?[3]sdl.Color, texcoords: ?[3][2]f32, opt: TriangleOption) !void {
@@ -203,6 +204,7 @@ pub fn triangle(model: zmath.Mat, pos: [3][3]f32, colors: ?[3]sdl.Color, texcoor
             if (colors) |cs| &cs else null,
             if (texcoords) |tex| &tex else null,
             .{
+                .aabb = opt.aabb,
                 .cull_faces = opt.rdopt.cull_faces,
                 .color = opt.rdopt.color,
                 .texture = opt.rdopt.texture,
@@ -239,6 +241,7 @@ pub fn triangles(
             colors,
             texcoords,
             .{
+                .aabb = opt.aabb,
                 .cull_faces = opt.rdopt.cull_faces,
                 .color = opt.rdopt.color,
                 .texture = opt.rdopt.texture,
