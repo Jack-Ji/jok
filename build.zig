@@ -57,7 +57,7 @@ pub fn build(b: *std.Build) void {
         const run_cmd = b.addRunArtifact(exe);
         run_cmd.step.dependOn(&install_cmd.step);
         run_cmd.step.dependOn(&assets_install.step);
-        run_cmd.cwd = "zig-out/bin";
+        run_cmd.cwd = std.Build.LazyPath{ .path = "zig-out/bin" };
         const run_step = b.step(
             demo.name,
             "run example " ++ demo.name,
