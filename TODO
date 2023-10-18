@@ -1,3 +1,4 @@
 * graphics: 3d triangle tessellation
 * graphics: postprocessing
 * math: detect aabb occlusion, could be useful to optimize 3d scene
+* 3d camera: correct upward vector processing
