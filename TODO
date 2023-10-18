@@ -1,4 +1,5 @@
 * graphics: 3d triangle tessellation
+* graphics: 3d optimization, sort triangles by textures when they doesn't intersect
 * graphics: postprocessing
 * math: detect aabb occlusion, could be useful to optimize 3d scene
 * 3d camera: correct upward vector processing
