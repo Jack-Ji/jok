@@ -228,7 +228,7 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{
         .camera = camera,
-        .sort_by_depth = true,
+        .triangle_sort = .single_pass,
         .wireframe_color = if (wireframe) sdl.Color.green else null,
     });
     if (animation1) |a| {

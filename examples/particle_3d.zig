@@ -135,7 +135,10 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try j3d.begin(.{ .camera = camera, .sort_by_depth = sort_by_depth });
+    try j3d.begin(.{
+        .camera = camera,
+        .triangle_sort = if (sort_by_depth) .single_pass else .none,
+    });
     try j3d.plane(
         zmath.mul(
             zmath.mul(

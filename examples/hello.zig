@@ -143,7 +143,7 @@ pub fn draw(ctx: jok.Context) !void {
         100,
         @intFromFloat(128 + 127 * std.math.cos(ctx.seconds())),
     );
-    try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
+    try j3d.begin(.{ .camera = camera, .triangle_sort = .single_pass });
     try j3d.icosahedron(
         zmath.mul(
             zmath.rotationY(ctx.seconds()),

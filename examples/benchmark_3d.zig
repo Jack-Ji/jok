@@ -117,7 +117,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
+    try j3d.begin(.{ .camera = camera, .triangle_sort = .single_pass });
     for (translations.items, 0..) |tr, i| {
         const model = zmath.mul(
             zmath.translation(-0.5, -0.5, -0.5),

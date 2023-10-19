@@ -27,7 +27,7 @@ pub const RenderOption = struct {
 
 pub const BeginOption = struct {
     camera: ?Camera = null,
-    sort_by_depth: bool = false,
+    triangle_sort: internal.TriangleSort = .none,
     wireframe_color: ?sdl.Color = null,
 };
 
@@ -39,7 +39,6 @@ var tri_rd: TriangleRenderer = undefined;
 var skybox_rd: SkyboxRenderer = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 var camera: Camera = undefined;
-var sort_by_depth: bool = undefined;
 var wireframe_color: ?sdl.Color = undefined;
 
 pub fn init(_allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
@@ -61,7 +60,7 @@ pub fn deinit() void {
 }
 
 pub fn begin(opt: BeginOption) !void {
-    target.clear(rd, false);
+    target.reset(rd, opt.triangle_sort, false);
     camera = opt.camera orelse BLK: {
         const fsize = try rd.getOutputSize();
         const ratio =
@@ -81,7 +80,6 @@ pub fn begin(opt: BeginOption) !void {
             null,
         );
     };
-    sort_by_depth = opt.sort_by_depth;
     wireframe_color = opt.wireframe_color;
 }
 
@@ -92,7 +90,7 @@ pub fn end() !void {
     if (wireframe_color) |wc| {
         try target.drawTriangles(rd, wc);
     } else {
-        try target.fillTriangles(rd, sort_by_depth);
+        try target.fillTriangles(rd);
     }
 }
 

@@ -1,6 +1,10 @@
-* graphics: 3d triangle tessellation
-* graphics: 3d optimization, sort triangles by textures when they doesn't intersect
-* graphics: postprocessing
-* math: detect aabb occlusion, could be useful to optimize 3d scene
-* 3d camera: correct upward vector processing
-* algorithm: A* pathfinding
+    ~: in-progress  x: done
+--------------------------------------------------------------------------------
+* [~] graphics: 3d optimization, manage triangles in 2 passes:
+        1) divide into disjoint groups, do triangle tessellation as necessary, 
+           sort each group by average depth
+        2) merge groups to batches using same textures
+* [ ] graphics: postprocessing
+* [ ] math: detect aabb occlusion, could be useful to optimize 3d scene
+* [ ] 3d camera: correct upward vector processing
+* [ ] algorithm: A* pathfinding

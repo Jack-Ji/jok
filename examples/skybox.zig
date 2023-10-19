@@ -144,7 +144,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try j3d.begin(.{ .camera = camera, .sort_by_depth = true });
+    try j3d.begin(.{ .camera = camera, .triangle_sort = .single_pass });
     try j3d.shape(
         cube,
         zmath.mul(

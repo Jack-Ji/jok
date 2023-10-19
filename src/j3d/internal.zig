@@ -429,8 +429,19 @@ pub inline fn isSameTexture(tex0: ?sdl.Texture, tex1: ?sdl.Texture) bool {
     return tex0 == null and tex1 == null;
 }
 
+/// Triangle sorting method
+pub const TriangleSort = union(enum) {
+    none,
+    single_pass, // sort by depth directly
+    group_merge: u8, // 2 passes: group/sort and merge
+};
+
 /// Target for storing rendering result
 pub const RenderTarget = struct {
+    const max_group_size = 256;
+
+    triangle_sort: TriangleSort,
+    triangle_groups: [max_group_size]std.ArrayList(u32),
     indices: std.ArrayList(u32),
     batched_indices: std.ArrayList(u32),
     vertices: std.ArrayList(sdl.Vertex),
@@ -439,7 +450,9 @@ pub const RenderTarget = struct {
     draw_list: imgui.DrawList,
 
     pub fn init(_allocator: std.mem.Allocator) RenderTarget {
-        return .{
+        var target = RenderTarget{
+            .triangle_sort = .none,
+            .triangle_groups = undefined,
             .indices = std.ArrayList(u32).init(_allocator),
             .batched_indices = std.ArrayList(u32).init(_allocator),
             .vertices = std.ArrayList(sdl.Vertex).init(_allocator),
@@ -447,9 +460,12 @@ pub const RenderTarget = struct {
             .textures = std.ArrayList(?sdl.Texture).init(_allocator),
             .draw_list = imgui.createDrawList(),
         };
+        for (&target.triangle_groups) |*g| g.* = std.ArrayList(u32).init(_allocator);
+        return target;
     }
 
     pub fn deinit(self: *RenderTarget) void {
+        for (self.triangle_groups) |g| g.deinit();
         self.indices.deinit();
         self.batched_indices.deinit();
         self.vertices.deinit();
@@ -459,8 +475,21 @@ pub const RenderTarget = struct {
         self.* = undefined;
     }
 
-    pub fn clear(self: *RenderTarget, rd: sdl.Renderer, recycle_memory: bool) void {
+    pub fn reset(self: *RenderTarget, rd: sdl.Renderer, triangle_sort: TriangleSort, recycle_memory: bool) void {
         const output_size = rd.getOutputSize() catch unreachable;
+        if (triangle_sort == .group_merge) {
+            if (!math.isPowerOfTwo(triangle_sort.group_merge)) {
+                @panic("Group-sort value must be power of 2!");
+            }
+            if (triangle_sort.group_merge == 1) {
+                self.triangle_sort = .single_pass;
+            } else {
+                for (0..triangle_sort.group_merge) |i| {
+                    self.triangle_groups[i].clearRetainingCapacity();
+                }
+            }
+        }
+        self.triangle_sort = triangle_sort;
         self.draw_list.reset();
         self.draw_list.pushClipRect(.{
             .pmin = .{ 0, 0 },
@@ -476,6 +505,7 @@ pub const RenderTarget = struct {
             .allow_vtx_offset = true,
         });
         if (recycle_memory) {
+            for (&self.triangle_groups) |*g| g.clearAndFree();
             self.indices.clearAndFree();
             self.batched_indices.clearAndFree();
             self.vertices.clearAndFree();
@@ -491,8 +521,8 @@ pub const RenderTarget = struct {
         }
     }
 
-    // Sort triangles by depth and texture values
-    fn compareTriangles(self: *RenderTarget, lhs: [3]u32, rhs: [3]u32) bool {
+    // Compare triangles by average depth
+    fn compareTrianglesByDepth(self: *RenderTarget, lhs: [3]u32, rhs: [3]u32) bool {
         const l_idx0 = lhs[0];
         const l_idx1 = lhs[1];
         const l_idx2 = lhs[2];
@@ -501,29 +531,19 @@ pub const RenderTarget = struct {
         const r_idx2 = rhs[2];
         const d0 = (self.depths.items[l_idx0] + self.depths.items[l_idx1] + self.depths.items[l_idx2]) / 3.0;
         const d1 = (self.depths.items[r_idx0] + self.depths.items[r_idx1] + self.depths.items[r_idx2]) / 3.0;
-        if (math.approxEqAbs(f32, d0, d1, 0.00001)) {
-            const tex0 = self.textures.items[l_idx0];
-            const tex1 = self.textures.items[r_idx0];
-            if (tex0 != null and tex1 != null) {
-                const ptr0 = @intFromPtr(tex0.?.ptr);
-                const ptr1 = @intFromPtr(tex1.?.ptr);
-                return if (ptr0 == ptr1) d0 > d1 else ptr0 > ptr1;
-            } else if (tex0 != null or tex1 != null) {
-                return tex0 == null;
-            }
-        }
         return d0 > d1;
     }
 
-    fn sortTriangles(self: *RenderTarget) void {
+    fn sortTriangles(self: *RenderTarget, indices: []u32) void {
+        assert(@rem(indices.len, 3) == 0);
         var _indices: [][3]u32 = undefined;
-        _indices.ptr = @ptrCast(self.indices.items.ptr);
-        _indices.len = @divTrunc(self.indices.items.len, 3);
+        _indices.ptr = @ptrCast(indices.ptr);
+        _indices.len = @divTrunc(indices.len, 3);
         std.sort.pdq(
             [3]u32,
             _indices,
             self,
-            RenderTarget.compareTriangles,
+            RenderTarget.compareTrianglesByDepth,
         );
     }
 
@@ -544,43 +564,51 @@ pub const RenderTarget = struct {
         imgui.sdl.renderDrawList(rd, self.draw_list) catch unreachable;
     }
 
-    pub inline fn fillTriangles(self: *RenderTarget, rd: sdl.Renderer, sort_by_depth: bool) !void {
-        if (sort_by_depth) {
-            self.sortTriangles();
-
-            // Scan vertices and send them in batches
-            var offset: usize = 0;
-            var last_texture: ?sdl.Texture = null;
-            var i: usize = 0;
-            while (i < self.indices.items.len) : (i += 3) {
-                const idx = self.indices.items[i];
-                if (i > 0 and !isSameTexture(self.textures.items[idx], last_texture)) {
+    pub inline fn fillTriangles(self: *RenderTarget, rd: sdl.Renderer) !void {
+        switch (self.triangle_sort) {
+            .none => {
+                // Send pre-batched vertices
+                var offset: u32 = 0;
+                for (self.batched_indices.items) |size| {
+                    assert(size % 3 == 0);
                     try rd.drawGeometry(
-                        last_texture,
+                        self.textures.items[self.indices.items[offset]],
                         self.vertices.items,
-                        self.indices.items[offset..i],
+                        self.indices.items[offset .. offset + size],
                     );
-                    offset = i;
+                    offset += size;
                 }
-                last_texture = self.textures.items[idx];
-            }
-            try rd.drawGeometry(
-                last_texture,
-                self.vertices.items,
-                self.indices.items[offset..],
-            );
-        } else { // Send pre-batched vertices directly
-            var offset: u32 = 0;
-            for (self.batched_indices.items) |size| {
-                assert(size % 3 == 0);
+                assert(offset == @as(u32, @intCast(self.indices.items.len)));
+            },
+            .single_pass => {
+                // Sort triangles by average depth
+                self.sortTriangles(self.indices.items);
+
+                // Scan vertices and send them in batches
+                var offset: usize = 0;
+                var last_texture: ?sdl.Texture = null;
+                var i: usize = 0;
+                while (i < self.indices.items.len) : (i += 3) {
+                    const idx = self.indices.items[i];
+                    if (i > 0 and !isSameTexture(self.textures.items[idx], last_texture)) {
+                        try rd.drawGeometry(
+                            last_texture,
+                            self.vertices.items,
+                            self.indices.items[offset..i],
+                        );
+                        offset = i;
+                    }
+                    last_texture = self.textures.items[idx];
+                }
                 try rd.drawGeometry(
-                    self.textures.items[self.indices.items[offset]],
+                    last_texture,
                     self.vertices.items,
-                    self.indices.items[offset .. offset + size],
+                    self.indices.items[offset..],
                 );
-                offset += size;
-            }
-            assert(offset == @as(u32, @intCast(self.indices.items.len)));
+            },
+            .group_merge => |m| {
+                _ = m;
+            },
         }
     }
 
@@ -601,23 +629,39 @@ pub const RenderTarget = struct {
         assert(@rem(indices.len, 3) == 0);
         assert(vertices.len == depths.len);
 
-        if (self.batched_indices.items.len == 0) {
-            try self.batched_indices.append(indices.len);
-        } else {
-            const last_texture = self.textures.items[self.textures.items.len - 1];
-            if (isSameTexture(last_texture, texture)) {
-                self.batched_indices.items[self.batched_indices.items.len - 1] += @as(u32, @intCast(indices.len));
-            } else {
-                try self.batched_indices.append(indices.len);
-            }
-        }
+        switch (self.triangle_sort) {
+            .none => {
+                if (self.batched_indices.items.len == 0) {
+                    try self.batched_indices.append(indices.len);
+                } else {
+                    const last_texture = self.textures.items[self.textures.items.len - 1];
+                    if (isSameTexture(last_texture, texture)) {
+                        self.batched_indices.items[self.batched_indices.items.len - 1] += @as(u32, @intCast(indices.len));
+                    } else {
+                        try self.batched_indices.append(indices.len);
+                    }
+                }
 
-        const current_index: u32 = @as(u32, @intCast(self.vertices.items.len));
-        for (indices) |idx| {
-            self.indices.appendAssumeCapacity(idx + current_index);
+                const current_index: u32 = @as(u32, @intCast(self.vertices.items.len));
+                for (indices) |idx| {
+                    self.indices.appendAssumeCapacity(idx + current_index);
+                }
+                self.vertices.appendSliceAssumeCapacity(vertices);
+                self.depths.appendSliceAssumeCapacity(depths);
+                self.textures.appendNTimesAssumeCapacity(texture, vertices.len);
+            },
+            .single_pass => {
+                const current_index: u32 = @as(u32, @intCast(self.vertices.items.len));
+                for (indices) |idx| {
+                    self.indices.appendAssumeCapacity(idx + current_index);
+                }
+                self.vertices.appendSliceAssumeCapacity(vertices);
+                self.depths.appendSliceAssumeCapacity(depths);
+                self.textures.appendNTimesAssumeCapacity(texture, vertices.len);
+            },
+            .group_merge => |m| {
+                _ = m;
+            },
         }
-        self.vertices.appendSliceAssumeCapacity(vertices);
-        self.depths.appendSliceAssumeCapacity(depths);
-        self.textures.appendNTimesAssumeCapacity(texture, vertices.len);
     }
 };
