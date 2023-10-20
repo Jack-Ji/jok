@@ -437,19 +437,21 @@ pub const TriangleSort = union(enum) {
     // Simple solution: sort by average depth
     simple,
 
-    // Complex but better looking: group into subrectangles, then sort and merge
+    // Complex but better looking: split into disjoint groups, then sort and merge
     group_merge: u8,
 };
 
 /// Target for storing rendering result
 pub const RenderTarget = struct {
     const max_group_merge = 5;
-    const max_group_size = math.pow(usize, 2, max_group_merge) *
-        math.pow(usize, 2, max_group_merge);
+    const max_group_row_count = math.pow(u32, 2, @as(u32, max_group_merge));
+    const max_group_count = max_group_row_count * max_group_row_count;
 
-    triangle_sort: TriangleSort,
     wireframe_color: ?sdl.Color,
-    triangle_groups: [max_group_size]std.ArrayList(u32),
+    triangle_sort: TriangleSort,
+    triangle_group_count: u32,
+    triangle_merged_counts: [max_group_count]u32,
+    triangle_groups: [max_group_count]std.ArrayList(u32),
     indices: std.ArrayList(u32),
     batched_indices: std.ArrayList(u32),
     vertices: std.ArrayList(sdl.Vertex),
@@ -459,8 +461,10 @@ pub const RenderTarget = struct {
 
     pub fn init(_allocator: std.mem.Allocator) RenderTarget {
         var target = RenderTarget{
+            .wireframe_color = undefined,
             .triangle_sort = .none,
-            .wireframe_color = null,
+            .triangle_group_count = undefined,
+            .triangle_merged_counts = undefined,
             .triangle_groups = undefined,
             .indices = std.ArrayList(u32).init(_allocator),
             .batched_indices = std.ArrayList(u32).init(_allocator),
@@ -504,7 +508,10 @@ pub const RenderTarget = struct {
                 if (triangle_sort.group_merge == 0) {
                     self.triangle_sort = .simple;
                 } else {
-                    for (0..triangle_sort.group_merge) |i| {
+                    const row_count = math.pow(u32, 2, triangle_sort.group_merge);
+                    self.triangle_group_count = row_count * row_count;
+                    for (0..self.triangle_group_count) |i| {
+                        self.triangle_merged_counts[i] = 0;
                         self.triangle_groups[i].clearRetainingCapacity();
                     }
                 }
@@ -601,10 +608,10 @@ pub const RenderTarget = struct {
                 assert(offset == @as(u32, @intCast(self.indices.items.len)));
             },
             .simple => {
-                // Sort triangles by average depth
+                // Sort by average depth
                 self.sortTriangles(self.indices.items);
 
-                // Scan vertices and send them in batches
+                // Send in batches
                 var offset: usize = 0;
                 var last_texture: ?sdl.Texture = null;
                 var i: usize = 0;
@@ -626,8 +633,57 @@ pub const RenderTarget = struct {
                     self.indices.items[offset..],
                 );
             },
-            .group_merge => |m| {
-                _ = m;
+            .group_merge => {
+                // Sort each group
+                var triangle_count: u32 = 0;
+                for (self.triangle_groups[0..self.triangle_group_count], 0..) |g, i| {
+                    assert(@rem(g.items.len, 3) == 0);
+                    self.sortTriangles(g.items);
+                    triangle_count += @intCast((g.items.len - self.triangle_merged_counts[i]) / 3);
+                }
+
+                // Merge groups into batches
+                try self.indices.ensureTotalCapacity(self.indices.items.len + triangle_count * 3);
+                while (triangle_count > 0) {
+                    assert(self.indices.items.len == 0);
+                    assert(self.batched_indices.items.len == 0);
+
+                    var batch_size: u32 = 0;
+                    for (self.triangle_groups[0..self.triangle_group_count], 0..) |g, i| {
+                        if (g.items.len == self.triangle_merged_counts[i]) continue;
+                        if (batch_size == 0) {
+                            const count = self.triangle_merged_counts[i];
+                            self.indices.appendSliceAssumeCapacity(g.items[count .. count + 3]);
+                            self.triangle_merged_counts[i] += 3;
+                            triangle_count -= 1;
+                            batch_size += 3;
+                        }
+                        const last_texture = self.textures.items[self.indices.items.len - 1];
+                        while (self.triangle_merged_counts[i] != g.items.len and
+                            isSameTexture(self.textures.items[self.triangle_merged_counts[i]], last_texture))
+                        {
+                            const count = self.triangle_merged_counts[i];
+                            self.indices.appendSliceAssumeCapacity(g.items[count .. count + 3]);
+                            self.triangle_merged_counts[i] += 3;
+                            triangle_count -= 1;
+                            batch_size += 3;
+                        }
+                        try self.batched_indices.append(batch_size);
+                    }
+                }
+
+                // Render batched vertices
+                var offset: u32 = 0;
+                for (self.batched_indices.items) |size| {
+                    assert(size % 3 == 0);
+                    try rd.drawGeometry(
+                        self.textures.items[self.indices.items[offset]],
+                        self.vertices.items,
+                        self.indices.items[offset .. offset + size],
+                    );
+                    offset += size;
+                }
+                assert(offset == @as(u32, @intCast(self.indices.items.len)));
             },
         }
     }
