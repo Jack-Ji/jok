@@ -65,11 +65,11 @@ pub inline fn isPointInTriangle(tri: [3][2]f32, point: [2]f32) bool {
     return p[0] >= 0 and p[1] >= 0 and p[2] >= 0;
 }
 
-/// Test whether triangle tr0 contains tr1
+/// Test whether triangle tr0 is contained by tr1
 pub inline fn isTriangleInTriangle(tri0: [3][2]f32, tri1: [3][2]f32) bool {
-    return isPointInTriangle(tri0, tri1[0]) and
-        isPointInTriangle(tri0, tri1[1]) and
-        isPointInTriangle(tri0, tri1[2]);
+    return isPointInTriangle(tri1, tri0[0]) and
+        isPointInTriangle(tri1, tri0[1]) and
+        isPointInTriangle(tri1, tri0[2]);
 }
 
 /// Test whether two triangles intersect

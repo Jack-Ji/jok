@@ -5,6 +5,7 @@
            sort each group by average depth
         2) merge groups to batches using same textures
 * [ ] graphics: postprocessing
+* [ ] j3d.Mesh: wavefont .obj support
 * [ ] math: detect aabb occlusion, could be useful to optimize 3d scene
 * [ ] 3d camera: correct upward vector processing
 * [ ] algorithm: A* pathfinding
