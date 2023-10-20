@@ -137,7 +137,7 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{
         .camera = camera,
-        .triangle_sort = if (sort_by_depth) .single_pass else .none,
+        .triangle_sort = if (sort_by_depth) .simple else .none,
     });
     try j3d.plane(
         zmath.mul(

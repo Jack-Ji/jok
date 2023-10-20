@@ -164,7 +164,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try j3d.begin(.{ .camera = camera, .triangle_sort = .single_pass });
+    try j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
     try j3d.scene(scene, .{ .lighting = .{} });
     try j3d.sprite(
         zmath.translation(10, -10, -30),

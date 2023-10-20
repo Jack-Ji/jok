@@ -27,8 +27,8 @@ pub const RenderOption = struct {
 
 pub const BeginOption = struct {
     camera: ?Camera = null,
-    triangle_sort: internal.TriangleSort = .none,
     wireframe_color: ?sdl.Color = null,
+    triangle_sort: internal.TriangleSort = .none,
 };
 
 var allocator: std.mem.Allocator = undefined;
@@ -39,7 +39,6 @@ var tri_rd: TriangleRenderer = undefined;
 var skybox_rd: SkyboxRenderer = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 var camera: Camera = undefined;
-var wireframe_color: ?sdl.Color = undefined;
 
 pub fn init(_allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
     allocator = _allocator;
@@ -60,7 +59,12 @@ pub fn deinit() void {
 }
 
 pub fn begin(opt: BeginOption) !void {
-    target.reset(rd, opt.triangle_sort, false);
+    target.reset(
+        rd,
+        opt.wireframe_color,
+        opt.triangle_sort,
+        false,
+    );
     camera = opt.camera orelse BLK: {
         const fsize = try rd.getOutputSize();
         const ratio =
@@ -80,18 +84,11 @@ pub fn begin(opt: BeginOption) !void {
             null,
         );
     };
-    wireframe_color = opt.wireframe_color;
 }
 
 pub fn end() !void {
     if (target.indices.items.len == 0) return;
-    assert(@rem(target.indices.items.len, 3) == 0);
-
-    if (wireframe_color) |wc| {
-        try target.drawTriangles(rd, wc);
-    } else {
-        try target.fillTriangles(rd);
-    }
+    try target.submit(rd);
 }
 
 pub fn clearMemory() void {
