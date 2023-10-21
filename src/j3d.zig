@@ -28,7 +28,30 @@ pub const RenderOption = struct {
 pub const BeginOption = struct {
     camera: ?Camera = null,
     wireframe_color: ?sdl.Color = null,
-    triangle_sort: internal.TriangleSort = .none,
+    triangle_sort: TriangleSort = .none,
+};
+
+pub const TriangleSort = union(enum) {
+    // Send to gpu directly. Use it when:
+    // 1. 3D objects are ordered manually
+    // 2. Triangles' size are simillar
+    none,
+
+    // Simple solution, sort by average depth. Use it when:
+    // 1. Very few textures are being used (preferably only 1)
+    // 2. Triangles' size are close (e.g. voxel game)
+    simple,
+
+    // Better looking but cost more cpu, might be slower in
+    // simple situations (see above):
+    // 1. Split screen to subrectangles as defined by `group_merge`
+    // 2. Split triangles to disjoint groups, each contained in a subrectangle
+    // 3. Sort each group and merge to batches
+    //
+    // Use it when:
+    // 1. Many textures are being used
+    // 2. Triangles' size vary significantly
+    group_merge: u8,
 };
 
 var allocator: std.mem.Allocator = undefined;

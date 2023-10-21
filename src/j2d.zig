@@ -8,7 +8,7 @@ const imgui = jok.imgui;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 
-const dc = @import("j2d/command.zig");
+const internal = @import("j2d/internal.zig");
 const Atlas = @import("font/Atlas.zig");
 pub const AffineTransform = @import("j2d/AffineTransform.zig");
 pub const Sprite = @import("j2d/Sprite.zig");
@@ -44,7 +44,7 @@ pub const BeginOption = struct {
 var arena: std.heap.ArenaAllocator = undefined;
 var rd: sdl.Renderer = undefined;
 var draw_list: imgui.DrawList = undefined;
-var draw_commands: std.ArrayList(dc.DrawCmd) = undefined;
+var draw_commands: std.ArrayList(internal.DrawCmd) = undefined;
 var transform: AffineTransform = undefined;
 var depth_sort: DepthSortMethod = undefined;
 var blend_method: BlendMethod = undefined;
@@ -54,7 +54,7 @@ pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
     arena = std.heap.ArenaAllocator.init(allocator);
     rd = _rd;
     draw_list = imgui.createDrawList();
-    draw_commands = std.ArrayList(dc.DrawCmd).init(allocator);
+    draw_commands = std.ArrayList(internal.DrawCmd).init(allocator);
     all_tex = std.AutoHashMap(*sdl.c.SDL_Texture, bool).init(allocator);
 }
 
@@ -93,10 +93,10 @@ pub fn begin(opt: BeginOption) !void {
 
 pub fn end() !void {
     const S = struct {
-        fn ascendCompare(_: ?*anyopaque, lhs: dc.DrawCmd, rhs: dc.DrawCmd) bool {
+        fn ascendCompare(_: ?*anyopaque, lhs: internal.DrawCmd, rhs: internal.DrawCmd) bool {
             return lhs.depth < rhs.depth;
         }
-        fn descendCompare(_: ?*anyopaque, lhs: dc.DrawCmd, rhs: dc.DrawCmd) bool {
+        fn descendCompare(_: ?*anyopaque, lhs: internal.DrawCmd, rhs: internal.DrawCmd) bool {
             return lhs.depth > rhs.depth;
         }
     };
@@ -106,13 +106,13 @@ pub fn end() !void {
     switch (depth_sort) {
         .none => {},
         .back_to_forth => std.sort.block(
-            dc.DrawCmd,
+            internal.DrawCmd,
             draw_commands.items,
             @as(?*anyopaque, null),
             S.descendCompare,
         ),
         .forth_to_back => std.sort.block(
-            dc.DrawCmd,
+            internal.DrawCmd,
             draw_commands.items,
             @as(?*anyopaque, null),
             S.ascendCompare,
@@ -919,13 +919,13 @@ pub fn path(p: Path, opt: PathOption) !void {
 }
 
 pub const Path = struct {
-    path: dc.PathCmd,
+    path: internal.PathCmd,
     finished: bool = false,
 
     /// Begin definition of path
     pub fn begin(allocator: std.mem.Allocator) Path {
         return .{
-            .path = dc.PathCmd.init(allocator),
+            .path = internal.PathCmd.init(allocator),
         };
     }
 
@@ -937,7 +937,7 @@ pub const Path = struct {
     };
     pub fn end(
         self: *Path,
-        method: dc.PathCmd.DrawMethod,
+        method: internal.PathCmd.DrawMethod,
         opt: PathEnd,
     ) void {
         self.path.draw_method = method;

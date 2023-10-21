@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
+const j3d = jok.j3d;
 const sdl = jok.sdl;
 const imgui = jok.imgui;
 const zmath = jok.zmath;
@@ -429,18 +430,6 @@ pub inline fn isSameTexture(tex0: ?sdl.Texture, tex1: ?sdl.Texture) bool {
     return tex0 == null and tex1 == null;
 }
 
-/// Triangle sorting method
-pub const TriangleSort = union(enum) {
-    // Send to gpu directly
-    none,
-
-    // Simple solution: sort by average depth
-    simple,
-
-    // Complex but better looking: split into disjoint groups, then sort and merge
-    group_merge: u8,
-};
-
 /// Target for storing rendering result
 pub const RenderTarget = struct {
     const max_group_merge = 5;
@@ -448,7 +437,7 @@ pub const RenderTarget = struct {
     const max_group_count = max_group_row_count * max_group_row_count;
 
     wireframe_color: ?sdl.Color,
-    triangle_sort: TriangleSort,
+    triangle_sort: j3d.TriangleSort,
     triangle_group_count: u32,
     triangle_merged_counts: [max_group_count]u32,
     triangle_groups: [max_group_count]std.ArrayList(u32),
@@ -492,7 +481,7 @@ pub const RenderTarget = struct {
         self: *RenderTarget,
         rd: sdl.Renderer,
         wireframe_color: ?sdl.Color,
-        triangle_sort: TriangleSort,
+        triangle_sort: j3d.TriangleSort,
         recycle_memory: bool,
     ) void {
         const output_size = rd.getOutputSize() catch unreachable;
@@ -591,47 +580,47 @@ pub const RenderTarget = struct {
         try imgui.sdl.renderDrawList(rd, self.draw_list);
     }
 
+    inline fn submitBatches(self: *RenderTarget, rd: sdl.Renderer) !void {
+        var offset: u32 = 0;
+        for (self.batched_indices.items) |size| {
+            assert(size % 3 == 0);
+            try rd.drawGeometry(
+                self.textures.items[self.indices.items[offset]],
+                self.vertices.items,
+                self.indices.items[offset .. offset + size],
+            );
+            offset += size;
+        }
+        assert(offset == @as(u32, @intCast(self.indices.items.len)));
+    }
+
     inline fn fillTriangles(self: *RenderTarget, rd: sdl.Renderer) !void {
         switch (self.triangle_sort) {
             .none => {
                 // Send pre-batched vertices
-                var offset: u32 = 0;
-                for (self.batched_indices.items) |size| {
-                    assert(size % 3 == 0);
-                    try rd.drawGeometry(
-                        self.textures.items[self.indices.items[offset]],
-                        self.vertices.items,
-                        self.indices.items[offset .. offset + size],
-                    );
-                    offset += size;
-                }
-                assert(offset == @as(u32, @intCast(self.indices.items.len)));
+                try self.submitBatches(rd);
             },
             .simple => {
                 // Sort by average depth
                 self.sortTriangles(self.indices.items);
 
-                // Send in batches
+                // Create batches and send them
                 var offset: usize = 0;
                 var last_texture: ?sdl.Texture = null;
                 var i: usize = 0;
                 while (i < self.indices.items.len) : (i += 3) {
                     const idx = self.indices.items[i];
                     if (i > 0 and !isSameTexture(self.textures.items[idx], last_texture)) {
-                        try rd.drawGeometry(
-                            last_texture,
-                            self.vertices.items,
-                            self.indices.items[offset..i],
-                        );
+                        try self.batched_indices.append(@intCast(i - offset));
                         offset = i;
                     }
                     last_texture = self.textures.items[idx];
                 }
-                try rd.drawGeometry(
-                    last_texture,
-                    self.vertices.items,
-                    self.indices.items[offset..],
-                );
+                if (offset < self.indices.items.len) {
+                    assert(@rem(self.indices.items.len - offset, 3) == 0);
+                    try self.batched_indices.append(@intCast(self.indices.items.len - offset));
+                }
+                try self.submitBatches(rd);
             },
             .group_merge => {
                 // Sort each group
@@ -642,7 +631,7 @@ pub const RenderTarget = struct {
                     triangle_count += @intCast((g.items.len - self.triangle_merged_counts[i]) / 3);
                 }
 
-                // Merge groups into batches
+                // Merge groups into batches and submit them
                 try self.indices.ensureTotalCapacity(self.indices.items.len + triangle_count * 3);
                 while (triangle_count > 0) {
                     assert(self.indices.items.len == 0);
@@ -671,19 +660,7 @@ pub const RenderTarget = struct {
                         try self.batched_indices.append(batch_size);
                     }
                 }
-
-                // Render batched vertices
-                var offset: u32 = 0;
-                for (self.batched_indices.items) |size| {
-                    assert(size % 3 == 0);
-                    try rd.drawGeometry(
-                        self.textures.items[self.indices.items[offset]],
-                        self.vertices.items,
-                        self.indices.items[offset .. offset + size],
-                    );
-                    offset += size;
-                }
-                assert(offset == @as(u32, @intCast(self.indices.items.len)));
+                try self.submitBatches(rd);
             },
         }
     }
