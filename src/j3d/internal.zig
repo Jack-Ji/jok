@@ -432,15 +432,8 @@ pub inline fn isSameTexture(tex0: ?sdl.Texture, tex1: ?sdl.Texture) bool {
 
 /// Target for storing rendering result
 pub const RenderTarget = struct {
-    const max_group_merge = 5;
-    const max_group_row_count = math.pow(u32, 2, @as(u32, max_group_merge));
-    const max_group_count = max_group_row_count * max_group_row_count;
-
     wireframe_color: ?sdl.Color,
     triangle_sort: j3d.TriangleSort,
-    triangle_group_count: u32,
-    triangle_merged_counts: [max_group_count]u32,
-    triangle_groups: [max_group_count]std.ArrayList(u32),
     indices: std.ArrayList(u32),
     batched_indices: std.ArrayList(u32),
     vertices: std.ArrayList(sdl.Vertex),
@@ -452,9 +445,6 @@ pub const RenderTarget = struct {
         var target = RenderTarget{
             .wireframe_color = undefined,
             .triangle_sort = .none,
-            .triangle_group_count = undefined,
-            .triangle_merged_counts = undefined,
-            .triangle_groups = undefined,
             .indices = std.ArrayList(u32).init(_allocator),
             .batched_indices = std.ArrayList(u32).init(_allocator),
             .vertices = std.ArrayList(sdl.Vertex).init(_allocator),
@@ -462,12 +452,10 @@ pub const RenderTarget = struct {
             .textures = std.ArrayList(?sdl.Texture).init(_allocator),
             .draw_list = imgui.createDrawList(),
         };
-        for (&target.triangle_groups) |*g| g.* = std.ArrayList(u32).init(_allocator);
         return target;
     }
 
     pub fn deinit(self: *RenderTarget) void {
-        for (self.triangle_groups) |g| g.deinit();
         self.indices.deinit();
         self.batched_indices.deinit();
         self.vertices.deinit();
@@ -486,26 +474,7 @@ pub const RenderTarget = struct {
     ) void {
         const output_size = rd.getOutputSize() catch unreachable;
         self.wireframe_color = wireframe_color;
-        if (self.wireframe_color != null) {
-            self.triangle_sort = .none;
-        } else {
-            self.triangle_sort = triangle_sort;
-            if (triangle_sort == .group_merge) {
-                if (triangle_sort.group_merge > max_group_merge) {
-                    @panic("Invalid group-merge value!");
-                }
-                if (triangle_sort.group_merge == 0) {
-                    self.triangle_sort = .simple;
-                } else {
-                    const row_count = math.pow(u32, 2, triangle_sort.group_merge);
-                    self.triangle_group_count = row_count * row_count;
-                    for (0..self.triangle_group_count) |i| {
-                        self.triangle_merged_counts[i] = 0;
-                        self.triangle_groups[i].clearRetainingCapacity();
-                    }
-                }
-            }
-        }
+        self.triangle_sort = triangle_sort;
         self.draw_list.reset();
         self.draw_list.pushClipRect(.{
             .pmin = .{ 0, 0 },
@@ -521,7 +490,6 @@ pub const RenderTarget = struct {
             .allow_vtx_offset = true,
         });
         if (recycle_memory) {
-            for (&self.triangle_groups) |*g| g.clearAndFree();
             self.indices.clearAndFree();
             self.batched_indices.clearAndFree();
             self.vertices.clearAndFree();
@@ -622,46 +590,6 @@ pub const RenderTarget = struct {
                 }
                 try self.submitBatches(rd);
             },
-            .group_merge => {
-                // Sort each group
-                var triangle_count: u32 = 0;
-                for (self.triangle_groups[0..self.triangle_group_count], 0..) |g, i| {
-                    assert(@rem(g.items.len, 3) == 0);
-                    self.sortTriangles(g.items);
-                    triangle_count += @intCast((g.items.len - self.triangle_merged_counts[i]) / 3);
-                }
-
-                // Merge groups into batches and submit them
-                try self.indices.ensureTotalCapacity(self.indices.items.len + triangle_count * 3);
-                while (triangle_count > 0) {
-                    assert(self.indices.items.len == 0);
-                    assert(self.batched_indices.items.len == 0);
-
-                    var batch_size: u32 = 0;
-                    for (self.triangle_groups[0..self.triangle_group_count], 0..) |g, i| {
-                        if (g.items.len == self.triangle_merged_counts[i]) continue;
-                        if (batch_size == 0) {
-                            const count = self.triangle_merged_counts[i];
-                            self.indices.appendSliceAssumeCapacity(g.items[count .. count + 3]);
-                            self.triangle_merged_counts[i] += 3;
-                            triangle_count -= 1;
-                            batch_size += 3;
-                        }
-                        const last_texture = self.textures.items[self.indices.items.len - 1];
-                        while (self.triangle_merged_counts[i] != g.items.len and
-                            isSameTexture(self.textures.items[self.triangle_merged_counts[i]], last_texture))
-                        {
-                            const count = self.triangle_merged_counts[i];
-                            self.indices.appendSliceAssumeCapacity(g.items[count .. count + 3]);
-                            self.triangle_merged_counts[i] += 3;
-                            triangle_count -= 1;
-                            batch_size += 3;
-                        }
-                        try self.batched_indices.append(batch_size);
-                    }
-                }
-                try self.submitBatches(rd);
-            },
         }
     }
 
@@ -719,9 +647,6 @@ pub const RenderTarget = struct {
                 self.vertices.appendSliceAssumeCapacity(vertices);
                 self.depths.appendSliceAssumeCapacity(depths);
                 self.textures.appendNTimesAssumeCapacity(texture, vertices.len);
-            },
-            .group_merge => |m| {
-                _ = m;
             },
         }
     }
