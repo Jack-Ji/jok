@@ -1,6 +1,7 @@
     ~: in-progress  x: done
 --------------------------------------------------------------------------------
-[ ] graphics: 3d flat shading support
+[ ] graphics: triangle flat shading support
+[ ] graphics: parallelize using multiple TriangleRenderer(s)
 [ ] graphics: postprocessing
 [ ] j3d.Mesh: wavefont .obj support
 [ ] math: detect aabb occlusion, could be useful to optimize 3d scene
