@@ -498,6 +498,7 @@ pub fn renderSprite(
             .{
                 .cull_faces = false,
                 .color = opt.tint_color,
+                .shading_method = opt.shading_method,
                 .texture = opt.texture,
                 .lighting = opt.lighting,
             },
