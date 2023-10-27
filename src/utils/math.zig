@@ -43,6 +43,26 @@ pub inline fn minAndMax(_x: anytype, _y: anytype, _z: anytype) std.meta.Tuple(&[
     return .{ x, z };
 }
 
+/// Test whether two line intersect
+pub inline fn areLinesIntersect(line0: [2][2]f32, line1: [2][2]f32) bool {
+    if (@max(line0[0][0], line0[1][0]) < @min(line1[0][0], line1[1][0]) or
+        @min(line0[0][0], line0[1][0]) > @max(line1[0][0], line1[1][0]) or
+        @max(line0[0][1], line0[1][1]) < @min(line1[0][1], line1[1][1]) or
+        @min(line0[0][1], line0[1][1]) > @max(line1[0][1], line1[1][1]))
+    {
+        return false;
+    }
+
+    const v0 = zmath.f32x4(line0[1][0] - line0[0][0], line0[1][1] - line0[0][1], 0, 0);
+    const v0_v1_0 = zmath.f32x4(line1[1][0] - line0[0][0], line1[1][1] - line0[0][1], 0, 0);
+    const v0_v1_1 = zmath.f32x4(line1[0][0] - line0[0][0], line1[0][1] - line0[0][1], 0, 0);
+    const v1 = zmath.f32x4(line1[1][0] - line1[0][0], line1[1][1] - line1[0][1], 0, 0);
+    const v1_v0_0 = zmath.f32x4(line0[1][0] - line1[0][0], line0[1][1] - line1[0][1], 0, 0);
+    const v1_v0_1 = zmath.f32x4(line0[0][0] - line1[0][0], line0[0][1] - line1[0][1], 0, 0);
+    return zmath.dot3(zmath.cross3(v0, v0_v1_0), zmath.cross3(v0, v0_v1_1))[0] <= 0 and
+        zmath.dot3(zmath.cross3(v1, v1_v0_0), zmath.cross3(v1, v1_v0_1))[0] <= 0;
+}
+
 /// Calculate Barycentric coordinate, checkout link https://blackpawn.com/texts/pointinpoly
 pub inline fn barycentricCoord(tri: [3][2]f32, point: [2]f32) [3]f32 {
     const v0 = zmath.f32x4(tri[2][0] - tri[0][0], tri[2][1] - tri[0][1], 0, 0);
