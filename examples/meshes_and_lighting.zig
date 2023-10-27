@@ -16,6 +16,7 @@ pub const jok_window_resizable = true;
 
 var lighting: bool = true;
 var wireframe: bool = false;
+var shading_method: i32 = 0;
 var light_pos1: [3]f32 = undefined;
 var light_pos2: [3]f32 = undefined;
 var camera: Camera = undefined;
@@ -98,6 +99,17 @@ pub fn update(ctx: jok.Context) !void {
     }
 
     if (imgui.begin("Control Panel", .{})) {
+        imgui.textUnformatted("shading method");
+        imgui.sameLine(.{});
+        _ = imgui.radioButtonStatePtr("gouraud", .{
+            .v = &shading_method,
+            .v_button = 0,
+        });
+        imgui.sameLine(.{});
+        _ = imgui.radioButtonStatePtr("flat", .{
+            .v = &shading_method,
+            .v_button = 1,
+        });
         _ = imgui.checkbox("lighting", .{ .v = &lighting });
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
     }
@@ -150,6 +162,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .lighting = lighting_opt,
             .color = sdl.Color.rgb(130, 160, 190),
+            .shading_method = @enumFromInt(shading_method),
         },
     );
     try j3d.cube(
@@ -161,6 +174,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .lighting = lighting_opt,
                 .color = sdl.Color.red,
+                .shading_method = @enumFromInt(shading_method),
             },
         },
     );
@@ -173,6 +187,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .lighting = lighting_opt,
                 .color = sdl.Color.green,
+                .shading_method = @enumFromInt(shading_method),
             },
         },
     );
@@ -185,6 +200,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .lighting = lighting_opt,
                 .color = sdl.Color.green,
+                .shading_method = @enumFromInt(shading_method),
             },
         },
     );
@@ -197,6 +213,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .lighting = lighting_opt,
                 .color = sdl.Color.green,
+                .shading_method = @enumFromInt(shading_method),
             },
         },
     );
@@ -212,6 +229,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .lighting = lighting_opt,
                 .color = sdl.Color.blue,
+                .shading_method = @enumFromInt(shading_method),
             },
         },
     );
@@ -228,6 +246,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .cull_faces = false,
                 .lighting = lighting_opt,
                 .color = sdl.Color.magenta,
+                .shading_method = @enumFromInt(shading_method),
             },
         },
     );
@@ -244,6 +263,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .cull_faces = false,
                 .lighting = lighting_opt,
                 .color = sdl.Color.yellow,
+                .shading_method = @enumFromInt(shading_method),
             },
         },
     );
@@ -256,6 +276,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .lighting = lighting_opt,
                 .color = sdl.Color.white,
+                .shading_method = @enumFromInt(shading_method),
             },
         },
     );
@@ -268,6 +289,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .lighting = lighting_opt,
                 .color = sdl.Color.rgb(150, 160, 190),
+                .shading_method = @enumFromInt(shading_method),
             },
         },
     );
@@ -280,6 +302,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .lighting = lighting_opt,
                 .color = sdl.Color.rgb(180, 170, 190),
+                .shading_method = @enumFromInt(shading_method),
             },
         },
     );
@@ -292,6 +315,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .lighting = lighting_opt,
                 .color = sdl.Color.rgb(180, 70, 90),
+                .shading_method = @enumFromInt(shading_method),
             },
         },
     );
@@ -304,6 +328,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .lighting = lighting_opt,
                 .color = sdl.Color.rgb(230, 230, 50),
+                .shading_method = @enumFromInt(shading_method),
             },
         },
     );
@@ -316,6 +341,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .lighting = lighting_opt,
                 .color = sdl.Color.yellow,
+                .shading_method = @enumFromInt(shading_method),
             },
             .seed = 100,
             .sub_num = 2,

@@ -9,6 +9,7 @@ const j3d = jok.j3d;
 
 var lighting: bool = true;
 var wireframe: bool = false;
+var shading_method: i32 = 0;
 var camera: j3d.Camera = undefined;
 var mesh1: *j3d.Mesh = undefined;
 var mesh2: *j3d.Mesh = undefined;
@@ -123,6 +124,17 @@ pub fn update(ctx: jok.Context) !void {
     }
 
     if (imgui.begin("Control Panel", .{})) {
+        imgui.textUnformatted("shading method");
+        imgui.sameLine(.{});
+        _ = imgui.radioButtonStatePtr("gouraud", .{
+            .v = &shading_method,
+            .v_button = 0,
+        });
+        imgui.sameLine(.{});
+        _ = imgui.radioButtonStatePtr("flat", .{
+            .v = &shading_method,
+            .v_button = 1,
+        });
         _ = imgui.checkbox("lighting", .{ .v = &lighting });
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
 
@@ -236,6 +248,7 @@ pub fn draw(ctx: jok.Context) !void {
             a,
             zmath.scalingV(zmath.f32x4s(3)),
             .{
+                .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
                 .playtime = animation_playtime1,
             },
@@ -245,6 +258,7 @@ pub fn draw(ctx: jok.Context) !void {
             mesh1,
             zmath.scalingV(zmath.f32x4s(3)),
             .{
+                .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
             },
         );
@@ -255,6 +269,7 @@ pub fn draw(ctx: jok.Context) !void {
             zmath.translation(-4, 0, 0),
             .{
                 .color = sdl.Color.cyan,
+                .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
                 .playtime = animation_playtime2,
             },
@@ -265,6 +280,7 @@ pub fn draw(ctx: jok.Context) !void {
             zmath.translation(-4, 0, 0),
             .{
                 .color = sdl.Color.cyan,
+                .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
             },
         );
@@ -280,6 +296,7 @@ pub fn draw(ctx: jok.Context) !void {
                 ),
             ),
             .{
+                .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
                 .transition = if (animation3_old) |ao|
                     .{
@@ -302,6 +319,7 @@ pub fn draw(ctx: jok.Context) !void {
                 ),
             ),
             .{
+                .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
             },
         );

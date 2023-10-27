@@ -15,6 +15,11 @@ const Mesh = @import("Mesh.zig");
 const Animation = @import("Animation.zig");
 const Self = @This();
 
+pub const ShadingMethod = enum(i32) {
+    gouraud,
+    flat,
+};
+
 pub const SkeletonAnimation = struct {
     anim: *Animation,
     skin: *Mesh.Skin,
@@ -23,11 +28,25 @@ pub const SkeletonAnimation = struct {
 };
 
 pub const RenderMeshOption = struct {
+    /// AABB excluding detection
     aabb: ?[6]f32 = null,
+
+    /// Eliminate CCW triangles
     cull_faces: bool = true,
+
+    /// Uniform material color
     color: sdl.Color = sdl.Color.white,
+
+    /// Shading style
+    shading_method: ShadingMethod = .gouraud,
+
+    /// Binded texture
     texture: ?sdl.Texture = null,
+
+    /// Lighting effect (only apply to sprites with explicit direction)
     lighting: ?lighting.LightingOption = null,
+
+    /// Skeleton animation
     animation: ?SkeletonAnimation = null,
 };
 
@@ -37,6 +56,9 @@ pub const RenderSpriteOption = struct {
 
     /// Tint color
     tint_color: sdl.Color = sdl.Color.white,
+
+    /// Shading style
+    shading_method: ShadingMethod = .gouraud,
 
     /// Scale of width/height
     scale: sdl.PointF = .{ .x = 1, .y = 1 },
@@ -333,27 +355,55 @@ pub fn renderMesh(
         const d2 = positions_screen[2][2];
 
         // Get color of vertices
-        const c0_diffuse = if (colors) |_| self.clip_colors.items[idx0] else opt.color;
-        const c1_diffuse = if (colors) |_| self.clip_colors.items[idx1] else opt.color;
-        const c2_diffuse = if (colors) |_| self.clip_colors.items[idx2] else opt.color;
-        const c0 = if (normals != null and opt.lighting != null) BLK: {
-            const n0 = self.world_normals.items[idx0];
-            const p = opt.lighting.?;
-            var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
-            break :BLK calc(c0_diffuse, camera.position, world_v0, n0, p);
-        } else c0_diffuse;
-        const c1 = if (normals != null and opt.lighting != null) BLK: {
-            const n1 = self.world_normals.items[idx1];
-            const p = opt.lighting.?;
-            var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
-            break :BLK calc(c1_diffuse, camera.position, world_v1, n1, p);
-        } else c1_diffuse;
-        const c2 = if (normals != null and opt.lighting != null) BLK: {
-            const n2 = self.world_normals.items[idx2];
-            const p = opt.lighting.?;
-            var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
-            break :BLK calc(c2_diffuse, camera.position, world_v2, n2, p);
-        } else c2_diffuse;
+        var c0: sdl.Color = undefined;
+        var c1: sdl.Color = undefined;
+        var c2: sdl.Color = undefined;
+        switch (opt.shading_method) {
+            .gouraud => {
+                const c0_diffuse = if (colors) |_| self.clip_colors.items[idx0] else opt.color;
+                const c1_diffuse = if (colors) |_| self.clip_colors.items[idx1] else opt.color;
+                const c2_diffuse = if (colors) |_| self.clip_colors.items[idx2] else opt.color;
+                c0 = if (normals != null and opt.lighting != null) BLK: {
+                    const n0 = self.world_normals.items[idx0];
+                    const p = opt.lighting.?;
+                    var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
+                    break :BLK calc(c0_diffuse, camera.position, world_v0, n0, p);
+                } else c0_diffuse;
+                c1 = if (normals != null and opt.lighting != null) BLK: {
+                    const n1 = self.world_normals.items[idx1];
+                    const p = opt.lighting.?;
+                    var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
+                    break :BLK calc(c1_diffuse, camera.position, world_v1, n1, p);
+                } else c1_diffuse;
+                c2 = if (normals != null and opt.lighting != null) BLK: {
+                    const n2 = self.world_normals.items[idx2];
+                    const p = opt.lighting.?;
+                    var calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
+                    break :BLK calc(c2_diffuse, camera.position, world_v2, n2, p);
+                } else c2_diffuse;
+            },
+            .flat => {
+                const c0_diffuse = if (colors) |_| sdl.Color{
+                    .r = (self.clip_colors.items[idx0].r + self.clip_colors.items[idx1].r + self.clip_colors.items[idx2].r) / 3,
+                    .g = (self.clip_colors.items[idx0].g + self.clip_colors.items[idx1].g + self.clip_colors.items[idx2].g) / 3,
+                    .b = (self.clip_colors.items[idx0].b + self.clip_colors.items[idx1].b + self.clip_colors.items[idx2].b) / 3,
+                    .a = (self.clip_colors.items[idx0].a + self.clip_colors.items[idx1].a + self.clip_colors.items[idx2].a) / 3,
+                } else opt.color;
+                c0 = if (opt.lighting) |lt| BLK: {
+                    var center = (world_v0 + world_v1 + world_v2) / zmath.f32x4s(3);
+                    center[3] = 1.0;
+                    var normal = zmath.normalize3(zmath.cross3(
+                        world_v1 - world_v0,
+                        world_v2 - world_v0,
+                    ));
+                    normal[3] = 0;
+                    var calc = if (lt.light_calc_fn) |f| f else &lighting.calcLightColor;
+                    break :BLK calc(c0_diffuse, camera.position, center, normal, lt);
+                } else c0_diffuse;
+                c1 = c0;
+                c2 = c0;
+            },
+        }
 
         // Get texture coordinates
         const t0 = if (texcoords) |_| self.clip_texcoords.items[idx0] else undefined;

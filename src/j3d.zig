@@ -10,6 +10,8 @@ const zmesh = jok.zmesh;
 const internal = @import("j3d/internal.zig");
 const TriangleRenderer = @import("j3d/TriangleRenderer.zig");
 const SkyboxRenderer = @import("j3d/SkyboxRenderer.zig");
+pub const ShadingMethod = TriangleRenderer.ShadingMethod;
+pub const LightingOption = lighting.LightingOption;
 pub const Mesh = @import("j3d/Mesh.zig");
 pub const Animation = @import("j3d/Animation.zig");
 pub const lighting = @import("j3d/lighting.zig");
@@ -19,10 +21,11 @@ pub const Scene = @import("j3d/Scene.zig");
 pub const Vector = @import("j3d/Vector.zig");
 
 pub const RenderOption = struct {
-    texture: ?sdl.Texture = null,
-    color: sdl.Color = sdl.Color.white,
     cull_faces: bool = true,
-    lighting: ?lighting.LightingOption = null,
+    color: sdl.Color = sdl.Color.white,
+    shading_method: ShadingMethod = .gouraud,
+    texture: ?sdl.Texture = null,
+    lighting: ?LightingOption = null,
 };
 
 pub const BeginOption = struct {
@@ -172,6 +175,7 @@ pub fn line(model: zmath.Mat, _p0: [3]f32, _p1: [3]f32, opt: LineOption) !void {
         .{
             .cull_faces = false,
             .color = opt.color,
+            .shading_method = .flat,
         },
     );
 }
@@ -210,6 +214,7 @@ pub fn triangle(model: zmath.Mat, pos: [3][3]f32, colors: ?[3]sdl.Color, texcoor
                 .aabb = opt.aabb,
                 .cull_faces = opt.rdopt.cull_faces,
                 .color = opt.rdopt.color,
+                .shading_method = opt.rdopt.shading_method,
                 .texture = opt.rdopt.texture,
                 .lighting = opt.rdopt.lighting,
             },
@@ -247,6 +252,7 @@ pub fn triangles(
                 .aabb = opt.aabb,
                 .cull_faces = opt.rdopt.cull_faces,
                 .color = opt.rdopt.color,
+                .shading_method = opt.rdopt.shading_method,
                 .texture = opt.rdopt.texture,
                 .lighting = opt.rdopt.lighting,
             },
@@ -279,6 +285,7 @@ pub fn shape(s: zmesh.Shape, model: zmath.Mat, aabb: ?[6]f32, opt: RenderOption)
             .aabb = aabb,
             .cull_faces = opt.cull_faces,
             .color = opt.color,
+            .shading_method = opt.shading_method,
             .texture = opt.texture,
             .lighting = opt.lighting,
         },
@@ -293,9 +300,10 @@ pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
         camera,
         &tri_rd,
         .{
-            .texture = opt.texture,
-            .color = opt.color,
             .cull_faces = opt.cull_faces,
+            .color = opt.color,
+            .shading_method = opt.shading_method,
+            .texture = opt.texture,
             .lighting = opt.lighting,
         },
     );

@@ -6,6 +6,7 @@ const sdl = jok.sdl;
 const internal = @import("internal.zig");
 const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
+const ShadingMethod = TriangleRenderer.ShadingMethod;
 const Camera = @import("Camera.zig");
 const lighting = @import("lighting.zig");
 const Mesh = @import("Mesh.zig");
@@ -20,6 +21,7 @@ pub const Transition = struct {
 pub const RenderOption = struct {
     texture: ?sdl.Texture = null,
     color: sdl.Color = sdl.Color.white,
+    shading_method: ShadingMethod = .gouraud,
     cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,
     transition: ?Transition = null,
@@ -272,6 +274,7 @@ fn renderNode(
                 .aabb = null,
                 .cull_faces = opt.cull_faces,
                 .color = opt.color,
+                .shading_method = opt.shading_method,
                 .texture = opt.texture orelse sm.getTexture(),
                 .lighting = opt.lighting,
                 .animation = if (node.skin == null)
