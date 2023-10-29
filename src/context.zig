@@ -197,6 +197,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _last_pc: u64 = 0,
         _accumulated_pc: u64 = 0,
         _pc_freq: f64 = 0,
+        _drawcall_count: u32 = 0,
         _frame_count: u32 = 0,
         _last_fps_refresh_time: f64 = 0,
 
@@ -302,14 +303,17 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 var buf: [128]u8 = undefined;
                 const txt = std.fmt.bufPrintZ(
                     &buf,
-                    "{s} | {d}x{d} | FPS: {d:.1}, {s} | FRAMETIME: {d:.1}ms | MEM: {:.3} | RENDERER: {s}",
+                    "{s} | {d}x{d}/{d}x{d} | FPS: {d:.1}/{d:.1}ms/{s} | DRAWCALL: {d} | MEM: {:.3} | RENDERER: {s}",
                     .{
                         cfg.jok_window_title,
                         getWindowSize(self).x,
                         getWindowSize(self).y,
+                        getFramebufferSize(self).x,
+                        getFramebufferSize(self).y,
                         self._fps,
-                        cfg.jok_fps_limit.str(),
                         self._average_cpu_time,
+                        cfg.jok_fps_limit.str(),
+                        self._drawcall_count,
                         std.fmt.fmtIntSizeBin(gpa.total_requested_bytes),
                         if (self._is_software) "software" else "hardware",
                     },
@@ -417,12 +421,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Update frame stats once per second
         inline fn updateFrameStats(self: *@This()) bool {
             if ((self._seconds_real - self._last_fps_refresh_time) >= 1.0) {
-                const t = self._seconds_real - self._last_fps_refresh_time;
+                const duration = self._seconds_real - self._last_fps_refresh_time;
                 self._fps = @as(f32, @floatCast(
-                    @as(f64, @floatFromInt(self._frame_count)) / t,
+                    @as(f64, @floatFromInt(self._frame_count)) / duration,
                 ));
                 self._average_cpu_time = (1.0 / self._fps) * 1000.0;
                 self._last_fps_refresh_time = self._seconds_real;
+                self._drawcall_count = imgui.sdl.getDrawCallCount() / self._frame_count;
+                imgui.sdl.clearDrawCallCount();
                 self._frame_count = 0;
                 return true;
             }

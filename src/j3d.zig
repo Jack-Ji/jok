@@ -98,7 +98,6 @@ pub fn begin(opt: BeginOption) !void {
 }
 
 pub fn end() !void {
-    if (target.indices.items.len == 0) return;
     try target.submit(rd);
 }
 

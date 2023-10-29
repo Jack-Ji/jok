@@ -140,10 +140,6 @@ pub fn render(
         assert(@rem(self.clip_vertices.items.len, 3) == 0);
 
         // Continue with remaining triangles
-        try target.reserveCapacity(
-            self.clip_vertices.items.len,
-            self.clip_vertices.items.len,
-        );
         i = 2;
         while (i < self.clip_vertices.items.len) : (i += 3) {
             const idx0 = i - 2;
@@ -169,7 +165,7 @@ pub fn render(
             const t0 = self.clip_texcoords.items[idx0];
             const t1 = self.clip_texcoords.items[idx1];
             const t2 = self.clip_texcoords.items[idx2];
-            try target.appendTrianglesAssumeCapacity(
+            try target.pushTriangles(
                 &.{ 0, 1, 2 },
                 &[_]sdl.Vertex{
                     .{

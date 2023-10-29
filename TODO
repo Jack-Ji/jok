@@ -1,6 +1,7 @@
     ~: in-progress  x: done
 --------------------------------------------------------------------------------
 [x] graphics: triangle flat shading support
+[x] graphics: unify 2d/3d rendering process
 [ ] graphics: parallize using multiple TriangleRenderer(s)
 [ ] graphics: postprocessing
 [ ] j3d.Mesh: wavefont .obj support

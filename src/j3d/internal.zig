@@ -435,33 +435,30 @@ pub const RenderTarget = struct {
     wireframe_color: ?sdl.Color,
     triangle_sort: j3d.TriangleSort,
     indices: std.ArrayList(u32),
-    batched_indices: std.ArrayList(u32),
     vertices: std.ArrayList(sdl.Vertex),
     depths: std.ArrayList(f32),
     textures: std.ArrayList(?sdl.Texture),
-    draw_list: imgui.DrawList,
+    dl: imgui.DrawList,
 
     pub fn init(_allocator: std.mem.Allocator) RenderTarget {
         var target = RenderTarget{
             .wireframe_color = undefined,
             .triangle_sort = .none,
             .indices = std.ArrayList(u32).init(_allocator),
-            .batched_indices = std.ArrayList(u32).init(_allocator),
             .vertices = std.ArrayList(sdl.Vertex).init(_allocator),
             .depths = std.ArrayList(f32).init(_allocator),
             .textures = std.ArrayList(?sdl.Texture).init(_allocator),
-            .draw_list = imgui.createDrawList(),
+            .dl = imgui.createDrawList(),
         };
         return target;
     }
 
     pub fn deinit(self: *RenderTarget) void {
         self.indices.deinit();
-        self.batched_indices.deinit();
         self.vertices.deinit();
         self.depths.deinit();
         self.textures.deinit();
-        imgui.destroyDrawList(self.draw_list);
+        imgui.destroyDrawList(self.dl);
         self.* = undefined;
     }
 
@@ -475,15 +472,15 @@ pub const RenderTarget = struct {
         const output_size = rd.getOutputSize() catch unreachable;
         self.wireframe_color = wireframe_color;
         self.triangle_sort = triangle_sort;
-        self.draw_list.reset();
-        self.draw_list.pushClipRect(.{
+        self.dl.reset();
+        self.dl.pushClipRect(.{
             .pmin = .{ 0, 0 },
             .pmax = .{
                 @as(f32, @floatFromInt(output_size.width_pixels)),
                 @as(f32, @floatFromInt(output_size.height_pixels)),
             },
         });
-        self.draw_list.setDrawListFlags(.{
+        self.dl.setDrawListFlags(.{
             .anti_aliased_lines = true,
             .anti_aliased_lines_use_tex = false,
             .anti_aliased_fill = true,
@@ -491,18 +488,23 @@ pub const RenderTarget = struct {
         });
         if (recycle_memory) {
             self.indices.clearAndFree();
-            self.batched_indices.clearAndFree();
             self.vertices.clearAndFree();
             self.depths.clearAndFree();
             self.textures.clearAndFree();
-            self.draw_list.clearMemory();
+            self.dl.clearMemory();
         } else {
             self.indices.clearRetainingCapacity();
-            self.batched_indices.clearRetainingCapacity();
             self.vertices.clearRetainingCapacity();
             self.depths.clearRetainingCapacity();
             self.textures.clearRetainingCapacity();
         }
+    }
+
+    inline fn reserveCapacity(self: *RenderTarget, idx_size: usize, vtx_size: usize) !void {
+        try self.indices.ensureTotalCapacity(self.indices.items.len + idx_size);
+        try self.vertices.ensureTotalCapacity(self.vertices.items.len + vtx_size);
+        try self.depths.ensureTotalCapacity(self.depths.items.len + vtx_size);
+        try self.textures.ensureTotalCapacity(self.textures.items.len + vtx_size);
     }
 
     // Compare triangles by average depth
@@ -531,84 +533,71 @@ pub const RenderTarget = struct {
         );
     }
 
-    inline fn drawTriangles(self: RenderTarget, rd: sdl.Renderer, color: sdl.Color) !void {
-        const col = imgui.sdl.convertColor(color);
-        var i: u32 = 0;
-        while (i < self.indices.items.len) : (i += 3) {
-            const v0 = self.vertices.items[self.indices.items[i]];
-            const v1 = self.vertices.items[self.indices.items[i + 1]];
-            const v2 = self.vertices.items[self.indices.items[i + 2]];
-            self.draw_list.addTriangle(.{
-                .p1 = .{ v0.position.x, v0.position.y },
-                .p2 = .{ v1.position.x, v1.position.y },
-                .p3 = .{ v2.position.x, v2.position.y },
-                .col = col,
-            });
-        }
-        try imgui.sdl.renderDrawList(rd, self.draw_list);
-    }
-
-    inline fn submitBatches(self: *RenderTarget, rd: sdl.Renderer) !void {
-        var offset: u32 = 0;
-        for (self.batched_indices.items) |size| {
-            assert(size % 3 == 0);
-            try rd.drawGeometry(
-                self.textures.items[self.indices.items[offset]],
-                self.vertices.items,
-                self.indices.items[offset .. offset + size],
-            );
-            offset += size;
-        }
-        assert(offset == @as(u32, @intCast(self.indices.items.len)));
-    }
-
-    inline fn fillTriangles(self: *RenderTarget, rd: sdl.Renderer) !void {
-        switch (self.triangle_sort) {
-            .none => {
-                // Send pre-batched vertices
-                try self.submitBatches(rd);
-            },
-            .simple => {
-                // Sort by average depth
-                self.sortTriangles(self.indices.items);
-
-                // Create batches and send them
-                var offset: usize = 0;
-                var last_texture: ?sdl.Texture = null;
-                var i: usize = 0;
-                while (i < self.indices.items.len) : (i += 3) {
-                    const idx = self.indices.items[i];
-                    if (i > 0 and !isSameTexture(self.textures.items[idx], last_texture)) {
-                        try self.batched_indices.append(@intCast(i - offset));
-                        offset = i;
-                    }
-                    last_texture = self.textures.items[idx];
-                }
-                if (offset < self.indices.items.len) {
-                    assert(@rem(self.indices.items.len - offset, 3) == 0);
-                    try self.batched_indices.append(@intCast(self.indices.items.len - offset));
-                }
-                try self.submitBatches(rd);
-            },
-        }
-    }
-
     pub fn submit(self: *RenderTarget, rd: sdl.Renderer) !void {
-        if (self.wireframe_color) |c| {
-            try self.drawTriangles(rd, c);
+        const S = struct {
+            inline fn addTriangles(dl: imgui.DrawList, indices: []u32, vertices: []sdl.Vertex, texture: ?sdl.Texture) void {
+                if (texture) |tex| dl.pushTextureId(tex.ptr);
+                defer if (texture != null) dl.popTextureId();
+
+                dl.primReserve(@intCast(indices.len), @intCast(indices.len));
+                const white_pixel_uv = imgui.getFontTexUvWhitePixel();
+                const cur_idx = dl.getCurrentIndex();
+                for (indices) |i| {
+                    const p = vertices[i];
+                    dl.primWriteVtx(
+                        .{ p.position.x, p.position.y },
+                        if (texture != null) .{ p.tex_coord.x, p.tex_coord.y } else white_pixel_uv,
+                        imgui.sdl.convertColor(p.color),
+                    );
+                }
+                for (0..indices.len) |i| {
+                    dl.primWriteIdx(cur_idx + @as(u32, @intCast(i)));
+                }
+            }
+        };
+
+        if (self.wireframe_color != null) {
+            try imgui.sdl.renderDrawList(rd, self.dl);
         } else {
-            try self.fillTriangles(rd);
+            switch (self.triangle_sort) {
+                .none => {
+                    try imgui.sdl.renderDrawList(rd, self.dl);
+                },
+                .simple => {
+                    // Sort by average depth
+                    self.sortTriangles(self.indices.items);
+
+                    // Send triangles
+                    var offset: usize = 0;
+                    var last_texture: ?sdl.Texture = null;
+                    var i: usize = 0;
+                    while (i < self.indices.items.len) : (i += 3) {
+                        const idx = self.indices.items[i];
+                        if (i > 0 and !isSameTexture(self.textures.items[idx], last_texture)) {
+                            S.addTriangles(
+                                self.dl,
+                                self.indices.items[offset..i],
+                                self.vertices.items,
+                                last_texture,
+                            );
+                            offset = i;
+                        }
+                        last_texture = self.textures.items[idx];
+                    }
+                    S.addTriangles(
+                        self.dl,
+                        self.indices.items[offset..],
+                        self.vertices.items,
+                        last_texture,
+                    );
+
+                    try imgui.sdl.renderDrawList(rd, self.dl);
+                },
+            }
         }
     }
 
-    pub fn reserveCapacity(self: *RenderTarget, idx_size: usize, vtx_size: usize) !void {
-        try self.indices.ensureTotalCapacity(self.indices.items.len + idx_size);
-        try self.vertices.ensureTotalCapacity(self.vertices.items.len + vtx_size);
-        try self.depths.ensureTotalCapacity(self.depths.items.len + vtx_size);
-        try self.textures.ensureTotalCapacity(self.textures.items.len + vtx_size);
-    }
-
-    pub fn appendTrianglesAssumeCapacity(
+    pub fn pushTriangles(
         self: *RenderTarget,
         indices: []const u32,
         vertices: []const sdl.Vertex,
@@ -618,36 +607,50 @@ pub const RenderTarget = struct {
         assert(@rem(indices.len, 3) == 0);
         assert(vertices.len == depths.len);
 
-        switch (self.triangle_sort) {
-            .none => {
-                if (self.batched_indices.items.len == 0) {
-                    try self.batched_indices.append(@intCast(indices.len));
-                } else {
-                    const last_texture = self.textures.items[self.textures.items.len - 1];
-                    if (isSameTexture(last_texture, texture)) {
-                        self.batched_indices.items[self.batched_indices.items.len - 1] += @intCast(indices.len);
-                    } else {
-                        try self.batched_indices.append(@intCast(indices.len));
-                    }
-                }
+        if (self.wireframe_color) |color| {
+            const col = imgui.sdl.convertColor(color);
+            var i: usize = 2;
+            while (i < indices.len) : (i += 3) {
+                self.dl.addTriangle(.{
+                    .p1 = .{ vertices[i - 2].position.x, vertices[i - 2].position.y },
+                    .p2 = .{ vertices[i - 1].position.x, vertices[i - 1].position.y },
+                    .p3 = .{ vertices[i].position.x, vertices[i].position.y },
+                    .col = col,
+                });
+            }
+        } else {
+            switch (self.triangle_sort) {
+                .none => {
+                    if (texture) |tex| self.dl.pushTextureId(tex.ptr);
+                    defer if (texture != null) self.dl.popTextureId();
 
-                const current_index: u32 = @intCast(self.vertices.items.len);
-                for (indices) |idx| {
-                    self.indices.appendAssumeCapacity(idx + current_index);
-                }
-                self.vertices.appendSliceAssumeCapacity(vertices);
-                self.depths.appendSliceAssumeCapacity(depths);
-                self.textures.appendNTimesAssumeCapacity(texture, vertices.len);
-            },
-            .simple => {
-                const current_index: u32 = @intCast(self.vertices.items.len);
-                for (indices) |idx| {
-                    self.indices.appendAssumeCapacity(idx + current_index);
-                }
-                self.vertices.appendSliceAssumeCapacity(vertices);
-                self.depths.appendSliceAssumeCapacity(depths);
-                self.textures.appendNTimesAssumeCapacity(texture, vertices.len);
-            },
+                    self.dl.primReserve(@intCast(indices.len), @intCast(vertices.len));
+                    const white_pixel_uv = imgui.getFontTexUvWhitePixel();
+                    const cur_idx = self.dl.getCurrentIndex();
+                    var i: usize = 0;
+                    while (i < vertices.len) : (i += 1) {
+                        const p = vertices[i];
+                        self.dl.primWriteVtx(
+                            .{ p.position.x, p.position.y },
+                            if (texture != null) .{ p.tex_coord.x, p.tex_coord.y } else white_pixel_uv,
+                            imgui.sdl.convertColor(p.color),
+                        );
+                    }
+                    for (indices) |j| {
+                        self.dl.primWriteIdx(cur_idx + @as(u32, @intCast(j)));
+                    }
+                },
+                .simple => {
+                    try self.reserveCapacity(indices.len, vertices.len);
+                    const current_index: u32 = @intCast(self.vertices.items.len);
+                    for (indices) |idx| {
+                        self.indices.appendAssumeCapacity(idx + current_index);
+                    }
+                    self.vertices.appendSliceAssumeCapacity(vertices);
+                    self.depths.appendSliceAssumeCapacity(depths);
+                    self.textures.appendNTimesAssumeCapacity(texture, vertices.len);
+                },
+            }
         }
     }
 };

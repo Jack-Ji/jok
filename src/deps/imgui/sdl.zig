@@ -4,6 +4,9 @@ const sdl = jok.sdl;
 const zgui = @import("zgui");
 const imgui = @import("imgui.zig");
 
+// Record number of draw calls
+var drawcall_count: u32 = 0;
+
 pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     zgui.init(ctx.allocator());
 
@@ -103,7 +106,16 @@ pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) !void {
             @intCast(cmd.elem_count),
             @sizeOf(imgui.DrawIdx),
         );
+        drawcall_count += 1;
     }
+}
+
+pub fn getDrawCallCount() u32 {
+    return drawcall_count;
+}
+
+pub fn clearDrawCallCount() void {
+    drawcall_count = 0;
 }
 
 /// Convert SDL color to imgui integer

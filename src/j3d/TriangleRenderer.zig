@@ -311,10 +311,6 @@ pub fn renderMesh(
     assert(@rem(self.clip_vertices.items.len, 3) == 0);
 
     // Continue with remaining triangles
-    try target.reserveCapacity(
-        self.clip_vertices.items.len,
-        self.clip_vertices.items.len,
-    );
     i = 2;
     while (i < self.clip_vertices.items.len) : (i += 3) {
         const idx0 = i - 2;
@@ -411,7 +407,7 @@ pub fn renderMesh(
         const t2 = if (texcoords) |_| self.clip_texcoords.items[idx2] else undefined;
 
         // Render to ouput
-        try target.appendTrianglesAssumeCapacity(
+        try target.pushTriangles(
             &.{ 0, 1, 2 },
             &[_]sdl.Vertex{
                 .{ .position = p0, .color = c0, .tex_coord = t0 },
@@ -612,8 +608,7 @@ pub fn renderSprite(
         const d3 = positions_screen[3][2];
 
         // Render to ouput
-        try target.reserveCapacity(6, 4);
-        try target.appendTrianglesAssumeCapacity(
+        try target.pushTriangles(
             &.{ 0, 1, 2, 0, 2, 3 },
             &[_]sdl.Vertex{
                 .{ .position = p0, .color = opt.tint_color, .tex_coord = t0 },
