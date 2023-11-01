@@ -377,6 +377,26 @@ pub fn draw(ctx: jok.Context) !void {
                 },
             },
         );
+        try j3d.cone(
+            zmath.mul(
+                zmath.mul(
+                    zmath.scaling(15, 15, 30),
+                    zmath.rotationX(-math.pi * 0.5),
+                ),
+                zmath.translation(light_pos1[0], 0, light_pos1[2]),
+            ),
+            .{
+                .rdopt = .{
+                    .color = sdl.Color.rgba(
+                        @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[0] * 255),
+                        @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[1] * 255),
+                        @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[2] * 255),
+                        10,
+                    ),
+                },
+                .stacks = 40,
+            },
+        );
     }
     try j3d.end();
 
