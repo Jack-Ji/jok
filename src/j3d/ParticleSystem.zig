@@ -8,6 +8,7 @@ const Camera = @import("Camera.zig");
 const jok = @import("../jok.zig");
 const sdl = jok.sdl;
 const j3d = jok.j3d;
+const j2d = jok.j2d;
 const zmesh = jok.zmesh;
 const zmath = jok.zmath;
 const Self = @This();
@@ -257,6 +258,19 @@ pub const DrawData = union(enum) {
         uv: [2]sdl.PointF = .{ .{ .x = 0, .y = 0 }, .{ .x = 1, .y = 1 } },
         texture: ?sdl.Texture = null,
     },
+
+    pub fn fromSprite(sp: j2d.Sprite, scale: ?sdl.PointF) DrawData {
+        return .{
+            .sprite = .{
+                .size = .{
+                    .x = if (scale) |s| sp.width * s.x else sp.width,
+                    .y = if (scale) |s| sp.height * s.y else sp.height,
+                },
+                .uv = .{ sp.uv0, sp.uv1 },
+                .texture = sp.tex,
+            },
+        };
+    }
 };
 
 /// Represent a particle

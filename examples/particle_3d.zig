@@ -2,14 +2,14 @@ const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
 const sdl = jok.sdl;
+const j2d = jok.j2d;
 const j3d = jok.j3d;
 const zmath = jok.zmath;
 const font = jok.font;
 const imgui = jok.imgui;
 
 var rand: std.rand.DefaultPrng = undefined;
-var tex0: sdl.Texture = undefined;
-var tex1: sdl.Texture = undefined;
+var sheet: *j2d.SpriteSheet = undefined;
 var ps: *j3d.ParticleSystem = undefined;
 var camera: j3d.Camera = undefined;
 var sort_by_depth: bool = false;
@@ -21,7 +21,7 @@ const emitter1 = j3d.ParticleSystem.Effect.FireEmitter(
     3,
     sdl.Color.red,
     sdl.Color.yellow,
-    2.75,
+    1.75,
 );
 const emitter2 = j3d.ParticleSystem.Effect.FireEmitter(
     20,
@@ -36,16 +36,25 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     rand = std.rand.DefaultPrng.init(@intCast(std.time.timestamp()));
-    tex0 = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
-        "assets/images/white-circle.png",
-        .static,
-        false,
-    );
-    tex1 = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
-        "assets/images/ogre.png",
-        .static,
+    sheet = try j2d.SpriteSheet.create(
+        ctx,
+        &.{
+            .{
+                .name = "white-circle",
+                .image = .{
+                    .file_path = "assets/images/white-circle.png",
+                },
+            },
+            .{
+                .name = "ogre",
+                .image = .{
+                    .file_path = "assets/images/ogre.png",
+                },
+            },
+        },
+        500,
+        500,
+        1,
         false,
     );
     ps = try j3d.ParticleSystem.create(ctx.allocator());
@@ -62,21 +71,17 @@ pub fn init(ctx: jok.Context) !void {
         .{ 0, 0, 0 },
         null,
     );
-    emitter1.draw_data = .{
-        .sprite = .{
-            .size = .{ .x = 5, .y = 5 },
-            .texture = tex0,
-        },
-    };
-    emitter2.draw_data = .{
-        .sprite = .{
-            .size = .{ .x = 5, .y = 5 },
-            .texture = tex1,
-        },
-    };
+    emitter1.draw_data = j3d.ParticleSystem.DrawData.fromSprite(
+        sheet.getSpriteByName("white-circle").?,
+        .{ .x = 0.2, .y = 0.2 },
+    );
+    emitter2.draw_data = j3d.ParticleSystem.DrawData.fromSprite(
+        sheet.getSpriteByName("ogre").?,
+        .{ .x = 0.2, .y = 0.2 },
+    );
     try ps.addEffect(
         rand.random(),
-        8000,
+        5000,
         emitter1.emit,
         j3d.Vector.new(0, 0, 0),
         60,
@@ -85,7 +90,7 @@ pub fn init(ctx: jok.Context) !void {
     );
     try ps.addEffect(
         rand.random(),
-        10000,
+        5000,
         emitter2.emit,
         j3d.Vector.new(60, 0, 0),
         60,
@@ -179,4 +184,5 @@ pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     ps.destroy();
+    sheet.destroy();
 }
