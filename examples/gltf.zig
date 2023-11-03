@@ -42,7 +42,6 @@ pub fn init(ctx: jok.Context) !void {
         },
         [_]f32{ 7, 4.1, 7 },
         [_]f32{ 0, 0, 0 },
-        null,
     );
 
     mesh1 = try j3d.Mesh.fromGltf(

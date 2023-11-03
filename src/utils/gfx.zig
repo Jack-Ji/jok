@@ -22,8 +22,8 @@ pub inline fn getChannels(format: sdl.PixelFormatEnum) u32 {
 /// Get appropriate 4-channel pixel format from endian
 pub inline fn getFormatByEndian() sdl.PixelFormatEnum {
     return switch (native_endian) {
-        .Big => .rgba8888,
-        .Little => .abgr8888,
+        .big => .rgba8888,
+        .little => .abgr8888,
     };
 }
 

@@ -31,7 +31,6 @@ pub fn init(ctx: jok.Context) !void {
         },
         [_]f32{ 37, 9, 2 },
         [_]f32{ 0, 0, 0 },
-        null,
     );
 
     sheet = try j2d.SpriteSheet.fromPicturesInDir(

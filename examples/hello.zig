@@ -34,7 +34,6 @@ pub fn init(ctx: jok.Context) !void {
         },
         .{ 0, 0, 10 },
         .{ 0, 0, 0 },
-        null,
     );
     text_draw_pos = .{
         .x = fb_size.x / 2,

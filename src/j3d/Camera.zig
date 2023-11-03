@@ -33,11 +33,10 @@ const MoveDirection = enum {
     down,
 };
 
+const world_up = zmath.f32x4(0, 1, 0, 0);
+
 // Viewing frustrum
 frustrum: ViewFrustrum = undefined,
-
-// Up vector of the world
-world_up: zmath.Vec = undefined,
 
 // Position of camera
 position: zmath.Vec = undefined,
@@ -57,29 +56,25 @@ yaw: f32 = undefined,
 roll: f32 = undefined,
 
 /// Create a camera using position and target
-pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: [3]f32, target: [3]f32, world_up: ?[3]f32) Self {
+pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: [3]f32, target: [3]f32) Self {
     var camera: Self = .{};
     camera.frustrum = frustrum;
-    camera.world_up = zmath.normalize3(if (world_up) |up|
-        zmath.f32x4(up[0], up[1], up[2], 0)
-    else
-        zmath.f32x4(0, 1, 0, 0));
     camera.position = zmath.f32x4(pos[0], pos[1], pos[2], 1.0);
     camera.dir = zmath.normalize3(zmath.f32x4(target[0], target[1], target[2], 1.0) - camera.position);
-    camera.right = zmath.normalize3(zmath.cross3(camera.world_up, camera.dir));
+    camera.right = zmath.normalize3(zmath.cross3(world_up, camera.dir));
     camera.up = zmath.normalize3(zmath.cross3(camera.dir, camera.right));
 
     // Calculate euler angles
-    var crossdir = zmath.cross3(camera.up, camera.world_up);
+    var crossdir = zmath.cross3(camera.up, world_up);
     var angles = zmath.dot3(crossdir, camera.right);
-    const cos_pitch = zmath.dot3(camera.world_up, camera.up);
+    const cos_pitch = zmath.dot3(world_up, camera.up);
     if (angles[0] < 0) {
         camera.pitch = math.acos(math.clamp(cos_pitch[0], -1, 1));
     } else {
         camera.pitch = -math.acos(math.clamp(cos_pitch[0], -1, 1));
     }
     crossdir = zmath.cross3(camera.right, zmath.f32x4(1, 0, 0, 0));
-    angles = zmath.dot3(crossdir, camera.world_up);
+    angles = zmath.dot3(crossdir, world_up);
     const cos_yaw = zmath.dot3(camera.right, zmath.f32x4(1, 0, 0, 0));
     if (angles[0] < 0) {
         camera.yaw = math.acos(math.clamp(cos_yaw[0], -1, 1));
@@ -91,14 +86,10 @@ pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: [3]f32, target: [3]f32
 }
 
 /// Create a 3d camera using position and euler angle (in degrees)
-pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: [3]f32, pitch: f32, yaw: f32, world_up: ?[3]f32) Self {
+pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: [3]f32, pitch: f32, yaw: f32) Self {
     var camera: Self = .{};
     camera.frustrum = frustrum;
     camera.position = zmath.f32x4(pos[0], pos[1], pos[2], 1.0);
-    camera.world_up = zmath.normalize3(if (world_up) |up|
-        zmath.f32x4(up[0], up[1], up[2], 0)
-    else
-        zmath.f32x4(0, 1, 0, 0));
     camera.pitch = pitch;
     camera.yaw = yaw;
     camera.roll = 0;
@@ -134,7 +125,7 @@ pub fn getProjectMatrix(self: Self) zmath.Mat {
 
 /// Get view matrix
 pub fn getViewMatrix(self: Self) zmath.Mat {
-    return zmath.lookToLh(self.position, self.dir, self.world_up);
+    return zmath.lookToLh(self.position, self.dir, world_up);
 }
 
 /// Get projection*view matrix
@@ -211,7 +202,6 @@ pub fn rotateAroundBy(self: *Self, point: ?[3]f32, delta_angle_h: f32, delta_ang
         self.frustrum,
         .{ new_pos[0], new_pos[1], new_pos[2] },
         point orelse .{ 0, 0, 0 },
-        .{ self.world_up[0], self.world_up[1], self.world_up[2] },
     );
 }
 
@@ -228,7 +218,7 @@ fn updateVectors(self: *Self) void {
         zmath.rotationY(self.yaw),
     );
     self.dir = zmath.normalize3(zmath.mul(zmath.f32x4(0, 0, 1, 0), transform));
-    self.right = zmath.normalize3(zmath.cross3(self.world_up, self.dir));
+    self.right = zmath.normalize3(zmath.cross3(world_up, self.dir));
     self.up = zmath.normalize3(zmath.cross3(self.dir, self.right));
 }
 

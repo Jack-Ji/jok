@@ -49,7 +49,6 @@ pub fn init(ctx: jok.Context) !void {
         },
         [_]f32{ 60, 46, 30 },
         [_]f32{ 0, 0, 0 },
-        null,
     );
     terran = zmesh.Shape.initParametric(
         uvToPos,

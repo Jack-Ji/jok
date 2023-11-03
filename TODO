@@ -6,7 +6,6 @@
 [ ] graphics: postprocessing
 [ ] j3d.Mesh: wavefont .obj support
 [ ] math: ear-cutting triangulation
-[ ] 3d camera: correct upward vector processing
 [ ] algorithm: A* pathfinding
 [ ] web support
 [ ] android support

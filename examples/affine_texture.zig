@@ -31,7 +31,6 @@ pub fn init(ctx: jok.Context) !void {
         },
         [_]f32{ 0, 7, -8 },
         [_]f32{ 0, 0, 0 },
-        null,
     );
 
     tex = try jok.utils.gfx.createTextureFromFile(

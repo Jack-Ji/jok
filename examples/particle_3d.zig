@@ -69,7 +69,6 @@ pub fn init(ctx: jok.Context) !void {
         },
         .{ 150, 150, 150 },
         .{ 0, 0, 0 },
-        null,
     );
     emitter1.draw_data = j3d.ParticleSystem.DrawData.fromSprite(
         sheet.getSpriteByName("white-circle").?,

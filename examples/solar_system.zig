@@ -32,7 +32,6 @@ pub fn init(ctx: jok.Context) !void {
         },
         [_]f32{ 0, 6, -6 },
         [_]f32{ 0, 0, 0 },
-        null,
     );
     sphere = zmesh.Shape.initSubdividedSphere(2);
     sphere.computeNormals();

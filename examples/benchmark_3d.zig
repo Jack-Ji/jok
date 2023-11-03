@@ -46,7 +46,6 @@ pub fn init(ctx: jok.Context) !void {
         },
         [_]f32{ 8, 9, -9 },
         [_]f32{ 0, 0, 0 },
-        null,
     );
     cube = zmesh.Shape.initCube();
     cube.computeNormals();

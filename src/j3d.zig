@@ -92,7 +92,6 @@ pub fn begin(opt: BeginOption) !void {
             },
             .{ 0, 0, -1 },
             .{ 0, 0, 0 },
-            null,
         );
     };
 }
