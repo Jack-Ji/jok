@@ -74,8 +74,9 @@ pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) !void {
     const vs_ptr = dl.getVertexBufferData();
     const vs_count = dl.getVertexBufferLength();
     const is_ptr = dl.getIndexBufferData();
+
     for (commands) |cmd| {
-        if (cmd.user_callback) |_| continue;
+        if (cmd.user_callback != null or cmd.elem_count == 0) continue;
 
         // Apply clip rect
         var clip_rect: sdl.Rectangle = undefined;
