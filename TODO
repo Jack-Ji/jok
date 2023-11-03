@@ -5,7 +5,7 @@
 [ ] graphics: parallize j3d.TriangleRender's job
 [ ] graphics: postprocessing
 [ ] j3d.Mesh: wavefont .obj support
-[ ] j3d.Camera: add visible testing method
+[x] j3d.Camera: add visible testing method
 [ ] math: ear-cutting triangulation
 [ ] algorithm: A* pathfinding
 [ ] web support

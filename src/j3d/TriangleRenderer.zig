@@ -215,18 +215,21 @@ pub fn renderMesh(
         var skin_mat_v0 = zmath.identity();
         var skin_mat_v1 = zmath.identity();
         var skin_mat_v2 = zmath.identity();
-        const world_v0 = if (opt.animation) |a| BLK: {
+        var world_v0: zmath.Vec = undefined;
+        var world_v1: zmath.Vec = undefined;
+        var world_v2: zmath.Vec = undefined;
+        if (opt.animation) |a| {
             skin_mat_v0 = a.anim.getSkinMatrix(a.skin, a.joints[idx0], a.weights[idx0], model);
-            break :BLK zmath.mul(v0, skin_mat_v0);
-        } else zmath.mul(v0, model);
-        const world_v1 = if (opt.animation) |a| BLK: {
             skin_mat_v1 = a.anim.getSkinMatrix(a.skin, a.joints[idx1], a.weights[idx1], model);
-            break :BLK zmath.mul(v1, skin_mat_v1);
-        } else zmath.mul(v1, model);
-        const world_v2 = if (opt.animation) |a| BLK: {
             skin_mat_v2 = a.anim.getSkinMatrix(a.skin, a.joints[idx2], a.weights[idx2], model);
-            break :BLK zmath.mul(v2, skin_mat_v2);
-        } else zmath.mul(v2, model);
+            world_v0 = zmath.mul(v0, skin_mat_v0);
+            world_v1 = zmath.mul(v1, skin_mat_v1);
+            world_v2 = zmath.mul(v2, skin_mat_v2);
+        } else {
+            world_v0 = zmath.mul(v0, model);
+            world_v1 = zmath.mul(v1, model);
+            world_v2 = zmath.mul(v2, model);
+        }
 
         // Ignore triangles facing away from camera (front faces' vertices are clock-wise organized)
         if (opt.cull_faces) {

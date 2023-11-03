@@ -6,6 +6,7 @@ const jok = @import("../jok.zig");
 const sdl = jok.sdl;
 const zmath = jok.zmath;
 const j3d = jok.j3d;
+const internal = @import("internal.zig");
 const Self = @This();
 
 /// Params for viewing frustrum
@@ -245,6 +246,30 @@ pub fn calcScreenPosition(
     const ndc = clip / zmath.splat(zmath.Vec, clip[3]);
     const screen = zmath.mul(ndc, ndc_to_screen);
     return .{ .x = screen[0], .y = screen[1] };
+}
+
+/// Test visibility of aabb
+pub fn isVisible(self: Self, model: zmath.Mat, aabb: [6]f32) bool {
+    const mvp = zmath.mul(model, self.getViewProjectMatrix());
+    const width = aabb[3] - aabb[0];
+    const length = aabb[5] - aabb[2];
+    assert(width >= 0);
+    assert(length >= 0);
+    const v0 = zmath.f32x4(aabb[0], aabb[1], aabb[2], 1.0);
+    const v1 = zmath.f32x4(aabb[0], aabb[1], aabb[2] + length, 1.0);
+    const v2 = zmath.f32x4(aabb[0] + width, aabb[1], aabb[2] + length, 1.0);
+    const v3 = zmath.f32x4(aabb[0] + width, aabb[1], aabb[2], 1.0);
+    const v4 = zmath.f32x4(aabb[3] - width, aabb[4], aabb[5] - length, 1.0);
+    const v5 = zmath.f32x4(aabb[3] - width, aabb[4], aabb[5], 1.0);
+    const v6 = zmath.f32x4(aabb[3], aabb[4], aabb[5], 1.0);
+    const v7 = zmath.f32x4(aabb[3], aabb[4], aabb[5] - length, 1.0);
+    const obb1 = zmath.mul(zmath.Mat{ v0, v1, v2, v3 }, mvp);
+    const obb2 = zmath.mul(zmath.Mat{ v4, v5, v6, v7 }, mvp);
+
+    return internal.isOBBOutside(&[_]zmath.Vec{
+        obb1[0], obb1[1], obb1[2], obb1[3],
+        obb2[0], obb2[1], obb2[2], obb2[3],
+    });
 }
 
 /// Get position of ray test target
