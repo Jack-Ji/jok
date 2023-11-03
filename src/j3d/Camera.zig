@@ -266,7 +266,7 @@ pub fn isVisible(self: Self, model: zmath.Mat, aabb: [6]f32) bool {
     const obb1 = zmath.mul(zmath.Mat{ v0, v1, v2, v3 }, mvp);
     const obb2 = zmath.mul(zmath.Mat{ v4, v5, v6, v7 }, mvp);
 
-    return internal.isOBBOutside(&[_]zmath.Vec{
+    return !internal.isOBBOutside(&[_]zmath.Vec{
         obb1[0], obb1[1], obb1[2], obb1[3],
         obb2[0], obb2[1], obb2[2], obb2[3],
     });
