@@ -56,14 +56,14 @@ pub fn draw(ctx: jok.Context) !void {
         .{ offset1[0] + p4[0], offset1[1] + p4[1] },
         .{ offset1[0] + p5[0], offset1[1] + p5[1] },
     };
-    if (jok.utils.math.areTrianglesIntersect(tri0, tri1)) {
+    if (jok.utils.algo.areTrianglesIntersect(tri0, tri1)) {
         tri_color = sdl.Color.red;
         tri_thickness = 5;
     }
     var rect_color = sdl.Color.white;
     var rect_thickness = @as(f32, 1);
-    const rect0 = jok.utils.math.triangleRect(tri0);
-    const rect1 = jok.utils.math.triangleRect(tri1);
+    const rect0 = jok.utils.algo.triangleRect(tri0);
+    const rect1 = jok.utils.algo.triangleRect(tri1);
     if (rect0.hasIntersection(rect1)) {
         rect_color = sdl.Color.red;
         rect_thickness = 3;
