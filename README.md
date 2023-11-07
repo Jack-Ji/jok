@@ -121,12 +121,15 @@ Theoretically anywhere SDL2 can run. But I'm focusing on PC platforms for now (w
 TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem` with `.Windows` in your build script.
 
 ## Watch out!
-It's way too minimal (perhaps), you can't write shaders (It doesn't mean performance is bad! Checkout
+* It's way too minimal (perhaps), you can't write shaders (It doesn't mean performance is bad! Checkout
 benchmark example `sprite_benchmark/benchmark_3d`. 
 [And the situation might change in the future.](https://gist.github.com/icculus/f731224bef3906e4c5e8cbed6f98bb08)).
 If you want to achieve something fancy, you should resort to some clever art tricks or algorithms.
 Welcome to old golden time of 90s! Or, you can choose other more powerful/modern libraries/engines.
 It's also a bit **WIP**, please do expect some breaking changes in the future.
+* For those considering develop a 3d game, keep in mind **jok suffer from lack of depth buffer**, just like Playstation 1,
+which means you need to order objects yourself, and do tessellation when necessary! (jok does provide some convenience features,
+such as atomatic triangles sorting, but they don't work well in all situations, please use carefully)
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
