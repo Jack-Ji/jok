@@ -129,7 +129,7 @@ Welcome to old golden time of 90s! Or, you can choose other more powerful/modern
 It's also a bit **WIP**, please do expect some breaking changes in the future.
 * For those considering develop a 3d game, keep in mind **jok suffer from lack of depth buffer** (just like Playstation 1),
 which means you need to order objects yourself, and do tessellation when necessary (jok does provide some convenience features,
-such as atomatic triangles/objects sorting, but they don't work well in all situations, please use carefully). Moreover, you
+such as atomatic triangles/objects sorting, don't count on them working well in all situations however). Moreover, you
 should consider merge your textures into very few ones, which will reduce number of draw-calls per frame significantly.
 
 ## Third-Party Libraries
