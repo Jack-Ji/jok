@@ -38,7 +38,7 @@ pub const TriangleSort = union(enum) {
     // Send to gpu directly, use it when objects are ordered manually
     none,
 
-    // Sort by average depth, use it when you are lazy
+    // Sort by average depth, use it when you are lazy (might hog cpu)
     simple,
 };
 
