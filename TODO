@@ -4,6 +4,8 @@
 [x] graphics: unify 2d/3d rendering process
 [ ] graphics: parallize j3d.TriangleRender's job
 [ ] graphics: postprocessing
+[ ] j3d.Scene: able to order objects by distance to viewer,
+    and render them accordingly
 [ ] j3d.Mesh: able to merge textures of different meshes
     (in order to reduce draw call; consider merging raw color also???)
 [ ] j3d.Mesh: wavefont .obj support
