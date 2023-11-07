@@ -10,7 +10,7 @@
     (in order to reduce draw call; consider merging raw color also???)
 [ ] j3d.Mesh: wavefont .obj support
 [x] j3d.Camera: add visibility testing method
-[ ] math: ear-cutting triangulation
+[ ] algorithm: ear-cutting triangulation
 [ ] algorithm: A* pathfinding
 [ ] web support
 [ ] android support
