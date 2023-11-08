@@ -2,9 +2,9 @@
 --------------------------------------------------------------------------------
 [x] graphics (3d): triangle flat shading support
 [x] graphics (2d/3d): unify 2d/3d rendering process
-[ ] graphics (2d/3d): refactor render api to 3 steps: 1.create batch; 2.push draw data(possibly from another batch); 3.submit batch(repeatable).
+[~] graphics (2d/3d): refactor render api to 3 steps: 1.create batch; 2.push draw data(possibly from another batch); 3.submit batch(repeatable).
 [ ] graphics (3d): parallize j3d.TriangleRender's job
-[ ] graphics (2d/3d): postprocessing
+[~] graphics (2d/3d): postprocessing
 [ ] j3d.Scene: able to order objects by distance to viewer, and render them accordingly
 [ ] graphics (3d): able to merge textures of different meshes and sprites(reduce draw call)
 [ ] j3d.Mesh: wavefont .obj support
