@@ -632,3 +632,9 @@ ma_context_ex *ma_create_sdl_context()
 
   return context;
 }
+
+void ma_destroy_sdl_context(ma_context_ex *ctx) 
+{
+  ma_context_uninit(&ctx->context);
+  free(ctx);
+}

@@ -4,24 +4,21 @@ const std = @import("std");
 pub usingnamespace @import("zaudio/src/zaudio.zig");
 const zaudio = @import("zaudio/src/zaudio.zig");
 
-// Get sdl context lazily
-fn getContext() *zaudio.Context {
-    const S = struct {
-        var sdl_context: ?*zaudio.Context = null;
-    };
-    if (S.sdl_context) |ctx| {
-        return ctx;
-    } else {
-        S.sdl_context = ma_create_sdl_context();
-        std.debug.assert(S.sdl_context != null);
-        return S.sdl_context.?;
-    }
+/// Create audio context
+pub fn createContext() *zaudio.Context {
+    return ma_create_sdl_context().?;
 }
 extern fn ma_create_sdl_context() ?*zaudio.Context;
 
+/// Destroy audio context
+pub fn destroyContext(ctx: *zaudio.Context) void {
+    ma_destroy_sdl_context(ctx);
+}
+extern fn ma_destroy_sdl_context(ctx: *zaudio.Context) void;
+
 /// Create new engine
-pub fn createEngine() !*zaudio.Engine {
+pub fn createEngine(ctx: *zaudio.Context) !*zaudio.Engine {
     var engine_config = zaudio.Engine.Config.init();
-    engine_config.context = getContext();
+    engine_config.context = ctx;
     return try zaudio.Engine.create(engine_config);
 }

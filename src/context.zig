@@ -172,7 +172,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _renderer: sdl.Renderer = undefined,
         _is_software: bool = false,
 
-        // Audio engine
+        // Audio stuff
+        _audio_ctx: *audio.Context = undefined,
         _audio_engine: *audio.Engine = undefined,
 
         // Resizable mode
@@ -226,7 +227,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Init audio engine
             audio.init(self._allocator);
-            self._audio_engine = try audio.createEngine();
+            self._audio_ctx = audio.createContext();
+            self._audio_engine = try audio.createEngine(self._audio_ctx);
 
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
@@ -246,6 +248,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Destroy audio engine
             self._audio_engine.destroy();
+            audio.destroyContext(self._audio_ctx);
             audio.deinit();
 
             // Destroy 2d and 3d modules

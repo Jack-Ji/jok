@@ -10,6 +10,7 @@ const zmesh = jok.zmesh;
 const internal = @import("j3d/internal.zig");
 const TriangleRenderer = @import("j3d/TriangleRenderer.zig");
 const SkyboxRenderer = @import("j3d/SkyboxRenderer.zig");
+pub const RenderBatch = internal.RenderTarget.RenderBatch;
 pub const ShadingMethod = TriangleRenderer.ShadingMethod;
 pub const LightingOption = lighting.LightingOption;
 pub const Mesh = @import("j3d/Mesh.zig");
@@ -104,7 +105,17 @@ pub fn clearMemory() void {
     target.clear(true);
 }
 
-/// Textures' order: right/left/top/bottom/front/back
+/// Get current batched data
+pub fn getBatch() !RenderBatch {
+    return try target.createBatch();
+}
+
+/// Render previous batched data
+pub fn batch(b: RenderBatch) !void {
+    try target.pushBatch(b);
+}
+
+/// Render skybox, textures order: right/left/top/bottom/front/back
 pub fn skybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {
     try skybox_rd.render(
         rd.getViewport(),
@@ -115,10 +126,12 @@ pub fn skybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {
     );
 }
 
+/// Render given scene
 pub fn scene(s: *const Scene, opt: Scene.RenderOption) !void {
     try s.render(null, opt);
 }
 
+/// Render particle effects
 pub fn effects(ps: *ParticleSystem) !void {
     for (ps.effects.items) |eff| {
         try eff.render(
@@ -130,6 +143,7 @@ pub fn effects(ps: *ParticleSystem) !void {
     }
 }
 
+/// Render given sprite
 pub fn sprite(model: zmath.Mat, size: sdl.PointF, uv: [2]sdl.PointF, opt: TriangleRenderer.RenderSpriteOption) !void {
     try tri_rd.renderSprite(
         rd.getViewport(),
@@ -146,6 +160,8 @@ pub const LineOption = struct {
     color: sdl.Color = sdl.Color.white,
     thickness: f32 = 0.01,
 };
+
+/// Render given line
 pub fn line(model: zmath.Mat, _p0: [3]f32, _p1: [3]f32, opt: LineOption) !void {
     const v0 = zmath.mul(zmath.f32x4(_p0[0], _p0[1], _p0[2], 1), model);
     const v1 = zmath.mul(zmath.f32x4(_p1[0], _p1[1], _p1[2], 1), model);
@@ -183,6 +199,8 @@ pub const TriangleOption = struct {
     aabb: ?[6]f32,
     fill: bool = true,
 };
+
+/// Render given triangle
 pub fn triangle(model: zmath.Mat, pos: [3][3]f32, colors: ?[3]sdl.Color, texcoords: ?[3][2]f32, opt: TriangleOption) !void {
     if (opt.fill) {
         const v0 = zmath.f32x4(
@@ -224,6 +242,7 @@ pub fn triangle(model: zmath.Mat, pos: [3][3]f32, colors: ?[3]sdl.Color, texcoor
     }
 }
 
+/// Render multiple triangles
 pub fn triangles(
     model: zmath.Mat,
     indices: []const u32,
@@ -268,6 +287,7 @@ pub fn triangles(
     }
 }
 
+/// Render a prebuilt shape
 pub fn shape(s: zmesh.Shape, model: zmath.Mat, aabb: ?[6]f32, opt: RenderOption) !void {
     try tri_rd.renderMesh(
         rd.getViewport(),
@@ -290,6 +310,7 @@ pub fn shape(s: zmesh.Shape, model: zmath.Mat, aabb: ?[6]f32, opt: RenderOption)
     );
 }
 
+/// Render a loaded mesh
 pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
     try m.render(
         rd.getViewport(),
@@ -307,6 +328,7 @@ pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
     );
 }
 
+/// Render given animation's current frame
 pub fn animation(anim: *Animation, model: zmath.Mat, opt: Animation.RenderOption) !void {
     try anim.render(rd.getViewport(), &target, model, camera, &tri_rd, opt);
 }
@@ -320,6 +342,8 @@ pub const AxisOption = struct {
     color_y: sdl.Color = sdl.Color.green,
     color_z: sdl.Color = sdl.Color.blue,
 };
+
+/// Render a simple axis
 pub fn axises(opt: AxisOption) !void {
     const scale_cylinder = zmath.scaling(opt.radius, opt.radius, opt.length);
     const scale_cone = zmath.scaling(opt.radius * 2.5, opt.radius * 2.5, opt.length / 9);
@@ -392,6 +416,8 @@ pub const CubeOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
 };
+
+/// Render a cube
 pub fn cube(model: zmath.Mat, opt: CubeOption) !void {
     const S = struct {
         const Shape = struct {
@@ -443,6 +469,8 @@ pub const PlaneOption = struct {
     slices: u32 = 10,
     stacks: u32 = 10,
 };
+
+/// Render a plane
 pub fn plane(model: zmath.Mat, opt: PlaneOption) !void {
     const S = struct {
         const Shape = struct {
@@ -496,6 +524,8 @@ pub const ParametricSphereOption = struct {
     slices: u32 = 15,
     stacks: u32 = 15,
 };
+
+/// Render a parametric sphere
 pub fn parametricSphere(model: zmath.Mat, opt: ParametricSphereOption) !void {
     const S = struct {
         const Shape = struct {
@@ -548,6 +578,8 @@ pub const SubdividedSphereOption = struct {
     weld_threshold: ?f32 = null,
     sub_num: u32 = 2,
 };
+
+/// Render a subdivided sphere
 pub fn subdividedSphere(model: zmath.Mat, opt: SubdividedSphereOption) !void {
     const S = struct {
         const Shape = struct {
@@ -600,6 +632,8 @@ pub const HemisphereOption = struct {
     slices: u32 = 15,
     stacks: u32 = 15,
 };
+
+/// Render a hemisphere
 pub fn hemisphere(model: zmath.Mat, opt: HemisphereOption) !void {
     const S = struct {
         const Shape = struct {
@@ -653,6 +687,8 @@ pub const ConeOption = struct {
     slices: u32 = 15,
     stacks: u32 = 1,
 };
+
+/// Render a cone
 pub fn cone(model: zmath.Mat, opt: ConeOption) !void {
     const S = struct {
         const Shape = struct {
@@ -706,6 +742,8 @@ pub const CylinderOption = struct {
     slices: u32 = 20,
     stacks: u32 = 1,
 };
+
+/// Render a cylinder
 pub fn cylinder(model: zmath.Mat, opt: CylinderOption) !void {
     const S = struct {
         const Shape = struct {
@@ -761,6 +799,8 @@ pub const DiskOption = struct {
     center: [3]f32 = .{ 0, 0, 0 },
     normal: [3]f32 = .{ 0, 0, 1 },
 };
+
+/// Render a disk
 pub fn disk(model: zmath.Mat, opt: DiskOption) !void {
     const S = struct {
         const Shape = struct {
@@ -819,6 +859,8 @@ pub const TorusOption = struct {
     slices: u32 = 15,
     stacks: u32 = 20,
 };
+
+/// Render a torus
 pub fn torus(model: zmath.Mat, opt: TorusOption) !void {
     const S = struct {
         const Shape = struct {
@@ -871,6 +913,8 @@ pub const IcosahedronOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
 };
+
+/// Render a icosahedron
 pub fn icosahedron(model: zmath.Mat, opt: IcosahedronOption) !void {
     const S = struct {
         const Shape = struct {
@@ -920,6 +964,8 @@ pub const DodecahedronOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
 };
+
+/// Render a dodecahedron
 pub fn dodecahedron(model: zmath.Mat, opt: DodecahedronOption) !void {
     const S = struct {
         const Shape = struct {
@@ -969,6 +1015,8 @@ pub const OctahedronOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
 };
+
+/// Render a octahedron
 pub fn octahedron(model: zmath.Mat, opt: OctahedronOption) !void {
     const S = struct {
         const Shape = struct {
@@ -1018,6 +1066,8 @@ pub const TetrahedronOption = struct {
     rdopt: RenderOption = .{},
     weld_threshold: ?f32 = null,
 };
+
+/// Render a tetrahedron
 pub fn tetrahedron(model: zmath.Mat, opt: TetrahedronOption) !void {
     const S = struct {
         const Shape = struct {
@@ -1069,6 +1119,8 @@ pub const RockOption = struct {
     seed: i32 = 3,
     sub_num: u32 = 1,
 };
+
+/// Render a rock
 pub fn rock(model: zmath.Mat, opt: RockOption) !void {
     const S = struct {
         const Shape = struct {

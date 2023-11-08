@@ -432,6 +432,20 @@ pub inline fn isSameTexture(tex0: ?sdl.Texture, tex1: ?sdl.Texture) bool {
 
 /// Target for storing rendering result
 pub const RenderTarget = struct {
+    pub const RenderBatch = struct {
+        indices: std.ArrayList(u32),
+        vertices: std.ArrayList(sdl.Vertex),
+        depths: std.ArrayList(f32),
+        textures: std.ArrayList(?sdl.Texture),
+
+        pub fn deinit(batch: RenderBatch) void {
+            batch.indices.deinit();
+            batch.vertices.deinit();
+            batch.depths.deinit();
+            batch.textures.deinit();
+        }
+    };
+
     wireframe_color: ?sdl.Color,
     triangle_sort: j3d.TriangleSort,
     indices: std.ArrayList(u32),
@@ -440,14 +454,14 @@ pub const RenderTarget = struct {
     textures: std.ArrayList(?sdl.Texture),
     dl: imgui.DrawList,
 
-    pub fn init(_allocator: std.mem.Allocator) RenderTarget {
+    pub fn init(allocator: std.mem.Allocator) RenderTarget {
         var target = RenderTarget{
             .wireframe_color = undefined,
             .triangle_sort = .none,
-            .indices = std.ArrayList(u32).init(_allocator),
-            .vertices = std.ArrayList(sdl.Vertex).init(_allocator),
-            .depths = std.ArrayList(f32).init(_allocator),
-            .textures = std.ArrayList(?sdl.Texture).init(_allocator),
+            .indices = std.ArrayList(u32).init(allocator),
+            .vertices = std.ArrayList(sdl.Vertex).init(allocator),
+            .depths = std.ArrayList(f32).init(allocator),
+            .textures = std.ArrayList(?sdl.Texture).init(allocator),
             .dl = imgui.createDrawList(),
         };
         return target;
@@ -460,6 +474,15 @@ pub const RenderTarget = struct {
         self.textures.deinit();
         imgui.destroyDrawList(self.dl);
         self.* = undefined;
+    }
+
+    pub fn createBatch(self: *const RenderTarget) !RenderBatch {
+        return .{
+            .indices = try self.indices.clone(),
+            .vertices = try self.vertices.clone(),
+            .depths = try self.depths.clone(),
+            .textures = try self.textures.clone(),
+        };
     }
 
     pub fn reset(
@@ -643,8 +666,12 @@ pub const RenderTarget = struct {
                 .simple => {
                     try self.reserveCapacity(indices.len, vertices.len);
                     const current_index: u32 = @intCast(self.vertices.items.len);
-                    for (indices) |idx| {
-                        self.indices.appendAssumeCapacity(idx + current_index);
+                    if (current_index > 0) {
+                        for (indices) |idx| {
+                            self.indices.appendAssumeCapacity(idx + current_index);
+                        }
+                    } else {
+                        self.indices.appendSliceAssumeCapacity(indices);
                     }
                     self.vertices.appendSliceAssumeCapacity(vertices);
                     self.depths.appendSliceAssumeCapacity(depths);
@@ -652,5 +679,22 @@ pub const RenderTarget = struct {
                 },
             }
         }
+    }
+
+    pub fn pushBatch(self: *RenderTarget, batch: RenderBatch) !void {
+        assert(batch.vertices.items.len == batch.depths.items.len);
+        assert(batch.vertices.items.len == batch.textures.items.len);
+        try self.reserveCapacity(batch.indices.items.len, batch.vertices.items.len);
+        const current_index: u32 = @intCast(self.vertices.items.len);
+        if (current_index > 0) {
+            for (batch.indices.items) |idx| {
+                self.indices.appendAssumeCapacity(idx + current_index);
+            }
+        } else {
+            self.indices.appendSliceAssumeCapacity(batch.indices.items);
+        }
+        self.vertices.appendSliceAssumeCapacity(batch.vertices.items);
+        self.depths.appendSliceAssumeCapacity(batch.depths.items);
+        self.textures.appendSliceAssumeCapacity(batch.textures.items);
     }
 };
