@@ -5,7 +5,7 @@
 [x] graphics(3d): able to save previous rendered triangles for future use 
 [ ] graphics(3d): parallize j3d.TriangleRender's job
 [ ] graphics(3d): able to merge textures of different meshes and sprites(reduce draw call)
-[ ] j3d.Scene: able to order objects by distance to viewer, and render them accordingly
+[~] j3d.Scene: able to order objects by distance to viewer, and render them accordingly
 [ ] j3d.Mesh: wavefont .obj support
 [x] j3d.Camera: add visibility testing method
 [ ] algorithm: ear-cutting triangulation
