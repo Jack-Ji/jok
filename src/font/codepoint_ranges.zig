@@ -6,14 +6,7 @@ pub const default = [_][2]u32{
     .{ 0x0020, 0x00FF },
 };
 
-pub const korean = [_][2]u32{
-    .{ 0x0020, 0x00FF }, // Basic Latin + Latin Supplement
-    .{ 0x3131, 0x3163 }, // Korean alphabets
-    .{ 0xAC00, 0xD7A3 }, // Korean characters
-    .{ 0xFFFD, 0xFFFD }, // Invalid
-};
-
-pub const chineseFull = [_][2]u32{
+pub const chinese_full = [_][2]u32{
     .{ 0x0020, 0x00FF }, // Basic Latin + Latin Supplement
     .{ 0x2000, 0x206F }, // General Punctuation
     .{ 0x3000, 0x30FF }, // CJK Symbols and Punctuations, Hiragana, Katakana
@@ -23,7 +16,7 @@ pub const chineseFull = [_][2]u32{
     .{ 0x4e00, 0x9FAF }, // CJK Ideograms
 };
 
-pub const chineseCommon = genRanges(
+pub const chinese_common = genRanges(
     &[_][2]u32{
         .{ 0x0020, 0x00FF }, // Basic Latin + Latin Supplement
         .{ 0x2000, 0x206F }, // General Punctuation
@@ -130,6 +123,13 @@ pub const japanese = genRanges(
         1,  1,  1,  1,  1,   2,   1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  1,  1,   1,  3,  2,  1,  1,   1,  1,  2,  1,  1,
     },
 );
+
+pub const korean = [_][2]u32{
+    .{ 0x0020, 0x00FF }, // Basic Latin + Latin Supplement
+    .{ 0x3131, 0x3163 }, // Korean alphabets
+    .{ 0xAC00, 0xD7A3 }, // Korean characters
+    .{ 0xFFFD, 0xFFFD }, // Invalid
+};
 
 fn genRanges(
     comptime base_ranges: []const [2]u32,
