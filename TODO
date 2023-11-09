@@ -7,7 +7,8 @@
 [ ] graphics(3d): able to merge textures of different meshes and sprites(reduce draw call)
 [~] j3d.Scene: able to order objects by distance to viewer, and render them accordingly
 [ ] j3d.Mesh: wavefont .obj support
-[ ] font: add code range for CP437
+[x] font: add codepoint range for CP437
+[x] font: add codepoint range for braile
 [x] j3d.Camera: add visibility testing method
 [ ] algorithm: ear-cutting triangulation
 [ ] algorithm: A* pathfinding
