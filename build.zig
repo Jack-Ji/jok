@@ -7,8 +7,9 @@ const stb = @import("src/deps/stb/build.zig");
 const zmath = @import("src/deps/zmath/build.zig");
 const zmesh = @import("src/deps/zmesh/build.zig");
 const znoise = @import("src/deps/znoise/build.zig");
-const ztracy = @import("src/deps/ztracy/build.zig");
+const cp = @import("src/deps/chipmunk//build.zig");
 const nfd = @import("src/deps/nfd/build.zig");
+const ztracy = @import("src/deps/ztracy/build.zig");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -42,6 +43,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "easing", .opt = .{} },
         .{ .name = "gltf", .opt = .{} },
         .{ .name = "generative_art", .opt = .{} },
+        .{ .name = "cp_demo", .opt = .{ .use_cp = true } },
     };
     const build_examples = b.step("examples", "compile and install all examples");
     inline for (examples) |demo| {
@@ -68,6 +70,7 @@ pub fn build(b: *std.Build) void {
 }
 
 pub const BuildOptions = struct {
+    use_cp: bool = false,
     use_nfd: bool = false,
     use_ztracy: bool = false,
     enable_ztracy: bool = false,
@@ -84,6 +87,7 @@ pub fn createGame(
 ) *std.Build.CompileStep {
     // Initialize jok module
     const bos = b.addOptions();
+    bos.addOption(bool, "use_cp", opt.use_cp);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
     bos.addOption(bool, "use_ztracy", opt.use_ztracy);
     const sdl_sdk = sdl.init(b, null);
@@ -130,6 +134,9 @@ pub fn createGame(
     stb.link(exe);
     zmesh_pkg.link(exe);
     znoise_pkg.link(exe);
+    if (opt.use_cp) {
+        cp.link(exe);
+    }
     if (opt.use_nfd) {
         nfd.link(exe);
     }

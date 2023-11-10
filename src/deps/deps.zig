@@ -8,6 +8,11 @@ pub const zmath = @import("zmath");
 pub const zmesh = @import("zmesh");
 pub const znoise = @import("znoise");
 
+pub const cp = if (bos.use_cp)
+    @import("chipmunk/chipmunk.zig")
+else
+    null;
+
 pub const nfd = if (bos.use_nfd)
     @import("nfd/nfd.zig")
 else
