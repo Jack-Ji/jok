@@ -81,15 +81,36 @@ pub fn init(ctx: jok.Context) !void {
     _ = try world.addObject(.{
         .body = .{
             .kinematic = .{
-                .position = .{ .x = 400, .y = 400 },
-                .angular_velocity = std.math.pi / 4.0,
+                .position = .{ .x = 100, .y = 400 },
+                .angular_velocity = std.math.pi,
             },
         },
         .shapes = &[_]cp.World.ObjectOption.ShapeProperty{
             .{
                 .segment = .{
                     .a = .{ .x = -100, .y = 0 },
-                    .b = .{ .x = 100, .y = 0 },
+                    .b = .{ .x = 200, .y = 0 },
+                    .radius = 10,
+                    .physics = .{
+                        .weight = .{ .mass = 0 },
+                        .elasticity = 1.0,
+                    },
+                },
+            },
+        },
+    });
+    _ = try world.addObject(.{
+        .body = .{
+            .kinematic = .{
+                .position = .{ .x = 600, .y = 500 },
+                .angular_velocity = -std.math.pi / 2.0,
+            },
+        },
+        .shapes = &[_]cp.World.ObjectOption.ShapeProperty{
+            .{
+                .segment = .{
+                    .a = .{ .x = -200, .y = 0 },
+                    .b = .{ .x = 200, .y = 0 },
                     .radius = 10,
                     .physics = .{
                         .weight = .{ .mass = 0 },
