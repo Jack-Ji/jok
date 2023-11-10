@@ -14,6 +14,7 @@ A minimal 2d/3d game framework for zig.
 * 2D particle system
 * 2D vector graphics
 * 2D scene management
+* 2D physics system (via [chipmunk](https://chipmunk-physics.net/))
 * 3D skybox rendering
 * 3D mesh rendering (gouraud/flat shading)
 * 3D glTF 2.0 support
@@ -135,6 +136,7 @@ should consider merge your textures into very few ones, which will reduce number
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
 * [zig-gamedev](https://github.com/michal-z/zig-gamedev) (MIT license)
+* [chipmunk](https://chipmunk-physics.net/) (MIT license)
 * [stb headers](https://github.com/nothings/stb) (MIT license)
 * [nativefiledialog](https://github.com/mlabbe/nativefiledialog) (zlib license)
 
