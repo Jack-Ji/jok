@@ -128,10 +128,11 @@ benchmark example `sprite_benchmark/benchmark_3d`.
 If you want to achieve something fancy, you should resort to some clever art tricks or algorithms.
 Welcome to old golden time of 90s! Or, you can choose other more powerful/modern libraries/engines.
 It's also a bit **WIP**, please do expect some breaking changes in the future.
-* For those considering develop a 3d game, keep in mind **jok suffer from lack of depth buffer** (just like Playstation 1),
-which means you need to order objects yourself, and do tessellation when necessary (jok does provide some convenience features,
-such as atomatic triangles/objects sorting, don't count on them working well in all situations however). Moreover, you
-should consider merge your textures into very few ones, which will reduce number of draw-calls per frame significantly.
+* For those considering develop a 3d game, keep in mind **jok suffer from lack of depth buffer** (like Playstation 1),
+which means you need to order objects yourself (jok provides atomatic triangles sorting, don't count on them working
+well in all situations though).  Texture looks warped when polygons are close to the camera, please do tessellation as necessary.
+Moreover, you should consider merge your textures into very few ones, which will reduce number of draw-calls significantly.
+Number of polygons pushed per second matters either, I'd recommend using PS1's spec as baseline (360000 triangles/s).
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
