@@ -24,4 +24,5 @@ pub usingnamespace @import("deps/deps.zig");
 test "all" {
     _ = @import("j3d/Vector.zig");
     _ = @import("j2d/Vector.zig");
+    _ = @import("utils/async.zig");
 }
