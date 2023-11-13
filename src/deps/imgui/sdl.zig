@@ -6,6 +6,7 @@ const imgui = @import("imgui.zig");
 
 // Record number of draw calls
 var drawcall_count: u32 = 0;
+var triangle_count: u32 = 0;
 
 pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     zgui.init(ctx.allocator());
@@ -108,15 +109,17 @@ pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) !void {
             @sizeOf(imgui.DrawIdx),
         );
         drawcall_count += 1;
+        triangle_count += cmd.elem_count / 3;
     }
 }
 
-pub fn getDrawCallCount() u32 {
-    return drawcall_count;
+pub fn getDrawCallStats() std.meta.Tuple(&.{ u32, u32 }) {
+    return .{ drawcall_count, triangle_count };
 }
 
-pub fn clearDrawCallCount() void {
+pub fn clearDrawCallStats() void {
     drawcall_count = 0;
+    triangle_count = 0;
 }
 
 /// Convert SDL color to imgui integer
