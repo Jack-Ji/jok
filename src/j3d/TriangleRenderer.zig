@@ -193,7 +193,7 @@ pub fn renderMesh(
         })) return;
     }
 
-    // Do face-culling and W-pannel clipping
+    // Some early testing and W-pannel clipping
     const ensure_size = indices.len * 2;
     self.clear();
     try self.clip_vertices.ensureTotalCapacityPrecise(ensure_size);
@@ -238,7 +238,7 @@ pub fn renderMesh(
             if (zmath.dot3(face_dir, camera_dir)[0] >= 0) continue;
         }
 
-        // Prepare inputs for clipping algorithm
+        // Ignore triangles outside ndc
         var clip_v0: zmath.Vec = undefined;
         var clip_v1: zmath.Vec = undefined;
         var clip_v2: zmath.Vec = undefined;
@@ -255,6 +255,14 @@ pub fn renderMesh(
             clip_v1 = clip_positions[1];
             clip_v2 = clip_positions[2];
         }
+        const ndc0 = clip_v0 / zmath.splat(zmath.Vec, clip_v0[3]);
+        const ndc1 = clip_v1 / zmath.splat(zmath.Vec, clip_v1[3]);
+        const ndc2 = clip_v2 / zmath.splat(zmath.Vec, clip_v2[3]);
+        if (internal.isTriangleOutside(ndc0, ndc1, ndc2)) {
+            continue;
+        }
+
+        // Clip triangles behind camera
         const tri_world_normals: ?[3]zmath.Vec = if (normals) |ns| BLK: {
             const n0 = zmath.f32x4(ns[idx0][0], ns[idx0][1], ns[idx0][2], 0);
             const n1 = zmath.f32x4(ns[idx1][0], ns[idx1][1], ns[idx1][2], 0);
@@ -295,8 +303,6 @@ pub fn renderMesh(
             }
         else
             null;
-
-        // Clip triangles behind camera
         internal.clipTriangle(
             &.{ world_v0, world_v1, world_v2 },
             &.{ clip_v0, clip_v1, clip_v2 },
@@ -329,11 +335,6 @@ pub fn renderMesh(
         const ndc1 = clip_v1 / zmath.splat(zmath.Vec, clip_v1[3]);
         const ndc2 = clip_v2 / zmath.splat(zmath.Vec, clip_v2[3]);
 
-        // Ignore triangles outside of NDC
-        if (internal.isTriangleOutside(ndc0, ndc1, ndc2)) {
-            continue;
-        }
-
         // Calculate screen coordinate
         const ndcs = zmath.Mat{
             ndc0,
@@ -342,8 +343,6 @@ pub fn renderMesh(
             zmath.f32x4(0.0, 0.0, 0.0, 1.0),
         };
         const positions_screen = zmath.mul(ndcs, ndc_to_screen);
-
-        // Get screen coordinate
         const p0 = sdl.PointF{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
         const p1 = sdl.PointF{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
         const p2 = sdl.PointF{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
