@@ -2,13 +2,13 @@ const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
 const font = jok.font;
-const audio = jok.audio;
+const zaudio = jok.zaudio;
 
-var music: *audio.Sound = undefined;
+var music: *zaudio.Sound = undefined;
 var music_played_length: u32 = undefined;
 var music_total_length: u32 = undefined;
-var sfx1: *audio.Sound = undefined;
-var sfx2: *audio.Sound = undefined;
+var sfx1: *zaudio.Sound = undefined;
+var sfx2: *zaudio.Sound = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});

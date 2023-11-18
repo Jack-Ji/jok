@@ -2,7 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const sdl = @import("src/deps/sdl/build.zig");
 const imgui = @import("src/deps/imgui/build.zig");
-const audio = @import("src/deps/audio/build.zig");
+const zaudio = @import("src/deps/zaudio/build.zig");
 const stb = @import("src/deps/stb/build.zig");
 const zmath = @import("src/deps/zmath/build.zig");
 const zmesh = @import("src/deps/zmesh/build.zig");
@@ -91,6 +91,7 @@ pub fn createGame(
     bos.addOption(bool, "use_nfd", opt.use_nfd);
     bos.addOption(bool, "use_ztracy", opt.use_ztracy);
     const sdl_sdk = sdl.init(b, null);
+    const zaudio_pkg = zaudio.package(b, target, optimize, .{});
     const zmath_pkg = zmath.package(b, target, optimize, .{});
     const zmesh_pkg = zmesh.package(b, target, optimize, .{});
     const znoise_pkg = znoise.package(b, target, optimize, .{});
@@ -103,6 +104,7 @@ pub fn createGame(
             .{ .name = "build_options", .module = bos.createModule() },
             .{ .name = "sdl", .module = sdl_sdk.getWrapperModule() },
             .{ .name = "zgui", .module = imgui.getZguiModule(b, target, optimize) },
+            .{ .name = "zaudio", .module = zaudio_pkg.zaudio },
             .{ .name = "zmath", .module = zmath_pkg.zmath },
             .{ .name = "zmesh", .module = zmesh_pkg.zmesh },
             .{ .name = "znoise", .module = znoise_pkg.znoise },
@@ -130,8 +132,8 @@ pub fn createGame(
     // Link libraries
     sdl_sdk.link(exe, .dynamic);
     imgui.link(b, exe);
-    audio.link(exe);
     stb.link(exe);
+    zaudio_pkg.link(exe);
     zmesh_pkg.link(exe);
     znoise_pkg.link(exe);
     if (opt.use_cp) {
