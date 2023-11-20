@@ -116,23 +116,20 @@ You can customize some setup settings (window width/height, fps, debug level etc
 defining some public constants using predefined names (they're all prefixed with`jok_`).
 Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig).
 
-## What's supported platforms?
-Theoretically anywhere SDL2 can run. But I'm focusing on PC platforms for now (windows/linux tested).
+## Supported platforms
+* Windows
+* Linux
+* MacOS (?)
 
 TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem` with `.Windows` in your build script.
 
-## Watch out!
-* It's way too minimal (perhaps), you can't write shaders (It doesn't mean performance is bad! Checkout
-benchmark example `sprite_benchmark/benchmark_3d`. 
-[And the situation might change in the future.](https://gist.github.com/icculus/f731224bef3906e4c5e8cbed6f98bb08)).
-If you want to achieve something fancy, you should resort to some clever art tricks or algorithms.
-Welcome to old golden time of 90s! Or, you can choose other more powerful/modern libraries/engines.
-It's also a bit **WIP**, please do expect some breaking changes in the future.
-* For those considering develop a 3d game, keep in mind **jok suffer from lack of depth buffer** (like Playstation 1),
-which means you need to order objects yourself (jok provides atomatic triangles sorting, don't count on them working
-well in all situations though).  Texture looks warped when polygons are close to the camera, please do tessellation as necessary.
-Moreover, you should consider merge your textures into very few ones, which will reduce number of draw-calls significantly.
-Number of polygons pushed per second matters either, I'd recommend using PS1's spec as baseline (360000 triangles/s).
+## NOTE
+**Jok** is developed in the spirit of retro-machines (especially SNES/PS1), which implies following limitations:
+* Custom vertex/fragment shader is not possible
+* Only support [affine texture mapping](https://en.wikipedia.org/wiki/Texture_mapping#Affine_texture_mapping)
+* No [depth buffer](https://en.wikipedia.org/wiki/Z-buffering)
+The limitations demand developers to be both creative and careful about game's design, which in my opinion can lead to
+very awesome product. Just like old saying, "Constraints breed creativity".
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
