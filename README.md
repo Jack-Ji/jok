@@ -128,6 +128,7 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
 * Custom vertex/fragment shader is not possible
 * Only support [affine texture mapping](https://en.wikipedia.org/wiki/Texture_mapping#Affine_texture_mapping)
 * No [depth buffer](https://en.wikipedia.org/wiki/Z-buffering)
+
 The limitations demand developers to be both creative and careful about game's design, which in my opinion can lead to
 very awesome product. Just like old saying, "Constraints breed creativity".
 
