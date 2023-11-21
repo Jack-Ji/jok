@@ -16,7 +16,7 @@ allocator: std.mem.Allocator,
 animations: std.StringHashMap(Animation),
 
 pub fn create(allocator: std.mem.Allocator) !*Self {
-    var self = try allocator.create(Self);
+    const self = try allocator.create(Self);
     self.* = .{
         .allocator = allocator,
         .animations = std.StringHashMap(Animation).init(allocator),

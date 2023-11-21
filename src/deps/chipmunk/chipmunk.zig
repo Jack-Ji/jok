@@ -62,7 +62,7 @@ pub const World = struct {
         enable_debug_draw: bool = true,
     };
     pub fn init(allocator: std.mem.Allocator, opt: InitOption) !World {
-        var space = c.cpSpaceNew();
+        const space = c.cpSpaceNew();
         if (space == null) return error.OutOfMemory;
 
         c.cpSpaceSetGravity(space, opt.gravity);
@@ -225,28 +225,28 @@ pub const World = struct {
 
         // Create physics body
         var use_global_static = false;
-        var body = switch (opt.body) {
+        const body = switch (opt.body) {
             .dynamic => |prop| blk: {
-                var bd = c.cpBodyNew(0, 0).?;
+                const bd = c.cpBodyNew(0, 0).?;
                 c.cpBodySetPosition(bd, prop.position);
                 c.cpBodySetVelocity(bd, prop.velocity);
                 c.cpBodySetAngularVelocity(bd, prop.angular_velocity);
                 break :blk bd;
             },
             .kinematic => |prop| blk: {
-                var bd = c.cpBodyNewKinematic().?;
+                const bd = c.cpBodyNewKinematic().?;
                 c.cpBodySetPosition(bd, prop.position);
                 c.cpBodySetVelocity(bd, prop.velocity);
                 c.cpBodySetAngularVelocity(bd, prop.angular_velocity);
                 break :blk bd;
             },
             .static => |prop| blk: {
-                var bd = c.cpBodyNewStatic().?;
+                const bd = c.cpBodyNewStatic().?;
                 c.cpBodySetPosition(bd, prop.position);
                 break :blk bd;
             },
             .global_static => blk: {
-                var bd = c.cpSpaceGetStaticBody(self.space).?;
+                const bd = c.cpSpaceGetStaticBody(self.space).?;
                 use_global_static = true;
                 break :blk bd;
             },
@@ -264,24 +264,24 @@ pub const World = struct {
         for (opt.shapes, 0..) |s, i| {
             shapes[i] = switch (s) {
                 .segment => |prop| blk: {
-                    var shape = c.cpSegmentShapeNew(body, prop.a, prop.b, prop.radius).?;
+                    const shape = c.cpSegmentShapeNew(body, prop.a, prop.b, prop.radius).?;
                     initPhysicsOfShape(shape, prop.physics);
                     break :blk shape;
                 },
                 .box => |prop| blk: {
                     assert(opt.body != .global_static);
-                    var shape = c.cpBoxShapeNew(body, prop.width, prop.height, prop.radius).?;
+                    const shape = c.cpBoxShapeNew(body, prop.width, prop.height, prop.radius).?;
                     initPhysicsOfShape(shape, prop.physics);
                     break :blk shape;
                 },
                 .circle => |prop| blk: {
                     assert(opt.body != .global_static);
-                    var shape = c.cpCircleShapeNew(body, prop.radius, prop.offset).?;
+                    const shape = c.cpCircleShapeNew(body, prop.radius, prop.offset).?;
                     initPhysicsOfShape(shape, prop.physics);
                     break :blk shape;
                 },
                 .polygon => |prop| blk: {
-                    var shape = c.cpPolyShapeNew(
+                    const shape = c.cpPolyShapeNew(
                         body,
                         @intCast(prop.verts.len),
                         prop.verts.ptr,
@@ -321,7 +321,7 @@ pub const World = struct {
 
         // Set user data of body/shapes, equal to
         // Index/id of object by default.
-        var ud = opt.user_data orelse @as(
+        const ud = opt.user_data orelse @as(
             ?*anyopaque,
             @ptrFromInt(self.objects.items.len - 1),
         );
@@ -602,7 +602,7 @@ const PhysicsDebug = struct {
         if (c.cpShapeGetSensor(shape) == 1) {
             return .{ .r = 1, .g = 1, .b = 1, .a = draw_alpha };
         } else {
-            var body = c.cpShapeGetBody(shape);
+            const body = c.cpShapeGetBody(shape);
             if (c.cpBodyIsSleeping(body) == 1) {
                 return .{ .r = 0.35, .g = 0.43, .b = 0.46, .a = draw_alpha };
             } else {

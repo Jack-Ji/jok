@@ -45,7 +45,7 @@ pub const Object = struct {
 
     /// Create an object
     pub fn create(allocator: std.mem.Allocator, actor: Actor, depth: ?f32) !*Object {
-        var o = try allocator.create(Object);
+        const o = try allocator.create(Object);
         errdefer allocator.destroy(o);
         o.* = .{
             .allocator = allocator,

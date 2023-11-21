@@ -441,7 +441,7 @@ pub fn cube(model: zmath.Mat, opt: CubeOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
             break :BLK s;
@@ -494,7 +494,7 @@ pub fn plane(model: zmath.Mat, opt: PlaneOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         assert(opt.slices > 0);
         assert(opt.stacks > 0);
         const key = S.getKey(opt);
@@ -549,7 +549,7 @@ pub fn parametricSphere(model: zmath.Mat, opt: ParametricSphereOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         assert(opt.slices > 0);
         assert(opt.stacks > 0);
         const key = S.getKey(opt);
@@ -603,7 +603,7 @@ pub fn subdividedSphere(model: zmath.Mat, opt: SubdividedSphereOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         assert(opt.sub_num > 0);
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
@@ -657,7 +657,7 @@ pub fn hemisphere(model: zmath.Mat, opt: HemisphereOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         assert(opt.slices > 0);
         assert(opt.stacks > 0);
         const key = S.getKey(opt);
@@ -712,7 +712,7 @@ pub fn cone(model: zmath.Mat, opt: ConeOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         assert(opt.slices > 0);
         assert(opt.stacks > 0);
         const key = S.getKey(opt);
@@ -767,7 +767,7 @@ pub fn cylinder(model: zmath.Mat, opt: CylinderOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         assert(opt.slices > 0);
         assert(opt.stacks > 0);
         const key = S.getKey(opt);
@@ -828,7 +828,7 @@ pub fn disk(model: zmath.Mat, opt: DiskOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         assert(opt.radius > 0);
         assert(opt.slices > 0);
         const key = S.getKey(opt);
@@ -884,7 +884,7 @@ pub fn torus(model: zmath.Mat, opt: TorusOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         assert(opt.radius > 0);
         assert(opt.slices > 0);
         assert(opt.stacks > 0);
@@ -938,7 +938,7 @@ pub fn icosahedron(model: zmath.Mat, opt: IcosahedronOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
             break :BLK s;
@@ -989,7 +989,7 @@ pub fn dodecahedron(model: zmath.Mat, opt: DodecahedronOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
             break :BLK s;
@@ -1040,7 +1040,7 @@ pub fn octahedron(model: zmath.Mat, opt: OctahedronOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
             break :BLK s;
@@ -1091,7 +1091,7 @@ pub fn tetrahedron(model: zmath.Mat, opt: TetrahedronOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {
             break :BLK s;
@@ -1144,7 +1144,7 @@ pub fn rock(model: zmath.Mat, opt: RockOption) !void {
         S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    var m = BLK: {
+    const m = BLK: {
         assert(opt.sub_num > 0);
         const key = S.getKey(opt);
         if (S.meshes.?.get(key)) |s| {

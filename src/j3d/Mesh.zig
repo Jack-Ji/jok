@@ -151,7 +151,7 @@ pub const Node = struct {
         parent: ?*Node,
         mesh_count: usize,
     ) !Node {
-        var self = Node{
+        const self = Node{
             .mesh = mesh,
             .parent = parent,
             .children = std.ArrayList(*Node).init(allocator),
@@ -352,7 +352,7 @@ pub const Animation = struct {
                 else => unreachable,
             }
 
-            var timesteps = try allocator.alloc(f32, ch.sampler.input.unpackFloatsCount());
+            const timesteps = try allocator.alloc(f32, ch.sampler.input.unpackFloatsCount());
             _ = ch.sampler.input.unpackFloats(timesteps);
             assert(timesteps.len == samples.len);
             assert(std.sort.isSorted(f32, timesteps, {}, std.sort.asc(f32)));
@@ -557,7 +557,7 @@ pub inline fn getAnimation(self: Self, name: []const u8) ?*Animation {
 
 fn createRootNode(self: *Self, mesh_count: usize) !*Node {
     const allocator = self.arena.allocator();
-    var node = try allocator.create(Node);
+    const node = try allocator.create(Node);
     errdefer allocator.destroy(node);
     node.* = try Node.init(allocator, self, null, mesh_count);
     return node;
@@ -571,7 +571,7 @@ fn loadNodeTree(
     parent: *Node,
     opt: GltfOption,
 ) !void {
-    var node = try self.arena.allocator().create(Node);
+    const node = try self.arena.allocator().create(Node);
     node.* = try Node.fromGltfNode(self.arena.allocator(), self, parent, gltf_node);
     try parent.children.append(node);
     try self.nodes_map.putNoClobber(gltf_node, node);
@@ -812,7 +812,7 @@ fn loadAnimation(self: *Self, gltf_anim: GltfAnimation) !void {
 
 fn loadSkin(self: *Self, gltf_skin: *const GltfSkin) !void {
     const allocator = self.arena.allocator();
-    var skin = try allocator.create(Skin);
+    const skin = try allocator.create(Skin);
     errdefer allocator.destroy(skin);
     skin.* = try Skin.fromGltfSkin(allocator, self, gltf_skin);
     try self.skins_map.putNoClobber(gltf_skin, skin);

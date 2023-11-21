@@ -40,7 +40,7 @@ pub const DebugFont = struct {
 
     pub fn getAtlas(ctx: jok.Context, font_size: u32) !*Atlas {
         return atlases.get(font_size) orelse BLK: {
-            var a = try font.createAtlas(
+            const a = try font.createAtlas(
                 ctx.renderer(),
                 font_size,
                 &[_][2]u32{.{ 0x0020, 0x00FF }},

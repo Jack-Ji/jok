@@ -142,7 +142,7 @@ fn interaction(
     radius: f32,
 ) void {
     // Gravity coefficient
-    var g = _g / -100;
+    const g = _g / -100;
 
     // Loop through first group of points
     for (g1.items) |*p1| {
@@ -271,7 +271,7 @@ fn randomnizeSimulation() void {
 }
 
 fn saveSettings() !void {
-    var path = try nfd.saveFileDialog("txt", "model.txt");
+    const path = try nfd.saveFileDialog("txt", "model.txt");
     if (path) |p| {
         defer p.deinit();
 
@@ -309,11 +309,11 @@ fn saveSettings() !void {
 }
 
 fn loadSettings(allocator: std.mem.Allocator) !void {
-    var path = try nfd.openFileDialog("txt", null);
+    const path = try nfd.openFileDialog("txt", null);
     if (path) |p| {
         defer p.deinit();
 
-        var content = try std.fs.cwd().readFileAlloc(allocator, p.path, 1024);
+        const content = try std.fs.cwd().readFileAlloc(allocator, p.path, 1024);
         defer allocator.free(content);
 
         var floats = try std.ArrayList(f32).initCapacity(allocator, 37);

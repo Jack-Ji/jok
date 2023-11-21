@@ -144,7 +144,7 @@ pub fn getViewRange(self: Self) [2]f32 {
 
 /// Move camera
 pub fn moveBy(self: *Self, direction: MoveDirection, distance: f32) void {
-    var movement = switch (direction) {
+    const movement = switch (direction) {
         .forward => self.dir * zmath.splat(zmath.Vec, distance),
         .backward => self.dir * zmath.splat(zmath.Vec, -distance),
         .left => self.right * zmath.splat(zmath.Vec, -distance),

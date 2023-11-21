@@ -59,7 +59,7 @@ pub fn EasingSystem(comptime T: type) type {
         vars: std.ArrayList(EasingValue),
 
         pub fn create(allocator: std.mem.Allocator) !*Self {
-            var self = try allocator.create(Self);
+            const self = try allocator.create(Self);
             self.* = .{
                 .allocator = allocator,
                 .vars = std.ArrayList(EasingValue).init(allocator),

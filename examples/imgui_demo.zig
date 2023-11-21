@@ -43,7 +43,7 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    var mouse_state = ctx.getMouseState();
+    const mouse_state = ctx.getMouseState();
     imgui.setNextWindowPos(.{
         .x = @floatFromInt(mouse_state.x + 10),
         .y = @floatFromInt(mouse_state.y + 10),

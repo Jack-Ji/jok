@@ -27,7 +27,7 @@ pub fn create(allocator: std.mem.Allocator, path: [:0]const u8) !*Font {
     self.font_data = try dir.readFileAlloc(allocator, path, max_font_size);
 
     // Extract font info
-    var rc = truetype.stbtt_InitFont(
+    const rc = truetype.stbtt_InitFont(
         &self.font_info,
         self.font_data.?.ptr,
         truetype.stbtt_GetFontOffsetForIndex(self.font_data.?.ptr, 0),
@@ -45,7 +45,7 @@ pub fn fromTrueTypeData(allocator: std.mem.Allocator, data: []const u8) !*Font {
     self.font_data = null;
 
     // Extract font info
-    var rc = truetype.stbtt_InitFont(
+    const rc = truetype.stbtt_InitFont(
         &self.font_info,
         data.ptr,
         truetype.stbtt_GetFontOffsetForIndex(data.ptr, 0),

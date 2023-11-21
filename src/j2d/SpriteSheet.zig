@@ -92,7 +92,7 @@ pub fn create(
     var stb_rects = try allocator.alloc(stb_rect_pack.stbrp_rect, sources.len);
     defer allocator.free(stb_rects);
 
-    var stb_nodes = try allocator.alloc(stb_rect_pack.stbrp_node, width);
+    const stb_nodes = try allocator.alloc(stb_rect_pack.stbrp_node, width);
     defer allocator.free(stb_nodes);
 
     var images = try allocator.alloc(ImageData, sources.len);
@@ -113,7 +113,7 @@ pub fn create(
                     4, // Alpha channel is required
                 );
                 assert(image_data != null);
-                var image_len = @as(usize, @intCast(image_width * image_height * 4));
+                const image_len = @as(usize, @intCast(image_width * image_height * 4));
                 images[i] = .{
                     .is_file = false,
                     .pixels = .{
@@ -214,7 +214,7 @@ pub fn create(
         );
     }
 
-    var self = try allocator.create(Self);
+    const self = try allocator.create(Self);
     self.* = .{
         .allocator = allocator,
         .size = .{
@@ -337,7 +337,7 @@ pub fn fromSheetFiles(ctx: jok.Context, path: []const u8) !*Self {
     }
 
     // Allocate and init SpriteSheet
-    var sp = try allocator.create(Self);
+    const sp = try allocator.create(Self);
     sp.* = Self{
         .allocator = allocator,
         .tex = tex,
@@ -377,7 +377,7 @@ pub fn fromSinglePicture(
 
     // Fill search tree, abort if name collision happens
     for (sprites, 0..) |sp, i| {
-        var sr = SpriteRect{
+        const sr = SpriteRect{
             .width = std.math.min(sp.rect.width, tex_width - sp.rect.x),
             .height = std.math.min(sp.rect.height, tex_height - sp.rect.y),
             .s0 = .{ .x = sp.rect.x / tex_width, .y = sp.rect.y / tex_height },
@@ -392,7 +392,7 @@ pub fn fromSinglePicture(
         );
     }
 
-    var self = try allocator.create(Self);
+    const self = try allocator.create(Self);
     self.* = .{
         .allocator = allocator,
         .tex = tex,

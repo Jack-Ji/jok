@@ -100,7 +100,7 @@ pub fn render(
     }
 
     for (self.anim.channels.items) |*ch| {
-        var node = ch.node;
+        const node = ch.node;
         switch (ch.path) {
             .translation => {
                 const v = if (opt.playtime <= ch.timesteps[0])
@@ -129,7 +129,7 @@ pub fn render(
                     }
                 };
                 if (opt.transition) |tr| {
-                    var old_transform = tr.from.transforms.getPtr(node).?;
+                    const old_transform = tr.from.transforms.getPtr(node).?;
                     self.transforms.getPtr(node).?.translation =
                         zmath.lerp(old_transform.translation, v, progress);
                 } else {
@@ -166,7 +166,7 @@ pub fn render(
                     },
                 );
                 if (opt.transition) |tr| {
-                    var old_transform = tr.from.transforms.getPtr(node).?;
+                    const old_transform = tr.from.transforms.getPtr(node).?;
                     self.transforms.getPtr(node).?.rotation =
                         zmath.slerp(old_transform.rotation, v, progress);
                 } else {
@@ -200,7 +200,7 @@ pub fn render(
                     }
                 };
                 if (opt.transition) |tr| {
-                    var old_transform = tr.from.transforms.getPtr(node).?;
+                    const old_transform = tr.from.transforms.getPtr(node).?;
                     self.transforms.getPtr(node).?.scale =
                         zmath.lerp(old_transform.scale, v, progress);
                 } else {

@@ -484,7 +484,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Initialize SDL
         fn initSDL(self: *@This()) !void {
-            var sdl_flags = sdl.InitFlags.everything;
+            const sdl_flags = sdl.InitFlags.everything;
             try sdl.init(sdl_flags);
 
             // Create window
@@ -636,61 +636,61 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Get meomry allocator
         fn allocator(ptr: *anyopaque) std.mem.Allocator {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._allocator;
         }
 
         /// Get application running status
         fn running(ptr: *anyopaque) bool {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._running;
         }
 
         /// Get running seconds of application
         fn seconds(ptr: *anyopaque) f32 {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._seconds;
         }
 
         /// Get running seconds of application (double precision)
         fn realSeconds(ptr: *anyopaque) f64 {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._seconds_real;
         }
 
         /// Get delta time between frames
         fn deltaSeconds(ptr: *anyopaque) f32 {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._delta_seconds;
         }
 
         /// Get FPS of application
         fn fps(ptr: *anyopaque) f32 {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._fps;
         }
 
         /// Get SDL window
         fn window(ptr: *anyopaque) sdl.Window {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._window;
         }
 
         /// Get SDL renderer
         fn renderer(ptr: *anyopaque) sdl.Renderer {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._renderer;
         }
 
         /// Get audio engine
         fn audioEngine(ptr: *anyopaque) *zaudio.Engine {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._audio_engine;
         }
 
         /// Kill app
         fn kill(ptr: *anyopaque) void {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             self._running = false;
         }
 
@@ -738,7 +738,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Get position of window
         fn getWindowPosition(ptr: *anyopaque) sdl.PointF {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             var x: c_int = undefined;
             var y: c_int = undefined;
             sdl.c.SDL_GetWindowPosition(self._window.ptr, &x, &y);
@@ -747,7 +747,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Get size of window
         fn getWindowSize(ptr: *anyopaque) sdl.PointF {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             var w: c_int = undefined;
             var h: c_int = undefined;
             sdl.c.SDL_GetWindowSize(self._window.ptr, &w, &h);
@@ -791,7 +791,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Move mouse to given position (relative to window)
         fn setMousePosition(ptr: *anyopaque, xrel: f32, yrel: f32) void {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
             var w: i32 = undefined;
             var h: i32 = undefined;
             sdl.c.SDL_GetWindowSize(self._window.ptr, &w, &h);

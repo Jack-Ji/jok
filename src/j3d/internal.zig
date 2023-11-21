@@ -455,7 +455,7 @@ pub const RenderTarget = struct {
     dl: imgui.DrawList,
 
     pub fn init(allocator: std.mem.Allocator) RenderTarget {
-        var target = RenderTarget{
+        const target = RenderTarget{
             .wireframe_color = undefined,
             .triangle_sort = .none,
             .indices = std.ArrayList(u32).init(allocator),

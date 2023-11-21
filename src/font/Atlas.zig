@@ -47,7 +47,7 @@ pub fn create(
 
     // Generate atlas
     var pack_ctx = std.mem.zeroes(truetype.stbtt_pack_context);
-    var rc = truetype.stbtt_PackBegin(
+    const rc = truetype.stbtt_PackBegin(
         &pack_ctx,
         stb_pixels.ptr,
         @intCast(atlas_size),
@@ -102,7 +102,7 @@ pub fn create(
     const scale = truetype.stbtt_ScaleForPixelHeight(font_info, @floatFromInt(font_size));
     truetype.stbtt_GetFontVMetrics(font_info, &ascent, &descent, &line_gap);
 
-    var atlas = try allocator.create(Atlas);
+    const atlas = try allocator.create(Atlas);
     atlas.* = .{
         .allocator = allocator,
         .tex = tex,
@@ -264,8 +264,8 @@ pub inline fn getVerticesOfCodePoint(
 ) ?struct { vs: [4]sdl.Vertex, next_x: f32 } {
     var xpos = pos.x;
     var ypos = pos.y;
-    var pxpos = &xpos;
-    var pypos = &ypos;
+    const pxpos = &xpos;
+    const pypos = &ypos;
 
     const idx = self.codepoint_search.get(codepoint) orelse BLK: {
         for (self.ranges.items, 0..) |range, idx| {

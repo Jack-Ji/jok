@@ -186,26 +186,32 @@ pub const u_int64_t = __uint64_t;
 pub const register_t = c_long;
 pub fn __bswap_16(arg___bsx: __uint16_t) callconv(.C) __uint16_t {
     var __bsx = arg___bsx;
+    _ = &__bsx;
     return @as(__uint16_t, @bitCast(@as(c_short, @truncate(((@as(c_int, @bitCast(@as(c_uint, __bsx))) >> @intCast(8)) & @as(c_int, 255)) | ((@as(c_int, @bitCast(@as(c_uint, __bsx))) & @as(c_int, 255)) << @intCast(8))))));
 }
 pub fn __bswap_32(arg___bsx: __uint32_t) callconv(.C) __uint32_t {
     var __bsx = arg___bsx;
+    _ = &__bsx;
     return ((((__bsx & @as(c_uint, 4278190080)) >> @intCast(24)) | ((__bsx & @as(c_uint, 16711680)) >> @intCast(8))) | ((__bsx & @as(c_uint, 65280)) << @intCast(8))) | ((__bsx & @as(c_uint, 255)) << @intCast(24));
 }
 pub fn __bswap_64(arg___bsx: __uint64_t) callconv(.C) __uint64_t {
     var __bsx = arg___bsx;
+    _ = &__bsx;
     return @as(__uint64_t, @bitCast(@as(c_ulong, @truncate(((((((((@as(c_ulonglong, @bitCast(@as(c_ulonglong, __bsx))) & @as(c_ulonglong, 18374686479671623680)) >> @intCast(56)) | ((@as(c_ulonglong, @bitCast(@as(c_ulonglong, __bsx))) & @as(c_ulonglong, 71776119061217280)) >> @intCast(40))) | ((@as(c_ulonglong, @bitCast(@as(c_ulonglong, __bsx))) & @as(c_ulonglong, 280375465082880)) >> @intCast(24))) | ((@as(c_ulonglong, @bitCast(@as(c_ulonglong, __bsx))) & @as(c_ulonglong, 1095216660480)) >> @intCast(8))) | ((@as(c_ulonglong, @bitCast(@as(c_ulonglong, __bsx))) & @as(c_ulonglong, 4278190080)) << @intCast(8))) | ((@as(c_ulonglong, @bitCast(@as(c_ulonglong, __bsx))) & @as(c_ulonglong, 16711680)) << @intCast(24))) | ((@as(c_ulonglong, @bitCast(@as(c_ulonglong, __bsx))) & @as(c_ulonglong, 65280)) << @intCast(40))) | ((@as(c_ulonglong, @bitCast(@as(c_ulonglong, __bsx))) & @as(c_ulonglong, 255)) << @intCast(56))))));
 }
 pub fn __uint16_identity(arg___x: __uint16_t) callconv(.C) __uint16_t {
     var __x = arg___x;
+    _ = &__x;
     return __x;
 }
 pub fn __uint32_identity(arg___x: __uint32_t) callconv(.C) __uint32_t {
     var __x = arg___x;
+    _ = &__x;
     return __x;
 }
 pub fn __uint64_identity(arg___x: __uint64_t) callconv(.C) __uint64_t {
     var __x = arg___x;
+    _ = &__x;
     return __x;
 }
 pub const __sigset_t = extern struct {
@@ -902,38 +908,53 @@ pub const uintmax_t = __uintmax_t;
 pub const cpFloat = f32;
 pub fn cpfmax(arg_a: cpFloat, arg_b: cpFloat) callconv(.C) cpFloat {
     var a = arg_a;
+    _ = &a;
     var b = arg_b;
+    _ = &b;
     return if (a > b) a else b;
 }
 pub fn cpfmin(arg_a: cpFloat, arg_b: cpFloat) callconv(.C) cpFloat {
     var a = arg_a;
+    _ = &a;
     var b = arg_b;
+    _ = &b;
     return if (a < b) a else b;
 }
 pub fn cpfabs(arg_f: cpFloat) callconv(.C) cpFloat {
     var f = arg_f;
+    _ = &f;
     return if (f < @as(cpFloat, @floatFromInt(@as(c_int, 0)))) -f else f;
 }
 pub fn cpfclamp(arg_f: cpFloat, arg_min: cpFloat, arg_max: cpFloat) callconv(.C) cpFloat {
     var f = arg_f;
+    _ = &f;
     var min = arg_min;
+    _ = &min;
     var max = arg_max;
+    _ = &max;
     return cpfmin(cpfmax(f, min), max);
 }
 pub fn cpfclamp01(arg_f: cpFloat) callconv(.C) cpFloat {
     var f = arg_f;
+    _ = &f;
     return cpfmax(0.0, cpfmin(f, 1.0));
 }
 pub fn cpflerp(arg_f1: cpFloat, arg_f2: cpFloat, arg_t: cpFloat) callconv(.C) cpFloat {
     var f1 = arg_f1;
+    _ = &f1;
     var f2 = arg_f2;
+    _ = &f2;
     var t = arg_t;
+    _ = &t;
     return (f1 * (1.0 - t)) + (f2 * t);
 }
 pub fn cpflerpconst(arg_f1: cpFloat, arg_f2: cpFloat, arg_d: cpFloat) callconv(.C) cpFloat {
     var f1 = arg_f1;
+    _ = &f1;
     var f2 = arg_f2;
+    _ = &f2;
     var d = arg_d;
+    _ = &d;
     return f1 + cpfclamp(f2 - f1, -d, d);
 }
 pub const cpHashValue = usize;
@@ -1035,116 +1056,178 @@ pub const cpvzero: cpVect = cpVect{
     .y = 0.0,
 };
 pub fn cpv(x: cpFloat, y: cpFloat) callconv(.C) cpVect {
+    _ = &x;
+    _ = &y;
     var v: cpVect = cpVect{
         .x = x,
         .y = y,
     };
+    _ = &v;
     return v;
 }
 pub fn cpveql(v1: cpVect, v2: cpVect) callconv(.C) cpBool {
+    _ = &v1;
+    _ = &v2;
     return @as(cpBool, @intFromBool((v1.x == v2.x) and (v1.y == v2.y)));
 }
 pub fn cpvadd(v1: cpVect, v2: cpVect) callconv(.C) cpVect {
+    _ = &v1;
+    _ = &v2;
     return cpv(v1.x + v2.x, v1.y + v2.y);
 }
 pub fn cpvsub(v1: cpVect, v2: cpVect) callconv(.C) cpVect {
+    _ = &v1;
+    _ = &v2;
     return cpv(v1.x - v2.x, v1.y - v2.y);
 }
 pub fn cpvneg(v: cpVect) callconv(.C) cpVect {
+    _ = &v;
     return cpv(-v.x, -v.y);
 }
 pub fn cpvmult(v: cpVect, s: cpFloat) callconv(.C) cpVect {
+    _ = &v;
+    _ = &s;
     return cpv(v.x * s, v.y * s);
 }
 pub fn cpvdot(v1: cpVect, v2: cpVect) callconv(.C) cpFloat {
+    _ = &v1;
+    _ = &v2;
     return (v1.x * v2.x) + (v1.y * v2.y);
 }
 pub fn cpvcross(v1: cpVect, v2: cpVect) callconv(.C) cpFloat {
+    _ = &v1;
+    _ = &v2;
     return (v1.x * v2.y) - (v1.y * v2.x);
 }
 pub fn cpvperp(v: cpVect) callconv(.C) cpVect {
+    _ = &v;
     return cpv(-v.y, v.x);
 }
 pub fn cpvrperp(v: cpVect) callconv(.C) cpVect {
+    _ = &v;
     return cpv(v.y, -v.x);
 }
 pub fn cpvproject(v1: cpVect, v2: cpVect) callconv(.C) cpVect {
+    _ = &v1;
+    _ = &v2;
     return cpvmult(v2, cpvdot(v1, v2) / cpvdot(v2, v2));
 }
 pub fn cpvforangle(a: cpFloat) callconv(.C) cpVect {
+    _ = &a;
     return cpv(cosf(a), sinf(a));
 }
 pub fn cpvtoangle(v: cpVect) callconv(.C) cpFloat {
+    _ = &v;
     return atan2f(v.y, v.x);
 }
 pub fn cpvrotate(v1: cpVect, v2: cpVect) callconv(.C) cpVect {
+    _ = &v1;
+    _ = &v2;
     return cpv((v1.x * v2.x) - (v1.y * v2.y), (v1.x * v2.y) + (v1.y * v2.x));
 }
 pub fn cpvunrotate(v1: cpVect, v2: cpVect) callconv(.C) cpVect {
+    _ = &v1;
+    _ = &v2;
     return cpv((v1.x * v2.x) + (v1.y * v2.y), (v1.y * v2.x) - (v1.x * v2.y));
 }
 pub fn cpvlengthsq(v: cpVect) callconv(.C) cpFloat {
+    _ = &v;
     return cpvdot(v, v);
 }
 pub fn cpvlength(v: cpVect) callconv(.C) cpFloat {
+    _ = &v;
     return sqrtf(cpvdot(v, v));
 }
 pub fn cpvlerp(v1: cpVect, v2: cpVect, t: cpFloat) callconv(.C) cpVect {
+    _ = &v1;
+    _ = &v2;
+    _ = &t;
     return cpvadd(cpvmult(v1, 1.0 - t), cpvmult(v2, t));
 }
 pub fn cpvnormalize(v: cpVect) callconv(.C) cpVect {
+    _ = &v;
     return cpvmult(v, 1.0 / (cpvlength(v) + 0.000000000000000000000000000000000000011754943508222875));
 }
 pub fn cpvslerp(v1: cpVect, v2: cpVect, t: cpFloat) callconv(.C) cpVect {
+    _ = &v1;
+    _ = &v2;
+    _ = &t;
     var dot: cpFloat = cpvdot(cpvnormalize(v1), cpvnormalize(v2));
+    _ = &dot;
     var omega: cpFloat = acosf(cpfclamp(dot, -1.0, 1.0));
+    _ = &omega;
     if (@as(f64, @floatCast(omega)) < 0.001) {
         return cpvlerp(v1, v2, t);
     } else {
         var denom: cpFloat = 1.0 / sinf(omega);
+        _ = &denom;
         return cpvadd(cpvmult(v1, sinf((1.0 - t) * omega) * denom), cpvmult(v2, sinf(t * omega) * denom));
     }
     return @import("std").mem.zeroes(cpVect);
 }
 pub fn cpvslerpconst(v1: cpVect, v2: cpVect, a: cpFloat) callconv(.C) cpVect {
+    _ = &v1;
+    _ = &v2;
+    _ = &a;
     var dot: cpFloat = cpvdot(cpvnormalize(v1), cpvnormalize(v2));
+    _ = &dot;
     var omega: cpFloat = acosf(cpfclamp(dot, -1.0, 1.0));
+    _ = &omega;
     return cpvslerp(v1, v2, cpfmin(a, omega) / omega);
 }
 pub fn cpvclamp(v: cpVect, len: cpFloat) callconv(.C) cpVect {
+    _ = &v;
+    _ = &len;
     return if (cpvdot(v, v) > (len * len)) cpvmult(cpvnormalize(v), len) else v;
 }
 pub fn cpvlerpconst(arg_v1: cpVect, arg_v2: cpVect, arg_d: cpFloat) callconv(.C) cpVect {
     var v1 = arg_v1;
+    _ = &v1;
     var v2 = arg_v2;
+    _ = &v2;
     var d = arg_d;
+    _ = &d;
     return cpvadd(v1, cpvclamp(cpvsub(v2, v1), d));
 }
 pub fn cpvdist(v1: cpVect, v2: cpVect) callconv(.C) cpFloat {
+    _ = &v1;
+    _ = &v2;
     return cpvlength(cpvsub(v1, v2));
 }
 pub fn cpvdistsq(v1: cpVect, v2: cpVect) callconv(.C) cpFloat {
+    _ = &v1;
+    _ = &v2;
     return cpvlengthsq(cpvsub(v1, v2));
 }
 pub fn cpvnear(v1: cpVect, v2: cpVect, dist: cpFloat) callconv(.C) cpBool {
+    _ = &v1;
+    _ = &v2;
+    _ = &dist;
     return @as(cpBool, @intFromBool(cpvdistsq(v1, v2) < (dist * dist)));
 }
 pub fn cpMat2x2New(arg_a: cpFloat, arg_b: cpFloat, arg_c: cpFloat, arg_d: cpFloat) callconv(.C) cpMat2x2 {
     var a = arg_a;
+    _ = &a;
     var b = arg_b;
+    _ = &b;
     var c = arg_c;
+    _ = &c;
     var d = arg_d;
+    _ = &d;
     var m: cpMat2x2 = cpMat2x2{
         .a = a,
         .b = b,
         .c = c,
         .d = d,
     };
+    _ = &m;
     return m;
 }
 pub fn cpMat2x2Transform(arg_m: cpMat2x2, arg_v: cpVect) callconv(.C) cpVect {
     var m = arg_m;
+    _ = &m;
     var v = arg_v;
+    _ = &v;
     return cpv((v.x * m.a) + (v.y * m.b), (v.x * m.c) + (v.y * m.d));
 }
 pub const struct_cpBB = extern struct {
@@ -1155,60 +1238,92 @@ pub const struct_cpBB = extern struct {
 };
 pub const cpBB = struct_cpBB;
 pub fn cpBBNew(l: cpFloat, b: cpFloat, r: cpFloat, t: cpFloat) callconv(.C) cpBB {
+    _ = &l;
+    _ = &b;
+    _ = &r;
+    _ = &t;
     var bb: cpBB = cpBB{
         .l = l,
         .b = b,
         .r = r,
         .t = t,
     };
+    _ = &bb;
     return bb;
 }
 pub fn cpBBNewForExtents(c: cpVect, hw: cpFloat, hh: cpFloat) callconv(.C) cpBB {
+    _ = &c;
+    _ = &hw;
+    _ = &hh;
     return cpBBNew(c.x - hw, c.y - hh, c.x + hw, c.y + hh);
 }
 pub fn cpBBNewForCircle(p: cpVect, r: cpFloat) callconv(.C) cpBB {
+    _ = &p;
+    _ = &r;
     return cpBBNewForExtents(p, r, r);
 }
 pub fn cpBBIntersects(a: cpBB, b: cpBB) callconv(.C) cpBool {
+    _ = &a;
+    _ = &b;
     return @as(cpBool, @intFromBool((((a.l <= b.r) and (b.l <= a.r)) and (a.b <= b.t)) and (b.b <= a.t)));
 }
 pub fn cpBBContainsBB(bb: cpBB, other: cpBB) callconv(.C) cpBool {
+    _ = &bb;
+    _ = &other;
     return @as(cpBool, @intFromBool((((bb.l <= other.l) and (bb.r >= other.r)) and (bb.b <= other.b)) and (bb.t >= other.t)));
 }
 pub fn cpBBContainsVect(bb: cpBB, v: cpVect) callconv(.C) cpBool {
+    _ = &bb;
+    _ = &v;
     return @as(cpBool, @intFromBool((((bb.l <= v.x) and (bb.r >= v.x)) and (bb.b <= v.y)) and (bb.t >= v.y)));
 }
 pub fn cpBBMerge(a: cpBB, b: cpBB) callconv(.C) cpBB {
+    _ = &a;
+    _ = &b;
     return cpBBNew(cpfmin(a.l, b.l), cpfmin(a.b, b.b), cpfmax(a.r, b.r), cpfmax(a.t, b.t));
 }
 pub fn cpBBExpand(bb: cpBB, v: cpVect) callconv(.C) cpBB {
+    _ = &bb;
+    _ = &v;
     return cpBBNew(cpfmin(bb.l, v.x), cpfmin(bb.b, v.y), cpfmax(bb.r, v.x), cpfmax(bb.t, v.y));
 }
 pub fn cpBBCenter(arg_bb: cpBB) callconv(.C) cpVect {
     var bb = arg_bb;
+    _ = &bb;
     return cpvlerp(cpv(bb.l, bb.b), cpv(bb.r, bb.t), 0.5);
 }
 pub fn cpBBArea(arg_bb: cpBB) callconv(.C) cpFloat {
     var bb = arg_bb;
+    _ = &bb;
     return (bb.r - bb.l) * (bb.t - bb.b);
 }
 pub fn cpBBMergedArea(arg_a: cpBB, arg_b: cpBB) callconv(.C) cpFloat {
     var a = arg_a;
+    _ = &a;
     var b = arg_b;
+    _ = &b;
     return (cpfmax(a.r, b.r) - cpfmin(a.l, b.l)) * (cpfmax(a.t, b.t) - cpfmin(a.b, b.b));
 }
 pub fn cpBBSegmentQuery(arg_bb: cpBB, arg_a: cpVect, arg_b: cpVect) callconv(.C) cpFloat {
     var bb = arg_bb;
+    _ = &bb;
     var a = arg_a;
+    _ = &a;
     var b = arg_b;
+    _ = &b;
     var delta: cpVect = cpvsub(b, a);
+    _ = &delta;
     var tmin: cpFloat = -__builtin_inff();
+    _ = &tmin;
     var tmax: cpFloat = __builtin_inff();
+    _ = &tmax;
     if (delta.x == 0.0) {
         if ((a.x < bb.l) or (bb.r < a.x)) return __builtin_inff();
     } else {
         var t1: cpFloat = (bb.l - a.x) / delta.x;
+        _ = &t1;
         var t2: cpFloat = (bb.r - a.x) / delta.x;
+        _ = &t2;
         tmin = cpfmax(tmin, cpfmin(t1, t2));
         tmax = cpfmin(tmax, cpfmax(t1, t2));
     }
@@ -1216,7 +1331,9 @@ pub fn cpBBSegmentQuery(arg_bb: cpBB, arg_a: cpVect, arg_b: cpVect) callconv(.C)
         if ((a.y < bb.b) or (bb.t < a.y)) return __builtin_inff();
     } else {
         var t1: cpFloat = (bb.b - a.y) / delta.y;
+        _ = &t1;
         var t2: cpFloat = (bb.t - a.y) / delta.y;
+        _ = &t2;
         tmin = cpfmax(tmin, cpfmin(t1, t2));
         tmax = cpfmin(tmax, cpfmax(t1, t2));
     }
@@ -1229,23 +1346,38 @@ pub fn cpBBSegmentQuery(arg_bb: cpBB, arg_a: cpVect, arg_b: cpVect) callconv(.C)
 }
 pub fn cpBBIntersectsSegment(arg_bb: cpBB, arg_a: cpVect, arg_b: cpVect) callconv(.C) cpBool {
     var bb = arg_bb;
+    _ = &bb;
     var a = arg_a;
+    _ = &a;
     var b = arg_b;
+    _ = &b;
     return @as(cpBool, @intFromBool(cpBBSegmentQuery(bb, a, b) != __builtin_inff()));
 }
 pub fn cpBBClampVect(bb: cpBB, v: cpVect) callconv(.C) cpVect {
+    _ = &bb;
+    _ = &v;
     return cpv(cpfclamp(v.x, bb.l, bb.r), cpfclamp(v.y, bb.b, bb.t));
 }
 pub fn cpBBWrapVect(bb: cpBB, v: cpVect) callconv(.C) cpVect {
+    _ = &bb;
+    _ = &v;
     var dx: cpFloat = cpfabs(bb.r - bb.l);
+    _ = &dx;
     var modx: cpFloat = fmodf(v.x - bb.l, dx);
+    _ = &modx;
     var x: cpFloat = if (modx > 0.0) modx else modx + dx;
+    _ = &x;
     var dy: cpFloat = cpfabs(bb.t - bb.b);
+    _ = &dy;
     var mody: cpFloat = fmodf(v.y - bb.b, dy);
+    _ = &mody;
     var y: cpFloat = if (mody > 0.0) mody else mody + dy;
+    _ = &y;
     return cpv(x + bb.l, y + bb.b);
 }
 pub fn cpBBOffset(bb: cpBB, v: cpVect) callconv(.C) cpBB {
+    _ = &bb;
+    _ = &v;
     return cpBBNew(bb.l + v.x, bb.b + v.y, bb.r + v.x, bb.t + v.y);
 }
 pub const cpTransformIdentity: cpTransform = cpTransform{
@@ -1258,11 +1390,17 @@ pub const cpTransformIdentity: cpTransform = cpTransform{
 };
 pub fn cpTransformNew(arg_a: cpFloat, arg_b: cpFloat, arg_c: cpFloat, arg_d: cpFloat, arg_tx: cpFloat, arg_ty: cpFloat) callconv(.C) cpTransform {
     var a = arg_a;
+    _ = &a;
     var b = arg_b;
+    _ = &b;
     var c = arg_c;
+    _ = &c;
     var d = arg_d;
+    _ = &d;
     var tx = arg_tx;
+    _ = &tx;
     var ty = arg_ty;
+    _ = &ty;
     var t: cpTransform = cpTransform{
         .a = a,
         .b = b,
@@ -1271,15 +1409,22 @@ pub fn cpTransformNew(arg_a: cpFloat, arg_b: cpFloat, arg_c: cpFloat, arg_d: cpF
         .tx = tx,
         .ty = ty,
     };
+    _ = &t;
     return t;
 }
 pub fn cpTransformNewTranspose(arg_a: cpFloat, arg_c: cpFloat, arg_tx: cpFloat, arg_b: cpFloat, arg_d: cpFloat, arg_ty: cpFloat) callconv(.C) cpTransform {
     var a = arg_a;
+    _ = &a;
     var c = arg_c;
+    _ = &c;
     var tx = arg_tx;
+    _ = &tx;
     var b = arg_b;
+    _ = &b;
     var d = arg_d;
+    _ = &d;
     var ty = arg_ty;
+    _ = &ty;
     var t: cpTransform = cpTransform{
         .a = a,
         .b = b,
@@ -1288,92 +1433,134 @@ pub fn cpTransformNewTranspose(arg_a: cpFloat, arg_c: cpFloat, arg_tx: cpFloat, 
         .tx = tx,
         .ty = ty,
     };
+    _ = &t;
     return t;
 }
 pub fn cpTransformInverse(arg_t: cpTransform) callconv(.C) cpTransform {
     var t = arg_t;
+    _ = &t;
     var inv_det: cpFloat = @as(cpFloat, @floatCast(1.0 / @as(f64, @floatCast((t.a * t.d) - (t.c * t.b)))));
+    _ = &inv_det;
     return cpTransformNewTranspose(t.d * inv_det, -t.c * inv_det, ((t.c * t.ty) - (t.tx * t.d)) * inv_det, -t.b * inv_det, t.a * inv_det, ((t.tx * t.b) - (t.a * t.ty)) * inv_det);
 }
 pub fn cpTransformMult(arg_t1: cpTransform, arg_t2: cpTransform) callconv(.C) cpTransform {
     var t1 = arg_t1;
+    _ = &t1;
     var t2 = arg_t2;
+    _ = &t2;
     return cpTransformNewTranspose((t1.a * t2.a) + (t1.c * t2.b), (t1.a * t2.c) + (t1.c * t2.d), ((t1.a * t2.tx) + (t1.c * t2.ty)) + t1.tx, (t1.b * t2.a) + (t1.d * t2.b), (t1.b * t2.c) + (t1.d * t2.d), ((t1.b * t2.tx) + (t1.d * t2.ty)) + t1.ty);
 }
 pub fn cpTransformPoint(arg_t: cpTransform, arg_p: cpVect) callconv(.C) cpVect {
     var t = arg_t;
+    _ = &t;
     var p = arg_p;
+    _ = &p;
     return cpv(((t.a * p.x) + (t.c * p.y)) + t.tx, ((t.b * p.x) + (t.d * p.y)) + t.ty);
 }
 pub fn cpTransformVect(arg_t: cpTransform, arg_v: cpVect) callconv(.C) cpVect {
     var t = arg_t;
+    _ = &t;
     var v = arg_v;
+    _ = &v;
     return cpv((t.a * v.x) + (t.c * v.y), (t.b * v.x) + (t.d * v.y));
 }
 pub fn cpTransformbBB(arg_t: cpTransform, arg_bb: cpBB) callconv(.C) cpBB {
     var t = arg_t;
+    _ = &t;
     var bb = arg_bb;
+    _ = &bb;
     var center: cpVect = cpBBCenter(bb);
+    _ = &center;
     var hw: cpFloat = @as(cpFloat, @floatCast(@as(f64, @floatCast(bb.r - bb.l)) * 0.5));
+    _ = &hw;
     var hh: cpFloat = @as(cpFloat, @floatCast(@as(f64, @floatCast(bb.t - bb.b)) * 0.5));
+    _ = &hh;
     var a: cpFloat = t.a * hw;
+    _ = &a;
     var b: cpFloat = t.c * hh;
+    _ = &b;
     var d: cpFloat = t.b * hw;
+    _ = &d;
     var e: cpFloat = t.d * hh;
+    _ = &e;
     var hw_max: cpFloat = cpfmax(cpfabs(a + b), cpfabs(a - b));
+    _ = &hw_max;
     var hh_max: cpFloat = cpfmax(cpfabs(d + e), cpfabs(d - e));
+    _ = &hh_max;
     return cpBBNewForExtents(cpTransformPoint(t, center), hw_max, hh_max);
 }
 pub fn cpTransformTranslate(arg_translate: cpVect) callconv(.C) cpTransform {
     var translate = arg_translate;
+    _ = &translate;
     return cpTransformNewTranspose(@as(cpFloat, @floatCast(1.0)), @as(cpFloat, @floatCast(0.0)), translate.x, @as(cpFloat, @floatCast(0.0)), @as(cpFloat, @floatCast(1.0)), translate.y);
 }
 pub fn cpTransformScale(arg_scaleX: cpFloat, arg_scaleY: cpFloat) callconv(.C) cpTransform {
     var scaleX = arg_scaleX;
+    _ = &scaleX;
     var scaleY = arg_scaleY;
+    _ = &scaleY;
     return cpTransformNewTranspose(scaleX, @as(cpFloat, @floatCast(0.0)), @as(cpFloat, @floatCast(0.0)), @as(cpFloat, @floatCast(0.0)), scaleY, @as(cpFloat, @floatCast(0.0)));
 }
 pub fn cpTransformRotate(arg_radians: cpFloat) callconv(.C) cpTransform {
     var radians = arg_radians;
+    _ = &radians;
     var rot: cpVect = cpvforangle(radians);
+    _ = &rot;
     return cpTransformNewTranspose(rot.x, -rot.y, @as(cpFloat, @floatCast(0.0)), rot.y, rot.x, @as(cpFloat, @floatCast(0.0)));
 }
 pub fn cpTransformRigid(arg_translate: cpVect, arg_radians: cpFloat) callconv(.C) cpTransform {
     var translate = arg_translate;
+    _ = &translate;
     var radians = arg_radians;
+    _ = &radians;
     var rot: cpVect = cpvforangle(radians);
+    _ = &rot;
     return cpTransformNewTranspose(rot.x, -rot.y, translate.x, rot.y, rot.x, translate.y);
 }
 pub fn cpTransformRigidInverse(arg_t: cpTransform) callconv(.C) cpTransform {
     var t = arg_t;
+    _ = &t;
     return cpTransformNewTranspose(t.d, -t.c, (t.c * t.ty) - (t.tx * t.d), -t.b, t.a, (t.tx * t.b) - (t.a * t.ty));
 }
 pub fn cpTransformWrap(arg_outer: cpTransform, arg_inner: cpTransform) callconv(.C) cpTransform {
     var outer = arg_outer;
+    _ = &outer;
     var inner = arg_inner;
+    _ = &inner;
     return cpTransformMult(cpTransformInverse(outer), cpTransformMult(inner, outer));
 }
 pub fn cpTransformWrapInverse(arg_outer: cpTransform, arg_inner: cpTransform) callconv(.C) cpTransform {
     var outer = arg_outer;
+    _ = &outer;
     var inner = arg_inner;
+    _ = &inner;
     return cpTransformMult(outer, cpTransformMult(inner, cpTransformInverse(outer)));
 }
 pub fn cpTransformOrtho(arg_bb: cpBB) callconv(.C) cpTransform {
     var bb = arg_bb;
+    _ = &bb;
     return cpTransformNewTranspose(@as(cpFloat, @floatCast(2.0 / @as(f64, @floatCast(bb.r - bb.l)))), @as(cpFloat, @floatCast(0.0)), -(bb.r + bb.l) / (bb.r - bb.l), @as(cpFloat, @floatCast(0.0)), @as(cpFloat, @floatCast(2.0 / @as(f64, @floatCast(bb.t - bb.b)))), -(bb.t + bb.b) / (bb.t - bb.b));
 }
 pub fn cpTransformBoneScale(arg_v0: cpVect, arg_v1: cpVect) callconv(.C) cpTransform {
     var v0 = arg_v0;
+    _ = &v0;
     var v1 = arg_v1;
+    _ = &v1;
     var d: cpVect = cpvsub(v1, v0);
+    _ = &d;
     return cpTransformNewTranspose(d.x, -d.y, v0.x, d.y, d.x, v0.y);
 }
 pub fn cpTransformAxialScale(arg_axis: cpVect, arg_pivot: cpVect, arg_scale: cpFloat) callconv(.C) cpTransform {
     var axis = arg_axis;
+    _ = &axis;
     var pivot = arg_pivot;
+    _ = &pivot;
     var scale = arg_scale;
+    _ = &scale;
     var A: cpFloat = @as(cpFloat, @floatCast(@as(f64, @floatCast(axis.x * axis.y)) * (@as(f64, @floatCast(scale)) - 1.0)));
+    _ = &A;
     var B: cpFloat = @as(cpFloat, @floatCast(@as(f64, @floatCast(cpvdot(axis, pivot))) * (1.0 - @as(f64, @floatCast(scale)))));
+    _ = &B;
     return cpTransformNewTranspose(((scale * axis.x) * axis.x) + (axis.y * axis.y), A, axis.x * B, A, (axis.x * axis.x) + ((scale * axis.y) * axis.y), axis.y * B);
 }
 pub const cpSpatialIndexBBFunc = ?*const fn (?*anyopaque) callconv(.C) cpBB;
@@ -1435,70 +1622,103 @@ pub extern fn cpSpatialIndexFree(index: [*c]cpSpatialIndex) void;
 pub extern fn cpSpatialIndexCollideStatic(dynamicIndex: [*c]cpSpatialIndex, staticIndex: [*c]cpSpatialIndex, func: cpSpatialIndexQueryFunc, data: ?*anyopaque) void;
 pub fn cpSpatialIndexDestroy(arg_index: [*c]cpSpatialIndex) callconv(.C) void {
     var index = arg_index;
+    _ = &index;
     if (index.*.klass != null) {
         index.*.klass.*.destroy.?(index);
     }
 }
 pub fn cpSpatialIndexCount(arg_index: [*c]cpSpatialIndex) callconv(.C) c_int {
     var index = arg_index;
+    _ = &index;
     return index.*.klass.*.count.?(index);
 }
 pub fn cpSpatialIndexEach(arg_index: [*c]cpSpatialIndex, arg_func: cpSpatialIndexIteratorFunc, arg_data: ?*anyopaque) callconv(.C) void {
     var index = arg_index;
+    _ = &index;
     var func = arg_func;
+    _ = &func;
     var data = arg_data;
+    _ = &data;
     index.*.klass.*.each.?(index, func, data);
 }
 pub fn cpSpatialIndexContains(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_hashid: cpHashValue) callconv(.C) cpBool {
     var index = arg_index;
+    _ = &index;
     var obj = arg_obj;
+    _ = &obj;
     var hashid = arg_hashid;
+    _ = &hashid;
     return index.*.klass.*.contains.?(index, obj, hashid);
 }
 pub fn cpSpatialIndexInsert(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_hashid: cpHashValue) callconv(.C) void {
     var index = arg_index;
+    _ = &index;
     var obj = arg_obj;
+    _ = &obj;
     var hashid = arg_hashid;
+    _ = &hashid;
     index.*.klass.*.insert.?(index, obj, hashid);
 }
 pub fn cpSpatialIndexRemove(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_hashid: cpHashValue) callconv(.C) void {
     var index = arg_index;
+    _ = &index;
     var obj = arg_obj;
+    _ = &obj;
     var hashid = arg_hashid;
+    _ = &hashid;
     index.*.klass.*.remove.?(index, obj, hashid);
 }
 pub fn cpSpatialIndexReindex(arg_index: [*c]cpSpatialIndex) callconv(.C) void {
     var index = arg_index;
+    _ = &index;
     index.*.klass.*.reindex.?(index);
 }
 pub fn cpSpatialIndexReindexObject(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_hashid: cpHashValue) callconv(.C) void {
     var index = arg_index;
+    _ = &index;
     var obj = arg_obj;
+    _ = &obj;
     var hashid = arg_hashid;
+    _ = &hashid;
     index.*.klass.*.reindexObject.?(index, obj, hashid);
 }
 pub fn cpSpatialIndexQuery(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_bb: cpBB, arg_func: cpSpatialIndexQueryFunc, arg_data: ?*anyopaque) callconv(.C) void {
     var index = arg_index;
+    _ = &index;
     var obj = arg_obj;
+    _ = &obj;
     var bb = arg_bb;
+    _ = &bb;
     var func = arg_func;
+    _ = &func;
     var data = arg_data;
+    _ = &data;
     index.*.klass.*.query.?(index, obj, bb, func, data);
 }
 pub fn cpSpatialIndexSegmentQuery(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_a: cpVect, arg_b: cpVect, arg_t_exit: cpFloat, arg_func: cpSpatialIndexSegmentQueryFunc, arg_data: ?*anyopaque) callconv(.C) void {
     var index = arg_index;
+    _ = &index;
     var obj = arg_obj;
+    _ = &obj;
     var a = arg_a;
+    _ = &a;
     var b = arg_b;
+    _ = &b;
     var t_exit = arg_t_exit;
+    _ = &t_exit;
     var func = arg_func;
+    _ = &func;
     var data = arg_data;
+    _ = &data;
     index.*.klass.*.segmentQuery.?(index, obj, a, b, t_exit, func, data);
 }
 pub fn cpSpatialIndexReindexQuery(arg_index: [*c]cpSpatialIndex, arg_func: cpSpatialIndexQueryFunc, arg_data: ?*anyopaque) callconv(.C) void {
     var index = arg_index;
+    _ = &index;
     var func = arg_func;
+    _ = &func;
     var data = arg_data;
+    _ = &data;
     index.*.klass.*.reindexQuery.?(index, func, data);
 }
 pub extern fn cpArbiterGetRestitution(arb: ?*const cpArbiter) cpFloat;
@@ -1625,13 +1845,17 @@ pub const CP_SHAPE_FILTER_NONE: cpShapeFilter = cpShapeFilter{
 };
 pub fn cpShapeFilterNew(arg_group: cpGroup, arg_categories: cpBitmask, arg_mask: cpBitmask) callconv(.C) cpShapeFilter {
     var group = arg_group;
+    _ = &group;
     var categories = arg_categories;
+    _ = &categories;
     var mask = arg_mask;
+    _ = &mask;
     var filter: cpShapeFilter = cpShapeFilter{
         .group = group,
         .categories = categories,
         .mask = mask,
     };
+    _ = &filter;
     return filter;
 }
 pub extern fn cpShapeDestroy(shape: ?*cpShape) void;
@@ -1924,8 +2148,13 @@ pub extern fn cpMomentForBox(m: cpFloat, width: cpFloat, height: cpFloat) cpFloa
 pub extern fn cpMomentForBox2(m: cpFloat, box: cpBB) cpFloat;
 pub extern fn cpConvexHull(count: c_int, verts: [*c]const cpVect, result: [*c]cpVect, first: [*c]c_int, tol: cpFloat) c_int;
 pub fn cpClosetPointOnSegment(p: cpVect, a: cpVect, b: cpVect) callconv(.C) cpVect {
+    _ = &p;
+    _ = &a;
+    _ = &b;
     var delta: cpVect = cpvsub(a, b);
+    _ = &delta;
     var t: cpFloat = cpfclamp01(cpvdot(delta, cpvsub(p, b)) / cpvlengthsq(delta));
+    _ = &t;
     return cpvadd(b, cpvmult(delta, t));
 }
 pub const __INTMAX_C_SUFFIX__ = @compileError("unable to translate macro: undefined identifier `L`"); // (no file):90:9
@@ -1937,8 +2166,8 @@ pub const __FLT16_MIN__ = @compileError("unable to translate C expr: unexpected 
 pub const __INT64_C_SUFFIX__ = @compileError("unable to translate macro: undefined identifier `L`"); // (no file):193:9
 pub const __UINT32_C_SUFFIX__ = @compileError("unable to translate macro: undefined identifier `U`"); // (no file):215:9
 pub const __UINT64_C_SUFFIX__ = @compileError("unable to translate macro: undefined identifier `UL`"); // (no file):223:9
-pub const __seg_gs = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // (no file):353:9
-pub const __seg_fs = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // (no file):354:9
+pub const __seg_gs = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // (no file):352:9
+pub const __seg_fs = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // (no file):353:9
 pub const __GLIBC_USE = @compileError("unable to translate macro: undefined identifier `__GLIBC_USE_`"); // /usr/include/features.h:186:9
 pub const __glibc_has_attribute = @compileError("unable to translate macro: undefined identifier `__has_attribute`"); // /usr/include/x86_64-linux-gnu/sys/cdefs.h:45:10
 pub const __glibc_has_extension = @compileError("unable to translate macro: undefined identifier `__has_extension`"); // /usr/include/x86_64-linux-gnu/sys/cdefs.h:55:10
@@ -2375,7 +2604,6 @@ pub const __PIC__ = @as(c_int, 2);
 pub const __pic__ = @as(c_int, 2);
 pub const __FLT_RADIX__ = @as(c_int, 2);
 pub const __DECIMAL_DIG__ = __LDBL_DECIMAL_DIG__;
-pub const __SSP_STRONG__ = @as(c_int, 2);
 pub const __ELF__ = @as(c_int, 1);
 pub const __GCC_ASM_FLAG_OUTPUTS__ = @as(c_int, 1);
 pub const __code_model_small__ = @as(c_int, 1);
@@ -2473,9 +2701,13 @@ pub const __GLIBC_INTERNAL_STARTING_HEADER_IMPLEMENTATION = "";
 pub const _FEATURES_H = @as(c_int, 1);
 pub const __KERNEL_STRICT_NAMES = "";
 pub inline fn __GNUC_PREREQ(maj: anytype, min: anytype) @TypeOf(((__GNUC__ << @as(c_int, 16)) + __GNUC_MINOR__) >= ((maj << @as(c_int, 16)) + min)) {
+    _ = &maj;
+    _ = &min;
     return ((__GNUC__ << @as(c_int, 16)) + __GNUC_MINOR__) >= ((maj << @as(c_int, 16)) + min);
 }
 pub inline fn __glibc_clang_prereq(maj: anytype, min: anytype) @TypeOf(((__clang_major__ << @as(c_int, 16)) + __clang_minor__) >= ((maj << @as(c_int, 16)) + min)) {
+    _ = &maj;
+    _ = &min;
     return ((__clang_major__ << @as(c_int, 16)) + __clang_minor__) >= ((maj << @as(c_int, 16)) + min);
 }
 pub const _DEFAULT_SOURCE = @as(c_int, 1);
@@ -2511,70 +2743,97 @@ pub const __STDC_ISO_10646__ = @as(c_long, 201706);
 pub const __GNU_LIBRARY__ = @as(c_int, 6);
 pub const __GLIBC__ = @as(c_int, 2);
 pub inline fn __GLIBC_PREREQ(maj: anytype, min: anytype) @TypeOf(((__GLIBC__ << @as(c_int, 16)) + __GLIBC_MINOR__) >= ((maj << @as(c_int, 16)) + min)) {
+    _ = &maj;
+    _ = &min;
     return ((__GLIBC__ << @as(c_int, 16)) + __GLIBC_MINOR__) >= ((maj << @as(c_int, 16)) + min);
 }
 pub const _SYS_CDEFS_H = @as(c_int, 1);
 pub inline fn __glibc_has_builtin(name: anytype) @TypeOf(__has_builtin(name)) {
+    _ = &name;
     return __has_builtin(name);
 }
 pub const __LEAF = "";
 pub const __LEAF_ATTR = "";
 pub inline fn __P(args: anytype) @TypeOf(args) {
+    _ = &args;
     return args;
 }
 pub inline fn __PMT(args: anytype) @TypeOf(args) {
+    _ = &args;
     return args;
 }
 pub const __ptr_t = ?*anyopaque;
 pub const __BEGIN_DECLS = "";
 pub const __END_DECLS = "";
 pub inline fn __bos(ptr: anytype) @TypeOf(__builtin_object_size(ptr, __USE_FORTIFY_LEVEL > @as(c_int, 1))) {
+    _ = &ptr;
     return __builtin_object_size(ptr, __USE_FORTIFY_LEVEL > @as(c_int, 1));
 }
 pub inline fn __bos0(ptr: anytype) @TypeOf(__builtin_object_size(ptr, @as(c_int, 0))) {
+    _ = &ptr;
     return __builtin_object_size(ptr, @as(c_int, 0));
 }
 pub inline fn __glibc_objsize0(__o: anytype) @TypeOf(__bos0(__o)) {
+    _ = &__o;
     return __bos0(__o);
 }
 pub inline fn __glibc_objsize(__o: anytype) @TypeOf(__bos(__o)) {
+    _ = &__o;
     return __bos(__o);
 }
 pub const __glibc_c99_flexarr_available = @as(c_int, 1);
 pub inline fn __ASMNAME(cname: anytype) @TypeOf(__ASMNAME2(__USER_LABEL_PREFIX__, cname)) {
+    _ = &cname;
     return __ASMNAME2(__USER_LABEL_PREFIX__, cname);
 }
 pub inline fn __nonnull(params: anytype) @TypeOf(__attribute_nonnull__(params)) {
+    _ = &params;
     return __attribute_nonnull__(params);
 }
 pub const __wur = "";
 pub const __fortify_function = __extern_always_inline ++ __attribute_artificial__;
 pub inline fn __glibc_unlikely(cond: anytype) @TypeOf(__builtin_expect(cond, @as(c_int, 0))) {
+    _ = &cond;
     return __builtin_expect(cond, @as(c_int, 0));
 }
 pub inline fn __glibc_likely(cond: anytype) @TypeOf(__builtin_expect(cond, @as(c_int, 1))) {
+    _ = &cond;
     return __builtin_expect(cond, @as(c_int, 1));
 }
 pub const __attribute_nonstring__ = "";
 pub const __LDOUBLE_REDIRECTS_TO_FLOAT128_ABI = @as(c_int, 0);
 pub inline fn __LDBL_REDIR1(name: anytype, proto: anytype, alias: anytype) @TypeOf(name ++ proto) {
-    _ = @TypeOf(alias);
+    _ = &name;
+    _ = &proto;
+    _ = &alias;
     return name ++ proto;
 }
 pub inline fn __LDBL_REDIR(name: anytype, proto: anytype) @TypeOf(name ++ proto) {
+    _ = &name;
+    _ = &proto;
     return name ++ proto;
 }
 pub inline fn __LDBL_REDIR1_NTH(name: anytype, proto: anytype, alias: anytype) @TypeOf(name ++ proto ++ __THROW) {
-    _ = @TypeOf(alias);
+    _ = &name;
+    _ = &proto;
+    _ = &alias;
     return name ++ proto ++ __THROW;
 }
 pub inline fn __LDBL_REDIR_NTH(name: anytype, proto: anytype) @TypeOf(name ++ proto ++ __THROW) {
+    _ = &name;
+    _ = &proto;
     return name ++ proto ++ __THROW;
 }
 pub inline fn __REDIRECT_LDBL(name: anytype, proto: anytype, alias: anytype) @TypeOf(__REDIRECT(name, proto, alias)) {
+    _ = &name;
+    _ = &proto;
+    _ = &alias;
     return __REDIRECT(name, proto, alias);
 }
 pub inline fn __REDIRECT_NTH_LDBL(name: anytype, proto: anytype, alias: anytype) @TypeOf(__REDIRECT_NTH(name, proto, alias)) {
+    _ = &name;
+    _ = &proto;
+    _ = &alias;
     return __REDIRECT_NTH(name, proto, alias);
 }
 pub const __HAVE_GENERIC_SELECTION = @as(c_int, 1);
@@ -2611,56 +2870,74 @@ pub const __WNOTHREAD = @import("std").zig.c_translation.promoteIntLiteral(c_int
 pub const __WALL = @import("std").zig.c_translation.promoteIntLiteral(c_int, 0x40000000, .hexadecimal);
 pub const __WCLONE = @import("std").zig.c_translation.promoteIntLiteral(c_int, 0x80000000, .hexadecimal);
 pub inline fn __WEXITSTATUS(status: anytype) @TypeOf((status & @import("std").zig.c_translation.promoteIntLiteral(c_int, 0xff00, .hexadecimal)) >> @as(c_int, 8)) {
+    _ = &status;
     return (status & @import("std").zig.c_translation.promoteIntLiteral(c_int, 0xff00, .hexadecimal)) >> @as(c_int, 8);
 }
 pub inline fn __WTERMSIG(status: anytype) @TypeOf(status & @as(c_int, 0x7f)) {
+    _ = &status;
     return status & @as(c_int, 0x7f);
 }
 pub inline fn __WSTOPSIG(status: anytype) @TypeOf(__WEXITSTATUS(status)) {
+    _ = &status;
     return __WEXITSTATUS(status);
 }
 pub inline fn __WIFEXITED(status: anytype) @TypeOf(__WTERMSIG(status) == @as(c_int, 0)) {
+    _ = &status;
     return __WTERMSIG(status) == @as(c_int, 0);
 }
 pub inline fn __WIFSIGNALED(status: anytype) @TypeOf((@import("std").zig.c_translation.cast(i8, (status & @as(c_int, 0x7f)) + @as(c_int, 1)) >> @as(c_int, 1)) > @as(c_int, 0)) {
+    _ = &status;
     return (@import("std").zig.c_translation.cast(i8, (status & @as(c_int, 0x7f)) + @as(c_int, 1)) >> @as(c_int, 1)) > @as(c_int, 0);
 }
 pub inline fn __WIFSTOPPED(status: anytype) @TypeOf((status & @as(c_int, 0xff)) == @as(c_int, 0x7f)) {
+    _ = &status;
     return (status & @as(c_int, 0xff)) == @as(c_int, 0x7f);
 }
 pub inline fn __WIFCONTINUED(status: anytype) @TypeOf(status == __W_CONTINUED) {
+    _ = &status;
     return status == __W_CONTINUED;
 }
 pub inline fn __WCOREDUMP(status: anytype) @TypeOf(status & __WCOREFLAG) {
+    _ = &status;
     return status & __WCOREFLAG;
 }
 pub inline fn __W_EXITCODE(ret: anytype, sig: anytype) @TypeOf((ret << @as(c_int, 8)) | sig) {
+    _ = &ret;
+    _ = &sig;
     return (ret << @as(c_int, 8)) | sig;
 }
 pub inline fn __W_STOPCODE(sig: anytype) @TypeOf((sig << @as(c_int, 8)) | @as(c_int, 0x7f)) {
+    _ = &sig;
     return (sig << @as(c_int, 8)) | @as(c_int, 0x7f);
 }
 pub const __W_CONTINUED = @import("std").zig.c_translation.promoteIntLiteral(c_int, 0xffff, .hexadecimal);
 pub const __WCOREFLAG = @as(c_int, 0x80);
 pub inline fn WEXITSTATUS(status: anytype) @TypeOf(__WEXITSTATUS(status)) {
+    _ = &status;
     return __WEXITSTATUS(status);
 }
 pub inline fn WTERMSIG(status: anytype) @TypeOf(__WTERMSIG(status)) {
+    _ = &status;
     return __WTERMSIG(status);
 }
 pub inline fn WSTOPSIG(status: anytype) @TypeOf(__WSTOPSIG(status)) {
+    _ = &status;
     return __WSTOPSIG(status);
 }
 pub inline fn WIFEXITED(status: anytype) @TypeOf(__WIFEXITED(status)) {
+    _ = &status;
     return __WIFEXITED(status);
 }
 pub inline fn WIFSIGNALED(status: anytype) @TypeOf(__WIFSIGNALED(status)) {
+    _ = &status;
     return __WIFSIGNALED(status);
 }
 pub inline fn WIFSTOPPED(status: anytype) @TypeOf(__WIFSTOPPED(status)) {
+    _ = &status;
     return __WIFSTOPPED(status);
 }
 pub inline fn WIFCONTINUED(status: anytype) @TypeOf(__WIFCONTINUED(status)) {
+    _ = &status;
     return __WIFCONTINUED(status);
 }
 pub const _BITS_FLOATN_H = "";
@@ -2684,9 +2961,11 @@ pub const __HAVE_FLOAT128_UNLIKE_LDBL = (__HAVE_DISTINCT_FLOAT128 != 0) and (__L
 pub const __HAVE_FLOATN_NOT_TYPEDEF = @as(c_int, 0);
 pub const __f32 = @import("std").zig.c_translation.Macros.F_SUFFIX;
 pub inline fn __f64(x: anytype) @TypeOf(x) {
+    _ = &x;
     return x;
 }
 pub inline fn __f32x(x: anytype) @TypeOf(x) {
+    _ = &x;
     return x;
 }
 pub const __f64x = @import("std").zig.c_translation.Macros.L_SUFFIX;
@@ -2697,6 +2976,7 @@ pub inline fn __builtin_inff32() @TypeOf(__builtin_inff()) {
     return __builtin_inff();
 }
 pub inline fn __builtin_nanf32(x: anytype) @TypeOf(__builtin_nanf(x)) {
+    _ = &x;
     return __builtin_nanf(x);
 }
 pub const __ldiv_t_defined = @as(c_int, 1);
@@ -2792,8 +3072,10 @@ pub const _BITS_ENDIANNESS_H = @as(c_int, 1);
 pub const __BYTE_ORDER = __LITTLE_ENDIAN;
 pub const __FLOAT_WORD_ORDER = __BYTE_ORDER;
 pub inline fn __LONG_LONG_PAIR(HI: anytype, LO: anytype) @TypeOf(HI) {
+    _ = &HI;
+    _ = &LO;
     return blk: {
-        _ = @TypeOf(LO);
+        _ = &LO;
         break :blk HI;
     };
 }
@@ -2803,53 +3085,70 @@ pub const PDP_ENDIAN = __PDP_ENDIAN;
 pub const BYTE_ORDER = __BYTE_ORDER;
 pub const _BITS_BYTESWAP_H = @as(c_int, 1);
 pub inline fn __bswap_constant_16(x: anytype) __uint16_t {
+    _ = &x;
     return @import("std").zig.c_translation.cast(__uint16_t, ((x >> @as(c_int, 8)) & @as(c_int, 0xff)) | ((x & @as(c_int, 0xff)) << @as(c_int, 8)));
 }
 pub inline fn __bswap_constant_32(x: anytype) @TypeOf(((((x & @import("std").zig.c_translation.promoteIntLiteral(c_uint, 0xff000000, .hexadecimal)) >> @as(c_int, 24)) | ((x & @import("std").zig.c_translation.promoteIntLiteral(c_uint, 0x00ff0000, .hexadecimal)) >> @as(c_int, 8))) | ((x & @as(c_uint, 0x0000ff00)) << @as(c_int, 8))) | ((x & @as(c_uint, 0x000000ff)) << @as(c_int, 24))) {
+    _ = &x;
     return ((((x & @import("std").zig.c_translation.promoteIntLiteral(c_uint, 0xff000000, .hexadecimal)) >> @as(c_int, 24)) | ((x & @import("std").zig.c_translation.promoteIntLiteral(c_uint, 0x00ff0000, .hexadecimal)) >> @as(c_int, 8))) | ((x & @as(c_uint, 0x0000ff00)) << @as(c_int, 8))) | ((x & @as(c_uint, 0x000000ff)) << @as(c_int, 24));
 }
 pub inline fn __bswap_constant_64(x: anytype) @TypeOf(((((((((x & @as(c_ulonglong, 0xff00000000000000)) >> @as(c_int, 56)) | ((x & @as(c_ulonglong, 0x00ff000000000000)) >> @as(c_int, 40))) | ((x & @as(c_ulonglong, 0x0000ff0000000000)) >> @as(c_int, 24))) | ((x & @as(c_ulonglong, 0x000000ff00000000)) >> @as(c_int, 8))) | ((x & @as(c_ulonglong, 0x00000000ff000000)) << @as(c_int, 8))) | ((x & @as(c_ulonglong, 0x0000000000ff0000)) << @as(c_int, 24))) | ((x & @as(c_ulonglong, 0x000000000000ff00)) << @as(c_int, 40))) | ((x & @as(c_ulonglong, 0x00000000000000ff)) << @as(c_int, 56))) {
+    _ = &x;
     return ((((((((x & @as(c_ulonglong, 0xff00000000000000)) >> @as(c_int, 56)) | ((x & @as(c_ulonglong, 0x00ff000000000000)) >> @as(c_int, 40))) | ((x & @as(c_ulonglong, 0x0000ff0000000000)) >> @as(c_int, 24))) | ((x & @as(c_ulonglong, 0x000000ff00000000)) >> @as(c_int, 8))) | ((x & @as(c_ulonglong, 0x00000000ff000000)) << @as(c_int, 8))) | ((x & @as(c_ulonglong, 0x0000000000ff0000)) << @as(c_int, 24))) | ((x & @as(c_ulonglong, 0x000000000000ff00)) << @as(c_int, 40))) | ((x & @as(c_ulonglong, 0x00000000000000ff)) << @as(c_int, 56));
 }
 pub const _BITS_UINTN_IDENTITY_H = @as(c_int, 1);
 pub inline fn htobe16(x: anytype) @TypeOf(__bswap_16(x)) {
+    _ = &x;
     return __bswap_16(x);
 }
 pub inline fn htole16(x: anytype) @TypeOf(__uint16_identity(x)) {
+    _ = &x;
     return __uint16_identity(x);
 }
 pub inline fn be16toh(x: anytype) @TypeOf(__bswap_16(x)) {
+    _ = &x;
     return __bswap_16(x);
 }
 pub inline fn le16toh(x: anytype) @TypeOf(__uint16_identity(x)) {
+    _ = &x;
     return __uint16_identity(x);
 }
 pub inline fn htobe32(x: anytype) @TypeOf(__bswap_32(x)) {
+    _ = &x;
     return __bswap_32(x);
 }
 pub inline fn htole32(x: anytype) @TypeOf(__uint32_identity(x)) {
+    _ = &x;
     return __uint32_identity(x);
 }
 pub inline fn be32toh(x: anytype) @TypeOf(__bswap_32(x)) {
+    _ = &x;
     return __bswap_32(x);
 }
 pub inline fn le32toh(x: anytype) @TypeOf(__uint32_identity(x)) {
+    _ = &x;
     return __uint32_identity(x);
 }
 pub inline fn htobe64(x: anytype) @TypeOf(__bswap_64(x)) {
+    _ = &x;
     return __bswap_64(x);
 }
 pub inline fn htole64(x: anytype) @TypeOf(__uint64_identity(x)) {
+    _ = &x;
     return __uint64_identity(x);
 }
 pub inline fn be64toh(x: anytype) @TypeOf(__bswap_64(x)) {
+    _ = &x;
     return __bswap_64(x);
 }
 pub inline fn le64toh(x: anytype) @TypeOf(__uint64_identity(x)) {
+    _ = &x;
     return __uint64_identity(x);
 }
 pub const _SYS_SELECT_H = @as(c_int, 1);
 pub inline fn __FD_ISSET(d: anytype, s: anytype) @TypeOf((__FDS_BITS(s)[@as(usize, @intCast(__FD_ELT(d)))] & __FD_MASK(d)) != @as(c_int, 0)) {
+    _ = &d;
+    _ = &s;
     return (__FDS_BITS(s)[@as(usize, @intCast(__FD_ELT(d)))] & __FD_MASK(d)) != @as(c_int, 0);
 }
 pub const __sigset_t_defined = @as(c_int, 1);
@@ -2860,26 +3159,36 @@ pub const _STRUCT_TIMESPEC = @as(c_int, 1);
 pub const __suseconds_t_defined = "";
 pub const __NFDBITS = @as(c_int, 8) * @import("std").zig.c_translation.cast(c_int, @import("std").zig.c_translation.sizeof(__fd_mask));
 pub inline fn __FD_ELT(d: anytype) @TypeOf(@import("std").zig.c_translation.MacroArithmetic.div(d, __NFDBITS)) {
+    _ = &d;
     return @import("std").zig.c_translation.MacroArithmetic.div(d, __NFDBITS);
 }
 pub inline fn __FD_MASK(d: anytype) __fd_mask {
+    _ = &d;
     return @import("std").zig.c_translation.cast(__fd_mask, @as(c_ulong, 1) << @import("std").zig.c_translation.MacroArithmetic.rem(d, __NFDBITS));
 }
 pub inline fn __FDS_BITS(set: anytype) @TypeOf(set.*.__fds_bits) {
+    _ = &set;
     return set.*.__fds_bits;
 }
 pub const FD_SETSIZE = __FD_SETSIZE;
 pub const NFDBITS = __NFDBITS;
 pub inline fn FD_SET(fd: anytype, fdsetp: anytype) @TypeOf(__FD_SET(fd, fdsetp)) {
+    _ = &fd;
+    _ = &fdsetp;
     return __FD_SET(fd, fdsetp);
 }
 pub inline fn FD_CLR(fd: anytype, fdsetp: anytype) @TypeOf(__FD_CLR(fd, fdsetp)) {
+    _ = &fd;
+    _ = &fdsetp;
     return __FD_CLR(fd, fdsetp);
 }
 pub inline fn FD_ISSET(fd: anytype, fdsetp: anytype) @TypeOf(__FD_ISSET(fd, fdsetp)) {
+    _ = &fd;
+    _ = &fdsetp;
     return __FD_ISSET(fd, fdsetp);
 }
 pub inline fn FD_ZERO(fdsetp: anytype) @TypeOf(__FD_ZERO(fdsetp)) {
+    _ = &fdsetp;
     return __FD_ZERO(fdsetp);
 }
 pub const __blksize_t_defined = "";
@@ -2905,6 +3214,7 @@ pub const _THREAD_MUTEX_INTERNAL_H = @as(c_int, 1);
 pub const __PTHREAD_MUTEX_HAVE_PREV = @as(c_int, 1);
 pub const _RWLOCK_INTERNAL_H = "";
 pub inline fn __PTHREAD_RWLOCK_INITIALIZER(__flags: anytype) @TypeOf(__flags) {
+    _ = &__flags;
     return blk: {
         _ = @as(c_int, 0);
         _ = @as(c_int, 0);
@@ -2914,7 +3224,7 @@ pub inline fn __PTHREAD_RWLOCK_INITIALIZER(__flags: anytype) @TypeOf(__flags) {
         _ = @as(c_int, 0);
         _ = @as(c_int, 0);
         _ = @as(c_int, 0);
-        _ = @TypeOf(__PTHREAD_RWLOCK_ELISION_EXTRA);
+        _ = &__PTHREAD_RWLOCK_ELISION_EXTRA;
         _ = @as(c_int, 0);
         break :blk __flags;
     };
@@ -3202,30 +3512,50 @@ pub const __FP_LOGBNAN_IS_MIN = @as(c_int, 1);
 pub const FP_ILOGB0 = -@import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal) - @as(c_int, 1);
 pub const FP_ILOGBNAN = -@import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal) - @as(c_int, 1);
 pub inline fn __MATHCALL(function: anytype, suffix: anytype, args: anytype) @TypeOf(__MATHDECL(_Mdouble_, function, suffix, args)) {
+    _ = &function;
+    _ = &suffix;
+    _ = &args;
     return __MATHDECL(_Mdouble_, function, suffix, args);
 }
 pub inline fn __MATHCALLX(function: anytype, suffix: anytype, args: anytype, attrib: anytype) @TypeOf(__MATHDECLX(_Mdouble_, function, suffix, args, attrib)) {
+    _ = &function;
+    _ = &suffix;
+    _ = &args;
+    _ = &attrib;
     return __MATHDECLX(_Mdouble_, function, suffix, args, attrib);
 }
 pub inline fn __MATHDECL_1(@"type": anytype, function: anytype, suffix: anytype, args: anytype) @TypeOf(__MATHDECL_1_IMPL(@"type", function, suffix, args)) {
+    _ = &@"type";
+    _ = &function;
+    _ = &suffix;
+    _ = &args;
     return __MATHDECL_1_IMPL(@"type", function, suffix, args);
 }
 pub inline fn __MATHDECL_ALIAS(@"type": anytype, function: anytype, suffix: anytype, args: anytype, alias: anytype) @TypeOf(__MATHDECL_1(@"type", function, suffix, args)) {
-    _ = @TypeOf(alias);
+    _ = &@"type";
+    _ = &function;
+    _ = &suffix;
+    _ = &args;
+    _ = &alias;
     return __MATHDECL_1(@"type", function, suffix, args);
 }
 pub const _Mdouble_ = f64;
 pub inline fn __MATH_PRECNAME(name: anytype, r: anytype) @TypeOf(__CONCAT(name, r)) {
+    _ = &name;
+    _ = &r;
     return __CONCAT(name, r);
 }
 pub const __MATH_DECLARING_DOUBLE = @as(c_int, 1);
 pub const __MATH_DECLARING_FLOATN = @as(c_int, 0);
 pub const __MATH_DECLARE_LDOUBLE = @as(c_int, 1);
 pub inline fn __MATHCALL_NARROW(func: anytype, redir: anytype, nargs: anytype) @TypeOf(__MATHCALL_NARROW_NORMAL(func, nargs)) {
-    _ = @TypeOf(redir);
+    _ = &func;
+    _ = &redir;
+    _ = &nargs;
     return __MATHCALL_NARROW_NORMAL(func, nargs);
 }
 pub inline fn signbit(x: anytype) @TypeOf(__builtin_signbit(x)) {
+    _ = &x;
     return __builtin_signbit(x);
 }
 pub const MATH_ERRNO = @as(c_int, 1);
@@ -3307,19 +3637,24 @@ pub const WCHAR_MAX = __WCHAR_MAX;
 pub const WINT_MIN = @as(c_uint, 0);
 pub const WINT_MAX = @import("std").zig.c_translation.promoteIntLiteral(c_uint, 4294967295, .decimal);
 pub inline fn INT8_C(c: anytype) @TypeOf(c) {
+    _ = &c;
     return c;
 }
 pub inline fn INT16_C(c: anytype) @TypeOf(c) {
+    _ = &c;
     return c;
 }
 pub inline fn INT32_C(c: anytype) @TypeOf(c) {
+    _ = &c;
     return c;
 }
 pub const INT64_C = @import("std").zig.c_translation.Macros.L_SUFFIX;
 pub inline fn UINT8_C(c: anytype) @TypeOf(c) {
+    _ = &c;
     return c;
 }
 pub inline fn UINT16_C(c: anytype) @TypeOf(c) {
+    _ = &c;
     return c;
 }
 pub const UINT32_C = @import("std").zig.c_translation.Macros.U_SUFFIX;

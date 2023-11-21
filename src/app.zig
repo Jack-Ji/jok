@@ -68,7 +68,7 @@ pub fn main() !void {
     defer jok_ctx.destroy();
 
     // Init game object
-    var ctx = jok_ctx.context();
+    const ctx = jok_ctx.context();
     game.init(ctx) catch |err| {
         log.err("Init game failed: {}", .{err});
         if (@errorReturnTrace()) |trace| {

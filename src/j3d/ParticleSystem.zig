@@ -23,7 +23,7 @@ effects: std.ArrayList(Effect),
 
 /// Create particle effect system/manager
 pub fn create(allocator: std.mem.Allocator) !*Self {
-    var self = try allocator.create(Self);
+    const self = try allocator.create(Self);
     errdefer allocator.destroy(self);
     self.* = .{
         .allocator = allocator,

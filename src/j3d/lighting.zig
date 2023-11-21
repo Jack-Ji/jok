@@ -73,7 +73,7 @@ pub fn calcLightColor(
             _specular: zmath.Vec,
         ) zmath.Vec {
             const dns = zmath.dot3(_normal, light_dir);
-            var diffuse = zmath.max(dns, zmath.f32x4s(0)) * _diffuse;
+            const diffuse = zmath.max(dns, zmath.f32x4s(0)) * _diffuse;
             var specular = zmath.f32x4s(0);
             if (dns[0] > 0) {
                 // Calculate reflect ratio (Blinn-Phong model)

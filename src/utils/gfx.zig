@@ -148,7 +148,7 @@ pub fn savePixelsToFile(
     path: [:0]const u8,
     opt: EncodingOption,
 ) !void {
-    var channels = getChannels(format);
+    const channels = getChannels(format);
     assert(pixels.len == @as(usize, width * height * channels));
 
     // Encode file
@@ -206,7 +206,7 @@ pub fn savePixelsToFile(
 /// Save surface to file
 pub fn saveSurfaceToFile(surface: sdl.Surface, path: [:0]const u8, opt: EncodingOption) !void {
     const format = @as(sdl.PixelFormatEnum, @enumFromInt(surface.ptr.format.*.format));
-    var channels = getChannels(format);
+    const channels = getChannels(format);
     const pixels = @as([*]const u8, @ptrCast(surface.ptr.pixels.?));
     const size = @as(usize, surface.ptr.w * surface.ptr.h * channels);
     assert(surface.ptr.h * surface.ptr.pitch == size);
@@ -253,7 +253,7 @@ pub fn getScreenPixels(allocator: std.mem.Allocator, rd: sdl.Renderer, rect: ?sd
     const width = if (rect) |r| r.width else fb_size.width_pixels;
     const height = if (rect) |r| r.height else fb_size.height_pixels;
     const pixel_size = @as(usize, @intCast(channels * width * height));
-    var pixels = try allocator.alloc(u8, pixel_size);
+    const pixels = try allocator.alloc(u8, pixel_size);
     try rd.readPixels(rect, format, pixels.ptr, @intCast(channels * width));
     return .{
         .allocator = allocator,
