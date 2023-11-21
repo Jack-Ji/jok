@@ -56,43 +56,41 @@ pub fn EasingSystem(comptime T: type) type {
         const Self = @This();
 
         allocator: std.mem.Allocator,
-        vars: std.AutoHashMap(*T, EasingValue),
-        arrived: std.ArrayList(*T),
+        vars: std.ArrayList(EasingValue),
 
         pub fn create(allocator: std.mem.Allocator) !*Self {
             var self = try allocator.create(Self);
             self.* = .{
                 .allocator = allocator,
-                .vars = std.AutoHashMap(*T, EasingValue).init(allocator),
-                .arrived = std.ArrayList(*T).init(allocator),
+                .vars = std.ArrayList(EasingValue).init(allocator),
             };
             return self;
         }
 
         pub fn destroy(self: *Self) void {
             self.vars.deinit();
-            self.arrived.deinit();
             self.allocator.destroy(self);
         }
 
         pub fn count(self: *const Self) usize {
-            return self.vars.count();
+            return self.vars.items.len;
         }
 
         pub fn update(self: *Self, delta_time: f32) void {
-            if (self.vars.count() == 0) return;
+            if (self.vars.items.len == 0) return;
 
-            var it = self.vars.valueIterator();
-            while (it.next()) |vptr| {
-                vptr.life_passed += delta_time;
-                const x = vptr.easing_fn(@min(1.0, vptr.life_passed / vptr.life_total));
-                vptr.v.* = vptr.easing_apply_fn(x, vptr.from, vptr.to);
-                if (vptr.life_passed >= vptr.life_total) {
-                    self.arrived.appendAssumeCapacity(vptr.v);
+            var i: usize = 0;
+            while (i < self.vars.items.len) {
+                var ev = &self.vars.items[i];
+                ev.life_passed += delta_time;
+                const x = ev.easing_fn(@min(1.0, ev.life_passed / ev.life_total));
+                ev.v.* = ev.easing_apply_fn(x, ev.from, ev.to);
+                if (ev.life_passed >= ev.life_total) {
+                    _ = self.vars.swapRemove(i);
+                } else {
+                    i += 1;
                 }
             }
-            for (self.arrived.items) |v| _ = self.vars.remove(v);
-            self.arrived.clearRetainingCapacity();
         }
 
         pub fn add(
@@ -105,7 +103,7 @@ pub fn EasingSystem(comptime T: type) type {
             to: T,
         ) !void {
             assert(life > 0);
-            try self.vars.put(v, .{
+            try self.vars.append(.{
                 .easing_fn = getEasingFn(easing_type),
                 .easing_apply_fn = easing_apply_fn,
                 .life_total = life,
@@ -114,7 +112,6 @@ pub fn EasingSystem(comptime T: type) type {
                 .from = from orelse v.*,
                 .to = to,
             });
-            try self.arrived.ensureTotalCapacity(self.vars.count());
         }
     };
 }
