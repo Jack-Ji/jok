@@ -86,6 +86,8 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
+    ctx.displayStats();
+
     // camera movement
     const distance = ctx.deltaSeconds() * 2;
     const angle = std.math.pi * ctx.deltaSeconds() / 2;

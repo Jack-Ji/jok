@@ -37,6 +37,7 @@ pub const Context = struct {
         isKeyPressed: *const fn (ctx: *anyopaque, key: sdl.Scancode) bool,
         getMouseState: *const fn (ctx: *anyopaque) sdl.MouseState,
         setMousePosition: *const fn (ctx: *anyopaque, xrel: f32, yrel: f32) void,
+        displayStats: *const fn (ctx: *anyopaque) void,
     },
 
     /// Get meomry allocator
@@ -143,6 +144,11 @@ pub const Context = struct {
     pub fn setMousePosition(self: Context, xrel: f32, yrel: f32) void {
         return self.vtable.setMousePosition(self.ctx, xrel, yrel);
     }
+
+    /// Display statistics
+    pub fn displayStats(self: Context) void {
+        return self.vtable.displayStats(self.ctx);
+    }
 };
 
 /// Context generator
@@ -193,7 +199,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         // Frames stats
         _fps: f32 = 0,
-        _average_cpu_time: f32 = 0,
         _last_pc: u64 = 0,
         _accumulated_pc: u64 = 0,
         _pc_freq: f64 = 0,
@@ -299,29 +304,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
 
             self.internalLoop(updateFn, drawFn);
-
-            if (self.updateFrameStats() and cfg.jok_framestat_display) {
-                var buf: [128]u8 = undefined;
-                const txt = std.fmt.bufPrintZ(
-                    &buf,
-                    "{s} | {d}x{d}/{d}x{d} | FPS: {d:.1}/{d:.1}ms/{s} | DC: {d}/{d} | MEM: {:.3} | RD: {s}",
-                    .{
-                        cfg.jok_window_title,
-                        getWindowSize(self).x,
-                        getWindowSize(self).y,
-                        getFramebufferSize(self).x,
-                        getFramebufferSize(self).y,
-                        self._fps,
-                        self._average_cpu_time,
-                        cfg.jok_fps_limit.str(),
-                        self._drawcall_count,
-                        self._triangle_count,
-                        std.fmt.fmtIntSizeBin(gpa.total_requested_bytes),
-                        if (self._is_software) "software" else "hardware",
-                    },
-                ) catch unreachable;
-                sdl.c.SDL_SetWindowTitle(self._window.ptr, txt.ptr);
-            }
+            self.updateFrameStats();
         }
 
         /// Internal game loop
@@ -421,22 +404,19 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Update frame stats once per second
-        inline fn updateFrameStats(self: *@This()) bool {
+        inline fn updateFrameStats(self: *@This()) void {
             if ((self._seconds_real - self._last_fps_refresh_time) >= 1.0) {
                 const duration = self._seconds_real - self._last_fps_refresh_time;
                 self._fps = @as(f32, @floatCast(
                     @as(f64, @floatFromInt(self._frame_count)) / duration,
                 ));
-                self._average_cpu_time = (1.0 / self._fps) * 1000.0;
                 self._last_fps_refresh_time = self._seconds_real;
                 const dc_stats = imgui.sdl.getDrawCallStats();
                 self._drawcall_count = dc_stats[0] / self._frame_count;
                 self._triangle_count = dc_stats[1] / self._frame_count;
                 imgui.sdl.clearDrawCallStats();
                 self._frame_count = 0;
-                return true;
             }
-            return false;
         }
 
         /// Check system information
@@ -624,6 +604,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .isKeyPressed = isKeyPressed,
                     .getMouseState = getMouseState,
                     .setMousePosition = setMousePosition,
+                    .displayStats = displayStats,
                 },
             };
         }
@@ -800,6 +781,33 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 @intFromFloat(@as(f32, @floatFromInt(w)) * xrel),
                 @intFromFloat(@as(f32, @floatFromInt(h)) * yrel),
             );
+        }
+
+        /// Display statistics
+        fn displayStats(ptr: *anyopaque) void {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            const ws = getWindowSize(ptr);
+            const fb = getFramebufferSize(ptr);
+            imgui.setNextWindowBgAlpha(.{ .alpha = 0.7 });
+            imgui.setNextWindowPos(.{ .x = fb.x, .y = 0, .pivot_x = 1 });
+            if (imgui.begin("Frame Statistics", .{
+                .flags = .{
+                    //.no_title_bar = true,
+                    .no_resize = true,
+                    .no_move = true,
+                    .always_auto_resize = true,
+                },
+            })) {
+                imgui.text("Window Size: {d}x{d}", .{ ws.x, ws.y });
+                imgui.text("Resolution: {d}x{d}", .{ fb.x, fb.y });
+                imgui.text("GPU Enabled: {}", .{!self._is_software});
+                imgui.text("FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
+                imgui.text("CPU: {d:.1}ms", .{1000.0 / self._fps});
+                imgui.text("Memory: {:.3}", .{std.fmt.fmtIntSizeBin(gpa.total_requested_bytes)});
+                imgui.text("Draw Call: {d}", .{self._drawcall_count});
+                imgui.text("Triangles: {d}", .{self._triangle_count});
+            }
+            imgui.end();
         }
     };
 }

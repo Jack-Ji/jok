@@ -95,6 +95,8 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
+    ctx.displayStats();
+
     // camera movement
     const distance = ctx.deltaSeconds() * 5;
     if (ctx.isKeyPressed(.w)) {

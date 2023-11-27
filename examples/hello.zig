@@ -94,6 +94,7 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
+    ctx.displayStats();
     point_easing_system.update(ctx.deltaSeconds());
     color_easing_system.update(ctx.deltaSeconds());
 }

@@ -52,6 +52,8 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
+    ctx.displayStats();
+
     const mouse = ctx.getMouseState();
     if (mouse.buttons.getPressed(.left)) {
         var rd = rand_gen.random();
