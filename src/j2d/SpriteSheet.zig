@@ -252,7 +252,7 @@ pub fn fromPicturesInDir(
     opt: DirScanOption,
 ) !*Self {
     var curdir = std.fs.cwd();
-    var dir = try curdir.openIterableDir(dir_path, .{ .no_follow = true });
+    var dir = try curdir.openDir(dir_path, .{ .no_follow = true, .iterate = true });
     defer dir.close();
 
     const allocator = ctx.allocator();
