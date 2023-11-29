@@ -1,6 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
+const j2d = jok.j2d;
 const sdl = jok.sdl;
 const imgui = jok.imgui;
 
@@ -56,35 +57,20 @@ pub const DebugFont = struct {
 pub const DrawOption = struct {
     pos: sdl.PointF,
     ypos_type: Atlas.YPosType = .top,
-    box_type: Atlas.BoxType = .aligned,
     color: sdl.Color = sdl.Color.white,
     font_size: u32 = 16,
 };
-pub const DrawResult = struct {
-    area: sdl.RectangleF,
-    next_line_ypos: f32,
-};
-pub fn debugDraw(ctx: jok.Context, opt: DrawOption, comptime fmt: []const u8, args: anytype) !DrawResult {
-    var atlas = try DebugFont.getAtlas(ctx, opt.font_size);
-    const text = jok.imgui.format(fmt, args);
-    const area = try atlas.appendDrawDataFromUTF8String(
-        text,
-        opt.pos,
-        opt.ypos_type,
-        opt.box_type,
-        opt.color,
-        &DebugFont.vattrib,
-        &DebugFont.vindices,
+pub fn debugDraw(ctx: jok.Context, opt: DrawOption, comptime fmt: []const u8, args: anytype) !void {
+    try j2d.begin(.{});
+    try j2d.text(
+        .{
+            .atlas = try DebugFont.getAtlas(ctx, opt.font_size),
+            .pos = opt.pos,
+            .ypos_type = opt.ypos_type,
+            .tint_color = opt.color,
+        },
+        fmt,
+        args,
     );
-    try ctx.renderer().drawGeometry(
-        atlas.tex,
-        DebugFont.vattrib.items,
-        DebugFont.vindices.items,
-    );
-    defer DebugFont.vattrib.clearRetainingCapacity();
-    defer DebugFont.vindices.clearRetainingCapacity();
-    return DrawResult{
-        .area = area,
-        .next_line_ypos = atlas.getVPosOfNextLine(opt.pos.y),
-    };
+    try j2d.end();
 }

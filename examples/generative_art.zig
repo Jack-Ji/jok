@@ -2,7 +2,6 @@ const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
 const sdl = jok.sdl;
-const font = jok.font;
 const zmath = jok.zmath;
 const j2d = jok.j2d;
 

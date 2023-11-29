@@ -104,8 +104,6 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    ctx.displayStats();
-
     const distance = ctx.deltaSeconds() * 100;
     if (ctx.isKeyPressed(.w)) {
         camera.moveBy(.forward, distance);
@@ -133,14 +131,16 @@ pub fn update(ctx: jok.Context) !void {
     }
 
     ps.update(ctx.deltaSeconds());
+}
+
+pub fn draw(ctx: jok.Context) !void {
+    ctx.displayStats(.{});
 
     if (imgui.begin("Control", .{})) {
         _ = imgui.checkbox("sort by depth", .{ .v = &sort_by_depth });
     }
     imgui.end();
-}
 
-pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{
         .camera = camera,
         .triangle_sort = if (sort_by_depth) .simple else .none,
@@ -163,13 +163,13 @@ pub fn draw(ctx: jok.Context) !void {
     try j3d.effects(ps);
     try j3d.end();
 
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 200, .y = 10 } },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 200, .y = 28 } },
         "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",

@@ -75,6 +75,10 @@ pub fn update(ctx: jok.Context) !void {
     if (ctx.isKeyPressed(.down)) {
         camera.rotateBy(-std.math.pi / 180.0, 0);
     }
+}
+
+pub fn draw(ctx: jok.Context) !void {
+    _ = ctx;
 
     if (imgui.begin("Control Panel", .{})) {
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
@@ -84,10 +88,6 @@ pub fn update(ctx: jok.Context) !void {
         stacks = math.clamp(stacks, 1, 100);
     }
     imgui.end();
-}
-
-pub fn draw(ctx: jok.Context) !void {
-    _ = ctx;
 
     const mat = zmath.mul(
         zmath.mul(

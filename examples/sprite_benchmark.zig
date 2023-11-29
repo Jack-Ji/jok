@@ -52,8 +52,6 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    ctx.displayStats();
-
     const mouse = ctx.getMouseState();
     if (mouse.buttons.getPressed(.left)) {
         var rd = rand_gen.random();
@@ -93,6 +91,8 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    ctx.displayStats(.{});
+
     try j2d.begin(.{});
     for (characters.items) |c| {
         try j2d.sprite(c.sprite, .{
@@ -101,7 +101,7 @@ pub fn draw(ctx: jok.Context) !void {
     }
     try j2d.end();
 
-    _ = try jok.font.debugDraw(
+    try jok.font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 0, .y = 0 } },
         "# of sprites: {d}",

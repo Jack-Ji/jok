@@ -37,7 +37,7 @@ pub const Context = struct {
         isKeyPressed: *const fn (ctx: *anyopaque, key: sdl.Scancode) bool,
         getMouseState: *const fn (ctx: *anyopaque) sdl.MouseState,
         setMousePosition: *const fn (ctx: *anyopaque, xrel: f32, yrel: f32) void,
-        displayStats: *const fn (ctx: *anyopaque) void,
+        displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
     },
 
     /// Get meomry allocator
@@ -146,9 +146,14 @@ pub const Context = struct {
     }
 
     /// Display statistics
-    pub fn displayStats(self: Context) void {
-        return self.vtable.displayStats(self.ctx);
+    pub fn displayStats(self: Context, opt: DisplayStats) void {
+        return self.vtable.displayStats(self.ctx, opt);
     }
+};
+
+pub const DisplayStats = struct {
+    movable: bool = false,
+    collapsible: bool = false,
 };
 
 /// Context generator
@@ -304,7 +309,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
 
             self.internalLoop(updateFn, drawFn);
-            self.updateFrameStats();
         }
 
         /// Internal game loop
@@ -324,7 +328,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const max_accumulated = @as(u64, @intFromFloat(self._pc_freq * 0.5));
 
             // Update game
-            imgui.sdl.newFrame(self.context());
             if (fps_pc_threshold > 0) {
                 while (true) {
                     const pc = sdl.c.SDL_GetPerformanceCounter();
@@ -390,6 +393,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Do rendering
             self._renderer.clear() catch unreachable;
+            imgui.sdl.newFrame(self.context());
             drawFn(self._ctx) catch |e| {
                 log.err("Got error in `draw`: {}", .{e});
                 if (@errorReturnTrace()) |trace| {
@@ -400,11 +404,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
             };
             imgui.sdl.draw();
             self._renderer.present();
-            self._frame_count += 1;
+            self.updateFrameStats();
         }
 
         /// Update frame stats once per second
         inline fn updateFrameStats(self: *@This()) void {
+            self._frame_count += 1;
             if ((self._seconds_real - self._last_fps_refresh_time) >= 1.0) {
                 const duration = self._seconds_real - self._last_fps_refresh_time;
                 self._fps = @as(f32, @floatCast(
@@ -784,7 +789,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Display statistics
-        fn displayStats(ptr: *anyopaque) void {
+        fn displayStats(ptr: *anyopaque, opt: DisplayStats) void {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             const ws = getWindowSize(ptr);
             const fb = getFramebufferSize(ptr);
@@ -792,19 +797,21 @@ pub fn JokContext(comptime cfg: config.Config) type {
             imgui.setNextWindowPos(.{ .x = fb.x, .y = 0, .pivot_x = 1 });
             if (imgui.begin("Frame Statistics", .{
                 .flags = .{
-                    //.no_title_bar = true,
+                    .no_title_bar = !opt.collapsible,
+                    .no_move = opt.movable,
                     .no_resize = true,
-                    .no_move = true,
                     .always_auto_resize = true,
                 },
             })) {
                 imgui.text("Window Size: {d}x{d}", .{ ws.x, ws.y });
-                imgui.text("Resolution: {d}x{d}", .{ fb.x, fb.y });
+                imgui.text("Framebuffer Size: {d}x{d}", .{ fb.x, fb.y });
                 imgui.text("GPU Enabled: {}", .{!self._is_software});
+                imgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
+                imgui.separator();
                 imgui.text("FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
                 imgui.text("CPU: {d:.1}ms", .{1000.0 / self._fps});
                 imgui.text("Memory: {:.3}", .{std.fmt.fmtIntSizeBin(gpa.total_requested_bytes)});
-                imgui.text("Draw Call: {d}", .{self._drawcall_count});
+                imgui.text("Draw Calls: {d}", .{self._drawcall_count});
                 imgui.text("Triangles: {d}", .{self._triangle_count});
             }
             imgui.end();

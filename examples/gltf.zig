@@ -95,8 +95,6 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    ctx.displayStats();
-
     // camera movement
     const distance = ctx.deltaSeconds() * 5;
     if (ctx.isKeyPressed(.w)) {
@@ -123,6 +121,30 @@ pub fn update(ctx: jok.Context) !void {
     if (ctx.isKeyPressed(.down)) {
         camera.rotateBy(-std.math.pi / 180.0, 0);
     }
+
+    if (animation1) |a| {
+        animation_playtime1 += ctx.deltaSeconds();
+        if (animation_playtime1 > a.getDuration()) {
+            animation_playtime1 -= a.getDuration();
+        }
+    }
+    if (animation2) |a| {
+        animation_playtime2 += ctx.deltaSeconds();
+        if (animation_playtime2 > a.getDuration()) {
+            animation_playtime2 -= a.getDuration();
+        }
+    }
+    if (animation3) |a| {
+        animation_transition3 += ctx.deltaSeconds() / 0.5;
+        animation_playtime3 += ctx.deltaSeconds();
+        if (animation_playtime3 > a.getDuration()) {
+            animation_playtime3 -= a.getDuration();
+        }
+    }
+}
+
+pub fn draw(ctx: jok.Context) !void {
+    ctx.displayStats(.{});
 
     if (imgui.begin("Control Panel", .{})) {
         imgui.textUnformatted("shading method");
@@ -217,28 +239,6 @@ pub fn update(ctx: jok.Context) !void {
     }
     imgui.end();
 
-    if (animation1) |a| {
-        animation_playtime1 += ctx.deltaSeconds();
-        if (animation_playtime1 > a.getDuration()) {
-            animation_playtime1 -= a.getDuration();
-        }
-    }
-    if (animation2) |a| {
-        animation_playtime2 += ctx.deltaSeconds();
-        if (animation_playtime2 > a.getDuration()) {
-            animation_playtime2 -= a.getDuration();
-        }
-    }
-    if (animation3) |a| {
-        animation_transition3 += ctx.deltaSeconds() / 0.5;
-        animation_playtime3 += ctx.deltaSeconds();
-        if (animation_playtime3 > a.getDuration()) {
-            animation_playtime3 -= a.getDuration();
-        }
-    }
-}
-
-pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{
         .camera = camera,
         .triangle_sort = .simple,
@@ -328,13 +328,13 @@ pub fn draw(ctx: jok.Context) !void {
     try j3d.axises(.{ .radius = 0.01, .length = 0.5 });
     try j3d.end();
 
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 200, .y = 10 } },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 200, .y = 28 } },
         "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",

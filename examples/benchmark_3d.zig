@@ -86,8 +86,6 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    ctx.displayStats();
-
     // camera movement
     const distance = ctx.deltaSeconds() * 2;
     const angle = std.math.pi * ctx.deltaSeconds() / 2;
@@ -118,6 +116,8 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    ctx.displayStats(.{});
+
     try j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
     for (translations.items, 0..) |tr, i| {
         const model = zmath.mul(
@@ -142,7 +142,7 @@ pub fn draw(ctx: jok.Context) !void {
     }
     try j3d.end();
 
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 200, .y = 10 } },
         "Press WSAD and up/down/left/right to move camera around the view",

@@ -94,12 +94,13 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    ctx.displayStats();
     point_easing_system.update(ctx.deltaSeconds());
     color_easing_system.update(ctx.deltaSeconds());
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    ctx.displayStats(.{});
+
     const fb_size = ctx.getFramebufferSize();
     const center_x = fb_size.x / 2;
     const center_y = fb_size.y / 2;
@@ -210,7 +211,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     text_draw_pos.x += text_speed.x * ctx.deltaSeconds();
     text_draw_pos.y += text_speed.y * ctx.deltaSeconds();
-    const draw_result = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{
             .pos = .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
@@ -224,22 +225,35 @@ pub fn draw(ctx: jok.Context) !void {
         "Hello Jok!",
         .{},
     );
-    if (draw_result.area.x < 0) {
+    const atlas = try font.DebugFont.getAtlas(ctx, 50);
+    const area = try atlas.getBoundingBox(
+        "Hello Jok!",
+        .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
+        .top,
+        .aligned,
+    );
+    if (area.x < 0) {
         text_speed.x = @abs(text_speed.x);
     }
-    if (draw_result.area.x + draw_result.area.width > fb_size.x) {
+    if (area.x + area.width > fb_size.x) {
         text_speed.x = -@abs(text_speed.x);
     }
-    if (draw_result.area.y < 0) {
+    if (area.y < 0) {
         text_speed.y = @abs(text_speed.y);
     }
-    if (draw_result.area.y + draw_result.area.height > fb_size.y) {
+    if (area.y + area.height > fb_size.y) {
         text_speed.y = -@abs(text_speed.y);
     }
     _ = try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 0, .y = 0 } },
         "Press F1 to toggle fullscreen",
+        .{},
+    );
+    _ = try font.debugDraw(
+        ctx,
+        .{ .pos = .{ .x = 0, .y = 17 } },
+        "Press F2 to take screenshot",
         .{},
     );
     _ = try font.debugDraw(

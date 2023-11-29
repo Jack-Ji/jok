@@ -86,7 +86,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 10, .y = 10 } },
         "Press *RETURN* to start/pause playing, current status: {s}, progress: {d}/{d}(s)",
@@ -96,13 +96,13 @@ pub fn draw(ctx: jok.Context) !void {
             music_total_length,
         },
     );
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 10, .y = 26 } },
         "Press *Z/X* to decrease/increase volume of music, current volume: {d:.1}",
         .{music.getVolume()},
     );
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{
             .pos = .{ .x = 10, .y = 100 },
@@ -111,7 +111,7 @@ pub fn draw(ctx: jok.Context) !void {
         "Double-click mouse's left button to trigger sound effect on your left ear",
         .{},
     );
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{
             .pos = .{ .x = 200, .y = 150 },

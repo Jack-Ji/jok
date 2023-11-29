@@ -1,7 +1,6 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
-const font = jok.font;
 const j2d = jok.j2d;
 
 var sheet: *j2d.SpriteSheet = undefined;

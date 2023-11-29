@@ -96,6 +96,10 @@ pub fn update(ctx: jok.Context) !void {
     if (ctx.isKeyPressed(.down)) {
         camera.rotateBy(-std.math.pi / 180.0, 0);
     }
+}
+
+pub fn draw(ctx: jok.Context) !void {
+    ctx.displayStats(.{});
 
     if (imgui.begin("Control Panel", .{})) {
         imgui.textUnformatted("shading method");
@@ -113,9 +117,7 @@ pub fn update(ctx: jok.Context) !void {
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
     }
     imgui.end();
-}
 
-pub fn draw(ctx: jok.Context) !void {
     var lighting_opt: ?j3d.lighting.LightingOption = .{};
     if (lighting) {
         light_pos1[0] = math.sin(ctx.seconds()) * 40;
@@ -399,13 +401,13 @@ pub fn draw(ctx: jok.Context) !void {
     }
     try j3d.end();
 
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 200, .y = 10 } },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 200, .y = 28 } },
         "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",

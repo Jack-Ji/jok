@@ -126,7 +126,9 @@ pub fn update(ctx: jok.Context) !void {
     if (ctx.isKeyPressed(.down)) {
         camera.rotateBy(-std.math.pi / 180.0, 0);
     }
+}
 
+pub fn draw(ctx: jok.Context) !void {
     if (imgui.begin("Tint Color", .{})) {
         var cs: [3]f32 = .{
             @as(f32, @floatFromInt(skybox_tint_color.r)) / 255,
@@ -140,9 +142,7 @@ pub fn update(ctx: jok.Context) !void {
         }
     }
     imgui.end();
-}
 
-pub fn draw(ctx: jok.Context) !void {
     try j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
     try j3d.shape(
         cube,
@@ -159,13 +159,13 @@ pub fn draw(ctx: jok.Context) !void {
     try j3d.skybox(skybox_textures, skybox_tint_color);
     try j3d.end();
 
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 200, .y = 10 } },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 200, .y = 28 } },
         "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",

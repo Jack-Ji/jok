@@ -804,6 +804,7 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
+    _ = ctx;
     // Simulation step forward
     if (number_w > 0) {
         interaction(white.?, green.?, power_wg, v_wg);
@@ -829,12 +830,11 @@ pub fn update(ctx: jok.Context) !void {
         interaction(blue.?, white.?, power_bw, v_bw);
         interaction(blue.?, blue.?, power_bb, v_bb);
     }
-
-    try updateGui(ctx);
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    _ = ctx;
+    ctx.displayStats(.{});
+    try updateGui(ctx);
     try renderSimulation();
 }
 

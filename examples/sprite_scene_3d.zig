@@ -182,19 +182,19 @@ pub fn draw(ctx: jok.Context) !void {
     try j3d.end();
 
     const ogre_pos = camera.calcScreenPosition(ctx.renderer(), sprites[13].transform, null);
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = ogre_pos.x + 50, .y = ogre_pos.y } },
         "I have fixed size!",
         .{},
     );
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 200, .y = 10 } },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );
-    _ = try font.debugDraw(
+    try font.debugDraw(
         ctx,
         .{ .pos = .{ .x = 200, .y = 28 } },
         "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",

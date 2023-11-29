@@ -1,18 +1,12 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
+const font = jok.font;
 const j2d = jok.j2d;
 
-var font: *jok.font.Font = undefined;
-var atlas: *jok.font.Atlas = undefined;
-
 pub fn init(ctx: jok.Context) !void {
+    _ = ctx;
     std.log.info("game init", .{});
-
-    font = try jok.font.Font.fromTrueTypeData(ctx.allocator(), jok.font.DebugFont.font_data);
-    atlas = try font.createAtlas(ctx.renderer(), 40, &jok.font.codepoint_ranges.default, null);
-
-    try ctx.renderer().setColorRGB(100, 100, 100);
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -25,42 +19,54 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    defer ctx.renderer().setColorRGB(100, 100, 100) catch unreachable;
-
     const size = ctx.getFramebufferSize();
+    const rect_color = sdl.Color.rgba(0, 128, 0, 120);
+    var area: sdl.RectangleF = undefined;
+    var atlas: *font.Atlas = undefined;
 
-    try ctx.renderer().setColorRGBA(0, 128, 0, 120);
-
-    var result = try jok.font.debugDraw(
-        ctx,
+    try j2d.begin(.{});
+    atlas = try font.DebugFont.getAtlas(ctx, 20);
+    try j2d.text(
         .{
-            .pos = sdl.PointF{ .x = 0, .y = 0 },
+            .atlas = atlas,
+            .pos = .{ .x = 0, .y = 0 },
             .ypos_type = .top,
-            .color = sdl.Color.cyan,
+            .tint_color = sdl.Color.cyan,
         },
         "ABCDEFGHIJKL abcdefghijkl",
         .{},
     );
-    try ctx.renderer().fillRectF(result.area);
+    area = try atlas.getBoundingBox(
+        "ABCDEFGHIJKL abcdefghijkl",
+        .{ .x = 0, .y = 0 },
+        .top,
+        .aligned,
+    );
+    try j2d.rectFilled(area, rect_color, .{});
 
-    result = try jok.font.debugDraw(
-        ctx,
+    atlas = try font.DebugFont.getAtlas(ctx, 80);
+    try j2d.text(
         .{
-            .pos = sdl.PointF{ .x = 0, .y = size.y / 2 },
-            .font_size = 80,
+            .atlas = atlas,
+            .pos = .{ .x = 0, .y = size.y / 2 },
             .ypos_type = .bottom,
         },
         "Hello,",
         .{},
     );
-    try ctx.renderer().fillRectF(result.area);
+    area = try atlas.getBoundingBox(
+        "Hello,",
+        .{ .x = 0, .y = size.y / 2 },
+        .bottom,
+        .aligned,
+    );
+    try j2d.rectFilled(area, rect_color, .{});
 
-    try j2d.begin(.{});
     try j2d.text(
         .{
             .atlas = atlas,
-            .pos = sdl.PointF{
-                .x = result.area.x + result.area.width,
+            .pos = .{
+                .x = area.x + area.width,
                 .y = size.y / 2,
             },
             .tint_color = sdl.Color.rgb(
@@ -77,26 +83,29 @@ pub fn draw(ctx: jok.Context) !void {
         "jok!",
         .{},
     );
-    try j2d.end();
 
-    result = try jok.font.debugDraw(
-        ctx,
+    atlas = try font.DebugFont.getAtlas(ctx, 32);
+    try j2d.text(
         .{
-            .pos = sdl.PointF{ .x = 0, .y = size.y },
+            .atlas = atlas,
+            .pos = .{ .x = 0, .y = size.y },
             .ypos_type = .bottom,
-            .color = sdl.Color.red,
-            .font_size = 32,
+            .tint_color = sdl.Color.red,
         },
         "ABCDEFGHIJKL abcdefghijkl",
         .{},
     );
-    try ctx.renderer().fillRectF(result.area);
+    area = try atlas.getBoundingBox(
+        "ABCDEFGHIJKL abcdefghijkl",
+        .{ .x = 0, .y = size.y },
+        .bottom,
+        .aligned,
+    );
+    try j2d.rectFilled(area, rect_color, .{});
+    try j2d.end();
 }
 
 pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-
-    atlas.destroy();
-    font.destroy();
 }

@@ -82,8 +82,6 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    ctx.displayStats();
-
     if (ctx.isKeyPressed(.up)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, -10));
     if (ctx.isKeyPressed(.down)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, 10));
     if (ctx.isKeyPressed(.left)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(-10, 0));
@@ -93,7 +91,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    _ = ctx;
+    ctx.displayStats(.{});
 
     try j2d.begin(.{ .blend_method = .additive });
     try j2d.effects(ps);
