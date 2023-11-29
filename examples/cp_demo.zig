@@ -179,6 +179,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    ctx.displayStats(.{});
     try world.debugDraw(ctx.renderer());
 }
 
