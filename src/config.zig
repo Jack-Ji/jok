@@ -6,8 +6,8 @@ pub const Config = struct {
     /// Logging level
     jok_log_level: std.log.Level = std.log.default_level,
 
-    /// FPS limiting (auto means vsync)
-    jok_fps_limit: FpsLimit = .auto,
+    /// FPS limiting
+    jok_fps_limit: FpsLimit = .{ .manual = 60 },
 
     /// Default memory allocator
     jok_allocator: ?std.mem.Allocator = null,
@@ -77,7 +77,7 @@ pub const WindowSize = union(enum) {
 pub const FpsLimit = union(enum) {
     none, // No limit, draw as fast as we can
     auto, // Enable vsync when hardware acceleration is available, default to 30 fps otherwise
-    manual: u32, // Capped to given fps
+    manual: u32, // Capped to given fps, fixed time step
 
     pub inline fn str(self: @This()) []const u8 {
         return switch (self) {

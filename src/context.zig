@@ -204,9 +204,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         // Frames stats
         _fps: f32 = 0,
-        _last_pc: u64 = 0,
-        _accumulated_pc: u64 = 0,
-        _pc_freq: f64 = 0,
+        _pc_last: u64 = 0,
+        _pc_accumulated: u64 = 0,
+        _pc_freq: u64 = 0,
         _drawcall_count: u32 = 0,
         _triangle_count: u32 = 0,
         _frame_count: u32 = 0,
@@ -246,8 +246,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
 
             // Misc.
-            self._pc_freq = @as(f64, @floatFromInt(sdl.c.SDL_GetPerformanceFrequency()));
-            self._last_pc = sdl.c.SDL_GetPerformanceCounter();
+            self._pc_freq = sdl.c.SDL_GetPerformanceFrequency();
+            self._pc_last = sdl.c.SDL_GetPerformanceCounter();
             return self;
         }
 
@@ -319,41 +319,36 @@ pub fn JokContext(comptime cfg: config.Config) type {
         ) void {
             const fps_pc_threshold: u64 = switch (cfg.jok_fps_limit) {
                 .none => 0,
-                .auto => if (self._is_software)
-                    @divTrunc(@as(u64, @intFromFloat(self._pc_freq)), 30)
-                else
-                    0,
-                .manual => |_fps| @as(u64, @intFromFloat(self._pc_freq)) / @as(u64, @intCast(_fps)),
+                .auto => if (self._is_software) @divTrunc(self._pc_freq, 30) else 0,
+                .manual => |_fps| self._pc_freq / @as(u64, _fps),
             };
-            const max_accumulated = @as(u64, @intFromFloat(self._pc_freq * 0.5));
+            const max_accumulated: u64 = self._pc_freq >> 1;
 
             // Update game
             if (fps_pc_threshold > 0) {
                 while (true) {
                     const pc = sdl.c.SDL_GetPerformanceCounter();
-                    self._accumulated_pc += pc - self._last_pc;
-                    self._last_pc = pc;
-                    if (self._accumulated_pc < fps_pc_threshold) {
-                        const sleep_ms = @as(u32, @intFromFloat(
-                            @as(f64, @floatFromInt((fps_pc_threshold - self._accumulated_pc) * 1000)) / self._pc_freq,
-                        ));
-                        sdl.delay(sleep_ms);
-                    } else {
+                    self._pc_accumulated += pc - self._pc_last;
+                    self._pc_last = pc;
+                    if (self._pc_accumulated >= fps_pc_threshold) {
                         break;
+                    }
+                    if ((fps_pc_threshold - self._pc_accumulated) * 1000 > self._pc_freq) {
+                        sdl.delay(1);
                     }
                 }
 
-                if (self._accumulated_pc > max_accumulated)
-                    self._accumulated_pc = max_accumulated;
+                if (self._pc_accumulated > max_accumulated)
+                    self._pc_accumulated = max_accumulated;
 
                 // Perform as many update as we can, with fixed step
                 var step_count: u32 = 0;
-                const fps_delta_seconds = @as(f32, @floatCast(
-                    @as(f64, @floatFromInt(fps_pc_threshold)) / self._pc_freq,
-                ));
-                while (self._accumulated_pc >= fps_pc_threshold) {
+                const fps_delta_seconds: f32 = @floatCast(
+                    @as(f64, @floatFromInt(fps_pc_threshold)) / @as(f64, @floatFromInt(self._pc_freq)),
+                );
+                while (self._pc_accumulated >= fps_pc_threshold) {
                     step_count += 1;
-                    self._accumulated_pc -= fps_pc_threshold;
+                    self._pc_accumulated -= fps_pc_threshold;
                     self._delta_seconds = fps_delta_seconds;
                     self._seconds += self._delta_seconds;
                     self._seconds_real += self._delta_seconds;
@@ -374,10 +369,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
             } else {
                 // Perform one update
                 const pc = sdl.c.SDL_GetPerformanceCounter();
-                self._delta_seconds = @as(f32, @floatCast(
-                    @as(f64, @floatFromInt(pc - self._last_pc)) / self._pc_freq,
-                ));
-                self._last_pc = pc;
+                self._delta_seconds = @floatCast(
+                    @as(f64, @floatFromInt(pc - self._pc_last)) / @as(f64, @floatFromInt(self._pc_freq)),
+                );
+                self._pc_last = pc;
                 self._seconds += self._delta_seconds;
                 self._seconds_real += self._delta_seconds;
 
