@@ -17,6 +17,7 @@ var screenshot_size: sdl.PointF = undefined;
 var screenshot_tint_color: sdl.Color = undefined;
 var point_easing_system: *easing.EasingSystem(sdl.PointF) = undefined;
 var color_easing_system: *easing.EasingSystem(sdl.Color) = undefined;
+var show_stats: bool = true;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -87,6 +88,8 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
                     .{ .r = 0, .g = 0, .b = 0, .a = 0 },
                     sdl.Color.white,
                 );
+            } else if (k.scancode == .f3) {
+                show_stats = !show_stats;
             }
         },
         else => {},
@@ -99,7 +102,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.displayStats(.{});
+    if (show_stats) ctx.displayStats(.{});
 
     const fb_size = ctx.getFramebufferSize();
     const center_x = fb_size.x / 2;
@@ -258,8 +261,8 @@ pub fn draw(ctx: jok.Context) !void {
     );
     _ = try font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 0, .y = 17 } },
-        "Press F2 to take screenshot",
+        .{ .pos = .{ .x = 0, .y = 34 } },
+        "Press F3 to toggle frame statistics",
         .{},
     );
 }

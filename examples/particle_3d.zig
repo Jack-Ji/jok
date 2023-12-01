@@ -165,13 +165,13 @@ pub fn draw(ctx: jok.Context) !void {
 
     try font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 200, .y = 10 } },
+        .{ .pos = .{ .x = 20, .y = 10 } },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );
     try font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 200, .y = 28 } },
+        .{ .pos = .{ .x = 20, .y = 28 } },
         "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
         .{
             // zig fmt: off

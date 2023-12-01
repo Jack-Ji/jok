@@ -64,6 +64,9 @@ pub const Config = struct {
 
     /// Prebuild atlas for debug font
     jok_prebuild_atlas: ?u32 = 16,
+
+    /// Whether enable detailed frame statistics
+    jok_detailed_frame_stats: bool = true,
 };
 
 /// Initial size of window
@@ -123,6 +126,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_exit_on_recv_quit", .desc = "whether exit game when getting quit event" },
         .{ .name = "jok_imgui_ini_file", .desc = "whether let imgui load/save ini file" },
         .{ .name = "jok_prebuild_atlas", .desc = "whether prebuild atlas for debug font" },
+        .{ .name = "jok_detailed_frame_stats", .desc = "whether enable detailed frame statistics" },
     };
     const game_struct = @typeInfo(game).Struct;
     for (game_struct.decls) |f| {

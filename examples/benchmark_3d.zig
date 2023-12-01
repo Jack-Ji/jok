@@ -144,7 +144,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     try font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 200, .y = 10 } },
+        .{ .pos = .{ .x = 20, .y = 10 } },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );
