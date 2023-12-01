@@ -288,6 +288,83 @@ pub fn JokContext(comptime cfg: config.Config) type {
             comptime updateFn: *const fn (Context) anyerror!void,
             comptime drawFn: *const fn (Context) anyerror!void,
         ) void {
+            const pc_threshold: u64 = switch (cfg.jok_fps_limit) {
+                .none => 0,
+                .auto => if (self._is_software) @divTrunc(self._pc_freq, 30) else 0,
+                .manual => |_fps| self._pc_freq / @as(u64, _fps),
+            };
+            const max_accumulated: u64 = self._pc_freq >> 1;
+
+            // Update game
+            imgui.sdl.newFrame(self.context());
+            if (pc_threshold > 0) {
+                while (true) {
+                    const pc = sdl.c.SDL_GetPerformanceCounter();
+                    self._pc_accumulated += pc - self._pc_last;
+                    self._pc_last = pc;
+                    if (self._pc_accumulated >= pc_threshold) {
+                        break;
+                    }
+                    if ((pc_threshold - self._pc_accumulated) * 1000 > self._pc_freq) {
+                        sdl.delay(1);
+                    }
+                }
+
+                if (self._pc_accumulated > max_accumulated)
+                    self._pc_accumulated = max_accumulated;
+
+                // Perform as many update as we can, with fixed step
+                var step_count: u32 = 0;
+                const fps_delta_seconds: f32 = @floatCast(
+                    @as(f64, @floatFromInt(pc_threshold)) / @as(f64, @floatFromInt(self._pc_freq)),
+                );
+                while (self._pc_accumulated >= pc_threshold) {
+                    step_count += 1;
+                    self._pc_accumulated -= pc_threshold;
+                    self._delta_seconds = fps_delta_seconds;
+                    self._seconds += self._delta_seconds;
+                    self._seconds_real += self._delta_seconds;
+
+                    self.update(eventFn, updateFn);
+                }
+                assert(step_count > 0);
+
+                // Set delta time between `draw`
+                self._delta_seconds = @as(f32, @floatFromInt(step_count)) * fps_delta_seconds;
+            } else {
+                // Perform one update
+                const pc = sdl.c.SDL_GetPerformanceCounter();
+                self._delta_seconds = @floatCast(
+                    @as(f64, @floatFromInt(pc - self._pc_last)) / @as(f64, @floatFromInt(self._pc_freq)),
+                );
+                self._pc_last = pc;
+                self._seconds += self._delta_seconds;
+                self._seconds_real += self._delta_seconds;
+
+                self.update(eventFn, updateFn);
+            }
+
+            // Do rendering
+            self._renderer.clear() catch unreachable;
+            drawFn(self._ctx) catch |e| {
+                log.err("Got error in `draw`: {}", .{e});
+                if (@errorReturnTrace()) |trace| {
+                    std.debug.dumpStackTrace(trace.*);
+                    kill(self);
+                    return;
+                }
+            };
+            imgui.sdl.draw();
+            self._renderer.present();
+            self.updateFrameStats();
+        }
+
+        /// Update game state
+        inline fn update(
+            self: *@This(),
+            comptime eventFn: *const fn (Context, sdl.Event) anyerror!void,
+            comptime updateFn: *const fn (Context) anyerror!void,
+        ) void {
             while (sdl.pollNativeEvent()) |e| {
                 _ = imgui.sdl.processEvent(e);
                 const we = sdl.Event.from(e);
@@ -308,98 +385,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 }
             }
 
-            self.internalLoop(updateFn, drawFn);
-        }
-
-        /// Internal game loop
-        inline fn internalLoop(
-            self: *@This(),
-            comptime updateFn: *const fn (Context) anyerror!void,
-            comptime drawFn: *const fn (Context) anyerror!void,
-        ) void {
-            const fps_pc_threshold: u64 = switch (cfg.jok_fps_limit) {
-                .none => 0,
-                .auto => if (self._is_software) @divTrunc(self._pc_freq, 30) else 0,
-                .manual => |_fps| self._pc_freq / @as(u64, _fps),
-            };
-            const max_accumulated: u64 = self._pc_freq >> 1;
-
-            // Update game
-            if (fps_pc_threshold > 0) {
-                while (true) {
-                    const pc = sdl.c.SDL_GetPerformanceCounter();
-                    self._pc_accumulated += pc - self._pc_last;
-                    self._pc_last = pc;
-                    if (self._pc_accumulated >= fps_pc_threshold) {
-                        break;
-                    }
-                    if ((fps_pc_threshold - self._pc_accumulated) * 1000 > self._pc_freq) {
-                        sdl.delay(1);
-                    }
-                }
-
-                if (self._pc_accumulated > max_accumulated)
-                    self._pc_accumulated = max_accumulated;
-
-                // Perform as many update as we can, with fixed step
-                var step_count: u32 = 0;
-                const fps_delta_seconds: f32 = @floatCast(
-                    @as(f64, @floatFromInt(fps_pc_threshold)) / @as(f64, @floatFromInt(self._pc_freq)),
-                );
-                while (self._pc_accumulated >= fps_pc_threshold) {
-                    step_count += 1;
-                    self._pc_accumulated -= fps_pc_threshold;
-                    self._delta_seconds = fps_delta_seconds;
-                    self._seconds += self._delta_seconds;
-                    self._seconds_real += self._delta_seconds;
-
-                    updateFn(self._ctx) catch |e| {
-                        log.err("Got error in `update`: {}", .{e});
-                        if (@errorReturnTrace()) |trace| {
-                            std.debug.dumpStackTrace(trace.*);
-                            kill(self);
-                            return;
-                        }
-                    };
-                }
-                assert(step_count > 0);
-
-                // Set delta time between `draw`
-                self._delta_seconds = @as(f32, @floatFromInt(step_count)) * fps_delta_seconds;
-            } else {
-                // Perform one update
-                const pc = sdl.c.SDL_GetPerformanceCounter();
-                self._delta_seconds = @floatCast(
-                    @as(f64, @floatFromInt(pc - self._pc_last)) / @as(f64, @floatFromInt(self._pc_freq)),
-                );
-                self._pc_last = pc;
-                self._seconds += self._delta_seconds;
-                self._seconds_real += self._delta_seconds;
-
-                updateFn(self._ctx) catch |e| {
-                    log.err("Got error in `update`: {}", .{e});
-                    if (@errorReturnTrace()) |trace| {
-                        std.debug.dumpStackTrace(trace.*);
-                        kill(self);
-                        return;
-                    }
-                };
-            }
-
-            // Do rendering
-            self._renderer.clear() catch unreachable;
-            imgui.sdl.newFrame(self.context());
-            drawFn(self._ctx) catch |e| {
-                log.err("Got error in `draw`: {}", .{e});
+            updateFn(self._ctx) catch |e| {
+                log.err("Got error in `update`: {}", .{e});
                 if (@errorReturnTrace()) |trace| {
                     std.debug.dumpStackTrace(trace.*);
                     kill(self);
                     return;
                 }
             };
-            imgui.sdl.draw();
-            self._renderer.present();
-            self.updateFrameStats();
         }
 
         /// Update frame stats once per second

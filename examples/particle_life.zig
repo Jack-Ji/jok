@@ -10,6 +10,7 @@ const j2d = jok.j2d;
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1200, .height = 800 },
 };
+pub const jok_fps_limit = jok.config.FpsLimit.auto;
 
 // Image positions
 const xshift = 50;
