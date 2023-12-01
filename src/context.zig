@@ -155,6 +155,7 @@ pub const Context = struct {
 pub const DisplayStats = struct {
     movable: bool = false,
     collapsible: bool = false,
+    width: f32 = 250,
 };
 
 /// Context generator
@@ -824,6 +825,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const fb = getFramebufferSize(ptr);
             imgui.setNextWindowBgAlpha(.{ .alpha = 0.7 });
             imgui.setNextWindowPos(.{ .x = fb.x, .y = 0, .pivot_x = 1 });
+            imgui.setNextWindowSize(.{ .w = opt.width, .h = 0, .cond = .always });
             if (imgui.begin("Frame Statistics", .{
                 .flags = .{
                     .no_title_bar = !opt.collapsible,
@@ -846,8 +848,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     imgui.text("Triangles: {d}", .{self._triangle_count});
                     imgui.separator();
                     if (plot.beginPlot("Costs of Update/Draw (ms)", .{
-                        .w = 250,
-                        .h = 150,
+                        .h = opt.width * 3 / 4,
                         .flags = .{ .no_menus = true },
                     })) {
                         plot.setupLegend(
