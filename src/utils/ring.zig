@@ -1,6 +1,7 @@
-const Allocator = @import("std").mem.Allocator;
-const assert = @import("std").debug.assert;
-const copyForwards = @import("std").mem.copyForwards;
+const std = @import("std");
+const Allocator = std.mem.Allocator;
+const assert = std.debug.assert;
+const copyForwards = std.mem.copyForwards;
 
 pub fn Ring(comptime T: type) type {
     return struct {
@@ -49,11 +50,11 @@ pub fn Ring(comptime T: type) type {
         /// Write `data` into the ring buffer. If the ring buffer is full, the
         /// oldest data is overwritten.
         pub fn writeAssumeCapacity(self: *RingType, data: T) void {
-            self.data[self.mask(self.write_index)] = data;
-            self.write_index = self.mask2(self.write_index + 1);
-            if (self.write_index == self.read_index) {
+            if (self.isFull()) {
                 self.read_index = self.mask2(self.read_index + 1);
             }
+            self.data[self.mask(self.write_index)] = data;
+            self.write_index = self.mask2(self.write_index + 1);
         }
 
         /// Write `data` into the ring buffer. Returns `error.Full` if the ring
@@ -87,7 +88,7 @@ pub fn Ring(comptime T: type) type {
             self.write_index = self.mask2(self.write_index + data.len);
 
             if (old_length + data.len > self.data.len) {
-                self.read_index = self.mask2(self.read_index + old_length - data.len > self.data.len);
+                self.read_index = self.mask2(self.read_index + old_length + data.len - self.data.len);
             }
         }
 
@@ -119,7 +120,7 @@ pub fn Ring(comptime T: type) type {
             self.write_index = self.mask2(self.write_index + data.len);
 
             if (old_length + data.len > self.data.len) {
-                self.read_index = self.mask2(self.read_index + old_length - data.len > self.data.len);
+                self.read_index = self.mask2(self.read_index + old_length + data.len - self.data.len);
             }
         }
 
@@ -197,6 +198,7 @@ pub fn Ring(comptime T: type) type {
         pub fn len(self: RingType) usize {
             const wrap_offset = 2 * self.data.len * @intFromBool(self.write_index < self.read_index);
             const adjusted_write_index = self.write_index + wrap_offset;
+
             return adjusted_write_index - self.read_index;
         }
 

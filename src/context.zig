@@ -168,7 +168,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
     return struct {
         var gpa: AllocatorType = .{};
-        const max_costs_num = 90;
+        const max_costs_num = 300;
         const CostDataType = jok.utils.ring.Ring(f32);
 
         // Application Context
@@ -211,10 +211,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _pc_last: u64 = 0,
         _pc_accumulated: u64 = 0,
         _pc_freq: u64 = 0,
+        _pc_max_accumulated: u64 = 0,
         _drawcall_count: u32 = 0,
         _triangle_count: u32 = 0,
         _frame_count: u32 = 0,
         _last_fps_refresh_time: f64 = 0,
+        _last_costs_refresh_time: f64 = 0,
         _update_cost: f32 = 0,
         _draw_cost: f32 = 0,
         _recent_update_costs: CostDataType = undefined,
@@ -256,6 +258,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Misc.
             self._pc_freq = sdl.c.SDL_GetPerformanceFrequency();
+            self._pc_max_accumulated = self._pc_freq / 2;
             self._pc_last = sdl.c.SDL_GetPerformanceCounter();
             self._recent_update_costs = try CostDataType.init(self._allocator, max_costs_num);
             self._recent_draw_costs = try CostDataType.init(self._allocator, max_costs_num);
@@ -310,7 +313,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .auto => if (self._is_software) @divTrunc(self._pc_freq, 30) else 0,
                 .manual => |_fps| self._pc_freq / @as(u64, _fps),
             };
-            const max_accumulated: u64 = self._pc_freq >> 2;
 
             // Update game
             imgui.sdl.newFrame(self.context());
@@ -327,8 +329,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     }
                 }
 
-                if (self._pc_accumulated > max_accumulated)
-                    self._pc_accumulated = max_accumulated;
+                if (self._pc_accumulated > self._pc_max_accumulated)
+                    self._pc_accumulated = self._pc_max_accumulated;
 
                 // Perform as many update as we can, with fixed step
                 var step_count: u32 = 0;
@@ -342,7 +344,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     self._seconds += self._delta_seconds;
                     self._seconds_real += self._delta_seconds;
 
-                    self.update(eventFn, updateFn);
+                    self._update(eventFn, updateFn);
                 }
                 assert(step_count > 0);
 
@@ -358,7 +360,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._seconds += self._delta_seconds;
                 self._seconds_real += self._delta_seconds;
 
-                self.update(eventFn, updateFn);
+                self._update(eventFn, updateFn);
             }
 
             // Do rendering
@@ -382,11 +384,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 imgui.sdl.draw();
             }
             self._renderer.present();
-            self.updateFrameStats();
+            self._updateFrameStats();
         }
 
         /// Update game state
-        inline fn update(
+        inline fn _update(
             self: *@This(),
             comptime eventFn: *const fn (Context, sdl.Event) anyerror!void,
             comptime updateFn: *const fn (Context) anyerror!void,
@@ -429,28 +431,27 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Update frame stats once per second
-        inline fn updateFrameStats(self: *@This()) void {
+        inline fn _updateFrameStats(self: *@This()) void {
             self._frame_count += 1;
-            if ((self._seconds_real - self._last_fps_refresh_time) >= 1.0) {
-                defer self._frame_count = 0;
-
+            if ((self._seconds_real - self._last_fps_refresh_time) >= 1) {
                 const duration = self._seconds_real - self._last_fps_refresh_time;
                 self._fps = @as(f32, @floatCast(
                     @as(f64, @floatFromInt(self._frame_count)) / duration,
                 ));
                 self._last_fps_refresh_time = self._seconds_real;
-
-                if (cfg.jok_detailed_frame_stats) {
-                    const dc_stats = imgui.sdl.getDrawCallStats();
-                    self._drawcall_count = dc_stats[0] / self._frame_count;
-                    self._triangle_count = dc_stats[1] / self._frame_count;
-                    imgui.sdl.clearDrawCallStats();
-                    self._recent_update_costs.writeAssumeCapacity(self._update_cost);
-                    self._recent_draw_costs.writeAssumeCapacity(self._draw_cost);
-                    self._recent_total_costs.writeAssumeCapacity(self._update_cost + self._draw_cost);
-                    self._update_cost = 0;
-                    self._draw_cost = 0;
-                }
+                const dc_stats = imgui.sdl.getDrawCallStats();
+                self._drawcall_count = dc_stats[0] / self._frame_count;
+                self._triangle_count = dc_stats[1] / self._frame_count;
+                imgui.sdl.clearDrawCallStats();
+                self._frame_count = 0;
+            }
+            if (cfg.jok_detailed_frame_stats and (self._seconds_real - self._last_costs_refresh_time) >= 0.1) {
+                self._last_costs_refresh_time = self._seconds_real;
+                self._recent_update_costs.writeAssumeCapacity(self._update_cost);
+                self._recent_draw_costs.writeAssumeCapacity(self._draw_cost);
+                self._recent_total_costs.writeAssumeCapacity(self._update_cost + self._draw_cost);
+                self._update_cost = 0;
+                self._draw_cost = 0;
             }
         }
 
@@ -842,10 +843,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 imgui.text("FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
                 imgui.text("CPU: {d:.1}ms", .{1000.0 / self._fps});
                 imgui.text("Memory: {:.3}", .{std.fmt.fmtIntSizeBin(gpa.total_requested_bytes)});
+                imgui.text("Draw Calls: {d}", .{self._drawcall_count});
+                imgui.text("Triangles: {d}", .{self._triangle_count});
 
                 if (cfg.jok_detailed_frame_stats) {
-                    imgui.text("Draw Calls: {d}", .{self._drawcall_count});
-                    imgui.text("Triangles: {d}", .{self._triangle_count});
                     imgui.separator();
                     if (plot.beginPlot("Costs of Update/Draw (ms)", .{
                         .h = opt.width * 3 / 4,
@@ -862,12 +863,15 @@ pub fn JokContext(comptime cfg: config.Config) type {
                                 .no_label = true,
                                 .no_tick_labels = true,
                                 .no_highlight = true,
+                                .lock_min = true,
+                                .lock_max = true,
                             },
                         });
                         plot.setupAxis(.y1, .{
                             .flags = .{
                                 .no_label = true,
                                 .no_highlight = true,
+                                .lock_min = true,
                             },
                         });
                         plot.pushStyleColor4f(.{
@@ -879,10 +883,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
                             .c = .{ 0.2, 0.2, 0.2, 0.2 },
                         });
                         defer plot.popStyleColor(.{ .count = 2 });
-                        var update_costs: [60]f32 = undefined;
-                        var draw_costs: [60]f32 = undefined;
-                        var total_costs: [60]f32 = undefined;
-                        const size = @min(self._recent_update_costs.len(), 60);
+                        var update_costs: [max_costs_num]f32 = undefined;
+                        var draw_costs: [max_costs_num]f32 = undefined;
+                        var total_costs: [max_costs_num]f32 = undefined;
+                        const size = self._recent_update_costs.len();
                         var costs = self._recent_update_costs.sliceLast(size);
                         @memcpy(update_costs[0..costs.first.len], costs.first);
                         @memcpy(update_costs[costs.first.len .. costs.first.len + costs.second.len], costs.second);
