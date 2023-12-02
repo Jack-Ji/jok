@@ -38,6 +38,7 @@ pub const Context = struct {
         isKeyPressed: *const fn (ctx: *anyopaque, key: sdl.Scancode) bool,
         getMouseState: *const fn (ctx: *anyopaque) sdl.MouseState,
         setMousePosition: *const fn (ctx: *anyopaque, xrel: f32, yrel: f32) void,
+        isRunningSlow: *const fn (ctx: *anyopaque) bool,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
     },
 
@@ -146,6 +147,11 @@ pub const Context = struct {
         return self.vtable.setMousePosition(self.ctx, xrel, yrel);
     }
 
+    /// Whether game is running slow
+    pub fn isRunningSlow(self: Context) bool {
+        return self.vtable.isRunningSlow(self.ctx);
+    }
+
     /// Display statistics
     pub fn displayStats(self: Context, opt: DisplayStats) void {
         return self.vtable.displayStats(self.ctx, opt);
@@ -205,6 +211,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         // Delta time between update/draw
         _delta_seconds: f32 = 0,
+
+        // Whether game is running slow
+        _running_slow: bool = false,
+        _frame_lag: u64 = 0,
 
         // Frames stats
         _fps: f32 = 0,
@@ -347,6 +357,16 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     self._update(eventFn, updateFn);
                 }
                 assert(step_count > 0);
+
+                // Update frame lag
+                self._frame_lag += @max(0, step_count - 1);
+                if (self._running_slow) {
+                    if (self._frame_lag == 0) self._running_slow = false;
+                } else if (self._frame_lag >= 5) {
+                    // Consider game running slow when lagging more than 5 frames
+                    self._running_slow = true;
+                }
+                if (self._frame_lag > 0 and step_count == 1) self._frame_lag -= 1;
 
                 // Set delta time between `draw`
                 self._delta_seconds = @as(f32, @floatFromInt(step_count)) * fps_delta_seconds;
@@ -640,6 +660,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .isKeyPressed = isKeyPressed,
                     .getMouseState = getMouseState,
                     .setMousePosition = setMousePosition,
+                    .isRunningSlow = isRunningSlow,
                     .displayStats = displayStats,
                 },
             };
@@ -819,6 +840,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
             );
         }
 
+        pub fn isRunningSlow(ptr: *anyopaque) bool {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            return self._running_slow;
+        }
+
         /// Display frame statistics
         fn displayStats(ptr: *anyopaque, opt: DisplayStats) void {
             const self: *@This() = @ptrCast(@alignCast(ptr));
@@ -842,8 +868,13 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 imgui.text("VSync Enabled: {}", .{rdinfo.flags & sdl.c.SDL_RENDERER_PRESENTVSYNC != 0});
                 imgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
                 imgui.separator();
-                imgui.text("FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
-                imgui.text("CPU: {d:.1}ms", .{1000.0 / self._fps});
+                if (self._running_slow) {
+                    imgui.textColored(.{ 1, 0, 0, 1 }, "FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
+                    imgui.textColored(.{ 1, 0, 0, 1 }, "CPU: {d:.1}ms", .{1000.0 / self._fps});
+                } else {
+                    imgui.text("FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
+                    imgui.text("CPU: {d:.1}ms", .{1000.0 / self._fps});
+                }
                 imgui.text("Memory: {:.3}", .{std.fmt.fmtIntSizeBin(gpa.total_requested_bytes)});
                 imgui.text("Draw Calls: {d}", .{self._drawcall_count});
                 imgui.text("Triangles: {d}", .{self._triangle_count});

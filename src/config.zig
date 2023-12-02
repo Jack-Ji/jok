@@ -16,7 +16,7 @@ pub const Config = struct {
     jok_mem_leak_checks: bool = true,
     jok_mem_detail_logs: bool = false,
 
-    /// Whether use pure-software renderer
+    /// Whether use pure-software renderer (NOTE: SDL might ignore this setting when GPU is available)
     jok_software_renderer: bool = false,
 
     /// Whether fallback to software renderer when gpu isn't found
