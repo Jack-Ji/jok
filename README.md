@@ -124,13 +124,13 @@ Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.
 TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem` with `.Windows` in your build script.
 
 ## NOTE
-**Jok** is developed in the spirit of retro-machines (especially SNES/PS1), which implies following limitations:
+**Jok** is not for everyone, it's developed in the spirit of retro-machines (especially SNES/PS1), which implies following limitations:
 * Custom vertex/fragment shader is not possible
 * Only support [affine texture mapping](https://en.wikipedia.org/wiki/Texture_mapping#Affine_texture_mapping)
 * No [depth buffer](https://en.wikipedia.org/wiki/Z-buffering)
 
-The limitations demand developers to be both creative and careful about game's design, which in my opinion can lead to
-very awesome product. Just like old saying, "Constraints breed creativity".
+The limitations demand developers to be both creative and careful about game's design, which can lead to
+very awesome product in my opinion. Like old saying: "Constraints breed creativity".
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
