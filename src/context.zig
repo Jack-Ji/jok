@@ -822,6 +822,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Display frame statistics
         fn displayStats(ptr: *anyopaque, opt: DisplayStats) void {
             const self: *@This() = @ptrCast(@alignCast(ptr));
+            const rdinfo = self._renderer.getInfo() catch unreachable;
             const ws = getWindowSize(ptr);
             const fb = getFramebufferSize(ptr);
             imgui.setNextWindowBgAlpha(.{ .alpha = 0.7 });
@@ -838,6 +839,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 imgui.text("Window Size: {d}x{d}", .{ ws.x, ws.y });
                 imgui.text("Framebuffer Size: {d}x{d}", .{ fb.x, fb.y });
                 imgui.text("GPU Enabled: {}", .{!self._is_software});
+                imgui.text("VSync Enabled: {}", .{rdinfo.flags & sdl.c.SDL_RENDERER_PRESENTVSYNC != 0});
                 imgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
                 imgui.separator();
                 imgui.text("FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
