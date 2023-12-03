@@ -884,7 +884,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 imgui.text("Draw Calls: {d}", .{self._drawcall_count});
                 imgui.text("Triangles: {d}", .{self._triangle_count});
 
-                if (cfg.jok_detailed_frame_stats) {
+                if (cfg.jok_detailed_frame_stats and self._seconds_real > 1) {
                     imgui.separator();
                     if (plot.beginPlot("Costs of Update/Draw (ms)", .{
                         .h = opt.width * 3 / 4,
@@ -900,7 +900,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         });
                         plot.setupAxisLimits(.y1, .{
                             .min = 0,
-                            .max = self._update_cost + self._draw_cost + 5,
+                            .max = @max(20, self._update_cost + self._draw_cost + 5),
                         });
                         plot.setupAxis(.x1, .{
                             .flags = .{
