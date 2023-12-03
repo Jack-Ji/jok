@@ -48,11 +48,7 @@ pub fn createTextureFromPixels(
             var i: u32 = 0;
             while (i < height) : (i += 1) {
                 const line = data.scanline(@as(usize, i), u8);
-                std.mem.copy(
-                    u8,
-                    line[0..stride],
-                    px[i * stride .. (i + 1) * stride],
-                );
+                @memcpy(line[0..stride], px[i * stride .. (i + 1) * stride]);
             }
         } else {
             try tex.update(px, stride, null);

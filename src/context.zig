@@ -162,6 +162,7 @@ pub const DisplayStats = struct {
     movable: bool = false,
     collapsible: bool = false,
     width: f32 = 250,
+    duration: u32 = 15,
 };
 
 /// Context generator
@@ -852,12 +853,16 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const ws = getWindowSize(ptr);
             const fb = getFramebufferSize(ptr);
             imgui.setNextWindowBgAlpha(.{ .alpha = 0.7 });
-            imgui.setNextWindowPos(.{ .x = fb.x, .y = 0, .pivot_x = 1 });
+            imgui.setNextWindowPos(.{
+                .x = fb.x,
+                .y = 0,
+                .pivot_x = 1,
+                .cond = if (opt.movable) .once else .always,
+            });
             imgui.setNextWindowSize(.{ .w = opt.width, .h = 0, .cond = .always });
             if (imgui.begin("Frame Statistics", .{
                 .flags = .{
                     .no_title_bar = !opt.collapsible,
-                    .no_move = opt.movable,
                     .no_resize = true,
                     .always_auto_resize = true,
                 },
@@ -889,8 +894,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
                             .{ .south = true },
                             .{ .horizontal = true, .outside = true },
                         );
-                        plot.setupAxisLimits(.x1, .{ .min = 0, .max = max_costs_num });
-                        plot.setupAxisLimits(.y1, .{ .min = 0, .max = 30 });
+                        plot.setupAxisLimits(.x1, .{
+                            .min = 0,
+                            .max = @floatFromInt(@min(max_costs_num, opt.duration * 10)),
+                        });
+                        plot.setupAxisLimits(.y1, .{
+                            .min = 0,
+                            .max = self._update_cost + self._draw_cost + 5,
+                        });
                         plot.setupAxis(.x1, .{
                             .flags = .{
                                 .no_label = true,
@@ -919,7 +930,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         var update_costs: [max_costs_num]f32 = undefined;
                         var draw_costs: [max_costs_num]f32 = undefined;
                         var total_costs: [max_costs_num]f32 = undefined;
-                        const size = self._recent_update_costs.len();
+                        const size = @min(self._recent_update_costs.len(), opt.duration * 10);
                         var costs = self._recent_update_costs.sliceLast(size);
                         @memcpy(update_costs[0..costs.first.len], costs.first);
                         @memcpy(update_costs[costs.first.len .. costs.first.len + costs.second.len], costs.second);
