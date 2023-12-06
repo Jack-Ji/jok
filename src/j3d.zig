@@ -35,7 +35,7 @@ pub const BeginOption = struct {
     triangle_sort: TriangleSort = .none,
 };
 
-pub const TriangleSort = union(enum) {
+pub const TriangleSort = union(enum(u8)) {
     // Send to gpu directly, use it when objects are ordered manually
     none,
 
