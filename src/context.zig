@@ -870,7 +870,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 imgui.text("Window Size: {d}x{d}", .{ ws.x, ws.y });
                 imgui.text("Framebuffer Size: {d}x{d}", .{ fb.x, fb.y });
                 imgui.text("GPU Enabled: {}", .{!self._is_software});
-                imgui.text("VSync Enabled: {}", .{rdinfo.flags & sdl.c.SDL_RENDERER_PRESENTVSYNC != 0});
+                imgui.text("V-Sync Enabled: {}", .{rdinfo.flags & sdl.c.SDL_RENDERER_PRESENTVSYNC != 0});
                 imgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
                 imgui.separator();
                 if (self._running_slow) {
@@ -886,10 +886,13 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
                 if (cfg.jok_detailed_frame_stats and self._seconds_real > 1) {
                     imgui.separator();
-                    if (plot.beginPlot("Costs of Update/Draw (ms)", .{
-                        .h = opt.width * 3 / 4,
-                        .flags = .{ .no_menus = true },
-                    })) {
+                    if (plot.beginPlot(
+                        imgui.formatZ("Costs of Update/Draw ({}s)", .{opt.duration}),
+                        .{
+                            .h = opt.width * 3 / 4,
+                            .flags = .{ .no_menus = true },
+                        },
+                    )) {
                         plot.setupLegend(
                             .{ .south = true },
                             .{ .horizontal = true, .outside = true },
