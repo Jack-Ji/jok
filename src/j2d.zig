@@ -1040,3 +1040,7 @@ pub const Path = struct {
         });
     }
 };
+
+test "j2d" {
+    _ = Vector;
+}

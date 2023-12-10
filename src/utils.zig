@@ -15,3 +15,16 @@ pub const async_tool = @import("utils/async.zig");
 
 /// Generic ring data structure
 pub const ring = @import("utils/ring.zig");
+
+/// XML processing
+pub const xml = @import("utils/xml.zig");
+
+/// Trait system
+pub const trait = @import("utils/trait.zig");
+
+test "utils" {
+    _ = async_tool;
+    _ = xml;
+    _ = ring;
+    _ = trait;
+}

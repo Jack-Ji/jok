@@ -1,7 +1,8 @@
 const std = @import("std");
 const testing = std.testing;
-const trait = std.meta.trait;
+const meta = std.meta;
 const builtin = @import("builtin");
+const trait = @import("./trait.zig");
 
 /// Represent a value returned by async task in the future.
 pub fn Future(comptime T: type) type {

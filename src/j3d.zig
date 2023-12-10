@@ -1166,3 +1166,7 @@ pub fn rock(model: zmath.Mat, opt: RockOption) !void {
 
     try shape(m.shape, model, m.aabb, opt.rdopt);
 }
+
+test "j3d" {
+    _ = Vector;
+}

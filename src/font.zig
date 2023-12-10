@@ -74,3 +74,5 @@ pub fn debugDraw(ctx: jok.Context, opt: DrawOption, comptime fmt: []const u8, ar
     );
     try j2d.end();
 }
+
+test "font" {}
