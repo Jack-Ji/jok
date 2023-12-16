@@ -294,14 +294,13 @@ pub fn createTextureAsTarget(rd: sdl.Renderer, opt: CreateTarget) !sdl.Texture {
     return tex;
 }
 
+/// Render to texture and return it. @renderer can be any struct with
+/// method `fn draw(self: @This(), renderer: sdl.Renderer, size: sdl.PointF) !void`
 pub const RenderToTexture = struct {
     target: ?sdl.Texture = null,
     size: ?sdl.Point = null,
     clear_color: ?sdl.Color = null,
 };
-
-/// Render to texture and return it. @renderer can be any struct with
-/// method `fn draw(self: @This(), renderer: sdl.Renderer, size: sdl.PointF) !void`
 pub fn renderToTexture(rd: sdl.Renderer, renderer: anytype, opt: RenderToTexture) !sdl.Texture {
     const old_target = sdl.c.SDL_GetRenderTarget(rd.ptr);
     const target = opt.target orelse try createTextureAsTarget(
