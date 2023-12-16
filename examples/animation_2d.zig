@@ -95,6 +95,8 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    try ctx.renderer().clear();
+
     try j2d.begin(.{});
     try j2d.sprite(
         sheet.getSpriteByName("player").?,

@@ -43,7 +43,8 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    _ = ctx;
+    try ctx.renderer().clear();
+
     var tri_color = sdl.Color.white;
     var tri_thickness = @as(f32, 2);
     const tri0 = [_][2]f32{

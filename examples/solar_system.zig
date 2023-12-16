@@ -113,6 +113,8 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    try ctx.renderer().clear();
+
     var lighting_opt = j3d.lighting.LightingOption{};
     lighting_opt.lights[0] = j3d.lighting.Light{
         .point = .{

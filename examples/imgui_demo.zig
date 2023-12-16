@@ -47,6 +47,9 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    // No need at all
+    //try ctx.renderer().clear();
+
     const mouse_state = ctx.getMouseState();
     imgui.setNextWindowPos(.{
         .x = @floatFromInt(mouse_state.x + 10),

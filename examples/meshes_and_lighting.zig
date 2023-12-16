@@ -99,6 +99,8 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    try ctx.renderer().clear();
+
     ctx.displayStats(.{});
 
     if (imgui.begin("Control Panel", .{})) {

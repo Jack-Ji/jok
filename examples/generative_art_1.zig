@@ -20,7 +20,7 @@ var clear_color: ?sdl.Color = sdl.Color.rgba(0, 0, 0, 0);
 pub fn init(ctx: jok.Context) !void {
     for (0..ntex) |_| {
         var node = try ctx.allocator().create(std.TailQueue(sdl.Texture).Node);
-        node.data = try jok.utils.gfx.createTextureAsTarget(ctx.renderer(), null);
+        node.data = try jok.utils.gfx.createTextureAsTarget(ctx.renderer(), .{});
         targets.append(node);
     }
 }
@@ -35,6 +35,8 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    try ctx.renderer().clear();
+
     // Swap oldest to newest if needed
     render_time -= ctx.deltaSeconds();
     if (render_time < 0) {

@@ -26,6 +26,8 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    try ctx.renderer().clear();
+
     const statechange = math.sin(ctx.seconds()) * 0.2;
     const scale = ctx.getFramebufferSize().y / 4;
 

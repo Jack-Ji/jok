@@ -274,8 +274,12 @@ pub fn saveScreenToFile(
 }
 
 /// Create texture for offscreen rendering
-pub fn createTextureAsTarget(rd: sdl.Renderer, _size: ?sdl.Point) !sdl.Texture {
-    const size = _size orelse BLK: {
+pub const CreateTarget = struct {
+    size: ?sdl.Point = null,
+    blend_mode: sdl.BlendMode = .none,
+};
+pub fn createTextureAsTarget(rd: sdl.Renderer, opt: CreateTarget) !sdl.Texture {
+    const size = opt.size orelse BLK: {
         const vp = rd.getViewport();
         break :BLK sdl.Point{ .x = vp.width, .y = vp.height };
     };
@@ -286,7 +290,7 @@ pub fn createTextureAsTarget(rd: sdl.Renderer, _size: ?sdl.Point) !sdl.Texture {
         @intCast(size.x),
         @intCast(size.y),
     );
-    try tex.setBlendMode(.blend);
+    try tex.setBlendMode(opt.blend_mode);
     return tex;
 }
 
@@ -300,7 +304,10 @@ pub const RenderToTexture = struct {
 /// method `fn draw(self: @This(), renderer: sdl.Renderer, size: sdl.PointF) !void`
 pub fn renderToTexture(rd: sdl.Renderer, renderer: anytype, opt: RenderToTexture) !sdl.Texture {
     const old_target = sdl.c.SDL_GetRenderTarget(rd.ptr);
-    const target = opt.target orelse try createTextureAsTarget(rd, opt.size);
+    const target = opt.target orelse try createTextureAsTarget(
+        rd,
+        .{ .size = opt.size },
+    );
     const tex_info = try target.query();
     assert(tex_info.access == .target);
     try rd.setTarget(target);

@@ -38,8 +38,9 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    const sprite = sheet.getSpriteByName("ogre").?;
+    try ctx.renderer().clear();
 
+    const sprite = sheet.getSpriteByName("ogre").?;
     try j2d.begin(.{ .depth_sort = .back_to_forth });
     try j2d.image(
         sheet.tex,

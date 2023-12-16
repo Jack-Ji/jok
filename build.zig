@@ -38,12 +38,12 @@ pub fn build(b: *std.Build) void {
         .{ .name = "benchmark_3d", .opt = .{} },
         .{ .name = "particle_life", .opt = .{ .use_nfd = true } },
         .{ .name = "audio_demo", .opt = .{} },
-        .{ .name = "hypocycloids", .opt = .{} },
         .{ .name = "spiraling_squares", .opt = .{} },
         .{ .name = "easing", .opt = .{} },
         .{ .name = "gltf", .opt = .{} },
-        .{ .name = "generative_art", .opt = .{} },
         .{ .name = "cp_demo", .opt = .{ .use_cp = true } },
+        .{ .name = "generative_art_1", .opt = .{} },
+        .{ .name = "generative_art_2", .opt = .{} },
     };
     const build_examples = b.step("examples", "compile and install all examples");
     inline for (examples) |demo| {

@@ -129,6 +129,8 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    try ctx.renderer().clear();
+
     if (imgui.begin("Tint Color", .{})) {
         var cs: [3]f32 = .{
             @as(f32, @floatFromInt(skybox_tint_color.r)) / 255,

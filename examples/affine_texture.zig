@@ -78,7 +78,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    _ = ctx;
+    try ctx.renderer().clear();
 
     if (imgui.begin("Control Panel", .{})) {
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });

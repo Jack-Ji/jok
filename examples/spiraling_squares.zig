@@ -26,6 +26,8 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    try ctx.renderer().clear();
+
     const fb_size = ctx.getFramebufferSize();
     const rect = sdl.RectangleF{
         .x = -rect_size / 2,

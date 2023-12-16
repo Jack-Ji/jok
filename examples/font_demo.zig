@@ -19,12 +19,14 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    try ctx.renderer().clear();
+
     const size = ctx.getFramebufferSize();
     const rect_color = sdl.Color.rgba(0, 128, 0, 120);
     var area: sdl.RectangleF = undefined;
     var atlas: *font.Atlas = undefined;
 
-    try j2d.begin(.{});
+    try j2d.begin(.{ .depth_sort = .back_to_forth });
     atlas = try font.DebugFont.getAtlas(ctx, 20);
     try j2d.text(
         .{
@@ -79,6 +81,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .y = 4 + 3 * @cos(ctx.seconds()),
             },
             .rotate_degree = ctx.seconds() * 30,
+            .depth = 0,
         },
         "jok!",
         .{},

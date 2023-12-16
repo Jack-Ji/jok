@@ -190,9 +190,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
         // Internal window
         _window: sdl.Window = undefined,
 
-        // Renderer
+        // Renderer stuff
         _renderer: sdl.Renderer = undefined,
         _is_software: bool = false,
+        _target: sdl.Texture = undefined,
 
         // Audio stuff
         _audio_engine: *zaudio.Engine = undefined,
@@ -394,6 +395,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     self._draw_cost = if (self._draw_cost > 0) (self._draw_cost + cost) / 2 else cost;
                 };
 
+                self._renderer.setTarget(self._target) catch unreachable;
                 drawFn(self._ctx) catch |e| {
                     log.err("Got error in `draw`: {}", .{e});
                     if (@errorReturnTrace()) |trace| {
@@ -402,6 +404,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         return;
                     }
                 };
+                self._renderer.setTarget(null) catch unreachable;
+                self._renderer.copy(self._target, null, null) catch unreachable;
                 imgui.sdl.draw();
             }
             self._renderer.present();
@@ -431,6 +435,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 } else if (cfg.jok_exit_on_recv_quit and we == .quit) {
                     kill(self);
                 } else {
+                    if (we == .window and we.window.type == .resized) {
+                        self._target.destroy();
+                        self._target = jok.utils.gfx.createTextureAsTarget(self._renderer, .{}) catch unreachable;
+                    }
                     eventFn(self._ctx, we) catch |err| {
                         log.err("Got error in `event`: {}", .{err});
                         if (@errorReturnTrace()) |trace| {
@@ -625,6 +633,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             };
             const rdinfo = try self._renderer.getInfo();
             self._is_software = ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0);
+            self._target = try jok.utils.gfx.createTextureAsTarget(self._renderer, .{});
             try self._renderer.setDrawBlendMode(.blend);
         }
 

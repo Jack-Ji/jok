@@ -102,6 +102,8 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    try ctx.renderer().clear();
+
     if (show_stats) ctx.displayStats(.{});
 
     const fb_size = ctx.getFramebufferSize();

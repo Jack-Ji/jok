@@ -116,6 +116,8 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
+    try ctx.renderer().clear();
+
     ctx.displayStats(.{});
 
     try j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
