@@ -132,6 +132,13 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
 The limitations demand developers to be both creative and careful about game's design, which can lead to
 very awesome product in my opinion. Like old saying: "Constraints breed creativity".
 
+## What does *jok* mean?
+Jok is actually short for *joke*, which is about how over-complicated modern graphics programming has become.
+People are gradually forgetting lots of computing techniques used to deliver amazing games on simple machines.
+With so many tools, engines and computing resources at hand, however, gamedev is not as fun as it used to be in my opinion. 
+In a word, this project is an offort trying to bring the joy of gamedev back.
+Remember, it's not about the quality of final product you make, it's the process/experience you went through that matters.
+
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
 * [zig-gamedev](https://github.com/michal-z/zig-gamedev) (MIT license)
