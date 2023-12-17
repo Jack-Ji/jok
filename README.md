@@ -8,8 +8,9 @@ A minimal 2d/3d game framework for zig.
 
 ## Features
 * Friendly build system, very easy to setup new project
-* Excellent cross-compiling between Windows and Linux (thanks to [ziglang](https://ziglang.org))
-* Excellent performance (thanks to SDL2's [geometry rendering](https://wiki.libsdl.org/SDL2/SDL_RenderGeometryRaw))
+* Able to cross-compile between Windows and Linux (thanks to [ziglang](https://ziglang.org))
+* Excellent rendering performance (thanks to SDL2's [geometry rendering](https://wiki.libsdl.org/SDL2/SDL_RenderGeometryRaw))
+* Fully integrated Dear-ImGui
 * 2D vector graphics (line/rectangle/quad/triangle/circle/bezier-curve/convex-polygon/custom-path)
 * 2D sprite rendering (scale/rotate/blending/flipping/depth)
 * 2D sprite sheet generation/save/load
@@ -28,7 +29,6 @@ A minimal 2d/3d game framework for zig.
 * Friendly easing system
 * Font loading/rendering (TrueType)
 * Sound/Music playing/mixing
-* Fully integrated Dear-ImGui
 
 ## How to start?
 Copy or clone repo (recursively) to `lib` subdirectory of the root of your project.
