@@ -7,12 +7,14 @@ A minimal 2d/3d game framework for zig.
 * Any code editor you like (consider using [zls](https://github.com/zigtools/zls) for your own favor)
 
 ## Features
-* Pure-software rendering support
-* 2D sprite rendering
+* Friendly build system, very easy to setup new project
+* Excellent cross-compiling between Windows and Linux (thanks to [ziglang](https://ziglang.org))
+* Excellent performance (thanks to SDL2's [geometry rendering](https://wiki.libsdl.org/SDL2/SDL_RenderGeometryRaw))
+* 2D vector graphics (line/rectangle/quad/triangle/circle/bezier-curve/convex-polygon/custom-path)
+* 2D sprite rendering (scale/rotate/blending/flipping/depth)
 * 2D sprite sheet generation/save/load
 * 2D animation system
 * 2D particle system
-* 2D vector graphics
 * 2D scene management
 * 2D physics system (via [chipmunk](https://chipmunk-physics.net/))
 * 3D skybox rendering
@@ -20,7 +22,7 @@ A minimal 2d/3d game framework for zig.
 * 3D glTF 2.0 support
 * 3D rigid/skeleton animation rendering/blending
 * 3D lighting effect (Blinn-Phong model by default, customizable)
-* 3D sprite rendering
+* 3D sprite/billboard rendering
 * 3D particle system
 * 3D scene management
 * Friendly easing system
