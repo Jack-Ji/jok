@@ -28,6 +28,7 @@ A minimal 2d/3d game framework for zig.
 * 3D scene management
 * Friendly easing system
 * Font loading/rendering (TrueType)
+* SVG loading/rendering
 * Sound/Music playing/mixing
 
 ## How to start?
@@ -146,6 +147,7 @@ Remember, it's not about the quality of final product you make, it's the process
 * [zig-gamedev](https://github.com/michal-z/zig-gamedev) (MIT license)
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
 * [stb headers](https://github.com/nothings/stb) (MIT license)
+* [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
 * [nativefiledialog](https://github.com/mlabbe/nativefiledialog) (zlib license)
 
 ## Built-in Fonts

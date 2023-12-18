@@ -5,7 +5,7 @@
 [x] graphics(3d): able to save previous rendered triangles for future use 
 [ ] graphics(3d): parallize j3d.TriangleRender's job
 [ ] graphics(3d): able to merge textures of different meshes and sprites(reduce draw call)
-[ ] graphics(2d): TinyVG rendering
+[x] graphics(2d): svg rendering
 [ ] j3d.Mesh: wavefont .obj support
 [x] font: add codepoint range for CP437
 [x] font: add codepoint range for braille

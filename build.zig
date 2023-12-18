@@ -4,6 +4,7 @@ const sdl = @import("src/deps/sdl/build.zig");
 const imgui = @import("src/deps/imgui/build.zig");
 const zaudio = @import("src/deps/zaudio/build.zig");
 const stb = @import("src/deps/stb/build.zig");
+const svg = @import("src/deps/svg/build.zig");
 const zmath = @import("src/deps/zmath/build.zig");
 const zmesh = @import("src/deps/zmesh/build.zig");
 const znoise = @import("src/deps/znoise/build.zig");
@@ -41,6 +42,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "spiraling_squares", .opt = .{} },
         .{ .name = "easing", .opt = .{} },
         .{ .name = "gltf", .opt = .{} },
+        .{ .name = "svg", .opt = .{} },
         .{ .name = "cp_demo", .opt = .{ .use_cp = true } },
         .{ .name = "generative_art_1", .opt = .{} },
         .{ .name = "generative_art_2", .opt = .{} },
@@ -133,6 +135,7 @@ pub fn createGame(
     sdl_sdk.link(exe, .dynamic);
     imgui.link(b, exe);
     stb.link(exe);
+    svg.link(exe);
     zaudio_pkg.link(exe);
     zmesh_pkg.link(exe);
     znoise_pkg.link(exe);
