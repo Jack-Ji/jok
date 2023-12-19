@@ -4,7 +4,7 @@ const sdl = jok.sdl;
 const font = jok.font;
 const j2d = jok.j2d;
 
-var svg: *jok.svg.SvgBitmap = undefined;
+var svg: jok.svg.SvgBitmap = undefined;
 var tex: sdl.Texture = undefined;
 
 pub fn init(ctx: jok.Context) !void {
@@ -19,7 +19,7 @@ pub fn init(ctx: jok.Context) !void {
     tex = try jok.utils.gfx.createTextureFromPixels(
         ctx.renderer(),
         svg.pixels,
-        jok.utils.gfx.getFormatByEndian(),
+        svg.format,
         .static,
         svg.width,
         svg.height,

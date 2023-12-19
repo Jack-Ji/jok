@@ -1,4 +1,6 @@
 const std = @import("std");
+const sdl = @import("sdl");
+const builtin = @import("builtin");
 
 pub const Error = error{
     ParseFailed,
@@ -9,11 +11,12 @@ pub const SvgBitmap = struct {
     allocator: std.mem.Allocator,
     width: u32,
     height: u32,
+    format: sdl.PixelFormatEnum,
     pixels: []u8,
 
     pub fn destroy(self: *SvgBitmap) void {
         self.allocator.free(self.pixels);
-        self.allocator.destroy(self);
+        self.* = undefined;
     }
 };
 
@@ -47,7 +50,7 @@ pub fn createBitmapFromData(
     allocator: std.mem.Allocator,
     data: []const u8,
     opt: CreateBitmap,
-) !*SvgBitmap {
+) !SvgBitmap {
     const bs = try allocator.allocSentinel(u8, data.len, 0);
     defer allocator.free(bs);
     @memcpy(bs, data);
@@ -60,11 +63,14 @@ pub fn createBitmapFromData(
         if (rasterizer) |rst| {
             defer nsvgDeleteRasterizer(rst);
 
-            const svg = try allocator.create(SvgBitmap);
-            svg.* = .{
+            const svg = SvgBitmap{
                 .allocator = allocator,
                 .width = @intFromFloat(@trunc(m.width)),
                 .height = @intFromFloat(@trunc(m.height)),
+                .format = if (builtin.cpu.arch.endian() == .big)
+                    .rgba8888
+                else
+                    .abgr8888,
                 .pixels = try allocator.alloc(u8, @intFromFloat(
                     m.width * m.height * 4.0,
                 )),
@@ -93,7 +99,7 @@ pub fn createBitmapFromFile(
     allocator: std.mem.Allocator,
     path: []const u8,
     opt: CreateBitmap,
-) !*SvgBitmap {
+) !SvgBitmap {
     const data = try std.fs.cwd().readFileAlloc(
         allocator,
         path,

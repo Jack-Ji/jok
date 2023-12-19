@@ -20,7 +20,7 @@ pub const ImagePixels = struct {
     data: []const u8,
     width: u32,
     height: u32,
-    format: sdl.Texture.Format,
+    format: sdl.Texture.Format = jok.utils.gfx.getFormatByEndian(),
 };
 
 /// Image data source
