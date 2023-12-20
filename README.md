@@ -11,7 +11,7 @@ A minimal 2d/3d game framework for zig.
 * Able to cross-compile between Windows and Linux (thanks to [ziglang](https://ziglang.org))
 * Excellent rendering performance (thanks to SDL2's [geometry rendering](https://wiki.libsdl.org/SDL2/SDL_RenderGeometryRaw))
 * Fully integrated Dear-ImGui
-* 2D vector graphics (line/rectangle/quad/triangle/circle/bezier-curve/convex-polygon/custom-path)
+* 2D vector graphics (line/rectangle/quad/triangle/circle/bezier-curve/convex-polygon/polyline/custom-path)
 * 2D sprite rendering (scale/rotate/blending/flipping/depth)
 * 2D sprite sheet generation/save/load
 * 2D animation system

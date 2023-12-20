@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const sdl = jok.sdl;
 const AffineTransform = @import("AffineTransform.zig");
@@ -148,6 +149,15 @@ pub const BezierQuadraticCmd = struct {
     num_segments: u32,
 };
 
+pub const PolylineCmd = struct {
+    points: std.ArrayList(sdl.PointF),
+    transformed: std.ArrayList(sdl.PointF),
+    color: u32,
+    thickness: f32,
+    closed: bool,
+    transform: AffineTransform,
+};
+
 pub const PathCmd = struct {
     pub const LineTo = struct {
         p: sdl.PointF,
@@ -230,6 +240,7 @@ pub const DrawCmd = struct {
         convex_polygon_fill: ConvexPolyFillCmd,
         bezier_cubic: BezierCubicCmd,
         bezier_quadratic: BezierQuadraticCmd,
+        polyline: PolylineCmd,
         path: PathCmd,
     },
     depth: f32,
@@ -403,6 +414,20 @@ pub const DrawCmd = struct {
                 .thickness = c.thickness,
                 .num_segments = c.num_segments,
             }),
+            .polyline => |c| {
+                assert(c.transformed.items.len >= c.points.items.len);
+                for (c.points.items, 0..) |p, i| {
+                    c.transformed.items[i] = c.transform.transformPoint(p);
+                }
+                var pts: []const [2]f32 = undefined;
+                pts.len = c.transformed.items.len;
+                pts.ptr = @ptrCast(c.transformed.items.ptr);
+                dl.addPolyline(pts, .{
+                    .col = c.color,
+                    .flags = .{ .closed = c.closed },
+                    .thickness = c.thickness,
+                });
+            },
             .path => |c| {
                 dl.pathClear();
                 for (c.cmds.items) |_pc| {

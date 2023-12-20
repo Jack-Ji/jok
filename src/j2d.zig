@@ -897,11 +897,78 @@ pub const ConvexPoly = struct {
     }
 
     pub fn point(self: *ConvexPoly, p: sdl.Vertex) !void {
+        assert(!self.finished);
         try self.cmd.points.append(p);
     }
 
     pub fn nPoints(self: *ConvexPoly, ps: []sdl.Vertex) !void {
+        assert(!self.finished);
         try self.cmd.points.appendSlice(ps);
+    }
+};
+
+pub const PolylineOption = struct {
+    thickness: f32 = 1.0,
+    closed: bool = false,
+    depth: f32 = 0.5,
+};
+pub fn polyline(pl: Polyline, color: sdl.Color, opt: PolylineOption) !void {
+    if (!pl.finished) return error.PathNotFinished;
+    try draw_commands.append(.{
+        .cmd = .{
+            .polyline = .{
+                .points = pl.points,
+                .transformed = pl.transformed,
+                .color = imgui.sdl.convertColor(color),
+                .thickness = opt.thickness,
+                .closed = opt.closed,
+                .transform = transform,
+            },
+        },
+        .depth = opt.depth,
+    });
+}
+
+pub const Polyline = struct {
+    points: std.ArrayList(sdl.PointF),
+    transformed: std.ArrayList(sdl.PointF),
+    finished: bool = false,
+
+    pub fn begin(allocator: std.mem.Allocator) Polyline {
+        return .{
+            .points = std.ArrayList(sdl.PointF).init(allocator),
+            .transformed = std.ArrayList(sdl.PointF).init(allocator),
+        };
+    }
+
+    pub fn end(self: *Polyline) void {
+        self.transformed.appendNTimes(
+            .{ .x = 0, .y = 0 },
+            self.points.items.len,
+        ) catch unreachable;
+        self.finished = true;
+    }
+
+    pub fn deinit(self: *Polyline) void {
+        self.points.deinit();
+        self.transformed.deinit();
+        self.* = undefined;
+    }
+
+    pub fn reset(self: *Polyline) void {
+        self.points.clearRetainingCapacity();
+        self.transformed.clearRetainingCapacity();
+        self.finished = false;
+    }
+
+    pub fn point(self: *Polyline, p: sdl.PointF) !void {
+        assert(!self.finished);
+        try self.points.append(p);
+    }
+
+    pub fn nPoints(self: *Polyline, ps: []sdl.PointF) !void {
+        assert(!self.finished);
+        try self.points.appendSlice(ps);
     }
 };
 
@@ -958,6 +1025,7 @@ pub const Path = struct {
     }
 
     pub fn lineTo(self: *Path, pos: sdl.PointF) !void {
+        assert(!self.finished);
         try self.path.cmds.append(.{ .line_to = .{ .p = pos } });
     }
 
@@ -972,6 +1040,7 @@ pub const Path = struct {
         degree_end: f32,
         opt: ArcTo,
     ) !void {
+        assert(!self.finished);
         try self.path.cmds.append(.{
             .arc_to = .{
                 .p = pos,
@@ -993,6 +1062,7 @@ pub const Path = struct {
         p4: sdl.PointF,
         opt: BezierCurveTo,
     ) !void {
+        assert(!self.finished);
         try self.path.cmds.append(.{
             .bezier_cubic_to = .{
                 .p2 = p2,
@@ -1008,6 +1078,7 @@ pub const Path = struct {
         p3: sdl.PointF,
         opt: BezierCurveTo,
     ) !void {
+        assert(!self.finished);
         try self.path.cmds.append(.{
             .bezier_quadratic_to = .{
                 .p2 = p2,
@@ -1026,6 +1097,7 @@ pub const Path = struct {
         r: sdl.RectangleF,
         opt: Rect,
     ) !void {
+        assert(!self.finished);
         const pmin = sdl.PointF{ .x = r.x, .y = r.y };
         const pmax = sdl.PointF{
             .x = pmin.x + r.width,
