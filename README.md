@@ -127,20 +127,18 @@ Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.
 TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem` with `.Windows` in your build script.
 
 ## NOTE
-**Jok** is not for everyone, it's developed in the spirit of retro-machines (especially SNES/PS1), which implies following limitations:
+**Jok** is actually short for **joke**, which is about how overly-complicated modern graphics programming has become.
+People are gradually forgetting lots of computing techniques used to deliver amazing games on simple machines.
+With so many tools, engines and computing resources at hand, however, gamedev is not as fun as it used to be. 
+In a word, the project is an offort trying to bring the joy of gamedev back, it's being developed in the spirit of 
+retro-machines of 1990s (especially SNES/PS1), which implies following limitations:
+
 * Custom vertex/fragment shader is not possible
 * Only support [affine texture mapping](https://en.wikipedia.org/wiki/Texture_mapping#Affine_texture_mapping)
 * No [depth buffer](https://en.wikipedia.org/wiki/Z-buffering)
 
 The limitations demand developers to be both creative and careful about game's design, which can lead to
 very awesome product in my opinion. Like old saying: "Constraints breed creativity".
-
-## What does *jok* mean?
-Jok is actually short for *joke*, which is about how over-complicated modern graphics programming has become.
-People are gradually forgetting lots of computing techniques used to deliver amazing games on simple machines.
-With so many tools, engines and computing resources at hand, however, gamedev is not as fun as it used to be in my opinion. 
-In a word, this project is an offort trying to bring the joy of gamedev back.
-Remember, it's not about the quality of final product you make, it's the process/experience you went through that matters.
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
