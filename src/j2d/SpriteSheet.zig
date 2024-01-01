@@ -28,6 +28,7 @@ pub const ImageSource = struct {
     name: []const u8,
     image: union(enum) {
         file_path: []const u8,
+        file_data: []const u8,
         pixels: ImagePixels,
     },
 };
@@ -107,6 +108,30 @@ pub fn create(
                 var image_channels: c_int = undefined;
                 var image_data = stb_image.stbi_load(
                     path.ptr,
+                    &image_width,
+                    &image_height,
+                    &image_channels,
+                    4, // Alpha channel is required
+                );
+                assert(image_data != null);
+                const image_len = @as(usize, @intCast(image_width * image_height * 4));
+                images[i] = .{
+                    .is_file = false,
+                    .pixels = .{
+                        .data = image_data[0..image_len],
+                        .width = @intCast(image_width),
+                        .height = @intCast(image_height),
+                        .format = jok.utils.gfx.getFormatByEndian(),
+                    },
+                };
+            },
+            .file_data => |data| {
+                var image_width: c_int = undefined;
+                var image_height: c_int = undefined;
+                var image_channels: c_int = undefined;
+                var image_data = stb_image.stbi_load_from_memory(
+                    data.ptr,
+                    @intCast(data.len),
                     &image_width,
                     &image_height,
                     &image_channels,
