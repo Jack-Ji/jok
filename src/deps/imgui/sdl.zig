@@ -48,8 +48,11 @@ pub fn newFrame(ctx: jok.Context) void {
     ImGui_ImplSDLRenderer_NewFrame();
     ImGui_ImplSDL2_NewFrame();
 
-    const fb_size = ctx.getFramebufferSize();
-    imgui.io.setDisplaySize(fb_size.x, fb_size.y);
+    const fb_size = ctx.renderer().getOutputSize() catch unreachable;
+    imgui.io.setDisplaySize(
+        @floatFromInt(fb_size.width_pixels),
+        @floatFromInt(fb_size.height_pixels),
+    );
     imgui.io.setDisplayFramebufferScale(1.0, 1.0);
 
     imgui.newFrame();
