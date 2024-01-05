@@ -21,7 +21,10 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
         unreachable;
     }
 
-    zgui.getStyle().scaleAllSizes(ctx.getPixelRatio());
+    const fsize = renderer.getOutputSize() catch unreachable;
+    const wsize = ctx.getWindowSize();
+    const scale = @as(f32, @floatFromInt(fsize.width_pixels)) / wsize.x;
+    zgui.getStyle().scaleAllSizes(scale);
 
     if (!enable_ini_file) {
         zgui.io.setIniFilename(null);

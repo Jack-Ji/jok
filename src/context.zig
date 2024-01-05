@@ -34,10 +34,8 @@ pub const Context = struct {
         getWindowSize: *const fn (ctx: *anyopaque) sdl.PointF,
         getFramebufferSize: *const fn (ctx: *anyopaque) sdl.PointF,
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
-        getPixelRatio: *const fn (ctx: *anyopaque) f32,
         isKeyPressed: *const fn (ctx: *anyopaque, key: sdl.Scancode) bool,
         getMouseState: *const fn (ctx: *anyopaque) sdl.MouseState,
-        setMousePosition: *const fn (ctx: *anyopaque, xrel: f32, yrel: f32) void,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
     },
@@ -127,11 +125,6 @@ pub const Context = struct {
         return self.vtable.getAspectRatio(self.ctx);
     }
 
-    /// Get pixel ratio
-    pub fn getPixelRatio(self: Context) f32 {
-        return self.vtable.getPixelRatio(self.ctx);
-    }
-
     /// Get key status
     pub fn isKeyPressed(self: Context, key: sdl.Scancode) bool {
         return self.vtable.isKeyPressed(self.ctx, key);
@@ -140,11 +133,6 @@ pub const Context = struct {
     /// Get mouse state
     pub fn getMouseState(self: Context) sdl.MouseState {
         return self.vtable.getMouseState(self.ctx);
-    }
-
-    /// Move mouse to given position (relative to window)
-    pub fn setMousePosition(self: Context, xrel: f32, yrel: f32) void {
-        return self.vtable.setMousePosition(self.ctx, xrel, yrel);
     }
 
     /// Whether game is running slow
@@ -431,7 +419,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             while (sdl.pollNativeEvent()) |e| {
                 _ = imgui.sdl.processEvent(e);
-                const we = sdl.Event.from(e);
+                var we = sdl.Event.from(e);
                 if (cfg.jok_exit_on_recv_esc and we == .key_up and
                     we.key_up.scancode == .escape)
                 {
@@ -445,6 +433,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         self._target = jok.utils.gfx.createTextureAsTarget(self._renderer, .{
                             .size = .{ .x = self._display_region.width, .y = self._display_region.height },
                         }) catch unreachable;
+                    }
+                    if (we == .mouse_motion and cfg.jok_aspect_ratio == .fixed) {
+                        we.mouse_motion.x -= @as(i32, self._display_region.x);
+                        we.mouse_motion.y -= @as(i32, self._display_region.y);
                     }
                     eventFn(self._ctx, we) catch |err| {
                         log.err("Got error in `event`: {}", .{err});
@@ -541,7 +533,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Create window
             var window_flags = sdl.WindowFlags{
-                .allow_high_dpi = true,
                 .mouse_capture = true,
                 .mouse_focus = true,
             };
@@ -676,21 +667,15 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .getWindowSize = getWindowSize,
                     .getFramebufferSize = getFramebufferSize,
                     .getAspectRatio = getAspectRatio,
-                    .getPixelRatio = getPixelRatio,
                     .isKeyPressed = isKeyPressed,
                     .getMouseState = getMouseState,
-                    .setMousePosition = setMousePosition,
                     .isRunningSlow = isRunningSlow,
                     .displayStats = displayStats,
                 },
             };
         }
 
-        /////////////////////////////////////////////////////////////////////////////
-        ///
-        ///  Wrapped API for application context
-        ///
-        /////////////////////////////////////////////////////////////////////////////
+        ///////////////////// Wrapped API for Application Context //////////////////
 
         /// Get meomry allocator
         fn allocator(ptr: *anyopaque) std.mem.Allocator {
@@ -828,13 +813,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 @as(f32, @floatFromInt(self._display_region.height));
         }
 
-        /// Get pixel ratio
-        fn getPixelRatio(ptr: *anyopaque) f32 {
-            const fsize = getFramebufferSize(ptr);
-            const wsize = getWindowSize(ptr);
-            return fsize.x / wsize.x;
-        }
-
         /// Get key status
         fn isKeyPressed(_: *anyopaque, key: sdl.Scancode) bool {
             const kb_state = sdl.getKeyboardState();
@@ -842,23 +820,17 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Get mouse state
-        fn getMouseState(_: *anyopaque) sdl.MouseState {
-            return sdl.getMouseState();
-        }
-
-        /// Move mouse to given position (relative to window)
-        fn setMousePosition(ptr: *anyopaque, xrel: f32, yrel: f32) void {
+        fn getMouseState(ptr: *anyopaque) sdl.MouseState {
             const self: *@This() = @ptrCast(@alignCast(ptr));
-            var w: i32 = undefined;
-            var h: i32 = undefined;
-            sdl.c.SDL_GetWindowSize(self._window.ptr, &w, &h);
-            sdl.c.SDL_WarpMouseInWindow(
-                self._window.ptr,
-                @intFromFloat(@as(f32, @floatFromInt(w)) * xrel),
-                @intFromFloat(@as(f32, @floatFromInt(h)) * yrel),
-            );
+            var state = sdl.getMouseState();
+            if (cfg.jok_aspect_ratio == .fixed) {
+                state.x -= self._display_region.x;
+                state.y -= self._display_region.y;
+            }
+            return state;
         }
 
+        /// Indicating game loop is running too slow
         pub fn isRunningSlow(ptr: *anyopaque) bool {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._running_slow;
