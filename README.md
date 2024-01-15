@@ -36,33 +36,34 @@ Copy or clone repo (recursively) to `lib` subdirectory of the root of your proje
 
 1. Windows Platform
 
-Download SDL library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config\sdl.json` in project directory:
-```json
-{
-  "x86_64-windows-gnu": {
-    "include": "D:/SDL2-2.28.5/x86_64-w64-mingw32/include",
-    "libs": "D:/SDL2-2.28.5/x86_64-w64-mingw32/lib",
-    "bin": "D:/SDL2-2.28.5/x86_64-w64-mingw32/bin"
-  }
-}
-```
+    Download SDL library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config\sdl.json` in project directory:
+    ```json
+    {
+      "x86_64-windows-gnu": {
+        "include": "D:/SDL2-2.28.5/x86_64-w64-mingw32/include",
+        "libs": "D:/SDL2-2.28.5/x86_64-w64-mingw32/lib",
+        "bin": "D:/SDL2-2.28.5/x86_64-w64-mingw32/bin"
+      }
+    }
+    ```
 
 2. Linux Platform
 
-Debian/Ubuntu:
-```bash
-sudo apt install libsdl2-dev
-```
+    Debian/Ubuntu:
+    ```bash
+    sudo apt install libsdl2-dev
+    ```
 
-Fedora/CentOS:
-```bash
-sudo yum install SDL2-devel
-```
+    Fedora/CentOS:
+    ```bash
+    sudo yum install SDL2-devel
+    ```
 
 3. MacOS
-```bash
-brew install sdl2
-```
+
+    ```bash
+    brew install sdl2
+    ```
 
 Then in your `build.zig` add:
 
@@ -91,7 +92,7 @@ pub fn build(b: *std.Build) void {
 }
 ```
 
-Now in your code you may import and use jok:
+You may import and use jok in your code now:
 
 ```zig
 const std = @import("std");
@@ -133,7 +134,7 @@ pub fn quit(ctx: jok.Context) void {
 }
 ```
 
-Now you can compile and run your game using command `zig build run`, have fun! Please let me know if you have any issue or developed something
+Compile and run your game using command `zig build run`, have fun! Please let me know if you have any issue or developed something
 interesting with this little framework.
 
 Noticed yet? That's right, you don't need to write main function, `jok` got your back.
