@@ -3,7 +3,7 @@ A minimal 2d/3d game framework for zig.
 
 ## What you need?
 * **Latest** [zig compiler](https://ziglang.org/download/)
-* SDL library (download in [here](https://libsdl.org/), or use your beloved package manager)
+* SDL library
 * Any code editor you like (consider using [zls](https://github.com/zigtools/zls) for your own favor)
 
 ## Features
@@ -32,15 +32,43 @@ A minimal 2d/3d game framework for zig.
 * Sound/Music playing/mixing
 
 ## How to start?
-Copy or clone repo (recursively) to `lib` subdirectory of the root of your project.
-Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig).
+Copy or clone repo (recursively) to `lib` subdirectory of the root of your project.  Install SDL2 library:
+
+1. Windows Platform
+Download SDL library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config\sdl.json` in project directory:
+```json
+{
+  "x86_64-windows-gnu": {
+    "include": "D:/SDL2-2.28.5/x86_64-w64-mingw32/include",
+    "libs": "D:/SDL2-2.28.5/x86_64-w64-mingw32/lib",
+    "bin": "D:/SDL2-2.28.5/x86_64-w64-mingw32/bin"
+  }
+}
+```
+
+2. Linux Platform
+Debian/Ubuntu:
+```bash
+sudo apt install libsdl2-dev
+```
+
+Fedora:
+```bash
+sudo yum install SDL2-devel
+```
+
+3. MacOS
+```bash
+brew install sdl2
+```
+
 Then in your `build.zig` add:
 
 ```zig
 const std = @import("std");
 const jok = @import("lib/jok/build.zig");
 
-pub fn build(b: *std.build.Builder) void {
+pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const exe = jok.createGame(
