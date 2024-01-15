@@ -83,10 +83,10 @@ pub fn createGame(
     b: *std.Build,
     name: []const u8,
     root_file: []const u8,
-    target: std.zig.CrossTarget,
+    target: std.Build.ResolvedTarget,
     optimize: std.builtin.Mode,
     opt: BuildOptions,
-) *std.Build.CompileStep {
+) *std.Build.Step.Compile {
     // Initialize jok module
     const bos = b.addOptions();
     bos.addOption(bool, "use_cp", opt.use_cp);
@@ -101,8 +101,8 @@ pub fn createGame(
         .options = .{ .enable_ztracy = opt.enable_ztracy },
     });
     const jok = b.createModule(.{
-        .source_file = .{ .path = thisDir() ++ "/src/jok.zig" },
-        .dependencies = &.{
+        .root_source_file = .{ .path = thisDir() ++ "/src/jok.zig" },
+        .imports = &.{
             .{ .name = "build_options", .module = bos.createModule() },
             .{ .name = "sdl", .module = sdl_sdk.getWrapperModule() },
             .{ .name = "zgui", .module = imgui.getZguiModule(b, target, optimize) },
@@ -113,7 +113,7 @@ pub fn createGame(
         },
     });
     if (opt.use_ztracy) {
-        jok.dependencies.put("ztracy", ztracy_pkg.ztracy) catch unreachable;
+        jok.import_table.putNoClobber(b.allocator, "ztracy", ztracy_pkg.ztracy) catch unreachable;
     }
 
     // Initialize executable
@@ -123,10 +123,10 @@ pub fn createGame(
         .target = target,
         .optimize = optimize,
     });
-    exe.addModule("jok", jok);
-    exe.addModule("game", b.createModule(.{
-        .source_file = .{ .path = root_file },
-        .dependencies = &.{
+    exe.root_module.addImport("jok", jok);
+    exe.root_module.addImport("game", b.createModule(.{
+        .root_source_file = .{ .path = root_file },
+        .imports = &.{
             .{ .name = "jok", .module = jok },
         },
     }));

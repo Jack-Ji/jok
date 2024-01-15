@@ -135,6 +135,8 @@ pub const AllocatorType = std.heap.GeneralPurposeAllocator(.{});
 
 /// Validate and init setup configurations
 pub fn init(comptime game: anytype) Config {
+    @setEvalBranchQuota(10000);
+
     var cfg = Config{};
     const options = [_]struct { name: []const u8, desc: []const u8 }{
         .{ .name = "jok_log_level", .desc = "logging level" },

@@ -1,9 +1,9 @@
 const std = @import("std");
 
-pub fn link(exe: *std.build.LibExeObjStep) void {
+pub fn link(exe: *std.Build.Step.Compile) void {
     var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
     defer flags.deinit();
-    if (exe.optimize != .Debug) {
+    if (exe.root_module.optimize.? != .Debug) {
         flags.append("-DNDEBUG") catch unreachable;
     }
     flags.append("-DCP_USE_DOUBLES=0") catch unreachable;

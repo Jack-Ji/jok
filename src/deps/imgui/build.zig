@@ -6,7 +6,7 @@ const cflags = &.{"-fno-sanitize=undefined"};
 
 pub fn getZguiModule(
     b: *std.Build,
-    target: std.zig.CrossTarget,
+    target: std.Build.ResolvedTarget,
     optimize: std.builtin.Mode,
 ) *std.Build.Module {
     const pkg = zgui.package(b, target, optimize, .{
@@ -15,22 +15,22 @@ pub fn getZguiModule(
     return pkg.zgui;
 }
 
-pub fn link(b: *std.Build, exe: *std.Build.CompileStep) void {
+pub fn link(b: *std.Build, exe: *std.Build.Step.Compile) void {
     const pkg = zgui.package(
         b,
-        exe.target,
-        exe.optimize,
+        exe.root_module.resolved_target.?,
+        exe.root_module.optimize.?,
         .{
             .options = .{ .backend = .no_backend },
         },
     );
     pkg.link(exe);
 
-    if (exe.target.isWindows()) {
+    if (exe.rootModuleTarget().os.tag == .windows) {
         exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/windows" });
-    } else if (exe.target.isLinux()) {
+    } else if (exe.rootModuleTarget().os.tag == .linux) {
         exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/linux" });
-    } else if (exe.target.isDarwin()) {
+    } else if (exe.rootModuleTarget().isDarwin()) {
         exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/macos" });
     } else unreachable;
     exe.addIncludePath(.{ .path = thisDir() ++ "/zgui/libs" });

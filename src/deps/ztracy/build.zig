@@ -9,11 +9,11 @@ pub const Package = struct {
     options: Options,
     ztracy: *std.Build.Module,
     ztracy_options: *std.Build.Module,
-    ztracy_c_cpp: *std.Build.CompileStep,
+    ztracy_c_cpp: *std.Build.Step.Compile,
 
-    pub fn link(pkg: Package, exe: *std.Build.CompileStep) void {
-        exe.addModule("ztracy", pkg.ztracy);
-        exe.addModule("ztracy_options", pkg.ztracy_options);
+    pub fn link(pkg: Package, exe: *std.Build.Step.Compile) void {
+        exe.root_module.addImport("ztracy", pkg.ztracy);
+        exe.root_module.addImport("ztracy_options", pkg.ztracy_options);
         if (pkg.options.enable_ztracy) {
             exe.addIncludePath(.{ .path = thisDir() ++ "/libs/tracy/tracy" });
             exe.linkLibrary(pkg.ztracy_c_cpp);
@@ -23,7 +23,7 @@ pub const Package = struct {
 
 pub fn package(
     b: *std.Build,
-    target: std.zig.CrossTarget,
+    target: std.Build.ResolvedTarget,
     optimize: std.builtin.Mode,
     args: struct {
         options: Options = .{},
@@ -34,9 +34,9 @@ pub fn package(
 
     const ztracy_options = step.createModule();
 
-    const ztracy = b.createModule(.{
-        .source_file = .{ .path = thisDir() ++ "/src/ztracy.zig" },
-        .dependencies = &.{
+    const ztracy = b.addModule("ztracy", .{
+        .root_source_file = .{ .path = thisDir() ++ "/src/ztracy.zig" },
+        .imports = &.{
             .{ .name = "ztracy_options", .module = ztracy_options },
         },
     });
@@ -63,15 +63,15 @@ pub fn package(
             },
         });
 
-        const abi = (std.zig.system.NativeTargetInfo.detect(target) catch unreachable).target.abi;
+        const abi = ztracy_c_cpp.rootModuleTarget().abi;
         ztracy_c_cpp.linkLibC();
         if (abi != .msvc)
             ztracy_c_cpp.linkLibCpp();
 
-        switch (target.getOs().tag) {
+        switch (target.result.os.tag) {
             .windows => {
-                ztracy_c_cpp.linkSystemLibraryName("ws2_32");
-                ztracy_c_cpp.linkSystemLibraryName("dbghelp");
+                ztracy_c_cpp.linkSystemLibrary2("ws2_32", .{ .use_pkg_config = .no });
+                ztracy_c_cpp.linkSystemLibrary2("dbghelp", .{ .use_pkg_config = .no });
             },
             .macos => {
                 ztracy_c_cpp.addFrameworkPath(
@@ -92,7 +92,17 @@ pub fn package(
     };
 }
 
-pub fn build(_: *std.Build) void {}
+pub fn build(b: *std.Build) void {
+    const optimize = b.standardOptimizeOption(.{});
+    const target = b.standardTargetOptions(.{});
+
+    _ = package(b, target, optimize, .{
+        .options = .{
+            .enable_ztracy = b.option(bool, "enable_ztracy", "Enable Tracy profile markers") orelse false,
+            .enable_fibers = b.option(bool, "enable_fibers", "Enable Tracy fiber support") orelse false,
+        },
+    });
+}
 
 inline fn thisDir() []const u8 {
     return comptime std.fs.path.dirname(@src().file) orelse ".";

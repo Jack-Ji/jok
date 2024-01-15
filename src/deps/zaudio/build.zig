@@ -2,22 +2,22 @@ const std = @import("std");
 
 pub const Package = struct {
     zaudio: *std.Build.Module,
-    zaudio_c_cpp: *std.Build.CompileStep,
+    zaudio_c_cpp: *std.Build.Step.Compile,
 
-    pub fn link(pkg: Package, exe: *std.Build.CompileStep) void {
+    pub fn link(pkg: Package, exe: *std.Build.Step.Compile) void {
         exe.linkLibrary(pkg.zaudio_c_cpp);
-        exe.addModule("zaudio", pkg.zaudio);
+        exe.root_module.addImport("zaudio", pkg.zaudio);
     }
 };
 
 pub fn package(
     b: *std.Build,
-    target: std.zig.CrossTarget,
+    target: std.Build.ResolvedTarget,
     optimize: std.builtin.Mode,
     _: struct {},
 ) Package {
-    const zaudio = b.createModule(.{
-        .source_file = .{ .path = thisDir() ++ "/src/zaudio.zig" },
+    const zaudio = b.addModule("zaudio", .{
+        .root_source_file = .{ .path = thisDir() ++ "/src/zaudio.zig" },
     });
 
     const zaudio_c_cpp = b.addStaticLibrary(.{
@@ -29,7 +29,7 @@ pub fn package(
     zaudio_c_cpp.addIncludePath(.{ .path = thisDir() ++ "/libs/miniaudio" });
     zaudio_c_cpp.linkLibC();
 
-    const host = (std.zig.system.NativeTargetInfo.detect(zaudio_c_cpp.target) catch unreachable).target;
+    const host = zaudio_c_cpp.rootModuleTarget();
 
     if (host.os.tag == .macos) {
         zaudio_c_cpp.addFrameworkPath(.{ .path = thisDir() ++ "/../system-sdk/macos12/System/Library/Frameworks" });
@@ -40,9 +40,9 @@ pub fn package(
         zaudio_c_cpp.linkFramework("AudioUnit");
         zaudio_c_cpp.linkFramework("AudioToolbox");
     } else if (host.os.tag == .linux) {
-        zaudio_c_cpp.linkSystemLibraryName("pthread");
-        zaudio_c_cpp.linkSystemLibraryName("m");
-        zaudio_c_cpp.linkSystemLibraryName("dl");
+        zaudio_c_cpp.linkSystemLibrary2("pthread", .{ .use_pkg_config = .no });
+        zaudio_c_cpp.linkSystemLibrary2("m", .{ .use_pkg_config = .no });
+        zaudio_c_cpp.linkSystemLibrary2("dl", .{ .use_pkg_config = .no });
     }
 
     zaudio_c_cpp.addCSourceFile(.{
@@ -76,12 +76,14 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run zaudio tests");
     test_step.dependOn(runTests(b, optimize, target));
+
+    _ = package(b, target, optimize, .{});
 }
 
 pub fn runTests(
     b: *std.Build,
     optimize: std.builtin.Mode,
-    target: std.zig.CrossTarget,
+    target: std.Build.ResolvedTarget,
 ) *std.Build.Step {
     const tests = b.addTest(.{
         .name = "zaudio-tests",

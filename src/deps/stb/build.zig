@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub fn link(exe: *std.Build.CompileStep) void {
+pub fn link(exe: *std.Build.Step.Compile) void {
     exe.addCSourceFile(.{
         .file = .{ .path = comptime thisDir() ++ "/c/stb_wrapper.c" },
         .flags = &.{
