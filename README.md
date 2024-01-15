@@ -35,6 +35,7 @@ A minimal 2d/3d game framework for zig.
 Copy or clone repo (recursively) to `lib` subdirectory of the root of your project.  Install SDL2 library:
 
 1. Windows Platform
+
 Download SDL library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config\sdl.json` in project directory:
 ```json
 {
@@ -47,12 +48,13 @@ Download SDL library from [here](https://libsdl.org/), extract into your hard dr
 ```
 
 2. Linux Platform
+
 Debian/Ubuntu:
 ```bash
 sudo apt install libsdl2-dev
 ```
 
-Fedora:
+Fedora/CentOS:
 ```bash
 sudo yum install SDL2-devel
 ```
