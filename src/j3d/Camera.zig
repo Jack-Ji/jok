@@ -180,12 +180,10 @@ pub fn rotateAroundBy(self: *Self, point: ?[3]f32, delta_angle_h: f32, delta_ang
         zmath.f32x4(0, 0, 0, 1);
     const v = self.position - center;
     var angle_h = math.atan2(
-        f32,
         v[0],
         v[2],
     );
     var angle_v = math.atan2(
-        f32,
         v[1],
         math.sqrt(v[0] * v[0] + v[2] * v[2]),
     );

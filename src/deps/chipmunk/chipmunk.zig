@@ -510,7 +510,7 @@ const PhysicsDebug = struct {
         if (a.x > b.x) {
             std.mem.swap(c.cpVect, &a, &b);
         }
-        const angle = std.math.atan2(f32, b.y - a.y, b.x - a.x);
+        const angle = std.math.atan2(b.y - a.y, b.x - a.x);
 
         const vs = debug.addVertices(
             14,
