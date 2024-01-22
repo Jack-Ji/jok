@@ -26,20 +26,6 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 
 pub fn update(ctx: jok.Context) !void {
     _ = ctx;
-    if (imgui.begin("Control", .{})) {
-        imgui.separator();
-        imgui.text("triangle 0", .{});
-        _ = imgui.dragFloat2("offset 0", .{ .v = &offset0 });
-        _ = imgui.dragFloat2("p0", .{ .v = &p0 });
-        _ = imgui.dragFloat2("p1", .{ .v = &p1 });
-        _ = imgui.dragFloat2("p2", .{ .v = &p2 });
-        imgui.text("triangle 1", .{});
-        _ = imgui.dragFloat2("offset 1", .{ .v = &offset1 });
-        _ = imgui.dragFloat2("p3", .{ .v = &p3 });
-        _ = imgui.dragFloat2("p4", .{ .v = &p4 });
-        _ = imgui.dragFloat2("p5", .{ .v = &p5 });
-    }
-    imgui.end();
 }
 
 pub fn draw(ctx: jok.Context) !void {
@@ -101,6 +87,21 @@ pub fn draw(ctx: jok.Context) !void {
         .{ .thickness = rect_thickness },
     );
     try j2d.end();
+
+    if (imgui.begin("Control", .{})) {
+        imgui.separator();
+        imgui.text("triangle 0", .{});
+        _ = imgui.dragFloat2("offset 0", .{ .v = &offset0 });
+        _ = imgui.dragFloat2("p0", .{ .v = &p0 });
+        _ = imgui.dragFloat2("p1", .{ .v = &p1 });
+        _ = imgui.dragFloat2("p2", .{ .v = &p2 });
+        imgui.text("triangle 1", .{});
+        _ = imgui.dragFloat2("offset 1", .{ .v = &offset1 });
+        _ = imgui.dragFloat2("p3", .{ .v = &p3 });
+        _ = imgui.dragFloat2("p4", .{ .v = &p4 });
+        _ = imgui.dragFloat2("p5", .{ .v = &p5 });
+    }
+    imgui.end();
 }
 
 pub fn quit(ctx: jok.Context) void {

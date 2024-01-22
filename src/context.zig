@@ -316,7 +316,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             };
 
             // Update game
-            imgui.sdl.newFrame(self.context());
             if (pc_threshold > 0) {
                 while (true) {
                     const pc = sdl.c.SDL_GetPerformanceCounter();
@@ -387,7 +386,15 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     self._draw_cost = if (self._draw_cost > 0) (self._draw_cost + cost) / 2 else cost;
                 };
 
+                imgui.sdl.newFrame(self.context());
+                defer imgui.sdl.draw();
+
                 self._renderer.setTarget(self._target) catch unreachable;
+                defer {
+                    self._renderer.setTarget(null) catch unreachable;
+                    self._renderer.copy(self._target, self._display_region, null) catch unreachable;
+                }
+
                 drawFn(self._ctx) catch |e| {
                     log.err("Got error in `draw`: {}", .{e});
                     if (@errorReturnTrace()) |trace| {
@@ -396,9 +403,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         return;
                     }
                 };
-                self._renderer.setTarget(null) catch unreachable;
-                self._renderer.copy(self._target, self._display_region, null) catch unreachable;
-                imgui.sdl.draw();
             }
             self._renderer.present();
             self._updateFrameStats();
