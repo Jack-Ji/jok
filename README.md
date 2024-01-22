@@ -36,7 +36,7 @@ Copy or clone repo (recursively) to `lib` subdirectory of the root of your proje
 
 1. Windows Platform
 
-    Download SDL library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config\sdl.json` in project directory:
+    Download SDL library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config/sdl.json` in project directory:
     ```json
     {
       "x86_64-windows-gnu": {
