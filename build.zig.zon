@@ -1,0 +1,14 @@
+.{
+    .name = "jok",
+    .version = "0.1.0",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "examples",
+        "README.md",
+    },
+    .dependencies = .{
+        .system_sdk = .{ .path = "src/deps/system-sdk" },
+    },
+}

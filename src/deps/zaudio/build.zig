@@ -29,20 +29,20 @@ pub fn package(
     zaudio_c_cpp.addIncludePath(.{ .path = thisDir() ++ "/libs/miniaudio" });
     zaudio_c_cpp.linkLibC();
 
-    const host = zaudio_c_cpp.rootModuleTarget();
+    const system_sdk = b.dependency("system_sdk", .{});
 
-    if (host.os.tag == .macos) {
-        zaudio_c_cpp.addFrameworkPath(.{ .path = thisDir() ++ "/../system-sdk/macos12/System/Library/Frameworks" });
-        zaudio_c_cpp.addSystemIncludePath(.{ .path = thisDir() ++ "/../system-sdk/macos12/usr/include" });
-        zaudio_c_cpp.addLibraryPath(.{ .path = thisDir() ++ "/../system-sdk/macos12/usr/lib" });
+    if (target.result.os.tag == .macos) {
+        zaudio_c_cpp.addFrameworkPath(.{ .path = system_sdk.path("macos12/System/Library/Frameworks").getPath(b) });
+        zaudio_c_cpp.addSystemIncludePath(.{ .path = system_sdk.path("macos12/usr/include").getPath(b) });
+        zaudio_c_cpp.addLibraryPath(.{ .path = system_sdk.path("macos12/usr/lib").getPath(b) });
         zaudio_c_cpp.linkFramework("CoreAudio");
         zaudio_c_cpp.linkFramework("CoreFoundation");
         zaudio_c_cpp.linkFramework("AudioUnit");
         zaudio_c_cpp.linkFramework("AudioToolbox");
-    } else if (host.os.tag == .linux) {
-        zaudio_c_cpp.linkSystemLibrary2("pthread", .{ .use_pkg_config = .no });
-        zaudio_c_cpp.linkSystemLibrary2("m", .{ .use_pkg_config = .no });
-        zaudio_c_cpp.linkSystemLibrary2("dl", .{ .use_pkg_config = .no });
+    } else if (target.result.os.tag == .linux) {
+        zaudio_c_cpp.linkSystemLibrary("pthread");
+        zaudio_c_cpp.linkSystemLibrary("m");
+        zaudio_c_cpp.linkSystemLibrary("dl");
     }
 
     zaudio_c_cpp.addCSourceFile(.{
@@ -60,7 +60,7 @@ pub fn package(
             "-DMA_NO_WINMM",
             "-std=c99",
             "-fno-sanitize=undefined",
-            if (host.os.tag == .macos) "-DMA_NO_RUNTIME_LINKING" else "",
+            if (target.result.os.tag == .macos) "-DMA_NO_RUNTIME_LINKING" else "",
         },
     });
 

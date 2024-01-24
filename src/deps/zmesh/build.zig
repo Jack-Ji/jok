@@ -59,9 +59,8 @@ pub fn package(
         .optimize = optimize,
     });
 
-    const abi = zmesh_c_cpp.rootModuleTarget().abi;
     zmesh_c_cpp.linkLibC();
-    if (abi != .msvc)
+    if (target.result.abi != .msvc)
         zmesh_c_cpp.linkLibCpp();
 
     const par_shapes_t = if (args.options.shape_use_32bit_indices)

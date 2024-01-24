@@ -5,19 +5,20 @@ pub const Options = struct {
 };
 
 pub const Package = struct {
+    target: std.Build.ResolvedTarget,
     options: Options,
     zmath: *std.Build.Module,
     zmath_options: *std.Build.Module,
 
-    pub fn link(pkg: Package, exe: *std.Build.CompileStep) void {
-        exe.addModule("zmath", pkg.zmath);
-        exe.addModule("zmath_options", pkg.zmath_options);
+    pub fn link(pkg: Package, exe: *std.Build.Step.Compile) void {
+        exe.root_module.addImport("zmath", pkg.zmath);
+        exe.root_module.addImport("zmath_options", pkg.zmath_options);
     }
 };
 
 pub fn package(
     b: *std.Build,
-    _: std.Build.ResolvedTarget,
+    target: std.Build.ResolvedTarget,
     _: std.builtin.Mode,
     args: struct {
         options: Options = .{},
@@ -40,6 +41,7 @@ pub fn package(
     });
 
     return .{
+        .target = target,
         .options = args.options,
         .zmath = zmath,
         .zmath_options = zmath_options,
@@ -74,7 +76,7 @@ pub fn runTests(
     });
 
     const zmath_pkg = package(b, target, optimize, .{});
-    tests.addModule("zmath_options", zmath_pkg.zmath_options);
+    tests.root_module.addImport("zmath_options", zmath_pkg.zmath_options);
 
     return &b.addRunArtifact(tests).step;
 }
@@ -91,7 +93,7 @@ pub fn runBenchmarks(
     });
 
     const zmath_pkg = package(b, target, .ReleaseFast, .{});
-    exe.addModule("zmath", zmath_pkg.zmath);
+    exe.root_module.addImport("zmath", zmath_pkg.zmath);
 
     return &b.addRunArtifact(exe).step;
 }

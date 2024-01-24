@@ -1,5 +1,8 @@
 ZMODULES=../zig-gamedev/libs/
 
+rm -rf src/deps/system-sdk
+cp -r $ZMODULES/system-sdk src/deps
+
 rm -rf src/deps/imgui/zgui
 cp -r $ZMODULES/zgui src/deps/imgui
 

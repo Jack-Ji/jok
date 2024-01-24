@@ -41,6 +41,8 @@ pub fn package(
         },
     });
 
+    ztracy.addIncludePath(.{ .path = thisDir() ++ "/libs/tracy/tracy" });
+
     const ztracy_c_cpp = if (args.options.enable_ztracy) ztracy_c_cpp: {
         const enable_fibers = if (args.options.enable_fibers) "-DTRACY_FIBERS" else "";
 
@@ -63,19 +65,19 @@ pub fn package(
             },
         });
 
-        const abi = ztracy_c_cpp.rootModuleTarget().abi;
         ztracy_c_cpp.linkLibC();
-        if (abi != .msvc)
+        if (target.result.abi != .msvc)
             ztracy_c_cpp.linkLibCpp();
 
         switch (target.result.os.tag) {
             .windows => {
-                ztracy_c_cpp.linkSystemLibrary2("ws2_32", .{ .use_pkg_config = .no });
-                ztracy_c_cpp.linkSystemLibrary2("dbghelp", .{ .use_pkg_config = .no });
+                ztracy_c_cpp.linkSystemLibrary("ws2_32");
+                ztracy_c_cpp.linkSystemLibrary("dbghelp");
             },
             .macos => {
+                const system_sdk = b.dependency("system_sdk", .{});
                 ztracy_c_cpp.addFrameworkPath(
-                    .{ .path = thisDir() ++ "/../system-sdk/macos12/System/Library/Frameworks" },
+                    .{ .path = system_sdk.path("System/Library/Frameworks").getPath(b) },
                 );
             },
             else => {},
@@ -98,10 +100,37 @@ pub fn build(b: *std.Build) void {
 
     _ = package(b, target, optimize, .{
         .options = .{
-            .enable_ztracy = b.option(bool, "enable_ztracy", "Enable Tracy profile markers") orelse false,
-            .enable_fibers = b.option(bool, "enable_fibers", "Enable Tracy fiber support") orelse false,
+            .enable_ztracy = b.option(
+                bool,
+                "enable_ztracy",
+                "Enable Tracy profile markers",
+            ) orelse false,
+            .enable_fibers = b.option(
+                bool,
+                "enable_fibers",
+                "Enable Tracy fiber support",
+            ) orelse false,
         },
     });
+
+    const test_step = b.step("test", "Run ztracy tests");
+    test_step.dependOn(runTests(b, optimize, target));
+}
+
+pub fn runTests(
+    b: *std.Build,
+    optimize: std.builtin.OptimizeMode,
+    target: std.Build.ResolvedTarget,
+) *std.Build.Step {
+    const tests = b.addTest(.{
+        .name = "ztracy-tests",
+        .root_source_file = .{ .path = thisDir() ++ "/src/ztracy.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    const pkg = package(b, target, optimize, .{});
+    pkg.link(tests);
+    return &b.addRunArtifact(tests).step;
 }
 
 inline fn thisDir() []const u8 {

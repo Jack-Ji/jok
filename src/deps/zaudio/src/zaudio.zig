@@ -1,4 +1,3 @@
-pub const version = @import("std").SemanticVersion{ .major = 0, .minor = 9, .patch = 3 };
 const std = @import("std");
 const assert = std.debug.assert;
 //--------------------------------------------------------------------------------------------------
@@ -880,8 +879,8 @@ pub const DataSourceNode = opaque {
     pub const destroy = zaudioDataSourceNodeDestroy;
     extern fn zaudioDataSourceNodeDestroy(handle: *DataSourceNode) void;
 
-    pub fn setLooping(handle: *DataSourceNode, is_looping: bool) void {
-        try maybeError(ma_data_source_node_set_looping(handle, @intFromBool(is_looping)));
+    pub fn setLooping(handle: *DataSourceNode, is_looping: bool) !void {
+        try maybeError(ma_data_source_node_set_looping(handle, if (is_looping) .true32 else .false32));
     }
     extern fn ma_data_source_node_set_looping(handle: *DataSourceNode, is_looping: Bool32) Result;
 
@@ -1353,14 +1352,14 @@ pub const NodeGraph = opaque {
                 out_handle: ?*?*DataSourceNode,
             ) Result;
 
-            pub fn createBiquadNode(node_graph: *T, config: BiquadNode.NodeConfig) Error!*BiquadNode {
+            pub fn createBiquadNode(node_graph: *T, config: BiquadNode.Config) Error!*BiquadNode {
                 var handle: ?*BiquadNode = null;
                 try maybeError(zaudioBiquadNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
                 return handle.?;
             }
             extern fn zaudioBiquadNodeCreate(
                 node_graph: *NodeGraph,
-                config: *const BiquadNode.NodeConfig,
+                config: *const BiquadNode.Config,
                 out_handle: ?*?*BiquadNode,
             ) Result;
 
@@ -2055,7 +2054,7 @@ pub const Sound = opaque {
     extern fn ma_sound_get_pitch(sound: *const Sound) f32;
 
     pub fn setSpatializationEnabled(sound: *Sound, enabled: bool) void {
-        ma_sound_set_spatialization_enabled(sound, @intFromBool(enabled));
+        ma_sound_set_spatialization_enabled(sound, if (enabled) .true32 else .false32);
     }
     extern fn ma_sound_set_spatialization_enabled(sound: *Sound, enabled: Bool32) void;
 
@@ -2402,7 +2401,7 @@ pub const SoundGroup = opaque {
     extern fn ma_sound_group_get_pitch(sound: *const SoundGroup) f32;
 
     pub fn setSpatializationEnabled(sound: *SoundGroup, enabled: bool) void {
-        ma_sound_group_set_spatialization_enabled(sound, @intFromBool(enabled));
+        ma_sound_group_set_spatialization_enabled(sound, if (enabled) .true32 else .false32);
     }
     extern fn ma_sound_group_set_spatialization_enabled(sound: *SoundGroup, enabled: Bool32) void;
 
@@ -2677,7 +2676,12 @@ test "zaudio.engine.basic" {
     init(std.testing.allocator);
     defer deinit();
 
-    const engine = try Engine.create(null);
+    var engine_config = Engine.Config.init();
+    engine_config.no_device = .true32;
+    engine_config.channels = 2;
+    engine_config.sample_rate = 48000;
+
+    const engine = try Engine.create(engine_config);
     defer engine.destroy();
 
     try engine.setTime(engine.getTime());
@@ -2687,9 +2691,6 @@ test "zaudio.engine.basic" {
     _ = engine.getListenerCount();
     _ = engine.findClosestListener(.{ 0.0, 0.0, 0.0 });
 
-    try engine.start();
-    try engine.stop();
-    try engine.start();
     try engine.setVolume(1.0);
     try engine.setGainDb(1.0);
 
@@ -2702,7 +2703,6 @@ test "zaudio.engine.basic" {
         try expect(pos[0] == 1.0 and pos[1] == 2.0 and pos[2] == 3.0);
     }
 
-    try expect(engine.getDevice() != null);
     _ = engine.getResourceManager();
     _ = engine.getResourceManagerMut();
     _ = engine.getLog();
@@ -2722,7 +2722,12 @@ test "zaudio.soundgroup.basic" {
     init(std.testing.allocator);
     defer deinit();
 
-    const engine = try Engine.create(null);
+    var engine_config = Engine.Config.init();
+    engine_config.no_device = .true32;
+    engine_config.channels = 2;
+    engine_config.sample_rate = 48000;
+
+    const engine = try Engine.create(engine_config);
     defer engine.destroy();
 
     const sgroup = try engine.createSoundGroup(.{}, null);
@@ -2756,6 +2761,10 @@ test "zaudio.soundgroup.basic" {
     }
 }
 
+test {
+    std.testing.refAllDeclsRecursive(@This());
+}
+
 test "zaudio.fence.basic" {
     init(std.testing.allocator);
     defer deinit();
@@ -2772,7 +2781,12 @@ test "zaudio.sound.basic" {
     init(std.testing.allocator);
     defer deinit();
 
-    const engine = try Engine.create(null);
+    var engine_config = Engine.Config.init();
+    engine_config.no_device = .true32;
+    engine_config.channels = 2;
+    engine_config.sample_rate = 48000;
+
+    const engine = try Engine.create(engine_config);
     defer engine.destroy();
 
     var config = Sound.Config.init();
@@ -2819,7 +2833,10 @@ test "zaudio.device.basic" {
     config.playback.format = .float32;
     config.playback.channels = 2;
     config.sample_rate = 48_000;
-    const device = try Device.create(null, config);
+    const device = Device.create(null, config) catch |err| {
+        std.debug.print("Failed to create Device with error: {s}", .{@errorName(err)});
+        return;
+    };
     defer device.destroy();
     try device.start();
     try expect(device.getState() == .started or device.getState() == .starting);
@@ -2863,7 +2880,12 @@ test "zaudio.audio_buffer" {
     );
     defer audio_buffer.destroy();
 
-    const engine = try Engine.create(null);
+    var engine_config = Engine.Config.init();
+    engine_config.no_device = .true32;
+    engine_config.channels = 2;
+    engine_config.sample_rate = 48000;
+
+    const engine = try Engine.create(engine_config);
     defer engine.destroy();
 
     const sound = try engine.createSoundFromDataSource(audio_buffer.asDataSourceMut(), .{}, null);
