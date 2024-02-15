@@ -10,5 +10,9 @@
     },
     .dependencies = .{
         .system_sdk = .{ .path = "src/deps/system-sdk" },
+        .sdl = .{
+            .url = "https://github.com/Jack-Ji/SDL.zig/archive/d501c92a1a339ed20bfde98a54f3f72a3627915e.tar.gz",
+            .hash = "122067acb4438715380b8573444b351f5c028272e8ad5aa96ce4f059ab464a3bbea2",
+        },
     },
 }
