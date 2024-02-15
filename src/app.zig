@@ -58,8 +58,8 @@ comptime {
 const jok_config = config.init(game);
 
 /// Options for zig executable
-pub const std_options = struct {
-    pub const log_level = jok_config.jok_log_level;
+pub const std_options: std.Options = .{
+    .log_level = jok_config.jok_log_level,
 };
 
 pub fn main() !void {
