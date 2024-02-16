@@ -192,7 +192,7 @@ pub const Node = struct {
                     0,
                 )
             else
-                zmath.f32x4s(1);
+                zmath.f32x4(1.0, 1.0, 1.0, 0.0);
             self.rotation = if (gltf_node.has_rotation == 1)
                 zmath.f32x4(
                     gltf_node.rotation[0],
