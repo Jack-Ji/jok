@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const sdl = @import("src/deps/sdl/build.zig");
+const sdl = @import("sdl");
 const imgui = @import("src/deps/imgui/build.zig");
 const zaudio = @import("src/deps/zaudio/build.zig");
 const stb = @import("src/deps/stb/build.zig");

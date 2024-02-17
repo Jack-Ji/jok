@@ -32,11 +32,46 @@ A minimal 2d/3d game framework for zig.
 * Sound/Music playing/mixing
 
 ## How to start?
-Copy or clone repo (recursively) to `lib` subdirectory of the root of your project.  Install SDL2 library:
+
+Add jok dependency to your build.zig.zon, with following command:
+```bash
+zig fetch --save https://github.com/jack-ji/jok/archive/[commit-sha].tar.gz
+```
+
+For the [commit-sha] just pick the latest from here: https://github.com/jack-ji/jok/commits/main
+
+Then in your `build.zig` add:
+
+```zig
+const std = @import("std");
+const jok = @import("jok");
+
+pub fn build(b: *std.Build) void {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+    const exe = jok.createGame(
+        b,
+        "mygame",
+        "src/main.zig",
+        target,
+        optimize,
+        .{},
+    );
+    const install_cmd = b.addInstallArtifact(exe, .{});
+
+    const run_cmd = b.addRunArtifact(exe);
+    run_cmd.step.dependOn(&install_cmd.step);
+
+    const run_step = b.step("run", "Run game");
+    run_step.dependOn(&run_cmd.step);
+}
+```
+
+Install SDL2 library:
 
 1. Windows Platform
 
-    Download SDL library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config/sdl.json` in project directory:
+    Download SDL library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config/sdl.json` in your project directory:
     ```json
     {
       "x86_64-windows-gnu": {
@@ -64,33 +99,6 @@ Copy or clone repo (recursively) to `lib` subdirectory of the root of your proje
     ```bash
     brew install sdl2
     ```
-
-Then in your `build.zig` add:
-
-```zig
-const std = @import("std");
-const jok = @import("lib/jok/build.zig");
-
-pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
-    const exe = jok.createGame(
-        b,
-        "mygame",
-        "src/main.zig",
-        target,
-        optimize,
-        .{},
-    );
-    const install_cmd = b.addInstallArtifact(exe, .{});
-
-    const run_cmd = b.addRunArtifact(exe);
-    run_cmd.step.dependOn(&install_cmd.step);
-
-    const run_step = b.step("run", "Run game");
-    run_step.dependOn(&run_cmd.step);
-}
-```
 
 You may import and use jok in your code now:
 

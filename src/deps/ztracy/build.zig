@@ -75,9 +75,8 @@ pub fn package(
                 ztracy_c_cpp.linkSystemLibrary("dbghelp");
             },
             .macos => {
-                const system_sdk = b.dependency("system_sdk", .{});
                 ztracy_c_cpp.addFrameworkPath(
-                    .{ .path = system_sdk.path("System/Library/Frameworks").getPath(b) },
+                    .{ .path = "../system-sdk/macos12/System/Library/Frameworks" },
                 );
             },
             else => {},

@@ -29,12 +29,10 @@ pub fn package(
     zaudio_c_cpp.addIncludePath(.{ .path = thisDir() ++ "/libs/miniaudio" });
     zaudio_c_cpp.linkLibC();
 
-    const system_sdk = b.dependency("system_sdk", .{});
-
     if (target.result.os.tag == .macos) {
-        zaudio_c_cpp.addFrameworkPath(.{ .path = system_sdk.path("macos12/System/Library/Frameworks").getPath(b) });
-        zaudio_c_cpp.addSystemIncludePath(.{ .path = system_sdk.path("macos12/usr/include").getPath(b) });
-        zaudio_c_cpp.addLibraryPath(.{ .path = system_sdk.path("macos12/usr/lib").getPath(b) });
+        zaudio_c_cpp.addFrameworkPath(.{ .path = "../system-sdk/macos12/System/Library/Frameworks" });
+        zaudio_c_cpp.addSystemIncludePath(.{ .path = "../system-sdk/macos12/usr/include" });
+        zaudio_c_cpp.addLibraryPath(.{ .path = "../system-sdk/macos12/usr/lib" });
         zaudio_c_cpp.linkFramework("CoreAudio");
         zaudio_c_cpp.linkFramework("CoreFoundation");
         zaudio_c_cpp.linkFramework("AudioUnit");
