@@ -31,7 +31,16 @@ A minimal 2d/3d game framework for zig.
 * SVG loading/rendering
 * Sound/Music playing/mixing
 
+## Supported platforms
+* Windows
+* Linux
+* MacOS (?)
+
+TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem` with `.Windows` in your build script.
+
 ## How to start?
+
+1. Add *jok* as your project's dependency
 
 Add jok dependency to your build.zig.zon, with following command:
 ```bash
@@ -40,7 +49,16 @@ zig fetch --save https://github.com/jack-ji/jok/archive/[commit-sha].tar.gz
 
 For the [commit-sha] just pick the latest from here: https://github.com/jack-ji/jok/commits/main
 
-Then in your `build.zig` add:
+For those using proxies to access network, `zig fetch` might not work properly, here's what you can do instead:
+```bash
+wget https://github.com/jack-ji/jok/archive/[commit-sha].tar.gz
+zig fetch --save [commit-sha].tar.gz
+rm -f [commit-sha].tar.gz
+```
+
+2. Use *jok*'s build script to add build step
+
+In your `build.zig`, add:
 
 ```zig
 const std = @import("std");
@@ -67,9 +85,9 @@ pub fn build(b: *std.Build) void {
 }
 ```
 
-Install SDL2 library:
+3. Install SDL2 library:
 
-1. Windows Platform
+* Windows Platform
 
     Download SDL library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config/sdl.json` in your project directory:
     ```json
@@ -82,7 +100,7 @@ Install SDL2 library:
     }
     ```
 
-2. Linux Platform
+* Linux Platform
 
     Debian/Ubuntu:
     ```bash
@@ -94,13 +112,15 @@ Install SDL2 library:
     sudo yum install SDL2-devel
     ```
 
-3. MacOS
+* MacOS
 
     ```bash
     brew install sdl2
     ```
 
-You may import and use jok in your code now:
+4. Write some code!
+
+You may import and use jok now, here's skeleton of your `src/main.zig`:
 
 ```zig
 const std = @import("std");
@@ -142,9 +162,6 @@ pub fn quit(ctx: jok.Context) void {
 }
 ```
 
-Compile and run your game using command `zig build run`, have fun! Please let me know if you have any issue or developed something
-interesting with this little framework.
-
 Noticed yet? That's right, you don't need to write main function, `jok` got your back.
 The game is deemed as a separate package to `jok`'s runtime as a matter of fact.  Your
 only responsibility is to provide 5 public functions: 
@@ -158,30 +175,25 @@ You can customize some setup settings (window width/height, fps, debug level etc
 defining some public constants using predefined names (they're all prefixed with`jok_`).
 Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig).
 
-## Supported platforms
-* Windows
-* Linux
-* MacOS (?)
-
-TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem` with `.Windows` in your build script.
+Now, compile and run your game using command `zig build run`, have fun!
+Please let me know if you have any issue or developed something interesting with this little framework.
 
 ## NOTE
-**Jok** is actually short for **joke**, which is about how overly-complicated modern graphics programming has become.
+**Jok** is short for **joke**, which is about how overly-complicated modern graphics programming has become.
 People are gradually forgetting lots of computing techniques used to deliver amazing games on simple machines.
 With so many tools, engines and computing resources at hand, however, gamedev is not as fun as it used to be. 
-In a word, the project is an offort trying to bring the joy of gamedev back, it's being developed in the spirit of 
-retro-machines of 1990s (especially SNES/PS1), which implies following limitations:
+**Jok** is an offort trying to bring the joy of gamedev back, it's being developed in the spirit of 
+retro-machines of 1990s (especially PS1), which implies following limitations:
 
 * Custom vertex/fragment shader is not possible
 * Only support [affine texture mapping](https://en.wikipedia.org/wiki/Texture_mapping#Affine_texture_mapping)
 * No [depth buffer](https://en.wikipedia.org/wiki/Z-buffering)
 
-The limitations demand developers to be both creative and careful about game's design, which can lead to
-very awesome product in my opinion. Like old saying: "Constraints breed creativity".
+The limitations demand developers to be both creative and careful about game's design.
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
-* [zig-gamedev](https://github.com/michal-z/zig-gamedev) (MIT license)
+* [zig-gamedev](https://github.com/zig-gamedev/zig-gamedev) (MIT license)
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
 * [stb headers](https://github.com/nothings/stb) (MIT license)
 * [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
