@@ -42,141 +42,138 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
 
 1. Add *jok* as your project's dependency
 
-Add jok dependency to your build.zig.zon, with following command:
-```bash
-zig fetch --save https://github.com/jack-ji/jok/archive/[commit-sha].tar.gz
-```
+   Add jok dependency to your build.zig.zon, with following command:
+    ```bash
+    zig fetch --save https://github.com/jack-ji/jok/archive/[commit-sha].tar.gz
+    ```
+    For the [commit-sha] just pick the latest from here: https://github.com/jack-ji/jok/commits/main
 
-For the [commit-sha] just pick the latest from here: https://github.com/jack-ji/jok/commits/main
-
-For those using proxies to access network, `zig fetch` might not work properly, here's what you can do instead:
-```bash
-wget https://github.com/jack-ji/jok/archive/[commit-sha].tar.gz
-zig fetch --save [commit-sha].tar.gz
-rm -f [commit-sha].tar.gz
-```
+    For those using proxies to access network, `zig fetch` might not work properly, here's what you can do instead:
+    ```bash
+    wget https://github.com/jack-ji/jok/archive/[commit-sha].tar.gz
+    zig fetch --save [commit-sha].tar.gz
+    rm -f [commit-sha].tar.gz
+    ```
 
 2. Use *jok*'s build script to add build step
 
-In your `build.zig`, add:
-
-```zig
-const std = @import("std");
-const jok = @import("jok");
-
-pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
-    const exe = jok.createGame(
-        b,
-        "mygame",
-        "src/main.zig",
-        target,
-        optimize,
-        .{},
-    );
-    const install_cmd = b.addInstallArtifact(exe, .{});
-
-    const run_cmd = b.addRunArtifact(exe);
-    run_cmd.step.dependOn(&install_cmd.step);
-
-    const run_step = b.step("run", "Run game");
-    run_step.dependOn(&run_cmd.step);
-}
-```
-
-3. Install SDL2 library:
-
-* Windows Platform
-
-    Download SDL library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config/sdl.json` in your project directory:
-    ```json
-    {
-      "x86_64-windows-gnu": {
-        "include": "D:/SDL2-2.28.5/x86_64-w64-mingw32/include",
-        "libs": "D:/SDL2-2.28.5/x86_64-w64-mingw32/lib",
-        "bin": "D:/SDL2-2.28.5/x86_64-w64-mingw32/bin"
-      }
+    In your `build.zig`, add:
+    ```zig
+    const std = @import("std");
+    const jok = @import("jok");
+    
+    pub fn build(b: *std.Build) void {
+        const target = b.standardTargetOptions(.{});
+        const optimize = b.standardOptimizeOption(.{});
+        const exe = jok.createGame(
+            b,
+            "mygame",
+            "src/main.zig",
+            target,
+            optimize,
+            .{},
+        );
+        const install_cmd = b.addInstallArtifact(exe, .{});
+    
+        const run_cmd = b.addRunArtifact(exe);
+        run_cmd.step.dependOn(&install_cmd.step);
+    
+        const run_step = b.step("run", "Run game");
+        run_step.dependOn(&run_cmd.step);
     }
     ```
 
-* Linux Platform
+3. Install SDL2 library:
 
-    Debian/Ubuntu:
-    ```bash
-    sudo apt install libsdl2-dev
-    ```
-
-    Fedora/CentOS:
-    ```bash
-    sudo yum install SDL2-devel
-    ```
-
-* MacOS
-
-    ```bash
-    brew install sdl2
-    ```
+    * Windows Platform
+    
+        Download SDL library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config/sdl.json` in your project directory:
+        ```json
+        {
+          "x86_64-windows-gnu": {
+            "include": "D:/SDL2-2.28.5/x86_64-w64-mingw32/include",
+            "libs": "D:/SDL2-2.28.5/x86_64-w64-mingw32/lib",
+            "bin": "D:/SDL2-2.28.5/x86_64-w64-mingw32/bin"
+          }
+        }
+        ```
+    
+    * Linux Platform
+    
+        Debian/Ubuntu:
+        ```bash
+        sudo apt install libsdl2-dev
+        ```
+    
+        Fedora/CentOS:
+        ```bash
+        sudo yum install SDL2-devel
+        ```
+    
+    * MacOS
+    
+        ```bash
+        brew install sdl2
+        ```
 
 4. Write some code!
 
-You may import and use jok now, here's skeleton of your `src/main.zig`:
-
-```zig
-const std = @import("std");
-const jok = @import("jok");
-const sdl = jok.sdl;
-const j2d = jok.j2d;
-const j3d = jok.j3d;
-
-pub fn init(ctx: jok.Context) !void {
-    // your init code
-}
-
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
-    // your event processing code
-}
-
-pub fn update(ctx: jok.Context) !void {
-    // your game state updating code
-}
-
-pub fn draw(ctx: jok.Context) !void {
-  // your 2d drawing
-  {
-      try j2d.begin(.{});
-      // ......
-      try j2d.end();
-  }
-
-  // your 3d drawing
-  {
-      try j3d.begin(.{});
-      // ......
-      try j3d.end();
-  }
-}
-
-pub fn quit(ctx: jok.Context) void {
-    // your deinit code
-}
-```
-
-Noticed yet? That's right, you don't need to write main function, `jok` got your back.
-The game is deemed as a separate package to `jok`'s runtime as a matter of fact.  Your
-only responsibility is to provide 5 public functions: 
-* init - initialize your game, run only once
-* event - process events happened between frames (keyboard/mouse/controller etc)
-* update - logic update between frames
-* draw - render your screen here (60 fps by default)
-* quit - do something before game is closed
-
-You can customize some setup settings (window width/height, fps, debug level etc), by 
-defining some public constants using predefined names (they're all prefixed with`jok_`).
-Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig).
-
-Now, compile and run your game using command `zig build run`, have fun!
-Please let me know if you have any issue or developed something interesting with this little framework.
+    You may import and use jok now, here's skeleton of your `src/main.zig`:
+    ```zig
+    const std = @import("std");
+    const jok = @import("jok");
+    const sdl = jok.sdl;
+    const j2d = jok.j2d;
+    const j3d = jok.j3d;
+    
+    pub fn init(ctx: jok.Context) !void {
+        // your init code
+    }
+    
+    pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+        // your event processing code
+    }
+    
+    pub fn update(ctx: jok.Context) !void {
+        // your game state updating code
+    }
+    
+    pub fn draw(ctx: jok.Context) !void {
+      // your 2d drawing
+      {
+          try j2d.begin(.{});
+          // ......
+          try j2d.end();
+      }
+    
+      // your 3d drawing
+      {
+          try j3d.begin(.{});
+          // ......
+          try j3d.end();
+      }
+    }
+    
+    pub fn quit(ctx: jok.Context) void {
+        // your deinit code
+    }
+    ```
+    
+    Noticed yet? That's right, you don't need to write main function, `jok` got your back.
+    The game is deemed as a separate package to `jok`'s runtime as a matter of fact.  Your
+    only responsibility is to provide 5 public functions: 
+    * init - initialize your game, run only once
+    * event - process events happened between frames (keyboard/mouse/controller etc)
+    * update - logic update between frames
+    * draw - render your screen here (60 fps by default)
+    * quit - do something before game is closed
+    
+    You can customize some setup settings (window width/height, fps, debug level etc), by 
+    defining some public constants using predefined names (they're all prefixed with`jok_`).
+    Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig).
+    
+    Now, compile and run your game using command `zig build run`, have fun!
+    Please let me know if you have any issue or developed something interesting with this little framework.
 
 ## NOTE
 **Jok** is short for **joke**, which is about how overly-complicated modern graphics programming has become.
