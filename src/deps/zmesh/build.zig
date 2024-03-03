@@ -75,17 +75,18 @@ pub fn package(
     });
 
     zmesh_c_cpp.addCSourceFiles(.{
+        .root = .{ .path = thisDir() },
         .files = &.{
-            thisDir() ++ "/libs/meshoptimizer/clusterizer.cpp",
-            thisDir() ++ "/libs/meshoptimizer/indexgenerator.cpp",
-            thisDir() ++ "/libs/meshoptimizer/vcacheoptimizer.cpp",
-            thisDir() ++ "/libs/meshoptimizer/vcacheanalyzer.cpp",
-            thisDir() ++ "/libs/meshoptimizer/vfetchoptimizer.cpp",
-            thisDir() ++ "/libs/meshoptimizer/vfetchanalyzer.cpp",
-            thisDir() ++ "/libs/meshoptimizer/overdrawoptimizer.cpp",
-            thisDir() ++ "/libs/meshoptimizer/overdrawanalyzer.cpp",
-            thisDir() ++ "/libs/meshoptimizer/simplifier.cpp",
-            thisDir() ++ "/libs/meshoptimizer/allocator.cpp",
+            "libs/meshoptimizer/clusterizer.cpp",
+            "libs/meshoptimizer/indexgenerator.cpp",
+            "libs/meshoptimizer/vcacheoptimizer.cpp",
+            "libs/meshoptimizer/vcacheanalyzer.cpp",
+            "libs/meshoptimizer/vfetchoptimizer.cpp",
+            "libs/meshoptimizer/vfetchanalyzer.cpp",
+            "libs/meshoptimizer/overdrawoptimizer.cpp",
+            "libs/meshoptimizer/overdrawanalyzer.cpp",
+            "libs/meshoptimizer/simplifier.cpp",
+            "libs/meshoptimizer/allocator.cpp",
         },
         .flags = &.{""},
     });

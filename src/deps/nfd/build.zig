@@ -19,29 +19,29 @@ pub fn link(exe: *std.Build.Step.Compile) void {
         exe.linkSystemLibrary("glib-2.0");
         exe.linkSystemLibrary("gobject-2.0");
     } else unreachable;
-    exe.addIncludePath(.{ .path = comptime thisDir() ++ "/c/include" });
+    exe.addIncludePath(.{ .path = thisDir() ++ "/c/include" });
     exe.addCSourceFile(.{
-        .file = .{ .path = comptime thisDir() ++ "/c/nfd_common.c" },
+        .file = .{ .path = thisDir() ++ "/c/nfd_common.c" },
         .flags = flags.items,
     });
     if (exe.rootModuleTarget().isDarwin()) {
         exe.addCSourceFile(.{
-            .file = .{ .path = comptime thisDir() ++ "/c/nfd_cocoa.m" },
+            .file = .{ .path = thisDir() ++ "/c/nfd_cocoa.m" },
             .flags = flags.items,
         });
     } else if (exe.rootModuleTarget().os.tag == .windows) {
         exe.addCSourceFile(.{
-            .file = .{ .path = comptime thisDir() ++ "/c/nfd_win.cpp" },
+            .file = .{ .path = thisDir() ++ "/c/nfd_win.cpp" },
             .flags = flags.items,
         });
     } else {
         exe.addCSourceFile(.{
-            .file = .{ .path = comptime thisDir() ++ "/c/nfd_gtk.c" },
+            .file = .{ .path = thisDir() ++ "/c/nfd_gtk.c" },
             .flags = flags.items,
         });
     }
 }
 
-fn thisDir() []const u8 {
-    return std.fs.path.dirname(@src().file) orelse ".";
+inline fn thisDir() []const u8 {
+    return comptime std.fs.path.dirname(@src().file) orelse ".";
 }

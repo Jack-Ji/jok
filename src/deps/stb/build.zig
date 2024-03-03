@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub fn link(exe: *std.Build.Step.Compile) void {
     exe.addCSourceFile(.{
-        .file = .{ .path = comptime thisDir() ++ "/c/stb_wrapper.c" },
+        .file = .{ .path = thisDir() ++ "/c/stb_wrapper.c" },
         .flags = &.{
             "-Wno-return-type-c-linkage",
             "-fno-sanitize=undefined",
@@ -10,6 +10,6 @@ pub fn link(exe: *std.Build.Step.Compile) void {
     });
 }
 
-fn thisDir() []const u8 {
-    return std.fs.path.dirname(@src().file) orelse ".";
+inline fn thisDir() []const u8 {
+    return comptime std.fs.path.dirname(@src().file) orelse ".";
 }

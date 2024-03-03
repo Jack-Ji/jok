@@ -98,12 +98,13 @@ pub fn package(
 
     if (args.options.with_imgui) {
         zgui_c_cpp.addCSourceFiles(.{
+            .root = .{ .path = thisDir() },
             .files = &.{
-                thisDir() ++ "/libs/imgui/imgui.cpp",
-                thisDir() ++ "/libs/imgui/imgui_widgets.cpp",
-                thisDir() ++ "/libs/imgui/imgui_tables.cpp",
-                thisDir() ++ "/libs/imgui/imgui_draw.cpp",
-                thisDir() ++ "/libs/imgui/imgui_demo.cpp",
+                "libs/imgui/imgui.cpp",
+                "libs/imgui/imgui_widgets.cpp",
+                "libs/imgui/imgui_tables.cpp",
+                "libs/imgui/imgui_draw.cpp",
+                "libs/imgui/imgui_demo.cpp",
             },
             .flags = cflags,
         });
@@ -112,10 +113,11 @@ pub fn package(
     if (args.options.with_implot) {
         zgui_c_cpp.defineCMacro("ZGUI_IMPLOT", "1");
         zgui_c_cpp.addCSourceFiles(.{
+            .root = .{ .path = thisDir() },
             .files = &.{
-                thisDir() ++ "/libs/imgui/implot_demo.cpp",
-                thisDir() ++ "/libs/imgui/implot.cpp",
-                thisDir() ++ "/libs/imgui/implot_items.cpp",
+                "libs/imgui/implot_demo.cpp",
+                "libs/imgui/implot.cpp",
+                "libs/imgui/implot_items.cpp",
             },
             .flags = cflags,
         });
@@ -130,9 +132,10 @@ pub fn package(
             zgui_c_cpp.addIncludePath(.{ .path = zglfw.path("libs/glfw/include").getPath(b) });
             zgui_c_cpp.addIncludePath(.{ .path = zgpu.path("libs/dawn/include").getPath(b) });
             zgui_c_cpp.addCSourceFiles(.{
+                .root = .{ .path = thisDir() },
                 .files = &.{
-                    thisDir() ++ "/libs/imgui/backends/imgui_impl_glfw.cpp",
-                    thisDir() ++ "/libs/imgui/backends/imgui_impl_wgpu.cpp",
+                    "libs/imgui/backends/imgui_impl_glfw.cpp",
+                    "libs/imgui/backends/imgui_impl_wgpu.cpp",
                 },
                 .flags = cflags,
             });
@@ -141,18 +144,20 @@ pub fn package(
             const zglfw = b.dependency("zglfw", .{});
             zgui_c_cpp.addIncludePath(.{ .path = zglfw.path("libs/glfw/include").getPath(b) });
             zgui_c_cpp.addCSourceFiles(.{
+                .root = .{ .path = thisDir() },
                 .files = &.{
-                    thisDir() ++ "/libs/imgui/backends/imgui_impl_glfw.cpp",
-                    thisDir() ++ "/libs/imgui/backends/imgui_impl_opengl3.cpp",
+                    "libs/imgui/backends/imgui_impl_glfw.cpp",
+                    "libs/imgui/backends/imgui_impl_opengl3.cpp",
                 },
                 .flags = &(cflags.* ++ .{"-DIMGUI_IMPL_OPENGL_LOADER_CUSTOM"}),
             });
         },
         .win32_dx12 => {
             zgui_c_cpp.addCSourceFiles(.{
+                .root = .{ .path = thisDir() },
                 .files = &.{
-                    thisDir() ++ "/libs/imgui/backends/imgui_impl_win32.cpp",
-                    thisDir() ++ "/libs/imgui/backends/imgui_impl_dx12.cpp",
+                    "libs/imgui/backends/imgui_impl_win32.cpp",
+                    "libs/imgui/backends/imgui_impl_dx12.cpp",
                 },
                 .flags = cflags,
             });
