@@ -336,13 +336,13 @@ pub const DrawCmd = struct {
                 .r = c.radius,
                 .col = c.color,
                 .thickness = c.thickness,
-                .num_segments = c.num_segments,
+                .num_segments = @intCast(c.num_segments),
             }),
             .circle_fill => |c| dl.addCircleFilled(.{
                 .p = .{ c.p.x, c.p.y },
                 .r = c.radius,
                 .col = c.color,
-                .num_segments = c.num_segments,
+                .num_segments = @intCast(c.num_segments),
             }),
             .ngon => |c| dl.addNgon(.{
                 .p = .{ c.p.x, c.p.y },
@@ -443,7 +443,7 @@ pub const DrawCmd = struct {
                                 .r = pc.radius * c.transform.getScaleX(),
                                 .amin = pc.amin,
                                 .amax = pc.amax,
-                                .num_segments = pc.num_segments,
+                                .num_segments = @intCast(pc.num_segments),
                             });
                         },
                         .bezier_cubic_to => |pc| {
@@ -454,7 +454,7 @@ pub const DrawCmd = struct {
                                 .p2 = .{ p2.x, p2.y },
                                 .p3 = .{ p3.x, p3.y },
                                 .p4 = .{ p4.x, p4.y },
-                                .num_segments = pc.num_segments,
+                                .num_segments = @intCast(pc.num_segments),
                             });
                         },
                         .bezier_quadratic_to => |pc| {
@@ -463,7 +463,7 @@ pub const DrawCmd = struct {
                             dl.pathBezierQuadraticCurveTo(.{
                                 .p2 = .{ p2.x, p2.y },
                                 .p3 = .{ p3.x, p3.y },
-                                .num_segments = pc.num_segments,
+                                .num_segments = @intCast(pc.num_segments),
                             });
                         },
                         .rect_rounded => |pc| {
