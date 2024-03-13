@@ -1,6 +1,6 @@
 .{
     .name = "jok",
-    .version = "0.1.0",
+    .version = "0.1.1",
     .paths = .{
         "build.zig",
         "build.zig.zon",
@@ -10,8 +10,8 @@
     },
     .dependencies = .{
         .sdl = .{
-            .url = "https://github.com/Jack-Ji/SDL.zig/archive/6d42434c4d92efb1199d58f821edb7f701812f7e.tar.gz",
-            .hash = "122066d8bdcc8ae56a1ea9f562d23db8cdb0a4d4705acebd8edc5ae694eae5c6fc0a",
+            .url = "https://github.com/Jack-Ji/SDL.zig/archive/7c53574b39827d3b56d3dfd9c531c60ca64bac61.tar.gz",
+            .hash = "122056242ca05151ae0befdf4c7d09b600dee4e00c5d0e3563017f314e9669d49f3f",
         },
     },
 }
