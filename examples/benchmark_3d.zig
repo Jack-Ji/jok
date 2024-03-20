@@ -120,33 +120,35 @@ pub fn draw(ctx: jok.Context) !void {
 
     ctx.displayStats(.{});
 
-    try j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
-    for (translations.items, 0..) |tr, i| {
-        const model = zmath.mul(
-            zmath.translation(-0.5, -0.5, -0.5),
-            zmath.mul(
+    {
+        j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
+        defer j3d.end();
+        for (translations.items, 0..) |tr, i| {
+            const model = zmath.mul(
+                zmath.translation(-0.5, -0.5, -0.5),
                 zmath.mul(
-                    zmath.scaling(0.1, 0.1, 0.1),
-                    zmath.matFromAxisAngle(
-                        rotation_axises.items[i],
-                        std.math.pi / 3.0 * ctx.seconds(),
+                    zmath.mul(
+                        zmath.scaling(0.1, 0.1, 0.1),
+                        zmath.matFromAxisAngle(
+                            rotation_axises.items[i],
+                            std.math.pi / 3.0 * ctx.seconds(),
+                        ),
                     ),
+                    tr,
                 ),
-                tr,
-            ),
-        );
-        try j3d.shape(
-            cube,
-            model,
-            aabb,
-            .{ .texture = tex },
-        );
+            );
+            try j3d.shape(
+                cube,
+                model,
+                aabb,
+                .{ .texture = tex },
+            );
+        }
     }
-    try j3d.end();
 
-    try font.debugDraw(
+    font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 20, .y = 10 } },
+        .{ .x = 20, .y = 10 },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );

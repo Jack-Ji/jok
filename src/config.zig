@@ -66,7 +66,7 @@ pub const Config = struct {
     jok_imgui_ini_file: bool = false,
 
     /// Prebuild atlas for debug font
-    jok_prebuild_atlas: ?u32 = 16,
+    jok_prebuild_atlas: u32 = 16,
 
     /// Whether enable detailed frame statistics
     jok_detailed_frame_stats: bool = true,

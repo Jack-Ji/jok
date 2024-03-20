@@ -52,9 +52,10 @@ pub fn draw(ctx: jok.Context) !void {
         .x = ctx.getFramebufferSize().x / 2,
         .y = ctx.getFramebufferSize().y / 2,
     });
-    try j2d.begin(.{ .transform = transform });
+
+    j2d.begin(.{ .transform = transform });
+    defer j2d.end();
     try j2d.path(path, .{});
-    try j2d.end();
 }
 
 pub fn quit(ctx: jok.Context) void {

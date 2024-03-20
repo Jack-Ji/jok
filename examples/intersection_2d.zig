@@ -56,7 +56,8 @@ pub fn draw(ctx: jok.Context) !void {
         rect_thickness = 3;
     }
 
-    try j2d.begin(.{});
+    j2d.begin(.{});
+    defer j2d.end();
     j2d.getTransform().setToTranslate(.{ .x = offset0[0], .y = offset0[1] });
     try j2d.triangle(
         .{ .x = p0[0], .y = p0[1] },
@@ -86,7 +87,6 @@ pub fn draw(ctx: jok.Context) !void {
         rect_color,
         .{ .thickness = rect_thickness },
     );
-    try j2d.end();
 
     if (imgui.begin("Control", .{})) {
         imgui.separator();

@@ -58,7 +58,8 @@ pub fn draw(ctx: jok.Context) !void {
                 rot += 0.3;
                 if (rot > 360.0) rot = 0.3;
 
-                try j2d.begin(.{});
+                j2d.begin(.{});
+                defer j2d.end();
                 for (0..ncircle) |i| {
                     var tr = j2d.AffineTransform.init();
                     tr.translate(.{ .x = size.x / 2, .y = size.y / 2 });
@@ -76,7 +77,6 @@ pub fn draw(ctx: jok.Context) !void {
                     j2d.setTransform(tr);
                     try j2d.circleFilled(.{ .x = 0, .y = 0 }, 10, sdl.Color.green, .{});
                 }
-                try j2d.end();
             }
         }{ .seconds = ctx.seconds() },
         .{
@@ -86,7 +86,8 @@ pub fn draw(ctx: jok.Context) !void {
     );
 
     // Draw layers (from oldest to newest)
-    try j2d.begin(.{});
+    j2d.begin(.{});
+    defer j2d.end();
     var node = targets.first;
     var idx: u32 = 0;
     while (node) |n| {
@@ -99,7 +100,6 @@ pub fn draw(ctx: jok.Context) !void {
         idx += 1;
         node = n.next;
     }
-    try j2d.end();
 }
 
 pub fn quit(ctx: jok.Context) void {

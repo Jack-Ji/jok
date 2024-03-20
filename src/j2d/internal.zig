@@ -245,7 +245,7 @@ pub const DrawCmd = struct {
     },
     depth: f32,
 
-    pub fn render(self: DrawCmd, dl: imgui.DrawList) !void {
+    pub fn render(self: DrawCmd, dl: imgui.DrawList) void {
         switch (self.cmd) {
             .quad_image => |c| {
                 dl.pushTextureId(c.texture.ptr);

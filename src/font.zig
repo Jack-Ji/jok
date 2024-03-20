@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
+const unicode = std.unicode;
 const jok = @import("jok.zig");
-const j2d = jok.j2d;
 const sdl = jok.sdl;
 const imgui = jok.imgui;
 
@@ -19,24 +19,22 @@ pub const DebugFont = struct {
     pub const font_data = @embedFile("font/clacon2.ttf");
     pub var font: *Font = undefined;
 
+    var arena: std.heap.ArenaAllocator = undefined;
     var atlases: std.AutoHashMap(u32, *Atlas) = undefined;
     var vattrib: std.ArrayList(sdl.Vertex) = undefined;
     var vindices: std.ArrayList(u32) = undefined;
+    var debug_Size: u32 = undefined;
 
     pub fn init(allocator: std.mem.Allocator) !void {
-        font = try Font.fromTrueTypeData(allocator, font_data);
-        atlases = std.AutoHashMap(u32, *Atlas).init(allocator);
-        vattrib = try std.ArrayList(sdl.Vertex).initCapacity(allocator, 100);
-        vindices = try std.ArrayList(u32).initCapacity(allocator, 100);
+        arena = std.heap.ArenaAllocator.init(allocator);
+        font = try Font.fromTrueTypeData(arena.allocator(), font_data);
+        atlases = std.AutoHashMap(u32, *Atlas).init(arena.allocator());
+        vattrib = try std.ArrayList(sdl.Vertex).initCapacity(arena.allocator(), 100);
+        vindices = try std.ArrayList(u32).initCapacity(arena.allocator(), 100);
     }
 
     pub fn deinit() void {
-        font.destroy();
-        var it = atlases.iterator();
-        while (it.next()) |a| a.value_ptr.*.destroy();
-        atlases.deinit();
-        vattrib.deinit();
-        vindices.deinit();
+        arena.deinit();
     }
 
     pub fn getAtlas(ctx: jok.Context, font_size: u32) !*Atlas {
@@ -47,6 +45,7 @@ pub const DebugFont = struct {
                 &[_][2]u32{.{ 0x0020, 0x00FF }},
                 1024,
             );
+            if (atlases.count() == 0) debug_Size = font_size;
             try atlases.put(font_size, a);
             break :BLK a;
         };
@@ -54,25 +53,33 @@ pub const DebugFont = struct {
 };
 
 /// Draw debug text using builtin font
-pub const DrawOption = struct {
-    pos: sdl.PointF,
-    ypos_type: Atlas.YPosType = .top,
-    color: sdl.Color = sdl.Color.white,
-    font_size: u32 = 16,
-};
-pub fn debugDraw(ctx: jok.Context, opt: DrawOption, comptime fmt: []const u8, args: anytype) !void {
-    try j2d.begin(.{});
-    try j2d.text(
-        .{
-            .atlas = try DebugFont.getAtlas(ctx, opt.font_size),
-            .pos = opt.pos,
-            .ypos_type = opt.ypos_type,
-            .tint_color = opt.color,
-        },
-        fmt,
-        args,
-    );
-    try j2d.end();
+/// NOTE: This function render immediately, if you want to batch drawcalls or need more control,
+/// consider using j2d.text.
+pub fn debugDraw(ctx: jok.Context, pos: sdl.PointF, comptime fmt: []const u8, args: anytype) void {
+    const S = struct {
+        var vertices: ?std.ArrayList(sdl.Vertex) = null;
+        var indices: std.ArrayList(u32) = undefined;
+    };
+    if (S.vertices) |*vs| {
+        vs.clearRetainingCapacity();
+        S.indices.clearRetainingCapacity();
+    } else {
+        S.vertices = std.ArrayList(sdl.Vertex).init(DebugFont.arena.allocator());
+        S.indices = std.ArrayList(u32).init(DebugFont.arena.allocator());
+    }
+
+    const atlas = DebugFont.getAtlas(ctx, DebugFont.debug_Size) catch unreachable;
+    const txt = imgui.format(fmt, args);
+    _ = atlas.appendDrawDataFromUTF8String(
+        txt,
+        pos,
+        .top,
+        .aligned,
+        sdl.Color.white,
+        &S.vertices.?,
+        &S.indices,
+    ) catch unreachable;
+    ctx.renderer().drawGeometry(atlas.tex, S.vertices.?.items, S.indices.items) catch unreachable;
 }
 
 test "font" {}

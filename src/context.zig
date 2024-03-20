@@ -253,9 +253,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
-            if (cfg.jok_prebuild_atlas) |size| {
-                _ = try font.DebugFont.getAtlas(self._ctx, size);
-            }
+            _ = try font.DebugFont.getAtlas(self._ctx, cfg.jok_prebuild_atlas);
 
             // Misc.
             self._pc_freq = sdl.c.SDL_GetPerformanceFrequency();

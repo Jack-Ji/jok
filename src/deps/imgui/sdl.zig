@@ -70,11 +70,11 @@ pub fn processEvent(event: sdl.c.SDL_Event) bool {
     return ImGui_ImplSDL2_ProcessEvent(&event);
 }
 
-pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) !void {
+pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) void {
     if (dl.getCmdBufferLength() <= 0) return;
 
-    const fb_size = try rd.getOutputSize();
-    const old_clip_rect = try rd.getClipRect();
+    const fb_size = rd.getOutputSize() catch unreachable;
+    const old_clip_rect = rd.getClipRect() catch unreachable;
     defer rd.setClipRect(old_clip_rect) catch unreachable;
 
     const commands = dl.getCmdBufferData()[0..@as(u32, @intCast(dl.getCmdBufferLength()))];
@@ -92,7 +92,7 @@ pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) !void {
         clip_rect.width = @min(fb_size.width_pixels, @as(c_int, @intFromFloat(cmd.clip_rect[2] - cmd.clip_rect[0])));
         clip_rect.height = @min(fb_size.height_pixels, @as(c_int, @intFromFloat(cmd.clip_rect[3] - cmd.clip_rect[1])));
         if (clip_rect.width <= 0 or clip_rect.height <= 0) continue;
-        try rd.setClipRect(clip_rect);
+        rd.setClipRect(clip_rect) catch unreachable;
 
         // Bind texture and draw
         const xy = @intFromPtr(vs_ptr + @as(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "pos");

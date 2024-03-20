@@ -40,7 +40,8 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear();
 
-    try j2d.begin(.{});
+    j2d.begin(.{});
+    defer j2d.end();
     try j2d.image(
         tex,
         .{
@@ -56,7 +57,6 @@ pub fn draw(ctx: jok.Context) !void {
             .anchor_point = .{ .x = 0.5, .y = 0.5 },
         },
     );
-    try j2d.end();
 }
 
 pub fn quit(ctx: jok.Context) void {

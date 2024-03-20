@@ -65,8 +65,8 @@ pub fn deinit() void {
     all_tex.deinit();
 }
 
-pub fn begin(opt: BeginOption) !void {
-    const output_size = try rd.getOutputSize();
+pub fn begin(opt: BeginOption) void {
+    const output_size = rd.getOutputSize() catch unreachable;
     draw_list.reset();
     draw_list.pushClipRect(.{
         .pmin = .{ 0, 0 },
@@ -91,7 +91,7 @@ pub fn begin(opt: BeginOption) !void {
     }
 }
 
-pub fn end() !void {
+pub fn end() void {
     const S = struct {
         fn ascendCompare(_: ?*anyopaque, lhs: internal.DrawCmd, rhs: internal.DrawCmd) bool {
             return lhs.depth < rhs.depth;
@@ -120,14 +120,14 @@ pub fn end() !void {
     }
     for (draw_commands.items) |dcmd| {
         switch (dcmd.cmd) {
-            .quad_image => |c| try all_tex.put(c.texture.ptr, true),
-            .image_rounded => |c| try all_tex.put(c.texture.ptr, true),
+            .quad_image => |c| all_tex.put(c.texture.ptr, true) catch unreachable,
+            .image_rounded => |c| all_tex.put(c.texture.ptr, true) catch unreachable,
             .convex_polygon_fill => |c| {
-                if (c.texture) |tex| try all_tex.put(tex.ptr, true);
+                if (c.texture) |tex| all_tex.put(tex.ptr, true) catch unreachable;
             },
             else => {},
         }
-        try dcmd.render(draw_list);
+        dcmd.render(draw_list);
     }
     const mode = switch (blend_method) {
         .blend => sdl.c.SDL_BLENDMODE_BLEND,
@@ -138,7 +138,7 @@ pub fn end() !void {
     while (it.next()) |k| {
         _ = sdl.c.SDL_SetTextureBlendMode(k.*, @intCast(mode));
     }
-    try imgui.sdl.renderDrawList(rd, draw_list);
+    imgui.sdl.renderDrawList(rd, draw_list);
 }
 
 pub fn clearMemory() void {

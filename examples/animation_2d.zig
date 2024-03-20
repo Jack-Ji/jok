@@ -97,7 +97,8 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear();
 
-    try j2d.begin(.{});
+    j2d.begin(.{});
+    defer j2d.end();
     try j2d.sprite(
         sheet.getSpriteByName("player").?,
         .{
@@ -114,11 +115,10 @@ pub fn draw(ctx: jok.Context) !void {
             .scale = .{ .x = 5, .y = 5 },
         },
     );
-    try j2d.end();
 
-    try jok.font.debugDraw(
+    jok.font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 300, .y = 0 } },
+        .{ .x = 300, .y = 0 },
         "Press up/down/left/right to move character around",
         .{},
     );

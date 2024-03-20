@@ -145,7 +145,8 @@ pub fn draw(ctx: jok.Context) !void {
     }
     imgui.end();
 
-    try j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
+    j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
+    defer j3d.end();
     try j3d.shape(
         cube,
         zmath.mul(
@@ -159,17 +160,16 @@ pub fn draw(ctx: jok.Context) !void {
         .{ .texture = tex },
     );
     try j3d.skybox(skybox_textures, skybox_tint_color);
-    try j3d.end();
 
-    try font.debugDraw(
+    font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 20, .y = 10 } },
+        .{ .x = 20, .y = 10 },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );
-    try font.debugDraw(
+    font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 20, .y = 28 } },
+        .{ .x = 20, .y = 28 },
         "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
         .{
             // zig fmt: off

@@ -241,11 +241,12 @@ pub fn draw(ctx: jok.Context) !void {
     }
     imgui.end();
 
-    try j3d.begin(.{
+    j3d.begin(.{
         .camera = camera,
         .triangle_sort = .simple,
         .wireframe_color = if (wireframe) sdl.Color.green else null,
     });
+    defer j3d.end();
     if (animation1) |a| {
         try j3d.animation(
             a,
@@ -328,17 +329,16 @@ pub fn draw(ctx: jok.Context) !void {
         );
     }
     try j3d.axises(.{ .radius = 0.01, .length = 0.5 });
-    try j3d.end();
 
-    try font.debugDraw(
+    font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 200, .y = 10 } },
+        .{ .x = 200, .y = 10 },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );
-    try font.debugDraw(
+    font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 200, .y = 28 } },
+        .{ .x = 200, .y = 28 },
         "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
         .{
             // zig fmt: off

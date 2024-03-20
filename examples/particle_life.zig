@@ -548,7 +548,9 @@ fn updateGui(ctx: jok.Context) !void {
 }
 
 fn renderSimulation() !void {
-    try j2d.begin(.{});
+    j2d.begin(.{});
+    defer j2d.end();
+
     if (number_w > 0) try drawPoints(white.?);
     if (number_r > 0) try drawPoints(red.?);
     if (number_g > 0) try drawPoints(green.?);
@@ -784,7 +786,6 @@ fn renderSimulation() !void {
             .{},
         );
     }
-    try j2d.end();
 }
 
 pub fn init(ctx: jok.Context) !void {

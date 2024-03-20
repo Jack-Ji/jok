@@ -95,17 +95,17 @@ pub fn draw(ctx: jok.Context) !void {
 
     ctx.displayStats(.{});
 
-    try j2d.begin(.{});
+    j2d.begin(.{});
+    defer j2d.end();
     for (characters.items) |c| {
         try j2d.sprite(c.sprite, .{
             .pos = c.pos,
         });
     }
-    try j2d.end();
 
-    try jok.font.debugDraw(
+    jok.font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 0, .y = 0 } },
+        .{ .x = 0, .y = 0 },
         "# of sprites: {d}",
         .{characters.items.len},
     );

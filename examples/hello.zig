@@ -110,79 +110,117 @@ pub fn draw(ctx: jok.Context) !void {
     const center_x = fb_size.x / 2;
     const center_y = fb_size.y / 2;
 
-    try j2d.begin(.{});
-    var i: u32 = 0;
-    while (i < 100) : (i += 1) {
-        const row = @as(f32, @floatFromInt(i / 10)) - 5;
-        const col = @as(f32, @floatFromInt(i % 10)) - 5;
-        const offset_origin = jok.zmath.f32x4(row * 50, col * 50, 0, 1);
-        const rotate_m = jok.zmath.matFromAxisAngle(
-            jok.zmath.f32x4(center_x, center_y, 1, 0),
-            ctx.seconds(),
-        );
-        const translate_m = jok.zmath.translation(center_x, center_y, 0);
-        const offset_transformed = jok.zmath.mul(jok.zmath.mul(offset_origin, rotate_m), translate_m);
+    {
+        j2d.begin(.{});
+        defer j2d.end();
+
+        var i: u32 = 0;
+        while (i < 100) : (i += 1) {
+            const row = @as(f32, @floatFromInt(i / 10)) - 5;
+            const col = @as(f32, @floatFromInt(i % 10)) - 5;
+            const offset_origin = jok.zmath.f32x4(row * 50, col * 50, 0, 1);
+            const rotate_m = jok.zmath.matFromAxisAngle(
+                jok.zmath.f32x4(center_x, center_y, 1, 0),
+                ctx.seconds(),
+            );
+            const translate_m = jok.zmath.translation(center_x, center_y, 0);
+            const offset_transformed = jok.zmath.mul(jok.zmath.mul(offset_origin, rotate_m), translate_m);
+
+            j2d.getTransform().setToIdentity();
+            j2d.getTransform().scale(.{
+                .x = 1.3 + std.math.sin(ctx.seconds()),
+                .y = 1.3 + std.math.sin(ctx.seconds()),
+            });
+            j2d.getTransform().rotateByOrigin(ctx.seconds());
+            j2d.getTransform().translate(.{
+                .x = offset_transformed[0],
+                .y = offset_transformed[1],
+            });
+            try j2d.rectFilledMultiColor(
+                .{ .x = -10, .y = -10, .width = 20, .height = 20 },
+                sdl.Color.white,
+                sdl.Color.red,
+                sdl.Color.green,
+                sdl.Color.blue,
+                .{},
+            );
+        }
 
         j2d.getTransform().setToIdentity();
-        j2d.getTransform().scale(.{
-            .x = 1.3 + std.math.sin(ctx.seconds()),
-            .y = 1.3 + std.math.sin(ctx.seconds()),
-        });
-        j2d.getTransform().rotateByOrigin(ctx.seconds());
-        j2d.getTransform().translate(.{
-            .x = offset_transformed[0],
-            .y = offset_transformed[1],
-        });
-        try j2d.rectFilledMultiColor(
-            .{ .x = -10, .y = -10, .width = 20, .height = 20 },
-            sdl.Color.white,
-            sdl.Color.red,
-            sdl.Color.green,
-            sdl.Color.blue,
+        text_draw_pos.x += text_speed.x * ctx.deltaSeconds();
+        text_draw_pos.y += text_speed.y * ctx.deltaSeconds();
+        const atlas = try font.DebugFont.getAtlas(ctx, 50);
+        try j2d.text(
+            .{
+                .atlas = atlas,
+                .pos = .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
+                .tint_color = sdl.Color.red,
+            },
+            "Hello Jok!",
             .{},
         );
+        const area = try atlas.getBoundingBox(
+            "Hello Jok!",
+            .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
+            .top,
+            .aligned,
+        );
+        if (area.x < 0) {
+            text_speed.x = @abs(text_speed.x);
+        }
+        if (area.x + area.width > fb_size.x) {
+            text_speed.x = -@abs(text_speed.x);
+        }
+        if (area.y < 0) {
+            text_speed.y = @abs(text_speed.y);
+        }
+        if (area.y + area.height > fb_size.y) {
+            text_speed.y = -@abs(text_speed.y);
+        }
     }
-    try j2d.end();
 
-    const color = sdl.Color.rgb(
-        @intFromFloat(128 + 127 * std.math.sin(ctx.seconds())),
-        100,
-        @intFromFloat(128 + 127 * std.math.cos(ctx.seconds())),
-    );
-    try j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
-    try j3d.icosahedron(
-        zmath.mul(
-            zmath.rotationY(ctx.seconds()),
-            zmath.translation(-3, 3, 0),
-        ),
-        .{ .rdopt = .{ .lighting = .{}, .color = color } },
-    );
-    try j3d.torus(
-        zmath.mul(
-            zmath.rotationY(ctx.seconds()),
-            zmath.translation(3, 3, 0),
-        ),
-        .{ .rdopt = .{ .lighting = .{}, .color = color } },
-    );
-    try j3d.parametricSphere(
-        zmath.mul(
-            zmath.rotationY(ctx.seconds()),
-            zmath.translation(3, -3, 0),
-        ),
-        .{ .rdopt = .{ .lighting = .{}, .color = color } },
-    );
-    try j3d.tetrahedron(
-        zmath.mul(
-            zmath.rotationY(ctx.seconds()),
-            zmath.translation(-3, -3, 0),
-        ),
-        .{ .rdopt = .{ .lighting = .{}, .color = color } },
-    );
-    try j3d.end();
+    {
+        const color = sdl.Color.rgb(
+            @intFromFloat(128 + 127 * std.math.sin(ctx.seconds())),
+            100,
+            @intFromFloat(128 + 127 * std.math.cos(ctx.seconds())),
+        );
+        j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
+        defer j3d.end();
+        try j3d.icosahedron(
+            zmath.mul(
+                zmath.rotationY(ctx.seconds()),
+                zmath.translation(-3, 3, 0),
+            ),
+            .{ .rdopt = .{ .lighting = .{}, .color = color } },
+        );
+        try j3d.torus(
+            zmath.mul(
+                zmath.rotationY(ctx.seconds()),
+                zmath.translation(3, 3, 0),
+            ),
+            .{ .rdopt = .{ .lighting = .{}, .color = color } },
+        );
+        try j3d.parametricSphere(
+            zmath.mul(
+                zmath.rotationY(ctx.seconds()),
+                zmath.translation(3, -3, 0),
+            ),
+            .{ .rdopt = .{ .lighting = .{}, .color = color } },
+        );
+        try j3d.tetrahedron(
+            zmath.mul(
+                zmath.rotationY(ctx.seconds()),
+                zmath.translation(-3, -3, 0),
+            ),
+            .{ .rdopt = .{ .lighting = .{}, .color = color } },
+        );
+    }
 
     if (screenshot_tex) |tex| {
         if (std.time.timestamp() - screenshot_time < 5) {
-            try j2d.begin(.{});
+            j2d.begin(.{});
+            defer j2d.end();
             try j2d.rectRoundedFilled(
                 .{
                     .x = screenshot_pos.x,
@@ -207,63 +245,27 @@ pub fn draw(ctx: jok.Context) !void {
                     .tint_color = screenshot_tint_color,
                 },
             );
-            try j2d.end();
         } else {
             tex.destroy();
             screenshot_tex = null;
         }
     }
 
-    text_draw_pos.x += text_speed.x * ctx.deltaSeconds();
-    text_draw_pos.y += text_speed.y * ctx.deltaSeconds();
-    try font.debugDraw(
+    font.debugDraw(
         ctx,
-        .{
-            .pos = .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
-            .font_size = 50,
-            .color = sdl.Color.rgb(
-                255,
-                @intFromFloat(@max(0, 255 * std.math.cos(ctx.seconds()))),
-                0,
-            ),
-        },
-        "Hello Jok!",
-        .{},
-    );
-    const atlas = try font.DebugFont.getAtlas(ctx, 50);
-    const area = try atlas.getBoundingBox(
-        "Hello Jok!",
-        .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
-        .top,
-        .aligned,
-    );
-    if (area.x < 0) {
-        text_speed.x = @abs(text_speed.x);
-    }
-    if (area.x + area.width > fb_size.x) {
-        text_speed.x = -@abs(text_speed.x);
-    }
-    if (area.y < 0) {
-        text_speed.y = @abs(text_speed.y);
-    }
-    if (area.y + area.height > fb_size.y) {
-        text_speed.y = -@abs(text_speed.y);
-    }
-    _ = try font.debugDraw(
-        ctx,
-        .{ .pos = .{ .x = 0, .y = 0 } },
+        .{ .x = 0, .y = 0 },
         "Press F1 to toggle fullscreen",
         .{},
     );
-    _ = try font.debugDraw(
+    font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 0, .y = 17 } },
+        .{ .x = 0, .y = 17 },
         "Press F2 to take screenshot",
         .{},
     );
-    _ = try font.debugDraw(
+    font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 0, .y = 34 } },
+        .{ .x = 0, .y = 34 },
         "Press F3 to toggle frame statistics",
         .{},
     );

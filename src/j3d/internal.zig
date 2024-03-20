@@ -556,7 +556,7 @@ pub const RenderTarget = struct {
         );
     }
 
-    pub fn submit(self: *RenderTarget, rd: sdl.Renderer) !void {
+    pub fn submit(self: *RenderTarget, rd: sdl.Renderer) void {
         const S = struct {
             inline fn addTriangles(dl: imgui.DrawList, indices: []u32, vertices: []sdl.Vertex, texture: ?sdl.Texture) void {
                 if (texture) |tex| dl.pushTextureId(tex.ptr);
@@ -580,11 +580,11 @@ pub const RenderTarget = struct {
         };
 
         if (self.wireframe_color != null) {
-            try imgui.sdl.renderDrawList(rd, self.dl);
+            imgui.sdl.renderDrawList(rd, self.dl);
         } else {
             switch (self.triangle_sort) {
                 .none => {
-                    try imgui.sdl.renderDrawList(rd, self.dl);
+                    imgui.sdl.renderDrawList(rd, self.dl);
                 },
                 .simple => {
                     // Sort by average depth
@@ -614,7 +614,7 @@ pub const RenderTarget = struct {
                         last_texture,
                     );
 
-                    try imgui.sdl.renderDrawList(rd, self.dl);
+                    imgui.sdl.renderDrawList(rd, self.dl);
                 },
             }
         }

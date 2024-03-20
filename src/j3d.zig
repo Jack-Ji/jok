@@ -51,6 +51,7 @@ var tri_rd: TriangleRenderer = undefined;
 var skybox_rd: SkyboxRenderer = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 var camera: Camera = undefined;
+var submitted: bool = undefined;
 
 pub fn init(_allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
     allocator = _allocator;
@@ -60,6 +61,7 @@ pub fn init(_allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
     tri_rd = TriangleRenderer.init(allocator);
     skybox_rd = SkyboxRenderer.init(allocator, .{});
     all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
+    submitted = true;
 }
 
 pub fn deinit() void {
@@ -70,7 +72,7 @@ pub fn deinit() void {
     arena.deinit();
 }
 
-pub fn begin(opt: BeginOption) !void {
+pub fn begin(opt: BeginOption) void {
     target.reset(
         rd,
         opt.wireframe_color,
@@ -78,7 +80,7 @@ pub fn begin(opt: BeginOption) !void {
         false,
     );
     camera = opt.camera orelse BLK: {
-        const fsize = try rd.getOutputSize();
+        const fsize = rd.getOutputSize() catch unreachable;
         const ratio =
             @as(f32, @floatFromInt(fsize.width_pixels)) /
             @as(f32, @floatFromInt(fsize.height_pixels));
@@ -97,8 +99,8 @@ pub fn begin(opt: BeginOption) !void {
     };
 }
 
-pub fn end() !void {
-    try target.submit(rd);
+pub fn end() void {
+    target.submit(rd);
 }
 
 pub fn clearMemory() void {

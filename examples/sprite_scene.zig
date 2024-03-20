@@ -65,14 +65,14 @@ pub fn draw(ctx: jok.Context) !void {
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
     });
 
-    try j2d.begin(.{ .depth_sort = .back_to_forth });
+    j2d.begin(.{ .depth_sort = .back_to_forth });
+    defer j2d.end();
     try j2d.image(
         sheet.tex,
         .{ .x = 0, .y = 0 },
         .{},
     );
     try j2d.scene(scene);
-    try j2d.end();
 }
 
 pub fn quit(ctx: jok.Context) void {

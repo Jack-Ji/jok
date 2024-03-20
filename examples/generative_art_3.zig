@@ -45,7 +45,8 @@ pub fn draw(ctx: jok.Context) !void {
     const angle_step =
         math.asin(1 / (scale_step * math.sqrt(2.0))) - math.pi / 4.0;
 
-    try j2d.begin(.{});
+    j2d.begin(.{});
+    defer j2d.end();
     var i: u32 = 0;
     while (i < rect_num) : (i += 1) {
         const step = @as(f32, @floatFromInt(i));
@@ -103,7 +104,6 @@ pub fn draw(ctx: jok.Context) !void {
             try j2d.rect(rect, sdl.Color.white, .{});
         }
     }
-    try j2d.end();
 }
 
 pub fn quit(ctx: jok.Context) void {

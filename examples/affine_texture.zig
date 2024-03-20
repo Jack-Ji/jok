@@ -105,17 +105,17 @@ pub fn draw(ctx: jok.Context) !void {
         .stacks = @intCast(stacks),
     };
 
-    try j3d.begin(.{ .camera = camera });
+    j3d.begin(.{ .camera = camera });
     try j3d.plane(mat, plane_opt);
-    try j3d.end();
+    j3d.end();
 
     if (wireframe) {
-        try j3d.begin(.{
+        j3d.begin(.{
             .camera = camera,
             .wireframe_color = sdl.Color.green,
         });
         try j3d.plane(mat, plane_opt);
-        try j3d.end();
+        j3d.end();
     }
 }
 

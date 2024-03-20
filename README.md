@@ -141,16 +141,16 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     pub fn draw(ctx: jok.Context) !void {
       // your 2d drawing
       {
-          try j2d.begin(.{});
+          j2d.begin(.{});
+          defer j2d.end();
           // ......
-          try j2d.end();
       }
     
       // your 3d drawing
       {
-          try j3d.begin(.{});
+          j3d.begin(.{});
+          defer j3d.end();
           // ......
-          try j3d.end();
       }
     }
     

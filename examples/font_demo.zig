@@ -26,7 +26,8 @@ pub fn draw(ctx: jok.Context) !void {
     var area: sdl.RectangleF = undefined;
     var atlas: *font.Atlas = undefined;
 
-    try j2d.begin(.{ .depth_sort = .back_to_forth });
+    j2d.begin(.{ .depth_sort = .back_to_forth });
+    defer j2d.end();
     atlas = try font.DebugFont.getAtlas(ctx, 20);
     try j2d.text(
         .{
@@ -105,7 +106,6 @@ pub fn draw(ctx: jok.Context) !void {
         .aligned,
     );
     try j2d.rectFilled(area, rect_color, .{});
-    try j2d.end();
 }
 
 pub fn quit(ctx: jok.Context) void {

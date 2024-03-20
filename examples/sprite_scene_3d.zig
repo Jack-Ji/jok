@@ -165,7 +165,8 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear();
 
-    try j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
+    j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
+    defer j3d.end();
     try j3d.scene(scene, .{ .lighting = .{} });
     try j3d.sprite(
         zmath.translation(10, -10, -30),
@@ -181,24 +182,23 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
     try j3d.axises(.{});
-    try j3d.end();
 
     const ogre_pos = camera.calcScreenPosition(ctx.renderer(), sprites[13].transform, null);
-    try font.debugDraw(
+    font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = ogre_pos.x + 50, .y = ogre_pos.y } },
+        .{ .x = ogre_pos.x + 50, .y = ogre_pos.y },
         "I have fixed size!",
         .{},
     );
-    try font.debugDraw(
+    font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 20, .y = 10 } },
+        .{ .x = 20, .y = 10 },
         "Press WSAD and up/down/left/right to move camera around the view",
         .{},
     );
-    try font.debugDraw(
+    font.debugDraw(
         ctx,
-        .{ .pos = .{ .x = 20, .y = 28 } },
+        .{ .x = 20, .y = 28 },
         "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
         .{
             // zig fmt: off

@@ -1,9 +1,11 @@
 const std = @import("std");
 const jok = @import("jok");
+const j2d = jok.j2d;
 const sdl = jok.sdl;
 const font = jok.font;
 const zaudio = jok.zaudio;
 
+var atlas: *font.Atlas = undefined;
 var music: *zaudio.Sound = undefined;
 var music_played_length: u32 = undefined;
 var music_total_length: u32 = undefined;
@@ -13,6 +15,7 @@ var sfx2: *zaudio.Sound = undefined;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    atlas = try font.DebugFont.getAtlas(ctx, 16);
     music = try ctx.audioEngine().createSoundFromFile(
         "assets/audios/Edge-of-Ocean_Looping.mp3",
         .{},
@@ -88,9 +91,11 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear();
 
-    try font.debugDraw(
-        ctx,
-        .{ .pos = .{ .x = 10, .y = 10 } },
+    j2d.begin(.{});
+    defer j2d.end();
+
+    try j2d.text(
+        .{ .atlas = atlas, .pos = .{ .x = 10, .y = 10 } },
         "Press *RETURN* to start/pause playing, current status: {s}, progress: {d}/{d}(s)",
         .{
             if (music.isPlaying()) "playing" else "paused",
@@ -98,26 +103,25 @@ pub fn draw(ctx: jok.Context) !void {
             music_total_length,
         },
     );
-    try font.debugDraw(
-        ctx,
-        .{ .pos = .{ .x = 10, .y = 26 } },
+    try j2d.text(
+        .{ .atlas = atlas, .pos = .{ .x = 10, .y = 26 } },
         "Press *Z/X* to decrease/increase volume of music, current volume: {d:.1}",
         .{music.getVolume()},
     );
-    try font.debugDraw(
-        ctx,
+    try j2d.text(
         .{
+            .atlas = atlas,
             .pos = .{ .x = 10, .y = 100 },
-            .color = if (sfx1.isPlaying()) sdl.Color.red else sdl.Color.white,
+            .tint_color = if (sfx1.isPlaying()) sdl.Color.red else sdl.Color.white,
         },
         "Double-click mouse's left button to trigger sound effect on your left ear",
         .{},
     );
-    try font.debugDraw(
-        ctx,
+    try j2d.text(
         .{
+            .atlas = atlas,
             .pos = .{ .x = 200, .y = 150 },
-            .color = if (sfx2.isPlaying()) sdl.Color.magenta else sdl.Color.white,
+            .tint_color = if (sfx2.isPlaying()) sdl.Color.magenta else sdl.Color.white,
         },
         "Double-click mouse's right button to trigger sound effect on your right ear",
         .{},

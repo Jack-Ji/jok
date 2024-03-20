@@ -80,7 +80,8 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear();
 
-    try j2d.begin(.{});
+    j2d.begin(.{});
+    defer j2d.end();
     for (blocks, 0..) |b, i| {
         try j2d.rectFilled(
             .{
@@ -112,7 +113,6 @@ pub fn draw(ctx: jok.Context) !void {
             .{},
         );
     }
-    try j2d.end();
 }
 
 pub fn quit(ctx: jok.Context) void {
