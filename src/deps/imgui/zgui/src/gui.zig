@@ -736,7 +736,10 @@ pub const HoveredFlags = packed struct(c_int) {
     allow_when_overlapped: bool = false,
     allow_when_disabled: bool = false,
     no_nav_override: bool = false,
-    _padding: u21 = 0,
+    delay_normal: bool = false,
+    delay_short: bool = false,
+    no_shared_delay: bool = false,
+    _padding: u18 = 0,
 
     pub const rect_only = HoveredFlags{
         .allow_when_blocked_by_popup = true,
@@ -2503,6 +2506,7 @@ extern fn zguiInputScalarN(
 //
 //--------------------------------------------------------------------------------------------------
 pub const ColorEditFlags = packed struct(c_int) {
+    _reserved0: bool = false,
     no_alpha: bool = false,
     no_picker: bool = false,
     no_options: bool = false,
@@ -2514,11 +2518,11 @@ pub const ColorEditFlags = packed struct(c_int) {
     no_drag_drop: bool = false,
     no_border: bool = false,
 
-    _reserved0: bool = false,
     _reserved1: bool = false,
     _reserved2: bool = false,
     _reserved3: bool = false,
     _reserved4: bool = false,
+    _reserved5: bool = false,
 
     alpha_bar: bool = false,
     alpha_preview: bool = false,
@@ -2534,7 +2538,7 @@ pub const ColorEditFlags = packed struct(c_int) {
     input_rgb: bool = false,
     input_hsv: bool = false,
 
-    _padding: u4 = 0,
+    _padding: u3 = 0,
 
     pub const default_options = ColorEditFlags{
         .uint8 = true,
@@ -3236,14 +3240,17 @@ pub const PopupFlags = packed struct(c_int) {
     mouse_button_left: bool = false,
     mouse_button_right: bool = false,
     mouse_button_middle: bool = false,
-    mouse_button_mask_: bool = false,
-    mouse_button_default_: bool = false,
+
+    _reserved0: bool = false,
+    _reserved1: bool = false,
+
     no_open_over_existing_popup: bool = false,
     no_open_over_items: bool = false,
     any_popup_id: bool = false,
     any_popup_level: bool = false,
-    any_popup: bool = false,
-    _padding: u22 = 0,
+    _padding: u23 = 0,
+
+    pub const any_popup = PopupFlags{ .any_popup_id = true, .any_popup_level = true };
 };
 pub fn beginPopupModal(name: [:0]const u8, args: Begin) bool {
     return zguiBeginPopupModal(name, args.popen, args.flags);
@@ -3279,12 +3286,6 @@ pub const TabBarFlags = packed struct(c_int) {
     fitting_policy_resize_down: bool = false,
     fitting_policy_scroll: bool = false,
     _padding: u24 = 0,
-
-    pub const fitting_policy_mask = TabBarFlags{
-        .fitting_policy_resize_down = true,
-        .fitting_policy_scroll = true,
-    };
-    pub const fitting_policy_default = TabBarFlags{ .fitting_policy_resize_down = true };
 };
 pub const TabItemFlags = packed struct(c_int) {
     unsaved_document: bool = false,
@@ -3864,7 +3865,7 @@ pub const DrawList = *opaque {
             &args.p,
             args.r,
             args.col,
-            args.num_segments,
+            @intCast(args.num_segments),
             args.thickness,
         );
     }
@@ -3883,7 +3884,7 @@ pub const DrawList = *opaque {
         col: u32,
         num_segments: u16 = 0,
     }) void {
-        zguiDrawList_AddCircleFilled(draw_list, &args.p, args.r, args.col, args.num_segments);
+        zguiDrawList_AddCircleFilled(draw_list, &args.p, args.r, args.col, @intCast(args.num_segments));
     }
     extern fn zguiDrawList_AddCircleFilled(
         draw_list: DrawList,
@@ -4189,7 +4190,7 @@ pub const DrawList = *opaque {
             args.r,
             args.amin,
             args.amax,
-            args.num_segments,
+            @intCast(args.num_segments),
         );
     }
     extern fn zguiDrawList_PathArcTo(
@@ -4228,7 +4229,7 @@ pub const DrawList = *opaque {
             &args.p2,
             &args.p3,
             &args.p4,
-            args.num_segments,
+            @intCast(args.num_segments),
         );
     }
     extern fn zguiDrawList_PathBezierCubicCurveTo(
@@ -4244,7 +4245,7 @@ pub const DrawList = *opaque {
         p3: [2]f32,
         num_segments: u16 = 0,
     }) void {
-        zguiDrawList_PathBezierQuadraticCurveTo(draw_list, &args.p2, &args.p3, args.num_segments);
+        zguiDrawList_PathBezierQuadraticCurveTo(draw_list, &args.p2, &args.p3, @intCast(args.num_segments));
     }
     extern fn zguiDrawList_PathBezierQuadraticCurveTo(
         draw_list: DrawList,
