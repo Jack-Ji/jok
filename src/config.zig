@@ -67,6 +67,9 @@ pub const Config = struct {
 
     /// Whether enable detailed frame statistics
     jok_detailed_frame_stats: bool = true,
+
+    /// Whether enable high dpi support
+    jok_high_dpi_support: bool = false,
 };
 
 /// Initial size of window

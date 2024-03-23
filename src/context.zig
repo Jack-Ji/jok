@@ -10,6 +10,7 @@ const imgui = jok.imgui;
 const plot = imgui.plot;
 const zaudio = jok.zaudio;
 const zmesh = jok.zmesh;
+const w32 = @import("w32.zig");
 
 const log = std.log.scoped(.jok);
 
@@ -34,6 +35,7 @@ pub const Context = struct {
         getWindowSize: *const fn (ctx: *anyopaque) sdl.PointF,
         getFramebufferSize: *const fn (ctx: *anyopaque) sdl.PointF,
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
+        getDpiScale: *const fn (ctx: *anyopaque) f32,
         isKeyPressed: *const fn (ctx: *anyopaque, key: sdl.Scancode) bool,
         getMouseState: *const fn (ctx: *anyopaque) sdl.MouseState,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
@@ -125,6 +127,11 @@ pub const Context = struct {
         return self.vtable.getAspectRatio(self.ctx);
     }
 
+    /// Get dpi scale
+    pub fn getDpiScale(self: Context) f32 {
+        return self.vtable.getDpiScale(self.ctx);
+    }
+
     /// Get key status
     pub fn isKeyPressed(self: Context, key: sdl.Scancode) bool {
         return self.vtable.isKeyPressed(self.ctx, key);
@@ -178,6 +185,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
         // Internal window
         _window: sdl.Window = undefined,
 
+        // High DPI stuff
+        _default_dpi: f32 = undefined,
+        _display_dpi: f32 = undefined,
+
         // Renderer stuff
         _renderer: sdl.Renderer = undefined,
         _is_software: bool = false,
@@ -230,6 +241,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._allocator = _allocator;
             self._ctx = self.context();
 
+            // Enable High-DPI awareness
+            // BUG: only workable on single monitor system
+            if (builtin.target.os.tag == .windows) {
+                _ = w32.SetProcessDPIAware();
+            }
+
             // Check and print system info
             try self.checkSys();
 
@@ -252,7 +269,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
-            _ = try font.DebugFont.getAtlas(self._ctx, cfg.jok_prebuild_atlas);
+            _ = try font.DebugFont.getAtlas(
+                self._ctx,
+                @intFromFloat(@as(f32, @floatFromInt(cfg.jok_prebuild_atlas)) * getDpiScale(self)),
+            );
 
             // Misc.
             self._pc_freq = sdl.c.SDL_GetPerformanceFrequency();
@@ -419,6 +439,19 @@ pub fn JokContext(comptime cfg: config.Config) type {
             };
 
             while (sdl.pollNativeEvent()) |e| {
+                if (cfg.jok_high_dpi_support) {
+                    switch (e) {
+                        .motion => |*me| {
+                            me.x /= getDpiScale(self);
+                            me.y /= getDpiScale(self);
+                        },
+                        .button => |*me| {
+                            me.x /= getDpiScale(self);
+                            me.y /= getDpiScale(self);
+                        },
+                        else => {},
+                    }
+                }
                 _ = imgui.sdl.processEvent(e);
                 const we = sdl.Event.from(e);
                 if (cfg.jok_exit_on_recv_esc and we == .key_up and
@@ -478,11 +511,22 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Check system information
-        fn checkSys(_: *const @This()) !void {
+        fn checkSys(self: *@This()) !void {
             const target = builtin.target;
             var sdl_version: sdl.c.SDL_version = undefined;
             sdl.c.SDL_GetVersion(&sdl_version);
             const ram_size = sdl.c.SDL_GetSystemRAM();
+
+            // Get display dpi
+            self._default_dpi = switch (builtin.target.os.tag) {
+                .macos => 72.0,
+                else => 96.0,
+            };
+            if (cfg.jok_high_dpi_support or
+                sdl.c.SDL_GetDisplayDPI(0, null, &self._display_dpi, null) < 0)
+            {
+                self._display_dpi = self._default_dpi;
+            }
 
             // Print system info
             log.info(
@@ -495,6 +539,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 \\    SDL           : {}.{}.{}
                 \\    Platform      : {s}
                 \\    Memory        : {d}MB
+                \\    Display DPI   : {d:.1}
             ,
                 .{
                     @tagName(builtin.mode),
@@ -507,11 +552,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     sdl_version.patch,
                     @tagName(target.os.tag),
                     ram_size,
+                    self._display_dpi,
                 },
             );
 
             if (sdl_version.major < 2 or (sdl_version.minor == 0 and sdl_version.patch < 18)) {
-                log.err("Need SDL least version >= 2.0.18", .{});
+                log.err("SDL version too low, need at least 2.0.18", .{});
                 return sdl.makeError();
             }
 
@@ -529,6 +575,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             var window_flags = sdl.WindowFlags{
                 .mouse_capture = true,
                 .mouse_focus = true,
+                .allow_high_dpi = true,
             };
             var window_width: usize = 800;
             var window_height: usize = 600;
@@ -544,8 +591,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     window_flags.dim = .fullscreen_desktop;
                 },
                 .custom => |size| {
-                    window_width = @as(usize, size.width);
-                    window_height = @as(usize, size.height);
+                    window_width = @intFromFloat(@as(f32, @floatFromInt(size.width)) * self._display_dpi / self._default_dpi);
+                    window_height = @intFromFloat(@as(f32, @floatFromInt(size.height)) * self._display_dpi / self._default_dpi);
                 },
             }
             if (cfg.jok_window_ime_ui) {
@@ -658,6 +705,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .getWindowSize = getWindowSize,
                     .getFramebufferSize = getFramebufferSize,
                     .getAspectRatio = getAspectRatio,
+                    .getDpiScale = getDpiScale,
                     .isKeyPressed = isKeyPressed,
                     .getMouseState = getMouseState,
                     .isRunningSlow = isRunningSlow,
@@ -806,6 +854,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 @as(f32, @floatFromInt(fbsize.height_pixels));
         }
 
+        /// Get dpi scale
+        fn getDpiScale(ptr: *anyopaque) f32 {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            return self._display_dpi / self._default_dpi;
+        }
+
         /// Get key status
         fn isKeyPressed(_: *anyopaque, key: sdl.Scancode) bool {
             const kb_state = sdl.getKeyboardState();
@@ -846,6 +900,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             })) {
                 imgui.text("Window Size: {d}x{d}", .{ ws.x, ws.y });
                 imgui.text("Framebuffer Size: {d}x{d}", .{ fbsize.x, fbsize.y });
+                imgui.text("Display DPI: {d:.1}", .{self._display_dpi});
                 imgui.text("GPU Enabled: {}", .{!self._is_software});
                 imgui.text("V-Sync Enabled: {}", .{rdinfo.flags & sdl.c.SDL_RENDERER_PRESENTVSYNC != 0});
                 imgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});

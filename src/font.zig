@@ -68,7 +68,10 @@ pub fn debugDraw(ctx: jok.Context, pos: sdl.PointF, comptime fmt: []const u8, ar
         S.indices = std.ArrayList(u32).init(DebugFont.arena.allocator());
     }
 
-    const atlas = DebugFont.getAtlas(ctx, DebugFont.debug_Size) catch unreachable;
+    const atlas = DebugFont.getAtlas(
+        ctx,
+        @intFromFloat(@as(f32, @floatFromInt(DebugFont.debug_Size)) * ctx.getDpiScale()),
+    ) catch unreachable;
     const txt = imgui.format(fmt, args);
     _ = atlas.appendDrawDataFromUTF8String(
         txt,
