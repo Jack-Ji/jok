@@ -65,8 +65,21 @@ pub fn init(ctx: jok.Context) !void {
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
-    _ = ctx;
-    _ = e;
+    switch (e) {
+        .window => |we| {
+            if (we.type == .resized) {
+                camera.frustrum = .{
+                    .perspective = .{
+                        .fov = jok.utils.math.degreeToRadian(70),
+                        .aspect_ratio = ctx.getAspectRatio(),
+                        .near = 0.1,
+                        .far = 1000,
+                    },
+                };
+            }
+        },
+        else => {},
+    }
 }
 
 pub fn update(ctx: jok.Context) !void {
