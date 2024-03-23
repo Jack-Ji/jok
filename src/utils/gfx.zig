@@ -280,8 +280,8 @@ pub const CreateTarget = struct {
 };
 pub fn createTextureAsTarget(rd: sdl.Renderer, opt: CreateTarget) !sdl.Texture {
     const size = opt.size orelse BLK: {
-        const vp = rd.getViewport();
-        break :BLK sdl.Point{ .x = vp.width, .y = vp.height };
+        const fbsize = rd.getOutputSize() catch unreachable;
+        break :BLK sdl.Point{ .x = fbsize.width_pixels, .y = fbsize.height_pixels };
     };
     const tex = try sdl.createTexture(
         rd,

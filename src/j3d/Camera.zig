@@ -228,12 +228,12 @@ pub fn calcScreenPosition(
     model: zmath.Mat,
     _coord: ?[3]f32,
 ) sdl.PointF {
-    const vp = renderer.getViewport();
+    const fbsize = renderer.getOutputSize() catch unreachable;
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * @as(f32, @floatFromInt(vp.width)), 0.0,                                       0.0,
-        0.0,                                     -0.5 * @as(f32, @floatFromInt(vp.height)), 0.0,
-        0.0,                                     0.0,                                       0.5,
-        0.5 * @as(f32, @floatFromInt(vp.width)), 0.5 * @as(f32, @floatFromInt(vp.height)),  0.5,
+        0.5 * @as(f32, @floatFromInt(fbsize.width_pixels)), 0.0,                                                  0.0,
+        0.0,                                                -0.5 * @as(f32, @floatFromInt(fbsize.height_pixels)), 0.0,
+        0.0,                                                0.0,                                                  0.5,
+        0.5 * @as(f32, @floatFromInt(fbsize.width_pixels)), 0.5 * @as(f32, @floatFromInt(fbsize.height_pixels)),  0.5,
     });
     const mvp = zmath.mul(model, self.getViewProjectMatrix());
     const coord = if (_coord) |c|
@@ -282,9 +282,9 @@ pub fn clacRayTestTarget(
     assert(self.frustrum == .perspective);
     const far_plane = _test_distance orelse 10000.0;
     const ray_forward = self.dir * far_plane;
-    const vp = renderer.getViewport();
-    const width = @as(f32, @floatFromInt(vp.width));
-    const height = @as(f32, @floatFromInt(vp.height));
+    const fbsize = renderer.getOutputSize() catch unreachable;
+    const width = @as(f32, @floatFromInt(fbsize.width_pixels));
+    const height = @as(f32, @floatFromInt(fbsize.height_pixels));
     switch (self.frustrum) {
         .orthographic => |p| {
             const hor = self.right * zmath.splat(zmath.Vec, p.width);

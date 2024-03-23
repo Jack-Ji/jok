@@ -229,7 +229,7 @@ pub const Node = struct {
 
     fn render(
         node: *Node,
-        viewport: sdl.Rectangle,
+        fbsize: sdl.Size,
         target: *internal.RenderTarget,
         model: zmath.Mat,
         camera: Camera,
@@ -238,7 +238,7 @@ pub const Node = struct {
     ) !void {
         for (node.meshes) |sm| {
             try tri_rd.renderMesh(
-                viewport,
+                fbsize,
                 target,
                 zmath.mul(node.matrix, model),
                 camera,
@@ -269,7 +269,7 @@ pub const Node = struct {
         }
         for (node.children.items) |c| {
             try c.render(
-                viewport,
+                fbsize,
                 target,
                 model,
                 camera,
@@ -524,7 +524,7 @@ pub fn destroy(self: *Self) void {
 
 pub fn render(
     self: *const Self,
-    viewport: sdl.Rectangle,
+    fbsize: sdl.Size,
     target: *internal.RenderTarget,
     model: zmath.Mat,
     camera: Camera,
@@ -532,7 +532,7 @@ pub fn render(
     opt: RenderOption,
 ) !void {
     try self.root.render(
-        viewport,
+        fbsize,
         target,
         model,
         camera,

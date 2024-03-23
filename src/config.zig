@@ -32,9 +32,6 @@ pub const Config = struct {
     /// Size of window
     jok_window_size: WindowSize = .{ .custom = .{ .width = 800, .height = 600 } },
 
-    /// Aspect ratio of framebuffer
-    jok_aspect_ratio: AspectRatio = .autofit,
-
     /// Mimimum size of window
     jok_window_min_size: ?sdl.Size = null,
 
@@ -77,36 +74,6 @@ pub const WindowSize = union(enum) {
     maximized,
     fullscreen,
     custom: struct { width: u32, height: u32 },
-};
-
-/// Aspect ratio of framebuffer
-pub const AspectRatio = union(enum) {
-    autofit, // Auto-scaled to match window size
-    fixed: struct { w: u8, h: u8 }, // Fixed ratio (will center the scene)
-
-    pub fn calcDisplayRegion(self: @This(), rd: sdl.Renderer) sdl.Rectangle {
-        const vp = rd.getViewport();
-        return switch (self) {
-            .autofit => .{ .x = 0, .y = 0, .width = vp.width, .height = vp.height },
-            .fixed => |r| BLK: {
-                const vpw: f32 = @floatFromInt(vp.width);
-                const vph: f32 = @floatFromInt(vp.height);
-                const rw: f32 = @floatFromInt(r.w);
-                const rh: f32 = @floatFromInt(r.h);
-                break :BLK if (rw * vph < rh * vpw) .{
-                    .x = @intFromFloat(@trunc((vpw - rw * vph / rh) / 2.0)),
-                    .y = 0,
-                    .width = @intFromFloat(@trunc(rw * vph / rh)),
-                    .height = vp.height,
-                } else .{
-                    .x = 0,
-                    .y = @intFromFloat(@trunc((vph - rh * vpw / rw) / 2.0)),
-                    .width = vp.width,
-                    .height = @intFromFloat(@trunc(rh * vpw / rw)),
-                };
-            },
-        };
-    }
 };
 
 /// Graphics flushing method

@@ -181,7 +181,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
         // Renderer stuff
         _renderer: sdl.Renderer = undefined,
         _is_software: bool = false,
-        _display_region: sdl.Rectangle = undefined,
         _target: sdl.Texture = undefined,
 
         // Audio stuff
@@ -390,7 +389,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._renderer.setTarget(self._target) catch unreachable;
                 defer {
                     self._renderer.setTarget(null) catch unreachable;
-                    self._renderer.copy(self._target, self._display_region, null) catch unreachable;
+                    self._renderer.copy(self._target, null, null) catch unreachable;
                 }
 
                 drawFn(self._ctx) catch |e| {
@@ -421,7 +420,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             while (sdl.pollNativeEvent()) |e| {
                 _ = imgui.sdl.processEvent(e);
-                var we = sdl.Event.from(e);
+                const we = sdl.Event.from(e);
                 if (cfg.jok_exit_on_recv_esc and we == .key_up and
                     we.key_up.scancode == .escape)
                 {
@@ -431,14 +430,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 } else {
                     if (we == .window and we.window.type == .resized) {
                         self._target.destroy();
-                        self._display_region = cfg.jok_aspect_ratio.calcDisplayRegion(self._renderer);
-                        self._target = jok.utils.gfx.createTextureAsTarget(self._renderer, .{
-                            .size = .{ .x = self._display_region.width, .y = self._display_region.height },
-                        }) catch unreachable;
-                    }
-                    if (we == .mouse_motion and cfg.jok_aspect_ratio == .fixed) {
-                        we.mouse_motion.x -= @as(i32, self._display_region.x);
-                        we.mouse_motion.y -= @as(i32, self._display_region.y);
+                        self._target = jok.utils.gfx.createTextureAsTarget(self._renderer, .{}) catch unreachable;
                     }
                     eventFn(self._ctx, we) catch |err| {
                         log.err("Got error in `event`: {}", .{err});
@@ -549,7 +541,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 },
                 .fullscreen => {
                     self._fullscreen = true;
-                    window_flags.dim = .fullscreen;
+                    window_flags.dim = .fullscreen_desktop;
                 },
                 .custom => |size| {
                     window_width = @as(usize, size.width);
@@ -633,10 +625,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             };
             const rdinfo = try self._renderer.getInfo();
             self._is_software = ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0);
-            self._display_region = cfg.jok_aspect_ratio.calcDisplayRegion(self._renderer);
-            self._target = try jok.utils.gfx.createTextureAsTarget(self._renderer, .{
-                .size = .{ .x = self._display_region.width, .y = self._display_region.height },
-            });
+            self._target = try jok.utils.gfx.createTextureAsTarget(self._renderer, .{});
             try self._renderer.setDrawBlendMode(.blend);
         }
 
@@ -802,17 +791,19 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Get size of framebuffer
         fn getFramebufferSize(ptr: *anyopaque) sdl.PointF {
             const self: *@This() = @ptrCast(@alignCast(ptr));
+            const fbsize = self._renderer.getOutputSize() catch unreachable;
             return .{
-                .x = @floatFromInt(self._display_region.width),
-                .y = @floatFromInt(self._display_region.height),
+                .x = @floatFromInt(fbsize.width_pixels),
+                .y = @floatFromInt(fbsize.height_pixels),
             };
         }
 
         /// Get aspect ratio of drawing area
         fn getAspectRatio(ptr: *anyopaque) f32 {
             const self: *@This() = @ptrCast(@alignCast(ptr));
-            return @as(f32, @floatFromInt(self._display_region.width)) /
-                @as(f32, @floatFromInt(self._display_region.height));
+            const fbsize = self._renderer.getOutputSize() catch unreachable;
+            return @as(f32, @floatFromInt(fbsize.width_pixels)) /
+                @as(f32, @floatFromInt(fbsize.height_pixels));
         }
 
         /// Get key status
@@ -822,14 +813,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Get mouse state
-        fn getMouseState(ptr: *anyopaque) sdl.MouseState {
-            const self: *@This() = @ptrCast(@alignCast(ptr));
-            var state = sdl.getMouseState();
-            if (cfg.jok_aspect_ratio == .fixed) {
-                state.x -= self._display_region.x;
-                state.y -= self._display_region.y;
-            }
-            return state;
+        fn getMouseState(_: *anyopaque) sdl.MouseState {
+            return sdl.getMouseState();
         }
 
         /// Indicating game loop is running too slow
@@ -843,7 +828,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             const rdinfo = self._renderer.getInfo() catch unreachable;
             const ws = getWindowSize(ptr);
-            const fb = getFramebufferSize(ptr);
+            const fbsize = getFramebufferSize(ptr);
             imgui.setNextWindowBgAlpha(.{ .alpha = 0.7 });
             imgui.setNextWindowPos(.{
                 .x = ws.x,
@@ -860,7 +845,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 },
             })) {
                 imgui.text("Window Size: {d}x{d}", .{ ws.x, ws.y });
-                imgui.text("Framebuffer Size: {d}x{d}", .{ fb.x, fb.y });
+                imgui.text("Framebuffer Size: {d}x{d}", .{ fbsize.x, fbsize.y });
                 imgui.text("GPU Enabled: {}", .{!self._is_software});
                 imgui.text("V-Sync Enabled: {}", .{rdinfo.flags & sdl.c.SDL_RENDERER_PRESENTVSYNC != 0});
                 imgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});

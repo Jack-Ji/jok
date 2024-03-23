@@ -119,8 +119,12 @@ pub fn batch(b: RenderBatch) !void {
 
 /// Render skybox, textures order: right/left/top/bottom/front/back
 pub fn skybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {
+    const fbsize = rd.getOutputSize() catch unreachable;
     try skybox_rd.render(
-        rd.getViewport(),
+        .{
+            .width = fbsize.width_pixels,
+            .height = fbsize.height_pixels,
+        },
         &target,
         camera,
         textures,
@@ -135,9 +139,13 @@ pub fn scene(s: *const Scene, opt: Scene.RenderOption) !void {
 
 /// Render particle effects
 pub fn effects(ps: *ParticleSystem) !void {
+    const fbsize = rd.getOutputSize() catch unreachable;
     for (ps.effects.items) |eff| {
         try eff.render(
-            rd.getViewport(),
+            .{
+                .width = fbsize.width_pixels,
+                .height = fbsize.height_pixels,
+            },
             &target,
             camera,
             &tri_rd,
@@ -147,8 +155,12 @@ pub fn effects(ps: *ParticleSystem) !void {
 
 /// Render given sprite
 pub fn sprite(model: zmath.Mat, size: sdl.PointF, uv: [2]sdl.PointF, opt: TriangleRenderer.RenderSpriteOption) !void {
+    const fbsize = rd.getOutputSize() catch unreachable;
     try tri_rd.renderSprite(
-        rd.getViewport(),
+        .{
+            .width = fbsize.width_pixels,
+            .height = fbsize.height_pixels,
+        },
         &target,
         model,
         camera,
@@ -173,8 +185,12 @@ pub fn line(model: zmath.Mat, _p0: [3]f32, _p1: [3]f32, opt: LineOption) !void {
     const p1 = v0 - veps * perpv;
     const p2 = v1 - veps * perpv;
     const p3 = v1 + veps * perpv;
+    const fbsize = rd.getOutputSize() catch unreachable;
     try tri_rd.renderMesh(
-        rd.getViewport(),
+        .{
+            .width = fbsize.width_pixels,
+            .height = fbsize.height_pixels,
+        },
         &target,
         zmath.identity(),
         camera,
@@ -218,8 +234,12 @@ pub fn triangle(model: zmath.Mat, pos: [3][3]f32, colors: ?[3]sdl.Color, texcoor
             0,
         );
         const normal = zmath.vecToArr3(zmath.cross3(v0, v1));
+        const fbsize = rd.getOutputSize() catch unreachable;
         try tri_rd.renderMesh(
-            rd.getViewport(),
+            .{
+                .width = fbsize.width_pixels,
+                .height = fbsize.height_pixels,
+            },
             &target,
             model,
             camera,
@@ -256,9 +276,13 @@ pub fn triangles(
 ) !void {
     assert(@rem(indices, 3) == 0);
 
+    const fbsize = rd.getOutputSize() catch unreachable;
     if (opt.fill) {
         try tri_rd.renderMesh(
-            rd.getViewport(),
+            .{
+                .width = fbsize.width_pixels,
+                .height = fbsize.height_pixels,
+            },
             &target,
             model,
             camera,
@@ -291,8 +315,12 @@ pub fn triangles(
 
 /// Render a prebuilt shape
 pub fn shape(s: zmesh.Shape, model: zmath.Mat, aabb: ?[6]f32, opt: RenderOption) !void {
+    const fbsize = rd.getOutputSize() catch unreachable;
     try tri_rd.renderMesh(
-        rd.getViewport(),
+        .{
+            .width = fbsize.width_pixels,
+            .height = fbsize.height_pixels,
+        },
         &target,
         model,
         camera,
@@ -314,8 +342,12 @@ pub fn shape(s: zmesh.Shape, model: zmath.Mat, aabb: ?[6]f32, opt: RenderOption)
 
 /// Render a loaded mesh
 pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
+    const fbsize = rd.getOutputSize() catch unreachable;
     try m.render(
-        rd.getViewport(),
+        .{
+            .width = fbsize.width_pixels,
+            .height = fbsize.height_pixels,
+        },
         &target,
         model,
         camera,
@@ -332,7 +364,18 @@ pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
 
 /// Render given animation's current frame
 pub fn animation(anim: *Animation, model: zmath.Mat, opt: Animation.RenderOption) !void {
-    try anim.render(rd.getViewport(), &target, model, camera, &tri_rd, opt);
+    const fbsize = rd.getOutputSize() catch unreachable;
+    try anim.render(
+        .{
+            .width = fbsize.width_pixels,
+            .height = fbsize.height_pixels,
+        },
+        &target,
+        model,
+        camera,
+        &tri_rd,
+        opt,
+    );
 }
 
 pub const AxisOption = struct {

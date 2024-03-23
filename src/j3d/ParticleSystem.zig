@@ -190,13 +190,13 @@ pub const Effect = struct {
     /// Render to output
     pub fn render(
         self: Effect,
-        viewport: sdl.Rectangle,
+        fbsize: sdl.Size,
         target: *internal.RenderTarget,
         camera: Camera,
         tri_rd: *TriangleRenderer,
     ) !void {
         for (self.particles.items) |p| {
-            try p.render(viewport, target, camera, tri_rd);
+            try p.render(fbsize, target, camera, tri_rd);
         }
     }
 
@@ -362,7 +362,7 @@ pub const Particle = struct {
     /// Render to output
     fn render(
         self: Particle,
-        viewport: sdl.Rectangle,
+        fbsize: sdl.Size,
         target: *internal.RenderTarget,
         camera: Camera,
         tri_rd: *TriangleRenderer,
@@ -393,7 +393,7 @@ pub const Particle = struct {
                     ),
                 );
                 try tri_rd.renderMesh(
-                    viewport,
+                    fbsize,
                     target,
                     model,
                     camera,
@@ -411,7 +411,7 @@ pub const Particle = struct {
             },
             .sprite => |d| {
                 try tri_rd.renderSprite(
-                    viewport,
+                    fbsize,
                     target,
                     zmath.translation(
                         self.pos.x(),
