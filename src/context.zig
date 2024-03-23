@@ -522,7 +522,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .macos => 72.0,
                 else => 96.0,
             };
-            if (cfg.jok_high_dpi_support or
+            if (!cfg.jok_high_dpi_support or
                 sdl.c.SDL_GetDisplayDPI(0, null, &self._display_dpi, null) < 0)
             {
                 self._display_dpi = self._default_dpi;

@@ -73,7 +73,7 @@ pub fn main() !void {
         log.err("Init game failed: {}", .{err});
         if (@errorReturnTrace()) |trace| {
             std.debug.dumpStackTrace(trace.*);
-            std.os.abort();
+            std.process.abort();
         }
     };
     defer game.quit(ctx);
