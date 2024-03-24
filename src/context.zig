@@ -575,7 +575,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             var window_flags = sdl.WindowFlags{
                 .mouse_capture = true,
                 .mouse_focus = true,
-                .allow_high_dpi = true,
             };
             var window_width: usize = 800;
             var window_height: usize = 600;
@@ -594,6 +593,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     window_width = @intFromFloat(@as(f32, @floatFromInt(size.width)) * self._display_dpi / self._default_dpi);
                     window_height = @intFromFloat(@as(f32, @floatFromInt(size.height)) * self._display_dpi / self._default_dpi);
                 },
+            }
+            if (cfg.jok_high_dpi_support) {
+                window_flags.allow_high_dpi = true;
             }
             if (cfg.jok_window_ime_ui) {
                 _ = sdl.setHint("SDL_IME_SHOW_UI", "1");
