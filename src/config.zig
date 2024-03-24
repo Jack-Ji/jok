@@ -120,7 +120,6 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_window_pos_x", .desc = "horizontal position of window" },
         .{ .name = "jok_window_pos_y", .desc = "vertical position of window" },
         .{ .name = "jok_window_size", .desc = "size of window" },
-        .{ .name = "jok_aspect_ratio", .desc = "aspect ratio of framebuffer" },
         .{ .name = "jok_window_min_size", .desc = "minimum size of window" },
         .{ .name = "jok_window_max_size", .desc = "maximum size of window" },
         .{ .name = "jok_window_resizable", .desc = "whether window is resizable" },
@@ -133,6 +132,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_imgui_ini_file", .desc = "whether let imgui load/save ini file" },
         .{ .name = "jok_prebuild_atlas", .desc = "whether prebuild atlas for debug font" },
         .{ .name = "jok_detailed_frame_stats", .desc = "whether enable detailed frame statistics" },
+        .{ .name = "jok_high_dpi_support", .desc = "whether enable high dpi support" },
     };
     const game_struct = @typeInfo(game).Struct;
     for (game_struct.decls) |f| {

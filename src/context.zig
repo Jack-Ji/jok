@@ -241,12 +241,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._allocator = _allocator;
             self._ctx = self.context();
 
-            // Enable High-DPI awareness
-            // BUG: only workable on single monitor system
-            if (builtin.target.os.tag == .windows) {
-                _ = w32.SetProcessDPIAware();
-            }
-
             // Check and print system info
             try self.checkSys();
 
@@ -438,16 +432,17 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._update_cost = if (self._update_cost > 0) (self._update_cost + cost) / 2 else cost;
             };
 
-            while (sdl.pollNativeEvent()) |e| {
+            while (sdl.pollNativeEvent()) |ne| {
+                var e = ne;
                 if (cfg.jok_high_dpi_support) {
-                    switch (e) {
-                        .motion => |*me| {
-                            me.x /= getDpiScale(self);
-                            me.y /= getDpiScale(self);
+                    switch (e.type) {
+                        sdl.c.SDL_MOUSEMOTION => {
+                            e.motion.x = @intFromFloat(@as(f32, @floatFromInt(e.motion.x)) / getDpiScale(self));
+                            e.motion.y = @intFromFloat(@as(f32, @floatFromInt(e.motion.y)) / getDpiScale(self));
                         },
-                        .button => |*me| {
-                            me.x /= getDpiScale(self);
-                            me.y /= getDpiScale(self);
+                        sdl.c.SDL_MOUSEBUTTONDOWN, sdl.c.SDL_MOUSEBUTTONUP => {
+                            e.button.x = @intFromFloat(@as(f32, @floatFromInt(e.button.x)) / getDpiScale(self));
+                            e.button.y = @intFromFloat(@as(f32, @floatFromInt(e.button.y)) / getDpiScale(self));
                         },
                         else => {},
                     }
@@ -517,14 +512,21 @@ pub fn JokContext(comptime cfg: config.Config) type {
             sdl.c.SDL_GetVersion(&sdl_version);
             const ram_size = sdl.c.SDL_GetSystemRAM();
 
-            // Get display dpi
+            // Deal with high dpi awareness
             self._default_dpi = switch (builtin.target.os.tag) {
                 .macos => 72.0,
                 else => 96.0,
             };
-            if (!cfg.jok_high_dpi_support or
-                sdl.c.SDL_GetDisplayDPI(0, null, &self._display_dpi, null) < 0)
-            {
+            if (cfg.jok_high_dpi_support) {
+                if (builtin.target.os.tag == .windows) {
+                    // Enable High-DPI awareness
+                    // BUG: only workable on single monitor system
+                    _ = w32.SetProcessDPIAware();
+                }
+                if (sdl.c.SDL_GetDisplayDPI(0, null, &self._display_dpi, null) < 0) {
+                    self._display_dpi = self._default_dpi;
+                }
+            } else {
                 self._display_dpi = self._default_dpi;
             }
 

@@ -7,6 +7,8 @@ const j2d = jok.j2d;
 const j3d = jok.j3d;
 const easing = jok.utils.easing;
 
+pub const jok_high_dpi_support = true;
+
 var camera: j3d.Camera = undefined;
 var text_draw_pos: sdl.PointF = undefined;
 var text_speed: sdl.PointF = undefined;
