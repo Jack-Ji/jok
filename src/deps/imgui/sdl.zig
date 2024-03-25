@@ -21,16 +21,15 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
         unreachable;
     }
 
-    const fsize = renderer.getOutputSize() catch unreachable;
-    const wsize = ctx.getWindowSize();
-    const scale = @as(f32, @floatFromInt(fsize.width_pixels)) / wsize.x;
-    zgui.getStyle().scaleAllSizes(scale);
-
+    zgui.getStyle().scaleAllSizes(ctx.getDpiScale());
     if (!enable_ini_file) {
         zgui.io.setIniFilename(null);
     }
 
-    const font = zgui.io.addFontFromMemory(jok.font.DebugFont.font_data, 16);
+    const font = zgui.io.addFontFromMemory(
+        jok.font.DebugFont.font_data,
+        16 * ctx.getDpiScale(),
+    );
     zgui.io.setDefaultFont(font);
 
     zgui.plot.init();

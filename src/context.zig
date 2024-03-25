@@ -506,29 +506,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Check system information
-        fn checkSys(self: *@This()) !void {
+        fn checkSys(_: *@This()) !void {
             const target = builtin.target;
             var sdl_version: sdl.c.SDL_version = undefined;
             sdl.c.SDL_GetVersion(&sdl_version);
             const ram_size = sdl.c.SDL_GetSystemRAM();
-
-            // Deal with high dpi awareness
-            self._default_dpi = switch (builtin.target.os.tag) {
-                .macos => 72.0,
-                else => 96.0,
-            };
-            if (cfg.jok_high_dpi_support) {
-                if (builtin.target.os.tag == .windows) {
-                    // Enable High-DPI awareness
-                    // BUG: only workable on single monitor system
-                    _ = w32.SetProcessDPIAware();
-                }
-                if (sdl.c.SDL_GetDisplayDPI(0, null, &self._display_dpi, null) < 0) {
-                    self._display_dpi = self._default_dpi;
-                }
-            } else {
-                self._display_dpi = self._default_dpi;
-            }
 
             // Print system info
             log.info(
@@ -541,7 +523,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 \\    SDL           : {}.{}.{}
                 \\    Platform      : {s}
                 \\    Memory        : {d}MB
-                \\    Display DPI   : {d:.1}
             ,
                 .{
                     @tagName(builtin.mode),
@@ -554,7 +535,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     sdl_version.patch,
                     @tagName(target.os.tag),
                     ram_size,
-                    self._display_dpi,
                 },
             );
 
@@ -578,11 +558,31 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .mouse_capture = true,
                 .mouse_focus = true,
             };
-            var window_width: usize = 800;
-            var window_height: usize = 600;
+            self._default_dpi = switch (builtin.target.os.tag) {
+                .macos => 72.0,
+                else => 96.0,
+            };
+            if (cfg.jok_high_dpi_support) {
+                if (builtin.target.os.tag == .windows) {
+                    // Enable High-DPI awareness
+                    // BUG: only workable on single monitor system
+                    _ = w32.SetProcessDPIAware();
+                }
+                if (sdl.c.SDL_GetDisplayDPI(0, null, &self._display_dpi, null) < 0) {
+                    self._display_dpi = self._default_dpi;
+                }
+                window_flags.allow_high_dpi = true;
+            } else {
+                self._display_dpi = self._default_dpi;
+            }
             if (cfg.jok_window_borderless) {
                 window_flags.borderless = true;
             }
+            if (cfg.jok_window_ime_ui) {
+                _ = sdl.setHint("SDL_IME_SHOW_UI", "1");
+            }
+            var window_width: usize = 800;
+            var window_height: usize = 600;
             switch (cfg.jok_window_size) {
                 .maximized => {
                     window_flags.dim = .maximized;
@@ -595,12 +595,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     window_width = @intFromFloat(@as(f32, @floatFromInt(size.width)) * self._display_dpi / self._default_dpi);
                     window_height = @intFromFloat(@as(f32, @floatFromInt(size.height)) * self._display_dpi / self._default_dpi);
                 },
-            }
-            if (cfg.jok_high_dpi_support) {
-                window_flags.allow_high_dpi = true;
-            }
-            if (cfg.jok_window_ime_ui) {
-                _ = sdl.setHint("SDL_IME_SHOW_UI", "1");
             }
             self._window = try sdl.createWindow(
                 cfg.jok_window_title,
@@ -894,7 +888,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .pivot_x = 1,
                 .cond = if (opt.movable) .once else .always,
             });
-            imgui.setNextWindowSize(.{ .w = opt.width, .h = 0, .cond = .always });
+            imgui.setNextWindowSize(.{ .w = opt.width * getDpiScale(ptr), .h = 0, .cond = .always });
             if (imgui.begin("Frame Statistics", .{
                 .flags = .{
                     .no_title_bar = !opt.collapsible,

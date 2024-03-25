@@ -7,7 +7,7 @@ const j2d = jok.j2d;
 const j3d = jok.j3d;
 const easing = jok.utils.easing;
 
-pub const jok_high_dpi_support = true;
+//pub const jok_high_dpi_support = true;
 
 var camera: j3d.Camera = undefined;
 var text_draw_pos: sdl.PointF = undefined;
@@ -130,8 +130,8 @@ pub fn draw(ctx: jok.Context) !void {
 
             j2d.getTransform().setToIdentity();
             j2d.getTransform().scale(.{
-                .x = 1.3 + std.math.sin(ctx.seconds()),
-                .y = 1.3 + std.math.sin(ctx.seconds()),
+                .x = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
+                .y = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
             });
             j2d.getTransform().rotateByOrigin(ctx.seconds());
             j2d.getTransform().translate(.{
@@ -261,13 +261,13 @@ pub fn draw(ctx: jok.Context) !void {
     );
     font.debugDraw(
         ctx,
-        .{ .x = 0, .y = 17 },
+        .{ .x = 0, .y = 17 * ctx.getDpiScale() },
         "Press F2 to take screenshot",
         .{},
     );
     font.debugDraw(
         ctx,
-        .{ .x = 0, .y = 34 },
+        .{ .x = 0, .y = 34 * ctx.getDpiScale() },
         "Press F3 to toggle frame statistics",
         .{},
     );
