@@ -854,8 +854,16 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Get dpi scale
         fn getDpiScale(ptr: *anyopaque) f32 {
-            const self: *@This() = @ptrCast(@alignCast(ptr));
-            return self._display_dpi / self._default_dpi;
+            const S = struct {
+                var scale: ?f32 = null;
+            };
+            if (S.scale) |s| {
+                return s;
+            } else {
+                const self: *@This() = @ptrCast(@alignCast(ptr));
+                S.scale = self._display_dpi / self._default_dpi;
+                return S.scale.?;
+            }
         }
 
         /// Get key status
