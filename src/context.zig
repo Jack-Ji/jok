@@ -33,6 +33,7 @@ pub const Context = struct {
         toggleAlwaysOnTop: *const fn (ctx: *anyopaque, on_off: ?bool) void,
         getWindowPosition: *const fn (ctx: *anyopaque) sdl.PointF,
         getWindowSize: *const fn (ctx: *anyopaque) sdl.PointF,
+        setWindowSize: *const fn (ctx: *anyopaque, size: sdl.PointF) void,
         getFramebufferSize: *const fn (ctx: *anyopaque) sdl.PointF,
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
         getDpiScale: *const fn (ctx: *anyopaque) f32,
@@ -115,6 +116,11 @@ pub const Context = struct {
     /// Get size of window
     pub fn getWindowSize(self: Context) sdl.PointF {
         return self.vtable.getWindowSize(self.ctx);
+    }
+
+    /// Set size of window
+    pub fn setWindowSize(self: Context, size: sdl.PointF) void {
+        return self.vtable.setWindowSize(self.ctx, size);
     }
 
     /// Get size of framebuffer
@@ -456,7 +462,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 } else if (cfg.jok_exit_on_recv_quit and we == .quit) {
                     kill(self);
                 } else {
-                    if (we == .window and we.window.type == .resized) {
+                    if (we == .window and (we.window.type == .resized or we.window.type == .size_changed)) {
                         self._target.destroy();
                         self._target = jok.utils.gfx.createTextureAsTarget(self._renderer, .{}) catch unreachable;
                     }
@@ -592,8 +598,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     window_flags.dim = .fullscreen_desktop;
                 },
                 .custom => |size| {
-                    window_width = @intFromFloat(@as(f32, @floatFromInt(size.width)) * self._display_dpi / self._default_dpi);
-                    window_height = @intFromFloat(@as(f32, @floatFromInt(size.height)) * self._display_dpi / self._default_dpi);
+                    window_width = @intFromFloat(@as(f32, @floatFromInt(size.width)) * getDpiScale(self));
+                    window_height = @intFromFloat(@as(f32, @floatFromInt(size.height)) * getDpiScale(self));
                 },
             }
             self._window = try sdl.createWindow(
@@ -701,6 +707,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .toggleAlwaysOnTop = toggleAlwaysOnTop,
                     .getWindowPosition = getWindowPosition,
                     .getWindowSize = getWindowSize,
+                    .setWindowSize = setWindowSize,
                     .getFramebufferSize = getFramebufferSize,
                     .getAspectRatio = getAspectRatio,
                     .getDpiScale = getDpiScale,
@@ -832,6 +839,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
             var h: c_int = undefined;
             sdl.c.SDL_GetWindowSize(self._window.ptr, &w, &h);
             return .{ .x = @floatFromInt(w), .y = @floatFromInt(h) };
+        }
+
+        /// Set size of window
+        fn setWindowSize(ptr: *anyopaque, size: sdl.PointF) void {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            const w: c_int = @intFromFloat(size.x * getDpiScale(ptr));
+            const h: c_int = @intFromFloat(size.y * getDpiScale(ptr));
+            sdl.c.SDL_SetWindowSize(self._window.ptr, w, h);
         }
 
         /// Get size of framebuffer
