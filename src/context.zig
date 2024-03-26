@@ -448,7 +448,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     }
                 }
                 _ = imgui.sdl.processEvent(e);
-                const we = sdl.Event.from(e);
+                const we = sdl.Event.from(ne);
                 if (cfg.jok_exit_on_recv_esc and we == .key_up and
                     we.key_up.scancode == .escape)
                 {
