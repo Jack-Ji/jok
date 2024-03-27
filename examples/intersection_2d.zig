@@ -29,7 +29,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
+    ctx.clear(null);
 
     var tri_color = sdl.Color.white;
     var tri_thickness = @as(f32, 2);

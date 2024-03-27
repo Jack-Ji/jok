@@ -19,7 +19,7 @@ var delta_tick: f32 = 0;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    const size = ctx.getFramebufferSize();
+    const csz = ctx.getCanvasSize();
 
     // create sprite sheet
     sheet = try j2d.SpriteSheet.create(
@@ -32,8 +32,8 @@ pub fn init(ctx: jok.Context) !void {
                 },
             },
         },
-        @intFromFloat(size.x),
-        @intFromFloat(size.y),
+        @intFromFloat(csz.x),
+        @intFromFloat(csz.y),
         1,
         false,
     );
@@ -42,8 +42,6 @@ pub fn init(ctx: jok.Context) !void {
         1000000,
     );
     rand_gen = std.rand.DefaultPrng.init(@intCast(std.time.timestamp()));
-
-    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -74,7 +72,7 @@ pub fn update(ctx: jok.Context) !void {
     }
 
     delta_tick = (delta_tick + ctx.deltaSeconds()) / 2;
-    const size = ctx.getFramebufferSize();
+    const size = ctx.getCanvasSize();
     for (characters.items) |*c| {
         const curpos = c.pos;
         if (curpos.x < 0)
@@ -91,8 +89,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
-
+    ctx.clear(sdl.Color.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
     j2d.begin(.{});

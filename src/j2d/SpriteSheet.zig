@@ -221,7 +221,7 @@ pub fn create(
         }
     }
     var tex = try jok.utils.gfx.createTextureFromPixels(
-        ctx.renderer(),
+        ctx,
         pixels,
         jok.utils.gfx.getFormatByEndian(),
         .static,

@@ -32,6 +32,9 @@ pub const Config = struct {
     /// Size of window
     jok_window_size: WindowSize = .{ .custom = .{ .width = 800, .height = 600 } },
 
+    /// Size of canvas (default to framebuffer's size)
+    jok_canvas_size: ?sdl.Size = null,
+
     /// Mimimum size of window
     jok_window_min_size: ?sdl.Size = null,
 
@@ -120,6 +123,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_window_pos_x", .desc = "horizontal position of window" },
         .{ .name = "jok_window_pos_y", .desc = "vertical position of window" },
         .{ .name = "jok_window_size", .desc = "size of window" },
+        .{ .name = "jok_canvas_size", .desc = "size of canvas" },
         .{ .name = "jok_window_min_size", .desc = "minimum size of window" },
         .{ .name = "jok_window_max_size", .desc = "maximum size of window" },
         .{ .name = "jok_window_resizable", .desc = "whether window is resizable" },

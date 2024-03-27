@@ -44,31 +44,14 @@ pub fn init(ctx: jok.Context) !void {
         [_]f32{ 0, 0, 0 },
     );
 
-    mesh1 = try j3d.Mesh.fromGltf(
-        ctx.allocator(),
-        ctx.renderer(),
-        "assets/models/CesiumMan.glb",
-        .{},
-    );
-    mesh2 = try j3d.Mesh.fromGltf(
-        ctx.allocator(),
-        ctx.renderer(),
-        "assets/models/RiggedSimple.glb",
-        .{},
-    );
-    mesh3 = try j3d.Mesh.fromGltf(
-        ctx.allocator(),
-        ctx.renderer(),
-        "assets/models/Fox/Fox.gltf",
-        .{},
-    );
+    mesh1 = try j3d.Mesh.fromGltf(ctx, "assets/models/CesiumMan.glb", .{});
+    mesh2 = try j3d.Mesh.fromGltf(ctx, "assets/models/RiggedSimple.glb", .{});
+    mesh3 = try j3d.Mesh.fromGltf(ctx, "assets/models/Fox/Fox.gltf", .{});
     animation1_1 = try j3d.Animation.create(ctx.allocator(), mesh1.getAnimation("default").?);
     animation2_1 = try j3d.Animation.create(ctx.allocator(), mesh2.getAnimation("default").?);
     animation3_1 = try j3d.Animation.create(ctx.allocator(), mesh3.getAnimation("Walk").?);
     animation3_2 = try j3d.Animation.create(ctx.allocator(), mesh3.getAnimation("Survey").?);
     animation3_3 = try j3d.Animation.create(ctx.allocator(), mesh3.getAnimation("Run").?);
-
-    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -144,8 +127,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
-
+    ctx.clear(sdl.Color.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
     if (imgui.begin("Control Panel", .{})) {

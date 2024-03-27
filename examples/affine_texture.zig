@@ -34,13 +34,11 @@ pub fn init(ctx: jok.Context) !void {
     );
 
     tex = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
+        ctx,
         "assets/images/image5.jpg",
         .static,
         true,
     );
-
-    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -78,7 +76,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
+    ctx.clear(sdl.Color.rgb(77, 77, 77));
 
     if (imgui.begin("Control Panel", .{})) {
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });

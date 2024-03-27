@@ -113,8 +113,6 @@ pub fn init(ctx: jok.Context) !void {
         },
     });
     try scene.root.addChild(sphere_obj);
-
-    try ctx.renderer().setColorRGB(80, 80, 80);
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -163,7 +161,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
+    ctx.clear(sdl.Color.rgb(80, 80, 80));
 
     j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
     defer j3d.end();
@@ -183,7 +181,7 @@ pub fn draw(ctx: jok.Context) !void {
     );
     try j3d.axises(.{});
 
-    const ogre_pos = camera.calcScreenPosition(ctx.renderer(), sprites[13].transform, null);
+    const ogre_pos = camera.calcScreenPosition(ctx, sprites[13].transform, null);
     font.debugDraw(
         ctx,
         .{ .x = ogre_pos.x + 50, .y = ogre_pos.y },

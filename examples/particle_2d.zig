@@ -50,7 +50,7 @@ pub fn init(ctx: jok.Context) !void {
         ctx.allocator(),
         jok.font.DebugFont.font_data,
     );
-    atlas = try font.createAtlas(ctx.renderer(), 60, null, null);
+    atlas = try font.createAtlas(ctx, 60, null, null);
     ps = try j2d.ParticleSystem.create(ctx.allocator());
     emitter1.sprite = sheet.getSpriteByName("particle");
     emitter2.sprite = atlas.getSpriteOfCodePoint('*');
@@ -91,8 +91,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
-
+    ctx.clear(null);
     ctx.displayStats(.{});
 
     j2d.begin(.{ .blend_method = .additive });

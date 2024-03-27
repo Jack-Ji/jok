@@ -139,7 +139,7 @@ inline fn clear(self: *Self) void {
 
 pub fn renderMesh(
     self: *Self,
-    fbsize: sdl.Size,
+    csz: sdl.PointF,
     target: *internal.RenderTarget,
     model: zmath.Mat,
     camera: Camera,
@@ -157,10 +157,10 @@ pub fn renderMesh(
     assert(if (opt.animation) |anim| anim.joints.len == anim.weights.len else true);
     if (indices.len == 0) return;
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * @as(f32, @floatFromInt(fbsize.width)), 0.0,                                           0.0,
-        0.0,                                         -0.5 * @as(f32, @floatFromInt(fbsize.height)), 0.0,
-        0.0,                                         0.0,                                           0.5,
-        0.5 * @as(f32, @floatFromInt(fbsize.width)), 0.5 * @as(f32, @floatFromInt(fbsize.height)),  0.5,
+        0.5 * csz.x, 0.0,          0.0,
+        0.0,         -0.5 * csz.y, 0.0,
+        0.0,         0.0,          0.5,
+        0.5 * csz.x, 0.5 * csz.y,  0.5,
     });
     const vp = camera.getViewProjectMatrix();
     const mvp = zmath.mul(model, vp);
@@ -424,7 +424,7 @@ pub fn renderMesh(
 
 pub fn renderSprite(
     self: *Self,
-    fbsize: sdl.Size,
+    csz: sdl.PointF,
     target: *internal.RenderTarget,
     model: zmath.Mat,
     camera: Camera,
@@ -484,7 +484,7 @@ pub fn renderSprite(
             }
         }
         try self.renderMesh(
-            fbsize,
+            csz,
             target,
             transform,
             camera,
@@ -523,8 +523,8 @@ pub fn renderSprite(
             if (ndc_center[2] <= -1 or ndc_center[2] >= 1) {
                 return;
             }
-            const size_x = size.x / @as(f32, @floatFromInt(fbsize.width)) * 2;
-            const size_y = size.y / @as(f32, @floatFromInt(fbsize.height)) * 2;
+            const size_x = size.x / csz.x * 2;
+            const size_y = size.y / csz.y * 2;
             const m_scale = zmath.scaling(size_x * opt.scale.x, size_y * opt.scale.y, 1);
             const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
             const m_translate = zmath.translation(ndc_center[0], ndc_center[1], 0);
@@ -584,10 +584,10 @@ pub fn renderSprite(
 
         // Calculate screen coordinate
         const ndc_to_screen = zmath.loadMat43(&[_]f32{
-            0.5 * @as(f32, @floatFromInt(fbsize.width)), 0.0,                                           0.0,
-            0.0,                                         -0.5 * @as(f32, @floatFromInt(fbsize.height)), 0.0,
-            0.0,                                         0.0,                                           0.5,
-            0.5 * @as(f32, @floatFromInt(fbsize.width)), 0.5 * @as(f32, @floatFromInt(fbsize.height)),  0.5,
+            0.5 * csz.x, 0.0,          0.0,
+            0.0,         -0.5 * csz.y, 0.0,
+            0.0,         0.0,          0.5,
+            0.5 * csz.x, 0.5 * csz.y,  0.5,
         });
         const ndcs = zmath.Mat{
             ndc0,

@@ -224,16 +224,16 @@ fn updateVectors(self: *Self) void {
 /// Get screen position of given coordinate
 pub fn calcScreenPosition(
     self: Self,
-    renderer: sdl.Renderer,
+    ctx: jok.Context,
     model: zmath.Mat,
     _coord: ?[3]f32,
 ) sdl.PointF {
-    const fbsize = renderer.getOutputSize() catch unreachable;
+    const csz = ctx.getCanvasSize();
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * @as(f32, @floatFromInt(fbsize.width_pixels)), 0.0,                                                  0.0,
-        0.0,                                                -0.5 * @as(f32, @floatFromInt(fbsize.height_pixels)), 0.0,
-        0.0,                                                0.0,                                                  0.5,
-        0.5 * @as(f32, @floatFromInt(fbsize.width_pixels)), 0.5 * @as(f32, @floatFromInt(fbsize.height_pixels)),  0.5,
+        0.5 * csz.x, 0.0,          0.0,
+        0.0,         -0.5 * csz.y, 0.0,
+        0.0,         0.0,          0.5,
+        0.5 * csz.x, 0.5 * csz.y,  0.5,
     });
     const mvp = zmath.mul(model, self.getViewProjectMatrix());
     const coord = if (_coord) |c|
@@ -274,7 +274,7 @@ pub fn isVisible(self: Self, model: zmath.Mat, aabb: [6]f32) bool {
 /// NOTE: assuming screen position is relative to top-left corner of viewport
 pub fn clacRayTestTarget(
     self: Self,
-    renderer: sdl.Renderer,
+    ctx: jok.Context,
     screen_x: f32,
     screen_y: f32,
     _test_distance: ?f32,
@@ -282,37 +282,35 @@ pub fn clacRayTestTarget(
     assert(self.frustrum == .perspective);
     const far_plane = _test_distance orelse 10000.0;
     const ray_forward = self.dir * far_plane;
-    const fbsize = renderer.getOutputSize() catch unreachable;
-    const width = @as(f32, @floatFromInt(fbsize.width_pixels));
-    const height = @as(f32, @floatFromInt(fbsize.height_pixels));
+    const csz = ctx.getCanvasSize();
     switch (self.frustrum) {
         .orthographic => |p| {
-            const hor = self.right * zmath.splat(zmath.Vec, p.width);
+            const hor = self.right * zmath.splat(zmath.Vec, csz.x);
             const vertical = self.up * zmath.splat(zmath.Vec, p.height);
 
             const ray_to_center = self.position + ray_forward;
-            const dhor = hor * zmath.splat(zmath.Vec, 1.0 / width);
-            const dvert = vertical * zmath.splat(zmath.Vec, 1.0 / height);
+            const dhor = hor * zmath.splat(zmath.Vec, 1.0 / csz.x);
+            const dvert = vertical * zmath.splat(zmath.Vec, 1.0 / csz.y);
 
             var ray_to = ray_to_center - hor * zmath.splat(zmath.Vec, 0.5) - vertical * zmath.splat(zmath.Vec, 0.5);
             ray_to = ray_to + dhor * zmath.splat(zmath.Vec, screen_x);
-            ray_to = ray_to + dvert * zmath.splat(zmath.Vec, height - screen_y);
+            ray_to = ray_to + dvert * zmath.splat(zmath.Vec, csz.y - screen_y);
             return ray_to;
         },
         .perspective => |p| {
             const tanfov = @tan(0.5 * p.fov);
-            const aspect = width / height;
+            const aspect = ctx.getAspectRatio();
 
             const hor = self.right * zmath.splat(zmath.Vec, 2.0 * far_plane * tanfov * aspect);
             const vertical = self.up * zmath.splat(zmath.Vec, 2.0 * far_plane * tanfov);
 
             const ray_to_center = self.position + ray_forward;
-            const dhor = hor * zmath.splat(zmath.Vec, 1.0 / width);
-            const dvert = vertical * zmath.splat(zmath.Vec, 1.0 / height);
+            const dhor = hor * zmath.splat(zmath.Vec, 1.0 / csz.x);
+            const dvert = vertical * zmath.splat(zmath.Vec, 1.0 / csz.y);
 
             var ray_to = ray_to_center - hor * zmath.splat(zmath.Vec, 0.5) - vertical * zmath.splat(zmath.Vec, 0.5);
             ray_to = ray_to + dhor * zmath.splat(zmath.Vec, screen_x);
-            ray_to = ray_to + dvert * zmath.splat(zmath.Vec, height - screen_y);
+            ray_to = ray_to + dvert * zmath.splat(zmath.Vec, csz.y - screen_y);
             return ray_to;
         },
     }

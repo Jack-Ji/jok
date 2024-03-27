@@ -29,14 +29,14 @@ pub inline fn getFormatByEndian() sdl.PixelFormatEnum {
 
 /// Create texture from uncompressed pixel data
 pub fn createTextureFromPixels(
-    renderer: sdl.Renderer,
+    ctx: jok.Context,
     pixels: ?[]const u8,
     format: sdl.PixelFormatEnum,
     access: sdl.Texture.Access,
     width: u32,
     height: u32,
 ) !sdl.Texture {
-    var tex = try sdl.createTexture(renderer, format, access, width, height);
+    var tex = try sdl.createTexture(ctx.renderer(), format, access, width, height);
     try tex.setBlendMode(.blend); // Enable alpha blending by default
     errdefer tex.destroy();
 
@@ -59,7 +59,7 @@ pub fn createTextureFromPixels(
 
 /// Create texture from image
 pub fn createTextureFromFile(
-    renderer: sdl.Renderer,
+    ctx: jok.Context,
     image_file: [:0]const u8,
     access: sdl.Texture.Access,
     flip: bool,
@@ -83,7 +83,7 @@ pub fn createTextureFromFile(
     defer stb.image.stbi_image_free(image_data);
 
     return try createTextureFromPixels(
-        renderer,
+        ctx,
         image_data[0..@as(u32, @intCast(width * height * channels))],
         getFormatByEndian(),
         access,
@@ -94,7 +94,7 @@ pub fn createTextureFromFile(
 
 /// Create texture from image data
 pub fn createTextureFromFileData(
-    renderer: sdl.Renderer,
+    ctx: jok.Context,
     file_data: []const u8,
     access: sdl.Texture.Access,
     flip: bool,
@@ -119,7 +119,7 @@ pub fn createTextureFromFileData(
     defer stb.image.stbi_image_free(image_data);
 
     return try createTextureFromPixels(
-        renderer,
+        ctx,
         image_data[0..@as(u32, @intCast(width * height * channels))],
         getFormatByEndian(),
         access,
@@ -217,7 +217,7 @@ pub fn saveSurfaceToFile(surface: sdl.Surface, path: [:0]const u8, opt: Encoding
 }
 
 /// Read pixels from screen
-pub fn getScreenPixels(allocator: std.mem.Allocator, rd: sdl.Renderer, rect: ?sdl.Rectangle) !struct {
+pub fn getScreenPixels(ctx: jok.Context, rect: ?sdl.Rectangle) !struct {
     allocator: std.mem.Allocator,
     format: sdl.PixelFormatEnum,
     pixels: []u8,
@@ -228,9 +228,9 @@ pub fn getScreenPixels(allocator: std.mem.Allocator, rd: sdl.Renderer, rect: ?sd
         self.allocator.free(self.pixels);
     }
 
-    pub fn createTexture(self: @This(), _rd: sdl.Renderer) !sdl.Texture {
+    pub fn createTexture(self: @This(), _ctx: jok.Context) !sdl.Texture {
         return try createTextureFromPixels(
-            _rd,
+            _ctx,
             self.pixels,
             self.format,
             .static,
@@ -245,14 +245,14 @@ pub fn getScreenPixels(allocator: std.mem.Allocator, rd: sdl.Renderer, rect: ?sd
 } {
     const format = getFormatByEndian();
     const channels = @as(c_int, @intCast(getChannels(format)));
-    const fb_size = try rd.getOutputSize();
-    const width = if (rect) |r| r.width else fb_size.width_pixels;
-    const height = if (rect) |r| r.height else fb_size.height_pixels;
+    const csz = ctx.getCanvasSize();
+    const width = if (rect) |r| r.width else @as(c_int, @intFromFloat(csz.x));
+    const height = if (rect) |r| r.height else @as(c_int, @intFromFloat(csz.y));
     const pixel_size = @as(usize, @intCast(channels * width * height));
-    const pixels = try allocator.alloc(u8, pixel_size);
-    try rd.readPixels(rect, format, pixels.ptr, @intCast(channels * width));
+    const pixels = try ctx.allocator().alloc(u8, pixel_size);
+    try ctx.renderer().readPixels(rect, format, pixels.ptr, @intCast(channels * width));
     return .{
-        .allocator = allocator,
+        .allocator = ctx.allocator(),
         .format = format,
         .pixels = pixels,
         .width = @intCast(width),
@@ -275,42 +275,46 @@ pub fn saveScreenToFile(
 
 /// Create texture for offscreen rendering
 pub const CreateTarget = struct {
-    size: ?sdl.Point = null,
+    size: ?sdl.Size = null,
     blend_mode: sdl.BlendMode = .none,
 };
-pub fn createTextureAsTarget(rd: sdl.Renderer, opt: CreateTarget) !sdl.Texture {
+pub fn createTextureAsTarget(ctx: jok.Context, opt: CreateTarget) !sdl.Texture {
     const size = opt.size orelse BLK: {
-        const fbsize = rd.getOutputSize() catch unreachable;
-        break :BLK sdl.Point{ .x = fbsize.width_pixels, .y = fbsize.height_pixels };
+        const csz = ctx.getCanvasSize();
+        break :BLK sdl.Size{
+            .width = @intFromFloat(csz.x),
+            .height = @intFromFloat(csz.y),
+        };
     };
     const tex = try sdl.createTexture(
-        rd,
+        ctx.renderer(),
         getFormatByEndian(),
         .target,
-        @intCast(size.x),
-        @intCast(size.y),
+        @intCast(size.width),
+        @intCast(size.height),
     );
     try tex.setBlendMode(opt.blend_mode);
     return tex;
 }
 
 /// Render to texture and return it. @renderer can be any struct with
-/// method `fn draw(self: @This(), renderer: sdl.Renderer, size: sdl.PointF) !void`
+/// method `fn draw(self: @This(), ctx: jok.Context, size: sdl.PointF) !void`
 pub const RenderToTexture = struct {
     target: ?sdl.Texture = null,
-    size: ?sdl.Point = null,
+    size: ?sdl.Size = null,
     clear_color: ?sdl.Color = null,
 };
-pub fn renderToTexture(rd: sdl.Renderer, renderer: anytype, opt: RenderToTexture) !sdl.Texture {
-    const old_target = sdl.c.SDL_GetRenderTarget(rd.ptr);
+pub fn renderToTexture(ctx: jok.Context, renderer: anytype, opt: RenderToTexture) !sdl.Texture {
+    const rd = ctx.renderer();
+    const old_target = rd.getTarget();
     const target = opt.target orelse try createTextureAsTarget(
-        rd,
+        ctx,
         .{ .size = opt.size },
     );
     const tex_info = try target.query();
     assert(tex_info.access == .target);
     try rd.setTarget(target);
-    defer _ = sdl.c.SDL_SetRenderTarget(rd.ptr, old_target);
+    defer rd.setTarget(old_target) catch unreachable;
 
     const old_blend_mode = try rd.getDrawBlendMode();
     try rd.setDrawBlendMode(.none);
@@ -322,7 +326,7 @@ pub fn renderToTexture(rd: sdl.Renderer, renderer: anytype, opt: RenderToTexture
         try rd.clear();
         try rd.setColor(old_color);
     }
-    try renderer.draw(rd, .{
+    try renderer.draw(ctx, .{
         .x = @floatFromInt(tex_info.width),
         .y = @floatFromInt(tex_info.height),
     });

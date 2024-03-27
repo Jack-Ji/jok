@@ -34,13 +34,17 @@ pub const DebugFont = struct {
     }
 
     pub fn deinit() void {
+        var it = atlases.iterator();
+        while (it.next()) |e| {
+            e.value_ptr.*.destroy();
+        }
         arena.deinit();
     }
 
     pub fn getAtlas(ctx: jok.Context, font_size: u32) !*Atlas {
         return atlases.get(font_size) orelse BLK: {
             const a = try font.createAtlas(
-                ctx.renderer(),
+                ctx,
                 font_size,
                 &[_][2]u32{.{ 0x0020, 0x00FF }},
                 1024,

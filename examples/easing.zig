@@ -78,7 +78,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
+    ctx.clear(null);
 
     j2d.begin(.{});
     defer j2d.end();

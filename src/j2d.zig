@@ -41,8 +41,8 @@ pub const BeginOption = struct {
     antialiased: bool = true,
 };
 
+var ctx: jok.Context = undefined;
 var arena: std.heap.ArenaAllocator = undefined;
-var rd: sdl.Renderer = undefined;
 var draw_list: imgui.DrawList = undefined;
 var draw_commands: std.ArrayList(internal.DrawCmd) = undefined;
 var transform: AffineTransform = undefined;
@@ -50,12 +50,12 @@ var depth_sort: DepthSortMethod = undefined;
 var blend_method: BlendMethod = undefined;
 var all_tex: std.AutoHashMap(*sdl.c.SDL_Texture, bool) = undefined;
 
-pub fn init(allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
-    arena = std.heap.ArenaAllocator.init(allocator);
-    rd = _rd;
+pub fn init(_ctx: jok.Context) !void {
+    ctx = _ctx;
+    arena = std.heap.ArenaAllocator.init(ctx.allocator());
     draw_list = imgui.createDrawList();
-    draw_commands = std.ArrayList(internal.DrawCmd).init(allocator);
-    all_tex = std.AutoHashMap(*sdl.c.SDL_Texture, bool).init(allocator);
+    draw_commands = std.ArrayList(internal.DrawCmd).init(ctx.allocator());
+    all_tex = std.AutoHashMap(*sdl.c.SDL_Texture, bool).init(ctx.allocator());
 }
 
 pub fn deinit() void {
@@ -66,14 +66,11 @@ pub fn deinit() void {
 }
 
 pub fn begin(opt: BeginOption) void {
-    const output_size = rd.getOutputSize() catch unreachable;
+    const csz = ctx.getCanvasSize();
     draw_list.reset();
     draw_list.pushClipRect(.{
         .pmin = .{ 0, 0 },
-        .pmax = .{
-            @as(f32, @floatFromInt(output_size.width_pixels)),
-            @as(f32, @floatFromInt(output_size.height_pixels)),
-        },
+        .pmax = .{ csz.x, csz.y },
     });
     draw_list.pushTextureId(imgui.io.getFontsTexId());
     draw_commands.clearRetainingCapacity();
@@ -138,7 +135,7 @@ pub fn end() void {
     while (it.next()) |k| {
         _ = sdl.c.SDL_SetTextureBlendMode(k.*, @intCast(mode));
     }
-    imgui.sdl.renderDrawList(rd, draw_list);
+    imgui.sdl.renderDrawList(ctx.renderer(), draw_list);
 }
 
 pub fn clearMemory() void {

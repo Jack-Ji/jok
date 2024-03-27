@@ -9,7 +9,7 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     // create sprite sheet
-    const size = ctx.getFramebufferSize();
+    const size = ctx.getCanvasSize();
     sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
         "assets/images",
@@ -24,8 +24,6 @@ pub fn init(ctx: jok.Context) !void {
     //    ctx.renderer,
     //    "sheet",
     //);
-
-    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -38,7 +36,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
+    ctx.clear(sdl.Color.rgb(77, 77, 77));
 
     const sprite = sheet.getSpriteByName("ogre").?;
     j2d.begin(.{ .depth_sort = .back_to_forth });

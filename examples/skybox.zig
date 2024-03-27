@@ -48,50 +48,48 @@ pub fn init(ctx: jok.Context) !void {
     cube.computeNormals();
     cube.texcoords = texcoords[0..];
     tex = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
+        ctx,
         "assets/images/image5.jpg",
         .static,
         false,
     );
 
     skybox_textures[0] = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
+        ctx,
         "assets/images/skybox/right.jpg",
         .static,
         true,
     );
     skybox_textures[1] = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
+        ctx,
         "assets/images/skybox/left.jpg",
         .static,
         true,
     );
     skybox_textures[2] = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
+        ctx,
         "assets/images/skybox/top.jpg",
         .static,
         true,
     );
     skybox_textures[3] = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
+        ctx,
         "assets/images/skybox/bottom.jpg",
         .static,
         true,
     );
     skybox_textures[4] = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
+        ctx,
         "assets/images/skybox/front.jpg",
         .static,
         true,
     );
     skybox_textures[5] = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
+        ctx,
         "assets/images/skybox/back.jpg",
         .static,
         true,
     );
-
-    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -129,7 +127,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
+    ctx.clear(sdl.Color.rgb(77, 77, 77));
 
     if (imgui.begin("Tint Color", .{})) {
         var cs: [3]f32 = .{

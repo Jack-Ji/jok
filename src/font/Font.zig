@@ -64,10 +64,10 @@ pub fn destroy(self: *Font) void {
 
 pub fn createAtlas(
     self: Font,
-    renderer: sdl.Renderer,
+    ctx: jok.Context,
     font_size: u32,
     cp_ranges: ?[]const [2]u32,
     atlas_size: ?u32,
 ) !*Atlas {
-    return Atlas.create(self.allocator, renderer, &self.font_info, font_size, cp_ranges, atlas_size);
+    return Atlas.create(ctx, &self.font_info, font_size, cp_ranges, atlas_size);
 }

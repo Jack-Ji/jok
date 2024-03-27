@@ -60,12 +60,13 @@ pub fn init(ctx: jok.Context) !void {
     terran.invert(0, 0);
     terran.scale(100, 20, 100);
     terran.computeNormals();
-
-    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
     switch (e) {
+        .key_down => |k| {
+            if (k.scancode == .f1) ctx.toggleFullscreeen(null);
+        },
         .window => |we| {
             if (we.type == .resized) {
                 camera.frustrum = .{
@@ -112,8 +113,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
-
+    ctx.clear(sdl.Color.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
     if (imgui.begin("Control Panel", .{})) {

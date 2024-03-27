@@ -17,15 +17,13 @@ pub fn init(ctx: jok.Context) !void {
     );
 
     tex = try jok.utils.gfx.createTextureFromPixels(
-        ctx.renderer(),
+        ctx,
         svg.pixels,
         svg.format,
         .static,
         svg.width,
         svg.height,
     );
-
-    try ctx.renderer().setColorRGB(100, 100, 100);
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -38,15 +36,15 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
+    ctx.clear(sdl.Color.rgb(100, 100, 100));
 
     j2d.begin(.{});
     defer j2d.end();
     try j2d.image(
         tex,
         .{
-            .x = ctx.getFramebufferSize().x / 2,
-            .y = ctx.getFramebufferSize().y / 2,
+            .x = ctx.getCanvasSize().x / 2,
+            .y = ctx.getCanvasSize().y / 2,
         },
         .{
             .rotate_degree = ctx.seconds() * 60,

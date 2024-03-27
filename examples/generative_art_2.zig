@@ -26,10 +26,10 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
+    ctx.clear(null);
 
     const statechange = math.sin(ctx.seconds()) * 0.2;
-    const scale = ctx.getFramebufferSize().y / 4;
+    const scale = ctx.getCanvasSize().y / 4;
 
     path.reset();
     var i: usize = 0;
@@ -49,8 +49,8 @@ pub fn draw(ctx: jok.Context) !void {
     var transform = j2d.AffineTransform.init();
     transform.scale(.{ .x = scale, .y = scale });
     transform.translate(.{
-        .x = ctx.getFramebufferSize().x / 2,
-        .y = ctx.getFramebufferSize().y / 2,
+        .x = ctx.getCanvasSize().x / 2,
+        .y = ctx.getCanvasSize().y / 2,
     });
 
     j2d.begin(.{ .transform = transform });

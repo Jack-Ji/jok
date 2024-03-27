@@ -229,7 +229,7 @@ pub const Node = struct {
 
     fn render(
         node: *Node,
-        fbsize: sdl.Size,
+        csz: sdl.PointF,
         target: *internal.RenderTarget,
         model: zmath.Mat,
         camera: Camera,
@@ -238,7 +238,7 @@ pub const Node = struct {
     ) !void {
         for (node.meshes) |sm| {
             try tri_rd.renderMesh(
-                fbsize,
+                csz,
                 target,
                 zmath.mul(node.matrix, model),
                 camera,
@@ -269,7 +269,7 @@ pub const Node = struct {
         }
         for (node.children.items) |c| {
             try c.render(
-                fbsize,
+                csz,
                 target,
                 model,
                 camera,
@@ -463,15 +463,14 @@ pub const GltfOption = struct {
     uvs: ?[2]sdl.PointF = null,
 };
 pub fn fromGltf(
-    allocator: std.mem.Allocator,
-    rd: sdl.Renderer,
+    ctx: jok.Context,
     file_path: [:0]const u8,
     opt: GltfOption,
 ) !*Self {
     const data = try zmesh.io.parseAndLoadFile(file_path);
     defer zmesh.io.freeData(data);
 
-    var self = try create(allocator, 0);
+    var self = try create(ctx.allocator(), 0);
     errdefer self.destroy();
 
     if (opt.tex) |t| { // Use external texture
@@ -485,7 +484,7 @@ pub fn fromGltf(
     const dir = std.fs.path.dirname(file_path);
     var node_index: usize = 0;
     while (node_index < data.scene.?.nodes_count) : (node_index += 1) {
-        try self.loadNodeTree(rd, dir, data.scene.?.nodes.?[node_index], self.root, opt);
+        try self.loadNodeTree(ctx, dir, data.scene.?.nodes.?[node_index], self.root, opt);
     }
 
     // Load animations
@@ -524,7 +523,7 @@ pub fn destroy(self: *Self) void {
 
 pub fn render(
     self: *const Self,
-    fbsize: sdl.Size,
+    csz: sdl.PointF,
     target: *internal.RenderTarget,
     model: zmath.Mat,
     camera: Camera,
@@ -532,7 +531,7 @@ pub fn render(
     opt: RenderOption,
 ) !void {
     try self.root.render(
-        fbsize,
+        csz,
         target,
         model,
         camera,
@@ -565,7 +564,7 @@ fn createRootNode(self: *Self, mesh_count: usize) !*Node {
 
 fn loadNodeTree(
     self: *Self,
-    rd: sdl.Renderer,
+    ctx: jok.Context,
     dir: ?[]const u8,
     gltf_node: *const GltfNode,
     parent: *Node,
@@ -607,13 +606,13 @@ fn loadNodeTree(
                                 );
                                 defer self.allocator.free(path);
                                 break :BLK try jok.utils.gfx.createTextureFromFile(
-                                    rd,
+                                    ctx,
                                     path,
                                     .static,
                                     false,
                                 );
                             } else try jok.utils.gfx.createTextureFromFile(
-                                rd,
+                                ctx,
                                 uri_path,
                                 .static,
                                 false,
@@ -623,7 +622,7 @@ fn loadNodeTree(
                             file_data.ptr = @as([*]u8, @ptrCast(v.buffer.data.?)) + v.offset;
                             file_data.len = v.size;
                             tex = try jok.utils.gfx.createTextureFromFileData(
-                                rd,
+                                ctx,
                                 file_data,
                                 .static,
                                 false,
@@ -794,7 +793,7 @@ fn loadNodeTree(
 
     // Load children
     for (0..gltf_node.children_count) |node_index| {
-        try self.loadNodeTree(rd, dir, gltf_node.children.?[node_index], node, opt);
+        try self.loadNodeTree(ctx, dir, gltf_node.children.?[node_index], node, opt);
     }
 }
 

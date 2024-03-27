@@ -79,7 +79,7 @@ pub fn destroy(self: *Self) void {
 
 pub fn render(
     self: *Self,
-    fbsize: sdl.Size,
+    csz: sdl.PointF,
     target: *internal.RenderTarget,
     model: zmath.Mat,
     camera: Camera,
@@ -213,7 +213,7 @@ pub fn render(
 
     try self.renderNode(
         self.anim.mesh.root,
-        fbsize,
+        csz,
         target,
         model,
         camera,
@@ -233,7 +233,7 @@ pub fn getDuration(self: *const Self) f32 {
 fn renderNode(
     self: *Self,
     node: *Mesh.Node,
-    fbsize: sdl.Size,
+    csz: sdl.PointF,
     target: *internal.RenderTarget,
     model: zmath.Mat,
     camera: Camera,
@@ -252,7 +252,7 @@ fn renderNode(
 
     for (node.meshes) |sm| {
         try tri_rd.renderMesh(
-            fbsize,
+            csz,
             target,
             matrix,
             camera,
@@ -293,7 +293,7 @@ fn renderNode(
     for (node.children.items) |c| {
         try self.renderNode(
             c,
-            fbsize,
+            csz,
             target,
             model,
             camera,

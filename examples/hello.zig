@@ -24,7 +24,7 @@ var show_stats: bool = true;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    const fb_size = ctx.getFramebufferSize();
+    const csz = ctx.getCanvasSize();
 
     camera = j3d.Camera.fromPositionAndTarget(
         .{
@@ -39,8 +39,8 @@ pub fn init(ctx: jok.Context) !void {
         .{ 0, 0, 0 },
     );
     text_draw_pos = .{
-        .x = fb_size.x / 2,
-        .y = fb_size.y / 2,
+        .x = csz.x / 2,
+        .y = csz.y / 2,
     };
     text_speed = .{
         .x = 100,
@@ -56,15 +56,11 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
             if (k.scancode == .f1) {
                 ctx.toggleFullscreeen(null);
             } else if (k.scancode == .f2) {
-                const fb_size = ctx.getFramebufferSize();
-                const pixels = try jok.utils.gfx.getScreenPixels(
-                    ctx.allocator(),
-                    ctx.renderer(),
-                    null,
-                );
+                const csz = ctx.getCanvasSize();
+                const pixels = try jok.utils.gfx.getScreenPixels(ctx, null);
                 defer pixels.destroy();
                 try pixels.saveToFile("screenshot.png", .{});
-                screenshot_tex = try pixels.createTexture(ctx.renderer());
+                screenshot_tex = try pixels.createTexture(ctx);
                 screenshot_time = std.time.timestamp();
                 try point_easing_system.add(
                     &screenshot_pos,
@@ -72,15 +68,15 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
                     easing.easePointF,
                     1,
                     .{ .x = 0, .y = 0 },
-                    .{ .x = fb_size.x * 0.75, .y = 0 },
+                    .{ .x = csz.x * 0.75, .y = 0 },
                 );
                 try point_easing_system.add(
                     &screenshot_size,
                     .out_bounce,
                     easing.easePointF,
                     1,
-                    fb_size,
-                    .{ .x = fb_size.x / 5, .y = fb_size.y / 5 },
+                    csz,
+                    .{ .x = csz.x / 5, .y = csz.y / 5 },
                 );
                 try color_easing_system.add(
                     &screenshot_tint_color,
@@ -104,13 +100,12 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
-
+    ctx.clear(null);
     if (show_stats) ctx.displayStats(.{});
 
-    const fb_size = ctx.getFramebufferSize();
-    const center_x = fb_size.x / 2;
-    const center_y = fb_size.y / 2;
+    const csz = ctx.getCanvasSize();
+    const center_x = csz.x / 2;
+    const center_y = csz.y / 2;
 
     {
         j2d.begin(.{});
@@ -170,13 +165,13 @@ pub fn draw(ctx: jok.Context) !void {
         if (area.x < 0) {
             text_speed.x = @abs(text_speed.x);
         }
-        if (area.x + area.width > fb_size.x) {
+        if (area.x + area.width > csz.x) {
             text_speed.x = -@abs(text_speed.x);
         }
         if (area.y < 0) {
             text_speed.y = @abs(text_speed.y);
         }
-        if (area.y + area.height > fb_size.y) {
+        if (area.y + area.height > csz.y) {
             text_speed.y = -@abs(text_speed.y);
         }
     }

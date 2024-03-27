@@ -53,7 +53,7 @@ pub fn init(ctx: jok.Context) !void {
     aabb = cube.computeAabb();
 
     tex = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
+        ctx,
         "assets/images/image5.jpg",
         .static,
         false,
@@ -76,8 +76,6 @@ pub fn init(ctx: jok.Context) !void {
             0,
         ));
     }
-
-    try ctx.renderer().setColorRGB(77, 77, 77);
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -116,8 +114,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
-
+    ctx.clear(sdl.Color.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
     {

@@ -809,7 +809,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
+    ctx.clear(null);
     ctx.displayStats(.{});
 
     if (number_w > 0) {

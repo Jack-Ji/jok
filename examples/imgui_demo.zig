@@ -14,7 +14,7 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     tex = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
+        ctx,
         "assets/images/image9.jpg",
         .static,
         false,
@@ -48,7 +48,7 @@ pub fn update(ctx: jok.Context) !void {
 
 pub fn draw(ctx: jok.Context) !void {
     // No need at all
-    //try ctx.renderer().clear();
+    //ctx.clear(null);
 
     const mouse_state = ctx.getMouseState();
     imgui.setNextWindowPos(.{

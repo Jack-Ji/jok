@@ -19,9 +19,9 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
+    ctx.clear(null);
 
-    const size = ctx.getFramebufferSize();
+    const size = ctx.getCanvasSize();
     const rect_color = sdl.Color.rgba(0, 128, 0, 120);
     var area: sdl.RectangleF = undefined;
     var atlas: *font.Atlas = undefined;

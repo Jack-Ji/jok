@@ -67,8 +67,6 @@ pub fn init(ctx: jok.Context) !void {
     try earth_orbit.addChild(earth);
     try earth_orbit.addChild(moon_orbit);
     try moon_orbit.addChild(moon);
-
-    try ctx.renderer().setColorRGB(80, 80, 80);
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -113,7 +111,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
+    ctx.clear(sdl.Color.rgb(80, 80, 80));
 
     var lighting_opt = j3d.lighting.LightingOption{};
     lighting_opt.lights[0] = j3d.lighting.Light{

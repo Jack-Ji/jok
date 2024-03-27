@@ -43,9 +43,8 @@ pub const TriangleSort = union(enum(u8)) {
     simple,
 };
 
-var allocator: std.mem.Allocator = undefined;
+var ctx: jok.Context = undefined;
 var arena: std.heap.ArenaAllocator = undefined;
-var rd: sdl.Renderer = undefined;
 var target: internal.RenderTarget = undefined;
 var tri_rd: TriangleRenderer = undefined;
 var skybox_rd: SkyboxRenderer = undefined;
@@ -53,13 +52,12 @@ var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 var camera: Camera = undefined;
 var submitted: bool = undefined;
 
-pub fn init(_allocator: std.mem.Allocator, _rd: sdl.Renderer) !void {
-    allocator = _allocator;
-    arena = std.heap.ArenaAllocator.init(allocator);
-    rd = _rd;
-    target = internal.RenderTarget.init(allocator);
-    tri_rd = TriangleRenderer.init(allocator);
-    skybox_rd = SkyboxRenderer.init(allocator, .{});
+pub fn init(_ctx: jok.Context) !void {
+    ctx = _ctx;
+    arena = std.heap.ArenaAllocator.init(ctx.allocator());
+    target = internal.RenderTarget.init(ctx.allocator());
+    tri_rd = TriangleRenderer.init(ctx.allocator());
+    skybox_rd = SkyboxRenderer.init(ctx.allocator(), .{});
     all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
     submitted = true;
 }
@@ -74,21 +72,17 @@ pub fn deinit() void {
 
 pub fn begin(opt: BeginOption) void {
     target.reset(
-        rd,
+        ctx.renderer(),
         opt.wireframe_color,
         opt.triangle_sort,
         false,
     );
     camera = opt.camera orelse BLK: {
-        const fsize = rd.getOutputSize() catch unreachable;
-        const ratio =
-            @as(f32, @floatFromInt(fsize.width_pixels)) /
-            @as(f32, @floatFromInt(fsize.height_pixels));
         break :BLK Camera.fromPositionAndTarget(
             .{
                 .perspective = .{
                     .fov = math.pi / 4.0,
-                    .aspect_ratio = ratio,
+                    .aspect_ratio = ctx.getAspectRatio(),
                     .near = 0.1,
                     .far = 100,
                 },
@@ -100,7 +94,7 @@ pub fn begin(opt: BeginOption) void {
 }
 
 pub fn end() void {
-    target.submit(rd);
+    target.submit(ctx.renderer());
 }
 
 pub fn clearMemory() void {
@@ -119,12 +113,8 @@ pub fn batch(b: RenderBatch) !void {
 
 /// Render skybox, textures order: right/left/top/bottom/front/back
 pub fn skybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {
-    const fbsize = rd.getOutputSize() catch unreachable;
     try skybox_rd.render(
-        .{
-            .width = fbsize.width_pixels,
-            .height = fbsize.height_pixels,
-        },
+        ctx.getCanvasSize(),
         &target,
         camera,
         textures,
@@ -139,13 +129,9 @@ pub fn scene(s: *const Scene, opt: Scene.RenderOption) !void {
 
 /// Render particle effects
 pub fn effects(ps: *ParticleSystem) !void {
-    const fbsize = rd.getOutputSize() catch unreachable;
     for (ps.effects.items) |eff| {
         try eff.render(
-            .{
-                .width = fbsize.width_pixels,
-                .height = fbsize.height_pixels,
-            },
+            ctx.getCanvasSize(),
             &target,
             camera,
             &tri_rd,
@@ -155,12 +141,8 @@ pub fn effects(ps: *ParticleSystem) !void {
 
 /// Render given sprite
 pub fn sprite(model: zmath.Mat, size: sdl.PointF, uv: [2]sdl.PointF, opt: TriangleRenderer.RenderSpriteOption) !void {
-    const fbsize = rd.getOutputSize() catch unreachable;
     try tri_rd.renderSprite(
-        .{
-            .width = fbsize.width_pixels,
-            .height = fbsize.height_pixels,
-        },
+        ctx.getCanvasSize(),
         &target,
         model,
         camera,
@@ -185,12 +167,8 @@ pub fn line(model: zmath.Mat, _p0: [3]f32, _p1: [3]f32, opt: LineOption) !void {
     const p1 = v0 - veps * perpv;
     const p2 = v1 - veps * perpv;
     const p3 = v1 + veps * perpv;
-    const fbsize = rd.getOutputSize() catch unreachable;
     try tri_rd.renderMesh(
-        .{
-            .width = fbsize.width_pixels,
-            .height = fbsize.height_pixels,
-        },
+        ctx.getCanvasSize(),
         &target,
         zmath.identity(),
         camera,
@@ -234,12 +212,8 @@ pub fn triangle(model: zmath.Mat, pos: [3][3]f32, colors: ?[3]sdl.Color, texcoor
             0,
         );
         const normal = zmath.vecToArr3(zmath.cross3(v0, v1));
-        const fbsize = rd.getOutputSize() catch unreachable;
         try tri_rd.renderMesh(
-            .{
-                .width = fbsize.width_pixels,
-                .height = fbsize.height_pixels,
-            },
+            ctx.getCanvasSize(),
             &target,
             model,
             camera,
@@ -276,13 +250,9 @@ pub fn triangles(
 ) !void {
     assert(@rem(indices, 3) == 0);
 
-    const fbsize = rd.getOutputSize() catch unreachable;
     if (opt.fill) {
         try tri_rd.renderMesh(
-            .{
-                .width = fbsize.width_pixels,
-                .height = fbsize.height_pixels,
-            },
+            ctx.getCanvasSize(),
             &target,
             model,
             camera,
@@ -315,12 +285,8 @@ pub fn triangles(
 
 /// Render a prebuilt shape
 pub fn shape(s: zmesh.Shape, model: zmath.Mat, aabb: ?[6]f32, opt: RenderOption) !void {
-    const fbsize = rd.getOutputSize() catch unreachable;
     try tri_rd.renderMesh(
-        .{
-            .width = fbsize.width_pixels,
-            .height = fbsize.height_pixels,
-        },
+        ctx.getCanvasSize(),
         &target,
         model,
         camera,
@@ -342,12 +308,8 @@ pub fn shape(s: zmesh.Shape, model: zmath.Mat, aabb: ?[6]f32, opt: RenderOption)
 
 /// Render a loaded mesh
 pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
-    const fbsize = rd.getOutputSize() catch unreachable;
     try m.render(
-        .{
-            .width = fbsize.width_pixels,
-            .height = fbsize.height_pixels,
-        },
+        ctx.getCanvasSize(),
         &target,
         model,
         camera,
@@ -364,12 +326,8 @@ pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
 
 /// Render given animation's current frame
 pub fn animation(anim: *Animation, model: zmath.Mat, opt: Animation.RenderOption) !void {
-    const fbsize = rd.getOutputSize() catch unreachable;
     try anim.render(
-        .{
-            .width = fbsize.width_pixels,
-            .height = fbsize.height_pixels,
-        },
+        ctx.getCanvasSize(),
         &target,
         model,
         camera,

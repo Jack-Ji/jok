@@ -13,7 +13,7 @@ pub fn init(ctx: jok.Context) !void {
         @intCast(std.time.timestamp()),
     );
 
-    const size = ctx.getFramebufferSize();
+    const size = ctx.getCanvasSize();
 
     world = try cp.World.init(ctx.allocator(), .{
         .gravity = .{ .x = 0, .y = 600 },
@@ -179,8 +179,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear();
-
+    ctx.clear(null);
     ctx.displayStats(.{});
     try world.debugDraw(ctx.renderer());
 }
