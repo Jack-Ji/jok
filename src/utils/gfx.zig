@@ -8,6 +8,7 @@ const stb = jok.stb;
 pub const Error = error{
     LoadImageError,
     EncodeTextureFailed,
+    TargetTooLarge,
 };
 
 /// Get # of channels from pixel format
@@ -287,6 +288,10 @@ pub fn createTextureAsTarget(ctx: jok.Context, opt: CreateTarget) !sdl.Texture {
             .height = @intFromFloat(csz.y),
         };
     };
+    const rdinfo = ctx.renderer().getInfo() catch unreachable;
+    if (size.width > rdinfo.max_texture_width or size.height > rdinfo.max_texture_height) {
+        return error.TargetTooLarge;
+    }
     const tex = try sdl.createTexture(
         ctx.renderer(),
         getFormatByEndian(),
