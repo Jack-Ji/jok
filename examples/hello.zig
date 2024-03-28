@@ -3,11 +3,14 @@ const jok = @import("jok");
 const sdl = jok.sdl;
 const font = jok.font;
 const zmath = jok.zmath;
+const imgui = jok.imgui;
 const j2d = jok.j2d;
 const j3d = jok.j3d;
 const easing = jok.utils.easing;
 
-//pub const jok_high_dpi_support = true;
+pub const jok_window_size = jok.config.WindowSize{
+    .custom = .{ .width = 1280, .height = 720 },
+};
 
 var camera: j3d.Camera = undefined;
 var text_draw_pos: sdl.PointF = undefined;
@@ -102,6 +105,14 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     ctx.clear(null);
     if (show_stats) ctx.displayStats(.{});
+
+    if (imgui.begin("canvas", .{})) {
+        imgui.image(ctx.canvas().ptr, .{
+            .w = ctx.getAspectRatio() * 100,
+            .h = 100,
+        });
+    }
+    imgui.end();
 
     const csz = ctx.getCanvasSize();
     const center_x = csz.x / 2;

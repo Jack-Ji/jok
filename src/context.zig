@@ -26,6 +26,7 @@ pub const Context = struct {
         fps: *const fn (ctx: *anyopaque) f32,
         window: *const fn (ctx: *anyopaque) sdl.Window,
         renderer: *const fn (ctx: *anyopaque) sdl.Renderer,
+        canvas: *const fn (ctx: *anyopaque) sdl.Texture,
         audioEngine: *const fn (ctx: *anyopaque) *zaudio.Engine,
         kill: *const fn (ctx: *anyopaque) void,
         toggleResizable: *const fn (ctx: *anyopaque, on_off: ?bool) void,
@@ -81,6 +82,11 @@ pub const Context = struct {
     /// Get SDL renderer
     pub fn renderer(self: Context) sdl.Renderer {
         return self.vtable.renderer(self.ctx);
+    }
+
+    /// Get canvas texture
+    pub fn canvas(self: Context) sdl.Texture {
+        return self.vtable.canvas(self.ctx);
     }
 
     /// Get audio engine
@@ -754,6 +760,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .fps = fps,
                     .window = window,
                     .renderer = renderer,
+                    .canvas = canvas,
                     .audioEngine = audioEngine,
                     .kill = kill,
                     .toggleResizable = toggleResizable,
@@ -857,6 +864,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn renderer(ptr: *anyopaque) sdl.Renderer {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._renderer;
+        }
+
+        /// Get canvas texture
+        fn canvas(ptr: *anyopaque) sdl.Texture {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            return self._canvas_texture;
         }
 
         /// Get audio engine
