@@ -277,6 +277,7 @@ pub fn saveScreenToFile(
 pub const CreateTarget = struct {
     size: ?sdl.Size = null,
     blend_mode: sdl.BlendMode = .none,
+    scale_mode: sdl.ScaleMode = .linear,
 };
 pub fn createTextureAsTarget(ctx: jok.Context, opt: CreateTarget) !sdl.Texture {
     const size = opt.size orelse BLK: {
@@ -294,6 +295,7 @@ pub fn createTextureAsTarget(ctx: jok.Context, opt: CreateTarget) !sdl.Texture {
         @intCast(size.height),
     );
     try tex.setBlendMode(opt.blend_mode);
+    try tex.setScaleMode(opt.scale_mode);
     return tex;
 }
 
