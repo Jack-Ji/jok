@@ -71,12 +71,7 @@ pub fn deinit() void {
 }
 
 pub fn begin(opt: BeginOption) void {
-    target.reset(
-        ctx.renderer(),
-        opt.wireframe_color,
-        opt.triangle_sort,
-        false,
-    );
+    target.reset(ctx, opt.wireframe_color, opt.triangle_sort, false);
     camera = opt.camera orelse BLK: {
         break :BLK Camera.fromPositionAndTarget(
             .{

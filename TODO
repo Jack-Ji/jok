@@ -1,6 +1,6 @@
     ~: in-progress  x: done  #: aborted
 --------------------------------------------------------------------------------
-[ ] cleanup: review all usage of framebuffer size
+[x] cleanup: review all usage of framebuffer size
 [ ] graphics: improve canvas scale quality, consider linear hint
 [x] graphics(3d): triangle flat shading support
 [x] graphics(2d/3d): unify 2d/3d rendering process

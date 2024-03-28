@@ -487,21 +487,18 @@ pub const RenderTarget = struct {
 
     pub fn reset(
         self: *RenderTarget,
-        rd: sdl.Renderer,
+        ctx: jok.Context,
         wireframe_color: ?sdl.Color,
         triangle_sort: j3d.TriangleSort,
         recycle_memory: bool,
     ) void {
-        const output_size = rd.getOutputSize() catch unreachable;
+        const csz = ctx.getCanvasSize();
         self.wireframe_color = wireframe_color;
         self.triangle_sort = triangle_sort;
         self.dl.reset();
         self.dl.pushClipRect(.{
             .pmin = .{ 0, 0 },
-            .pmax = .{
-                @as(f32, @floatFromInt(output_size.width_pixels)),
-                @as(f32, @floatFromInt(output_size.height_pixels)),
-            },
+            .pmax = .{ csz.x, csz.y },
         });
         self.dl.setDrawListFlags(.{
             .anti_aliased_lines = true,
