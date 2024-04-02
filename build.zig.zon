@@ -10,8 +10,8 @@
     },
     .dependencies = .{
         .sdl = .{
-            .url = "4267dca24abe1ac62693e8da8f141b50d69dcc0f.tar.gz",
-            .hash = "122012e8bd0d010de51bd222e591fa90b6444bc19649bac1dd9142deb7bc61f188b1",
+            .url = "6dd2bd3c5ce7e3cd34d6f49a7bcc05179cc20fc5.tar.gz",
+            .hash = "122073260f7e63b4329ca8f7ffbe56735b7e5d53dd8029b7c29af7fa8a9ffea82d19",
         },
     },
 }
