@@ -987,9 +987,9 @@ pub const Path = struct {
     finished: bool = false,
 
     /// Begin definition of path
-    pub fn begin(allocator: std.mem.Allocator) Path {
+    pub fn begin() Path {
         return .{
-            .path = internal.PathCmd.init(allocator),
+            .path = internal.PathCmd.init(ctx.allocator()),
         };
     }
 

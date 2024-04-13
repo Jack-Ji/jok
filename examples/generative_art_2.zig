@@ -10,10 +10,10 @@ pub const jok_window_size = jok.config.WindowSize{
 
 var path: j2d.Path = undefined;
 
-pub fn init(ctx: jok.Context) !void {
+pub fn init(_: jok.Context) !void {
     std.log.info("game init", .{});
 
-    path = j2d.Path.begin(ctx.allocator());
+    path = j2d.Path.begin();
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
