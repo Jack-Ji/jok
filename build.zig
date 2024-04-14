@@ -43,6 +43,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "gltf", .opt = .{} },
         .{ .name = "svg", .opt = .{} },
         .{ .name = "cp_demo", .opt = .{ .use_cp = true } },
+        .{ .name = "maskout", .opt = .{} },
         .{ .name = "generative_art_1", .opt = .{} },
         .{ .name = "generative_art_2", .opt = .{} },
         .{ .name = "generative_art_3", .opt = .{} },

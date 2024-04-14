@@ -33,6 +33,7 @@ pub const BeginOption = struct {
     camera: ?Camera = null,
     wireframe_color: ?sdl.Color = null,
     triangle_sort: TriangleSort = .none,
+    blend_mode: sdl.BlendMode = .blend,
 };
 
 pub const TriangleSort = union(enum(u8)) {
@@ -86,6 +87,7 @@ pub fn begin(opt: BeginOption) void {
             .{ 0, 0, 0 },
         );
     };
+    ctx.renderer().setDrawBlendMode(opt.blend_mode) catch unreachable;
 }
 
 pub fn end() void {

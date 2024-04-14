@@ -29,9 +29,29 @@ pub const DepthSortMethod = enum {
 };
 
 pub const BlendMethod = enum {
+    // alpha blending
+    // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
+    // dstA = srcA + (dstA * (1-srcA))
     blend,
+
+    // additive blending
+    // dstRGB = (srcRGB * srcA) + dstRGB
+    // dstA = dstA
     additive,
+
+    // no blending
+    // dstRGBA = srcRGBA
     overwrite,
+
+    // color modulate
+    // dstRGB = srcRGB * dstRGB
+    // dstA = dstA
+    modulate,
+
+    // color multiply
+    // dstRGB = (srcRGB * dstRGB) + (dstRGB * (1-srcA))
+    // dstA = dstA
+    multiply,
 };
 
 pub const BeginOption = struct {
@@ -72,12 +92,6 @@ pub fn begin(opt: BeginOption) void {
         .pmin = .{ 0, 0 },
         .pmax = .{ csz.x, csz.y },
     });
-    draw_list.pushTextureId(imgui.io.getFontsTexId());
-    draw_commands.clearRetainingCapacity();
-    all_tex.clearRetainingCapacity();
-    transform = opt.transform;
-    depth_sort = opt.depth_sort;
-    blend_method = opt.blend_method;
     if (opt.antialiased) {
         draw_list.setDrawListFlags(.{
             .anti_aliased_lines = true,
@@ -86,6 +100,11 @@ pub fn begin(opt: BeginOption) void {
             .allow_vtx_offset = true,
         });
     }
+    draw_commands.clearRetainingCapacity();
+    all_tex.clearRetainingCapacity();
+    transform = opt.transform;
+    depth_sort = opt.depth_sort;
+    blend_method = opt.blend_method;
 }
 
 pub fn end() void {
@@ -130,11 +149,14 @@ pub fn end() void {
         .blend => sdl.c.SDL_BLENDMODE_BLEND,
         .additive => sdl.c.SDL_BLENDMODE_ADD,
         .overwrite => sdl.c.SDL_BLENDMODE_NONE,
+        .modulate => sdl.c.SDL_BLENDMODE_MOD,
+        .multiply => sdl.c.SDL_BLENDMODE_MUL,
     };
     var it = all_tex.keyIterator();
     while (it.next()) |k| {
         _ = sdl.c.SDL_SetTextureBlendMode(k.*, @intCast(mode));
     }
+    _ = sdl.c.SDL_SetRenderDrawBlendMode(ctx.renderer().ptr, @intCast(mode));
     imgui.sdl.renderDrawList(ctx.renderer(), draw_list);
 }
 
