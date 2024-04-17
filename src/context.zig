@@ -34,8 +34,9 @@ pub const Context = struct {
         toggleAlwaysOnTop: *const fn (ctx: *anyopaque, on_off: ?bool) void,
         getWindowPosition: *const fn (ctx: *anyopaque) sdl.PointF,
         getWindowSize: *const fn (ctx: *anyopaque) sdl.PointF,
-        setWindowSize: *const fn (ctx: *anyopaque, size: sdl.PointF) void,
+        setWindowSize: *const fn (ctx: *anyopaque, size: sdl.Size) void,
         getCanvasSize: *const fn (ctx: *anyopaque) sdl.PointF,
+        setCanvasSize: *const fn (ctx: *anyopaque, size: ?sdl.Size) anyerror!void,
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
         getDpiScale: *const fn (ctx: *anyopaque) f32,
         isKeyPressed: *const fn (ctx: *anyopaque, key: sdl.Scancode) bool,
@@ -125,7 +126,7 @@ pub const Context = struct {
     }
 
     /// Set size of window
-    pub fn setWindowSize(self: Context, size: sdl.PointF) void {
+    pub fn setWindowSize(self: Context, size: sdl.Size) void {
         return self.vtable.setWindowSize(self.ctx, size);
     }
 
@@ -137,6 +138,11 @@ pub const Context = struct {
     /// Get aspect ratio of drawing area
     pub fn getAspectRatio(self: Context) f32 {
         return self.vtable.getAspectRatio(self.ctx);
+    }
+
+    /// Set size of canvas (null means same as current framebuffer)
+    pub fn setCanvasSize(self: Context, size: ?sdl.Size) !void {
+        return self.vtable.setCanvasSize(self.ctx, size);
     }
 
     /// Get dpi scale
@@ -216,7 +222,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         // Rendering target
         _canvas_texture: sdl.Texture = undefined,
-        _canvas_area: ?sdl.Rectangle = null,
+        _canvas_size: ?sdl.Size = cfg.jok_canvas_size,
+        _canvas_target_area: ?sdl.Rectangle = null,
         _canvas_scale: f32 = 1.0,
 
         // Audio stuff
@@ -428,7 +435,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._renderer.setTarget(self._canvas_texture) catch unreachable;
                 defer {
                     self._renderer.setTarget(null) catch unreachable;
-                    self._renderer.copy(self._canvas_texture, self._canvas_area, null) catch unreachable;
+                    self._renderer.copy(self._canvas_texture, self._canvas_target_area, null) catch unreachable;
                 }
 
                 drawFn(self._ctx) catch |e| {
@@ -485,12 +492,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     kill(self);
                 } else {
                     if (we == .window and (we.window.type == .resized or we.window.type == .size_changed)) {
-                        if (cfg.jok_canvas_size == null) {
+                        if (self._canvas_size == null) {
                             self._canvas_texture.destroy();
                             self._canvas_texture = jok.utils.gfx.createTextureAsTarget(self.context(), .{}) catch unreachable;
                         }
-                        self.updateCanvasArea();
-                    } else if (cfg.jok_canvas_size != null) {
+                        self.updateCanvasTargetArea();
+                    } else if (self._canvas_size != null) {
                         // Remapping mouse position to canvas
                         switch (we) {
                             .mouse_button_down => |*me| {
@@ -735,9 +742,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Create drawing target
             self._canvas_texture = try jok.utils.gfx.createTextureAsTarget(
                 self.context(),
-                .{ .size = cfg.jok_canvas_size },
+                .{ .size = self._canvas_size },
             );
-            self.updateCanvasArea();
+            self.updateCanvasTargetArea();
         }
 
         /// Deinitialize SDL
@@ -770,6 +777,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .getWindowSize = getWindowSize,
                     .setWindowSize = setWindowSize,
                     .getCanvasSize = getCanvasSize,
+                    .setCanvasSize = setCanvasSize,
                     .getAspectRatio = getAspectRatio,
                     .getDpiScale = getDpiScale,
                     .isKeyPressed = isKeyPressed,
@@ -781,14 +789,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Calculate canvas area according to current sizes of canvas and framebuffer
-        inline fn updateCanvasArea(self: *@This()) void {
-            if (cfg.jok_canvas_size) |sz| {
+        inline fn updateCanvasTargetArea(self: *@This()) void {
+            if (self._canvas_size) |sz| {
                 const fbsize = self._renderer.getOutputSize() catch unreachable;
                 const vpw: f32 = @floatFromInt(fbsize.width_pixels);
                 const vph: f32 = @floatFromInt(fbsize.height_pixels);
                 const rw: f32 = @floatFromInt(sz.width);
                 const rh: f32 = @floatFromInt(sz.height);
-                self._canvas_area = if (rw * vph < rh * vpw) sdl.Rectangle{
+                self._canvas_target_area = if (rw * vph < rh * vpw) sdl.Rectangle{
                     .x = @intFromFloat(@trunc((vpw - rw * vph / rh) / 2.0)),
                     .y = 0,
                     .width = @intFromFloat(@trunc(rw * vph / rh)),
@@ -800,14 +808,17 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .height = @intFromFloat(@trunc(rh * vpw / rw)),
                 };
                 self._canvas_scale = @as(f32, @floatFromInt(sz.width)) /
-                    @as(f32, @floatFromInt(self._canvas_area.?.width));
+                    @as(f32, @floatFromInt(self._canvas_target_area.?.width));
+            } else {
+                self._canvas_target_area = null;
+                self._canvas_scale = 1.0;
             }
         }
 
         /// Map position from framebuffer to canvas
         inline fn mapPositionFromFramebufferToCanvas(self: *@This(), pos: sdl.Point) sdl.Point {
-            if (cfg.jok_canvas_size != null) {
-                const area = self._canvas_area.?;
+            if (self._canvas_size != null) {
+                const area = self._canvas_target_area.?;
                 return .{
                     .x = @intFromFloat(@as(f32, @floatFromInt(pos.x - area.x)) * self._canvas_scale),
                     .y = @intFromFloat(@as(f32, @floatFromInt(pos.y - area.y)) * self._canvas_scale),
@@ -945,17 +956,17 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Set size of window
-        fn setWindowSize(ptr: *anyopaque, size: sdl.PointF) void {
+        fn setWindowSize(ptr: *anyopaque, size: sdl.Size) void {
             const self: *@This() = @ptrCast(@alignCast(ptr));
-            const w: c_int = @intFromFloat(size.x * getDpiScale(ptr));
-            const h: c_int = @intFromFloat(size.y * getDpiScale(ptr));
+            const w: c_int = @intFromFloat(@as(f32, @floatFromInt(size.width)) * getDpiScale(ptr));
+            const h: c_int = @intFromFloat(@as(f32, @floatFromInt(size.height)) * getDpiScale(ptr));
             sdl.c.SDL_SetWindowSize(self._window.ptr, w, h);
         }
 
         /// Get size of canvas
         fn getCanvasSize(ptr: *anyopaque) sdl.PointF {
             const self: *@This() = @ptrCast(@alignCast(ptr));
-            if (cfg.jok_canvas_size) |sz| return .{
+            if (self._canvas_size) |sz| return .{
                 .x = @floatFromInt(sz.width),
                 .y = @floatFromInt(sz.height),
             };
@@ -964,6 +975,19 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .x = @floatFromInt(fbsize.width_pixels),
                 .y = @floatFromInt(fbsize.height_pixels),
             };
+        }
+
+        /// Set size of canvas (null means same as current framebuffer)
+        fn setCanvasSize(ptr: *anyopaque, size: ?sdl.Size) !void {
+            assert(size == null or (size.?.width > 0 and size.?.width > 0));
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            self._canvas_texture.destroy();
+            self._canvas_size = size;
+            self._canvas_texture = try jok.utils.gfx.createTextureAsTarget(
+                self.context(),
+                .{ .size = self._canvas_size },
+            );
+            self.updateCanvasTargetArea();
         }
 
         /// Get aspect ratio of drawing area
@@ -996,7 +1020,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn getMouseState(ptr: *anyopaque) sdl.MouseState {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             var state = sdl.getMouseState();
-            if (cfg.jok_canvas_size != null) {
+            if (self._canvas_size != null) {
                 const pos = self.mapPositionFromFramebufferToCanvas(.{
                     .x = state.x,
                     .y = state.y,
