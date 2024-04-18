@@ -8,6 +8,7 @@ const imgui = jok.imgui;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 
+const ctypes = @import("common_types.zig");
 const internal = @import("j2d/internal.zig");
 const Atlas = @import("font/Atlas.zig");
 pub const AffineTransform = @import("j2d/AffineTransform.zig");
@@ -28,36 +29,10 @@ pub const DepthSortMethod = enum {
     forth_to_back,
 };
 
-pub const BlendMethod = enum {
-    // alpha blending
-    // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
-    // dstA = srcA + (dstA * (1-srcA))
-    blend,
-
-    // additive blending
-    // dstRGB = (srcRGB * srcA) + dstRGB
-    // dstA = dstA
-    additive,
-
-    // no blending
-    // dstRGBA = srcRGBA
-    overwrite,
-
-    // color modulate
-    // dstRGB = srcRGB * dstRGB
-    // dstA = dstA
-    modulate,
-
-    // color multiply
-    // dstRGB = (srcRGB * dstRGB) + (dstRGB * (1-srcA))
-    // dstA = dstA
-    multiply,
-};
-
 pub const BeginOption = struct {
     transform: AffineTransform = AffineTransform.init(),
     depth_sort: DepthSortMethod = .none,
-    blend_method: BlendMethod = .blend,
+    blend_method: ctypes.BlendMethod = .blend,
     antialiased: bool = true,
 };
 
@@ -67,7 +42,7 @@ var draw_list: imgui.DrawList = undefined;
 var draw_commands: std.ArrayList(internal.DrawCmd) = undefined;
 var transform: AffineTransform = undefined;
 var depth_sort: DepthSortMethod = undefined;
-var blend_method: BlendMethod = undefined;
+var blend_method: ctypes.BlendMethod = undefined;
 var all_tex: std.AutoHashMap(*sdl.c.SDL_Texture, bool) = undefined;
 
 pub fn init(_ctx: jok.Context) !void {
@@ -145,18 +120,11 @@ pub fn end() void {
         }
         dcmd.render(draw_list);
     }
-    const mode = switch (blend_method) {
-        .blend => sdl.c.SDL_BLENDMODE_BLEND,
-        .additive => sdl.c.SDL_BLENDMODE_ADD,
-        .overwrite => sdl.c.SDL_BLENDMODE_NONE,
-        .modulate => sdl.c.SDL_BLENDMODE_MOD,
-        .multiply => sdl.c.SDL_BLENDMODE_MUL,
-    };
     var it = all_tex.keyIterator();
     while (it.next()) |k| {
-        _ = sdl.c.SDL_SetTextureBlendMode(k.*, @intCast(mode));
+        _ = sdl.c.SDL_SetTextureBlendMode(k.*, blend_method.toMode());
     }
-    _ = sdl.c.SDL_SetRenderDrawBlendMode(ctx.renderer().ptr, @intCast(mode));
+    _ = sdl.c.SDL_SetRenderDrawBlendMode(ctx.renderer().ptr, blend_method.toMode());
     imgui.sdl.renderDrawList(ctx.renderer(), draw_list);
 }
 
