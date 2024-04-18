@@ -93,8 +93,7 @@ pub fn begin(opt: BeginOption) void {
 }
 
 pub fn end() void {
-    _ = sdl.c.SDL_SetRenderDrawBlendMode(ctx.renderer().ptr, blend_method.toMode());
-    target.submit(ctx.renderer());
+    target.submit(ctx.renderer(), blend_method.toMode());
 }
 
 pub fn clearMemory() void {

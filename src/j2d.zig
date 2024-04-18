@@ -120,11 +120,14 @@ pub fn end() void {
         }
         dcmd.render(draw_list);
     }
+
+    // Apply blend mode to textures and renderer
     var it = all_tex.keyIterator();
     while (it.next()) |k| {
         _ = sdl.c.SDL_SetTextureBlendMode(k.*, blend_method.toMode());
     }
     _ = sdl.c.SDL_SetRenderDrawBlendMode(ctx.renderer().ptr, blend_method.toMode());
+
     imgui.sdl.renderDrawList(ctx.renderer(), draw_list);
 }
 

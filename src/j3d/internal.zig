@@ -452,6 +452,7 @@ pub const RenderTarget = struct {
     vertices: std.ArrayList(sdl.Vertex),
     depths: std.ArrayList(f32),
     textures: std.ArrayList(?sdl.Texture),
+    all_tex: std.AutoHashMap(*sdl.c.SDL_Texture, bool),
     dl: imgui.DrawList,
 
     pub fn init(allocator: std.mem.Allocator) RenderTarget {
@@ -462,6 +463,7 @@ pub const RenderTarget = struct {
             .vertices = std.ArrayList(sdl.Vertex).init(allocator),
             .depths = std.ArrayList(f32).init(allocator),
             .textures = std.ArrayList(?sdl.Texture).init(allocator),
+            .all_tex = std.AutoHashMap(*sdl.c.SDL_Texture, bool).init(allocator),
             .dl = imgui.createDrawList(),
         };
         return target;
@@ -472,6 +474,7 @@ pub const RenderTarget = struct {
         self.vertices.deinit();
         self.depths.deinit();
         self.textures.deinit();
+        self.all_tex.deinit();
         imgui.destroyDrawList(self.dl);
         self.* = undefined;
     }
@@ -512,11 +515,13 @@ pub const RenderTarget = struct {
             self.depths.clearAndFree();
             self.textures.clearAndFree();
             self.dl.clearMemory();
+            self.all_tex.clearRetainingCapacity();
         } else {
             self.indices.clearRetainingCapacity();
             self.vertices.clearRetainingCapacity();
             self.depths.clearRetainingCapacity();
             self.textures.clearRetainingCapacity();
+            self.all_tex.clearAndFree();
         }
     }
 
@@ -553,7 +558,7 @@ pub const RenderTarget = struct {
         );
     }
 
-    pub fn submit(self: *RenderTarget, rd: sdl.Renderer) void {
+    pub fn submit(self: *RenderTarget, rd: sdl.Renderer, blend_mode: c_uint) void {
         const S = struct {
             inline fn addTriangles(dl: imgui.DrawList, indices: []u32, vertices: []sdl.Vertex, texture: ?sdl.Texture) void {
                 if (texture) |tex| dl.pushTextureId(tex.ptr);
@@ -579,6 +584,13 @@ pub const RenderTarget = struct {
         if (self.wireframe_color != null) {
             imgui.sdl.renderDrawList(rd, self.dl);
         } else {
+            // Apply blend mode to textures and renderer
+            var it = self.all_tex.keyIterator();
+            while (it.next()) |k| {
+                _ = sdl.c.SDL_SetTextureBlendMode(k.*, blend_mode);
+            }
+            _ = sdl.c.SDL_SetRenderDrawBlendMode(rd.ptr, blend_mode);
+
             switch (self.triangle_sort) {
                 .none => {
                     imgui.sdl.renderDrawList(rd, self.dl);
@@ -675,6 +687,7 @@ pub const RenderTarget = struct {
                     self.textures.appendNTimesAssumeCapacity(texture, vertices.len);
                 },
             }
+            if (texture) |tex| try self.all_tex.put(tex.ptr, true);
         }
     }
 
@@ -693,5 +706,8 @@ pub const RenderTarget = struct {
         self.vertices.appendSliceAssumeCapacity(batch.vertices.items);
         self.depths.appendSliceAssumeCapacity(batch.depths.items);
         self.textures.appendSliceAssumeCapacity(batch.textures.items);
+        for (batch.textures.items) |texture| {
+            if (texture) |tex| try self.all_tex.put(tex.ptr, true);
+        }
     }
 };
