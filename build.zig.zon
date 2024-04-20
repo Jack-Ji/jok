@@ -10,7 +10,7 @@
     },
     .dependencies = .{
         .sdl = .{
-            .url = "6dd2bd3c5ce7e3cd34d6f49a7bcc05179cc20fc5.tar.gz",
+            .url = "https://github.com/jack-ji/sdl.zig/archive/55caabfff7c03e42a4c6563e0f6d16cc8fa26dd6.tar.gz",
             .hash = "122073260f7e63b4329ca8f7ffbe56735b7e5d53dd8029b7c29af7fa8a9ffea82d19",
         },
     },
