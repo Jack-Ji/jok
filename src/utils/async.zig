@@ -190,8 +190,8 @@ test "Channel" {
     const MyData = struct {
         d: i32,
 
-        pub fn deinit(self: @This()) void {
-            std.debug.print("\ndeinit mydata, d is {d} ", .{self.d});
+        pub fn deinit(_: @This()) void {
+            //std.debug.print("\ndeinit mydata, d is {d} ", .{self.d});
         }
     };
 
@@ -222,7 +222,7 @@ test "Async Task" {
             v: u32,
 
             pub fn deinit(self: *@This()) void {
-                std.debug.print("\ndeinit R, v is {d}", .{self.v});
+                //std.debug.print("\ndeinit R, v is {d}", .{self.v});
                 self.allocator.destroy(self);
             }
         };

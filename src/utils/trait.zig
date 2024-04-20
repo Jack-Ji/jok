@@ -151,8 +151,8 @@ test "isSliceOf" {
 //  Fns yet. Should be isExternType?
 pub fn isExtern(comptime T: type) bool {
     return switch (@typeInfo(T)) {
-        .Struct => |s| s.layout == .Extern,
-        .Union => |u| u.layout == .Extern,
+        .Struct => |s| s.layout == .@"extern",
+        .Union => |u| u.layout == .@"extern",
         else => false,
     };
 }
@@ -168,8 +168,8 @@ test "isExtern" {
 
 pub fn isPacked(comptime T: type) bool {
     return switch (@typeInfo(T)) {
-        .Struct => |s| s.layout == .Packed,
-        .Union => |u| u.layout == .Packed,
+        .Struct => |s| s.layout == .@"packed",
+        .Union => |u| u.layout == .@"packed",
         else => false,
     };
 }
