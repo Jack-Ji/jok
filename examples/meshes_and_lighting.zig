@@ -69,7 +69,7 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
         },
         .window => |we| {
             if (we.type == .resized) {
-                camera.frustrum = .{
+                camera.frustrum = j3d.Camera.ViewFrustrum{
                     .perspective = .{
                         .fov = jok.utils.math.degreeToRadian(70),
                         .aspect_ratio = ctx.getAspectRatio(),

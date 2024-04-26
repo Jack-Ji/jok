@@ -99,10 +99,11 @@ pub fn draw(ctx: jok.Context) !void {
             .pos = c.pos,
         });
     }
-
-    jok.font.debugDraw(
-        ctx,
-        .{ .x = 0, .y = 0 },
+    try j2d.text(
+        .{
+            .atlas = try jok.font.DebugFont.getAtlas(ctx, 16),
+            .pos = .{ .x = 0, .y = 0 },
+        },
         "# of sprites: {d}",
         .{characters.items.len},
     );
