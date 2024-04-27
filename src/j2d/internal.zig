@@ -300,7 +300,7 @@ pub const DrawCmd = struct {
             }),
             .quad_fill => |c| {
                 const white_pixel_uv = imgui.getFontTexUvWhitePixel();
-                const cur_idx = @as(u16, @intCast(dl.getCurrentIndex()));
+                const cur_idx = dl.getCurrentIndex();
                 dl.primReserve(6, 4);
                 dl.primWriteVtx(.{ c.p1.x, c.p1.y }, white_pixel_uv, c.color1);
                 dl.primWriteVtx(.{ c.p2.x, c.p2.y }, white_pixel_uv, c.color2);
@@ -322,7 +322,7 @@ pub const DrawCmd = struct {
             }),
             .triangle_fill => |c| {
                 const white_pixel_uv = imgui.getFontTexUvWhitePixel();
-                const cur_idx = @as(u16, @intCast(dl.getCurrentIndex()));
+                const cur_idx = dl.getCurrentIndex();
                 dl.primReserve(3, 3);
                 dl.primWriteVtx(.{ c.p1.x, c.p1.y }, white_pixel_uv, c.color1);
                 dl.primWriteVtx(.{ c.p2.x, c.p2.y }, white_pixel_uv, c.color2);
@@ -374,7 +374,7 @@ pub const DrawCmd = struct {
                 defer if (c.texture != null) dl.popTextureId();
                 const idx_count = (c.points.items.len - 2) * 3;
                 const vtx_count = c.points.items.len;
-                const cur_idx = @as(u16, @intCast(dl.getCurrentIndex()));
+                const cur_idx = dl.getCurrentIndex();
                 const white_pixel_uv = imgui.getFontTexUvWhitePixel();
                 dl.primReserve(
                     @intCast(idx_count),
@@ -393,8 +393,8 @@ pub const DrawCmd = struct {
                 i = 2;
                 while (i < vtx_count) : (i += 1) {
                     dl.primWriteIdx(cur_idx);
-                    dl.primWriteIdx(cur_idx + @as(u16, @intCast(i)) - 1);
-                    dl.primWriteIdx(cur_idx + @as(u16, @intCast(i)));
+                    dl.primWriteIdx(cur_idx + @as(u32, @intCast(i)) - 1);
+                    dl.primWriteIdx(cur_idx + @as(u32, @intCast(i)));
                 }
             },
             .bezier_cubic => |c| dl.addBezierCubic(.{

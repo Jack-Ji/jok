@@ -32,16 +32,22 @@ pub inline fn getFormatByEndian() sdl.PixelFormatEnum {
 pub fn createTextureFromPixels(
     ctx: jok.Context,
     pixels: ?[]const u8,
-    format: sdl.PixelFormatEnum,
+    format: ?sdl.PixelFormatEnum,
     access: sdl.Texture.Access,
     width: u32,
     height: u32,
 ) !sdl.Texture {
-    var tex = try sdl.createTexture(ctx.renderer(), format, access, width, height);
+    var tex = try sdl.createTexture(
+        ctx.renderer(),
+        format orelse getFormatByEndian(),
+        access,
+        width,
+        height,
+    );
     try tex.setBlendMode(.blend); // Enable alpha blending by default
     errdefer tex.destroy();
 
-    const stride = getChannels(format) * width;
+    const stride = getChannels(format orelse getFormatByEndian()) * width;
     if (pixels) |px| {
         if (access == .streaming) {
             var data = try tex.lock(null);
@@ -141,11 +147,11 @@ pub fn savePixelsToFile(
     pixels: []const u8,
     width: u32,
     height: u32,
-    format: sdl.PixelFormatEnum,
+    format: ?sdl.PixelFormatEnum,
     path: [:0]const u8,
     opt: EncodingOption,
 ) !void {
-    const channels = getChannels(format);
+    const channels = getChannels(format orelse getFormatByEndian());
     assert(pixels.len == @as(usize, width * height * channels));
 
     // Encode file
