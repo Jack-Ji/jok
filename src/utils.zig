@@ -7,11 +7,14 @@ pub const math = @import("utils/math.zig");
 /// Algorithms (trigonomy etc)
 pub const algo = @import("utils/algo.zig");
 
+/// Path-finding utils
+pub const pathfind = @import("utils/pathfind.zig");
+
 /// Easing utils
 pub const easing = @import("utils/easing.zig");
 
 /// Async tools
-pub const async_tool = @import("utils/async.zig");
+pub const asynctool = @import("utils/async.zig");
 
 /// Generic ring data structure
 pub const ring = @import("utils/ring.zig");
@@ -23,7 +26,8 @@ pub const xml = @import("utils/xml.zig");
 pub const trait = @import("utils/trait.zig");
 
 test "utils" {
-    _ = async_tool;
+    _ = pathfind;
+    _ = asynctool;
     _ = xml;
     _ = ring;
     _ = trait;

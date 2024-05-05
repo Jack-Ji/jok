@@ -44,6 +44,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "svg", .opt = .{} },
         .{ .name = "cp_demo", .opt = .{ .use_cp = true } },
         .{ .name = "maskout", .opt = .{} },
+        .{ .name = "pathfind", .opt = .{} },
         .{ .name = "generative_art_1", .opt = .{} },
         .{ .name = "generative_art_2", .opt = .{} },
         .{ .name = "generative_art_3", .opt = .{} },

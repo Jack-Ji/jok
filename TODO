@@ -16,5 +16,5 @@
 [x] j3d.Camera: add visibility testing method
 [ ] algorithm: BSP trees
 [ ] algorithm: ear-cutting triangulation
-[ ] algorithm: A* pathfinding
+[x] algorithm: A* pathfinding
 [ ] make a game with it!
