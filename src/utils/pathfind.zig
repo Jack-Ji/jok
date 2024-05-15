@@ -47,11 +47,11 @@ pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, 
     var nodes = NodeMap.init(arena.allocator());
     var frontier = NodeQueue.init(arena.allocator(), &nodes);
 
-    try nodes.put(from, .{});
-    try frontier.add(from);
+    try nodes.put(to, .{});
+    try frontier.add(to);
     while (frontier.count() != 0) {
         const current = frontier.remove();
-        if (current == to) break;
+        if (current == from) break;
 
         var it = graph.iterateNeigh(current);
         while (it.next()) |next| {
@@ -61,7 +61,7 @@ pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, 
                 try nodes.put(next, .{
                     .from = current,
                     .gcost = new_gcost,
-                    .hcost = graph.hcost(to, next),
+                    .hcost = graph.hcost(from, next),
                 });
                 try frontier.add(next);
             }
@@ -70,7 +70,7 @@ pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, 
         return null;
     }
 
-    var pos = to;
+    var pos = from;
     var path = try std.ArrayList(usize).initCapacity(allocator, 10);
     try path.append(pos);
     if (from != to) {
@@ -78,9 +78,8 @@ pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, 
             const node = nodes.get(pos).?;
             pos = node.from;
             try path.append(pos);
-            if (pos == from) break;
+            if (pos == to) break;
         }
-        std.mem.reverse(usize, path.items);
     }
     return path;
 }
