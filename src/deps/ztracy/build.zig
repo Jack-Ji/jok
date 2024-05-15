@@ -15,7 +15,7 @@ pub const Package = struct {
         exe.root_module.addImport("ztracy", pkg.ztracy);
         exe.root_module.addImport("ztracy_options", pkg.ztracy_options);
         if (pkg.options.enable_ztracy) {
-            exe.addIncludePath(.{ .path = thisDir() ++ "/libs/tracy/tracy" });
+            exe.addIncludePath(.{ .cwd_relative = thisDir() ++ "/libs/tracy/tracy" });
             exe.linkLibrary(pkg.ztracy_c_cpp);
         }
     }
@@ -35,13 +35,13 @@ pub fn package(
     const ztracy_options = step.createModule();
 
     const ztracy = b.addModule("ztracy", .{
-        .root_source_file = .{ .path = thisDir() ++ "/src/ztracy.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/ztracy.zig" },
         .imports = &.{
             .{ .name = "ztracy_options", .module = ztracy_options },
         },
     });
 
-    ztracy.addIncludePath(.{ .path = thisDir() ++ "/libs/tracy/tracy" });
+    ztracy.addIncludePath(.{ .cwd_relative = thisDir() ++ "/libs/tracy/tracy" });
 
     const ztracy_c_cpp = if (args.options.enable_ztracy) ztracy_c_cpp: {
         const enable_fibers = if (args.options.enable_fibers) "-DTRACY_FIBERS" else "";
@@ -52,9 +52,9 @@ pub fn package(
             .optimize = optimize,
         });
 
-        ztracy_c_cpp.addIncludePath(.{ .path = thisDir() ++ "/libs/tracy/tracy" });
+        ztracy_c_cpp.addIncludePath(.{ .cwd_relative = thisDir() ++ "/libs/tracy/tracy" });
         ztracy_c_cpp.addCSourceFile(.{
-            .file = .{ .path = thisDir() ++ "/libs/tracy/TracyClient.cpp" },
+            .file = .{ .cwd_relative = thisDir() ++ "/libs/tracy/TracyClient.cpp" },
             .flags = &.{
                 "-DTRACY_ENABLE",
                 enable_fibers,
@@ -76,7 +76,7 @@ pub fn package(
             },
             .macos => {
                 ztracy_c_cpp.addFrameworkPath(
-                    .{ .path = "../system-sdk/macos12/System/Library/Frameworks" },
+                    .{ .cwd_relative = "../system-sdk/macos12/System/Library/Frameworks" },
                 );
             },
             else => {},
@@ -123,7 +123,7 @@ pub fn runTests(
 ) *std.Build.Step {
     const tests = b.addTest(.{
         .name = "ztracy-tests",
-        .root_source_file = .{ .path = thisDir() ++ "/src/ztracy.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/ztracy.zig" },
         .target = target,
         .optimize = optimize,
     });

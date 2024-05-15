@@ -17,7 +17,7 @@ pub fn package(
     _: struct {},
 ) Package {
     const zaudio = b.addModule("zaudio", .{
-        .root_source_file = .{ .path = thisDir() ++ "/src/zaudio.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/zaudio.zig" },
     });
 
     const zaudio_c_cpp = b.addStaticLibrary(.{
@@ -26,13 +26,13 @@ pub fn package(
         .optimize = optimize,
     });
 
-    zaudio_c_cpp.addIncludePath(.{ .path = thisDir() ++ "/libs/miniaudio" });
+    zaudio_c_cpp.addIncludePath(.{ .cwd_relative = thisDir() ++ "/libs/miniaudio" });
     zaudio_c_cpp.linkLibC();
 
     if (target.result.os.tag == .macos) {
-        zaudio_c_cpp.addFrameworkPath(.{ .path = "../system-sdk/macos12/System/Library/Frameworks" });
-        zaudio_c_cpp.addSystemIncludePath(.{ .path = "../system-sdk/macos12/usr/include" });
-        zaudio_c_cpp.addLibraryPath(.{ .path = "../system-sdk/macos12/usr/lib" });
+        zaudio_c_cpp.addFrameworkPath(.{ .cwd_relative = "../system-sdk/macos12/System/Library/Frameworks" });
+        zaudio_c_cpp.addSystemIncludePath(.{ .cwd_relative = "../system-sdk/macos12/usr/include" });
+        zaudio_c_cpp.addLibraryPath(.{ .cwd_relative = "../system-sdk/macos12/usr/lib" });
         zaudio_c_cpp.linkFramework("CoreAudio");
         zaudio_c_cpp.linkFramework("CoreFoundation");
         zaudio_c_cpp.linkFramework("AudioUnit");
@@ -44,11 +44,11 @@ pub fn package(
     }
 
     zaudio_c_cpp.addCSourceFile(.{
-        .file = .{ .path = thisDir() ++ "/src/zaudio.c" },
+        .file = .{ .cwd_relative = thisDir() ++ "/src/zaudio.c" },
         .flags = &.{"-std=c99"},
     });
     zaudio_c_cpp.addCSourceFile(.{
-        .file = .{ .path = thisDir() ++ "/libs/miniaudio/miniaudio.c" },
+        .file = .{ .cwd_relative = thisDir() ++ "/libs/miniaudio/miniaudio.c" },
         .flags = &.{
             "-DMA_NO_WEBAUDIO",
             "-DMA_NO_ENCODING",
@@ -85,7 +85,7 @@ pub fn runTests(
 ) *std.Build.Step {
     const tests = b.addTest(.{
         .name = "zaudio-tests",
-        .root_source_file = .{ .path = thisDir() ++ "/src/zaudio.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/zaudio.zig" },
         .target = target,
         .optimize = optimize,
     });

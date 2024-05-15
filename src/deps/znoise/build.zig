@@ -17,7 +17,7 @@ pub fn package(
     _: struct {},
 ) Package {
     const znoise = b.addModule("znoise", .{
-        .root_source_file = .{ .path = thisDir() ++ "/src/znoise.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/znoise.zig" },
     });
 
     const znoise_c_cpp = b.addStaticLibrary(.{
@@ -26,9 +26,9 @@ pub fn package(
         .optimize = optimize,
     });
     znoise_c_cpp.linkLibC();
-    znoise_c_cpp.addIncludePath(.{ .path = thisDir() ++ "/libs/FastNoiseLite" });
+    znoise_c_cpp.addIncludePath(.{ .cwd_relative = thisDir() ++ "/libs/FastNoiseLite" });
     znoise_c_cpp.addCSourceFile(.{
-        .file = .{ .path = thisDir() ++ "/libs/FastNoiseLite/FastNoiseLite.c" },
+        .file = .{ .cwd_relative = thisDir() ++ "/libs/FastNoiseLite/FastNoiseLite.c" },
         .flags = &.{ "-std=c99", "-fno-sanitize=undefined" },
     });
 
@@ -55,7 +55,7 @@ pub fn runTests(
 ) *std.Build.Step {
     const tests = b.addTest(.{
         .name = "znoise-tests",
-        .root_source_file = .{ .path = thisDir() ++ "/src/znoise.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/znoise.zig" },
         .target = target,
         .optimize = optimize,
     });

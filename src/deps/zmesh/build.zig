@@ -33,7 +33,7 @@ pub fn package(
     const zmesh_options = step.createModule();
 
     const zmesh = b.addModule("zmesh", .{
-        .root_source_file = .{ .path = thisDir() ++ "/src/main.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/main.zig" },
         .imports = &.{
             .{ .name = "zmesh_options", .module = zmesh_options },
         },
@@ -68,14 +68,14 @@ pub fn package(
     else
         "-DPAR_SHAPES_T=uint16_t";
 
-    zmesh_c_cpp.addIncludePath(.{ .path = thisDir() ++ "/libs/par_shapes" });
+    zmesh_c_cpp.addIncludePath(.{ .cwd_relative = thisDir() ++ "/libs/par_shapes" });
     zmesh_c_cpp.addCSourceFile(.{
-        .file = .{ .path = thisDir() ++ "/libs/par_shapes/par_shapes.c" },
+        .file = .{ .cwd_relative = thisDir() ++ "/libs/par_shapes/par_shapes.c" },
         .flags = &.{ "-std=c99", "-fno-sanitize=undefined", par_shapes_t },
     });
 
     zmesh_c_cpp.addCSourceFiles(.{
-        .root = .{ .path = thisDir() },
+        .root = .{ .cwd_relative = thisDir() },
         .files = &.{
             "libs/meshoptimizer/clusterizer.cpp",
             "libs/meshoptimizer/indexgenerator.cpp",
@@ -90,9 +90,9 @@ pub fn package(
         },
         .flags = &.{""},
     });
-    zmesh_c_cpp.addIncludePath(.{ .path = thisDir() ++ "/libs/cgltf" });
+    zmesh_c_cpp.addIncludePath(.{ .cwd_relative = thisDir() ++ "/libs/cgltf" });
     zmesh_c_cpp.addCSourceFile(.{
-        .file = .{ .path = thisDir() ++ "/libs/cgltf/cgltf.c" },
+        .file = .{ .cwd_relative = thisDir() ++ "/libs/cgltf/cgltf.c" },
         .flags = &.{"-std=c99"},
     });
 
@@ -126,7 +126,7 @@ pub fn runTests(
 ) *std.Build.Step {
     const tests = b.addTest(.{
         .name = "zmesh-tests",
-        .root_source_file = .{ .path = thisDir() ++ "/src/main.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/main.zig" },
         .target = target,
         .optimize = optimize,
     });

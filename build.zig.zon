@@ -10,8 +10,8 @@
     },
     .dependencies = .{
         .sdl = .{
-            .url = "https://github.com/jack-ji/sdl.zig/archive/55caabfff7c03e42a4c6563e0f6d16cc8fa26dd6.tar.gz",
-            .hash = "122073260f7e63b4329ca8f7ffbe56735b7e5d53dd8029b7c29af7fa8a9ffea82d19",
+            .url = "https://github.com/jack-ji/sdl.zig/archive/5e1f2a933c77f885a8097e406a47a2d9f9f9e5e7.tar.gz",
+            .hash = "1220df75c39261e2c8c144c3009f959c3113eb72c63c13078df4760c085626dacf22",
         },
     },
 }

@@ -10,9 +10,9 @@ pub fn link(exe: *std.Build.Step.Compile) void {
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
     flags.append("-fno-sanitize=undefined") catch unreachable;
 
-    exe.addIncludePath(.{ .path = thisDir() ++ "/c/include" });
+    exe.addIncludePath(.{ .cwd_relative = thisDir() ++ "/c/include" });
     exe.addCSourceFiles(.{
-        .root = .{ .path = thisDir() },
+        .root = .{ .cwd_relative = thisDir() },
         .files = &.{
             "c/src/chipmunk.c",
             "c/src/cpArbiter.c",

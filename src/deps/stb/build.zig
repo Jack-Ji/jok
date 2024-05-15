@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub fn link(exe: *std.Build.Step.Compile) void {
     exe.addCSourceFile(.{
-        .file = .{ .path = thisDir() ++ "/c/stb_wrapper.c" },
+        .file = .{ .cwd_relative = thisDir() ++ "/c/stb_wrapper.c" },
         .flags = &.{
             "-Wno-return-type-c-linkage",
             "-fno-sanitize=undefined",

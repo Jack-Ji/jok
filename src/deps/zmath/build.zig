@@ -34,7 +34,7 @@ pub fn package(
     const zmath_options = step.createModule();
 
     const zmath = b.addModule("zmath", .{
-        .root_source_file = .{ .path = thisDir() ++ "/src/main.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/main.zig" },
         .imports = &.{
             .{ .name = "zmath_options", .module = zmath_options },
         },
@@ -70,7 +70,7 @@ pub fn runTests(
 ) *std.Build.Step {
     const tests = b.addTest(.{
         .name = "zmath-tests",
-        .root_source_file = .{ .path = thisDir() ++ "/src/main.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/main.zig" },
         .target = target,
         .optimize = optimize,
     });
@@ -88,7 +88,7 @@ pub fn runBenchmarks(
 ) *std.Build.Step {
     const exe = b.addExecutable(.{
         .name = "zmath-benchmarks",
-        .root_source_file = .{ .path = thisDir() ++ "/src/benchmark.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/benchmark.zig" },
         .target = target,
         .optimize = optimize,
     });

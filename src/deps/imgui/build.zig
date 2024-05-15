@@ -27,20 +27,20 @@ pub fn link(b: *std.Build, exe: *std.Build.Step.Compile) void {
     pkg.link(exe);
 
     if (exe.rootModuleTarget().os.tag == .windows) {
-        exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/windows" });
+        exe.addIncludePath(.{ .cwd_relative = thisDir() ++ "/c/SDL2/windows" });
     } else if (exe.rootModuleTarget().os.tag == .linux) {
-        exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/linux" });
+        exe.addIncludePath(.{ .cwd_relative = thisDir() ++ "/c/SDL2/linux" });
     } else if (exe.rootModuleTarget().isDarwin()) {
-        exe.addIncludePath(.{ .path = thisDir() ++ "/c/SDL2/macos" });
+        exe.addIncludePath(.{ .cwd_relative = thisDir() ++ "/c/SDL2/macos" });
     } else unreachable;
-    exe.addIncludePath(.{ .path = thisDir() ++ "/zgui/libs" });
-    exe.addIncludePath(.{ .path = thisDir() ++ "/c" });
+    exe.addIncludePath(.{ .cwd_relative = thisDir() ++ "/zgui/libs" });
+    exe.addIncludePath(.{ .cwd_relative = thisDir() ++ "/c" });
     exe.addCSourceFile(.{
-        .file = .{ .path = thisDir() ++ "/c/imgui_impl_sdl.cpp" },
+        .file = .{ .cwd_relative = thisDir() ++ "/c/imgui_impl_sdl.cpp" },
         .flags = cflags,
     });
     exe.addCSourceFile(.{
-        .file = .{ .path = thisDir() ++ "/c/imgui_impl_sdlrenderer.cpp" },
+        .file = .{ .cwd_relative = thisDir() ++ "/c/imgui_impl_sdlrenderer.cpp" },
         .flags = cflags,
     });
 }

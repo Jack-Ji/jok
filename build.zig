@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const assets_install = b.addInstallDirectory(.{
-        .source_dir = .{ .path = "examples/assets" },
+        .source_dir = .{ .cwd_relative = "examples/assets" },
         .install_dir = .bin,
         .install_subdir = "assets",
     });
@@ -63,7 +63,7 @@ pub fn build(b: *std.Build) void {
         const run_cmd = b.addRunArtifact(exe);
         run_cmd.step.dependOn(&install_cmd.step);
         run_cmd.step.dependOn(&assets_install.step);
-        run_cmd.cwd = std.Build.LazyPath{ .path = "zig-out/bin" };
+        run_cmd.cwd = std.Build.LazyPath{ .cwd_relative = "zig-out/bin" };
         const run_step = b.step(
             demo.name,
             "run example " ++ demo.name,
@@ -103,7 +103,7 @@ pub fn createGame(
         .options = .{ .enable_ztracy = opt.enable_ztracy },
     });
     const jok = b.createModule(.{
-        .root_source_file = .{ .path = thisDir() ++ "/src/jok.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/jok.zig" },
         .imports = &.{
             .{ .name = "build_options", .module = bos.createModule() },
             .{ .name = "sdl", .module = sdl_sdk.getWrapperModule() },
@@ -121,13 +121,13 @@ pub fn createGame(
     // Initialize executable
     const exe = b.addExecutable(.{
         .name = name,
-        .root_source_file = .{ .path = thisDir() ++ "/src/app.zig" },
+        .root_source_file = .{ .cwd_relative = thisDir() ++ "/src/app.zig" },
         .target = target,
         .optimize = optimize,
     });
     exe.root_module.addImport("jok", jok);
     exe.root_module.addImport("game", b.createModule(.{
-        .root_source_file = .{ .path = root_file },
+        .root_source_file = .{ .cwd_relative = root_file },
         .imports = &.{
             .{ .name = "jok", .module = jok },
         },

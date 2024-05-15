@@ -19,24 +19,24 @@ pub fn link(exe: *std.Build.Step.Compile) void {
         exe.linkSystemLibrary("glib-2.0");
         exe.linkSystemLibrary("gobject-2.0");
     } else unreachable;
-    exe.addIncludePath(.{ .path = thisDir() ++ "/c/include" });
+    exe.addIncludePath(.{ .cwd_relative = thisDir() ++ "/c/include" });
     exe.addCSourceFile(.{
-        .file = .{ .path = thisDir() ++ "/c/nfd_common.c" },
+        .file = .{ .cwd_relative = thisDir() ++ "/c/nfd_common.c" },
         .flags = flags.items,
     });
     if (exe.rootModuleTarget().isDarwin()) {
         exe.addCSourceFile(.{
-            .file = .{ .path = thisDir() ++ "/c/nfd_cocoa.m" },
+            .file = .{ .cwd_relative = thisDir() ++ "/c/nfd_cocoa.m" },
             .flags = flags.items,
         });
     } else if (exe.rootModuleTarget().os.tag == .windows) {
         exe.addCSourceFile(.{
-            .file = .{ .path = thisDir() ++ "/c/nfd_win.cpp" },
+            .file = .{ .cwd_relative = thisDir() ++ "/c/nfd_win.cpp" },
             .flags = flags.items,
         });
     } else {
         exe.addCSourceFile(.{
-            .file = .{ .path = thisDir() ++ "/c/nfd_gtk.c" },
+            .file = .{ .cwd_relative = thisDir() ++ "/c/nfd_gtk.c" },
             .flags = flags.items,
         });
     }
