@@ -76,8 +76,8 @@ var white: ?std.ArrayList(Point) = null;
 var blue: ?std.ArrayList(Point) = null;
 
 // Random generator
-var rand_gen: std.rand.DefaultPrng = undefined;
-var rand: std.rand.Random = undefined;
+var rand_gen: std.Random.DefaultPrng = undefined;
+var rand: std.Random = undefined;
 
 const Point = struct {
     // position
@@ -318,7 +318,7 @@ fn loadSettings(allocator: std.mem.Allocator) !void {
 
         var floats = try std.ArrayList(f32).initCapacity(allocator, 37);
         defer floats.deinit();
-        var it = std.mem.split(u8, content, " ");
+        var it = std.mem.splitScalar(u8, content, ' ');
         while (it.next()) |t| {
             try floats.append(try std.fmt.parseFloat(f32, t));
         }
@@ -791,7 +791,7 @@ fn renderSimulation() !void {
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    rand_gen = std.rand.DefaultPrng.init(
+    rand_gen = std.Random.DefaultPrng.init(
         @intCast(std.time.timestamp()),
     );
     rand = rand_gen.random();

@@ -59,7 +59,7 @@ pub fn init(ctx: jok.Context) !void {
         false,
     );
 
-    var rng = std.rand.DefaultPrng.init(@intCast(std.time.timestamp()));
+    var rng = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
     translations = std.ArrayList(zmath.Mat).init(ctx.allocator());
     rotation_axises = std.ArrayList(zmath.Vec).init(ctx.allocator());
     var i: u32 = 0;

@@ -3,13 +3,13 @@ const jok = @import("jok");
 const sdl = jok.sdl;
 const cp = jok.cp;
 
-var rng: std.rand.Xoshiro256 = undefined;
+var rng: std.Random.Xoshiro256 = undefined;
 var world: cp.World = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    rng = std.rand.DefaultPrng.init(
+    rng = std.Random.DefaultPrng.init(
         @intCast(std.time.timestamp()),
     );
 

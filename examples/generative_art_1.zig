@@ -13,13 +13,13 @@ pub const jok_window_size = jok.config.WindowSize{
 var rot: f32 = 0.3;
 const ntex = 50;
 const render_interval = 2.0 / @as(f32, ntex);
-var targets = std.TailQueue(sdl.Texture){};
+var targets = std.DoublyLinkedList(sdl.Texture){};
 var render_time: f32 = render_interval;
 var clear_color: ?sdl.Color = sdl.Color.rgba(0, 0, 0, 0);
 
 pub fn init(ctx: jok.Context) !void {
     for (0..ntex) |_| {
-        var node = try ctx.allocator().create(std.TailQueue(sdl.Texture).Node);
+        var node = try ctx.allocator().create(std.DoublyLinkedList(sdl.Texture).Node);
         node.data = try jok.utils.gfx.createTextureAsTarget(ctx, .{});
         targets.append(node);
     }
@@ -103,9 +103,7 @@ pub fn draw(ctx: jok.Context) !void {
 }
 
 pub fn quit(ctx: jok.Context) void {
-    var node = targets.first;
-    while (node) |n| {
-        node = n.next;
+    while (targets.pop()) |n| {
         ctx.allocator().destroy(n);
     }
 }

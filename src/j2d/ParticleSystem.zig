@@ -62,7 +62,7 @@ pub const AddEffect = struct {
 };
 pub fn addEffect(
     self: *Self,
-    random: std.rand.Random,
+    random: std.Random,
     max_particle_num: u32,
     emit_fn: Effect.ParticleEmitFn,
     origin: Vector,
@@ -89,12 +89,12 @@ pub fn addEffect(
 /// Represent a particle effect
 pub const Effect = struct {
     pub const ParticleEmitFn = *const fn (
-        random: std.rand.Random,
+        random: std.Random,
         origin: Vector,
     ) Particle;
 
     /// Random number generator
-    random: std.rand.Random,
+    random: std.Random,
 
     /// All particles
     particles: std.ArrayList(Particle),
@@ -123,7 +123,7 @@ pub const Effect = struct {
     /// Particle effect initialization
     pub fn init(
         allocator: std.mem.Allocator,
-        random: std.rand.Random,
+        random: std.Random,
         max_particle_num: u32,
         emit_fn: ParticleEmitFn,
         origin: Vector,
@@ -221,7 +221,7 @@ pub const Effect = struct {
             pub var color_final = _color_final;
             pub var color_fade_age = _color_fade_age;
 
-            pub fn emit(random: std.rand.Random, origin: Vector) Particle {
+            pub fn emit(random: std.Random, origin: Vector) Particle {
                 const offset = Vector.new(
                     random.float(f32) * radius * @cos(random.float(f32) * std.math.tau),
                     random.float(f32) * radius * @sin(random.float(f32) * std.math.tau),

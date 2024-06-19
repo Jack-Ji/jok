@@ -8,7 +8,7 @@ const zmath = jok.zmath;
 const font = jok.font;
 const imgui = jok.imgui;
 
-var rand: std.rand.DefaultPrng = undefined;
+var rand: std.Random.DefaultPrng = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var ps: *j3d.ParticleSystem = undefined;
 var camera: j3d.Camera = undefined;
@@ -35,7 +35,7 @@ const emitter2 = j3d.ParticleSystem.Effect.FireEmitter(
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    rand = std.rand.DefaultPrng.init(@intCast(std.time.timestamp()));
+    rand = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
     sheet = try j2d.SpriteSheet.create(
         ctx,
         &.{

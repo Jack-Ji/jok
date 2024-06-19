@@ -3,7 +3,7 @@ const jok = @import("jok");
 const sdl = jok.sdl;
 const j2d = jok.j2d;
 
-var rd: std.rand.DefaultPrng = undefined;
+var rd: std.Random.DefaultPrng = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var font: *jok.font.Font = undefined;
 var atlas: *jok.font.Atlas = undefined;
@@ -30,7 +30,7 @@ const emitter2 = j2d.ParticleSystem.Effect.FireEmitter(
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    rd = std.rand.DefaultPrng.init(@intCast(std.time.timestamp()));
+    rd = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
     sheet = try j2d.SpriteSheet.create(
         ctx,
         &[_]j2d.SpriteSheet.ImageSource{

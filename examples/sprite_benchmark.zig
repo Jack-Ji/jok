@@ -13,7 +13,7 @@ const Actor = struct {
 
 var sheet: *j2d.SpriteSheet = undefined;
 var characters: std.ArrayList(Actor) = undefined;
-var rand_gen: std.rand.DefaultPrng = undefined;
+var rand_gen: std.Random.DefaultPrng = undefined;
 var delta_tick: f32 = 0;
 
 pub fn init(ctx: jok.Context) !void {
@@ -41,7 +41,7 @@ pub fn init(ctx: jok.Context) !void {
         ctx.allocator(),
         1000000,
     );
-    rand_gen = std.rand.DefaultPrng.init(@intCast(std.time.timestamp()));
+    rand_gen = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
