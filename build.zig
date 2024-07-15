@@ -94,7 +94,7 @@ pub fn createGame(
     bos.addOption(bool, "use_cp", opt.use_cp);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
     bos.addOption(bool, "use_ztracy", opt.use_ztracy);
-    const sdl_sdk = sdl.init(b, null);
+    const sdl_sdk = sdl.init(b, null, null);
     const zaudio_pkg = zaudio.package(b, target, optimize, .{});
     const zmath_pkg = zmath.package(b, target, optimize, .{});
     const zmesh_pkg = zmesh.package(b, target, optimize, .{});
@@ -134,7 +134,7 @@ pub fn createGame(
     }));
 
     // Link libraries
-    sdl_sdk.link(exe, .dynamic);
+    sdl_sdk.link(exe, .dynamic, .SDL2);
     imgui.link(b, exe);
     stb.link(exe);
     svg.link(exe);
