@@ -2,26 +2,26 @@
 
 ZMODULES=../zig-gamedev/libs/
 
-rm -rf src/deps/system-sdk
-cp -r $ZMODULES/system-sdk src/deps
+rm -rf deps/system-sdk
+cp -r $ZMODULES/system-sdk deps
 
-rm -rf src/deps/imgui/zgui
-cp -r $ZMODULES/zgui src/deps/imgui
-sed -i 's/\/\/\(#define ImDrawIdx unsigned int\)/\1/' src/deps/imgui/zgui/libs/imgui/imconfig.h
-sed -i 's/DrawIdx = u16/DrawIdx = u32/' src/deps/imgui/zgui/src/gui.zig
+rm -rf deps/imgui/zgui
+cp -r $ZMODULES/zgui deps/imgui
+sed -i 's/\/\/\(#define ImDrawIdx unsigned int\)/\1/' deps/imgui/zgui/libs/imgui/imconfig.h
+sed -i 's/DrawIdx = u16/DrawIdx = u32/' deps/imgui/zgui/src/gui.zig
 
-rm -rf src/deps/zaudio
-cp -r $ZMODULES/zaudio src/deps
+rm -rf deps/zaudio
+cp -r $ZMODULES/zaudio deps
 
-rm -rf src/deps/zmath
-cp -r $ZMODULES/zmath src/deps
+rm -rf deps/zmath
+cp -r $ZMODULES/zmath deps
 
-rm -rf src/deps/zmesh
-cp -r $ZMODULES/zmesh src/deps
+rm -rf deps/zmesh
+cp -r $ZMODULES/zmesh deps
 
-rm -rf src/deps/znoise
-cp -r $ZMODULES/znoise src/deps
+rm -rf deps/znoise
+cp -r $ZMODULES/znoise deps
 
-rm -rf src/deps/ztracy
-cp -r $ZMODULES/ztracy src/deps
+rm -rf deps/ztracy
+cp -r $ZMODULES/ztracy deps
 

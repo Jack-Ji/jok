@@ -18,7 +18,7 @@ pub const font = @import("font.zig");
 pub const utils = @import("utils.zig");
 
 /// Expose vendor libraries
-pub usingnamespace @import("deps/deps.zig");
+pub usingnamespace @import("vendor.zig");
 
 // All tests
 test "all" {

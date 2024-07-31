@@ -349,13 +349,13 @@ pub const DrawCmd = struct {
                 .r = c.radius,
                 .col = c.color,
                 .thickness = c.thickness,
-                .num_segments = c.num_segments,
+                .num_segments = @intCast(c.num_segments),
             }),
             .ngon_fill => |c| dl.addNgonFilled(.{
                 .p = .{ c.p.x, c.p.y },
                 .r = c.radius,
                 .col = c.color,
-                .num_segments = c.num_segments,
+                .num_segments = @intCast(c.num_segments),
             }),
             .convex_polygon => |c| {
                 dl.pathClear();
@@ -404,7 +404,7 @@ pub const DrawCmd = struct {
                 .p4 = .{ c.p4.x, c.p4.y },
                 .col = c.color,
                 .thickness = c.thickness,
-                .num_segments = c.num_segments,
+                .num_segments = @intCast(c.num_segments),
             }),
             .bezier_quadratic => |c| dl.addBezierQuadratic(.{
                 .p1 = .{ c.p1.x, c.p1.y },
@@ -412,7 +412,7 @@ pub const DrawCmd = struct {
                 .p3 = .{ c.p3.x, c.p3.y },
                 .col = c.color,
                 .thickness = c.thickness,
-                .num_segments = c.num_segments,
+                .num_segments = @intCast(c.num_segments),
             }),
             .polyline => |c| {
                 assert(c.transformed.items.len >= c.points.items.len);

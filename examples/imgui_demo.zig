@@ -8,7 +8,28 @@ pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1200, .height = 800 },
 };
 
+const SimpleEnum = enum {
+    first,
+    second,
+    third,
+};
+const SparseEnum = enum(i32) {
+    first = 10,
+    second = 100,
+    third = 1000,
+};
+const NonExhaustiveEnum = enum(i32) {
+    first = 10,
+    second = 100,
+    third = 1000,
+    _,
+};
+
 var tex: sdl.Texture = undefined;
+
+var alloced_input_text_buf: [:0]u8 = undefined;
+var alloced_input_text_multiline_buf: [:0]u8 = undefined;
+var alloced_input_text_with_hint_buf: [:0]u8 = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -35,6 +56,10 @@ pub fn init(ctx: jok.Context) !void {
         plot_style.marker = .circle;
         plot_style.marker_size = 5.0;
     }
+
+    alloced_input_text_buf = try ctx.allocator().allocSentinel(u8, 4, 0);
+    alloced_input_text_multiline_buf = try ctx.allocator().allocSentinel(u8, 4, 0);
+    alloced_input_text_with_hint_buf = try ctx.allocator().allocSentinel(u8, 4, 0);
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
@@ -48,42 +73,20 @@ pub fn update(ctx: jok.Context) !void {
 
 pub fn draw(ctx: jok.Context) !void {
     // No need at all
-    //ctx.clear(null);
-
-    const mouse_state = ctx.getMouseState();
-    imgui.setNextWindowPos(.{
-        .x = @floatFromInt(mouse_state.x + 10),
-        .y = @floatFromInt(mouse_state.y + 10),
-    });
-    if (imgui.begin(
-        "mouse context",
-        .{ .flags = .{ .no_title_bar = true } },
-    )) {
-        imgui.text("You're here!", .{});
-    }
-    imgui.end();
-
-    imgui.showDemoWindow(null);
+    ctx.clear(null);
 
     imgui.setNextWindowPos(.{ .x = 20.0, .y = 20.0, .cond = .first_use_ever });
     imgui.setNextWindowSize(.{ .w = -1.0, .h = -1.0, .cond = .first_use_ever });
 
     imgui.pushStyleVar1f(.{ .idx = .window_rounding, .v = 5.0 });
     imgui.pushStyleVar2f(.{ .idx = .window_padding, .v = .{ 5.0, 5.0 } });
+
     defer imgui.popStyleVar(.{ .count = 2 });
 
     if (imgui.begin("Demo Settings", .{})) {
-        imgui.bullet();
-        imgui.textUnformattedColored(.{ 0, 0.8, 0, 1 }, "Average :");
-        imgui.sameLine(.{});
-        imgui.text(
-            "{d:.3} ms/frame ({d:.1} fps)",
-            .{ 1 / ctx.fps(), ctx.fps() },
-        );
-
         imgui.separator();
         imgui.dummy(.{ .w = -1.0, .h = 20.0 });
-        imgui.textUnformattedColored(.{ 0, 0.8, 0, 1 }, "imgui -");
+        imgui.textUnformattedColored(.{ 0, 0.8, 0, 1 }, "zgui -");
         imgui.sameLine(.{});
         imgui.textWrapped("Zig bindings for 'dear imgui' library. " ++
             "Easy to use, hand-crafted API with default arguments, " ++
@@ -173,6 +176,9 @@ pub fn draw(ctx: jok.Context) !void {
             const static = struct {
                 var selection_index: u32 = 0;
                 var current_item: i32 = 0;
+                var simple_enum_value: SimpleEnum = .first;
+                var sparse_enum_value: SparseEnum = .first;
+                var non_exhaustive_enum_value: NonExhaustiveEnum = .first;
             };
 
             const items = [_][:0]const u8{ "aaa", "bbb", "ccc", "ddd", "eee", "FFF", "ggg", "hhh" };
@@ -189,6 +195,10 @@ pub fn draw(ctx: jok.Context) !void {
                 .current_item = &static.current_item,
                 .items_separated_by_zeros = "Item 0\x00Item 1\x00Item 2\x00Item 3\x00\x00",
             });
+
+            _ = imgui.comboFromEnum("simple enum", &static.simple_enum_value);
+            _ = imgui.comboFromEnum("sparse enum", &static.sparse_enum_value);
+            _ = imgui.comboFromEnum("non-exhaustive enum", &static.non_exhaustive_enum_value);
         }
 
         if (imgui.collapsingHeader("Widgets: Drag Sliders", .{})) {
@@ -291,9 +301,9 @@ pub fn draw(ctx: jok.Context) !void {
 
         if (imgui.collapsingHeader("Widgets: Input with Keyboard", .{})) {
             const static = struct {
-                var buf: [128]u8 = undefined;
-                var buf1: [128]u8 = undefined;
-                var buf2: [128]u8 = undefined;
+                var input_text_buf = [_:0]u8{0} ** 4;
+                var input_text_multiline_buf = [_:0]u8{0} ** 4;
+                var input_text_with_hint_buf = [_:0]u8{0} ** 4;
                 var v1: f32 = 0;
                 var v2: [2]f32 = .{ 0, 0 };
                 var v3: [3]f32 = .{ 0, 0, 0 };
@@ -306,12 +316,30 @@ pub fn draw(ctx: jok.Context) !void {
                 var si8: i8 = 0;
                 var v3u8: [3]u8 = .{ 0, 0, 0 };
             };
-            _ = imgui.inputText("Input text", .{ .buf = static.buf[0..] });
-            _ = imgui.inputTextMultiline("Input text multiline", .{ .buf = static.buf1[0..] });
-            _ = imgui.inputTextWithHint(
-                "Input text with hint",
-                .{ .hint = "Enter your name", .buf = static.buf2[0..] },
-            );
+            imgui.separatorText("static input text");
+            _ = imgui.inputText("Input text", .{ .buf = static.input_text_buf[0..] });
+            _ = imgui.text("length of Input text {}", .{std.mem.len(@as([*:0]u8, static.input_text_buf[0..]))});
+
+            _ = imgui.inputTextMultiline("Input text multiline", .{ .buf = static.input_text_multiline_buf[0..] });
+            _ = imgui.text("length of Input text multiline {}", .{std.mem.len(@as([*:0]u8, static.input_text_multiline_buf[0..]))});
+            _ = imgui.inputTextWithHint("Input text with hint", .{
+                .hint = "Enter your name",
+                .buf = static.input_text_with_hint_buf[0..],
+            });
+            _ = imgui.text("length of Input text with hint {}", .{std.mem.len(@as([*:0]u8, static.input_text_with_hint_buf[0..]))});
+
+            imgui.separatorText("alloced input text");
+            _ = imgui.inputText("Input text alloced", .{ .buf = alloced_input_text_buf });
+            _ = imgui.text("length of Input text alloced {}", .{std.mem.len(alloced_input_text_buf.ptr)});
+            _ = imgui.inputTextMultiline("Input text multiline alloced", .{ .buf = alloced_input_text_multiline_buf });
+            _ = imgui.text("length of Input text multiline {}", .{std.mem.len(alloced_input_text_multiline_buf.ptr)});
+            _ = imgui.inputTextWithHint("Input text with hint alloced", .{
+                .hint = "Enter your name",
+                .buf = alloced_input_text_with_hint_buf,
+            });
+            _ = imgui.text("length of Input text with hint alloced {}", .{std.mem.len(alloced_input_text_with_hint_buf.ptr)});
+
+            imgui.separatorText("input numeric");
             _ = imgui.inputFloat("Input float 1", .{ .v = &static.v1 });
             _ = imgui.inputFloat2("Input float 2", .{ .v = &static.v2 });
             _ = imgui.inputFloat3("Input float 3", .{ .v = &static.v3 });
@@ -328,12 +356,13 @@ pub fn draw(ctx: jok.Context) !void {
         if (imgui.collapsingHeader("Widgets: Color Editor/Picker", .{})) {
             const static = struct {
                 var col3: [3]f32 = .{ 0, 0, 0 };
-                var col4: [4]f32 = .{ 0, 0, 0, 0 };
+                var col4: [4]f32 = .{ 0, 1, 0, 0 };
                 var col3p: [3]f32 = .{ 0, 0, 0 };
                 var col4p: [4]f32 = .{ 0, 0, 0, 0 };
             };
             _ = imgui.colorEdit3("Color edit 3", .{ .col = &static.col3 });
             _ = imgui.colorEdit4("Color edit 4", .{ .col = &static.col4 });
+            _ = imgui.colorEdit4("Color edit 4 float", .{ .col = &static.col4, .flags = .{ .float = true } });
             _ = imgui.colorPicker3("Color picker 3", .{ .col = &static.col3p });
             _ = imgui.colorPicker4("Color picker 4", .{ .col = &static.col4p });
             _ = imgui.colorButton("color_button_id", .{ .col = .{ 0, 1, 0, 1 } });
@@ -362,11 +391,6 @@ pub fn draw(ctx: jok.Context) !void {
                 }
                 imgui.endListBox();
             }
-        }
-
-        if (imgui.collapsingHeader("Widgets: Image", .{})) {
-            imgui.image(tex.ptr, .{ .w = 256.0, .h = 256.0 });
-            _ = imgui.imageButton("image_button_id", tex.ptr, .{ .w = 256.0, .h = 256.0 });
         }
 
         const draw_list = imgui.getBackgroundDrawList();
@@ -467,6 +491,8 @@ pub fn draw(ctx: jok.Context) !void {
 }
 
 pub fn quit(ctx: jok.Context) void {
-    _ = ctx;
     std.log.info("game quit", .{});
+    ctx.allocator().free(alloced_input_text_buf);
+    ctx.allocator().free(alloced_input_text_multiline_buf);
+    ctx.allocator().free(alloced_input_text_with_hint_buf);
 }
