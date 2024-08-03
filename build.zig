@@ -4,8 +4,16 @@ const sdl = @import("sdl");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+
+    const tests = b.addTest(.{
+        .name = "all",
+        .root_source_file = b.path("src/jok.zig"),
+    });
+    const test_step = b.step("test", "run tests");
+    test_step.dependOn(&b.addRunArtifact(tests).step);
+
     const assets_install = b.addInstallDirectory(.{
-        .source_dir = .{ .cwd_relative = "examples/assets" },
+        .source_dir = b.path("examples/assets"),
         .install_dir = .bin,
         .install_subdir = "assets",
     });
@@ -52,10 +60,10 @@ pub fn build(b: *std.Build) void {
         const run_cmd = b.addRunArtifact(exe);
         run_cmd.step.dependOn(&install_cmd.step);
         run_cmd.step.dependOn(&assets_install.step);
-        run_cmd.cwd = std.Build.LazyPath{ .cwd_relative = "zig-out/bin" };
+        run_cmd.cwd = b.path("zig-out/bin");
         const run_step = b.step(
             demo.name,
-            "run example " ++ demo.name,
+            "compile & run example " ++ demo.name,
         );
         run_step.dependOn(&run_cmd.step);
         build_examples.dependOn(&install_cmd.step);

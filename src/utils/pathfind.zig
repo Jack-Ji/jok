@@ -155,7 +155,7 @@ test "pathfind" {
             const p2 = id2pos(to);
             const dx = if (p1.x > p2.x) p1.x - p2.x else p2.x - p1.x;
             const dy = if (p1.y > p2.y) p1.y - p2.y else p2.y - p1.y;
-            return dx + dy;
+            return if (dx > 1 and dy > 1) dx + dy else 1;
         }
 
         pub fn hcost(self: @This(), from: usize, to: usize) usize {
