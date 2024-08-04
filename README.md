@@ -44,16 +44,9 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
 
    Add jok dependency to your build.zig.zon, with following command:
     ```bash
-    zig fetch --save https://github.com/jack-ji/jok/archive/[commit-sha].tar.gz
+    zig fetch --save git+https://github.com/jack-ji/jok#[commit-sha]
     ```
     For the [commit-sha] just pick the latest from here: https://github.com/jack-ji/jok/commits/main
-
-    For those using proxies to access network, `zig fetch` might not work properly, here's what you can do instead:
-    ```bash
-    wget https://github.com/jack-ji/jok/archive/[commit-sha].tar.gz
-    zig fetch --save [commit-sha].tar.gz
-    rm -f [commit-sha].tar.gz
-    ```
 
 2. Use *jok*'s build script to add build step
 
