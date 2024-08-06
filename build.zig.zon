@@ -25,13 +25,5 @@
         .zmesh = .{ .path = "deps/zmesh" },
         .znoise = .{ .path = "deps/znoise" },
         .ztracy = .{ .path = "deps/ztracy" },
-        .ziglua = .{
-            .url = "git+https://github.com/interrupt/ziglua#74796808b5bf7c81bf6f1e1b48d97ad01f87ec45",
-            .hash = "122094a86e7171946ec9dc47ea22c4782511c26ae555a7e79e315ae857ccce15cfa5",
-        },
-        .lua54 = .{
-            .url = "https://www.lua.org/ftp/lua-5.4.6.tar.gz",
-            .hash = "1220f93ada1fa077ab096bf88a5b159ad421dbf6a478edec78ddb186d0c21d3476d9",
-        },
     },
 }

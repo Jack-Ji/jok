@@ -6,7 +6,9 @@
 //--------------------------------------------------------------------------------------------------
 pub const plot = @import("plot.zig");
 pub const gizmo = @import("gizmo.zig");
+pub const node_editor = @import("node_editor.zig");
 pub const te = @import("te.zig");
+
 pub const backend = switch (@import("zgui_options").backend) {
     .glfw_wgpu => @import("backend_glfw_wgpu.zig"),
     .glfw_opengl3 => @import("backend_glfw_opengl.zig"),
@@ -946,6 +948,38 @@ extern fn zguiDockBuilderSplitNode(
     out_id_at_opposite_dir: ?*Ident,
 ) Ident;
 extern fn zguiDockBuilderFinish(node_id: Ident) void;
+
+//--------------------------------------------------------------------------------------------------
+//
+// ListClipper
+//
+//--------------------------------------------------------------------------------------------------
+pub const ListClipper = extern struct {
+    Ctx: *Context,
+    DisplayStart: c_int,
+    DisplayEnd: c_int,
+    ItemsCount: c_int,
+    ItemsHeight: f32,
+    StartPosY: f32,
+    TempData: *anyopaque,
+
+    pub const init = zguiListClipper_Init;
+    extern fn zguiListClipper_Init() ListClipper;
+
+    pub fn begin(self: *ListClipper, items_count: ?i32, items_height: ?f32) void {
+        zguiListClipper_Begin(self, items_count orelse std.math.maxInt(i32), items_height orelse -1.0);
+    }
+    extern fn zguiListClipper_Begin(self: *ListClipper, items_count: i32, items_height: f32) void;
+
+    pub const end = zguiListClipper_End;
+    extern fn zguiListClipper_End(self: *ListClipper) void;
+
+    pub const includeItemsByIndex = zguiListClipper_IncludeItemsByIndex;
+    extern fn zguiListClipper_IncludeItemsByIndex(self: *ListClipper, item_begin: i32, item_end: i32) void;
+
+    pub const step = zguiListClipper_Step;
+    extern fn zguiListClipper_Step(self: *ListClipper) bool;
+};
 
 //--------------------------------------------------------------------------------------------------
 //
@@ -3428,6 +3462,8 @@ pub const beginPopup = zguiBeginPopup;
 pub const endPopup = zguiEndPopup;
 /// `pub fn closeCurrentPopup() void`
 pub const closeCurrentPopup = zguiCloseCurrentPopup;
+/// `pub fn isPopupOpen(str_id: [:0]const u8, flags: PopupFlags) bool`
+pub const isPopupOpen = zguiIsPopupOpen;
 extern fn zguiBeginPopupContextWindow() bool;
 extern fn zguiBeginPopupContextItem() bool;
 extern fn zguiBeginPopupModal(name: [*:0]const u8, popen: ?*bool, flags: WindowFlags) bool;
@@ -3435,6 +3471,8 @@ extern fn zguiBeginPopup(str_id: [*:0]const u8, flags: WindowFlags) bool;
 extern fn zguiEndPopup() void;
 extern fn zguiOpenPopup(str_id: [*:0]const u8, flags: PopupFlags) void;
 extern fn zguiCloseCurrentPopup() void;
+extern fn zguiIsPopupOpen(str_id: [*:0]const u8, flags: PopupFlags) bool;
+
 //--------------------------------------------------------------------------------------------------
 //
 // Tabs
@@ -4063,7 +4101,7 @@ pub const DrawList = *opaque {
         p: [2]f32,
         r: f32,
         col: u32,
-        num_segments: c_int,
+        num_segments: u32,
         thickness: f32 = 1.0,
     }) void {
         zguiDrawList_AddNgon(
@@ -4071,7 +4109,7 @@ pub const DrawList = *opaque {
             &args.p,
             args.r,
             args.col,
-            args.num_segments,
+            @intCast(args.num_segments),
             args.thickness,
         );
     }
@@ -4088,9 +4126,9 @@ pub const DrawList = *opaque {
         p: [2]f32,
         r: f32,
         col: u32,
-        num_segments: c_int,
+        num_segments: u32,
     }) void {
-        zguiDrawList_AddNgonFilled(draw_list, &args.p, args.r, args.col, args.num_segments);
+        zguiDrawList_AddNgonFilled(draw_list, &args.p, args.r, args.col, @intCast(args.num_segments));
     }
     extern fn zguiDrawList_AddNgonFilled(
         draw_list: DrawList,
@@ -4164,7 +4202,7 @@ pub const DrawList = *opaque {
         p4: [2]f32,
         col: u32,
         thickness: f32 = 1.0,
-        num_segments: c_int = 0,
+        num_segments: u32 = 0,
     }) void {
         zguiDrawList_AddBezierCubic(
             draw_list,
@@ -4174,7 +4212,7 @@ pub const DrawList = *opaque {
             &args.p4,
             args.col,
             args.thickness,
-            args.num_segments,
+            @intCast(args.num_segments),
         );
     }
     extern fn zguiDrawList_AddBezierCubic(
@@ -4194,7 +4232,7 @@ pub const DrawList = *opaque {
         p3: [2]f32,
         col: u32,
         thickness: f32 = 1.0,
-        num_segments: c_int = 0,
+        num_segments: u32 = 0,
     }) void {
         zguiDrawList_AddBezierQuadratic(
             draw_list,
@@ -4203,7 +4241,7 @@ pub const DrawList = *opaque {
             &args.p3,
             args.col,
             args.thickness,
-            args.num_segments,
+            @intCast(args.num_segments),
         );
     }
     extern fn zguiDrawList_AddBezierQuadratic(
