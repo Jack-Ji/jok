@@ -162,14 +162,13 @@ fn injectVendorLibraries(b: *std.Build, exe: *std.Build.Step.Compile, opt: Build
     } else if (exe.rootModuleTarget().isDarwin()) {
         exe.addIncludePath(b.path("src/vendor/imgui/c/SDL2/macos"));
     } else unreachable;
-    exe.addIncludePath(b.path("deps/zgui/libs"));
+    exe.addIncludePath(b.path("deps/zgui/libs/imgui"));
     exe.addIncludePath(b.path("src/vendor/imgui/c"));
-    exe.addCSourceFile(.{
-        .file = b.path("src/vendor/imgui/c/imgui_impl_sdl.cpp"),
-        .flags = &.{"-fno-sanitize=undefined"},
-    });
-    exe.addCSourceFile(.{
-        .file = b.path("src/vendor/imgui/c/imgui_impl_sdlrenderer.cpp"),
+    exe.addCSourceFiles(.{
+        .files = &.{
+            "src/vendor/imgui/c/imgui_impl_sdl2.cpp",
+            "src/vendor/imgui/c/imgui_impl_sdlrenderer2.cpp",
+        },
         .flags = &.{"-fno-sanitize=undefined"},
     });
 

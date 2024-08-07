@@ -430,7 +430,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 };
 
                 imgui.sdl.newFrame(self.context());
-                defer imgui.sdl.draw();
+                defer imgui.sdl.draw(self.context());
 
                 self._renderer.setTarget(self._canvas_texture) catch unreachable;
                 defer {

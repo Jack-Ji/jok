@@ -17,7 +17,7 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
         unreachable;
     }
 
-    if (!ImGui_ImplSDLRenderer_Init(renderer.ptr)) {
+    if (!ImGui_ImplSDLRenderer2_Init(renderer.ptr)) {
         unreachable;
     }
 
@@ -36,18 +36,18 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
 
     // Initialize imgui's internal state
     newFrame(ctx);
-    draw();
+    draw(ctx);
 }
 
 pub fn deinit() void {
     zgui.plot.deinit();
-    ImGui_ImplSDLRenderer_Shutdown();
+    ImGui_ImplSDLRenderer2_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     zgui.deinit();
 }
 
 pub fn newFrame(ctx: jok.Context) void {
-    ImGui_ImplSDLRenderer_NewFrame();
+    ImGui_ImplSDLRenderer2_NewFrame();
     ImGui_ImplSDL2_NewFrame();
 
     const fbsize = ctx.renderer().getOutputSize() catch unreachable;
@@ -60,9 +60,10 @@ pub fn newFrame(ctx: jok.Context) void {
     imgui.newFrame();
 }
 
-pub fn draw() void {
+pub fn draw(ctx: jok.Context) void {
+    const renderer = ctx.renderer();
     imgui.render();
-    ImGui_ImplSDLRenderer_RenderDrawData(imgui.getDrawData());
+    ImGui_ImplSDLRenderer2_RenderDrawData(imgui.getDrawData(), renderer.ptr);
 }
 
 pub fn processEvent(event: sdl.c.SDL_Event) bool {
@@ -135,12 +136,12 @@ pub inline fn convertColor(color: sdl.Color) u32 {
         (@as(u32, color.a) << 24);
 }
 
-// These functions are defined in `imgui_impl_sdl.cpp` and 'imgui_impl_sdlrenderer.cpp`
+// These functions are defined in `imgui_impl_sdl2.cpp` and 'imgui_impl_sdlrenderer2.cpp`
 extern fn ImGui_ImplSDL2_InitForSDLRenderer(window: *const anyopaque, renderer: *const anyopaque) bool;
 extern fn ImGui_ImplSDL2_NewFrame() void;
 extern fn ImGui_ImplSDL2_Shutdown() void;
 extern fn ImGui_ImplSDL2_ProcessEvent(event: *const anyopaque) bool;
-extern fn ImGui_ImplSDLRenderer_Init(renderer: *const anyopaque) bool;
-extern fn ImGui_ImplSDLRenderer_NewFrame() void;
-extern fn ImGui_ImplSDLRenderer_RenderDrawData(draw_data: *const anyopaque) void;
-extern fn ImGui_ImplSDLRenderer_Shutdown() void;
+extern fn ImGui_ImplSDLRenderer2_Init(renderer: *const anyopaque) bool;
+extern fn ImGui_ImplSDLRenderer2_NewFrame() void;
+extern fn ImGui_ImplSDLRenderer2_RenderDrawData(draw_data: *const anyopaque, renderer: *const anyopaque) void;
+extern fn ImGui_ImplSDLRenderer2_Shutdown() void;
