@@ -11,8 +11,8 @@
     },
     .dependencies = .{
         .sdl = .{
-            .url = "git+https://github.com/jack-ji/sdl.zig#a8ed4b309acea16ed484bdc99773e220d266b712",
-            .hash = "122039591cc7801ba5ecf92dbf12f145efdef4be5f8cbed48cc3077fdfba0f4bd938",
+            .url = "git+https://github.com/jack-ji/sdl.zig#c09253170a0c5c80e03123e1947d3ee2dcdb2232",
+            .hash = "12207864d4938fe6b9d9bda7eda7b29e8b7a68bce48de67904baa8606f3dabf21b6d",
         },
         .system_sdk = .{ .path = "deps/system-sdk" },
         .zaudio = .{ .path = "deps/zaudio" },
