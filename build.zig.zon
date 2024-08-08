@@ -1,6 +1,6 @@
 .{
     .name = "jok",
-    .version = "0.1.1",
+    .version = "0.2.0",
     .paths = .{
         "build.zig",
         "build.zig.zon",
@@ -15,12 +15,8 @@
             .hash = "122039591cc7801ba5ecf92dbf12f145efdef4be5f8cbed48cc3077fdfba0f4bd938",
         },
         .system_sdk = .{ .path = "deps/system-sdk" },
-        .chipmunk = .{ .path = "deps/chipmunk" },
-        .nfd = .{ .path = "deps/nfd" },
-        .stb = .{ .path = "deps/stb" },
-        .svg = .{ .path = "deps/svg" },
-        .zgui = .{ .path = "deps/zgui" },
         .zaudio = .{ .path = "deps/zaudio" },
+        .zgui = .{ .path = "deps/zgui" },
         .zmath = .{ .path = "deps/zmath" },
         .zmesh = .{ .path = "deps/zmesh" },
         .znoise = .{ .path = "deps/znoise" },
