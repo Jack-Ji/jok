@@ -104,12 +104,30 @@ pub fn createGame(
     bos.addOption(bool, "use_cp", opt.use_cp);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
     bos.addOption(bool, "use_ztracy", opt.use_ztracy);
-    const zgui = builder.dependency("zgui", .{});
-    const zaudio = builder.dependency("zaudio", .{});
-    const zmath = builder.dependency("zmath", .{});
-    const zmesh = builder.dependency("zmesh", .{});
-    const znoise = builder.dependency("znoise", .{});
-    const ztracy = builder.dependency("ztracy", .{});
+    const zgui = builder.dependency("zgui", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const zaudio = builder.dependency("zaudio", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const zmath = builder.dependency("zmath", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const zmesh = builder.dependency("zmesh", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const znoise = builder.dependency("znoise", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const ztracy = builder.dependency("ztracy", .{
+        .target = target,
+        .optimize = optimize,
+    });
     const jok = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
         .imports = &.{
