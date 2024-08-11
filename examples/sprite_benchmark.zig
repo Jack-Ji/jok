@@ -11,6 +11,14 @@ const Actor = struct {
     velocity: sdl.PointF,
 };
 
+const names = [_][]const u8{
+    "ogre",
+    "quicksilver_dragon",
+    "rock_troll",
+    "rock_troll_monk_ghost",
+    "sphinx",
+};
+
 var sheet: *j2d.SpriteSheet = undefined;
 var characters: std.ArrayList(Actor) = undefined;
 var rand_gen: std.Random.DefaultPrng = undefined;
@@ -22,20 +30,12 @@ pub fn init(ctx: jok.Context) !void {
     const csz = ctx.getCanvasSize();
 
     // create sprite sheet
-    sheet = try j2d.SpriteSheet.create(
+    sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
-        &[_]j2d.SpriteSheet.ImageSource{
-            .{
-                .name = "ogre",
-                .image = .{
-                    .file_path = "assets/images/ogre.png",
-                },
-            },
-        },
+        "assets/images",
         @intFromFloat(csz.x),
         @intFromFloat(csz.y),
-        1,
-        false,
+        .{},
     );
     characters = try std.ArrayList(Actor).initCapacity(
         ctx.allocator(),
@@ -60,8 +60,9 @@ pub fn update(ctx: jok.Context) !void {
         var i: u32 = 0;
         while (i < 10) : (i += 1) {
             const angle = rd.float(f32) * 2 * std.math.pi;
+            const select = rd.intRangeLessThan(u32, 0, names.len);
             try characters.append(.{
-                .sprite = sheet.getSpriteByName("ogre").?,
+                .sprite = sheet.getSpriteByName(names[select]).?,
                 .pos = pos,
                 .velocity = .{
                     .x = 300 * @cos(angle),

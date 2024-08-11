@@ -20,8 +20,6 @@ pub fn init(ctx: jok.Context) !void {
         "assets/images",
         @intFromFloat(size.x),
         @intFromFloat(size.y),
-        1,
-        true,
         .{},
     );
     as = try j2d.AnimationSystem.create(ctx.allocator());

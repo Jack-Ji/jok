@@ -15,9 +15,7 @@ pub fn init(ctx: jok.Context) !void {
         "assets/images",
         @intFromFloat(size.x),
         @intFromFloat(size.y),
-        1,
-        true,
-        .{},
+        .{ .keep_packed_pixels = true },
     );
     //sheet = try j2d.SpriteSheet.fromSheetFiles(
     //    ctx.allocator,

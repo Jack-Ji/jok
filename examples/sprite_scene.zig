@@ -18,8 +18,6 @@ pub fn init(ctx: jok.Context) !void {
         "assets/images",
         @intFromFloat(size.x),
         @intFromFloat(size.y),
-        1,
-        true,
         .{},
     );
     scene = try j2d.Scene.create(ctx.allocator());

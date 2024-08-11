@@ -67,13 +67,16 @@ rects: []SpriteRect,
 search_tree: std.StringHashMap(u32),
 
 /// Create sprite-sheet
+pub const CreateSheetOption = struct {
+    gap: u32 = 1,
+    keep_packed_pixels: bool = false,
+};
 pub fn create(
     ctx: jok.Context,
     sources: []const ImageSource,
     width: u32,
     height: u32,
-    gap: u32,
-    keep_packed_pixels: bool,
+    opt: CreateSheetOption,
 ) !*Self {
     assert(sources.len > 0);
     const ImageData = struct {
@@ -162,8 +165,8 @@ pub fn create(
         }
         stb_rects[i] = std.mem.zeroes(stb_rect_pack.stbrp_rect);
         stb_rects[i].id = @intCast(i);
-        stb_rects[i].w = @intCast(images[i].pixels.width + gap);
-        stb_rects[i].h = @intCast(images[i].pixels.height + gap);
+        stb_rects[i].w = @intCast(images[i].pixels.width + opt.gap);
+        stb_rects[i].h = @intCast(images[i].pixels.height + opt.gap);
     }
     defer {
         // Free file-images' data when we're done
@@ -200,13 +203,13 @@ pub fn create(
         rects[i] = .{
             .s0 = @as(f32, @floatFromInt(r.x)) * inv_width,
             .t0 = @as(f32, @floatFromInt(r.y)) * inv_height,
-            .s1 = @as(f32, @floatFromInt(r.x + r.w - @as(c_int, @intCast(gap)))) * inv_width,
-            .t1 = @as(f32, @floatFromInt(r.y + r.h - @as(c_int, @intCast(gap)))) * inv_height,
-            .width = @floatFromInt(r.w - @as(c_int, @intCast(gap))),
-            .height = @floatFromInt(r.h - @as(c_int, @intCast(gap))),
+            .s1 = @as(f32, @floatFromInt(r.x + r.w - @as(c_int, @intCast(opt.gap)))) * inv_width,
+            .t1 = @as(f32, @floatFromInt(r.y + r.h - @as(c_int, @intCast(opt.gap)))) * inv_height,
+            .width = @floatFromInt(r.w - @as(c_int, @intCast(opt.gap))),
+            .height = @floatFromInt(r.h - @as(c_int, @intCast(opt.gap))),
         };
         const y_begin: u32 = @intCast(r.y);
-        const y_end: u32 = @intCast(r.y + r.h - @as(c_int, @intCast(gap)));
+        const y_end: u32 = @intCast(r.y + r.h - @as(c_int, @intCast(opt.gap)));
         const src_pixels = images[i].pixels;
         const dst_stride: u32 = width * 4;
         const src_stride: u32 = src_pixels.width * 4;
@@ -246,7 +249,7 @@ pub fn create(
             .x = @floatFromInt(width),
             .y = @floatFromInt(height),
         },
-        .packed_pixels = if (keep_packed_pixels) ImagePixels{
+        .packed_pixels = if (opt.keep_packed_pixels) ImagePixels{
             .width = width,
             .height = height,
             .data = pixels,
@@ -263,7 +266,9 @@ pub fn create(
 }
 
 /// Create sprite-sheet with all picture files in given directory
-pub const DirScanOption = struct {
+pub const CreateSheetFromDirOption = struct {
+    gap: u32 = 1,
+    keep_packed_pixels: bool = false,
     accept_png: bool = true,
     accept_jpg: bool = true,
 };
@@ -272,9 +277,7 @@ pub fn fromPicturesInDir(
     dir_path: []const u8,
     width: u32,
     height: u32,
-    gap: u32,
-    keep_packed_pixels: bool,
-    opt: DirScanOption,
+    opt: CreateSheetFromDirOption,
 ) !*Self {
     var curdir = std.fs.cwd();
     var dir = try curdir.openDir(dir_path, .{ .no_follow = true, .iterate = true });
@@ -310,7 +313,10 @@ pub fn fromPicturesInDir(
         }
     }
 
-    return try Self.create(ctx, images.items, width, height, gap, keep_packed_pixels);
+    return try Self.create(ctx, images.items, width, height, .{
+        .gap = opt.gap,
+        .keep_packed_pixels = opt.keep_packed_pixels,
+    });
 }
 
 /// Create from previous written sheet files (a picture and a json file)

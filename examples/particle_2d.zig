@@ -43,8 +43,7 @@ pub fn init(ctx: jok.Context) !void {
         },
         100,
         100,
-        1,
-        false,
+        .{},
     );
     font = try jok.font.Font.fromTrueTypeData(
         ctx.allocator(),

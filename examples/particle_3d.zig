@@ -54,8 +54,7 @@ pub fn init(ctx: jok.Context) !void {
         },
         500,
         500,
-        1,
-        false,
+        .{},
     );
     ps = try j3d.ParticleSystem.create(ctx.allocator());
     camera = j3d.Camera.fromPositionAndTarget(

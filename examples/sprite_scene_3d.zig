@@ -38,8 +38,6 @@ pub fn init(ctx: jok.Context) !void {
         "assets/images",
         1024,
         1024,
-        1,
-        true,
         .{},
     );
 
