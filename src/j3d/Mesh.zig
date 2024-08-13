@@ -155,8 +155,8 @@ pub const Node = struct {
             .mesh = mesh,
             .parent = parent,
             .children = std.ArrayList(*Node).init(allocator),
-            .scale = zmath.f32x4s(1),
-            .rotation = zmath.f32x4s(0),
+            .scale = zmath.f32x4(1.0, 1.0, 1.0, 0.0),
+            .rotation = zmath.f32x4(0.0, 0.0, 0.0, 1.0),
             .translation = zmath.f32x4s(0),
             .matrix = zmath.identity(),
             .meshes = try allocator.alloc(SubMesh, mesh_count),
@@ -189,7 +189,7 @@ pub const Node = struct {
                     gltf_node.scale[0],
                     gltf_node.scale[1],
                     gltf_node.scale[2],
-                    0,
+                    0.0,
                 )
             else
                 zmath.f32x4(1.0, 1.0, 1.0, 0.0);
@@ -201,17 +201,17 @@ pub const Node = struct {
                     gltf_node.rotation[3],
                 )
             else
-                zmath.f32x4s(0);
+                zmath.f32x4(0.0, 0.0, 0.0, 1.0);
             self.translation = if (gltf_node.has_translation == 1)
                 zmath.f32x4(
                     gltf_node.translation[0],
                     gltf_node.translation[1],
                     gltf_node.translation[2],
-                    0,
+                    0.0,
                 )
             else
-                zmath.f32x4s(0);
-            self.matrix = zmath.mul(self.calcLocalTransform(), parent.matrix);
+                zmath.f32x4s(0.0);
+            self.matrix = zmath.mul(parent.matrix, self.calcLocalTransform());
         }
         for (self.meshes) |*m| m.* = SubMesh.init(allocator, mesh);
         return self;
