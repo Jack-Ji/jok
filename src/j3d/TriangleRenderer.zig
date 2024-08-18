@@ -15,6 +15,11 @@ const Mesh = @import("Mesh.zig");
 const Animation = @import("Animation.zig");
 const Self = @This();
 
+pub const FrontFace = enum(i32) {
+    cw,
+    ccw,
+};
+
 pub const ShadingMethod = enum(i32) {
     gouraud,
     flat,
@@ -33,6 +38,7 @@ pub const RenderMeshOption = struct {
 
     /// Eliminate CCW triangles
     cull_faces: bool = true,
+    front_face: FrontFace = .cw,
 
     /// Uniform material color
     color: sdl.Color = sdl.Color.white,
@@ -233,7 +239,10 @@ pub fn renderMesh(
 
         // Ignore triangles facing away from camera (front faces' vertices are clock-wise organized)
         if (opt.cull_faces) {
-            const face_dir = zmath.cross3(world_v1 - world_v0, world_v2 - world_v0);
+            const face_dir = switch (opt.front_face) {
+                .cw => zmath.cross3(world_v1 - world_v0, world_v2 - world_v0),
+                .ccw => zmath.cross3(world_v2 - world_v0, world_v1 - world_v0),
+            };
             const camera_dir = (world_v0 + world_v1 + world_v2) / zmath.splat(zmath.Vec, 3.0) - camera.position;
             if (zmath.dot3(face_dir, camera_dir)[0] >= 0) continue;
         }
@@ -390,10 +399,10 @@ pub fn renderMesh(
                 c0 = if (opt.lighting) |lt| BLK: {
                     var center = (world_v0 + world_v1 + world_v2) / zmath.f32x4s(3);
                     center[3] = 1.0;
-                    var normal = zmath.normalize3(zmath.cross3(
-                        world_v1 - world_v0,
-                        world_v2 - world_v0,
-                    ));
+                    var normal = zmath.normalize3(switch (opt.front_face) {
+                        .cw => zmath.cross3(world_v1 - world_v0, world_v2 - world_v0),
+                        .ccw => zmath.cross3(world_v2 - world_v0, world_v1 - world_v0),
+                    });
                     normal[3] = 0;
                     const calc = if (lt.light_calc_fn) |f| f else &lighting.calcLightColor;
                     break :BLK calc(c0_diffuse, camera.position, center, normal, lt);

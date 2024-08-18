@@ -184,33 +184,30 @@ pub const Node = struct {
             self.rotation = zmath.util.getRotationQuat(m);
             self.scale = zmath.util.getScaleVec(m);
         } else {
-            self.scale = if (gltf_node.has_scale == 1)
-                zmath.f32x4(
+            if (gltf_node.has_scale == 1) {
+                self.scale = zmath.f32x4(
                     gltf_node.scale[0],
                     gltf_node.scale[1],
                     gltf_node.scale[2],
                     0.0,
-                )
-            else
-                zmath.f32x4(1.0, 1.0, 1.0, 0.0);
-            self.rotation = if (gltf_node.has_rotation == 1)
-                zmath.f32x4(
+                );
+            }
+            if (gltf_node.has_rotation == 1) {
+                self.rotation = zmath.f32x4(
                     gltf_node.rotation[0],
                     gltf_node.rotation[1],
                     gltf_node.rotation[2],
                     gltf_node.rotation[3],
-                )
-            else
-                zmath.f32x4(0.0, 0.0, 0.0, 1.0);
-            self.translation = if (gltf_node.has_translation == 1)
-                zmath.f32x4(
+                );
+            }
+            if (gltf_node.has_translation == 1) {
+                self.translation = zmath.f32x4(
                     gltf_node.translation[0],
                     gltf_node.translation[1],
                     gltf_node.translation[2],
                     0.0,
-                )
-            else
-                zmath.f32x4s(0.0);
+                );
+            }
             self.matrix = zmath.mul(parent.matrix, self.calcLocalTransform());
         }
         for (self.meshes) |*m| m.* = SubMesh.init(allocator, mesh);
@@ -259,6 +256,7 @@ pub const Node = struct {
                 .{
                     .aabb = sm.aabb,
                     .cull_faces = opt.cull_faces,
+                    .front_face = if (node.mesh.is_gltf) .ccw else .cw, // Use CCW when it is GLTF model
                     .color = opt.color,
                     .shading_method = opt.shading_method,
                     .texture = opt.texture orelse sm.getTexture(),
@@ -405,8 +403,9 @@ nodes_map: std.AutoHashMap(*const GltfNode, *Node),
 animations: std.StringHashMap(Animation),
 skins_map: std.AutoHashMap(*const GltfSkin, *Skin),
 own_textures: bool,
+is_gltf: bool,
 
-pub fn create(allocator: std.mem.Allocator, mesh_count: usize) !*Self {
+pub fn create(allocator: std.mem.Allocator, mesh_count: usize, is_gltf: bool) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
     self.allocator = allocator;
@@ -417,6 +416,7 @@ pub fn create(allocator: std.mem.Allocator, mesh_count: usize) !*Self {
     self.animations = std.StringHashMap(Animation).init(self.arena.allocator());
     self.skins_map = std.AutoHashMap(*const GltfSkin, *Skin).init(self.arena.allocator());
     self.own_textures = false;
+    self.is_gltf = is_gltf;
     return self;
 }
 
@@ -431,7 +431,7 @@ pub fn fromShape(
     shape: zmesh.Shape,
     opt: ShapeOption,
 ) !*Self {
-    var self = try create(allocator, 1);
+    var self = try create(allocator, 1, false);
     errdefer self.destroy();
     try self.root.meshes[0].appendAttributes(
         shape.indices,
@@ -470,7 +470,7 @@ pub fn fromGltf(
     const data = try zmesh.io.parseAndLoadFile(file_path);
     defer zmesh.io.freeData(data);
 
-    var self = try create(ctx.allocator(), 0);
+    var self = try create(ctx.allocator(), 0, true);
     errdefer self.destroy();
 
     if (opt.tex) |t| { // Use external texture
@@ -533,7 +533,10 @@ pub fn render(
     try self.root.render(
         csz,
         target,
-        model,
+        if (self.is_gltf) // Convert to right-handed system (glTF use left-handed system)
+            zmath.mul(zmath.scaling(-1, 1, 1), model)
+        else
+            model,
         camera,
         tri_rd,
         opt,
