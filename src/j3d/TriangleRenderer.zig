@@ -463,11 +463,11 @@ pub fn renderSprite(
         const facing_xz_normal = zmath.normalize3(zmath.f32x4(dir[0], 0, dir[2], 0.0));
         const pitch = -math.acos(zmath.clamp(zmath.dot3(facing_normal, facing_xz_normal)[0], -1.0, 1.0));
         const yaw = if (dir[0] > 0.0)
-            math.cos(zmath.clamp(zmath.dot3(facing_xz_normal, forward_dir)[0], -1.0, 1.0))
+            math.acos(zmath.clamp(zmath.dot3(facing_xz_normal, forward_dir)[0], -1.0, 1.0))
         else
-            -math.cos(zmath.clamp(zmath.dot3(facing_xz_normal, forward_dir)[0], -1.0, 1.0));
+            -math.acos(zmath.clamp(zmath.dot3(facing_xz_normal, forward_dir)[0], -1.0, 1.0));
         const m_rotate1 = zmath.mul(zmath.rotationX(math.pi), zmath.rotationY(math.pi));
-        const m_translate = zmath.translation(-opt.anchor_point.x, opt.anchor_point.y, 0.0);
+        const m_translate = zmath.translation(opt.anchor_point.x, opt.anchor_point.y, 0.0);
         const m_scale = zmath.scaling(size.x * opt.scale.x, size.y * opt.scale.y, 1.0);
         const m_rotate2 = zmath.mul(
             zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree)),
@@ -535,7 +535,7 @@ pub fn renderSprite(
             const size_x = size.x / csz.x * 2;
             const size_y = size.y / csz.y * 2;
             const m_scale = zmath.scaling(size_x * opt.scale.x, size_y * opt.scale.y, 1);
-            const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
+            const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(-opt.rotate_degree));
             const m_translate = zmath.translation(ndc_center[0], ndc_center[1], 0);
             const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
             const ndc_coords = zmath.mul(basic_coords, m_transform);
@@ -559,7 +559,7 @@ pub fn renderSprite(
             }
 
             const m_scale = zmath.scaling(size.x * opt.scale.x, size.y * opt.scale.y, 1);
-            const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree));
+            const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(-opt.rotate_degree));
             const m_translate = zmath.translation(
                 pos_in_camera_space[0],
                 pos_in_camera_space[1],
