@@ -47,7 +47,7 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
 
    Add jok dependency to your build.zig.zon, with following command:
     ```bash
-    zig fetch --save=jok git+https://github.com/jack-ji/jok.git
+    zig fetch --save git+https://github.com/jack-ji/jok.git
     ```
 
 2. Use *jok*'s build script to add build step
