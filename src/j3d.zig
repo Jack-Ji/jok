@@ -153,40 +153,46 @@ pub fn sprite(model: zmath.Mat, size: sdl.PointF, uv: [2]sdl.PointF, opt: Triang
 
 pub const LineOption = struct {
     color: sdl.Color = sdl.Color.white,
-    thickness: f32 = 0.01,
+    thickness: f32 = 0.1,
+    stacks: u32 = 10,
 };
 
 /// Render given line
 pub fn line(model: zmath.Mat, _p0: [3]f32, _p1: [3]f32, opt: LineOption) !void {
+    assert(opt.thickness > 0);
+    assert(opt.stacks > 0);
     const v0 = zmath.mul(zmath.f32x4(_p0[0], _p0[1], _p0[2], 1), model);
     const v1 = zmath.mul(zmath.f32x4(_p1[0], _p1[1], _p1[2], 1), model);
     const perpv = zmath.normalize3(zmath.cross3(v1 - v0, camera.dir));
     const veps = zmath.f32x4s(opt.thickness);
-    const p0 = v0 + veps * perpv;
-    const p1 = v0 - veps * perpv;
-    const p2 = v1 - veps * perpv;
-    const p3 = v1 + veps * perpv;
-    try tri_rd.renderMesh(
-        ctx.getCanvasSize(),
-        &target,
-        zmath.identity(),
-        camera,
-        &.{ 0, 1, 2, 0, 2, 3 },
-        &.{
-            .{ p0[0], p0[1], p0[2] },
-            .{ p1[0], p1[1], p1[2] },
-            .{ p2[0], p2[1], p2[2] },
-            .{ p3[0], p3[1], p3[2] },
-        },
-        null,
-        null,
-        null,
-        .{
-            .cull_faces = false,
-            .color = opt.color,
-            .shading_method = .flat,
-        },
-    );
+    const unit = (v1 - v0) / zmath.f32x4s(@floatFromInt(opt.stacks));
+    for (0..opt.stacks) |i| {
+        const p0 = v0 + zmath.f32x4s(@floatFromInt(i)) * unit + veps * perpv;
+        const p1 = v0 + zmath.f32x4s(@floatFromInt(i)) * unit - veps * perpv;
+        const p2 = v0 + zmath.f32x4s(@floatFromInt(i + 1)) * unit - veps * perpv;
+        const p3 = v0 + zmath.f32x4s(@floatFromInt(i + 1)) * unit + veps * perpv;
+        try tri_rd.renderMesh(
+            ctx.getCanvasSize(),
+            &target,
+            zmath.identity(),
+            camera,
+            &.{ 0, 1, 2, 0, 2, 3 },
+            &.{
+                .{ p0[0], p0[1], p0[2] },
+                .{ p1[0], p1[1], p1[2] },
+                .{ p2[0], p2[1], p2[2] },
+                .{ p3[0], p3[1], p3[2] },
+            },
+            null,
+            null,
+            null,
+            .{
+                .cull_faces = false,
+                .color = opt.color,
+                .shading_method = .flat,
+            },
+        );
+    }
 }
 
 pub const TriangleOption = struct {
