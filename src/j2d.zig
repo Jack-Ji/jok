@@ -37,7 +37,6 @@ pub const BeginOption = struct {
 };
 
 var ctx: jok.Context = undefined;
-var arena: std.heap.ArenaAllocator = undefined;
 var draw_list: imgui.DrawList = undefined;
 var draw_commands: std.ArrayList(internal.DrawCmd) = undefined;
 var transform: AffineTransform = undefined;
@@ -47,14 +46,12 @@ var all_tex: std.AutoHashMap(*sdl.c.SDL_Texture, bool) = undefined;
 
 pub fn init(_ctx: jok.Context) !void {
     ctx = _ctx;
-    arena = std.heap.ArenaAllocator.init(ctx.allocator());
     draw_list = imgui.createDrawList();
     draw_commands = std.ArrayList(internal.DrawCmd).init(ctx.allocator());
     all_tex = std.AutoHashMap(*sdl.c.SDL_Texture, bool).init(ctx.allocator());
 }
 
 pub fn deinit() void {
-    arena.deinit();
     imgui.destroyDrawList(draw_list);
     draw_commands.deinit();
     all_tex.deinit();

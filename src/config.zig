@@ -103,9 +103,6 @@ pub const MouseMode = enum {
     hide,
 };
 
-/// Memory allocator type
-pub const AllocatorType = std.heap.GeneralPurposeAllocator(.{});
-
 /// Validate and init setup configurations
 pub fn init(comptime game: anytype) Config {
     @setEvalBranchQuota(10000);
