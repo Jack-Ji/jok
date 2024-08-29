@@ -24,32 +24,32 @@ comptime {
             \\    pub fn quit(ctx: jok.Context) void
         );
     }
-    switch (@typeInfo(@typeInfo(@TypeOf(game.init)).Fn.return_type.?)) {
-        .ErrorUnion => |info| if (info.payload != void) {
+    switch (@typeInfo(@typeInfo(@TypeOf(game.init)).@"fn".return_type.?)) {
+        .error_union => |info| if (info.payload != void) {
             @compileError("`init` must return !void");
         },
         else => @compileError("`init` must return !void"),
     }
-    switch (@typeInfo(@typeInfo(@TypeOf(game.event)).Fn.return_type.?)) {
-        .ErrorUnion => |info| if (info.payload != void) {
+    switch (@typeInfo(@typeInfo(@TypeOf(game.event)).@"fn".return_type.?)) {
+        .error_union => |info| if (info.payload != void) {
             @compileError("`event` must return !void");
         },
         else => @compileError("`init` must return !void"),
     }
-    switch (@typeInfo(@typeInfo(@TypeOf(game.update)).Fn.return_type.?)) {
-        .ErrorUnion => |info| if (info.payload != void) {
+    switch (@typeInfo(@typeInfo(@TypeOf(game.update)).@"fn".return_type.?)) {
+        .error_union => |info| if (info.payload != void) {
             @compileError("`update` must return !void");
         },
         else => @compileError("`update` must return !void"),
     }
-    switch (@typeInfo(@typeInfo(@TypeOf(game.draw)).Fn.return_type.?)) {
-        .ErrorUnion => |info| if (info.payload != void) {
+    switch (@typeInfo(@typeInfo(@TypeOf(game.draw)).@"fn".return_type.?)) {
+        .error_union => |info| if (info.payload != void) {
             @compileError("`draw` must return !void");
         },
         else => @compileError("`draw` must return !void"),
     }
-    switch (@typeInfo(@typeInfo(@TypeOf(game.quit)).Fn.return_type.?)) {
-        .Void => {},
+    switch (@typeInfo(@typeInfo(@TypeOf(game.quit)).@"fn".return_type.?)) {
+        .void => {},
         else => @compileError("`quit` must return void"),
     }
 }

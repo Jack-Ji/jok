@@ -24,16 +24,16 @@ inline fn verifyGraphStruct(graph: anytype) void {
     {
         @compileError("Please verify the graph struct according to above demands.");
     }
-    switch (@typeInfo(@typeInfo(@TypeOf(gtype.iterateNeigh)).Fn.return_type.?)) {
-        .Struct => if (!std.meta.hasMethod(@typeInfo(@TypeOf(gtype.iterateNeigh)).Fn.return_type.?, "next")) {
+    switch (@typeInfo(@typeInfo(@TypeOf(gtype.iterateNeigh)).@"fn".return_type.?)) {
+        .@"struct" => if (!std.meta.hasMethod(@typeInfo(@TypeOf(gtype.iterateNeigh)).@"fn".return_type.?, "next")) {
             @compileError("`iterateNeigh` must return a valid iterator");
         },
         else => @compileError("`iterateNeigh` must return Iterator"),
     }
-    if (@typeInfo(@TypeOf(gtype.gcost)).Fn.return_type.? != usize) {
+    if (@typeInfo(@TypeOf(gtype.gcost)).@"fn".return_type.? != usize) {
         @compileError("`gcost` must return usize");
     }
-    if (@typeInfo(@TypeOf(gtype.hcost)).Fn.return_type.? != usize) {
+    if (@typeInfo(@TypeOf(gtype.hcost)).@"fn".return_type.? != usize) {
         @compileError("`hcost` must return usize");
     }
 }

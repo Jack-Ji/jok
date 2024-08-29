@@ -135,7 +135,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_detailed_frame_stats", .desc = "whether enable detailed frame statistics" },
         .{ .name = "jok_high_dpi_support", .desc = "whether enable high dpi support" },
     };
-    const game_struct = @typeInfo(game).Struct;
+    const game_struct = @typeInfo(game).@"struct";
     for (game_struct.decls) |f| {
         if (!std.mem.startsWith(u8, f.name, "jok_")) {
             continue;

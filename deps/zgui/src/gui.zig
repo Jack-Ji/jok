@@ -278,6 +278,9 @@ pub const io = struct {
     pub const getWantTextInput = zguiIoGetWantTextInput;
     extern fn zguiIoGetWantTextInput() bool;
 
+    pub const getFramerate = zguiIoFramerate;
+    extern fn zguiIoFramerate() f32;
+
     pub fn setIniFilename(filename: ?[*:0]const u8) void {
         zguiIoSetIniFilename(filename);
     }
@@ -637,6 +640,9 @@ extern fn zguiGetDrawData() DrawData;
 /// `pub fn showDemoWindow(popen: ?*bool) void`
 pub const showDemoWindow = zguiShowDemoWindow;
 extern fn zguiShowDemoWindow(popen: ?*bool) void;
+
+pub const showMetricsWindow = zguiShowMetricsWindow;
+extern fn zguiShowMetricsWindow(popen: ?*bool) void;
 //--------------------------------------------------------------------------------------------------
 //
 // Windows
@@ -1039,7 +1045,7 @@ pub const Style = extern struct {
     curve_tessellation_tol: f32,
     circle_tessellation_max_error: f32,
 
-    colors: [@typeInfo(StyleCol).Enum.fields.len][4]f32,
+    colors: [@typeInfo(StyleCol).@"enum".fields.len][4]f32,
 
     hover_stationary_delay: f32,
     hover_delay_short: f32,
@@ -1705,7 +1711,7 @@ pub fn comboFromEnum(
 ) bool {
     const EnumType = @TypeOf(current_item.*);
     const enum_type_info = switch (@typeInfo(EnumType)) {
-        .Enum => |enum_type_info| enum_type_info,
+        .@"enum" => |enum_type_info| enum_type_info,
         else => @compileError("Error: current_item must be a pointer-to-an-enum, not a " ++ @TypeOf(current_item)),
     };
 
@@ -2017,7 +2023,7 @@ extern fn zguiDragScalar(
 ) bool;
 //--------------------------------------------------------------------------------------------------
 fn DragScalarNGen(comptime T: type) type {
-    const ScalarType = @typeInfo(T).Array.child;
+    const ScalarType = @typeInfo(T).array.child;
     return struct {
         v: *T,
         speed: f32 = 1.0,
@@ -2028,8 +2034,8 @@ fn DragScalarNGen(comptime T: type) type {
     };
 }
 pub fn dragScalarN(label: [:0]const u8, comptime T: type, args: DragScalarNGen(T)) bool {
-    const ScalarType = @typeInfo(T).Array.child;
-    const components = @typeInfo(T).Array.len;
+    const ScalarType = @typeInfo(T).array.child;
+    const components = @typeInfo(T).array.len;
     return zguiDragScalarN(
         label,
         typeToDataTypeEnum(ScalarType),
@@ -2208,7 +2214,7 @@ extern fn zguiSliderScalar(
 
 //--------------------------------------------------------------------------------------------------
 fn SliderScalarNGen(comptime T: type) type {
-    const ScalarType = @typeInfo(T).Array.child;
+    const ScalarType = @typeInfo(T).array.child;
     return struct {
         v: *T,
         min: ScalarType,
@@ -2218,8 +2224,8 @@ fn SliderScalarNGen(comptime T: type) type {
     };
 }
 pub fn sliderScalarN(label: [:0]const u8, comptime T: type, args: SliderScalarNGen(T)) bool {
-    const ScalarType = @typeInfo(T).Array.child;
-    const components = @typeInfo(T).Array.len;
+    const ScalarType = @typeInfo(T).array.child;
+    const components = @typeInfo(T).array.len;
     return zguiSliderScalarN(
         label,
         typeToDataTypeEnum(ScalarType),
@@ -2676,7 +2682,7 @@ extern fn zguiInputScalar(
 ) bool;
 //--------------------------------------------------------------------------------------------------
 fn InputScalarNGen(comptime T: type) type {
-    const ScalarType = @typeInfo(T).Array.child;
+    const ScalarType = @typeInfo(T).array.child;
     return struct {
         v: *T,
         step: ?ScalarType = null,
@@ -2686,8 +2692,8 @@ fn InputScalarNGen(comptime T: type) type {
     };
 }
 pub fn inputScalarN(label: [:0]const u8, comptime T: type, args: InputScalarNGen(T)) bool {
-    const ScalarType = @typeInfo(T).Array.child;
-    const components = @typeInfo(T).Array.len;
+    const ScalarType = @typeInfo(T).array.child;
+    const components = @typeInfo(T).array.len;
     return zguiInputScalarN(
         label,
         typeToDataTypeEnum(ScalarType),
@@ -3073,7 +3079,10 @@ pub const TableFlags = packed struct(c_int) {
     sort_multi: bool = false,
     sort_tristate: bool = false,
 
-    _padding: u4 = 0,
+    // Miscellaneous
+    highlight_hovered_column: bool = false,
+
+    _padding: u3 = 0,
 };
 
 pub const TableRowFlags = packed struct(c_int) {
@@ -3295,6 +3304,9 @@ extern fn zguiIsItemToggledOpen() bool;
 extern fn zguiIsAnyItemHovered() bool;
 extern fn zguiIsAnyItemActive() bool;
 extern fn zguiIsAnyItemFocused() bool;
+
+pub const isRectVisible = zguiIsRectVisible;
+extern fn zguiIsRectVisible(pos: *[2]f32) bool;
 //--------------------------------------------------------------------------------------------------
 //
 // Color Utilities

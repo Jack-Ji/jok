@@ -890,15 +890,15 @@ test {
 }
 
 test "extern struct layout" {
-    @setEvalBranchQuota(10_000);
+    @setEvalBranchQuota(100000);
     const c = @cImport(@cInclude("cgltf.h"));
     inline for (comptime std.meta.declarations(@This())) |decl| {
         const ZigType = @field(@This(), decl.name);
         if (@TypeOf(ZigType) != type) {
             continue;
         }
-        if (comptime std.meta.activeTag(@typeInfo(ZigType)) == .Struct and
-            @typeInfo(ZigType).Struct.layout == .@"extern")
+        if (comptime std.meta.activeTag(@typeInfo(ZigType)) == .@"struct" and
+            @typeInfo(ZigType).@"struct".layout == .@"extern")
         {
             comptime var c_name_buf: [256]u8 = undefined;
             const c_name = comptime try cTypeNameFromZigTypeName(&c_name_buf, decl.name);
@@ -933,7 +933,7 @@ test "enum" {
         if (@TypeOf(ZigType) != type) {
             continue;
         }
-        if (comptime std.meta.activeTag(@typeInfo(ZigType)) == .Enum) {
+        if (comptime std.meta.activeTag(@typeInfo(ZigType)) == .@"enum") {
             comptime var c_name_buf: [256]u8 = undefined;
             const c_name = comptime try cTypeNameFromZigTypeName(&c_name_buf, decl.name);
             const CType = @field(c, c_name);
