@@ -1,6 +1,6 @@
 .{
     .name = "jok",
-    .version = "0.3.1",
+    .version = "0.3.2",
     .paths = .{
         "build.zig",
         "build.zig.zon",
@@ -11,8 +11,8 @@
     },
     .dependencies = .{
         .sdl = .{
-            .url = "git+https://github.com/jack-ji/sdl.zig#c09253170a0c5c80e03123e1947d3ee2dcdb2232",
-            .hash = "12207864d4938fe6b9d9bda7eda7b29e8b7a68bce48de67904baa8606f3dabf21b6d",
+            .url = "git+https://github.com/jack-ji/sdl.zig#2052d6e6b348764ac155a4db225ba3f90f8871ec",
+            .hash = "1220dc7b8b63eab7a4184fde897e51f8f1301d8615a0bbb0c9f8f0b693fa38055c4e",
         },
         .system_sdk = .{ .path = "deps/system-sdk" },
         .zaudio = .{ .path = "deps/zaudio" },
