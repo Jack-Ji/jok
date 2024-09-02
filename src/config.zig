@@ -149,9 +149,9 @@ pub fn init(comptime game: anytype) Config {
             const game_type = @typeInfo(GameFieldType);
             if (std.mem.eql(u8, o.name, f.name)) {
                 if (CfgFieldType == GameFieldType or
-                    (cfg_type == .Int and game_type == .ComptimeInt) or
-                    (cfg_type == .Optional and cfg_type.Optional.child == GameFieldType) or
-                    (cfg_type == .Union and cfg_type.Union.tag_type == GameFieldType))
+                    (cfg_type == .int and game_type == .comptime_int) or
+                    (cfg_type == .optional and cfg_type.optional.child == GameFieldType) or
+                    (cfg_type == .@"union" and cfg_type.@"union".tag_type == GameFieldType))
                 {
                     @field(cfg, f.name) = @field(game, o.name);
                 } else {
