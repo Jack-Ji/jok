@@ -211,14 +211,14 @@ pub const BufferView = extern struct {
     size: usize,
     stride: usize, // 0 == automatically determined by accessor
     view_type: BufferViewType,
-    _data: ?*anyopaque, // overrides buffer.data if present, filled by extensions
+    data: ?*anyopaque, // overrides buffer.data if present, filled by extensions
     has_meshopt_compression: Bool32,
     meshopt_compression: MeshoptCompression,
     extras: Extras,
     extensions_count: usize,
     extensions: ?[*]Extension,
 
-    pub fn data(bv: BufferView) ?[*]u8 {
+    pub fn getData(bv: BufferView) ?[*]u8 {
         return cgltf_buffer_view_data(&bv);
     }
 };
@@ -890,7 +890,7 @@ test {
 }
 
 test "extern struct layout" {
-    @setEvalBranchQuota(100000);
+    @setEvalBranchQuota(10_000);
     const c = @cImport(@cInclude("cgltf.h"));
     inline for (comptime std.meta.declarations(@This())) |decl| {
         const ZigType = @field(@This(), decl.name);

@@ -624,6 +624,9 @@ pub const Condition = enum(c_int) {
 /// `pub fn newFrame() void`
 pub const newFrame = zguiNewFrame;
 extern fn zguiNewFrame() void;
+/// `pub fn endFrame() void`
+pub const endFrame = zguiEndFrame;
+extern fn zguiEndFrame() void;
 //--------------------------------------------------------------------------------------------------
 /// `pub fn render() void`
 pub const render = zguiRender;
