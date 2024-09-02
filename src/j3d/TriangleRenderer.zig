@@ -391,10 +391,18 @@ pub fn renderMesh(
             },
             .flat => {
                 const c0_diffuse = if (colors) |_| sdl.Color{
-                    .r = (self.clip_colors.items[idx0].r + self.clip_colors.items[idx1].r + self.clip_colors.items[idx2].r) / 3,
-                    .g = (self.clip_colors.items[idx0].g + self.clip_colors.items[idx1].g + self.clip_colors.items[idx2].g) / 3,
-                    .b = (self.clip_colors.items[idx0].b + self.clip_colors.items[idx1].b + self.clip_colors.items[idx2].b) / 3,
-                    .a = (self.clip_colors.items[idx0].a + self.clip_colors.items[idx1].a + self.clip_colors.items[idx2].a) / 3,
+                    .r = @intCast((@as(u16, self.clip_colors.items[idx0].r) +
+                        @as(u16, self.clip_colors.items[idx1].r) +
+                        @as(u16, self.clip_colors.items[idx2].r)) / 3),
+                    .g = @intCast((@as(u16, self.clip_colors.items[idx0].g) +
+                        @as(u16, self.clip_colors.items[idx1].g) +
+                        @as(u16, self.clip_colors.items[idx2].g)) / 3),
+                    .b = @intCast((@as(u16, self.clip_colors.items[idx0].b) +
+                        @as(u16, self.clip_colors.items[idx1].b) +
+                        @as(u16, self.clip_colors.items[idx2].b)) / 3),
+                    .a = @intCast((@as(u16, self.clip_colors.items[idx0].a) +
+                        @as(u16, self.clip_colors.items[idx1].a) +
+                        @as(u16, self.clip_colors.items[idx2].a)) / 3),
                 } else opt.color;
                 c0 = if (opt.lighting) |lt| BLK: {
                     var center = (world_v0 + world_v1 + world_v2) / zmath.f32x4s(3);
