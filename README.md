@@ -31,9 +31,6 @@ A minimal 2d/3d game framework for zig.
 * SVG loading/rendering
 * Sound/Music playing/mixing
 
-## Community
-* [Discord](https://discord.gg/7r3HZBnzhZ)
-
 ## Supported platforms
 * Windows
 * Linux
