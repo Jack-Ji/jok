@@ -23,6 +23,9 @@ pub const Config = struct {
     /// Canvas size (default to framebuffer's size)
     jok_canvas_size: ?sdl.Size = null,
 
+    /// Post-processing granularity
+    jok_post_processing_size: sdl.Size = .{ .width = 100, .height = 100 },
+
     /// Window attributes
     jok_window_title: [:0]const u8 = "jok",
     jok_window_pos_x: sdl.WindowPosition = .default,
@@ -93,6 +96,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_software_renderer", .desc = "whether use software renderer" },
         .{ .name = "jok_software_renderer_fallback", .desc = "whether fallback to software renderer when hardware acceleration isn't available" },
         .{ .name = "jok_canvas_size", .desc = "size of canvas" },
+        .{ .name = "jok_post_processing_size", .desc = "post-processing granularity" },
         .{ .name = "jok_window_title", .desc = "title of window" },
         .{ .name = "jok_window_pos_x", .desc = "horizontal position of window" },
         .{ .name = "jok_window_pos_y", .desc = "vertical position of window" },

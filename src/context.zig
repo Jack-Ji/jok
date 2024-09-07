@@ -41,6 +41,7 @@ pub const Context = struct {
         getDpiScale: *const fn (ctx: *anyopaque) f32,
         isKeyPressed: *const fn (ctx: *anyopaque, key: sdl.Scancode) bool,
         getMouseState: *const fn (ctx: *anyopaque) sdl.MouseState,
+        setPostProcessing: *const fn (ctx: *anyopaque, ppfn: PostProcessingFn, data: ?*anyopaque) void,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
     },
@@ -160,6 +161,11 @@ pub const Context = struct {
         return self.vtable.getMouseState(self.ctx);
     }
 
+    /// Set post-processing callback
+    pub fn setPostProcessing(self: Context, ppfn: PostProcessingFn, data: ?*anyopaque) void {
+        return self.vtable.setPostProcessing(self.ctx, ppfn, data);
+    }
+
     /// Whether game is running slow
     pub fn isRunningSlow(self: Context) bool {
         return self.vtable.isRunningSlow(self.ctx);
@@ -194,6 +200,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         .verbose_log = cfg.jok_mem_detail_logs,
         .enable_memory_limit = true,
     });
+    const PostProcessingType = PostProcessingEffect(cfg);
 
     return struct {
         var gpa: AllocatorType = .{};
@@ -225,6 +232,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _canvas_size: ?sdl.Size = cfg.jok_canvas_size,
         _canvas_target_area: ?sdl.Rectangle = null,
         _canvas_scale: f32 = 1.0,
+
+        // Post-processing
+        _post_processing: PostProcessingType = undefined,
+        _ppfn: ?PostProcessingFn = null,
+        _ppdata: ?*anyopaque = null,
 
         // Audio stuff
         _audio_engine: *zaudio.Engine = undefined,
@@ -292,6 +304,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Init audio engine
             zaudio.init(self._allocator);
             self._audio_engine = try zaudio.Engine.create(null);
+
+            // Init post-processing facility
+            self._post_processing = PostProcessingType.init(self._renderer);
 
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
@@ -435,7 +450,13 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._renderer.setTarget(self._canvas_texture) catch unreachable;
                 defer {
                     self._renderer.setTarget(null) catch unreachable;
-                    self._renderer.copy(self._canvas_texture, self._canvas_target_area, null) catch unreachable;
+                    if (self._ppfn) |f| {
+                        self._post_processing.reset(self._renderer);
+                        self._post_processing.applyFn(self.context(), f, self._ppdata);
+                        self._post_processing.render(self._renderer, self._canvas_texture);
+                    } else {
+                        self._renderer.copy(self._canvas_texture, self._canvas_target_area, null) catch unreachable;
+                    }
                 }
 
                 drawFn(self._ctx) catch |e| {
@@ -782,6 +803,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .getDpiScale = getDpiScale,
                     .isKeyPressed = isKeyPressed,
                     .getMouseState = getMouseState,
+                    .setPostProcessing = setPostProcessing,
                     .isRunningSlow = isRunningSlow,
                     .displayStats = displayStats,
                 },
@@ -1031,6 +1053,13 @@ pub fn JokContext(comptime cfg: config.Config) type {
             return state;
         }
 
+        /// Set post-processing callback
+        pub fn setPostProcessing(ptr: *anyopaque, ppfn: PostProcessingFn, data: ?*anyopaque) void {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            self._ppfn = ppfn;
+            self._ppdata = data;
+        }
+
         /// Indicating game loop is running too slow
         pub fn isRunningSlow(ptr: *anyopaque) bool {
             const self: *@This() = @ptrCast(@alignCast(ptr));
@@ -1149,6 +1178,115 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 }
             }
             imgui.end();
+        }
+    };
+}
+
+/// Post-processing function
+pub const PostProcessingFn = *const fn (pos: sdl.PointF, data: ?*anyopaque) ?sdl.Color;
+
+/// Post-processing effect generator
+fn PostProcessingEffect(comptime cfg: config.Config) type {
+    return struct {
+        const max_cols: usize = @intCast(cfg.jok_post_processing_size.width);
+        const max_rows: usize = @intCast(cfg.jok_post_processing_size.height);
+
+        fbsize: sdl.Renderer.OutputSize,
+        _vs: [max_rows * max_cols * 6]sdl.Vertex,
+        vs: [max_rows * max_cols * 6]sdl.Vertex,
+
+        fn init(rd: sdl.Renderer) @This() {
+            var pp: @This() = undefined;
+            pp.reinit(rd.getOutputSize() catch unreachable);
+            return pp;
+        }
+
+        fn reinit(self: *@This(), newsize: sdl.Renderer.OutputSize) void {
+            self.fbsize = newsize;
+            const pos_unit_w = @as(f32, @floatFromInt(self.fbsize.width_pixels)) / @as(f32, @floatFromInt(max_cols));
+            const pos_unit_h = @as(f32, @floatFromInt(self.fbsize.height_pixels)) / @as(f32, @floatFromInt(max_rows));
+            const texcoord_unit_w = 1.0 / @as(f32, @floatFromInt(max_cols));
+            const texcoord_unit_h = 1.0 / @as(f32, @floatFromInt(max_rows));
+            var row: u32 = 0;
+            var col: u32 = 0;
+            var i: usize = 0;
+            while (i < self._vs.len) : (i += 6) {
+                self._vs[i].position = .{
+                    .x = pos_unit_w * @as(f32, @floatFromInt(col)),
+                    .y = pos_unit_h * @as(f32, @floatFromInt(row)),
+                };
+                self._vs[i].color = sdl.Color.white;
+                self._vs[i].tex_coord = .{
+                    .x = texcoord_unit_w * @as(f32, @floatFromInt(col)),
+                    .y = texcoord_unit_h * @as(f32, @floatFromInt(row)),
+                };
+                self._vs[i + 1].position = .{
+                    .x = pos_unit_w * @as(f32, @floatFromInt(col + 1)),
+                    .y = pos_unit_h * @as(f32, @floatFromInt(row)),
+                };
+                self._vs[i + 1].color = sdl.Color.white;
+                self._vs[i + 1].tex_coord = .{
+                    .x = texcoord_unit_w * @as(f32, @floatFromInt(col + 1)),
+                    .y = texcoord_unit_h * @as(f32, @floatFromInt(row)),
+                };
+                self._vs[i + 2].position = .{
+                    .x = pos_unit_w * @as(f32, @floatFromInt(col + 1)),
+                    .y = pos_unit_h * @as(f32, @floatFromInt(row + 1)),
+                };
+                self._vs[i + 2].color = sdl.Color.white;
+                self._vs[i + 2].tex_coord = .{
+                    .x = texcoord_unit_w * @as(f32, @floatFromInt(col + 1)),
+                    .y = texcoord_unit_h * @as(f32, @floatFromInt(row + 1)),
+                };
+                self._vs[i + 3] = self._vs[i];
+                self._vs[i + 4] = self._vs[i + 2];
+                self._vs[i + 5].position = .{
+                    .x = pos_unit_w * @as(f32, @floatFromInt(col)),
+                    .y = pos_unit_h * @as(f32, @floatFromInt(row + 1)),
+                };
+                self._vs[i + 5].color = sdl.Color.white;
+                self._vs[i + 5].tex_coord = .{
+                    .x = texcoord_unit_w * @as(f32, @floatFromInt(col)),
+                    .y = texcoord_unit_h * @as(f32, @floatFromInt(row + 1)),
+                };
+                col += 1;
+                if (col == max_cols) {
+                    row += 1;
+                    col = 0;
+                }
+            }
+        }
+
+        fn reset(self: *@This(), rd: sdl.Renderer) void {
+            const fbsize = rd.getOutputSize() catch unreachable;
+            if (self.fbsize.width_pixels != fbsize.width_pixels or
+                self.fbsize.height_pixels != fbsize.height_pixels)
+            {
+                self.reinit(fbsize);
+            }
+            @memcpy(&self.vs, &self._vs);
+        }
+
+        fn applyFn(self: *@This(), ctx: Context, ppfn: PostProcessingFn, data: ?*anyopaque) void {
+            const csz = ctx.getCanvasSize();
+            var i: usize = 0;
+            while (i < self.vs.len) : (i += 6) {
+                if (ppfn(.{
+                    .x = self.vs[i].tex_coord.x * csz.x,
+                    .y = self.vs[i].tex_coord.y * csz.y,
+                }, data)) |c| {
+                    self.vs[i].color = c;
+                    self.vs[i + 1].color = c;
+                    self.vs[i + 2].color = c;
+                    self.vs[i + 3].color = c;
+                    self.vs[i + 4].color = c;
+                    self.vs[i + 5].color = c;
+                }
+            }
+        }
+
+        fn render(self: @This(), rd: sdl.Renderer, tex: sdl.Texture) void {
+            rd.drawGeometry(tex, &self.vs, null) catch unreachable;
         }
     };
 }
