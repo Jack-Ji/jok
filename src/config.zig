@@ -9,10 +9,8 @@ pub const Config = struct {
     /// FPS limiting
     jok_fps_limit: FpsLimit = .{ .manual = 60 },
 
-    /// Default memory allocator
-    jok_allocator: ?std.mem.Allocator = null,
-
-    /// Default memory allocator settings
+    /// Memory facility
+    jok_mem_allocator: ?std.mem.Allocator = null,
     jok_mem_leak_checks: bool = true,
     jok_mem_detail_logs: bool = false,
 
@@ -22,44 +20,25 @@ pub const Config = struct {
     /// Whether fallback to software renderer when gpu isn't found
     jok_software_renderer_fallback: bool = true,
 
-    /// Window's title
-    jok_window_title: [:0]const u8 = "jok",
-
-    /// Position of window
-    jok_window_pos_x: sdl.WindowPosition = .default,
-    jok_window_pos_y: sdl.WindowPosition = .default,
-
-    /// Size of window
-    jok_window_size: WindowSize = .{ .custom = .{ .width = 800, .height = 600 } },
-
-    /// Size of canvas (default to framebuffer's size)
+    /// Canvas size (default to framebuffer's size)
     jok_canvas_size: ?sdl.Size = null,
 
-    /// Mimimum size of window
+    /// Window attributes
+    jok_window_title: [:0]const u8 = "jok",
+    jok_window_pos_x: sdl.WindowPosition = .default,
+    jok_window_pos_y: sdl.WindowPosition = .default,
+    jok_window_size: WindowSize = .{ .custom = .{ .width = 800, .height = 600 } },
     jok_window_min_size: ?sdl.Size = null,
-
-    /// Maximumsize of window
     jok_window_max_size: ?sdl.Size = null,
-
-    // Resizable switch
     jok_window_resizable: bool = false,
-
-    /// Borderless window
     jok_window_borderless: bool = false,
-
-    /// Window always on top
     jok_window_always_on_top: bool = false,
-
-    /// Whether show IME UI
     jok_window_ime_ui: bool = false,
+    jok_window_mouse_mode: MouseMode = .normal,
+    jok_window_high_dpi: bool = false,
 
-    /// Mouse mode
-    jok_mouse_mode: MouseMode = .normal,
-
-    /// Exit game when get esc event
+    /// Exit event processing
     jok_exit_on_recv_esc: bool = true,
-
-    /// Exit game when get quit event
     jok_exit_on_recv_quit: bool = true,
 
     /// Whether let imgui load/save ini file
@@ -70,9 +49,6 @@ pub const Config = struct {
 
     /// Whether enable detailed frame statistics
     jok_detailed_frame_stats: bool = true,
-
-    /// Whether enable high dpi support
-    jok_high_dpi_support: bool = false,
 };
 
 /// Initial size of window
@@ -111,29 +87,29 @@ pub fn init(comptime game: anytype) Config {
     const options = [_]struct { name: []const u8, desc: []const u8 }{
         .{ .name = "jok_log_level", .desc = "logging level" },
         .{ .name = "jok_fps_limit", .desc = "fps limit setting" },
-        .{ .name = "jok_allocator", .desc = "default memory allocator" },
+        .{ .name = "jok_mem_allocator", .desc = "default memory allocator" },
         .{ .name = "jok_mem_leak_checks", .desc = "whether default memory allocator check memleak when exiting" },
         .{ .name = "jok_mem_detail_logs", .desc = "whether default memory allocator print detailed memory alloc/free logs" },
         .{ .name = "jok_software_renderer", .desc = "whether use software renderer" },
         .{ .name = "jok_software_renderer_fallback", .desc = "whether fallback to software renderer when hardware acceleration isn't available" },
+        .{ .name = "jok_canvas_size", .desc = "size of canvas" },
         .{ .name = "jok_window_title", .desc = "title of window" },
         .{ .name = "jok_window_pos_x", .desc = "horizontal position of window" },
         .{ .name = "jok_window_pos_y", .desc = "vertical position of window" },
         .{ .name = "jok_window_size", .desc = "size of window" },
-        .{ .name = "jok_canvas_size", .desc = "size of canvas" },
         .{ .name = "jok_window_min_size", .desc = "minimum size of window" },
         .{ .name = "jok_window_max_size", .desc = "maximum size of window" },
         .{ .name = "jok_window_resizable", .desc = "whether window is resizable" },
         .{ .name = "jok_window_borderless", .desc = "whether window is borderless" },
         .{ .name = "jok_window_ime_ui", .desc = "whether show ime ui" },
         .{ .name = "jok_window_always_on_top", .desc = "whether window is locked to most front layer" },
-        .{ .name = "jok_mouse_mode", .desc = "mouse mode setting" },
+        .{ .name = "jok_window_mouse_mode", .desc = "mouse mode setting" },
+        .{ .name = "jok_window_high_dpi", .desc = "whether enable high dpi support" },
         .{ .name = "jok_exit_on_recv_esc", .desc = "whether exit game when esc is pressed" },
         .{ .name = "jok_exit_on_recv_quit", .desc = "whether exit game when getting quit event" },
         .{ .name = "jok_imgui_ini_file", .desc = "whether let imgui load/save ini file" },
         .{ .name = "jok_prebuild_atlas", .desc = "whether prebuild atlas for debug font" },
         .{ .name = "jok_detailed_frame_stats", .desc = "whether enable detailed frame statistics" },
-        .{ .name = "jok_high_dpi_support", .desc = "whether enable high dpi support" },
     };
     const game_struct = @typeInfo(game).@"struct";
     for (game_struct.decls) |f| {

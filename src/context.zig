@@ -267,7 +267,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _recent_total_costs: CostDataType = undefined,
 
         pub fn create() !*@This() {
-            var _allocator = cfg.jok_allocator orelse gpa.allocator();
+            var _allocator = cfg.jok_mem_allocator orelse gpa.allocator();
             var self = try _allocator.create(@This());
             self.* = .{};
             self._allocator = _allocator;
@@ -467,7 +467,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             while (sdl.pollNativeEvent()) |ne| {
                 // ImGui event processing
                 var e = ne;
-                if (cfg.jok_high_dpi_support) {
+                if (cfg.jok_window_high_dpi) {
                     switch (e.type) {
                         sdl.c.SDL_MOUSEMOTION => {
                             e.motion.x = @intFromFloat(@as(f32, @floatFromInt(e.motion.x)) / getDpiScale(self));
@@ -629,7 +629,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .macos => 72.0,
                 else => 96.0,
             };
-            if (cfg.jok_high_dpi_support) {
+            if (cfg.jok_window_high_dpi) {
                 if (builtin.target.os.tag == .windows) {
                     // Enable High-DPI awareness
                     // BUG: only workable on single monitor system
@@ -689,7 +689,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             toggleAlwaysOnTop(self, cfg.jok_window_always_on_top);
 
             // Apply mouse mode
-            switch (cfg.jok_mouse_mode) {
+            switch (cfg.jok_window_mouse_mode) {
                 .normal => {
                     if (cfg.jok_window_size == .fullscreen) {
                         sdl.c.SDL_SetWindowGrab(self._window.ptr, sdl.c.SDL_FALSE);
