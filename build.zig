@@ -42,6 +42,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "cp_demo", .opt = .{ .dep_name = null, .use_cp = true } },
         .{ .name = "maskout", .opt = .{ .dep_name = null } },
         .{ .name = "pathfind", .opt = .{ .dep_name = null } },
+        .{ .name = "post_processing", .opt = .{ .dep_name = null } },
         .{ .name = "generative_art_1", .opt = .{ .dep_name = null } },
         .{ .name = "generative_art_2", .opt = .{ .dep_name = null } },
         .{ .name = "generative_art_3", .opt = .{ .dep_name = null } },
