@@ -44,6 +44,7 @@ pub const Unit = enum {
 pub const CreateBitmap = struct {
     unit: Unit = .px,
     dpi: u32 = 96,
+    wanted_size: ?union(enum) { scale: f32, width: f32, height: f32 } = null,
 };
 
 pub fn createBitmapFromData(
@@ -59,21 +60,30 @@ pub fn createBitmapFromData(
     if (img) |m| {
         defer nsvgDelete(img);
 
+        var scale: f32 = 1.0;
+        if (opt.wanted_size) |sz| {
+            scale = switch (sz) {
+                .scale => |s| s,
+                .width => |w| w / m.width,
+                .height => |h| h / m.height,
+            };
+        }
         const rasterizer = nsvgCreateRasterizer();
         if (rasterizer) |rst| {
             defer nsvgDeleteRasterizer(rst);
 
+            const w: u32 = @intFromFloat(m.width * scale);
+            const h: u32 = @intFromFloat(m.height * scale);
+            const pixels = try allocator.alloc(u8, w * h * 4);
             const svg = SvgBitmap{
                 .allocator = allocator,
-                .width = @intFromFloat(@trunc(m.width)),
-                .height = @intFromFloat(@trunc(m.height)),
+                .width = w,
+                .height = h,
                 .format = if (builtin.cpu.arch.endian() == .big)
                     .rgba8888
                 else
                     .abgr8888,
-                .pixels = try allocator.alloc(u8, @intFromFloat(
-                    m.width * m.height * 4.0,
-                )),
+                .pixels = pixels,
             };
 
             nsvgRasterize(
@@ -81,7 +91,7 @@ pub fn createBitmapFromData(
                 m,
                 0,
                 0,
-                1.0,
+                scale,
                 svg.pixels.ptr,
                 @intCast(svg.width),
                 @intCast(svg.height),
