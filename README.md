@@ -89,6 +89,7 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
           }
         }
         ```
+        If you have multiple projects, you can config path to a global `sdl.json` using environment variable, defaults to `SDL_CONFIG_PATH`.
     
     * Linux Platform
     

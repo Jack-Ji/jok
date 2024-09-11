@@ -73,6 +73,7 @@ pub fn build(b: *std.Build) void {
 
 pub const BuildOptions = struct {
     dep_name: ?[]const u8 = "jok",
+    sdl_config_env: []const u8 = "SDL_CONFIG_PATH",
     use_cp: bool = false,
     use_nfd: bool = false,
     use_ztracy: bool = false,
@@ -94,7 +95,8 @@ pub fn createGame(
         b;
 
     // Find sdl build config and create sdk
-    const sdl_config_path = std.fs.path.join(
+    const env_sdl_path: ?[]u8 = std.process.getEnvVarOwned(b.allocator, opt.sdl_config_env) catch null;
+    const sdl_config_path = env_sdl_path orelse std.fs.path.join(
         b.allocator,
         &[_][]const u8{ b.pathFromRoot(".build_config"), "sdl.json" },
     ) catch @panic("OOM");
