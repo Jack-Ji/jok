@@ -26,8 +26,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
     errdefer allocator.destroy(self);
     self.* = .{
         .allocator = allocator,
-        .effects = try std.ArrayList(Effect)
-            .initCapacity(allocator, default_effects_capacity),
+        .effects = try std.ArrayList(Effect).initCapacity(allocator, default_effects_capacity),
     };
     return self;
 }
@@ -53,6 +52,18 @@ pub fn update(self: *Self, delta_time: f32) void {
         } else {
             i += 1;
         }
+    }
+}
+
+/// Clear all effects
+pub fn clear(self: *Self, retain_memory: bool) void {
+    for (self.effects.items) |e| {
+        e.deinit();
+    }
+    if (retain_memory) {
+        self.effects.clearRetainingCapacity();
+    } else {
+        self.effects.clearAndFree();
     }
 }
 
