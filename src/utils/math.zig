@@ -42,3 +42,41 @@ pub inline fn minAndMax(_x: anytype, _y: anytype, _z: anytype) std.meta.Tuple(&[
     if (y > z) std.mem.swap(@TypeOf(_x, _y, _z), &y, &z);
     return .{ x, z };
 }
+
+/// Transform coordinate between isometric space and screen space
+pub const IsometricTransform = struct {
+    iso_to_screen: zmath.Mat,
+    screen_to_iso: zmath.Mat,
+
+    pub const IsometricOption = struct {
+        xy_offset: sdl.PointF = .{ .x = 0, .y = 0 },
+        scale: f32 = 1.0,
+    };
+    pub fn init(tile_size: sdl.Size, opt: IsometricOption) @This() {
+        assert(tile_size.width > 0 and tile_size.height > 0);
+        var w: f32 = @floatFromInt(tile_size.width);
+        var h: f32 = @floatFromInt(tile_size.height);
+        w *= opt.scale;
+        h *= opt.scale;
+        const mat = zmath.loadMat(&.{
+            0.5 * w,         0.25 * h,        0, 0,
+            -0.5 * w,        0.25 * h,        0, 0,
+            0,               0,               1, 0,
+            opt.xy_offset.x, opt.xy_offset.y, 0, 1,
+        });
+        return .{
+            .iso_to_screen = mat,
+            .screen_to_iso = zmath.inverse(mat),
+        };
+    }
+
+    pub fn transformToScreen(self: @This(), p: sdl.PointF, zoffset: f32) sdl.PointF {
+        const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.iso_to_screen);
+        return .{ .x = v[0], .y = v[1] + zoffset };
+    }
+
+    pub fn transformToIso(self: @This(), p: sdl.PointF) sdl.PointF {
+        const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.screen_to_iso);
+        return .{ .x = v[0], .y = v[1] };
+    }
+};
