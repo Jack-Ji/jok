@@ -72,7 +72,7 @@ pub const IsometricTransform = struct {
 
     pub fn transformToScreen(self: @This(), p: sdl.PointF, zoffset: f32) sdl.PointF {
         const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.iso_to_screen);
-        return .{ .x = v[0], .y = v[1] + zoffset };
+        return .{ .x = v[0], .y = v[1] - zoffset };
     }
 
     pub fn transformToIso(self: @This(), p: sdl.PointF) sdl.PointF {
