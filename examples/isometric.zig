@@ -35,11 +35,11 @@ pub fn init(ctx: jok.Context) !void {
     }
 
     const csz = ctx.getCanvasSize();
-    scale = 0.5;
+    scale = 0.7;
     iso_transform = jok.utils.math.IsometricTransform.init(
-        .{ .width = @intFromFloat(sps[0].width), .height = @intFromFloat(sps[0].height) },
+        .{ .width = 111, .height = 65 },
         .{
-            .xy_offset = .{ .x = csz.x / 2, .y = 100 },
+            .xy_offset = .{ .x = csz.x / 2, .y = 50 },
             .scale = scale,
         },
     );
@@ -62,6 +62,8 @@ pub fn draw(ctx: jok.Context) !void {
         .x = @floatFromInt(mouse.x),
         .y = @floatFromInt(mouse.y),
     });
+    const selected_x: isize = @intFromFloat(@floor(mouse_pos_in_iso_space.x));
+    const selected_y: isize = @intFromFloat(@floor(mouse_pos_in_iso_space.y));
 
     j2d.begin(.{});
     defer j2d.end();
@@ -70,13 +72,10 @@ pub fn draw(ctx: jok.Context) !void {
         for (0..10) |x| {
             var tint_color = sdl.Color.white;
 
-            // BUG: this might be wrong
-            if (mouse_pos_in_iso_space.x > @as(f32, @floatFromInt(x)) and
-                mouse_pos_in_iso_space.x < @as(f32, @floatFromInt(x + 1)) and
-                mouse_pos_in_iso_space.y > @as(f32, @floatFromInt(y)) and
-                mouse_pos_in_iso_space.y < @as(f32, @floatFromInt(y + 1)))
+            if (selected_x == @as(isize, @intCast(x)) and
+                selected_y == @as(isize, @intCast(y)))
             {
-                tint_color = sdl.Color.red;
+                tint_color = sdl.Color.rgb(120, 99, 50);
             }
 
             const tile = map[y][x];

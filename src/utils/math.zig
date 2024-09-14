@@ -45,6 +45,7 @@ pub inline fn minAndMax(_x: anytype, _y: anytype, _z: anytype) std.meta.Tuple(&[
 
 /// Transform coordinate between isometric space and screen space
 pub const IsometricTransform = struct {
+    tile_width: f32,
     iso_to_screen: zmath.Mat,
     screen_to_iso: zmath.Mat,
 
@@ -54,17 +55,16 @@ pub const IsometricTransform = struct {
     };
     pub fn init(tile_size: sdl.Size, opt: IsometricOption) @This() {
         assert(tile_size.width > 0 and tile_size.height > 0);
-        var w: f32 = @floatFromInt(tile_size.width);
-        var h: f32 = @floatFromInt(tile_size.height);
-        w *= opt.scale;
-        h *= opt.scale;
+        const w = @as(f32, @floatFromInt(tile_size.width)) * opt.scale;
+        const h = @as(f32, @floatFromInt(tile_size.height)) * opt.scale;
         const mat = zmath.loadMat(&.{
-            0.5 * w,         0.25 * h,        0, 0,
-            -0.5 * w,        0.25 * h,        0, 0,
-            0,               0,               1, 0,
-            opt.xy_offset.x, opt.xy_offset.y, 0, 1,
+            0.5 * w,                   0.5 * h,         0, 0,
+            -0.5 * w,                  0.5 * h,         0, 0,
+            0,                         0,               1, 0,
+            opt.xy_offset.x - 0.5 * w, opt.xy_offset.y, 0, 1,
         });
         return .{
+            .tile_width = w,
             .iso_to_screen = mat,
             .screen_to_iso = zmath.inverse(mat),
         };
@@ -76,7 +76,10 @@ pub const IsometricTransform = struct {
     }
 
     pub fn transformToIso(self: @This(), p: sdl.PointF) sdl.PointF {
-        const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.screen_to_iso);
+        const v = zmath.mul(
+            zmath.f32x4(p.x - self.tile_width * 0.5, p.y, 0, 1),
+            self.screen_to_iso,
+        );
         return .{ .x = v[0], .y = v[1] };
     }
 };
