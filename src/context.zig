@@ -1095,6 +1095,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 imgui.text("V-Sync Enabled: {}", .{rdinfo.flags & sdl.c.SDL_RENDERER_PRESENTVSYNC != 0});
                 imgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
                 imgui.separator();
+                imgui.text("Duration: {}", .{std.fmt.fmtDuration(@intFromFloat(self._seconds_real * 1e9))});
                 if (self._running_slow) {
                     imgui.textColored(.{ 1, 0, 0, 1 }, "FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
                     imgui.textColored(.{ 1, 0, 0, 1 }, "CPU: {d:.1}ms", .{1000.0 / self._fps});
