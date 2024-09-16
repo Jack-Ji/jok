@@ -9,7 +9,7 @@ const sdl = jok.sdl;
 const font = jok.font;
 const imgui = jok.imgui;
 const plot = imgui.plot;
-const zaudio = jok.zaudio;
+const miniaudio = jok.miniaudio;
 const zmesh = jok.zmesh;
 const w32 = @import("w32.zig");
 
@@ -28,7 +28,7 @@ pub const Context = struct {
         window: *const fn (ctx: *anyopaque) sdl.Window,
         renderer: *const fn (ctx: *anyopaque) sdl.Renderer,
         canvas: *const fn (ctx: *anyopaque) sdl.Texture,
-        audioEngine: *const fn (ctx: *anyopaque) *zaudio.Engine,
+        audioEngine: *const fn (ctx: *anyopaque) *miniaudio.Engine,
         kill: *const fn (ctx: *anyopaque) void,
         toggleResizable: *const fn (ctx: *anyopaque, on_off: ?bool) void,
         toggleFullscreeen: *const fn (ctx: *anyopaque, on_off: ?bool) void,
@@ -93,7 +93,7 @@ pub const Context = struct {
     }
 
     /// Get audio engine
-    pub fn audioEngine(self: Context) *zaudio.Engine {
+    pub fn audioEngine(self: Context) *miniaudio.Engine {
         return self.vtable.audioEngine(self.ctx);
     }
 
@@ -240,7 +240,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _ppdata: ?*anyopaque = null,
 
         // Audio stuff
-        _audio_engine: *zaudio.Engine = undefined,
+        _audio_ctx: *miniaudio.Context = undefined,
+        _audio_engine: *miniaudio.Engine = undefined,
 
         // Resizable mode
         _resizable: bool = undefined,
@@ -303,8 +304,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
             try jok.j3d.init(self.context());
 
             // Init audio engine
-            zaudio.init(self._allocator);
-            self._audio_engine = try zaudio.Engine.create(null);
+            self._audio_ctx = try miniaudio.sdl.init(self._ctx);
+            self._audio_engine = try miniaudio.Engine.create(null);
 
             // Init post-processing facility
             self._post_processing = PostProcessingType.init(self._renderer);
@@ -337,7 +338,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Destroy audio engine
             self._audio_engine.destroy();
-            zaudio.deinit();
+            miniaudio.sdl.deinit(self._audio_ctx);
 
             // Destroy 2d and 3d modules
             jok.j3d.deinit();
@@ -931,7 +932,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Get audio engine
-        fn audioEngine(ptr: *anyopaque) *zaudio.Engine {
+        fn audioEngine(ptr: *anyopaque) *miniaudio.Engine {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._audio_engine;
         }

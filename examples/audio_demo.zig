@@ -3,14 +3,14 @@ const jok = @import("jok");
 const j2d = jok.j2d;
 const sdl = jok.sdl;
 const font = jok.font;
-const zaudio = jok.zaudio;
+const miniaudio = jok.miniaudio;
 
 var atlas: *font.Atlas = undefined;
-var music: *zaudio.Sound = undefined;
+var music: *miniaudio.Sound = undefined;
 var music_played_length: u32 = undefined;
 var music_total_length: u32 = undefined;
-var sfx1: *zaudio.Sound = undefined;
-var sfx2: *zaudio.Sound = undefined;
+var sfx1: *miniaudio.Sound = undefined;
+var sfx2: *miniaudio.Sound = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});

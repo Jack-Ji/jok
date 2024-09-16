@@ -163,7 +163,6 @@ pub fn createGame(
         },
     }));
     sdl_sdk.link(exe, .dynamic, .SDL2);
-    injectVendorLibraries(builder, exe, opt);
     exe.linkLibrary(zgui.artifact("imgui"));
     exe.linkLibrary(zaudio.artifact("miniaudio"));
     exe.linkLibrary(zmesh.artifact("zmesh"));
@@ -171,11 +170,21 @@ pub fn createGame(
     if (opt.use_ztracy) {
         exe.linkLibrary(ztracy.artifact("tracy"));
     }
+    injectVendorLibraries(builder, exe, target, optimize, opt);
 
     return exe;
 }
 
-fn injectVendorLibraries(b: *std.Build, exe: *std.Build.Step.Compile, opt: BuildOptions) void {
+fn injectVendorLibraries(
+    b: *std.Build,
+    exe: *std.Build.Step.Compile,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.Mode,
+    opt: BuildOptions,
+) void {
+    // libc is required
+    exe.linkLibC();
+
     // imgui
     if (exe.rootModuleTarget().os.tag == .windows) {
         exe.addIncludePath(b.path("src/vendor/imgui/c/SDL2/windows"));
@@ -194,7 +203,19 @@ fn injectVendorLibraries(b: *std.Build, exe: *std.Build.Step.Compile, opt: Build
         .flags = &.{"-fno-sanitize=undefined"},
     });
 
-    // stb
+    // miniaudio
+    exe.addIncludePath(b.path("deps/zaudio/libs/miniaudio"));
+    exe.addCSourceFile(.{
+        .file = b.path("src/vendor/miniaudio/c/miniaudio_impl_sdl2.c"),
+        .flags = &.{
+            "-DMA_ENABLE_CUSTOM",
+            "-std=c99",
+            "-fno-sanitize=undefined",
+            if (target.result.os.tag == .macos) "-DMA_NO_RUNTIME_LINKING" else "",
+        },
+    });
+
+    // stb headers
     exe.addCSourceFile(.{
         .file = b.path("src/vendor/stb/c/stb_wrapper.c"),
         .flags = &.{
@@ -251,7 +272,7 @@ fn injectVendorLibraries(b: *std.Build, exe: *std.Build.Step.Compile, opt: Build
                 "src/vendor/chipmunk/c/src/cpSweep1D.c",
             },
             .flags = &.{
-                "-DNDEBUG",
+                if (optimize == .Debug) "" else "-DNDEBUG",
                 "-DCP_USE_DOUBLES=0",
                 "-Wno-return-type-c-linkage",
                 "-fno-sanitize=undefined",
@@ -265,7 +286,6 @@ fn injectVendorLibraries(b: *std.Build, exe: *std.Build.Step.Compile, opt: Build
         defer flags.deinit();
         flags.append("-Wno-return-type-c-linkage") catch unreachable;
         flags.append("-fno-sanitize=undefined") catch unreachable;
-        exe.linkLibC();
         if (exe.rootModuleTarget().isDarwin()) {
             exe.linkFramework("AppKit");
         } else if (exe.rootModuleTarget().os.tag == .windows) {
