@@ -486,9 +486,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._update_cost = if (self._update_cost > 0) (self._update_cost + cost) / 2 else cost;
             };
 
-            while (sdl.pollNativeEvent()) |ne| {
+            while (sdl.pollNativeEvent()) |native_event| {
                 // ImGui event processing
-                var e = ne;
+                var e = native_event;
                 if (cfg.jok_window_high_dpi) {
                     switch (e.type) {
                         sdl.c.SDL_MOUSEMOTION => {
@@ -505,23 +505,39 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 _ = imgui.sdl.processEvent(e);
 
                 // Game event processing
-                var we = sdl.Event.from(ne);
-                if (cfg.jok_exit_on_recv_esc and we == .key_up and
-                    we.key_up.scancode == .escape)
+                var wrapped_event = sdl.Event.from(native_event);
+                if (cfg.jok_exit_on_recv_esc and wrapped_event == .key_up and
+                    wrapped_event.key_up.scancode == .escape)
                 {
                     kill(self);
-                } else if (cfg.jok_exit_on_recv_quit and we == .quit) {
+                } else if (cfg.jok_exit_on_recv_quit and wrapped_event == .quit) {
                     kill(self);
                 } else {
-                    if (we == .window and (we.window.type == .resized or we.window.type == .size_changed)) {
-                        if (self._canvas_size == null) {
-                            self._canvas_texture.destroy();
-                            self._canvas_texture = jok.utils.gfx.createTextureAsTarget(self.context(), .{}) catch unreachable;
+                    if (wrapped_event == .window) {
+                        switch (wrapped_event.window.type) {
+                            .resized, .size_changed => {
+                                if (self._canvas_size == null) {
+                                    self._canvas_texture.destroy();
+                                    self._canvas_texture =
+                                        jok.utils.gfx.createTextureAsTarget(self.context(), .{}) catch unreachable;
+                                }
+                                self.updateCanvasTargetArea();
+                            },
+                            .enter, .leave => {
+                                if (cfg.jok_window_mouse_mode == .hide_in_window) {
+                                    _ = sdl.c.SDL_ShowCursor(if (wrapped_event.window.type == .enter)
+                                        sdl.c.SDL_DISABLE
+                                    else
+                                        sdl.c.SDL_ENABLE);
+                                }
+                            },
+                            else => {},
                         }
-                        self.updateCanvasTargetArea();
-                    } else if (self._canvas_size != null) {
+                    }
+
+                    if (self._canvas_size != null) {
                         // Remapping mouse position to canvas
-                        switch (we) {
+                        switch (wrapped_event) {
                             .mouse_button_down => |*me| {
                                 const pos = self.mapPositionFromFramebufferToCanvas(.{
                                     .x = @intCast(me.x),
@@ -549,7 +565,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                             else => {},
                         }
                     }
-                    eventFn(self._ctx, we) catch |err| {
+
+                    // Passed to game code
+                    eventFn(self._ctx, wrapped_event) catch |err| {
                         log.err("Got error in `event`: {}", .{err});
                         if (@errorReturnTrace()) |trace| {
                             std.debug.dumpStackTrace(trace.*);
@@ -722,12 +740,18 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_FALSE);
                     }
                 },
-                .hide => {
+                .hide_always => {
                     if (cfg.jok_window_size == .fullscreen) {
                         sdl.c.SDL_SetWindowGrab(self._window.ptr, sdl.c.SDL_TRUE);
                     }
                     _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
                     _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_TRUE);
+                },
+                .hide_in_window => {
+                    if (cfg.jok_window_size == .fullscreen) {
+                        sdl.c.SDL_SetWindowGrab(self._window.ptr, sdl.c.SDL_TRUE);
+                    }
+                    _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
                 },
             }
 

@@ -78,8 +78,17 @@ pub const FpsLimit = union(enum) {
 
 /// Mouse mode
 pub const MouseMode = enum {
+    // Fullscreen: hide cursor, relative mode
+    // Windowed: show cursor
     normal,
-    hide,
+
+    // Fullscreen: hide cursor, relative mode
+    // Windowed: hide cursor, relative mode
+    hide_always,
+
+    // Fullscreen: hide cursor
+    // Windowed: hide cursor when focused
+    hide_in_window,
 };
 
 /// Validate and init setup configurations

@@ -32,6 +32,9 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     );
     zgui.io.setDefaultFont(font);
 
+    // Disable automatic mouse state updating
+    zgui.io.setConfigFlags(.{ .no_mouse_cursor_change = true });
+
     zgui.plot.init();
 
     // Initialize imgui's internal state
