@@ -272,7 +272,7 @@ pub fn isVisible(self: Self, model: zmath.Mat, aabb: [6]f32) bool {
 
 /// Get position of ray test target
 /// NOTE: assuming screen position is relative to top-left corner of viewport
-pub fn clacRayTestTarget(
+pub fn calcRayTestTarget(
     self: Self,
     ctx: jok.Context,
     screen_x: f32,
