@@ -82,13 +82,13 @@ pub const MouseMode = enum {
     // Windowed: show cursor
     normal,
 
+    // Fullscreen: hide cursor
+    // Windowed: hide cursor
+    hide_in_window,
+
     // Fullscreen: hide cursor, relative mode
     // Windowed: hide cursor, relative mode
     hide_always,
-
-    // Fullscreen: hide cursor
-    // Windowed: hide cursor when focused
-    hide_in_window,
 };
 
 /// Validate and init setup configurations

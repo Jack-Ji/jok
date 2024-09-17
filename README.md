@@ -164,6 +164,9 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     You can customize some setup settings (window width/height, fps, debug level etc), by 
     defining some public constants using predefined names (they're all prefixed with`jok_`).
     Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig).
+
+    NOTE: most settings're still customizable through SDL2's api in runtime. Remember, you can always
+    resort to `SDL` directly if you're not totally happy with `jok`'s working style.
     
     Now, compile and run your game using command `zig build run`, have fun!
     Please let me know if you have any issue or developed something interesting with this little framework.
@@ -172,8 +175,8 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
 **Jok** is short for **joke**, which is about how overly-complicated modern graphics programming has become.
 People are gradually forgetting lots of computing techniques used to deliver amazing games on simple machines.
 With so many tools, engines and computing resources at hand, however, gamedev is not as fun as it used to be. 
-**Jok** is an offort trying to bring the joy of gamedev back, it's being developed in the spirit of 
-retro-machines of 1990s (especially PS1), which implies following limitations:
+**Jok** is an offort trying to bring the joy back, it's being developed in the spirit of retro-machines of
+1990s (especially PS1), which implies following limitations:
 
 * Custom vertex/fragment shader is not possible
 * Only support [affine texture mapping](https://en.wikipedia.org/wiki/Texture_mapping#Affine_texture_mapping)

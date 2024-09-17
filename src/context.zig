@@ -524,14 +524,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                                 }
                                 self.updateCanvasTargetArea();
                             },
-                            .enter, .leave => {
-                                if (cfg.jok_window_mouse_mode == .hide_in_window) {
-                                    _ = sdl.c.SDL_ShowCursor(if (wrapped_event.window.type == .enter)
-                                        sdl.c.SDL_DISABLE
-                                    else
-                                        sdl.c.SDL_ENABLE);
-                                }
-                            },
                             else => {},
                         }
                     }
@@ -741,18 +733,18 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_FALSE);
                     }
                 },
+                .hide_in_window => {
+                    if (cfg.jok_window_size == .fullscreen) {
+                        sdl.c.SDL_SetWindowGrab(self._window.ptr, sdl.c.SDL_TRUE);
+                    }
+                    _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
+                },
                 .hide_always => {
                     if (cfg.jok_window_size == .fullscreen) {
                         sdl.c.SDL_SetWindowGrab(self._window.ptr, sdl.c.SDL_TRUE);
                     }
                     _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
                     _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_TRUE);
-                },
-                .hide_in_window => {
-                    if (cfg.jok_window_size == .fullscreen) {
-                        sdl.c.SDL_SetWindowGrab(self._window.ptr, sdl.c.SDL_TRUE);
-                    }
-                    _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
                 },
             }
 
