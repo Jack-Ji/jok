@@ -4,14 +4,14 @@ const sdl = jok.sdl;
 const imgui = jok.imgui;
 const j2d = jok.j2d;
 
-var offset0: [2]f32 = .{ 0, 0 };
-var offset1: [2]f32 = .{ 0, 0 };
-var p0: [2]f32 = .{ 10, 10 };
-var p1: [2]f32 = .{ 90, 30 };
-var p2: [2]f32 = .{ 10, 90 };
-var p3: [2]f32 = .{ 100, 10 };
-var p4: [2]f32 = .{ 220, 50 };
-var p5: [2]f32 = .{ 150, 80 };
+var offset0: sdl.PointF = .{ .x = 0, .y = 0 };
+var offset1: sdl.PointF = .{ .x = 0, .y = 0 };
+var p0: sdl.PointF = .{ .x = 10, .y = 10 };
+var p1: sdl.PointF = .{ .x = 90, .y = 30 };
+var p2: sdl.PointF = .{ .x = 10, .y = 90 };
+var p3: sdl.PointF = .{ .x = 100, .y = 10 };
+var p4: sdl.PointF = .{ .x = 220, .y = 50 };
+var p5: sdl.PointF = .{ .x = 150, .y = 80 };
 
 pub fn init(ctx: jok.Context) !void {
     _ = ctx;
@@ -33,15 +33,15 @@ pub fn draw(ctx: jok.Context) !void {
 
     var tri_color = sdl.Color.white;
     var tri_thickness = @as(f32, 2);
-    const tri0 = [_][2]f32{
-        .{ offset0[0] + p0[0], offset0[1] + p0[1] },
-        .{ offset0[0] + p1[0], offset0[1] + p1[1] },
-        .{ offset0[0] + p2[0], offset0[1] + p2[1] },
+    const tri0 = [_]sdl.PointF{
+        .{ .x = offset0.x + p0.x, .y = offset0.y + p0.y },
+        .{ .x = offset0.x + p1.x, .y = offset0.y + p1.y },
+        .{ .x = offset0.x + p2.x, .y = offset0.y + p2.y },
     };
-    const tri1 = [_][2]f32{
-        .{ offset1[0] + p3[0], offset1[1] + p3[1] },
-        .{ offset1[0] + p4[0], offset1[1] + p4[1] },
-        .{ offset1[0] + p5[0], offset1[1] + p5[1] },
+    const tri1 = [_]sdl.PointF{
+        .{ .x = offset1.x + p3.x, .y = offset1.y + p3.y },
+        .{ .x = offset1.x + p4.x, .y = offset1.y + p4.y },
+        .{ .x = offset1.x + p5.x, .y = offset1.y + p5.y },
     };
     if (jok.utils.algo.areTrianglesIntersect(tri0, tri1)) {
         tri_color = sdl.Color.red;
@@ -58,20 +58,20 @@ pub fn draw(ctx: jok.Context) !void {
 
     j2d.begin(.{});
     defer j2d.end();
-    j2d.getTransform().setToTranslate(.{ .x = offset0[0], .y = offset0[1] });
+    j2d.getTransform().setToTranslate(.{ .x = offset0.x, .y = offset0.y });
     try j2d.triangle(
-        .{ .x = p0[0], .y = p0[1] },
-        .{ .x = p1[0], .y = p1[1] },
-        .{ .x = p2[0], .y = p2[1] },
+        .{ .x = p0.x, .y = p0.y },
+        .{ .x = p1.x, .y = p1.y },
+        .{ .x = p2.x, .y = p2.y },
         tri_color,
         .{ .thickness = tri_thickness },
     );
 
-    j2d.getTransform().setToTranslate(.{ .x = offset1[0], .y = offset1[1] });
+    j2d.getTransform().setToTranslate(.{ .x = offset1.x, .y = offset1.y });
     try j2d.triangle(
-        .{ .x = p3[0], .y = p3[1] },
-        .{ .x = p4[0], .y = p4[1] },
-        .{ .x = p5[0], .y = p5[1] },
+        .{ .x = p3.x, .y = p3.y },
+        .{ .x = p4.x, .y = p4.y },
+        .{ .x = p5.x, .y = p5.y },
         tri_color,
         .{ .thickness = tri_thickness },
     );
@@ -91,15 +91,15 @@ pub fn draw(ctx: jok.Context) !void {
     if (imgui.begin("Control", .{})) {
         imgui.separator();
         imgui.text("triangle 0", .{});
-        _ = imgui.dragFloat2("offset 0", .{ .v = &offset0 });
-        _ = imgui.dragFloat2("p0", .{ .v = &p0 });
-        _ = imgui.dragFloat2("p1", .{ .v = &p1 });
-        _ = imgui.dragFloat2("p2", .{ .v = &p2 });
+        _ = imgui.dragFloat2("offset 0", .{ .v = @ptrCast(&offset0) });
+        _ = imgui.dragFloat2("p0", .{ .v = @ptrCast(&p0) });
+        _ = imgui.dragFloat2("p1", .{ .v = @ptrCast(&p1) });
+        _ = imgui.dragFloat2("p2", .{ .v = @ptrCast(&p2) });
         imgui.text("triangle 1", .{});
-        _ = imgui.dragFloat2("offset 1", .{ .v = &offset1 });
-        _ = imgui.dragFloat2("p3", .{ .v = &p3 });
-        _ = imgui.dragFloat2("p4", .{ .v = &p4 });
-        _ = imgui.dragFloat2("p5", .{ .v = &p5 });
+        _ = imgui.dragFloat2("offset 1", .{ .v = @ptrCast(&offset1) });
+        _ = imgui.dragFloat2("p3", .{ .v = @ptrCast(&p3) });
+        _ = imgui.dragFloat2("p4", .{ .v = @ptrCast(&p4) });
+        _ = imgui.dragFloat2("p5", .{ .v = @ptrCast(&p5) });
     }
     imgui.end();
 }
