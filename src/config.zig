@@ -27,7 +27,7 @@ pub const Config = struct {
     jok_post_processing_size: sdl.Size = .{ .width = 100, .height = 100 },
 
     /// Window attributes
-    jok_window_title: [:0]const u8 = "jok",
+    jok_window_title: [:0]const u8 = "mygame",
     jok_window_pos_x: sdl.WindowPosition = .default,
     jok_window_pos_y: sdl.WindowPosition = .default,
     jok_window_size: WindowSize = .{ .custom = .{ .width = 800, .height = 600 } },
@@ -52,6 +52,10 @@ pub const Config = struct {
 
     /// Whether enable detailed frame statistics
     jok_detailed_frame_stats: bool = true,
+
+    /// Application data directory info
+    jok_ref_org: []const u8 = "myorg",
+    jok_ref_app: []const u8 = "mygame",
 };
 
 /// Initial size of window

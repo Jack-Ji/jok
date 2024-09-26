@@ -6,6 +6,7 @@ const config = @import("config.zig");
 const pp = @import("post_processing.zig");
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const font = jok.font;
 const imgui = jok.imgui;
 const plot = imgui.plot;
@@ -287,6 +288,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._allocator = _allocator;
             self._ctx = self.context();
 
+            // Init PhysicsFS
+            physfs.init(self._allocator);
+
             // Check and print system info
             try self.checkSys();
 
@@ -352,6 +356,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Destroy window and renderer
             self.deinitSDL();
+
+            // Deinitialize PhysicsFS
+            physfs.deinit();
 
             // Destory self
             self._allocator.destroy(self);
@@ -615,14 +622,16 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Print system info
             log.info(
                 \\System info:
-                \\    Build Mode    : {s}
-                \\    Logging Level : {s}
-                \\    Zig Version   : {}
-                \\    CPU           : {s}
-                \\    ABI           : {s}
-                \\    SDL           : {}.{}.{}
-                \\    Platform      : {s}
-                \\    Memory        : {d}MB
+                \\    Build Mode  : {s}
+                \\    Log Level   : {s}
+                \\    Zig Version : {}
+                \\    CPU         : {s}
+                \\    ABI         : {s}
+                \\    SDL         : {}.{}.{}
+                \\    Platform    : {s}
+                \\    Memory      : {d}MB
+                \\    App Dir     : {s} 
+                \\    Data Dir    : {s} 
             ,
                 .{
                     @tagName(builtin.mode),
@@ -635,6 +644,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     sdl_version.patch,
                     @tagName(target.os.tag),
                     ram_size,
+                    physfs.getBaseDir(),
+                    physfs.getRefDir(cfg.jok_ref_org, cfg.jok_ref_app),
                 },
             );
 

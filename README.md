@@ -186,6 +186,7 @@ The limitations demand developers to be both creative and careful about game's d
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
+* [PhysFS](https://github.com/icculus/physfs) (zlib license)
 * [zig-gamedev](https://github.com/zig-gamedev/zig-gamedev) (MIT license)
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
 * [stb headers](https://github.com/nothings/stb) (MIT license)

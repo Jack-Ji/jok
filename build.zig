@@ -189,10 +189,10 @@ fn injectVendorLibraries(
     // imgui
     if (exe.rootModuleTarget().os.tag == .windows) {
         exe.addIncludePath(b.path("src/vendor/imgui/c/SDL2/windows"));
-    } else if (exe.rootModuleTarget().os.tag == .linux) {
-        exe.addIncludePath(b.path("src/vendor/imgui/c/SDL2/linux"));
-    } else if (exe.rootModuleTarget().isDarwin()) {
+    } else if (target.result.os.tag == .macos) {
         exe.addIncludePath(b.path("src/vendor/imgui/c/SDL2/macos"));
+    } else if (target.result.os.tag == .linux) {
+        exe.addIncludePath(b.path("src/vendor/imgui/c/SDL2/linux"));
     } else unreachable;
     exe.addIncludePath(b.path("deps/zgui/libs/imgui"));
     exe.addIncludePath(b.path("src/vendor/imgui/c"));
@@ -233,6 +233,56 @@ fn injectVendorLibraries(
             "-fno-sanitize=undefined",
         },
     });
+
+    // physfs
+    exe.addCSourceFiles(.{
+        .files = &.{
+            "src/vendor/physfs/c/physfs.c",
+            "src/vendor/physfs/c/physfs_byteorder.c",
+            "src/vendor/physfs/c/physfs_unicode.c",
+            "src/vendor/physfs/c/physfs_platform_posix.c",
+            "src/vendor/physfs/c/physfs_platform_unix.c",
+            "src/vendor/physfs/c/physfs_platform_windows.c",
+            "src/vendor/physfs/c/physfs_platform_ogc.c",
+            "src/vendor/physfs/c/physfs_platform_os2.c",
+            "src/vendor/physfs/c/physfs_platform_qnx.c",
+            "src/vendor/physfs/c/physfs_platform_android.c",
+            "src/vendor/physfs/c/physfs_platform_playdate.c",
+            "src/vendor/physfs/c/physfs_archiver_dir.c",
+            "src/vendor/physfs/c/physfs_archiver_unpacked.c",
+            "src/vendor/physfs/c/physfs_archiver_grp.c",
+            "src/vendor/physfs/c/physfs_archiver_hog.c",
+            "src/vendor/physfs/c/physfs_archiver_7z.c",
+            "src/vendor/physfs/c/physfs_archiver_mvl.c",
+            "src/vendor/physfs/c/physfs_archiver_qpak.c",
+            "src/vendor/physfs/c/physfs_archiver_wad.c",
+            "src/vendor/physfs/c/physfs_archiver_csm.c",
+            "src/vendor/physfs/c/physfs_archiver_zip.c",
+            "src/vendor/physfs/c/physfs_archiver_slb.c",
+            "src/vendor/physfs/c/physfs_archiver_iso9660.c",
+            "src/vendor/physfs/c/physfs_archiver_vdf.c",
+            "src/vendor/physfs/c/physfs_archiver_lec3d.c",
+        },
+        .flags = &.{
+            "-DCP_USE_DOUBLES=0",
+            "-Wno-return-type-c-linkage",
+            "-fno-sanitize=undefined",
+        },
+    });
+    if (target.result.os.tag == .windows) {
+        exe.linkSystemLibrary("advapi32");
+        exe.linkSystemLibrary("shell32");
+    } else if (target.result.os.tag == .macos) {
+        if (b.lazyDependency("system_sdk", .{})) |system_sdk| {
+            exe.addFrameworkPath(system_sdk.path("macos12/System/Library/Frameworks"));
+            exe.addSystemIncludePath(system_sdk.path("macos12/usr/include"));
+            exe.addLibraryPath(system_sdk.path("macos12/usr/lib"));
+        }
+        exe.linkFramework("IOKit");
+        exe.linkFramework("Foundation");
+    } else if (target.result.os.tag == .linux) {
+        exe.linkSystemLibrary("pthread");
+    } else unreachable;
 
     // chipmunk
     if (opt.use_cp) {
@@ -287,12 +337,12 @@ fn injectVendorLibraries(
         defer flags.deinit();
         flags.append("-Wno-return-type-c-linkage") catch unreachable;
         flags.append("-fno-sanitize=undefined") catch unreachable;
-        if (exe.rootModuleTarget().isDarwin()) {
-            exe.linkFramework("AppKit");
-        } else if (exe.rootModuleTarget().os.tag == .windows) {
+        if (exe.rootModuleTarget().os.tag == .windows) {
             exe.linkSystemLibrary("shell32");
             exe.linkSystemLibrary("ole32");
             exe.linkSystemLibrary("uuid"); // needed by MinGW
+        } else if (target.result.os.tag == .macos) {
+            exe.linkFramework("AppKit");
         } else if (exe.rootModuleTarget().os.tag == .linux) {
             exe.linkSystemLibrary("atk-1.0");
             exe.linkSystemLibrary("gdk-3");
@@ -305,21 +355,22 @@ fn injectVendorLibraries(
             .file = b.path("src/vendor/nfd/c/nfd_common.c"),
             .flags = flags.items,
         });
-        if (exe.rootModuleTarget().isDarwin()) {
-            exe.addCSourceFile(.{
-                .file = b.path("src/vendor/nfd/c/nfd_cocoa.m"),
-                .flags = flags.items,
-            });
-        } else if (exe.rootModuleTarget().os.tag == .windows) {
+
+        if (target.result.os.tag == .windows) {
             exe.addCSourceFile(.{
                 .file = b.path("src/vendor/nfd/c/nfd_win.cpp"),
                 .flags = flags.items,
             });
-        } else {
+        } else if (target.result.os.tag == .macos) {
+            exe.addCSourceFile(.{
+                .file = b.path("src/vendor/nfd/c/nfd_cocoa.m"),
+                .flags = flags.items,
+            });
+        } else if (target.result.os.tag == .linux) {
             exe.addCSourceFile(.{
                 .file = b.path("src/vendor/nfd/c/nfd_gtk.c"),
                 .flags = flags.items,
             });
-        }
+        } else unreachable;
     }
 }
