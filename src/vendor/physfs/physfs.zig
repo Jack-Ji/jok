@@ -34,78 +34,7 @@ pub const Error = error{
     Duplicate,
     BadPassword,
     AppCallback,
-};
-
-pub const ErrorCode = enum(c_int) {
-    ok, // Success; no error.
-    other_error, // Error not otherwise covered here.
-    out_of_memory, // Memory allocation failed.
-    not_initialized, // PhysicsFS is not initialized.
-    is_initialized, // PhysicsFS is already initialized.
-    argv0_is_null, // Needed argv[0], but it is NULL.
-    unsupported, // Operation or feature unsupported.
-    past_eof, // Attempted to access past end of file.
-    files_still_open, // Files still open.
-    invalid_argument, // Bad parameter passed to an function.
-    not_mounted, // Requested archive/dir not mounted.
-    not_found, // File (or whatever) not found.
-    symlink_forbidden, // Symlink seen when not permitted.
-    no_write_dir, // No write dir has been specified.
-    open_for_reading, // Wrote to a file opened for reading.
-    open_for_writing, // Read from a file opened for writing.
-    not_a_file, // Needed a file, got a directory (etc).
-    read_only, // Wrote to a read-only filesystem.
-    corrupt, // Corrupted data encountered.
-    symlink_loop, // Infinite symbolic link loop.
-    io, // i/o error (hardware failure, etc).
-    permission, // Permission denied.
-    no_space, // No space (disk full, over quota, etc)
-    bad_filename, // Filename is bogus/insecure.
-    busy, // Tried to modify a file the OS needs.
-    dir_not_empty, // Tried to delete dir with files in it.
-    os_error, // Unspecified OS-level error.
-    duplicate, // Duplicate entry.
-    bad_password, // Bad password.
-    app_callback, // Application callback reported error.
-
-    pub fn toError(ec: ErrorCode) ?void {
-        return switch (ec) {
-            .ok => null,
-            .other_error => error.OtherError,
-            .out_of_memory => error.OutOfMemory,
-            .not_initialized => error.NotInitialized,
-            .is_initialized => error.IsInitialized,
-            .argv0_is_null => error.Argv0IsNull,
-            .unsupported => error.Unsupported,
-            .past_eof => error.PastEOF,
-            .files_still_open => error.FilesStillOpen,
-            .invalid_argument => error.InvalidArgument,
-            .not_mounted => error.NotMounted,
-            .not_found => error.NotFound,
-            .symlink_forbidden => error.SymlinkForbidden,
-            .no_write_dir => error.NoWriteDir,
-            .open_for_reading => error.OpenForReading,
-            .open_for_writing => error.OpenForWriting,
-            .not_a_file => error.NotFile,
-            .read_only => error.ReadOnly,
-            .corrupt => error.Corrupt,
-            .symlink_loop => error.SymlinkLoop,
-            .io => error.IO,
-            .permission => error.Permission,
-            .no_space => error.NoSpace,
-            .bad_filename => error.BadFilename,
-            .busy => error.Busy,
-            .dir_not_empty => error.DirNotEmpty,
-            .os_error => error.OsError,
-            .duplicate => error.Duplicate,
-            .bad_password => error.BadPassword,
-            .app_callback => error.AppCallback,
-        };
-    }
-
-    pub fn toDesc(ec: ErrorCode) []const u8 {
-        return std.mem.sliceTo(PHYSFS_getErrorByCode(ec), 0);
-    }
+    FileChanged,
 };
 
 /// Get error information of last call.
@@ -164,12 +93,12 @@ pub fn getBaseDir() [*:0]const u8 {
 }
 
 /// Get the "pref dir". This is meant to be where users can write personal
-///  files (preferences and save games, etc) that are specific to your
-///  application. This directory is unique per user, per application.
+/// files (preferences and save games, etc) that are specific to your
+/// application. This directory is unique per user, per application.
 ///
 /// This function will decide the appropriate location in the native filesystem,
-///  create the directory if necessary, and return a string in
-///  platform-dependent notation, suitable for passing to PHYSFS_setWriteDir().
+/// create the directory if necessary, and return a string in
+/// platform-dependent notation, suitable for passing to PHYSFS_setWriteDir().
 ///
 /// On Windows, this might look like:
 ///  "C:\\Users\\bob\\AppData\\Roaming\\My Company\\My Program Name"
@@ -183,31 +112,31 @@ pub fn getBaseDir() [*:0]const u8 {
 /// (etc.)
 ///
 /// You should probably use the pref dir for your write dir, and also put it
-///  near the beginning of your search path. Older versions of PhysicsFS
-///  offered only PHYSFS_getUserDir() and left you to figure out where the
-///  files should go under that tree. This finds the correct location
-///  for whatever platform, which not only changes between operating systems,
-///  but also versions of the same operating system.
+/// near the beginning of your search path. Older versions of PhysicsFS
+/// offered only PHYSFS_getUserDir() and left you to figure out where the
+/// files should go under that tree. This finds the correct location
+/// for whatever platform, which not only changes between operating systems,
+/// but also versions of the same operating system.
 ///
 /// You specify the name of your organization (if it's not a real organization,
-///  your name or an Internet domain you own might do) and the name of your
-///  application. These should be proper names.
+/// your name or an Internet domain you own might do) and the name of your
+/// application. These should be proper names.
 ///
 /// Both the (org) and (app) strings may become part of a directory name, so
-///  please follow these rules:
+/// please follow these rules:
 ///
-///    - Try to use the same org string (including case-sensitivity) for
-///      all your applications that use this function.
-///    - Always use a unique app string for each one, and make sure it never
-///      changes for an app once you've decided on it.
-///    - Unicode characters are legal, as long as it's UTF-8 encoded, but...
-///    - ...only use letters, numbers, and spaces. Avoid punctuation like
-///      "Game Name 2: Bad Guy's Revenge!" ... "Game Name 2" is sufficient.
+///   - Try to use the same org string (including case-sensitivity) for
+///     all your applications that use this function.
+///   - Always use a unique app string for each one, and make sure it never
+///     changes for an app once you've decided on it.
+///   - Unicode characters are legal, as long as it's UTF-8 encoded, but...
+///   - ...only use letters, numbers, and spaces. Avoid punctuation like
+///     "Game Name 2: Bad Guy's Revenge!" ... "Game Name 2" is sufficient.
 ///
 /// The pointer returned by this function remains valid until you call this
-///  function again, or call PHYSFS_deinit(). This is not necessarily a fast
-///  call, though, so you should call this once at startup and copy the string
-///  if you need it.
+/// function again, or call PHYSFS_deinit(). This is not necessarily a fast
+/// call, though, so you should call this once at startup and copy the string
+/// if you need it.
 ///
 /// You should assume the path returned by this function is the only safe
 /// place to write files.
@@ -353,7 +282,7 @@ pub fn mkdir(dirname: [*:0]const u8) !void {
 /// Delete a file or directory.
 ///
 /// (filename) is specified in platform-independent notation in relation to the
-///  write dir.
+/// write dir.
 ///
 /// A directory must be empty before this call can delete it.
 ///
@@ -460,18 +389,159 @@ pub fn getListIterator(dir: [*:0]const u8) !struct {
 
 /// Determine if a file exists in the search path.
 pub fn exists(fname: [*:0]const u8) bool {
-    return if (PHYSFS_exists(fname) == 1) true else false;
+    return if (PHYSFS_exists(fname) == 0) false else true;
 }
 
-/// Get the current write dir. The default write dir is NULL.
-/// A PhysicsFS file handle.
-///
-/// You get a pointer to one of these when you open a file for reading,
-/// writing, or appending via PhysicsFS.
-pub const File = *opaque {};
+/// Get various information about a directory or a file.
+pub fn fstat(fname: [*:0]const u8) !FileStat {
+    var result: FileStat = undefined;
+    if (PHYSFS_stat(fname, &result) == 0) {
+        return getLastErrorCode().toError();
+    }
+    return result;
+}
+
+/// Open file in vfs
+pub const OpenMode = enum {
+    read,
+    write,
+    append,
+};
+pub fn open(fname: [*:0]const u8, mode: OpenMode) !File {
+    const handle = switch (mode) {
+        .read => PHYSFS_openRead(fname),
+        .write => PHYSFS_openWrite(fname),
+        .append => PHYSFS_openAppend(fname),
+    };
+    if (handle) |h| {
+        return .{
+            .handle = h,
+        };
+    }
+    return getLastErrorCode().toError();
+}
+
+/// An opened file
+pub const File = struct {
+    handle: *FileHandle,
+
+    /// Close opened file
+    pub fn close(self: File) !void {
+        if (PHYSFS_close(self.handle) == 0) {
+            @panic(getLastErrorCode().toDesc());
+        }
+    }
+
+    /// Read bytes from a filehandle
+    pub fn read(self: File, data: []u8) !usize {
+        const ret = PHYSFS_readBytes(self.handle, data.ptr, data.len);
+        if (ret == -1) {
+            return getLastErrorCode().toError();
+        }
+        return @as(usize, @intCast(ret));
+    }
+
+    /// Read all bytes from a filehandle, using given memory allocator.
+    /// Note that if another process/thread is writing to this file at the same
+    /// time, then the information this function supplies could be incorrect
+    /// before you get it. Use with caution, or better yet, don't use at all.
+    pub fn readAllAlloc(self: File, allocator: std.mem.Allocator) ![]const u8 {
+        const total = try self.length();
+        const data = try allocator.alloc(u8, total);
+        errdefer allocator.free(data);
+        const read_len = try self.read(data);
+        if (read_len != total) {
+            return error.FileChanged;
+        }
+        return data;
+    }
+
+    /// Write bytes into a filehandle
+    pub fn write(self: File, data: []const u8) !void {
+        const ret = PHYSFS_writeBytes(self.handle, data.ptr, data.len);
+        if (ret != @as(i64, @intCast(data.len))) {
+            return getLastErrorCode().toError();
+        }
+    }
+
+    /// Check for end-of-file state.
+    pub fn eof(self: File) bool {
+        return if (PHYSFS_eof(self.handle) == 0) false else true;
+    }
+
+    /// Determine current position within a filehandle.
+    pub fn tell(self: File) !usize {
+        const ret = PHYSFS_tell(self.handle);
+        if (ret == -1) {
+            return getLastErrorCode().toError();
+        }
+        return @as(usize, @intCast(ret));
+    }
+
+    /// Seek to a new position within a filehandle.
+    /// The next read or write will occur at that place. Seeking past the
+    /// beginning or end of the file is not allowed, and causes an error.
+    pub fn seek(self: File, pos: usize) !void {
+        if (PHYSFS_seek(self.handle, pos) == 0) {
+            return getLastErrorCode().toError();
+        }
+    }
+
+    /// Get file's total length
+    /// Note that if another process/thread is writing to this file at the same
+    /// time, then the information this function supplies could be incorrect
+    /// before you get it. Use with caution, or better yet, don't use at all.
+    pub fn length(self: File) !usize {
+        const ret = PHYSFS_fileLength(self.handle);
+        if (ret == -1) {
+            return getLastErrorCode().toError();
+        }
+        return @as(usize, @intCast(ret));
+    }
+
+    /// Define an i/o buffer for a file handle. A memory block of (bufsize) bytes
+    /// will be allocated and associated with (handle).
+    ///
+    /// For files opened for reading, up to (bufsize) bytes are read from (handle)
+    /// and stored in the internal buffer. Calls to PHYSFS_read() will pull
+    /// from this buffer until it is empty, and then refill it for more reading.
+    /// Note that compressed files, like ZIP archives, will decompress while
+    /// buffering, so this can be handy for offsetting CPU-intensive operations.
+    /// The buffer isn't filled until you do your next read.
+    ///
+    /// For files opened for writing, data will be buffered to memory until the
+    /// buffer is full or the buffer is flushed. Closing a handle implicitly
+    /// causes a flush...check your return values!
+    ///
+    /// Seeking, etc transparently accounts for buffering.
+    ///
+    /// You can resize an existing buffer by calling this function more than once
+    /// on the same file. Setting the buffer size to zero will free an existing
+    /// buffer.
+    ///
+    /// File handles are unbuffered by default.
+    pub fn setBuffer(self: File, buf_size: usize) !void {
+        if (PHYSFS_setBuffer(self.handle, buf_size) == 0) {
+            return getLastErrorCode().toError();
+        }
+    }
+
+    /// Flush a buffered PhysicsFS file handle.
+    ///
+    /// For buffered files opened for writing, this will put the current contents
+    /// of the buffer to disk and flag the buffer as empty if possible.
+    ///
+    /// For buffered files opened for reading or unbuffered files, this is a safe
+    /// no-op, and will report success.
+    pub fn flush(self: File) !void {
+        if (PHYSFS_flush(self.handle) == 0) {
+            return getLastErrorCode().toError();
+        }
+    }
+};
 
 //------------------------------------------------------------------------------
-// Custom memory allocator implementation
+// Custom memory allocator implementation (private)
 //------------------------------------------------------------------------------
 var physfs_allocator: MemAllocator = undefined;
 var mem_allocator: ?std.mem.Allocator = null;
@@ -540,9 +610,82 @@ fn memFree(ptr: ?*anyopaque) callconv(.C) void {
     mem_allocator.?.free(mem);
 }
 
+/// Get various information about a directory or a file.
+
 //------------------------------------------------------------------------------
 // C api declarations
 //------------------------------------------------------------------------------
+pub const ErrorCode = enum(c_int) {
+    ok, // Success; no error.
+    other_error, // Error not otherwise covered here.
+    out_of_memory, // Memory allocation failed.
+    not_initialized, // PhysicsFS is not initialized.
+    is_initialized, // PhysicsFS is already initialized.
+    argv0_is_null, // Needed argv[0], but it is NULL.
+    unsupported, // Operation or feature unsupported.
+    past_eof, // Attempted to access past end of file.
+    files_still_open, // Files still open.
+    invalid_argument, // Bad parameter passed to an function.
+    not_mounted, // Requested archive/dir not mounted.
+    not_found, // File (or whatever) not found.
+    symlink_forbidden, // Symlink seen when not permitted.
+    no_write_dir, // No write dir has been specified.
+    open_for_reading, // Wrote to a file opened for reading.
+    open_for_writing, // Read from a file opened for writing.
+    not_a_file, // Needed a file, got a directory (etc).
+    read_only, // Wrote to a read-only filesystem.
+    corrupt, // Corrupted data encountered.
+    symlink_loop, // Infinite symbolic link loop.
+    io, // i/o error (hardware failure, etc).
+    permission, // Permission denied.
+    no_space, // No space (disk full, over quota, etc)
+    bad_filename, // Filename is bogus/insecure.
+    busy, // Tried to modify a file the OS needs.
+    dir_not_empty, // Tried to delete dir with files in it.
+    os_error, // Unspecified OS-level error.
+    duplicate, // Duplicate entry.
+    bad_password, // Bad password.
+    app_callback, // Application callback reported error.
+
+    pub fn toError(ec: ErrorCode) Error {
+        return switch (ec) {
+            .ok => unreachable,
+            .other_error => error.OtherError,
+            .out_of_memory => error.OutOfMemory,
+            .not_initialized => error.NotInitialized,
+            .is_initialized => error.IsInitialized,
+            .argv0_is_null => error.Argv0IsNull,
+            .unsupported => error.Unsupported,
+            .past_eof => error.PastEOF,
+            .files_still_open => error.FilesStillOpen,
+            .invalid_argument => error.InvalidArgument,
+            .not_mounted => error.NotMounted,
+            .not_found => error.NotFound,
+            .symlink_forbidden => error.SymlinkForbidden,
+            .no_write_dir => error.NoWriteDir,
+            .open_for_reading => error.OpenForReading,
+            .open_for_writing => error.OpenForWriting,
+            .not_a_file => error.NotFile,
+            .read_only => error.ReadOnly,
+            .corrupt => error.Corrupt,
+            .symlink_loop => error.SymlinkLoop,
+            .io => error.IO,
+            .permission => error.Permission,
+            .no_space => error.NoSpace,
+            .bad_filename => error.BadFilename,
+            .busy => error.Busy,
+            .dir_not_empty => error.DirNotEmpty,
+            .os_error => error.OsError,
+            .duplicate => error.Duplicate,
+            .bad_password => error.BadPassword,
+            .app_callback => error.AppCallback,
+        };
+    }
+
+    pub fn toDesc(ec: ErrorCode) []const u8 {
+        return std.mem.sliceTo(PHYSFS_getErrorByCode(ec), 0);
+    }
+};
 const MemAllocator = extern struct {
     init_fn: ?*const fn () callconv(.C) c_int,
     deinit_fn: ?*const fn () callconv(.C) void,
@@ -568,3 +711,31 @@ extern fn PHYSFS_delete(dirName: [*:0]const u8) c_int;
 extern fn PHYSFS_getRealDir(filename: [*:0]const u8) ?[*:0]const u8;
 extern fn PHYSFS_enumerateFiles(dir: [*:0]const u8) ?[*]?[*:0]const u8;
 extern fn PHYSFS_exists(fname: [*:0]const u8) c_int;
+const FileType = enum(c_int) {
+    regular,
+    directory,
+    symlink,
+    other,
+};
+const FileStat = extern struct {
+    size: i64, // size in bytes, -1 for non-files and unknown
+    mtime: i64, // last modification time
+    ctime: i64, // file creation time
+    atime: i64, // file access time
+    type: FileType, // file type
+    readonly: i32, // non-zero if read only, zero if writable
+};
+extern fn PHYSFS_stat(fname: [*:0]const u8, stat: *FileStat) c_int;
+const FileHandle = opaque {};
+extern fn PHYSFS_openWrite(filename: [*:0]const u8) ?*FileHandle;
+extern fn PHYSFS_openAppend(filename: [*:0]const u8) ?*FileHandle;
+extern fn PHYSFS_openRead(filename: [*:0]const u8) ?*FileHandle;
+extern fn PHYSFS_close(handle: *FileHandle) c_int;
+extern fn PHYSFS_readBytes(handle: *FileHandle, buf: [*]u8, len: u64) i64;
+extern fn PHYSFS_writeBytes(handle: *FileHandle, buf: [*]const u8, len: u64) i64;
+extern fn PHYSFS_eof(handle: *FileHandle) c_int;
+extern fn PHYSFS_tell(handle: *FileHandle) i64;
+extern fn PHYSFS_seek(handle: *FileHandle, pos: u64) c_int;
+extern fn PHYSFS_fileLength(handle: *FileHandle) i64;
+extern fn PHYSFS_setBuffer(handle: *FileHandle, bufsize: u64) c_int;
+extern fn PHYSFS_flush(handle: *FileHandle) c_int;
