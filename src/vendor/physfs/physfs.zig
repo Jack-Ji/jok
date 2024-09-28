@@ -401,7 +401,11 @@ pub fn fstat(fname: [*:0]const u8) !FileStat {
     return result;
 }
 
-/// Open file in vfs
+/// Open file in VFS
+///
+/// ZIP files may be password-protected. As the PkWare specs specify, each
+/// file in the .zip may have a different password, so you call
+/// open("file_that_i_want.txt$PASSWORD", .read) to make it work.
 pub const OpenMode = enum {
     read,
     write,
