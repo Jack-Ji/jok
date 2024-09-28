@@ -53,9 +53,9 @@ pub const Config = struct {
     /// Whether enable detailed frame statistics
     jok_detailed_frame_stats: bool = true,
 
-    /// Application data directory info
-    jok_ref_org: []const u8 = "myorg",
-    jok_ref_app: []const u8 = "mygame",
+    /// Application preference directory info
+    jok_pref_org: []const u8 = "myorg",
+    jok_pref_app: []const u8 = "mygame",
 };
 
 /// Initial size of window
@@ -127,6 +127,8 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_imgui_ini_file", .desc = "whether let imgui load/save ini file" },
         .{ .name = "jok_prebuild_atlas", .desc = "whether prebuild atlas for debug font" },
         .{ .name = "jok_detailed_frame_stats", .desc = "whether enable detailed frame statistics" },
+        .{ .name = "jok_pref_org", .desc = "Org part of app preference path" },
+        .{ .name = "jok_pref_app", .desc = "App part of app preference path" },
     };
     const game_struct = @typeInfo(game).@"struct";
     for (game_struct.decls) |f| {

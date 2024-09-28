@@ -130,13 +130,11 @@ pub fn init(allocator: std.mem.Allocator) void {
         .realloc_fn = memRealloc,
         .free_fn = memFree,
     };
-    var ret = PHYSFS_setAllocator(&physfs_allocator);
-    if (ret == 0) {
+    if (PHYSFS_setAllocator(&physfs_allocator) == 0) {
         @panic(getLastErrorCode().toDesc());
     }
 
-    ret = PHYSFS_init(std.os.argv[0]);
-    if (ret == 0) {
+    if (PHYSFS_init(std.os.argv[0]) == 0) {
         @panic(getLastErrorCode().toDesc());
     }
 }
@@ -151,8 +149,7 @@ pub fn init(allocator: std.mem.Allocator) void {
 /// handles yourself before calling this function, so that you can gracefully
 /// handle a specific failure.
 pub fn deinit() void {
-    const ret = PHYSFS_deinit();
-    if (ret == 0) {
+    if (PHYSFS_deinit() == 0) {
         @panic(getLastErrorCode().toDesc());
     }
 }
@@ -162,8 +159,8 @@ pub fn deinit() void {
 /// be the process's current working directory.
 ///
 /// You should probably use the base dir in your search path.
-pub fn getBaseDir() []const u8 {
-    return std.mem.sliceTo(PHYSFS_getBaseDir(), 0);
+pub fn getBaseDir() [*:0]const u8 {
+    return PHYSFS_getBaseDir();
 }
 
 /// Get the "pref dir". This is meant to be where users can write personal
@@ -214,14 +211,259 @@ pub fn getBaseDir() []const u8 {
 ///
 /// You should assume the path returned by this function is the only safe
 /// place to write files.
-pub fn getRefDir(_org: []const u8, _app: []const u8) []const u8 {
+pub fn getPrefDir(_org: []const u8, _app: []const u8) [*:0]const u8 {
     var org_buf: [256]u8 = undefined;
     var app_buf: [256]u8 = undefined;
     const org = std.fmt.bufPrintZ(&org_buf, "{s}", .{_org}) catch unreachable;
     const app = std.fmt.bufPrintZ(&app_buf, "{s}", .{_app}) catch unreachable;
-    return std.mem.sliceTo(PHYSFS_getPrefDir(org, app), 0);
+    if (PHYSFS_getPrefDir(org, app)) |p| {
+        return p;
+    }
+    @panic("can't get data dir");
 }
 
+/// Get the current write dir. The default write dir is NULL.
+pub fn getWriteDir() ?[*:0]const u8 {
+    return PHYSFS_getWriteDir();
+}
+
+/// Set a new write dir. This will override the previous setting.
+/// New path is specified in platform-dependent notation.
+/// Setting to NULL disables the write dir, so no files can be opened
+/// for writing via PhysicsFS.
+///
+/// This call will fail (and fail to change the write dir) if the current
+/// write dir still has files open in it.
+pub fn setWriteDir(path: ?[*:0]const u8) !void {
+    if (PHYSFS_setWriteDir(path) == 0) {
+        return getLastErrorCode().toError();
+    }
+}
+
+/// Get current search paths, using given memory allocator.
+pub fn getSearchPathsAlloc(allocator: std.mem.Allocator) !struct {
+    allocator: std.mem.Allocator,
+    cpaths: [*]?[*:0]const u8,
+    paths: [][*:0]const u8,
+
+    pub fn deinit(self: *@This()) void {
+        PHYSFS_freeList(@ptrCast(self.cpaths));
+        self.allocator.free(self.paths);
+    }
+} {
+    if (PHYSFS_getSearchPath()) |cpaths| {
+        var path_count: usize = 0;
+        while (cpaths[path_count] != null) {
+            path_count += 1;
+        }
+
+        const result = .{
+            .allocator = allocator,
+            .cpaths = cpaths,
+            .paths = try allocator.alloc([*:0]const u8, path_count),
+        };
+        for (0..path_count) |i| {
+            result.paths[i] = cpaths[i].?;
+        }
+
+        return result;
+    }
+    return getLastErrorCode().toError();
+}
+
+/// Get iterator for current search paths.
+pub fn getSearchPathsIterator() !struct {
+    cpaths: [*]?[*:0]const u8,
+    idx: usize,
+
+    pub fn deinit(it: *@This()) void {
+        PHYSFS_freeList(@ptrCast(it.cpaths));
+    }
+
+    pub fn next(it: *@This()) ?[*:0]const u8 {
+        const p = it.cpaths[it.idx];
+        if (p != null) it.idx += 1;
+        return p;
+    }
+} {
+    if (PHYSFS_getSearchPath()) |cpaths| {
+        return .{
+            .cpaths = cpaths,
+            .idx = 0,
+        };
+    }
+    return getLastErrorCode().toError();
+}
+
+/// Add an archive or directory to the search path.
+/// Append new dir to search paths if `append` is true, prepend otherwise.
+///
+/// If this is a duplicate, the entry is not added again, even though the
+/// function succeeds. You may not add the same archive to two different
+/// mountpoints: duplicate checking is done against the archive and not the
+/// mountpoint.
+///
+/// When you mount an archive, it is added to a virtual file system...all files
+/// in all of the archives are interpolated into a single hierachical file
+/// tree. Two archives mounted at the same place (or an archive with files
+/// overlapping another mountpoint) may have overlapping files: in such a case,
+/// the file earliest in the search path is selected, and the other files are
+/// inaccessible to the application. This allows archives to be used to
+/// override previous revisions; you can use the mounting mechanism to place
+/// archives at a specific point in the file tree and prevent overlap; this
+/// is useful for downloadable mods that might trample over application data
+/// or each other, for example.
+pub fn mount(dir_or_archive: [*:0]const u8, mount_point: [*:0]const u8, append: bool) !void {
+    if (PHYSFS_mount(dir_or_archive, mount_point, if (append) 1 else 0) == 0) {
+        return getLastErrorCode().toError();
+    }
+}
+
+/// Remove a directory or archive from the search path.
+///
+/// This must be a (case-sensitive) match to a dir or archive already in the
+/// search path, specified in platform-dependent notation.
+///
+/// This call will fail (and fail to remove from the path) if the element still
+/// has files open in it.
+pub fn unmount(dir_or_archive: [*:0]const u8) !void {
+    if (PHYSFS_unmount(dir_or_archive) == 0) {
+        return getLastErrorCode().toError();
+    }
+}
+
+/// Create a directory.
+///
+/// This is specified in platform-independent notation in relation to the
+/// write dir. All missing parent directories are also created if they
+/// don't exist.
+///
+/// So if you've got the write dir set to "C:\mygame\writedir" and call
+/// PHYSFS_mkdir("downloads/maps") then the directories
+/// "C:\mygame\writedir\downloads" and "C:\mygame\writedir\downloads\maps"
+/// will be created if possible. If the creation of "maps" fails after we
+/// have successfully created "downloads", then the function leaves the
+/// created directory behind and reports failure.
+pub fn mkdir(dirname: [*:0]const u8) !void {
+    if (PHYSFS_mkdir(dirname) == 0) {
+        return getLastErrorCode().toError();
+    }
+}
+
+/// Delete a file or directory.
+///
+/// (filename) is specified in platform-independent notation in relation to the
+///  write dir.
+///
+/// A directory must be empty before this call can delete it.
+///
+/// Deleting a symlink will remove the link, not what it points to, regardless
+/// of whether you "permitSymLinks" or not.
+///
+/// So if you've got the write dir set to "C:\mygame\writedir" and call
+/// PHYSFS_delete("downloads/maps/level1.map") then the file
+/// "C:\mygame\writedir\downloads\maps\level1.map" is removed from the
+/// physical filesystem, if it exists and the operating system permits the
+/// deletion.
+///
+/// Note that on Unix systems, deleting a file may be successful, but the
+/// actual file won't be removed until all processes that have an open
+/// filehandle to it (including your program) close their handles.
+///
+/// Chances are, the bits that make up the file still exist, they are just
+/// made available to be written over at a later point. Don't consider this
+/// a security method or anything.  :)
+pub fn delete(filename: [*:0]const u8) !void {
+    if (PHYSFS_delete(filename) == 0) {
+        return getLastErrorCode().toError();
+    }
+}
+
+/// Figure out where in the search path a file resides.
+///
+/// The file is specified in platform-independent notation. The returned
+/// filename will be the element of the search path where the file was found,
+/// which may be a directory, or an archive. Even if there are multiple
+/// matches in different parts of the search path, only the first one found
+/// is used, just like when opening a file.
+///
+/// So, if you look for "maps/level1.map", and C:\\mygame is in your search
+/// path and C:\\mygame\\maps\\level1.map exists, then "C:\mygame" is returned.
+///
+/// If a any part of a match is a symbolic link, and you've not explicitly
+/// permitted symlinks, then it will be ignored, and the search for a match
+/// will continue.
+///
+/// If you specify a fake directory that only exists as a mount point, it'll
+/// be associated with the first archive mounted there, even though that
+/// directory isn't necessarily contained in a real archive.
+///
+/// This will return NULL if there is no real directory associated with (filename).
+pub fn getRealDir(filename: [*:0]const u8) ?[*:0]const u8 {
+    return PHYSFS_getRealDir(filename);
+}
+
+/// Get a file listing of a search path's directory, using given memory allocator.
+pub fn listAlloc(allocator: std.mem.Allocator, dir: [*:0]const u8) !struct {
+    allocator: std.mem.Allocator,
+    cfiles: [*]?[*:0]const u8,
+    files: [][*:0]const u8,
+
+    pub fn deinit(self: *@This()) void {
+        PHYSFS_freeList(@ptrCast(self.cfiles));
+        self.allocator.free(self.files);
+    }
+} {
+    if (PHYSFS_enumerateFiles(dir)) |cfiles| {
+        var file_count: usize = 0;
+        while (cfiles[file_count] != null) {
+            file_count += 1;
+        }
+
+        const result = .{
+            .allocator = allocator,
+            .cfiles = cfiles,
+            .files = try allocator.alloc([*:0]const u8, file_count),
+        };
+        for (0..file_count) |i| {
+            result.files[i] = cfiles[i].?;
+        }
+
+        return result;
+    }
+    return getLastErrorCode().toError();
+}
+
+/// Get iterator for current search path.
+pub fn getListIterator(dir: [*:0]const u8) !struct {
+    cfiles: [*]?[*:0]const u8,
+    idx: usize,
+
+    pub fn deinit(it: *@This()) void {
+        PHYSFS_freeList(@ptrCast(it.cfiles));
+    }
+
+    pub fn next(it: *@This()) ?[*:0]const u8 {
+        const p = it.cfiles[it.idx];
+        if (p != null) it.idx += 1;
+        return p;
+    }
+} {
+    if (PHYSFS_enumerateFiles(dir)) |cfiles| {
+        return .{
+            .cfiles = cfiles,
+            .idx = 0,
+        };
+    }
+    return getLastErrorCode().toError();
+}
+
+/// Determine if a file exists in the search path.
+pub fn exists(fname: [*:0]const u8) bool {
+    return if (PHYSFS_exists(fname) == 1) true else false;
+}
+
+/// Get the current write dir. The default write dir is NULL.
 /// A PhysicsFS file handle.
 ///
 /// You get a pointer to one of these when you open a file for reading,
@@ -315,4 +557,14 @@ extern fn PHYSFS_getErrorByCode(ec: ErrorCode) [*:0]const u8;
 extern fn PHYSFS_getLastErrorCode() ErrorCode;
 extern fn PHYSFS_freeList(list_var: ?*anyopaque) void;
 extern fn PHYSFS_getBaseDir() [*:0]const u8;
-extern fn PHYSFS_getPrefDir(org: [*:0]const u8, app: [*:0]const u8) [*:0]const u8;
+extern fn PHYSFS_getPrefDir(org: [*:0]const u8, app: [*:0]const u8) ?[*:0]const u8;
+extern fn PHYSFS_getWriteDir() ?[*:0]const u8;
+extern fn PHYSFS_setWriteDir(path: ?[*:0]const u8) c_int;
+extern fn PHYSFS_getSearchPath() ?[*]?[*:0]const u8;
+extern fn PHYSFS_mount(dir_or_archive: [*:0]const u8, mount_point: [*:0]const u8, append: c_int) c_int;
+extern fn PHYSFS_unmount(dir_or_archive: [*:0]const u8) c_int;
+extern fn PHYSFS_mkdir(dirName: [*:0]const u8) c_int;
+extern fn PHYSFS_delete(dirName: [*:0]const u8) c_int;
+extern fn PHYSFS_getRealDir(filename: [*:0]const u8) ?[*:0]const u8;
+extern fn PHYSFS_enumerateFiles(dir: [*:0]const u8) ?[*]?[*:0]const u8;
+extern fn PHYSFS_exists(fname: [*:0]const u8) c_int;

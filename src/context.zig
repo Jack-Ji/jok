@@ -645,7 +645,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     @tagName(target.os.tag),
                     ram_size,
                     physfs.getBaseDir(),
-                    physfs.getRefDir(cfg.jok_ref_org, cfg.jok_ref_app),
+                    physfs.getPrefDir(cfg.jok_pref_org, cfg.jok_pref_app),
                 },
             );
 
