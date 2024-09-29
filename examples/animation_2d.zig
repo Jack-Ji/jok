@@ -1,6 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const j2d = jok.j2d;
 
 var sheet: *j2d.SpriteSheet = undefined;
@@ -13,11 +14,13 @@ var flip_h = false;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    try physfs.mount("assets", "", true);
+
     // create sprite sheet
     const size = ctx.getCanvasSize();
     sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
-        "assets/images",
+        "images",
         @intFromFloat(size.x),
         @intFromFloat(size.y),
         .{},

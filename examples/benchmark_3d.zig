@@ -1,6 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const font = jok.font;
 const j3d = jok.j3d;
 const zmath = jok.zmath;
@@ -29,6 +30,8 @@ var texcoords = [_][2]f32{
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    try physfs.mount("assets", "", true);
+
     camera = j3d.Camera.fromPositionAndTarget(
         .{
             //.orthographic = .{
@@ -54,7 +57,7 @@ pub fn init(ctx: jok.Context) !void {
 
     tex = try jok.utils.gfx.createTextureFromFile(
         ctx,
-        "assets/images/image5.jpg",
+        "images/image5.jpg",
         .static,
         false,
     );

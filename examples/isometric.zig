@@ -1,6 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const font = jok.font;
 const j2d = jok.j2d;
 
@@ -18,7 +19,9 @@ var scale: f32 = undefined;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    sheet = try j2d.SpriteSheet.fromPicturesInDir(ctx, "assets/images/iso", 1024, 1024, .{});
+    try physfs.mount("assets", "", true);
+
+    sheet = try j2d.SpriteSheet.fromPicturesInDir(ctx, "images/iso", 1024, 1024, .{});
     sps[0] = sheet.getSpriteByName("tile1").?;
     sps[1] = sheet.getSpriteByName("tile2").?;
     sps[2] = sheet.getSpriteByName("tile3").?;

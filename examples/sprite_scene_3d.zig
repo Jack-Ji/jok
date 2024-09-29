@@ -2,6 +2,7 @@ const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const font = jok.font;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
@@ -20,6 +21,8 @@ var sphere_obj: *Scene.Object = undefined;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    try physfs.mount("assets", "", true);
+
     camera = Camera.fromPositionAndTarget(
         .{
             .perspective = .{
@@ -35,7 +38,7 @@ pub fn init(ctx: jok.Context) !void {
 
     sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
-        "assets/images",
+        "images",
         1024,
         1024,
         .{},

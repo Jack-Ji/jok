@@ -5,6 +5,7 @@ const native_endian = @import("builtin").target.cpu.arch.endian();
 const Sprite = @import("Sprite.zig");
 const jok = @import("../jok.zig");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const stb_rect_pack = jok.stb.rect_pack;
 const stb_image = jok.stb.image;
 const Self = @This();
@@ -27,7 +28,7 @@ pub const ImagePixels = struct {
 pub const ImageSource = struct {
     name: []const u8,
     image: union(enum) {
-        file_path: []const u8,
+        file_path: [:0]const u8,
         file_data: []const u8,
         pixels: ImagePixels,
     },
@@ -109,8 +110,13 @@ pub fn create(
                 var image_width: c_int = undefined;
                 var image_height: c_int = undefined;
                 var image_channels: c_int = undefined;
-                var image_data = stb_image.stbi_load(
-                    path.ptr,
+                const file = try physfs.open(path, .read);
+                defer file.close();
+                const filedata = try file.readAllAlloc(allocator);
+                defer allocator.free(filedata);
+                var image_data = stb_image.stbi_load_from_memory(
+                    filedata.ptr,
+                    @intCast(filedata.len),
                     &image_width,
                     &image_height,
                     &image_channels,
@@ -274,14 +280,13 @@ pub const CreateSheetFromDirOption = struct {
 };
 pub fn fromPicturesInDir(
     ctx: jok.Context,
-    dir_path: []const u8,
+    dir_path: [*:0]const u8,
     width: u32,
     height: u32,
     opt: CreateSheetFromDirOption,
 ) !*Self {
-    var curdir = std.fs.cwd();
-    var dir = try curdir.openDir(dir_path, .{ .no_follow = true, .iterate = true });
-    defer dir.close();
+    var it = try physfs.getListIterator(dir_path);
+    defer it.deinit();
 
     const allocator = ctx.allocator();
     var images = try std.ArrayList(ImageSource).initCapacity(allocator, 10);
@@ -290,23 +295,23 @@ pub fn fromPicturesInDir(
     // Collect pictures
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
-    var it = dir.iterate();
-    while (try it.next()) |entry| {
-        if (entry.kind != .file) continue;
-        if (entry.name.len < 5) continue;
-        if ((opt.accept_png and std.mem.eql(u8, ".png", entry.name[entry.name.len - 4 ..])) or
-            (opt.accept_jpg and std.mem.eql(u8, ".jpg", entry.name[entry.name.len - 4 ..])))
+    const dpath = std.mem.sliceTo(dir_path, 0);
+    while (it.next()) |p| {
+        const fname = std.mem.sliceTo(p, 0);
+        if (fname.len < 5) continue;
+        if ((opt.accept_png and std.mem.eql(u8, ".png", fname[fname.len - 4 ..])) or
+            (opt.accept_jpg and std.mem.eql(u8, ".jpg", fname[fname.len - 4 ..])))
         {
             try images.append(.{
                 .name = try std.fmt.allocPrint(
                     arena.allocator(),
                     "{s}",
-                    .{entry.name[0 .. entry.name.len - 4]},
+                    .{fname[0 .. fname.len - 4]},
                 ),
                 .image = .{
                     .file_path = try std.fs.path.joinZ(arena.allocator(), &[_][]const u8{
-                        dir_path,
-                        entry.name,
+                        dpath,
+                        fname,
                     }),
                 },
             });
@@ -320,7 +325,7 @@ pub fn fromPicturesInDir(
 }
 
 /// Create from previous written sheet files (a picture and a json file)
-pub fn fromSheetFiles(ctx: jok.Context, path: []const u8) !*Self {
+pub fn fromSheetFiles(ctx: jok.Context, path: [*:0]const u8) !*Self {
     var path_buf: [128]u8 = undefined;
 
     // Load texture
@@ -337,7 +342,7 @@ pub fn fromSheetFiles(ctx: jok.Context, path: []const u8) !*Self {
     // Load sprites info
     const allocator = ctx.allocator();
     const json_path = try std.fmt.bufPrint(&path_buf, "{s}.json", .{path});
-    var file = try std.fs.cwd().openFile(json_path, .{});
+    var file = try physfs.open(json_path, .read);
     defer file.close();
     var parsed = try json.parseFromTokenSource(json.Value, allocator, file.reader(), .{});
     defer parsed.deinit();
@@ -385,7 +390,7 @@ pub const SpriteInfo = struct {
 };
 pub fn fromSinglePicture(
     ctx: jok.Context,
-    path: [:0]const u8,
+    path: [*:0]const u8,
     sprites: []const SpriteInfo,
 ) !*Self {
     var tex = try jok.utils.gfx.createTextureFromFile(
@@ -449,7 +454,7 @@ pub fn destroy(self: *Self) void {
 }
 
 /// Save sprite-sheet to 2 files (image and json)
-pub fn saveToFiles(self: Self, path: []const u8) !void {
+pub fn saveToFiles(self: Self, path: [*:0]const u8) !void {
     if (self.packed_pixels == null) return error.NoTextureData;
     var path_buf: [128]u8 = undefined;
 
@@ -466,7 +471,7 @@ pub fn saveToFiles(self: Self, path: []const u8) !void {
 
     // Save json file
     const json_path = try std.fmt.bufPrint(&path_buf, "{s}.json", .{path});
-    var json_file = try std.fs.cwd().createFile(json_path, .{});
+    var json_file = try physfs.open(json_path, .write);
     defer json_file.close();
     var arena_allocator = std.heap.ArenaAllocator.init(self.allocator);
     defer arena_allocator.deinit();

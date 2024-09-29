@@ -1,4 +1,5 @@
 const std = @import("std");
+const io = std.io;
 const assert = std.debug.assert;
 
 //------------------------------------------------------------------------------
@@ -163,14 +164,14 @@ pub fn getWriteDir() ?[*:0]const u8 {
 ///
 /// This call will fail (and fail to change the write dir) if the current
 /// write dir still has files open in it.
-pub fn setWriteDir(path: ?[*:0]const u8) !void {
+pub fn setWriteDir(path: ?[*:0]const u8) Error!void {
     if (PHYSFS_setWriteDir(path) == 0) {
         return getLastErrorCode().toError();
     }
 }
 
 /// Get current search paths, using given memory allocator.
-pub fn getSearchPathsAlloc(allocator: std.mem.Allocator) !struct {
+pub fn getSearchPathsAlloc(allocator: std.mem.Allocator) Error!struct {
     allocator: std.mem.Allocator,
     cpaths: [*]?[*:0]const u8,
     paths: [][*:0]const u8,
@@ -201,7 +202,7 @@ pub fn getSearchPathsAlloc(allocator: std.mem.Allocator) !struct {
 }
 
 /// Get iterator for current search paths.
-pub fn getSearchPathsIterator() !struct {
+pub fn getSearchPathsIterator() Error!struct {
     cpaths: [*]?[*:0]const u8,
     idx: usize,
 
@@ -242,7 +243,7 @@ pub fn getSearchPathsIterator() !struct {
 /// archives at a specific point in the file tree and prevent overlap; this
 /// is useful for downloadable mods that might trample over application data
 /// or each other, for example.
-pub fn mount(dir_or_archive: [*:0]const u8, mount_point: [*:0]const u8, append: bool) !void {
+pub fn mount(dir_or_archive: [*:0]const u8, mount_point: [*:0]const u8, append: bool) Error!void {
     if (PHYSFS_mount(dir_or_archive, mount_point, if (append) 1 else 0) == 0) {
         return getLastErrorCode().toError();
     }
@@ -255,7 +256,7 @@ pub fn mount(dir_or_archive: [*:0]const u8, mount_point: [*:0]const u8, append: 
 ///
 /// This call will fail (and fail to remove from the path) if the element still
 /// has files open in it.
-pub fn unmount(dir_or_archive: [*:0]const u8) !void {
+pub fn unmount(dir_or_archive: [*:0]const u8) Error!void {
     if (PHYSFS_unmount(dir_or_archive) == 0) {
         return getLastErrorCode().toError();
     }
@@ -273,7 +274,7 @@ pub fn unmount(dir_or_archive: [*:0]const u8) !void {
 /// will be created if possible. If the creation of "maps" fails after we
 /// have successfully created "downloads", then the function leaves the
 /// created directory behind and reports failure.
-pub fn mkdir(dirname: [*:0]const u8) !void {
+pub fn mkdir(dirname: [*:0]const u8) Error!void {
     if (PHYSFS_mkdir(dirname) == 0) {
         return getLastErrorCode().toError();
     }
@@ -302,7 +303,7 @@ pub fn mkdir(dirname: [*:0]const u8) !void {
 /// Chances are, the bits that make up the file still exist, they are just
 /// made available to be written over at a later point. Don't consider this
 /// a security method or anything.  :)
-pub fn delete(filename: [*:0]const u8) !void {
+pub fn delete(filename: [*:0]const u8) Error!void {
     if (PHYSFS_delete(filename) == 0) {
         return getLastErrorCode().toError();
     }
@@ -333,7 +334,7 @@ pub fn getRealDir(filename: [*:0]const u8) ?[*:0]const u8 {
 }
 
 /// Get a file listing of a search path's directory, using given memory allocator.
-pub fn listAlloc(allocator: std.mem.Allocator, dir: [*:0]const u8) !struct {
+pub fn listAlloc(allocator: std.mem.Allocator, dir: [*:0]const u8) Error!struct {
     allocator: std.mem.Allocator,
     cfiles: [*]?[*:0]const u8,
     files: [][*:0]const u8,
@@ -363,8 +364,8 @@ pub fn listAlloc(allocator: std.mem.Allocator, dir: [*:0]const u8) !struct {
     return getLastErrorCode().toError();
 }
 
-/// Get iterator for current search path.
-pub fn getListIterator(dir: [*:0]const u8) !struct {
+/// Get iterator for directory's files.
+pub fn getListIterator(dir: [*:0]const u8) Error!struct {
     cfiles: [*]?[*:0]const u8,
     idx: usize,
 
@@ -393,7 +394,7 @@ pub fn exists(fname: [*:0]const u8) bool {
 }
 
 /// Get various information about a directory or a file.
-pub fn fstat(fname: [*:0]const u8) !FileStat {
+pub fn fstat(fname: [*:0]const u8) Error!FileStat {
     var result: FileStat = undefined;
     if (PHYSFS_stat(fname, &result) == 0) {
         return getLastErrorCode().toError();
@@ -411,7 +412,7 @@ pub const OpenMode = enum {
     write,
     append,
 };
-pub fn open(fname: [*:0]const u8, mode: OpenMode) !File {
+pub fn open(fname: [*:0]const u8, mode: OpenMode) Error!File {
     const handle = switch (mode) {
         .read => PHYSFS_openRead(fname),
         .write => PHYSFS_openWrite(fname),
@@ -430,14 +431,14 @@ pub const File = struct {
     handle: *FileHandle,
 
     /// Close opened file
-    pub fn close(self: File) !void {
+    pub fn close(self: File) void {
         if (PHYSFS_close(self.handle) == 0) {
             @panic(getLastErrorCode().toDesc());
         }
     }
 
     /// Read bytes from a filehandle
-    pub fn read(self: File, data: []u8) !usize {
+    pub fn read(self: File, data: []u8) Error!usize {
         const ret = PHYSFS_readBytes(self.handle, data.ptr, data.len);
         if (ret == -1) {
             return getLastErrorCode().toError();
@@ -449,7 +450,7 @@ pub const File = struct {
     /// Note that if another process/thread is writing to this file at the same
     /// time, then the information this function supplies could be incorrect
     /// before you get it. Use with caution, or better yet, don't use at all.
-    pub fn readAllAlloc(self: File, allocator: std.mem.Allocator) ![]const u8 {
+    pub fn readAllAlloc(self: File, allocator: std.mem.Allocator) Error![]const u8 {
         const total = try self.length();
         const data = try allocator.alloc(u8, total);
         errdefer allocator.free(data);
@@ -461,7 +462,7 @@ pub const File = struct {
     }
 
     /// Write bytes into a filehandle
-    pub fn write(self: File, data: []const u8) !void {
+    pub fn write(self: File, data: []const u8) Error!void {
         const ret = PHYSFS_writeBytes(self.handle, data.ptr, data.len);
         if (ret != @as(i64, @intCast(data.len))) {
             return getLastErrorCode().toError();
@@ -474,7 +475,7 @@ pub const File = struct {
     }
 
     /// Determine current position within a filehandle.
-    pub fn tell(self: File) !usize {
+    pub fn tell(self: File) Error!usize {
         const ret = PHYSFS_tell(self.handle);
         if (ret == -1) {
             return getLastErrorCode().toError();
@@ -485,7 +486,7 @@ pub const File = struct {
     /// Seek to a new position within a filehandle.
     /// The next read or write will occur at that place. Seeking past the
     /// beginning or end of the file is not allowed, and causes an error.
-    pub fn seek(self: File, pos: usize) !void {
+    pub fn seek(self: File, pos: usize) Error!void {
         if (PHYSFS_seek(self.handle, pos) == 0) {
             return getLastErrorCode().toError();
         }
@@ -495,7 +496,7 @@ pub const File = struct {
     /// Note that if another process/thread is writing to this file at the same
     /// time, then the information this function supplies could be incorrect
     /// before you get it. Use with caution, or better yet, don't use at all.
-    pub fn length(self: File) !usize {
+    pub fn length(self: File) Error!usize {
         const ret = PHYSFS_fileLength(self.handle);
         if (ret == -1) {
             return getLastErrorCode().toError();
@@ -524,7 +525,7 @@ pub const File = struct {
     /// buffer.
     ///
     /// File handles are unbuffered by default.
-    pub fn setBuffer(self: File, buf_size: usize) !void {
+    pub fn setBuffer(self: File, buf_size: usize) Error!void {
         if (PHYSFS_setBuffer(self.handle, buf_size) == 0) {
             return getLastErrorCode().toError();
         }
@@ -537,10 +538,22 @@ pub const File = struct {
     ///
     /// For buffered files opened for reading or unbuffered files, this is a safe
     /// no-op, and will report success.
-    pub fn flush(self: File) !void {
+    pub fn flush(self: File) Error!void {
         if (PHYSFS_flush(self.handle) == 0) {
             return getLastErrorCode().toError();
         }
+    }
+
+    /// Get std.io.Reader
+    pub const Reader = io.Reader(File, Error, read);
+    pub fn reader(self: File) Reader {
+        return .{ .context = self };
+    }
+
+    /// Get std.io.Writer
+    pub const Writer = io.Writer(File, Error, write);
+    pub fn writer(self: File) Writer {
+        return .{ .context = self };
     }
 };
 
@@ -614,7 +627,110 @@ fn memFree(ptr: ?*anyopaque) callconv(.C) void {
     mem_allocator.?.free(mem);
 }
 
-/// Get various information about a directory or a file.
+//------------------------------------------------------------------------------
+// Custom adapters for other module
+//------------------------------------------------------------------------------
+
+pub const stb = struct {
+    pub fn writeCallback(ctx: ?*anyopaque, data: ?*anyopaque, size: c_int) callconv(.C) void {
+        const handle: *File = @alignCast(@ptrCast(ctx.?));
+        var wdata: []u8 = undefined;
+        wdata.ptr = @ptrCast(data.?);
+        wdata.len = @intCast(size);
+        handle.write(wdata) catch |e| @panic(@errorName(e));
+    }
+};
+
+pub const zaudio = struct {
+    const AudioVfs = @import("zaudio").Vfs;
+    const AudioResult = @import("zaudio").Result;
+    const AudioFileHandle = AudioVfs.FileHandle;
+    const AudioOpenMode = AudioVfs.OpenMode;
+    const SeekOrigin = AudioVfs.SeekOrigin;
+    const FileInfo = AudioVfs.FileInfo;
+
+    fn onOpen(_: *AudioVfs, file_path: [*:0]const u8, mode: AudioOpenMode, handle: *AudioFileHandle) callconv(.C) AudioResult {
+        const open_mode: OpenMode = if (mode == .read) .read else .write;
+        const file = open(file_path, open_mode) catch |e| @panic(@errorName(e));
+        handle.* = @ptrCast(file.handle);
+        return .success;
+    }
+    fn onOpenW(_: *AudioVfs, file_path: [*:0]const u32, mode: AudioOpenMode, handle: *AudioFileHandle) callconv(.C) AudioResult {
+        _ = file_path;
+        _ = mode;
+        _ = handle;
+        return .invalid_operation;
+    }
+    fn onClose(_: *AudioVfs, handle: AudioFileHandle) callconv(.C) AudioResult {
+        const file = File{
+            .handle = @ptrCast(handle),
+        };
+        file.close();
+        return .success;
+    }
+    fn onRead(_: *AudioVfs, handle: AudioFileHandle, dst: [*]u8, size: usize, bytes_read: *usize) callconv(.C) AudioResult {
+        const file = File{
+            .handle = @ptrCast(handle),
+        };
+        var data: []u8 = undefined;
+        data.ptr = dst;
+        data.len = size;
+        bytes_read.* = file.read(data) catch |e| @panic(@errorName(e));
+        return .success;
+    }
+    fn onWrite(_: *AudioVfs, handle: AudioFileHandle, src: [*]const u8, size: usize, bytes_written: *usize) callconv(.C) AudioResult {
+        const file = File{
+            .handle = @ptrCast(handle),
+        };
+        var data: []u8 = undefined;
+        data.ptr = @constCast(src);
+        data.len = size;
+        file.write(data) catch |e| @panic(@errorName(e));
+        bytes_written.* = size;
+        return .success;
+    }
+    fn onSeek(_: *AudioVfs, handle: AudioFileHandle, offset: i64, origin: SeekOrigin) callconv(.C) AudioResult {
+        const file = File{
+            .handle = @ptrCast(handle),
+        };
+        const curoff: isize = @intCast(file.tell() catch |e| @panic(@errorName(e)));
+        const size: isize = @intCast(file.length() catch |e| @panic(@errorName(e)));
+        switch (origin) {
+            .start => file.seek(@intCast(offset)) catch |e| @panic(@errorName(e)),
+            .current => file.seek(@intCast(curoff + offset)) catch |e| @panic(@errorName(e)),
+            .end => file.seek(@intCast(size + offset)) catch |e| @panic(@errorName(e)),
+        }
+        return .success;
+    }
+    fn onTell(_: *AudioVfs, handle: AudioFileHandle, offset: *i64) callconv(.C) AudioResult {
+        const file = File{
+            .handle = @ptrCast(handle),
+        };
+        offset.* = @intCast(file.tell() catch |e| @panic(@errorName(e)));
+        return .success;
+    }
+    fn onInfo(_: *AudioVfs, handle: AudioFileHandle, info: *FileInfo) callconv(.C) AudioResult {
+        const file = File{
+            .handle = @ptrCast(handle),
+        };
+        const size = file.length() catch |e| @panic(@errorName(e));
+        info.* = .{
+            .size_in_bytes = size,
+        };
+        return .success;
+    }
+
+    pub var vfs: AudioVfs = .{
+        .on_open = onOpen,
+        .on_openw = onOpenW,
+        .on_close = onClose,
+        .on_read = onRead,
+        .on_write = onWrite,
+        .on_seek = onSeek,
+        .on_tell = onTell,
+        .on_info = onInfo,
+    };
+};
 
 //------------------------------------------------------------------------------
 // C api declarations

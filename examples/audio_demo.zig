@@ -2,6 +2,7 @@ const std = @import("std");
 const jok = @import("jok");
 const j2d = jok.j2d;
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const font = jok.font;
 const miniaudio = jok.miniaudio;
 
@@ -15,9 +16,11 @@ var sfx2: *miniaudio.Sound = undefined;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    try physfs.mount("assets", "", true);
+
     atlas = try font.DebugFont.getAtlas(ctx, 16);
     music = try ctx.audioEngine().createSoundFromFile(
-        "assets/audios/Edge-of-Ocean_Looping.mp3",
+        "audios/Edge-of-Ocean_Looping.mp3",
         .{},
     );
     music_total_length = @intFromFloat(try music.getLengthInSeconds());
@@ -25,14 +28,14 @@ pub fn init(ctx: jok.Context) !void {
     try music.start();
 
     sfx1 = try ctx.audioEngine().createSoundFromFile(
-        "assets/audios/SynthChime9.mp3",
+        "audios/SynthChime9.mp3",
         .{},
     );
     sfx1.setPanMode(.pan);
     sfx1.setPan(-1);
 
     sfx2 = try ctx.audioEngine().createSoundFromFile(
-        "assets/audios/Bells3.mp3",
+        "audios/Bells3.mp3",
         .{},
     );
     sfx2.setPanMode(.pan);

@@ -1,6 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const j2d = jok.j2d;
 
 pub const jok_fps_limit: jok.config.FpsLimit = .none;
@@ -27,12 +28,14 @@ var delta_tick: f32 = 0;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    try physfs.mount("assets", "/", true);
+
     const csz = ctx.getCanvasSize();
 
     // create sprite sheet
     sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
-        "assets/images",
+        "images",
         @intFromFloat(csz.x),
         @intFromFloat(csz.y),
         .{},

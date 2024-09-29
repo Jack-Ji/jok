@@ -1,5 +1,7 @@
 const std = @import("std");
-const sdl = @import("sdl");
+const jok = @import("../../jok.zig");
+const sdl = jok.sdl;
+const physfs = jok.physfs;
 const builtin = @import("builtin");
 
 pub const Error = error{
@@ -107,14 +109,13 @@ pub fn createBitmapFromData(
 
 pub fn createBitmapFromFile(
     allocator: std.mem.Allocator,
-    path: []const u8,
+    path: [*:0]const u8,
     opt: CreateBitmap,
 ) !SvgBitmap {
-    const data = try std.fs.cwd().readFileAlloc(
-        allocator,
-        path,
-        std.math.maxInt(u64),
-    );
+    const handle = try physfs.open(path, .read);
+    defer handle.close();
+
+    const data = try handle.readAllAlloc(allocator);
     defer allocator.free(data);
     return try createBitmapFromData(allocator, data, opt);
 }

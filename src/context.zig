@@ -309,7 +309,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Init audio engine
             self._audio_ctx = try miniaudio.sdl.init(self._ctx);
-            self._audio_engine = try miniaudio.Engine.create(null);
+            var audio_config = miniaudio.Engine.Config.init();
+            audio_config.resource_manager_vfs = &physfs.zaudio.vfs;
+            self._audio_engine = try miniaudio.Engine.create(audio_config);
 
             // Init post-processing facility
             self._post_processing = PostProcessingType.init(self._renderer);

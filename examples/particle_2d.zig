@@ -1,6 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const j2d = jok.j2d;
 
 var rd: std.Random.DefaultPrng = undefined;
@@ -30,6 +31,8 @@ const emitter2 = j2d.ParticleSystem.Effect.FireEmitter(
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    try physfs.mount("assets", "/", true);
+
     rd = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
     sheet = try j2d.SpriteSheet.create(
         ctx,
@@ -37,7 +40,7 @@ pub fn init(ctx: jok.Context) !void {
             .{
                 .name = "particle",
                 .image = .{
-                    .file_path = "assets/images/white-circle.png",
+                    .file_path = "images/white-circle.png",
                 },
             },
         },

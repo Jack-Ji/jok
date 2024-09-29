@@ -4,6 +4,7 @@ const math = std.math;
 const builtin = @import("builtin");
 const jok = @import("jok");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const imgui = jok.imgui;
 const zmath = jok.zmath;
 const j3d = jok.j3d;
@@ -20,6 +21,8 @@ var tex: sdl.Texture = undefined;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    try physfs.mount("assets", "", true);
+
     camera = Camera.fromPositionAndTarget(
         .{
             .perspective = .{
@@ -35,7 +38,7 @@ pub fn init(ctx: jok.Context) !void {
 
     tex = try jok.utils.gfx.createTextureFromFile(
         ctx,
-        "assets/images/image5.jpg",
+        "images/image5.jpg",
         .static,
         true,
     );

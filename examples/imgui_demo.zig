@@ -1,6 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const imgui = jok.imgui;
 
 pub const jok_window_ime_ui = true;
@@ -34,9 +35,11 @@ var alloced_input_text_with_hint_buf: [:0]u8 = undefined;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    try physfs.mount("assets", "", true);
+
     tex = try jok.utils.gfx.createTextureFromFile(
         ctx,
-        "assets/images/image9.jpg",
+        "images/image9.jpg",
         .static,
         false,
     );

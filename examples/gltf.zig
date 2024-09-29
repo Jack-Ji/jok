@@ -1,6 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const imgui = jok.imgui;
 const font = jok.font;
 const zmath = jok.zmath;
@@ -31,6 +32,8 @@ var animation_transition3: f32 = 0.0;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    try physfs.mount("assets", "", true);
+
     camera = j3d.Camera.fromPositionAndTarget(
         .{
             .perspective = .{
@@ -44,9 +47,9 @@ pub fn init(ctx: jok.Context) !void {
         [_]f32{ 0, 0, 0 },
     );
 
-    mesh1 = try j3d.Mesh.fromGltf(ctx, "assets/models/CesiumMan.glb", .{});
-    mesh2 = try j3d.Mesh.fromGltf(ctx, "assets/models/RiggedSimple.glb", .{});
-    mesh3 = try j3d.Mesh.fromGltf(ctx, "assets/models/Fox/Fox.gltf", .{});
+    mesh1 = try j3d.Mesh.fromGltf(ctx, "models/CesiumMan.glb", .{});
+    mesh2 = try j3d.Mesh.fromGltf(ctx, "models/RiggedSimple.glb", .{});
+    mesh3 = try j3d.Mesh.fromGltf(ctx, "models/Fox/Fox.gltf", .{});
     animation1_1 = try j3d.Animation.create(ctx.allocator(), mesh1.getAnimation("default").?);
     animation2_1 = try j3d.Animation.create(ctx.allocator(), mesh2.getAnimation("default").?);
     animation3_1 = try j3d.Animation.create(ctx.allocator(), mesh3.getAnimation("Walk").?);

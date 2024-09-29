@@ -4,6 +4,7 @@ const math = std.math;
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const internal = @import("internal.zig");
 const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
@@ -464,11 +465,23 @@ pub const GltfOption = struct {
 };
 pub fn fromGltf(
     ctx: jok.Context,
-    file_path: [:0]const u8,
+    file_path: [*:0]const u8,
     opt: GltfOption,
 ) !*Self {
-    const data = try zmesh.io.parseAndLoadFile(file_path);
+    const handle = try physfs.open(file_path, .read);
+    defer handle.close();
+    const filedata = try handle.readAllAlloc(ctx.allocator());
+    defer ctx.allocator().free(filedata);
+
+    const options = zmesh.io.zcgltf.Options{
+        .memory = .{
+            .alloc_func = zmesh.mem.zmeshAllocUser,
+            .free_func = zmesh.mem.zmeshFreeUser,
+        },
+    };
+    const data = try zmesh.io.zcgltf.parse(options, filedata);
     defer zmesh.io.freeData(data);
+    try zmesh.io.zcgltf.loadBuffers(options, data, file_path);
 
     var self = try create(ctx.allocator(), 0, true);
     errdefer self.destroy();
@@ -481,7 +494,10 @@ pub fn fromGltf(
     }
 
     // Load the scene/nodes
-    const dir = std.fs.path.dirname(file_path);
+    const dir: []const u8 = if (std.mem.lastIndexOfScalar(u8, std.mem.sliceTo(file_path, 0), '/')) |idx|
+        file_path[0..idx]
+    else
+        "";
     var node_index: usize = 0;
     while (node_index < data.scene.?.nodes_count) : (node_index += 1) {
         try self.loadNodeTree(ctx, dir, data.scene.?.nodes.?[node_index], self.root, opt);
@@ -568,7 +584,7 @@ fn createRootNode(self: *Self, mesh_count: usize) !*Node {
 fn loadNodeTree(
     self: *Self,
     ctx: jok.Context,
-    dir: ?[]const u8,
+    dir: []const u8,
     gltf_node: *const GltfNode,
     parent: *Node,
     opt: GltfOption,
@@ -602,21 +618,15 @@ fn loadNodeTree(
                         var tex: sdl.Texture = undefined;
                         if (image.uri) |p| { // Read external file
                             const uri_path = std.mem.sliceTo(p, '\x00');
-                            tex = if (dir) |d| BLK: {
-                                const path = try std.fs.path.joinZ(
-                                    self.allocator,
-                                    &.{ d, uri_path },
-                                );
-                                defer self.allocator.free(path);
-                                break :BLK try jok.utils.gfx.createTextureFromFile(
-                                    ctx,
-                                    path,
-                                    .static,
-                                    false,
-                                );
-                            } else try jok.utils.gfx.createTextureFromFile(
+                            const path = try std.mem.joinZ(
+                                self.allocator,
+                                "/",
+                                &.{ dir, uri_path },
+                            );
+                            defer self.allocator.free(path);
+                            tex = try jok.utils.gfx.createTextureFromFile(
                                 ctx,
-                                uri_path,
+                                path,
                                 .static,
                                 false,
                             );

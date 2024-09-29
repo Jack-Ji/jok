@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const native_endian = @import("builtin").target.cpu.arch.endian();
 const stb = jok.stb;
 
@@ -64,38 +65,24 @@ pub fn createTextureFromPixels(
     return tex;
 }
 
-/// Create texture from image
+/// Create texture from image file
 pub fn createTextureFromFile(
     ctx: jok.Context,
-    image_file: [:0]const u8,
+    image_file: [*:0]const u8,
     access: sdl.Texture.Access,
     flip: bool,
 ) !sdl.Texture {
-    var width: c_int = undefined;
-    var height: c_int = undefined;
-    var channels: c_int = undefined;
+    const handle = try physfs.open(image_file, .read);
+    defer handle.close();
 
-    stb.image.stbi_set_flip_vertically_on_load(@intFromBool(flip));
-    var image_data = stb.image.stbi_load(
-        image_file.ptr,
-        &width,
-        &height,
-        &channels,
-        4,
-    );
-    if (image_data == null) {
-        return error.LoadImageError;
-    }
-    assert(channels == 3 or channels == 4);
-    defer stb.image.stbi_image_free(image_data);
+    const filedata = try handle.readAllAlloc(ctx.allocator());
+    defer ctx.allocator().free(filedata);
 
-    return try createTextureFromPixels(
+    return try createTextureFromFileData(
         ctx,
-        image_data[0..@as(u32, @intCast(width * height * channels))],
-        getFormatByEndian(),
+        filedata,
         access,
-        @intCast(width),
-        @intCast(height),
+        flip,
     );
 }
 
@@ -148,21 +135,26 @@ pub fn savePixelsToFile(
     width: u32,
     height: u32,
     format: ?sdl.PixelFormatEnum,
-    path: [:0]const u8,
+    path: [*:0]const u8,
     opt: EncodingOption,
 ) !void {
+    const handle = try physfs.open(path, .write);
+    defer handle.close();
+
     const channels = getChannels(format orelse getFormatByEndian());
     assert(pixels.len == @as(usize, width * height * channels));
 
     // Encode file
     var result: c_int = undefined;
     stb.image.stbi_flip_vertically_on_write(@intFromBool(opt.flip_on_write));
+
     switch (opt.format) {
         .png => {
             stb.image.stbi_write_png_compression_level =
                 @as(c_int, opt.png_compress_level);
-            result = stb.image.stbi_write_png(
-                path.ptr,
+            result = stb.image.stbi_write_png_to_func(
+                physfs.stb.writeCallback,
+                @ptrCast(@constCast(&handle)),
                 @intCast(width),
                 @intCast(height),
                 @intCast(channels),
@@ -171,8 +163,9 @@ pub fn savePixelsToFile(
             );
         },
         .bmp => {
-            result = stb.image.stbi_write_bmp(
-                path.ptr,
+            result = stb.image.stbi_write_bmp_to_func(
+                physfs.stb.writeCallback,
+                @ptrCast(@constCast(&handle)),
                 @intCast(width),
                 @intCast(height),
                 @intCast(channels),
@@ -182,8 +175,9 @@ pub fn savePixelsToFile(
         .tga => {
             stb.image.stbi_write_tga_with_rle =
                 if (opt.tga_rle_compress) 1 else 0;
-            result = stb.image.stbi_write_tga(
-                path.ptr,
+            result = stb.image.stbi_write_tga_to_func(
+                physfs.stb.writeCallback,
+                @ptrCast(@constCast(&handle)),
                 @intCast(width),
                 @intCast(height),
                 @intCast(channels),
@@ -191,8 +185,9 @@ pub fn savePixelsToFile(
             );
         },
         .jpg => {
-            result = stb.image.stbi_write_jpg(
-                path.ptr,
+            result = stb.image.stbi_write_jpg_to_func(
+                physfs.stb.writeCallback,
+                @ptrCast(@constCast(&handle)),
                 @intCast(width),
                 @intCast(height),
                 @intCast(channels),
@@ -207,7 +202,7 @@ pub fn savePixelsToFile(
 }
 
 /// Save surface to file
-pub fn saveSurfaceToFile(surface: sdl.Surface, path: [:0]const u8, opt: EncodingOption) !void {
+pub fn saveSurfaceToFile(surface: sdl.Surface, path: [*:0]const u8, opt: EncodingOption) !void {
     const format = @as(sdl.PixelFormatEnum, @enumFromInt(surface.ptr.format.*.format));
     const channels = getChannels(format);
     const pixels = @as([*]const u8, @ptrCast(surface.ptr.pixels.?));

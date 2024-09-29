@@ -1,6 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const j3d = jok.j3d;
 
 pub const jok_canvas_size = sdl.Size{ .width = 320, .height = 180 };
@@ -24,6 +25,8 @@ fn ppCallback(pos: sdl.PointF, data: ?*anyopaque) ?sdl.Color {
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    try physfs.mount("assets", "", true);
+
     appctx = ctx;
     camera = j3d.Camera.fromPositionAndTarget(
         .{
@@ -39,37 +42,37 @@ pub fn init(ctx: jok.Context) !void {
     );
     skybox_textures[0] = try jok.utils.gfx.createTextureFromFile(
         ctx,
-        "assets/images/skybox/right.jpg",
+        "images/skybox/right.jpg",
         .static,
         true,
     );
     skybox_textures[1] = try jok.utils.gfx.createTextureFromFile(
         ctx,
-        "assets/images/skybox/left.jpg",
+        "images/skybox/left.jpg",
         .static,
         true,
     );
     skybox_textures[2] = try jok.utils.gfx.createTextureFromFile(
         ctx,
-        "assets/images/skybox/top.jpg",
+        "images/skybox/top.jpg",
         .static,
         true,
     );
     skybox_textures[3] = try jok.utils.gfx.createTextureFromFile(
         ctx,
-        "assets/images/skybox/bottom.jpg",
+        "images/skybox/bottom.jpg",
         .static,
         true,
     );
     skybox_textures[4] = try jok.utils.gfx.createTextureFromFile(
         ctx,
-        "assets/images/skybox/front.jpg",
+        "images/skybox/front.jpg",
         .static,
         true,
     );
     skybox_textures[5] = try jok.utils.gfx.createTextureFromFile(
         ctx,
-        "assets/images/skybox/back.jpg",
+        "images/skybox/back.jpg",
         .static,
         true,
     );

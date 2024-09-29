@@ -1,6 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const font = jok.font;
 const j2d = jok.j2d;
 
@@ -10,9 +11,11 @@ var tex: sdl.Texture = undefined;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    try physfs.mount("assets", "/", true);
+
     svg = try jok.svg.createBitmapFromFile(
         ctx.allocator(),
-        "assets/tiger.svg",
+        "tiger.svg",
         .{},
     );
 
