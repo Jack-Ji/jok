@@ -11,13 +11,14 @@ A minimal 2d/3d game framework for zig.
 * Able to cross-compile between Windows and Linux (thanks to [ziglang](https://ziglang.org))
 * Excellent rendering performance (thanks to SDL2's [geometry rendering](https://wiki.libsdl.org/SDL2/SDL_RenderGeometryRaw))
 * Fully integrated Dear-ImGui
+* Asset system (via [physfs](https://github.com/icculus/physfs), supports fs/zip/7zip/iso etc)
 * 2D vector graphics (line/rectangle/quad/triangle/circle/bezier-curve/convex-polygon/polyline/custom-path)
 * 2D sprite rendering (scale/rotate/blending/flipping/depth)
 * 2D sprite sheet generation/save/load
 * 2D animation system
 * 2D particle system
 * 2D scene management
-* 2D physics system (via [chipmunk](https://chipmunk-physics.net/))
+* 2D physics system (via [chipmunk](https://chipmunk-physics.net/), optional)
 * 3D skybox rendering
 * 3D mesh rendering (gouraud/flat shading)
 * 3D glTF 2.0 support
@@ -30,6 +31,8 @@ A minimal 2d/3d game framework for zig.
 * Font loading/rendering (TrueType)
 * SVG loading/rendering
 * Sound/Music playing/mixing
+
+NOTE: Ignore any feature if you don't like how it's implemented, you can always use SDL2's api directly.
 
 ## Supported platforms
 * Windows
@@ -186,7 +189,7 @@ The limitations demand developers to be both creative and careful about game's d
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
-* [PhysFS](https://github.com/icculus/physfs) (zlib license)
+* [physfs](https://github.com/icculus/physfs) (zlib license)
 * [zig-gamedev](https://github.com/zig-gamedev/zig-gamedev) (MIT license)
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
 * [stb headers](https://github.com/nothings/stb) (MIT license)

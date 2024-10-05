@@ -478,6 +478,7 @@ pub fn fromGltf(
             .alloc_func = zmesh.mem.zmeshAllocUser,
             .free_func = zmesh.mem.zmeshFreeUser,
         },
+        .file = physfs.zmesh.file_options,
     };
     const data = try zmesh.io.zcgltf.parse(options, filedata);
     defer zmesh.io.freeData(data);

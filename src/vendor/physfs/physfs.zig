@@ -628,7 +628,7 @@ fn memFree(ptr: ?*anyopaque) callconv(.C) void {
 }
 
 //------------------------------------------------------------------------------
-// Custom adapters for other module
+// Custom adapters for other modules
 //------------------------------------------------------------------------------
 
 pub const stb = struct {
@@ -729,6 +729,67 @@ pub const zaudio = struct {
         .on_seek = onSeek,
         .on_tell = onTell,
         .on_info = onInfo,
+    };
+};
+
+pub const zmesh = struct {
+    const ZmeshFileOptions = @import("zmesh").io.zcgltf.FileOptions;
+    const ZmeshMemoryOptions = @import("zmesh").io.zcgltf.MemoryOptions;
+    const ZmeshResult = @import("zmesh").io.zcgltf.Result;
+
+    fn read(
+        mem_opts: *const ZmeshMemoryOptions,
+        file_opts: *const ZmeshFileOptions,
+        path: [*:0]const u8,
+        size: *usize,
+        data: *?*anyopaque,
+    ) callconv(.C) ZmeshResult {
+        _ = file_opts;
+
+        const handle = open(path, .read) catch |e| {
+            if (e == error.OutOfMemory) return .out_of_memory;
+            if (e == error.NotFound) return .file_not_found;
+            @panic(@errorName(e));
+        };
+        defer handle.close();
+
+        const file_size = if (@intFromPtr(size) != 0 and size.* != 0)
+            size.*
+        else
+            handle.length() catch |e| @panic(@errorName(e));
+        size.* = file_size;
+        data.* = mem_opts.alloc_func.?(
+            mem_opts.user_data,
+            file_size,
+        );
+        if (data.* == null) {
+            return .out_of_memory;
+        }
+
+        var buf: []u8 = undefined;
+        buf.ptr = @ptrCast(data.*.?);
+        buf.len = file_size;
+        const read_size = handle.read(buf) catch |e| @panic(@errorName(e));
+        if (read_size != file_size) {
+            mem_opts.free_func.?(mem_opts.user_data, buf.ptr);
+            return .io_error;
+        }
+        return .success;
+    }
+
+    fn release(
+        mem_opts: *const ZmeshMemoryOptions,
+        file_opts: *const ZmeshFileOptions,
+        data: ?*anyopaque,
+    ) callconv(.C) void {
+        _ = file_opts;
+
+        mem_opts.free_func.?(mem_opts.user_data, data);
+    }
+
+    pub const file_options = ZmeshFileOptions{
+        .read = read,
+        .release = release,
     };
 };
 
