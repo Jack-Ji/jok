@@ -32,7 +32,7 @@ A minimal 2d/3d game framework for zig.
 * SVG loading/rendering
 * Sound/Music playing/mixing
 
-NOTE: Ignore any feature if you don't like how it's implemented, you can always use SDL2's api directly.
+NOTE: Most features are ignorable, feel free to build your own stuff with SDL2's api directly.
 
 ## Supported platforms
 * Windows

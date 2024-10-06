@@ -598,10 +598,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     @as(f64, @floatFromInt(self._frame_count)) / duration,
                 ));
                 self._last_fps_refresh_time = self._seconds_real;
-                const dc_stats = imgui.sdl.getDrawCallStats();
-                self._drawcall_count = dc_stats[0] / self._frame_count;
-                self._triangle_count = dc_stats[1] / self._frame_count;
-                imgui.sdl.clearDrawCallStats();
+                self._drawcall_count = imgui.sdl.dcstats.drawcall_count / self._frame_count;
+                self._triangle_count = imgui.sdl.dcstats.triangle_count / self._frame_count;
+                imgui.sdl.dcstats.clear();
                 self._frame_count = 0;
             }
             if (cfg.jok_detailed_frame_stats and (self._seconds_real - self._last_costs_refresh_time) >= 0.1) {
