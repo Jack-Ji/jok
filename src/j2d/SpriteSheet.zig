@@ -385,7 +385,7 @@ pub fn fromSinglePicture(
     sprites: []const SpriteInfo,
 ) !*Self {
     var tex = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
+        ctx,
         path,
         .static,
         false,
@@ -404,15 +404,14 @@ pub fn fromSinglePicture(
 
     // Fill search tree, abort if name collision happens
     for (sprites, 0..) |sp, i| {
-        const sr = SpriteRect{
-            .width = std.math.min(sp.rect.width, tex_width - sp.rect.x),
-            .height = std.math.min(sp.rect.height, tex_height - sp.rect.y),
-            .s0 = .{ .x = sp.rect.x / tex_width, .y = sp.rect.y / tex_height },
-            .t0 = undefined,
+        rects[i] = SpriteRect{
+            .width = @min(sp.rect.width, tex_width - sp.rect.x),
+            .height = @min(sp.rect.height, tex_height - sp.rect.y),
+            .s0 = sp.rect.x / tex_width,
+            .t0 = sp.rect.y / tex_height,
+            .s1 = @min(1.0, (sp.rect.x + sp.rect.width) / tex_width),
+            .t1 = @min(1.0, (sp.rect.y + sp.rect.height) / tex_height),
         };
-        sp.s1 = std.math.min(1.0, (sp.rect.x + sp.rect.width) / tex_width);
-        sp.t1 = std.math.min(1.0, (sp.rect.y + sp.rect.height) / tex_height);
-        rects[i] = sr;
         try tree.putNoClobber(
             try std.fmt.allocPrint(allocator, "{s}", .{sp.name}),
             @intCast(i),
@@ -422,6 +421,7 @@ pub fn fromSinglePicture(
     const self = try allocator.create(Self);
     self.* = .{
         .allocator = allocator,
+        .size = .{ .x = tex_width, .y = tex_height },
         .tex = tex,
         .rects = rects,
         .search_tree = tree,
