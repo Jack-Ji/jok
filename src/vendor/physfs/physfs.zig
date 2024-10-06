@@ -462,7 +462,13 @@ pub const File = struct {
     }
 
     /// Write bytes into a filehandle
-    pub fn write(self: File, data: []const u8) Error!void {
+    pub fn write(self: File, data: []const u8) Error!usize {
+        try self.writeAll(data);
+        return data.len;
+    }
+
+    /// Write all bytes into a filehandle
+    pub fn writeAll(self: File, data: []const u8) Error!void {
         const ret = PHYSFS_writeBytes(self.handle, data.ptr, data.len);
         if (ret != @as(i64, @intCast(data.len))) {
             return getLastErrorCode().toError();
@@ -637,7 +643,7 @@ pub const stb = struct {
         var wdata: []u8 = undefined;
         wdata.ptr = @ptrCast(data.?);
         wdata.len = @intCast(size);
-        handle.write(wdata) catch |e| @panic(@errorName(e));
+        handle.writeAll(wdata) catch |e| @panic(@errorName(e));
     }
 };
 
@@ -685,7 +691,7 @@ pub const zaudio = struct {
         var data: []u8 = undefined;
         data.ptr = @constCast(src);
         data.len = size;
-        file.write(data) catch |e| @panic(@errorName(e));
+        file.writeAll(data) catch |e| @panic(@errorName(e));
         bytes_written.* = size;
         return .success;
     }

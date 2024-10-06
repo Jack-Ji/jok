@@ -72,18 +72,30 @@ pub fn createTextureFromFile(
     access: sdl.Texture.Access,
     flip: bool,
 ) !sdl.Texture {
-    const handle = try physfs.open(image_file, .read);
-    defer handle.close();
+    if (ctx.cfg().jok_enable_physfs) {
+        const handle = try physfs.open(image_file, .read);
+        defer handle.close();
 
-    const filedata = try handle.readAllAlloc(ctx.allocator());
-    defer ctx.allocator().free(filedata);
+        const filedata = try handle.readAllAlloc(ctx.allocator());
+        defer ctx.allocator().free(filedata);
 
-    return try createTextureFromFileData(
-        ctx,
-        filedata,
-        access,
-        flip,
-    );
+        return try createTextureFromFileData(
+            ctx,
+            filedata,
+            access,
+            flip,
+        );
+    } else {
+        const filedata = try std.fs.cwd().readFileAlloc(ctx.allocator(), std.mem.sliceTo(image_file, 0), 1 << 30);
+        defer ctx.allocator().free(filedata);
+
+        return try createTextureFromFileData(
+            ctx,
+            filedata,
+            access,
+            flip,
+        );
+    }
 }
 
 /// Create texture from image data
@@ -131,6 +143,7 @@ pub const EncodingOption = struct {
     flip_on_write: bool = false,
 };
 pub fn savePixelsToFile(
+    ctx: jok.Context,
     pixels: []const u8,
     width: u32,
     height: u32,
@@ -138,9 +151,6 @@ pub fn savePixelsToFile(
     path: [*:0]const u8,
     opt: EncodingOption,
 ) !void {
-    const handle = try physfs.open(path, .write);
-    defer handle.close();
-
     const channels = getChannels(format orelse getFormatByEndian());
     assert(pixels.len == @as(usize, width * height * channels));
 
@@ -148,67 +158,119 @@ pub fn savePixelsToFile(
     var result: c_int = undefined;
     stb.image.stbi_flip_vertically_on_write(@intFromBool(opt.flip_on_write));
 
-    switch (opt.format) {
-        .png => {
-            stb.image.stbi_write_png_compression_level =
-                @as(c_int, opt.png_compress_level);
-            result = stb.image.stbi_write_png_to_func(
-                physfs.stb.writeCallback,
-                @ptrCast(@constCast(&handle)),
-                @intCast(width),
-                @intCast(height),
-                @intCast(channels),
-                pixels.ptr,
-                @intCast(width * channels),
-            );
-        },
-        .bmp => {
-            result = stb.image.stbi_write_bmp_to_func(
-                physfs.stb.writeCallback,
-                @ptrCast(@constCast(&handle)),
-                @intCast(width),
-                @intCast(height),
-                @intCast(channels),
-                pixels.ptr,
-            );
-        },
-        .tga => {
-            stb.image.stbi_write_tga_with_rle =
-                if (opt.tga_rle_compress) 1 else 0;
-            result = stb.image.stbi_write_tga_to_func(
-                physfs.stb.writeCallback,
-                @ptrCast(@constCast(&handle)),
-                @intCast(width),
-                @intCast(height),
-                @intCast(channels),
-                pixels.ptr,
-            );
-        },
-        .jpg => {
-            result = stb.image.stbi_write_jpg_to_func(
-                physfs.stb.writeCallback,
-                @ptrCast(@constCast(&handle)),
-                @intCast(width),
-                @intCast(height),
-                @intCast(channels),
-                pixels.ptr,
-                @intCast(@as(c_int, std.math.clamp(opt.jpg_quality, 1, 100))),
-            );
-        },
+    if (ctx.cfg().jok_enable_physfs) {
+        const handle = try physfs.open(path, .write);
+        defer handle.close();
+
+        switch (opt.format) {
+            .png => {
+                stb.image.stbi_write_png_compression_level =
+                    @as(c_int, opt.png_compress_level);
+                result = stb.image.stbi_write_png_to_func(
+                    physfs.stb.writeCallback,
+                    @ptrCast(@constCast(&handle)),
+                    @intCast(width),
+                    @intCast(height),
+                    @intCast(channels),
+                    pixels.ptr,
+                    @intCast(width * channels),
+                );
+            },
+            .bmp => {
+                result = stb.image.stbi_write_bmp_to_func(
+                    physfs.stb.writeCallback,
+                    @ptrCast(@constCast(&handle)),
+                    @intCast(width),
+                    @intCast(height),
+                    @intCast(channels),
+                    pixels.ptr,
+                );
+            },
+            .tga => {
+                stb.image.stbi_write_tga_with_rle =
+                    if (opt.tga_rle_compress) 1 else 0;
+                result = stb.image.stbi_write_tga_to_func(
+                    physfs.stb.writeCallback,
+                    @ptrCast(@constCast(&handle)),
+                    @intCast(width),
+                    @intCast(height),
+                    @intCast(channels),
+                    pixels.ptr,
+                );
+            },
+            .jpg => {
+                result = stb.image.stbi_write_jpg_to_func(
+                    physfs.stb.writeCallback,
+                    @ptrCast(@constCast(&handle)),
+                    @intCast(width),
+                    @intCast(height),
+                    @intCast(channels),
+                    pixels.ptr,
+                    @intCast(@as(c_int, std.math.clamp(opt.jpg_quality, 1, 100))),
+                );
+            },
+        }
+    } else {
+        switch (opt.format) {
+            .png => {
+                stb.image.stbi_write_png_compression_level =
+                    @as(c_int, opt.png_compress_level);
+                result = stb.image.stbi_write_png(
+                    path,
+                    @intCast(width),
+                    @intCast(height),
+                    @intCast(channels),
+                    pixels.ptr,
+                    @intCast(width * channels),
+                );
+            },
+            .bmp => {
+                result = stb.image.stbi_write_bmp(
+                    path,
+                    @intCast(width),
+                    @intCast(height),
+                    @intCast(channels),
+                    pixels.ptr,
+                );
+            },
+            .tga => {
+                stb.image.stbi_write_tga_with_rle =
+                    if (opt.tga_rle_compress) 1 else 0;
+                result = stb.image.stbi_write_tga(
+                    path,
+                    @intCast(width),
+                    @intCast(height),
+                    @intCast(channels),
+                    pixels.ptr,
+                );
+            },
+            .jpg => {
+                result = stb.image.stbi_write_jpg(
+                    path,
+                    @intCast(width),
+                    @intCast(height),
+                    @intCast(channels),
+                    pixels.ptr,
+                    @intCast(@as(c_int, std.math.clamp(opt.jpg_quality, 1, 100))),
+                );
+            },
+        }
     }
+
     if (result == 0) {
         return error.EncodeTextureFailed;
     }
 }
 
 /// Save surface to file
-pub fn saveSurfaceToFile(surface: sdl.Surface, path: [*:0]const u8, opt: EncodingOption) !void {
+pub fn saveSurfaceToFile(ctx: jok.Context, surface: sdl.Surface, path: [*:0]const u8, opt: EncodingOption) !void {
     const format = @as(sdl.PixelFormatEnum, @enumFromInt(surface.ptr.format.*.format));
     const channels = getChannels(format);
     const pixels = @as([*]const u8, @ptrCast(surface.ptr.pixels.?));
     const size = @as(usize, surface.ptr.w * surface.ptr.h * channels);
     assert(surface.ptr.h * surface.ptr.pitch == size);
     try savePixelsToFile(
+        ctx,
         pixels[0..size],
         @intCast(surface.ptr.w),
         @intCast(surface.ptr.h),
@@ -220,19 +282,19 @@ pub fn saveSurfaceToFile(surface: sdl.Surface, path: [*:0]const u8, opt: Encodin
 
 /// Read pixels from screen
 pub fn getScreenPixels(ctx: jok.Context, rect: ?sdl.Rectangle) !struct {
-    allocator: std.mem.Allocator,
+    _ctx: jok.Context,
     format: sdl.PixelFormatEnum,
     pixels: []u8,
     width: u32,
     height: u32,
 
     pub fn destroy(self: @This()) void {
-        self.allocator.free(self.pixels);
+        self._ctx.allocator().free(self.pixels);
     }
 
-    pub fn createTexture(self: @This(), _ctx: jok.Context) !sdl.Texture {
+    pub fn createTexture(self: @This()) !sdl.Texture {
         return try createTextureFromPixels(
-            _ctx,
+            self._ctx,
             self.pixels,
             self.format,
             .static,
@@ -242,7 +304,7 @@ pub fn getScreenPixels(ctx: jok.Context, rect: ?sdl.Rectangle) !struct {
     }
 
     pub fn saveToFile(self: @This(), path: [:0]const u8, opt: EncodingOption) !void {
-        try savePixelsToFile(self.pixels, self.width, self.height, self.format, path, opt);
+        try savePixelsToFile(self._ctx, self.pixels, self.width, self.height, self.format, path, opt);
     }
 } {
     const format = getFormatByEndian();
@@ -254,7 +316,7 @@ pub fn getScreenPixels(ctx: jok.Context, rect: ?sdl.Rectangle) !struct {
     const pixels = try ctx.allocator().alloc(u8, pixel_size);
     try ctx.renderer().readPixels(rect, format, pixels.ptr, @intCast(channels * width));
     return .{
-        .allocator = ctx.allocator(),
+        ._ctx = ctx,
         .format = format,
         .pixels = pixels,
         .width = @intCast(width),

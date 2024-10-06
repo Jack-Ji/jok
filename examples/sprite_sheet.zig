@@ -10,6 +10,8 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     try physfs.mount("assets", "", true);
+    try physfs.mount(physfs.getBaseDir(), "", true);
+    try physfs.setWriteDir(physfs.getBaseDir());
 
     // create sprite sheet
     const size = ctx.getCanvasSize();
@@ -20,11 +22,12 @@ pub fn init(ctx: jok.Context) !void {
         @intFromFloat(size.y),
         .{ .keep_packed_pixels = true },
     );
-    //sheet = try j2d.SpriteSheet.fromSheetFiles(
-    //    ctx.allocator,
-    //    ctx.renderer,
-    //    "sheet",
-    //);
+    try sheet.save(ctx, "sheet");
+    sheet.destroy();
+    sheet = try j2d.SpriteSheet.load(
+        ctx,
+        "sheet",
+    );
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {

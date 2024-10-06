@@ -14,6 +14,9 @@ pub const Config = struct {
     jok_mem_leak_checks: bool = true,
     jok_mem_detail_logs: bool = false,
 
+    /// Assets accessing method
+    jok_enable_physfs: bool = true,
+
     /// Whether use pure-software renderer (NOTE: SDL might ignore this setting when GPU is available)
     jok_software_renderer: bool = false,
 
@@ -106,6 +109,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_mem_allocator", .desc = "default memory allocator" },
         .{ .name = "jok_mem_leak_checks", .desc = "whether default memory allocator check memleak when exiting" },
         .{ .name = "jok_mem_detail_logs", .desc = "whether default memory allocator print detailed memory alloc/free logs" },
+        .{ .name = "jok_enable_physfs", .desc = "whether use physfs to access game assets" },
         .{ .name = "jok_software_renderer", .desc = "whether use software renderer" },
         .{ .name = "jok_software_renderer_fallback", .desc = "whether fallback to software renderer when hardware acceleration isn't available" },
         .{ .name = "jok_canvas_size", .desc = "size of canvas" },

@@ -468,21 +468,32 @@ pub fn fromGltf(
     file_path: [*:0]const u8,
     opt: GltfOption,
 ) !*Self {
-    const handle = try physfs.open(file_path, .read);
-    defer handle.close();
-    const filedata = try handle.readAllAlloc(ctx.allocator());
-    defer ctx.allocator().free(filedata);
+    var filedata: ?[]const u8 = null;
+    defer if (filedata) |d| ctx.allocator().free(d);
 
-    const options = zmesh.io.zcgltf.Options{
-        .memory = .{
-            .alloc_func = zmesh.mem.zmeshAllocUser,
-            .free_func = zmesh.mem.zmeshFreeUser,
-        },
-        .file = physfs.zmesh.file_options,
+    const data = BLK: {
+        if (ctx.cfg().jok_enable_physfs) {
+            const handle = try physfs.open(file_path, .read);
+            defer handle.close();
+
+            const options = zmesh.io.zcgltf.Options{
+                .memory = .{
+                    .alloc_func = zmesh.mem.zmeshAllocUser,
+                    .free_func = zmesh.mem.zmeshFreeUser,
+                },
+                .file = physfs.zmesh.file_options,
+            };
+            filedata = try handle.readAllAlloc(ctx.allocator());
+            const data = try zmesh.io.zcgltf.parse(options, filedata.?);
+            try zmesh.io.zcgltf.loadBuffers(options, data, file_path);
+            break :BLK data;
+        } else {
+            const idx = std.mem.indexOfSentinel(u8, 0, file_path);
+            const data = try zmesh.io.parseAndLoadFile(file_path[0..idx :0]);
+            break :BLK data;
+        }
     };
-    const data = try zmesh.io.zcgltf.parse(options, filedata);
     defer zmesh.io.freeData(data);
-    try zmesh.io.zcgltf.loadBuffers(options, data, file_path);
 
     var self = try create(ctx.allocator(), 0, true);
     errdefer self.destroy();

@@ -20,13 +20,20 @@ font_info: truetype.stbtt_fontinfo,
 const max_font_size = 20 * (1 << 20);
 
 /// Create Font instance with truetype file
-pub fn create(allocator: std.mem.Allocator, path: [*:0]const u8) !*Font {
-    const handle = try physfs.open(path, .read);
-    defer handle.close();
-
+pub fn create(ctx: jok.Context, path: [*:0]const u8) !*Font {
+    const allocator = ctx.allocator();
     var self = try allocator.create(Font);
     self.allocator = allocator;
-    self.font_data = try handle.readAllAlloc(allocator);
+    errdefer allocator.destroy(self);
+
+    if (ctx.cfg().jok_enable_physfs) {
+        const handle = try physfs.open(path, .read);
+        defer handle.close();
+
+        self.font_data = try handle.readAllAlloc(allocator);
+    } else {
+        self.font_data = try std.fs.cwd().readFileAlloc(allocator, std.mem.sliceTo(path, 0), 1 << 30);
+    }
 
     // Extract font info
     const rc = truetype.stbtt_InitFont(

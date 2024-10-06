@@ -79,7 +79,9 @@ pub fn create(
     height: u32,
     opt: CreateSheetOption,
 ) !*Self {
-    assert(sources.len > 0);
+    if (sources.len == 0) {
+        @panic("ZERO image sources are given! Probably something is wrong.");
+    }
     const ImageData = struct {
         is_file: bool,
         pixels: ImagePixels,
@@ -110,9 +112,19 @@ pub fn create(
                 var image_width: c_int = undefined;
                 var image_height: c_int = undefined;
                 var image_channels: c_int = undefined;
-                const file = try physfs.open(path, .read);
-                defer file.close();
-                const filedata = try file.readAllAlloc(allocator);
+                const filedata = BLK: {
+                    if (ctx.cfg().jok_enable_physfs) {
+                        const file = try physfs.open(path, .read);
+                        defer file.close();
+                        break :BLK try file.readAllAlloc(allocator);
+                    } else {
+                        break :BLK try std.fs.cwd().readFileAlloc(
+                            allocator,
+                            std.mem.sliceTo(path, 0),
+                            1 << 30,
+                        );
+                    }
+                };
                 defer allocator.free(filedata);
                 var image_data = stb_image.stbi_load_from_memory(
                     filedata.ptr,
@@ -285,102 +297,81 @@ pub fn fromPicturesInDir(
     height: u32,
     opt: CreateSheetFromDirOption,
 ) !*Self {
-    var it = try physfs.getListIterator(dir_path);
-    defer it.deinit();
-
     const allocator = ctx.allocator();
     var images = try std.ArrayList(ImageSource).initCapacity(allocator, 10);
     defer images.deinit();
 
-    // Collect pictures
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
-    const dpath = std.mem.sliceTo(dir_path, 0);
-    while (it.next()) |p| {
-        const fname = std.mem.sliceTo(p, 0);
-        if (fname.len < 5) continue;
-        if ((opt.accept_png and std.mem.eql(u8, ".png", fname[fname.len - 4 ..])) or
-            (opt.accept_jpg and std.mem.eql(u8, ".jpg", fname[fname.len - 4 ..])))
-        {
-            try images.append(.{
-                .name = try std.fmt.allocPrint(
-                    arena.allocator(),
-                    "{s}",
-                    .{fname[0 .. fname.len - 4]},
-                ),
-                .image = .{
-                    .file_path = try std.fs.path.joinZ(arena.allocator(), &[_][]const u8{
-                        dpath,
-                        fname,
-                    }),
-                },
-            });
+
+    if (ctx.cfg().jok_enable_physfs) {
+        var it = try physfs.getListIterator(dir_path);
+        defer it.deinit();
+
+        // Collect pictures
+        const dpath = std.mem.sliceTo(dir_path, 0);
+        while (it.next()) |p| {
+            const fname = std.mem.sliceTo(p, 0);
+            if (fname.len < 5) continue;
+            if ((opt.accept_png and std.mem.eql(u8, ".png", fname[fname.len - 4 ..])) or
+                (opt.accept_jpg and std.mem.eql(u8, ".jpg", fname[fname.len - 4 ..])))
+            {
+                try images.append(.{
+                    .name = try std.fmt.allocPrint(
+                        arena.allocator(),
+                        "{s}",
+                        .{fname[0 .. fname.len - 4]},
+                    ),
+                    .image = .{
+                        .file_path = try std.fs.path.joinZ(arena.allocator(), &[_][]const u8{
+                            dpath,
+                            fname,
+                        }),
+                    },
+                });
+            }
         }
+
+        return try Self.create(ctx, images.items, width, height, .{
+            .gap = opt.gap,
+            .keep_packed_pixels = opt.keep_packed_pixels,
+        });
+    } else {
+        var dir = try std.fs.cwd().openDir(std.mem.sliceTo(dir_path, 0), .{ .iterate = true });
+        defer dir.close();
+
+        // Collect pictures
+        const dpath = std.mem.sliceTo(dir_path, 0);
+        var it = dir.iterate();
+        while (try it.next()) |p| {
+            if (p.kind != .file) continue;
+
+            const fname = std.mem.sliceTo(p.name, 0);
+            if (fname.len < 5) continue;
+            if ((opt.accept_png and std.mem.eql(u8, ".png", fname[fname.len - 4 ..])) or
+                (opt.accept_jpg and std.mem.eql(u8, ".jpg", fname[fname.len - 4 ..])))
+            {
+                try images.append(.{
+                    .name = try std.fmt.allocPrint(
+                        arena.allocator(),
+                        "{s}",
+                        .{fname[0 .. fname.len - 4]},
+                    ),
+                    .image = .{
+                        .file_path = try std.fs.path.joinZ(arena.allocator(), &[_][]const u8{
+                            dpath,
+                            fname,
+                        }),
+                    },
+                });
+            }
+        }
+
+        return try Self.create(ctx, images.items, width, height, .{
+            .gap = opt.gap,
+            .keep_packed_pixels = opt.keep_packed_pixels,
+        });
     }
-
-    return try Self.create(ctx, images.items, width, height, .{
-        .gap = opt.gap,
-        .keep_packed_pixels = opt.keep_packed_pixels,
-    });
-}
-
-/// Create from previous written sheet files (a picture and a json file)
-pub fn fromSheetFiles(ctx: jok.Context, path: [*:0]const u8) !*Self {
-    var path_buf: [128]u8 = undefined;
-
-    // Load texture
-    const image_path = try std.fmt.bufPrintZ(&path_buf, "{s}.png", .{path});
-    var tex = try jok.utils.gfx.createTextureFromFile(
-        ctx.renderer(),
-        image_path,
-        .static,
-        false,
-    );
-    try tex.setScaleMode(.nearest);
-    errdefer tex.destroy();
-
-    // Load sprites info
-    const allocator = ctx.allocator();
-    const json_path = try std.fmt.bufPrint(&path_buf, "{s}.json", .{path});
-    var file = try physfs.open(json_path, .read);
-    defer file.close();
-    var parsed = try json.parseFromTokenSource(json.Value, allocator, file.reader(), .{});
-    defer parsed.deinit();
-    if (parsed.value != .object) return error.InvalidJson;
-    const rect_count = parsed.value.object.count();
-    assert(rect_count > 0);
-    var rects = try allocator.alloc(SpriteRect, rect_count);
-    errdefer allocator.free(rects);
-    var search_tree = std.StringHashMap(u32).init(allocator);
-    errdefer search_tree.deinit();
-    var it = parsed.value.object.iterator();
-    var i: u32 = 0;
-    while (it.next()) |entry| : (i += 1) {
-        const name = entry.key_ptr.*;
-        const info = entry.value_ptr.*.object;
-        rects[i] = SpriteRect{
-            .s0 = @floatCast(info.get("s0").?.Float),
-            .t0 = @floatCast(info.get("t0").?.Float),
-            .s1 = @floatCast(info.get("s1").?.Float),
-            .t1 = @floatCast(info.get("t1").?.Float),
-            .width = @floatCast(info.get("width").?.Float),
-            .height = @floatCast(info.get("height").?.Float),
-        };
-        try search_tree.putNoClobber(
-            try std.fmt.allocPrint(allocator, "{s}", .{name}),
-            i,
-        );
-    }
-
-    // Allocate and init SpriteSheet
-    const sp = try allocator.create(Self);
-    sp.* = Self{
-        .allocator = allocator,
-        .tex = tex,
-        .rects = rects,
-        .search_tree = search_tree,
-    };
-    return sp;
 }
 
 /// Create a very raw sheet with a single picture, initialize name tree if possible
@@ -454,13 +445,14 @@ pub fn destroy(self: *Self) void {
 }
 
 /// Save sprite-sheet to 2 files (image and json)
-pub fn saveToFiles(self: Self, path: [*:0]const u8) !void {
+pub fn save(self: Self, ctx: jok.Context, path: []const u8) !void {
     if (self.packed_pixels == null) return error.NoTextureData;
     var path_buf: [128]u8 = undefined;
 
     // Save image file
     const image_path = try std.fmt.bufPrintZ(&path_buf, "{s}.png", .{path});
     try jok.utils.gfx.savePixelsToFile(
+        ctx,
         self.packed_pixels.?.data,
         self.packed_pixels.?.width,
         self.packed_pixels.?.height,
@@ -470,31 +462,124 @@ pub fn saveToFiles(self: Self, path: [*:0]const u8) !void {
     );
 
     // Save json file
-    const json_path = try std.fmt.bufPrint(&path_buf, "{s}.json", .{path});
-    var json_file = try physfs.open(json_path, .write);
-    defer json_file.close();
     var arena_allocator = std.heap.ArenaAllocator.init(self.allocator);
     defer arena_allocator.deinit();
     var json_root = json.Value{
         .object = json.ObjectMap.init(arena_allocator.allocator()),
     };
-    var it = self.search_tree.iterator();
-    while (it.next()) |entry| {
-        const name = entry.key_ptr.*;
-        const rect = self.rects[entry.value_ptr.*];
-        var obj = json.ObjectMap.init(arena_allocator.allocator());
-        try obj.put("s0", json.Value{ .float = @as(f64, rect.s0) });
-        try obj.put("t0", json.Value{ .float = @as(f64, rect.t0) });
-        try obj.put("s1", json.Value{ .float = @as(f64, rect.s1) });
-        try obj.put("t1", json.Value{ .float = @as(f64, rect.t1) });
-        try obj.put("width", json.Value{ .float = @as(f64, rect.width) });
-        try obj.put("height", json.Value{ .float = @as(f64, rect.height) });
-        try json_root.object.put(name, json.Value{ .object = obj });
+    const json_path = try std.fmt.bufPrintZ(&path_buf, "{s}.json", .{path});
+    if (ctx.cfg().jok_enable_physfs) {
+        var json_file = try physfs.open(json_path, .write);
+        defer json_file.close();
+
+        var it = self.search_tree.iterator();
+        while (it.next()) |entry| {
+            const name = entry.key_ptr.*;
+            const rect = self.rects[entry.value_ptr.*];
+            var obj = json.ObjectMap.init(arena_allocator.allocator());
+            try obj.put("s0", json.Value{ .float = @as(f64, rect.s0) });
+            try obj.put("t0", json.Value{ .float = @as(f64, rect.t0) });
+            try obj.put("s1", json.Value{ .float = @as(f64, rect.s1) });
+            try obj.put("t1", json.Value{ .float = @as(f64, rect.t1) });
+            try obj.put("width", json.Value{ .float = @as(f64, rect.width) });
+            try obj.put("height", json.Value{ .float = @as(f64, rect.height) });
+            try json_root.object.put(name, json.Value{ .object = obj });
+        }
+        var stream = json.writeStream(json_file.writer(), .{ .whitespace = .indent_2 });
+        try json_root.jsonStringify(&stream);
+    } else {
+        var json_file = try std.fs.cwd().createFileZ(json_path, .{});
+        defer json_file.close();
+
+        var it = self.search_tree.iterator();
+        while (it.next()) |entry| {
+            const name = entry.key_ptr.*;
+            const rect = self.rects[entry.value_ptr.*];
+            var obj = json.ObjectMap.init(arena_allocator.allocator());
+            try obj.put("s0", json.Value{ .float = @as(f64, rect.s0) });
+            try obj.put("t0", json.Value{ .float = @as(f64, rect.t0) });
+            try obj.put("s1", json.Value{ .float = @as(f64, rect.s1) });
+            try obj.put("t1", json.Value{ .float = @as(f64, rect.t1) });
+            try obj.put("width", json.Value{ .float = @as(f64, rect.width) });
+            try obj.put("height", json.Value{ .float = @as(f64, rect.height) });
+            try json_root.object.put(name, json.Value{ .object = obj });
+        }
+        var stream = json.writeStream(json_file.writer(), .{ .whitespace = .indent_2 });
+        try json_root.jsonStringify(&stream);
     }
-    try json_root.jsonStringify(
-        .{ .whitespace = json.StringifyOptions.Whitespace{} },
-        json_file.writer(),
+}
+
+/// Create from previous written sheet files (a picture and a json file)
+pub fn load(ctx: jok.Context, path: []const u8) !*Self {
+    var path_buf: [128]u8 = undefined;
+
+    // Load texture
+    const image_path = try std.fmt.bufPrintZ(&path_buf, "{s}.png", .{path});
+    var tex = try jok.utils.gfx.createTextureFromFile(
+        ctx,
+        image_path,
+        .static,
+        false,
     );
+    try tex.setScaleMode(.nearest);
+    errdefer tex.destroy();
+
+    // Load sprites info
+    const allocator = ctx.allocator();
+    const json_path = try std.fmt.bufPrintZ(&path_buf, "{s}.json", .{path});
+    var parsed = BLK: {
+        if (ctx.cfg().jok_enable_physfs) {
+            var file = try physfs.open(json_path, .read);
+            defer file.close();
+            var reader = json.reader(ctx.allocator(), file.reader());
+            defer reader.deinit();
+            break :BLK try json.parseFromTokenSource(json.Value, allocator, &reader, .{});
+        } else {
+            var file = try std.fs.cwd().openFileZ(std.mem.sliceTo(json_path, 0), .{});
+            defer file.close();
+            var reader = json.reader(ctx.allocator(), file.reader());
+            defer reader.deinit();
+            break :BLK try json.parseFromTokenSource(json.Value, allocator, &reader, .{});
+        }
+    };
+    defer parsed.deinit();
+    if (parsed.value != .object) return error.InvalidJson;
+    const rect_count = parsed.value.object.count();
+    assert(rect_count > 0);
+    var rects = try allocator.alloc(SpriteRect, rect_count);
+    errdefer allocator.free(rects);
+    var search_tree = std.StringHashMap(u32).init(allocator);
+    errdefer search_tree.deinit();
+    var it = parsed.value.object.iterator();
+    var i: u32 = 0;
+    while (it.next()) |entry| : (i += 1) {
+        const name = entry.key_ptr.*;
+        const info = entry.value_ptr.*.object;
+        rects[i] = SpriteRect{
+            .s0 = @floatCast(info.get("s0").?.float),
+            .t0 = @floatCast(info.get("t0").?.float),
+            .s1 = @floatCast(info.get("s1").?.float),
+            .t1 = @floatCast(info.get("t1").?.float),
+            .width = @floatCast(info.get("width").?.float),
+            .height = @floatCast(info.get("height").?.float),
+        };
+        try search_tree.putNoClobber(
+            try std.fmt.allocPrint(allocator, "{s}", .{name}),
+            i,
+        );
+    }
+
+    // Allocate and init SpriteSheet
+    const info = try tex.query();
+    const ss = try allocator.create(Self);
+    ss.* = Self{
+        .allocator = allocator,
+        .size = .{ .x = @floatFromInt(info.width), .y = @floatFromInt(info.height) },
+        .tex = tex,
+        .rects = rects,
+        .search_tree = search_tree,
+    };
+    return ss;
 }
 
 /// Get sprite by name

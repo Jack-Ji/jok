@@ -63,7 +63,7 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
                 const pixels = try jok.utils.gfx.getScreenPixels(ctx, null);
                 defer pixels.destroy();
                 try pixels.saveToFile("screenshot.png", .{});
-                screenshot_tex = try pixels.createTexture(ctx);
+                screenshot_tex = try pixels.createTexture();
                 screenshot_time = std.time.timestamp();
                 try point_easing_system.add(
                     &screenshot_pos,

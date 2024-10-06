@@ -20,6 +20,7 @@ const log = std.log.scoped(.jok);
 pub const Context = struct {
     ctx: *anyopaque,
     vtable: struct {
+        cfg: *const fn (ctx: *anyopaque) config.Config,
         allocator: *const fn (ctx: *anyopaque) std.mem.Allocator,
         running: *const fn (ctx: *anyopaque) bool,
         seconds: *const fn (ctx: *anyopaque) f32,
@@ -47,6 +48,11 @@ pub const Context = struct {
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
     },
+
+    /// Get setup configuration
+    pub fn cfg(self: Context) config.Config {
+        return self.vtable.cfg(self.ctx);
+    }
 
     /// Get meomry allocator
     pub fn allocator(self: Context) std.mem.Allocator {
@@ -208,6 +214,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
         var gpa: AllocatorType = .{};
         const max_costs_num = 300;
         const CostDataType = jok.utils.ring.Ring(f32);
+
+        /// Setup configuration
+        _cfg: config.Config = cfg,
 
         // Application Context
         _ctx: Context = undefined,
@@ -810,6 +819,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             return .{
                 .ctx = self,
                 .vtable = .{
+                    .cfg = getcfg,
                     .allocator = allocator,
                     .running = running,
                     .seconds = seconds,
@@ -880,6 +890,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         ///////////////////// Wrapped API for Application Context //////////////////
+
+        /// Get setup configuration
+        fn getcfg(ptr: *anyopaque) config.Config {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            return self._cfg;
+        }
 
         /// Get meomry allocator
         fn allocator(ptr: *anyopaque) std.mem.Allocator {
