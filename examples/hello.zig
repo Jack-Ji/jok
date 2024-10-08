@@ -1,6 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
 const sdl = jok.sdl;
+const physfs = jok.physfs;
 const font = jok.font;
 const zmath = jok.zmath;
 const imgui = jok.imgui;
@@ -26,6 +27,8 @@ var show_stats: bool = true;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
+
+    try physfs.setWriteDir(physfs.getPrefDir(ctx));
 
     const csz = ctx.getCanvasSize();
 

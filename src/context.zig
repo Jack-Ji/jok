@@ -623,7 +623,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Check system information
-        fn checkSys(_: *@This()) !void {
+        fn checkSys(self: *@This()) !void {
             const target = builtin.target;
             var sdl_version: sdl.c.SDL_version = undefined;
             sdl.c.SDL_GetVersion(&sdl_version);
@@ -655,7 +655,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     @tagName(target.os.tag),
                     ram_size,
                     physfs.getBaseDir(),
-                    physfs.getPrefDir(cfg.jok_pref_org, cfg.jok_pref_app),
+                    physfs.getPrefDir(self._ctx),
                 },
             );
 

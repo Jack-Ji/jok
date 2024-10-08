@@ -1,4 +1,5 @@
 const std = @import("std");
+const jok = @import("../../jok.zig");
 const io = std.io;
 const assert = std.debug.assert;
 
@@ -141,12 +142,8 @@ pub fn getBaseDir() [*:0]const u8 {
 ///
 /// You should assume the path returned by this function is the only safe
 /// place to write files.
-pub fn getPrefDir(_org: []const u8, _app: []const u8) [*:0]const u8 {
-    var org_buf: [256]u8 = undefined;
-    var app_buf: [256]u8 = undefined;
-    const org = std.fmt.bufPrintZ(&org_buf, "{s}", .{_org}) catch unreachable;
-    const app = std.fmt.bufPrintZ(&app_buf, "{s}", .{_app}) catch unreachable;
-    if (PHYSFS_getPrefDir(org, app)) |p| {
+pub fn getPrefDir(ctx: jok.Context) [*:0]const u8 {
+    if (PHYSFS_getPrefDir(ctx.cfg().jok_pref_org, ctx.cfg().jok_pref_app)) |p| {
         return p;
     }
     @panic("can't get data dir");

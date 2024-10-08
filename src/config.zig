@@ -17,6 +17,10 @@ pub const Config = struct {
     /// Assets accessing method
     jok_enable_physfs: bool = true,
 
+    /// Application preference directory info
+    jok_pref_org: [*:0]const u8 = "myorg",
+    jok_pref_app: [*:0]const u8 = "mygame",
+
     /// Whether use pure-software renderer (NOTE: SDL might ignore this setting when GPU is available)
     jok_software_renderer: bool = false,
 
@@ -55,10 +59,6 @@ pub const Config = struct {
 
     /// Whether enable detailed frame statistics
     jok_detailed_frame_stats: bool = true,
-
-    /// Application preference directory info
-    jok_pref_org: []const u8 = "myorg",
-    jok_pref_app: []const u8 = "mygame",
 };
 
 /// Initial size of window
