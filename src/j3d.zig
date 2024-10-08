@@ -93,7 +93,7 @@ pub fn begin(opt: BeginOption) void {
 }
 
 pub fn end() void {
-    target.submit(ctx.renderer(), blend_method.toMode());
+    target.submit(ctx, blend_method.toMode());
 }
 
 pub fn clearMemory() void {

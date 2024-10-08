@@ -69,10 +69,11 @@ pub fn processEvent(event: sdl.c.SDL_Event) bool {
     return ImGui_ImplSDL2_ProcessEvent(&event);
 }
 
-pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) void {
+pub fn renderDrawList(ctx: jok.Context, dl: zgui.DrawList) void {
     if (dl.getCmdBufferLength() <= 0) return;
 
-    const fbsize = rd.getOutputSize() catch unreachable;
+    const rd = ctx.renderer();
+    const csz = ctx.getCanvasSize();
     const old_clip_rect = rd.getClipRect() catch unreachable;
     defer rd.setClipRect(old_clip_rect) catch unreachable;
 
@@ -86,10 +87,10 @@ pub fn renderDrawList(rd: sdl.Renderer, dl: zgui.DrawList) void {
 
         // Apply clip rect
         var clip_rect: sdl.Rectangle = undefined;
-        clip_rect.x = @min(0, @as(c_int, @intFromFloat(cmd.clip_rect[0])));
-        clip_rect.y = @min(0, @as(c_int, @intFromFloat(cmd.clip_rect[1])));
-        clip_rect.width = @min(fbsize.width_pixels, @as(c_int, @intFromFloat(cmd.clip_rect[2] - cmd.clip_rect[0])));
-        clip_rect.height = @min(fbsize.height_pixels, @as(c_int, @intFromFloat(cmd.clip_rect[3] - cmd.clip_rect[1])));
+        clip_rect.x = @intFromFloat(@max(0.0, cmd.clip_rect[0]));
+        clip_rect.y = @intFromFloat(@max(0.0, cmd.clip_rect[1]));
+        clip_rect.width = @intFromFloat(@min(csz.x - cmd.clip_rect[0], cmd.clip_rect[2] - cmd.clip_rect[0]));
+        clip_rect.height = @intFromFloat(@min(csz.y - cmd.clip_rect[1], cmd.clip_rect[3] - cmd.clip_rect[1]));
         if (clip_rect.width <= 0 or clip_rect.height <= 0) continue;
         rd.setClipRect(clip_rect) catch unreachable;
 

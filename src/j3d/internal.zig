@@ -558,7 +558,7 @@ pub const RenderTarget = struct {
         );
     }
 
-    pub fn submit(self: *RenderTarget, rd: sdl.Renderer, blend_mode: c_uint) void {
+    pub fn submit(self: *RenderTarget, ctx: jok.Context, blend_mode: c_uint) void {
         const S = struct {
             inline fn addTriangles(dl: imgui.DrawList, indices: []u32, vertices: []sdl.Vertex, texture: ?sdl.Texture) void {
                 if (texture) |tex| dl.pushTextureId(tex.ptr);
@@ -581,8 +581,9 @@ pub const RenderTarget = struct {
             }
         };
 
+        const rd = ctx.renderer();
         if (self.wireframe_color != null) {
-            imgui.sdl.renderDrawList(rd, self.dl);
+            imgui.sdl.renderDrawList(ctx, self.dl);
         } else {
             // Apply blend mode to textures and renderer
             var it = self.all_tex.keyIterator();
@@ -593,7 +594,7 @@ pub const RenderTarget = struct {
 
             switch (self.triangle_sort) {
                 .none => {
-                    imgui.sdl.renderDrawList(rd, self.dl);
+                    imgui.sdl.renderDrawList(ctx, self.dl);
                 },
                 .simple => {
                     // Sort by average depth
@@ -623,7 +624,7 @@ pub const RenderTarget = struct {
                         last_texture,
                     );
 
-                    imgui.sdl.renderDrawList(rd, self.dl);
+                    imgui.sdl.renderDrawList(ctx, self.dl);
                 },
             }
         }

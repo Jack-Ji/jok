@@ -125,7 +125,7 @@ pub fn end() void {
     }
     _ = sdl.c.SDL_SetRenderDrawBlendMode(ctx.renderer().ptr, blend_method.toMode());
 
-    imgui.sdl.renderDrawList(ctx.renderer(), draw_list);
+    imgui.sdl.renderDrawList(ctx, draw_list);
 }
 
 pub fn clearMemory() void {
