@@ -581,16 +581,14 @@ pub const RenderTarget = struct {
             }
         };
 
-        const rd = ctx.renderer();
         if (self.wireframe_color != null) {
             imgui.sdl.renderDrawList(ctx, self.dl);
         } else {
-            // Apply blend mode to textures and renderer
+            // Apply blend mode to textures
             var it = self.all_tex.keyIterator();
             while (it.next()) |k| {
                 _ = sdl.c.SDL_SetTextureBlendMode(k.*, blend_mode);
             }
-            _ = sdl.c.SDL_SetRenderDrawBlendMode(rd.ptr, blend_mode);
 
             switch (self.triangle_sort) {
                 .none => {

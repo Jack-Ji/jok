@@ -92,6 +92,11 @@ pub fn begin(opt: BeginOption) void {
 }
 
 pub fn end() void {
+    var old_blend: sdl.c.SDL_BlendMode = undefined;
+    _ = sdl.c.SDL_GetRenderDrawBlendMode(ctx.renderer().ptr, &old_blend);
+    defer _ = sdl.c.SDL_SetRenderDrawBlendMode(ctx.renderer().ptr, old_blend);
+    _ = sdl.c.SDL_SetRenderDrawBlendMode(ctx.renderer().ptr, blend_method.toMode());
+
     target.submit(ctx, blend_method.toMode());
 }
 
