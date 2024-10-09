@@ -264,7 +264,6 @@ fn injectVendorLibraries(
             "src/vendor/physfs/c/physfs_archiver_lec3d.c",
         },
         .flags = &.{
-            "-DCP_USE_DOUBLES=0",
             "-Wno-return-type-c-linkage",
             "-fno-sanitize=undefined",
         },
@@ -273,6 +272,15 @@ fn injectVendorLibraries(
         exe.linkSystemLibrary("advapi32");
         exe.linkSystemLibrary("shell32");
     } else if (target.result.os.tag == .macos) {
+        exe.addCSourceFiles(.{
+            .files = &.{
+                "src/vendor/physfs/c/physfs_platform_apple.m",
+            },
+            .flags = &.{
+                "-Wno-return-type-c-linkage",
+                "-fno-sanitize=undefined",
+            },
+        });
         if (b.lazyDependency("system_sdk", .{})) |system_sdk| {
             exe.addFrameworkPath(system_sdk.path("macos12/System/Library/Frameworks"));
             exe.addSystemIncludePath(system_sdk.path("macos12/usr/include"));
