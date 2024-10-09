@@ -4,6 +4,7 @@ const builtin = @import("builtin");
 const bos = @import("build_options");
 const config = @import("config.zig");
 const pp = @import("post_processing.zig");
+const blend = @import("blend.zig");
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
 const physfs = jok.physfs;
@@ -673,6 +674,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn initSDL(self: *@This()) !void {
             const sdl_flags = sdl.InitFlags.everything;
             try sdl.init(sdl_flags);
+
+            // Initialize custom blending method
+            blend.init();
 
             // Create window
             var window_flags = sdl.WindowFlags{

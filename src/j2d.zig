@@ -8,7 +8,6 @@ const imgui = jok.imgui;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 
-const ctypes = @import("common_types.zig");
 const internal = @import("j2d/internal.zig");
 const Atlas = @import("font/Atlas.zig");
 pub const AffineTransform = @import("j2d/AffineTransform.zig");
@@ -32,7 +31,7 @@ pub const DepthSortMethod = enum {
 pub const BeginOption = struct {
     transform: AffineTransform = AffineTransform.init(),
     depth_sort: DepthSortMethod = .none,
-    blend_method: ctypes.BlendMethod = .blend,
+    blend_method: jok.BlendMethod = .blend,
     antialiased: bool = true,
 };
 
@@ -41,7 +40,7 @@ var draw_list: imgui.DrawList = undefined;
 var draw_commands: std.ArrayList(internal.DrawCmd) = undefined;
 var transform: AffineTransform = undefined;
 var depth_sort: DepthSortMethod = undefined;
-var blend_method: ctypes.BlendMethod = undefined;
+var blend_method: jok.BlendMethod = undefined;
 var all_tex: std.AutoHashMap(*sdl.c.SDL_Texture, bool) = undefined;
 
 pub fn init(_ctx: jok.Context) !void {

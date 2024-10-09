@@ -7,7 +7,6 @@ const imgui = jok.imgui;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 
-const ctypes = @import("common_types.zig");
 const internal = @import("j3d/internal.zig");
 const TriangleRenderer = @import("j3d/TriangleRenderer.zig");
 const SkyboxRenderer = @import("j3d/SkyboxRenderer.zig");
@@ -34,7 +33,7 @@ pub const BeginOption = struct {
     camera: ?Camera = null,
     wireframe_color: ?sdl.Color = null,
     triangle_sort: TriangleSort = .none,
-    blend_method: ctypes.BlendMethod = .blend,
+    blend_method: jok.BlendMethod = .blend,
 };
 
 pub const TriangleSort = union(enum(u8)) {
@@ -52,7 +51,7 @@ var tri_rd: TriangleRenderer = undefined;
 var skybox_rd: SkyboxRenderer = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 var camera: Camera = undefined;
-var blend_method: ctypes.BlendMethod = undefined;
+var blend_method: jok.BlendMethod = undefined;
 var submitted: bool = undefined;
 
 pub fn init(_ctx: jok.Context) !void {

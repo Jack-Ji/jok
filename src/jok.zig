@@ -5,6 +5,9 @@ pub const config = @import("config.zig");
 pub const Context = @import("context.zig").Context;
 pub const JokContext = @import("context.zig").JokContext;
 
+/// blend method
+pub const BlendMethod = @import("blend.zig").BlendMethod;
+
 /// 2d rendering
 pub const j2d = @import("j2d.zig");
 
