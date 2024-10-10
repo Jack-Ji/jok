@@ -286,6 +286,7 @@ fn injectVendorLibraries(
             exe.addSystemIncludePath(system_sdk.path("macos12/usr/include"));
             exe.addLibraryPath(system_sdk.path("macos12/usr/lib"));
         }
+        exe.linkSystemLibrary("objc");
         exe.linkFramework("IOKit");
         exe.linkFramework("Foundation");
     } else if (target.result.os.tag == .linux) {
