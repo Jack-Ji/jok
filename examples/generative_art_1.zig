@@ -48,42 +48,36 @@ pub fn draw(ctx: jok.Context) !void {
     }
 
     // Render to last texture
-    _ = try jok.utils.gfx.renderToTexture(
-        ctx,
-        struct {
-            seconds: f32,
+    {
+        const csz = ctx.getCanvasSize();
+        const ncircle = 20;
+        rot += 0.3;
+        if (rot > 360.0) rot = 0.3;
 
-            pub fn draw(self: @This(), _: jok.Context, size: sdl.PointF) !void {
-                const ncircle = 20;
-                rot += 0.3;
-                if (rot > 360.0) rot = 0.3;
+        j2d.begin(.{
+            .offscreen_target = targets.last.?.data,
+            .offscreen_clear_color = clear_color,
+        });
+        defer j2d.end();
 
-                j2d.begin(.{});
-                defer j2d.end();
-                for (0..ncircle) |i| {
-                    var tr = j2d.AffineTransform.init();
-                    tr.translate(.{ .x = size.x / 2, .y = size.y / 2 });
-                    tr.translateX(jok.utils.math.linearMap(
-                        math.sin(self.seconds),
-                        -1,
-                        1,
-                        -radius,
-                        radius,
-                    ));
-                    tr.rotateByPoint(
-                        .{ .x = size.x / 2, .y = size.y / 2 },
-                        jok.utils.math.degreeToRadian(rot + 360.0 * @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(ncircle))),
-                    );
-                    j2d.setTransform(tr);
-                    try j2d.circleFilled(.{ .x = 0, .y = 0 }, 10, sdl.Color.green, .{});
-                }
-            }
-        }{ .seconds = ctx.seconds() },
-        .{
-            .target = targets.last.?.data,
-            .clear_color = clear_color,
-        },
-    );
+        for (0..ncircle) |i| {
+            var tr = j2d.AffineTransform.init();
+            tr.translate(.{ .x = csz.x / 2, .y = csz.y / 2 });
+            tr.translateX(jok.utils.math.linearMap(
+                math.sin(ctx.seconds()),
+                -1,
+                1,
+                -radius,
+                radius,
+            ));
+            tr.rotateByPoint(
+                .{ .x = csz.x / 2, .y = csz.y / 2 },
+                jok.utils.math.degreeToRadian(rot + 360.0 * @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(ncircle))),
+            );
+            j2d.setTransform(tr);
+            try j2d.circleFilled(.{ .x = 0, .y = 0 }, 10, sdl.Color.green, .{});
+        }
+    }
 
     // Draw layers (from oldest to newest)
     j2d.begin(.{});

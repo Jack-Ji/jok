@@ -80,7 +80,7 @@ pub fn destroy(self: *Self) void {
 pub fn render(
     self: *Self,
     csz: sdl.PointF,
-    target: *internal.RenderTarget,
+    rdjob: *internal.RenderJob,
     model: zmath.Mat,
     camera: Camera,
     tri_rd: *TriangleRenderer,
@@ -214,7 +214,7 @@ pub fn render(
     try self.renderNode(
         self.anim.mesh.root,
         csz,
-        target,
+        rdjob,
         zmath.mul(zmath.scaling(-1, 1, 1), model),
         camera,
         tri_rd,
@@ -234,7 +234,7 @@ fn renderNode(
     self: *Self,
     node: *Mesh.Node,
     csz: sdl.PointF,
-    target: *internal.RenderTarget,
+    rdjob: *internal.RenderJob,
     model: zmath.Mat,
     camera: Camera,
     tri_rd: *TriangleRenderer,
@@ -253,7 +253,7 @@ fn renderNode(
     for (node.meshes) |sm| {
         try tri_rd.renderMesh(
             csz,
-            target,
+            rdjob,
             matrix,
             camera,
             sm.indices.items,
@@ -295,7 +295,7 @@ fn renderNode(
         try self.renderNode(
             c,
             csz,
-            target,
+            rdjob,
             model,
             camera,
             tri_rd,

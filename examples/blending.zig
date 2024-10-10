@@ -59,30 +59,27 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     ctx.clear(sdl.Color.rgb(170, 170, 170));
 
-    _ = try jok.utils.gfx.renderToTexture(
-        ctx,
-        struct {
-            pub fn draw(_: @This(), _: jok.Context, _: sdl.PointF) !void {
-                j2d.begin(.{});
-                for (blends) |b| {
-                    try j2d.image(dst, b.pos, .{});
-                }
-                j2d.end();
+    // draw dest
+    j2d.begin(.{
+        .offscreen_target = target,
+        .offscreen_clear_color = sdl.Color.rgba(0, 0, 0, 0),
+    });
+    for (blends) |b| {
+        try j2d.image(dst, b.pos, .{});
+    }
+    j2d.end();
 
-                for (blends) |b| {
-                    j2d.begin(.{ .blend_method = b.blend });
-                    defer j2d.end();
+    // draw source
+    for (blends) |b| {
+        j2d.begin(.{
+            .offscreen_target = target,
+            .blend_method = b.blend,
+        });
+        try j2d.image(src, b.pos, .{});
+        j2d.end();
+    }
 
-                    try j2d.image(src, b.pos, .{});
-                }
-            }
-        }{},
-        .{
-            .target = target,
-            .clear_color = sdl.Color.rgba(0, 0, 0, 0),
-        },
-    );
-
+    // draw labels
     {
         j2d.begin(.{});
         defer j2d.end();

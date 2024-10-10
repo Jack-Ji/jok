@@ -367,8 +367,11 @@ pub fn createTextureAsTarget(ctx: jok.Context, opt: CreateTarget) !sdl.Texture {
     return tex;
 }
 
-/// Render to texture and return it. @renderer can be any struct with
-/// method `fn draw(self: @This(), ctx: jok.Context, size: sdl.PointF) !void`
+/// Render to texture and return it. `renderer` can be any struct instance with method:
+///   fn draw(self: @This(), ctx: jok.Context, size: sdl.PointF) !void
+///
+/// NOTE: This is not elegant at all, you probably would want to pass offscreen target to
+///       j2d.begin/j3d.begin directly.
 pub const RenderToTexture = struct {
     target: ?sdl.Texture = null,
     size: ?sdl.Size = null,

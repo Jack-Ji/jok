@@ -33,6 +33,8 @@ pub const BeginOption = struct {
     depth_sort: DepthSortMethod = .none,
     blend_method: jok.BlendMethod = .blend,
     antialiased: bool = true,
+    offscreen_target: ?sdl.Texture = null,
+    offscreen_clear_color: ?sdl.Color = null,
 };
 
 var ctx: jok.Context = undefined;
@@ -41,6 +43,8 @@ var draw_commands: std.ArrayList(internal.DrawCmd) = undefined;
 var transform: AffineTransform = undefined;
 var depth_sort: DepthSortMethod = undefined;
 var blend_method: jok.BlendMethod = undefined;
+var offscreen_target: ?sdl.Texture = undefined;
+var offscreen_clear_color: ?sdl.Color = undefined;
 var all_tex: std.AutoHashMap(*sdl.c.SDL_Texture, bool) = undefined;
 
 pub fn init(_ctx: jok.Context) !void {
@@ -76,6 +80,14 @@ pub fn begin(opt: BeginOption) void {
     transform = opt.transform;
     depth_sort = opt.depth_sort;
     blend_method = opt.blend_method;
+    offscreen_target = opt.offscreen_target;
+    offscreen_clear_color = opt.offscreen_clear_color;
+    if (offscreen_target) |t| {
+        const info = t.query() catch unreachable;
+        if (info.access != .target) {
+            @panic("Given texture isn't suitable for offscreen rendering!");
+        }
+    }
 }
 
 pub fn end() void {
@@ -118,15 +130,32 @@ pub fn end() void {
     }
 
     // Apply blend mode to renderer and textures
+    const rd = ctx.renderer();
     var old_blend: sdl.c.SDL_BlendMode = undefined;
-    _ = sdl.c.SDL_GetRenderDrawBlendMode(ctx.renderer().ptr, &old_blend);
-    defer _ = sdl.c.SDL_SetRenderDrawBlendMode(ctx.renderer().ptr, old_blend);
-    _ = sdl.c.SDL_SetRenderDrawBlendMode(ctx.renderer().ptr, blend_method.toMode());
+    _ = sdl.c.SDL_GetRenderDrawBlendMode(rd.ptr, &old_blend);
+    defer _ = sdl.c.SDL_SetRenderDrawBlendMode(rd.ptr, old_blend);
+    _ = sdl.c.SDL_SetRenderDrawBlendMode(rd.ptr, blend_method.toMode());
     var it = all_tex.keyIterator();
     while (it.next()) |k| {
         _ = sdl.c.SDL_SetTextureBlendMode(k.*, blend_method.toMode());
     }
 
+    // Apply offscreen target if given
+    const old_target = rd.getTarget();
+    if (offscreen_target) |t| {
+        rd.setTarget(t) catch unreachable;
+        if (offscreen_clear_color) |c| {
+            const old_color = rd.getColor() catch unreachable;
+            rd.setColor(c) catch unreachable;
+            rd.clear() catch unreachable;
+            rd.setColor(old_color) catch unreachable;
+        }
+    }
+    defer if (offscreen_target != null) {
+        rd.setTarget(old_target) catch unreachable;
+    };
+
+    // Submit draw command
     imgui.sdl.renderDrawList(ctx, draw_list);
 }
 

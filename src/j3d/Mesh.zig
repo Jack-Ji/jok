@@ -228,7 +228,7 @@ pub const Node = struct {
     fn render(
         node: *Node,
         csz: sdl.PointF,
-        target: *internal.RenderTarget,
+        rdjob: *internal.RenderJob,
         model: zmath.Mat,
         camera: Camera,
         tri_rd: *TriangleRenderer,
@@ -237,7 +237,7 @@ pub const Node = struct {
         for (node.meshes) |sm| {
             try tri_rd.renderMesh(
                 csz,
-                target,
+                rdjob,
                 zmath.mul(node.matrix, model),
                 camera,
                 sm.indices.items,
@@ -269,7 +269,7 @@ pub const Node = struct {
         for (node.children.items) |c| {
             try c.render(
                 csz,
-                target,
+                rdjob,
                 model,
                 camera,
                 tri_rd,
@@ -552,7 +552,7 @@ pub fn destroy(self: *Self) void {
 pub fn render(
     self: *const Self,
     csz: sdl.PointF,
-    target: *internal.RenderTarget,
+    rdjob: *internal.RenderJob,
     model: zmath.Mat,
     camera: Camera,
     tri_rd: *TriangleRenderer,
@@ -560,7 +560,7 @@ pub fn render(
 ) !void {
     try self.root.render(
         csz,
-        target,
+        rdjob,
         if (self.is_gltf) // Convert to right-handed system (glTF use left-handed system)
             zmath.mul(zmath.scaling(-1, 1, 1), model)
         else

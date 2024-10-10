@@ -431,7 +431,7 @@ pub inline fn isSameTexture(tex0: ?sdl.Texture, tex1: ?sdl.Texture) bool {
 }
 
 /// Target for storing rendering result
-pub const RenderTarget = struct {
+pub const RenderJob = struct {
     pub const RenderBatch = struct {
         indices: std.ArrayList(u32),
         vertices: std.ArrayList(sdl.Vertex),
@@ -455,8 +455,8 @@ pub const RenderTarget = struct {
     all_tex: std.AutoHashMap(*sdl.c.SDL_Texture, bool),
     dl: imgui.DrawList,
 
-    pub fn init(allocator: std.mem.Allocator) RenderTarget {
-        const target = RenderTarget{
+    pub fn init(allocator: std.mem.Allocator) RenderJob {
+        const target = RenderJob{
             .wireframe_color = undefined,
             .triangle_sort = .none,
             .indices = std.ArrayList(u32).init(allocator),
@@ -469,7 +469,7 @@ pub const RenderTarget = struct {
         return target;
     }
 
-    pub fn deinit(self: *RenderTarget) void {
+    pub fn deinit(self: *RenderJob) void {
         self.indices.deinit();
         self.vertices.deinit();
         self.depths.deinit();
@@ -479,7 +479,7 @@ pub const RenderTarget = struct {
         self.* = undefined;
     }
 
-    pub fn createBatch(self: *const RenderTarget) !RenderBatch {
+    pub fn createBatch(self: *const RenderJob) !RenderBatch {
         return .{
             .indices = try self.indices.clone(),
             .vertices = try self.vertices.clone(),
@@ -489,7 +489,7 @@ pub const RenderTarget = struct {
     }
 
     pub fn reset(
-        self: *RenderTarget,
+        self: *RenderJob,
         ctx: jok.Context,
         wireframe_color: ?sdl.Color,
         triangle_sort: j3d.TriangleSort,
@@ -525,7 +525,7 @@ pub const RenderTarget = struct {
         }
     }
 
-    inline fn reserveCapacity(self: *RenderTarget, idx_size: usize, vtx_size: usize) !void {
+    inline fn reserveCapacity(self: *RenderJob, idx_size: usize, vtx_size: usize) !void {
         try self.indices.ensureTotalCapacity(self.indices.items.len + idx_size);
         try self.vertices.ensureTotalCapacity(self.vertices.items.len + vtx_size);
         try self.depths.ensureTotalCapacity(self.depths.items.len + vtx_size);
@@ -533,7 +533,7 @@ pub const RenderTarget = struct {
     }
 
     // Compare triangles by average depth
-    fn compareTrianglesByDepth(self: *RenderTarget, lhs: [3]u32, rhs: [3]u32) bool {
+    fn compareTrianglesByDepth(self: *RenderJob, lhs: [3]u32, rhs: [3]u32) bool {
         const l_idx0 = lhs[0];
         const l_idx1 = lhs[1];
         const l_idx2 = lhs[2];
@@ -545,7 +545,7 @@ pub const RenderTarget = struct {
         return d0 > d1;
     }
 
-    fn sortTriangles(self: *RenderTarget, indices: []u32) void {
+    fn sortTriangles(self: *RenderJob, indices: []u32) void {
         assert(@rem(indices.len, 3) == 0);
         var _indices: [][3]u32 = undefined;
         _indices.ptr = @ptrCast(indices.ptr);
@@ -554,11 +554,11 @@ pub const RenderTarget = struct {
             [3]u32,
             _indices,
             self,
-            RenderTarget.compareTrianglesByDepth,
+            RenderJob.compareTrianglesByDepth,
         );
     }
 
-    pub fn submit(self: *RenderTarget, ctx: jok.Context, blend_mode: c_uint) void {
+    pub fn submit(self: *RenderJob, ctx: jok.Context, blend_mode: c_uint) void {
         const S = struct {
             inline fn addTriangles(dl: imgui.DrawList, indices: []u32, vertices: []sdl.Vertex, texture: ?sdl.Texture) void {
                 if (texture) |tex| dl.pushTextureId(tex.ptr);
@@ -629,7 +629,7 @@ pub const RenderTarget = struct {
     }
 
     pub fn pushTriangles(
-        self: *RenderTarget,
+        self: *RenderJob,
         indices: []const u32,
         vertices: []const sdl.Vertex,
         depths: []const f32,
@@ -690,7 +690,7 @@ pub const RenderTarget = struct {
         }
     }
 
-    pub fn pushBatch(self: *RenderTarget, batch: RenderBatch) !void {
+    pub fn pushBatch(self: *RenderJob, batch: RenderBatch) !void {
         assert(batch.vertices.items.len == batch.depths.items.len);
         assert(batch.vertices.items.len == batch.textures.items.len);
         try self.reserveCapacity(batch.indices.items.len, batch.vertices.items.len);

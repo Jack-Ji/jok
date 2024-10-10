@@ -10,7 +10,7 @@ const zmesh = jok.zmesh;
 const internal = @import("j3d/internal.zig");
 const TriangleRenderer = @import("j3d/TriangleRenderer.zig");
 const SkyboxRenderer = @import("j3d/SkyboxRenderer.zig");
-pub const RenderBatch = internal.RenderTarget.RenderBatch;
+pub const RenderBatch = internal.RenderJob.RenderBatch;
 pub const ShadingMethod = TriangleRenderer.ShadingMethod;
 pub const LightingOption = lighting.LightingOption;
 pub const Mesh = @import("j3d/Mesh.zig");
@@ -34,6 +34,8 @@ pub const BeginOption = struct {
     wireframe_color: ?sdl.Color = null,
     triangle_sort: TriangleSort = .none,
     blend_method: jok.BlendMethod = .blend,
+    offscreen_target: ?sdl.Texture = null,
+    offscreen_clear_color: ?sdl.Color = null,
 };
 
 pub const TriangleSort = union(enum(u8)) {
@@ -46,18 +48,20 @@ pub const TriangleSort = union(enum(u8)) {
 
 var ctx: jok.Context = undefined;
 var arena: std.heap.ArenaAllocator = undefined;
-var target: internal.RenderTarget = undefined;
+var rdjob: internal.RenderJob = undefined;
 var tri_rd: TriangleRenderer = undefined;
 var skybox_rd: SkyboxRenderer = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 var camera: Camera = undefined;
 var blend_method: jok.BlendMethod = undefined;
+var offscreen_target: ?sdl.Texture = undefined;
+var offscreen_clear_color: ?sdl.Color = undefined;
 var submitted: bool = undefined;
 
 pub fn init(_ctx: jok.Context) !void {
     ctx = _ctx;
     arena = std.heap.ArenaAllocator.init(ctx.allocator());
-    target = internal.RenderTarget.init(ctx.allocator());
+    rdjob = internal.RenderJob.init(ctx.allocator());
     tri_rd = TriangleRenderer.init(ctx.allocator());
     skybox_rd = SkyboxRenderer.init(ctx.allocator(), .{});
     all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
@@ -68,12 +72,12 @@ pub fn deinit() void {
     for (all_shapes.items) |s| s.deinit();
     tri_rd.deinit();
     skybox_rd.deinit();
-    target.deinit();
+    rdjob.deinit();
     arena.deinit();
 }
 
 pub fn begin(opt: BeginOption) void {
-    target.reset(ctx, opt.wireframe_color, opt.triangle_sort, false);
+    rdjob.reset(ctx, opt.wireframe_color, opt.triangle_sort, false);
     camera = opt.camera orelse BLK: {
         break :BLK Camera.fromPositionAndTarget(
             .{
@@ -89,36 +93,62 @@ pub fn begin(opt: BeginOption) void {
         );
     };
     blend_method = opt.blend_method;
+    offscreen_target = opt.offscreen_target;
+    offscreen_clear_color = opt.offscreen_clear_color;
+    if (offscreen_target) |t| {
+        const info = t.query() catch unreachable;
+        if (info.access != .target) {
+            @panic("Given texture isn't suitable for offscreen rendering!");
+        }
+    }
 }
 
 pub fn end() void {
+    // Apply blend mode to renderer
+    const rd = ctx.renderer();
     var old_blend: sdl.c.SDL_BlendMode = undefined;
-    _ = sdl.c.SDL_GetRenderDrawBlendMode(ctx.renderer().ptr, &old_blend);
-    defer _ = sdl.c.SDL_SetRenderDrawBlendMode(ctx.renderer().ptr, old_blend);
-    _ = sdl.c.SDL_SetRenderDrawBlendMode(ctx.renderer().ptr, blend_method.toMode());
+    _ = sdl.c.SDL_GetRenderDrawBlendMode(rd.ptr, &old_blend);
+    defer _ = sdl.c.SDL_SetRenderDrawBlendMode(rd.ptr, old_blend);
+    _ = sdl.c.SDL_SetRenderDrawBlendMode(rd.ptr, blend_method.toMode());
 
-    target.submit(ctx, blend_method.toMode());
+    // Apply offscreen target if given
+    const old_target = rd.getTarget();
+    if (offscreen_target) |t| {
+        rd.setTarget(t) catch unreachable;
+        if (offscreen_clear_color) |c| {
+            const old_color = rd.getColor() catch unreachable;
+            rd.setColor(c) catch unreachable;
+            rd.clear() catch unreachable;
+            rd.setColor(old_color) catch unreachable;
+        }
+    }
+    defer if (offscreen_target != null) {
+        rd.setTarget(old_target) catch unreachable;
+    };
+
+    // Submit draw command
+    rdjob.submit(ctx, blend_method.toMode());
 }
 
 pub fn clearMemory() void {
-    target.clear(true);
+    rdjob.clear(true);
 }
 
 /// Get current batched data
 pub fn getBatch() !RenderBatch {
-    return try target.createBatch();
+    return try rdjob.createBatch();
 }
 
 /// Render previous batched data
 pub fn batch(b: RenderBatch) !void {
-    try target.pushBatch(b);
+    try rdjob.pushBatch(b);
 }
 
 /// Render skybox, textures order: right/left/top/bottom/front/back
 pub fn skybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {
     try skybox_rd.render(
         ctx.getCanvasSize(),
-        &target,
+        &rdjob,
         camera,
         textures,
         color,
@@ -135,7 +165,7 @@ pub fn effects(ps: *ParticleSystem) !void {
     for (ps.effects.items) |eff| {
         try eff.render(
             ctx.getCanvasSize(),
-            &target,
+            &rdjob,
             camera,
             &tri_rd,
         );
@@ -146,7 +176,7 @@ pub fn effects(ps: *ParticleSystem) !void {
 pub fn sprite(model: zmath.Mat, size: sdl.PointF, uv: [2]sdl.PointF, opt: TriangleRenderer.RenderSpriteOption) !void {
     try tri_rd.renderSprite(
         ctx.getCanvasSize(),
-        &target,
+        &rdjob,
         model,
         camera,
         size,
@@ -177,7 +207,7 @@ pub fn line(model: zmath.Mat, _p0: [3]f32, _p1: [3]f32, opt: LineOption) !void {
         const p3 = v0 + zmath.f32x4s(@floatFromInt(i + 1)) * unit + veps * perpv;
         try tri_rd.renderMesh(
             ctx.getCanvasSize(),
-            &target,
+            &rdjob,
             zmath.identity(),
             camera,
             &.{ 0, 1, 2, 0, 2, 3 },
@@ -223,7 +253,7 @@ pub fn triangle(model: zmath.Mat, pos: [3][3]f32, colors: ?[3]sdl.Color, texcoor
         const normal = zmath.vecToArr3(zmath.cross3(v0, v1));
         try tri_rd.renderMesh(
             ctx.getCanvasSize(),
-            &target,
+            &rdjob,
             model,
             camera,
             &.{ 0, 1, 2 },
@@ -262,7 +292,7 @@ pub fn triangles(
     if (opt.fill) {
         try tri_rd.renderMesh(
             ctx.getCanvasSize(),
-            &target,
+            &rdjob,
             model,
             camera,
             indices,
@@ -296,7 +326,7 @@ pub fn triangles(
 pub fn shape(s: zmesh.Shape, model: zmath.Mat, aabb: ?[6]f32, opt: RenderOption) !void {
     try tri_rd.renderMesh(
         ctx.getCanvasSize(),
-        &target,
+        &rdjob,
         model,
         camera,
         s.indices,
@@ -319,7 +349,7 @@ pub fn shape(s: zmesh.Shape, model: zmath.Mat, aabb: ?[6]f32, opt: RenderOption)
 pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
     try m.render(
         ctx.getCanvasSize(),
-        &target,
+        &rdjob,
         model,
         camera,
         &tri_rd,
@@ -337,7 +367,7 @@ pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
 pub fn animation(anim: *Animation, model: zmath.Mat, opt: Animation.RenderOption) !void {
     try anim.render(
         ctx.getCanvasSize(),
-        &target,
+        &rdjob,
         model,
         camera,
         &tri_rd,

@@ -90,7 +90,7 @@ pub fn deinit(self: *Self) void {
 pub fn render(
     self: *Self,
     csz: sdl.PointF,
-    target: *internal.RenderTarget,
+    rdjob: *internal.RenderJob,
     camera: Camera,
     textures: [6]sdl.Texture, // cube textures: right/left/top/bottom/front/back
     color: ?sdl.Color, // tint color
@@ -165,7 +165,7 @@ pub fn render(
             const t0 = self.clip_texcoords.items[idx0];
             const t1 = self.clip_texcoords.items[idx1];
             const t2 = self.clip_texcoords.items[idx2];
-            try target.pushTriangles(
+            try rdjob.pushTriangles(
                 &.{ 0, 1, 2 },
                 &[_]sdl.Vertex{
                     .{
