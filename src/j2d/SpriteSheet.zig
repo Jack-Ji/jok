@@ -309,7 +309,6 @@ pub fn fromPicturesInDir(
         defer it.deinit();
 
         // Collect pictures
-        const dpath = std.mem.sliceTo(dir_path, 0);
         while (it.next()) |p| {
             const fname = std.mem.sliceTo(p, 0);
             if (fname.len < 5) continue;
@@ -323,10 +322,11 @@ pub fn fromPicturesInDir(
                         .{fname[0 .. fname.len - 4]},
                     ),
                     .image = .{
-                        .file_path = try std.fs.path.joinZ(arena.allocator(), &[_][]const u8{
-                            dpath,
-                            fname,
-                        }),
+                        .file_path = try std.fmt.allocPrintZ(
+                            arena.allocator(),
+                            "{s}/{s}",
+                            .{ dir_path, fname },
+                        ),
                     },
                 });
             }
