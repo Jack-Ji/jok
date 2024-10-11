@@ -323,9 +323,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             audio_config.resource_manager_vfs = &physfs.zaudio.vfs;
             self._audio_engine = try miniaudio.Engine.create(audio_config);
 
-            // Init post-processing facility
-            self._post_processing = PostProcessingType.init(self._renderer);
-
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
             _ = try font.DebugFont.getAtlas(
@@ -472,8 +469,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 defer {
                     self._renderer.setTarget(null) catch unreachable;
                     if (self._ppfn) |f| {
-                        self._post_processing.reset(self._renderer);
-                        self._post_processing.applyFn(self.context(), f, self._ppdata);
+                        self._post_processing.applyFn(f, self._ppdata);
                         self._post_processing.render(self._renderer, self._canvas_texture);
                     } else {
                         self._renderer.copy(self._canvas_texture, self._canvas_target_area, null) catch unreachable;
@@ -539,7 +535,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
                                 if (self._canvas_size == null) {
                                     self._canvas_texture.destroy();
                                     self._canvas_texture =
-                                        jok.utils.gfx.createTextureAsTarget(self.context(), .{}) catch unreachable;
+                                        jok.utils.gfx.createTextureAsTarget(
+                                        self.context(),
+                                        .{},
+                                    ) catch unreachable;
                                 }
                                 self.updateCanvasTargetArea();
                             },
@@ -808,11 +807,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self.context(),
                 .{ .size = self._canvas_size },
             );
+            self._post_processing = try PostProcessingType.init(self._allocator);
             self.updateCanvasTargetArea();
         }
 
         /// Deinitialize SDL
         fn deinitSDL(self: *@This()) void {
+            self._post_processing.deinit();
+            self._canvas_texture.destroy();
             self._renderer.destroy();
             self._window.destroy();
             sdl.quit();
@@ -854,7 +856,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             };
         }
 
-        /// Calculate canvas area according to current sizes of canvas and framebuffer
+        /// Update canvas area according to current sizes of canvas and framebuffer
         inline fn updateCanvasTargetArea(self: *@This()) void {
             if (self._canvas_size) |sz| {
                 const fbsize = self._renderer.getOutputSize() catch unreachable;
@@ -879,6 +881,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._canvas_target_area = null;
                 self._canvas_scale = 1.0;
             }
+            self._post_processing.onCanvasChange(self._renderer, self._canvas_target_area);
         }
 
         /// Map position from framebuffer to canvas

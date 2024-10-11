@@ -4,8 +4,9 @@ const sdl = jok.sdl;
 const physfs = jok.physfs;
 const j3d = jok.j3d;
 
+pub const jok_window_resizable = true;
 pub const jok_canvas_size = sdl.Size{ .width = 320, .height = 180 };
-pub const jok_post_processing_size = jok_canvas_size;
+pub const jok_post_processing_size: sdl.Size = jok_canvas_size;
 
 var camera: j3d.Camera = undefined;
 var skybox_textures: [6]sdl.Texture = undefined;
