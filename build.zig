@@ -51,7 +51,7 @@ pub fn build(b: *std.Build) void {
     };
     const build_examples = b.step("examples", "compile and install all examples");
     inline for (examples) |demo| {
-        const exe = createGame(
+        const exe = createDesktopApp(
             b,
             demo.name,
             "examples/" ++ demo.name ++ ".zig",
@@ -82,8 +82,8 @@ pub const BuildOptions = struct {
     enable_ztracy: bool = false,
 };
 
-/// Create game executable
-pub fn createGame(
+/// Create desktop application
+pub fn createDesktopApp(
     b: *std.Build,
     name: []const u8,
     root_file: []const u8,
