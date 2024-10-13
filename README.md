@@ -60,7 +60,7 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     pub fn build(b: *std.Build) void {
         const target = b.standardTargetOptions(.{});
         const optimize = b.standardOptimizeOption(.{});
-        const exe = jok.createGame(
+        const exe = jok.createDesktopApp(
             b,
             "mygame",
             "src/main.zig",
