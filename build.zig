@@ -91,20 +91,46 @@ pub fn createDesktopApp(
     optimize: std.builtin.Mode,
     opt: BuildOptions,
 ) *std.Build.Step.Compile {
-    const builder = if (opt.dep_name) |dep|
-        b.dependency(dep, .{}).builder
-    else
-        b;
+    const builder = getJokBuilder(b, opt);
+    const sdl_sdk = getSdlSdk(b, opt);
 
-    // Find sdl build config and create sdk
-    const env_sdl_path: ?[]u8 = std.process.getEnvVarOwned(b.allocator, opt.sdl_config_env) catch null;
-    const sdl_config_path = env_sdl_path orelse std.fs.path.join(
-        b.allocator,
-        &[_][]const u8{ b.pathFromRoot(".build_config"), "sdl.json" },
-    ) catch @panic("OOM");
-    const sdl_sdk = sdl.init(builder, .{ .maybe_config_path = sdl_config_path });
+    // Initialize jok
+    const jok = initJok(b, target, optimize, opt);
 
-    // Initialize jok module
+    // Create executable
+    const exe = builder.addExecutable(.{
+        .name = name,
+        .root_source_file = builder.path("src/app.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    exe.root_module.addImport("jok", jok.module);
+    exe.root_module.addImport("game", builder.createModule(.{
+        .root_source_file = b.path(root_file),
+        .imports = &.{
+            .{ .name = "jok", .module = jok.module },
+        },
+    }));
+    exe.linkLibrary(jok.lib);
+    sdl_sdk.link(exe, .dynamic, .SDL2);
+
+    return exe;
+}
+
+// Create jok module and library
+fn initJok(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.Mode,
+    opt: BuildOptions,
+) struct {
+    module: *std.Build.Module,
+    lib: *std.Build.Step.Compile,
+} {
+    const builder = getJokBuilder(b, opt);
+    const sdl_sdk = getSdlSdk(b, opt);
+
+    // Create module
     const bos = builder.addOptions();
     bos.addOption(bool, "use_cp", opt.use_cp);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
@@ -133,70 +159,63 @@ pub fn createDesktopApp(
         .target = target,
         .optimize = optimize,
     });
-    const jok = builder.createModule(.{
+    const module = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
         .imports = &.{
             .{ .name = "build_options", .module = bos.createModule() },
-            .{ .name = "sdl", .module = sdl_sdk.getWrapperModule() },
             .{ .name = "zgui", .module = zgui.module("root") },
             .{ .name = "zaudio", .module = zaudio.module("root") },
             .{ .name = "zmath", .module = zmath.module("root") },
             .{ .name = "zmesh", .module = zmesh.module("root") },
             .{ .name = "znoise", .module = znoise.module("root") },
+            .{ .name = "sdl", .module = sdl_sdk.getWrapperModule() }, // TODO eliminate this when we use raw bindings only
         },
     });
     if (opt.use_ztracy) {
-        jok.addImport("ztracy", ztracy.module("root"));
+        module.addImport("ztracy", ztracy.module("root"));
     }
 
-    // Create executable
-    const exe = builder.addExecutable(.{
-        .name = name,
-        .root_source_file = builder.path("src/app.zig"),
+    // Create library
+    const lib = builder.addStaticLibrary(.{
+        .name = "jok",
+        .root_source_file = builder.path("src/jok.zig"),
         .target = target,
         .optimize = optimize,
     });
-    exe.root_module.addImport("jok", jok);
-    exe.root_module.addImport("game", builder.createModule(.{
-        .root_source_file = b.path(root_file),
-        .imports = &.{
-            .{ .name = "jok", .module = jok },
-        },
-    }));
-    sdl_sdk.link(exe, .dynamic, .SDL2);
-    exe.linkLibrary(zgui.artifact("imgui"));
-    exe.linkLibrary(zaudio.artifact("miniaudio"));
-    exe.linkLibrary(zmesh.artifact("zmesh"));
-    exe.linkLibrary(znoise.artifact("FastNoiseLite"));
+    lib.linkLibrary(zgui.artifact("imgui"));
+    lib.linkLibrary(zaudio.artifact("miniaudio"));
+    lib.linkLibrary(zmesh.artifact("zmesh"));
+    lib.linkLibrary(znoise.artifact("FastNoiseLite"));
     if (opt.use_ztracy) {
-        exe.linkLibrary(ztracy.artifact("tracy"));
+        lib.linkLibrary(ztracy.artifact("tracy"));
     }
-    injectVendorLibraries(builder, exe, target, optimize, opt);
+    injectVendorLibraries(builder, lib, target, optimize, opt);
 
-    return exe;
+    return .{ .module = module, .lib = lib };
 }
 
+// Compile vendor libraries into artifact
 fn injectVendorLibraries(
     b: *std.Build,
-    exe: *std.Build.Step.Compile,
+    bin: *std.Build.Step.Compile,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.Mode,
     opt: BuildOptions,
 ) void {
     // libc is required
-    exe.linkLibC();
+    bin.linkLibC();
 
-    // imgui
-    if (exe.rootModuleTarget().os.tag == .windows) {
-        exe.addIncludePath(b.path("src/vendor/imgui/c/SDL2/windows"));
+    // dear-imgui backend
+    if (bin.rootModuleTarget().os.tag == .windows) {
+        bin.addIncludePath(b.path("src/vendor/imgui/c/SDL2/windows"));
     } else if (target.result.os.tag == .macos) {
-        exe.addIncludePath(b.path("src/vendor/imgui/c/SDL2/macos"));
+        bin.addIncludePath(b.path("src/vendor/imgui/c/SDL2/macos"));
     } else if (target.result.os.tag == .linux) {
-        exe.addIncludePath(b.path("src/vendor/imgui/c/SDL2/linux"));
+        bin.addIncludePath(b.path("src/vendor/imgui/c/SDL2/linux"));
     } else unreachable;
-    exe.addIncludePath(b.path("deps/zgui/libs/imgui"));
-    exe.addIncludePath(b.path("src/vendor/imgui/c"));
-    exe.addCSourceFiles(.{
+    bin.addIncludePath(b.path("deps/zgui/libs/imgui"));
+    bin.addIncludePath(b.path("src/vendor/imgui/c"));
+    bin.addCSourceFiles(.{
         .files = &.{
             "src/vendor/imgui/c/imgui_impl_sdl2.cpp",
             "src/vendor/imgui/c/imgui_impl_sdlrenderer2.cpp",
@@ -205,8 +224,8 @@ fn injectVendorLibraries(
     });
 
     // miniaudio
-    exe.addIncludePath(b.path("deps/zaudio/libs/miniaudio"));
-    exe.addCSourceFile(.{
+    bin.addIncludePath(b.path("deps/zaudio/libs/miniaudio"));
+    bin.addCSourceFile(.{
         .file = b.path("src/vendor/miniaudio/c/miniaudio_impl_sdl2.c"),
         .flags = &.{
             "-DMA_ENABLE_CUSTOM",
@@ -217,7 +236,7 @@ fn injectVendorLibraries(
     });
 
     // stb headers
-    exe.addCSourceFile(.{
+    bin.addCSourceFile(.{
         .file = b.path("src/vendor/stb/c/stb_wrapper.c"),
         .flags = &.{
             "-Wno-return-type-c-linkage",
@@ -226,7 +245,7 @@ fn injectVendorLibraries(
     });
 
     // nanosvg
-    exe.addCSourceFile(.{
+    bin.addCSourceFile(.{
         .file = b.path("src/vendor/svg/c/wrapper.c"),
         .flags = &.{
             "-Wno-return-type-c-linkage",
@@ -235,7 +254,7 @@ fn injectVendorLibraries(
     });
 
     // physfs
-    exe.addCSourceFiles(.{
+    bin.addCSourceFiles(.{
         .files = &.{
             "src/vendor/physfs/c/physfs.c",
             "src/vendor/physfs/c/physfs_byteorder.c",
@@ -269,10 +288,10 @@ fn injectVendorLibraries(
         },
     });
     if (target.result.os.tag == .windows) {
-        exe.linkSystemLibrary("advapi32");
-        exe.linkSystemLibrary("shell32");
+        bin.linkSystemLibrary("advapi32");
+        bin.linkSystemLibrary("shell32");
     } else if (target.result.os.tag == .macos) {
-        exe.addCSourceFiles(.{
+        bin.addCSourceFiles(.{
             .files = &.{
                 "src/vendor/physfs/c/physfs_platform_apple.m",
             },
@@ -282,21 +301,21 @@ fn injectVendorLibraries(
             },
         });
         if (b.lazyDependency("system_sdk", .{})) |system_sdk| {
-            exe.addFrameworkPath(system_sdk.path("macos12/System/Library/Frameworks"));
-            exe.addSystemIncludePath(system_sdk.path("macos12/usr/include"));
-            exe.addLibraryPath(system_sdk.path("macos12/usr/lib"));
+            bin.addFrameworkPath(system_sdk.path("macos12/System/Library/Frameworks"));
+            bin.addSystemIncludePath(system_sdk.path("macos12/usr/include"));
+            bin.addLibraryPath(system_sdk.path("macos12/usr/lib"));
         }
-        exe.linkSystemLibrary("objc");
-        exe.linkFramework("IOKit");
-        exe.linkFramework("Foundation");
+        bin.linkSystemLibrary("objc");
+        bin.linkFramework("IOKit");
+        bin.linkFramework("Foundation");
     } else if (target.result.os.tag == .linux) {
-        exe.linkSystemLibrary("pthread");
+        bin.linkSystemLibrary("pthread");
     } else unreachable;
 
     // chipmunk
     if (opt.use_cp) {
-        exe.addIncludePath(b.path("src/vendor/chipmunk/c/include"));
-        exe.addCSourceFiles(.{
+        bin.addIncludePath(b.path("src/vendor/chipmunk/c/include"));
+        bin.addCSourceFiles(.{
             .files = &.{
                 "src/vendor/chipmunk/c/src/chipmunk.c",
                 "src/vendor/chipmunk/c/src/cpArbiter.c",
@@ -346,40 +365,59 @@ fn injectVendorLibraries(
         defer flags.deinit();
         flags.append("-Wno-return-type-c-linkage") catch unreachable;
         flags.append("-fno-sanitize=undefined") catch unreachable;
-        if (exe.rootModuleTarget().os.tag == .windows) {
-            exe.linkSystemLibrary("shell32");
-            exe.linkSystemLibrary("ole32");
-            exe.linkSystemLibrary("uuid"); // needed by MinGW
+        if (bin.rootModuleTarget().os.tag == .windows) {
+            bin.linkSystemLibrary("shell32");
+            bin.linkSystemLibrary("ole32");
+            bin.linkSystemLibrary("uuid"); // needed by MinGW
         } else if (target.result.os.tag == .macos) {
-            exe.linkFramework("AppKit");
-        } else if (exe.rootModuleTarget().os.tag == .linux) {
-            exe.linkSystemLibrary("atk-1.0");
-            exe.linkSystemLibrary("gdk-3");
-            exe.linkSystemLibrary("gtk-3");
-            exe.linkSystemLibrary("glib-2.0");
-            exe.linkSystemLibrary("gobject-2.0");
+            bin.linkFramework("AppKit");
+        } else if (bin.rootModuleTarget().os.tag == .linux) {
+            bin.linkSystemLibrary("atk-1.0");
+            bin.linkSystemLibrary("gdk-3");
+            bin.linkSystemLibrary("gtk-3");
+            bin.linkSystemLibrary("glib-2.0");
+            bin.linkSystemLibrary("gobject-2.0");
         } else unreachable;
-        exe.addIncludePath(b.path("src/vendor/nfd/c/include"));
-        exe.addCSourceFile(.{
+        bin.addIncludePath(b.path("src/vendor/nfd/c/include"));
+        bin.addCSourceFile(.{
             .file = b.path("src/vendor/nfd/c/nfd_common.c"),
             .flags = flags.items,
         });
 
         if (target.result.os.tag == .windows) {
-            exe.addCSourceFile(.{
+            bin.addCSourceFile(.{
                 .file = b.path("src/vendor/nfd/c/nfd_win.cpp"),
                 .flags = flags.items,
             });
         } else if (target.result.os.tag == .macos) {
-            exe.addCSourceFile(.{
+            bin.addCSourceFile(.{
                 .file = b.path("src/vendor/nfd/c/nfd_cocoa.m"),
                 .flags = flags.items,
             });
         } else if (target.result.os.tag == .linux) {
-            exe.addCSourceFile(.{
+            bin.addCSourceFile(.{
                 .file = b.path("src/vendor/nfd/c/nfd_gtk.c"),
                 .flags = flags.items,
             });
         } else unreachable;
     }
+}
+
+// Get sdl-sdk instance
+fn getSdlSdk(b: *std.Build, opt: BuildOptions) @typeInfo(@TypeOf(sdl.init)).@"fn".return_type.? {
+    const builder = getJokBuilder(b, opt);
+    const env_sdl_path: ?[]u8 = std.process.getEnvVarOwned(b.allocator, opt.sdl_config_env) catch null;
+    const sdl_config_path = env_sdl_path orelse std.fs.path.join(
+        b.allocator,
+        &[_][]const u8{ b.pathFromRoot(".build_config"), "sdl.json" },
+    ) catch @panic("OOM");
+    return sdl.init(builder, .{ .maybe_config_path = sdl_config_path });
+}
+
+// Get jok's own builder from project's
+fn getJokBuilder(b: *std.Build, opt: BuildOptions) *std.Build {
+    return if (opt.dep_name) |dep|
+        b.dependency(dep, .{}).builder
+    else
+        b;
 }
