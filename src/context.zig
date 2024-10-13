@@ -28,17 +28,11 @@ pub const Context = struct {
         realSeconds: *const fn (ctx: *anyopaque) f64,
         deltaSeconds: *const fn (ctx: *anyopaque) f32,
         fps: *const fn (ctx: *anyopaque) f32,
-        window: *const fn (ctx: *anyopaque) sdl.Window,
+        window: *const fn (ctx: *anyopaque) jok.Window,
         renderer: *const fn (ctx: *anyopaque) sdl.Renderer,
         canvas: *const fn (ctx: *anyopaque) sdl.Texture,
         audioEngine: *const fn (ctx: *anyopaque) *miniaudio.Engine,
         kill: *const fn (ctx: *anyopaque) void,
-        toggleResizable: *const fn (ctx: *anyopaque, on_off: ?bool) void,
-        toggleFullscreeen: *const fn (ctx: *anyopaque, on_off: ?bool) void,
-        toggleAlwaysOnTop: *const fn (ctx: *anyopaque, on_off: ?bool) void,
-        getWindowPosition: *const fn (ctx: *anyopaque) sdl.PointF,
-        getWindowSize: *const fn (ctx: *anyopaque) sdl.PointF,
-        setWindowSize: *const fn (ctx: *anyopaque, size: sdl.Size) void,
         getCanvasSize: *const fn (ctx: *anyopaque) sdl.PointF,
         setCanvasSize: *const fn (ctx: *anyopaque, size: ?sdl.Size) anyerror!void,
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
@@ -86,7 +80,7 @@ pub const Context = struct {
     }
 
     /// Get SDL window
-    pub fn window(self: Context) sdl.Window {
+    pub fn window(self: Context) jok.Window {
         return self.vtable.window(self.ctx);
     }
 
@@ -108,36 +102,6 @@ pub const Context = struct {
     /// Kill application
     pub fn kill(self: Context) void {
         return self.vtable.kill(self.ctx);
-    }
-
-    /// Toggle resizable
-    pub fn toggleResizable(self: Context, on_off: ?bool) void {
-        return self.vtable.toggleResizable(self.ctx, on_off);
-    }
-
-    /// Toggle fullscreen
-    pub fn toggleFullscreeen(self: Context, on_off: ?bool) void {
-        return self.vtable.toggleFullscreeen(self.ctx, on_off);
-    }
-
-    /// Toggle always-on-top
-    pub fn toggleAlwaysOnTop(self: Context, on_off: ?bool) void {
-        return self.vtable.toggleAlwaysOnTop(self.ctx, on_off);
-    }
-
-    /// Get position of window
-    pub fn getWindowPosition(self: Context) sdl.PointF {
-        return self.vtable.getWindowPosition(self.ctx);
-    }
-
-    /// Get size of window
-    pub fn getWindowSize(self: Context) sdl.PointF {
-        return self.vtable.getWindowSize(self.ctx);
-    }
-
-    /// Set size of window
-    pub fn setWindowSize(self: Context, size: sdl.Size) void {
-        return self.vtable.setWindowSize(self.ctx, size);
     }
 
     /// Get size of canvas
@@ -229,7 +193,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _running: bool = true,
 
         // Internal window
-        _window: sdl.Window = undefined,
+        _window: jok.Window = undefined,
 
         // High DPI stuff
         _default_dpi: f32 = undefined,
@@ -674,14 +638,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const sdl_flags = sdl.InitFlags.everything;
             try sdl.init(sdl_flags);
 
-            // Initialize custom blending method
-            blend.init();
-
-            // Create window
-            var window_flags = sdl.WindowFlags{
-                .mouse_capture = true,
-                .mouse_focus = true,
-            };
+            // Initialize dpi
             self._default_dpi = switch (builtin.target.os.tag) {
                 .macos => 72.0,
                 else => 96.0,
@@ -695,87 +652,21 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 if (sdl.c.SDL_GetDisplayDPI(0, null, &self._display_dpi, null) < 0) {
                     self._display_dpi = self._default_dpi;
                 }
-                window_flags.allow_high_dpi = true;
             } else {
                 self._display_dpi = self._default_dpi;
             }
-            if (cfg.jok_window_borderless) {
-                window_flags.borderless = true;
-            }
-            if (cfg.jok_window_ime_ui) {
-                _ = sdl.setHint("SDL_IME_SHOW_UI", "1");
-            }
-            var window_width: usize = 800;
-            var window_height: usize = 600;
-            switch (cfg.jok_window_size) {
-                .maximized => {
-                    window_flags.dim = .maximized;
-                },
-                .fullscreen => {
-                    self._fullscreen = true;
-                    window_flags.dim = .fullscreen_desktop;
-                },
-                .custom => |size| {
-                    window_width = @intFromFloat(@as(f32, @floatFromInt(size.width)) * getDpiScale(self));
-                    window_height = @intFromFloat(@as(f32, @floatFromInt(size.height)) * getDpiScale(self));
-                },
-            }
-            self._window = try sdl.createWindow(
-                cfg.jok_window_title,
-                cfg.jok_window_pos_x,
-                cfg.jok_window_pos_y,
-                window_width,
-                window_height,
-                window_flags,
-            );
-            if (cfg.jok_window_min_size) |size| {
-                sdl.c.SDL_SetWindowMinimumSize(
-                    self._window.ptr,
-                    size.width,
-                    size.height,
-                );
-            }
-            if (cfg.jok_window_max_size) |size| {
-                sdl.c.SDL_SetWindowMaximumSize(
-                    self._window.ptr,
-                    size.width,
-                    size.height,
-                );
-            }
-            toggleResizable(self, cfg.jok_window_resizable);
-            toggleAlwaysOnTop(self, cfg.jok_window_always_on_top);
 
-            // Apply mouse mode
-            switch (cfg.jok_window_mouse_mode) {
-                .normal => {
-                    if (cfg.jok_window_size == .fullscreen) {
-                        sdl.c.SDL_SetWindowGrab(self._window.ptr, sdl.c.SDL_FALSE);
-                        _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
-                        _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_TRUE);
-                    } else {
-                        _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_ENABLE);
-                        _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_FALSE);
-                    }
-                },
-                .hide_in_window => {
-                    if (cfg.jok_window_size == .fullscreen) {
-                        sdl.c.SDL_SetWindowGrab(self._window.ptr, sdl.c.SDL_TRUE);
-                    }
-                    _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
-                },
-                .hide_always => {
-                    if (cfg.jok_window_size == .fullscreen) {
-                        sdl.c.SDL_SetWindowGrab(self._window.ptr, sdl.c.SDL_TRUE);
-                    }
-                    _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_DISABLE);
-                    _ = sdl.c.SDL_SetRelativeMouseMode(sdl.c.SDL_TRUE);
-                },
-            }
+            // Initialize blending methods
+            blend.init();
+
+            // Initialize window
+            self._window = try jok.Window.init(self._cfg, getDpiScale(self));
 
             // Create hardware accelerated renderer
             // Fallback to software renderer if allowed
+            const __window = sdl.Window{ .ptr = @ptrCast(self._window.ptr) };
             self._renderer = sdl.createRenderer(
-                self._window,
+                __window,
                 null,
                 .{
                     .software = cfg.jok_software_renderer,
@@ -786,7 +677,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 if (cfg.jok_software_renderer_fallback) {
                     log.warn("Hardware accelerated renderer isn't supported, fallback to software backend", .{});
                     break :blk try sdl.createRenderer(
-                        self._window,
+                        __window,
                         null,
                         .{
                             .software = true,
@@ -816,7 +707,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._post_processing.deinit();
             self._canvas_texture.destroy();
             self._renderer.destroy();
-            self._window.destroy();
+            self._window.deinit();
             sdl.quit();
         }
 
@@ -837,12 +728,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .canvas = canvas,
                     .audioEngine = audioEngine,
                     .kill = kill,
-                    .toggleResizable = toggleResizable,
-                    .toggleFullscreeen = toggleFullscreeen,
-                    .toggleAlwaysOnTop = toggleAlwaysOnTop,
-                    .getWindowPosition = getWindowPosition,
-                    .getWindowSize = getWindowSize,
-                    .setWindowSize = setWindowSize,
                     .getCanvasSize = getCanvasSize,
                     .setCanvasSize = setCanvasSize,
                     .getAspectRatio = getAspectRatio,
@@ -941,7 +826,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Get SDL window
-        fn window(ptr: *anyopaque) sdl.Window {
+        fn window(ptr: *anyopaque) jok.Window {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._window;
         }
@@ -968,74 +853,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn kill(ptr: *anyopaque) void {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             self._running = false;
-        }
-
-        /// Toggle resizable
-        fn toggleResizable(ptr: *anyopaque, on_off: ?bool) void {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
-            if (on_off) |state| {
-                self._resizable = state;
-            } else {
-                self._resizable = !self._resizable;
-            }
-            _ = sdl.c.SDL_SetWindowResizable(
-                self._window.ptr,
-                if (self._resizable) sdl.c.SDL_TRUE else sdl.c.SDL_FALSE,
-            );
-        }
-
-        /// Toggle fullscreen
-        fn toggleFullscreeen(ptr: *anyopaque, on_off: ?bool) void {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
-            if (on_off) |state| {
-                self._fullscreen = state;
-            } else {
-                self._fullscreen = !self._fullscreen;
-            }
-            _ = sdl.c.SDL_SetWindowFullscreen(
-                self._window.ptr,
-                if (self._fullscreen) sdl.c.SDL_WINDOW_FULLSCREEN_DESKTOP else 0,
-            );
-        }
-
-        /// Toggle always-on-top
-        fn toggleAlwaysOnTop(ptr: *anyopaque, on_off: ?bool) void {
-            var self: *@This() = @ptrCast(@alignCast(ptr));
-            if (on_off) |state| {
-                self._always_on_top = state;
-            } else {
-                self._always_on_top = !self._always_on_top;
-            }
-            _ = sdl.c.SDL_SetWindowAlwaysOnTop(
-                self._window.ptr,
-                if (self._always_on_top) sdl.c.SDL_TRUE else sdl.c.SDL_FALSE,
-            );
-        }
-
-        /// Get position of window
-        fn getWindowPosition(ptr: *anyopaque) sdl.PointF {
-            const self: *@This() = @ptrCast(@alignCast(ptr));
-            var x: c_int = undefined;
-            var y: c_int = undefined;
-            sdl.c.SDL_GetWindowPosition(self._window.ptr, &x, &y);
-            return .{ .x = @floatFromInt(x), .y = @floatFromInt(y) };
-        }
-
-        /// Get size of window
-        fn getWindowSize(ptr: *anyopaque) sdl.PointF {
-            const self: *@This() = @ptrCast(@alignCast(ptr));
-            var w: c_int = undefined;
-            var h: c_int = undefined;
-            sdl.c.SDL_GetWindowSize(self._window.ptr, &w, &h);
-            return .{ .x = @floatFromInt(w), .y = @floatFromInt(h) };
-        }
-
-        /// Set size of window
-        fn setWindowSize(ptr: *anyopaque, size: sdl.Size) void {
-            const self: *@This() = @ptrCast(@alignCast(ptr));
-            const w: c_int = @intFromFloat(@as(f32, @floatFromInt(size.width)) * getDpiScale(ptr));
-            const h: c_int = @intFromFloat(@as(f32, @floatFromInt(size.height)) * getDpiScale(ptr));
-            sdl.c.SDL_SetWindowSize(self._window.ptr, w, h);
         }
 
         /// Get size of canvas
@@ -1123,11 +940,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn displayStats(ptr: *anyopaque, opt: DisplayStats) void {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             const rdinfo = self._renderer.getInfo() catch unreachable;
-            const ws = getWindowSize(ptr);
+            const ws = self._window.getSize();
             const cs = getCanvasSize(ptr);
             imgui.setNextWindowBgAlpha(.{ .alpha = 0.7 });
             imgui.setNextWindowPos(.{
-                .x = ws.x,
+                .x = ws.width,
                 .y = 0,
                 .pivot_x = 1,
                 .cond = if (opt.movable) .once else .always,
@@ -1140,7 +957,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .always_auto_resize = true,
                 },
             })) {
-                imgui.text("Window Size: {d}x{d}", .{ ws.x, ws.y });
+                imgui.text("Window Size: {d:.0}x{d:.0}", .{ ws.width, ws.height });
                 imgui.text("Canvas Size: {d}x{d}", .{ cs.x, cs.y });
                 imgui.text("Display DPI: {d:.1}", .{self._display_dpi});
                 imgui.text("GPU Enabled: {}", .{!self._is_software});

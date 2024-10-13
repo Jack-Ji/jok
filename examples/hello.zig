@@ -57,10 +57,15 @@ pub fn init(ctx: jok.Context) !void {
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+    const S = struct {
+        var fullscreen = false;
+    };
+
     switch (e) {
         .key_down => |k| {
             if (k.scancode == .f1) {
-                ctx.toggleFullscreeen(null);
+                S.fullscreen = !S.fullscreen;
+                try ctx.window().setFullscreen(S.fullscreen);
             } else if (k.scancode == .f2) {
                 const csz = ctx.getCanvasSize();
                 const pixels = try jok.utils.gfx.getScreenPixels(ctx, null);

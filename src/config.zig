@@ -35,11 +35,9 @@ pub const Config = struct {
 
     /// Window attributes
     jok_window_title: [:0]const u8 = "mygame",
-    jok_window_pos_x: sdl.WindowPosition = .default,
-    jok_window_pos_y: sdl.WindowPosition = .default,
     jok_window_size: WindowSize = .{ .custom = .{ .width = 800, .height = 600 } },
-    jok_window_min_size: ?sdl.Size = null,
-    jok_window_max_size: ?sdl.Size = null,
+    jok_window_min_size: ?jok.Size = null,
+    jok_window_max_size: ?jok.Size = null,
     jok_window_resizable: bool = false,
     jok_window_borderless: bool = false,
     jok_window_always_on_top: bool = false,
@@ -115,8 +113,6 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_canvas_size", .desc = "size of canvas" },
         .{ .name = "jok_post_processing_size", .desc = "post-processing granularity" },
         .{ .name = "jok_window_title", .desc = "title of window" },
-        .{ .name = "jok_window_pos_x", .desc = "horizontal position of window" },
-        .{ .name = "jok_window_pos_y", .desc = "vertical position of window" },
         .{ .name = "jok_window_size", .desc = "size of window" },
         .{ .name = "jok_window_min_size", .desc = "minimum size of window" },
         .{ .name = "jok_window_max_size", .desc = "maximum size of window" },

@@ -1,6 +1,6 @@
+const std = @import("std");
 const builtin = @import("builtin");
 const native_arch = builtin.cpu.arch;
-const std = @import("std");
 
 pub extern "ole32" fn CoInitializeEx(pvReserved: ?LPVOID, dwCoInit: DWORD) callconv(WINAPI) HRESULT;
 pub extern "ole32" fn CoUninitialize() callconv(WINAPI) void;

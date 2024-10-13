@@ -63,9 +63,16 @@ pub fn init(ctx: jok.Context) !void {
 }
 
 pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+    const S = struct {
+        var fullscreen = false;
+    };
+
     switch (e) {
         .key_down => |k| {
-            if (k.scancode == .f1) ctx.toggleFullscreeen(null);
+            if (k.scancode == .f1) {
+                S.fullscreen = !S.fullscreen;
+                try ctx.window().setFullscreen(S.fullscreen);
+            }
         },
         .window => |we| {
             if (we.type == .resized) {
