@@ -3,7 +3,6 @@ const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
 const j3d = jok.j3d;
-const sdl = jok.sdl;
 const imgui = jok.imgui;
 const zmath = jok.zmath;
 
@@ -150,11 +149,11 @@ pub inline fn clipTriangle(
     tri_world_positions: []const zmath.Vec,
     tri_clip_positions: []const zmath.Vec,
     tri_world_normals: ?[3]zmath.Vec,
-    tri_colors: ?[3]sdl.Color,
-    tri_texcoords: ?[3]sdl.PointF,
+    tri_colors: ?[3]jok.Color,
+    tri_texcoords: ?[3]jok.Point,
     clip_vertices: *std.ArrayList(zmath.Vec),
-    clip_colors: *std.ArrayList(sdl.Color),
-    clip_texcoords: *std.ArrayList(sdl.PointF),
+    clip_colors: *std.ArrayList(jok.Color),
+    clip_texcoords: *std.ArrayList(jok.Point),
     world_positions: *std.ArrayList(zmath.Vec),
     world_normals: *std.ArrayList(zmath.Vec),
 ) void {
@@ -179,17 +178,17 @@ pub inline fn clipTriangle(
         n1 = ns[1];
         n2 = ns[2];
     }
-    var c0: sdl.Color = undefined;
-    var c1: sdl.Color = undefined;
-    var c2: sdl.Color = undefined;
+    var c0: jok.Color = undefined;
+    var c1: jok.Color = undefined;
+    var c2: jok.Color = undefined;
     if (tri_colors) |cs| {
         c0 = cs[0];
         c1 = cs[1];
         c2 = cs[2];
     }
-    var t0: sdl.PointF = undefined;
-    var t1: sdl.PointF = undefined;
-    var t2: sdl.PointF = undefined;
+    var t0: jok.Point = undefined;
+    var t1: jok.Point = undefined;
+    var t2: jok.Point = undefined;
     if (tri_texcoords) |ts| {
         t0 = ts[0];
         t1 = ts[1];
@@ -214,12 +213,12 @@ pub inline fn clipTriangle(
             std.mem.swap(zmath.Vec, &n1, &n2);
         }
         if (tri_colors != null) {
-            std.mem.swap(sdl.Color, &c0, &c1);
-            std.mem.swap(sdl.Color, &c1, &c2);
+            std.mem.swap(jok.Color, &c0, &c1);
+            std.mem.swap(jok.Color, &c1, &c2);
         }
         if (tri_texcoords) |_| {
-            std.mem.swap(sdl.PointF, &t0, &t1);
-            std.mem.swap(sdl.PointF, &t1, &t2);
+            std.mem.swap(jok.Point, &t0, &t1);
+            std.mem.swap(jok.Point, &t1, &t2);
         }
     } else if (!is_v0_inside and !is_v1_inside) {
         std.mem.swap(zmath.Vec, &clip_v1, &clip_v2);
@@ -235,12 +234,12 @@ pub inline fn clipTriangle(
             std.mem.swap(zmath.Vec, &n0, &n1);
         }
         if (tri_colors != null) {
-            std.mem.swap(sdl.Color, &c1, &c2);
-            std.mem.swap(sdl.Color, &c0, &c1);
+            std.mem.swap(jok.Color, &c1, &c2);
+            std.mem.swap(jok.Color, &c0, &c1);
         }
         if (tri_texcoords) |_| {
-            std.mem.swap(sdl.PointF, &t1, &t2);
-            std.mem.swap(sdl.PointF, &t0, &t1);
+            std.mem.swap(jok.Point, &t1, &t2);
+            std.mem.swap(jok.Point, &t0, &t1);
         }
     }
 
@@ -276,13 +275,13 @@ pub inline fn clipTriangle(
                 zmath.normalize3(zmath.lerp(n1, n2, lerp))
             else
                 null;
-            var lerp_color: ?sdl.Color = if (tri_colors) |_| sdl.Color.rgba(
+            var lerp_color: ?jok.Color = if (tri_colors) |_| jok.Color.rgba(
                 @intFromFloat(@as(f32, @floatFromInt(c1.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c1.r))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c1.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c1.g))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c1.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c1.b))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c1.a)) + (@as(f32, @floatFromInt(c2.a)) - @as(f32, @floatFromInt(c1.a))) * lerp),
             ) else null;
-            var lerp_texcoord: ?sdl.PointF = if (tri_texcoords) |_| sdl.PointF{
+            var lerp_texcoord: ?jok.Point = if (tri_texcoords) |_| jok.Point{
                 .x = t1.x + (t2.x - t1.x) * lerp,
                 .y = t1.y + (t2.y - t1.y) * lerp,
             } else null;
@@ -311,13 +310,13 @@ pub inline fn clipTriangle(
                 zmath.normalize3(zmath.lerp(n0, n2, lerp))
             else
                 null;
-            lerp_color = if (tri_colors != null) sdl.Color.rgba(
+            lerp_color = if (tri_colors != null) jok.Color.rgba(
                 @intFromFloat(@as(f32, @floatFromInt(c0.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c0.r))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c0.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c0.g))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c0.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c0.b))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c0.a)) + (@as(f32, @floatFromInt(c2.a)) - @as(f32, @floatFromInt(c0.a))) * lerp),
             ) else null;
-            lerp_texcoord = if (tri_texcoords != null) sdl.PointF{
+            lerp_texcoord = if (tri_texcoords != null) jok.Point{
                 .x = t0.x + (t2.x - t0.x) * lerp,
                 .y = t0.y + (t2.y - t0.y) * lerp,
             } else null;
@@ -336,13 +335,13 @@ pub inline fn clipTriangle(
             zmath.normalize3(zmath.lerp(n0, n1, lerp))
         else
             null;
-        var lerp_color: ?sdl.Color = if (tri_colors != null) sdl.Color.rgba(
+        var lerp_color: ?jok.Color = if (tri_colors != null) jok.Color.rgba(
             @intFromFloat(@as(f32, @floatFromInt(c0.r)) + (@as(f32, @floatFromInt(c1.r)) - @as(f32, @floatFromInt(c0.r))) * lerp),
             @intFromFloat(@as(f32, @floatFromInt(c0.g)) + (@as(f32, @floatFromInt(c1.g)) - @as(f32, @floatFromInt(c0.g))) * lerp),
             @intFromFloat(@as(f32, @floatFromInt(c0.b)) + (@as(f32, @floatFromInt(c1.b)) - @as(f32, @floatFromInt(c0.b))) * lerp),
             @intFromFloat(@as(f32, @floatFromInt(c0.a)) + (@as(f32, @floatFromInt(c1.a)) - @as(f32, @floatFromInt(c0.a))) * lerp),
         ) else null;
-        var lerp_texcoord: ?sdl.PointF = if (tri_texcoords != null) sdl.PointF{
+        var lerp_texcoord: ?jok.Point = if (tri_texcoords != null) jok.Point{
             .x = t0.x + (t1.x - t0.x) * lerp,
             .y = t0.y + (t1.y - t0.y) * lerp,
         } else null;
@@ -362,13 +361,13 @@ pub inline fn clipTriangle(
                 zmath.normalize3(zmath.lerp(n1, n2, lerp))
             else
                 null;
-            lerp_color = if (tri_colors != null) sdl.Color.rgba(
+            lerp_color = if (tri_colors != null) jok.Color.rgba(
                 @intFromFloat(@as(f32, @floatFromInt(c1.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c1.r))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c1.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c1.g))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c1.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c1.b))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c1.a)) + (@as(f32, @floatFromInt(c2.a)) - @as(f32, @floatFromInt(c1.a))) * lerp),
             ) else null;
-            lerp_texcoord = if (tri_texcoords != null) sdl.PointF{
+            lerp_texcoord = if (tri_texcoords != null) jok.Point{
                 .x = t1.x + (t2.x - t1.x) * lerp,
                 .y = t1.y + (t2.y - t1.y) * lerp,
             } else null;
@@ -403,13 +402,13 @@ pub inline fn clipTriangle(
                 zmath.normalize3(zmath.lerp(n0, n2, lerp))
             else
                 null;
-            lerp_color = if (tri_colors != null) sdl.Color.rgba(
+            lerp_color = if (tri_colors != null) jok.Color.rgba(
                 @intFromFloat(@as(f32, @floatFromInt(c0.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c0.r))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c0.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c0.g))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c0.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c0.b))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c0.a)) + (@as(f32, @floatFromInt(c2.a)) - @as(f32, @floatFromInt(c0.a))) * lerp),
             ) else null;
-            lerp_texcoord = if (tri_texcoords != null) sdl.PointF{
+            lerp_texcoord = if (tri_texcoords != null) jok.Point{
                 .x = t0.x + (t2.x - t0.x) * lerp,
                 .y = t0.y + (t2.y - t0.y) * lerp,
             } else null;
@@ -423,7 +422,7 @@ pub inline fn clipTriangle(
 }
 
 /// Whether textures are same
-pub inline fn isSameTexture(tex0: ?sdl.Texture, tex1: ?sdl.Texture) bool {
+pub inline fn isSameTexture(tex0: ?jok.Texture, tex1: ?jok.Texture) bool {
     if (tex0 != null and tex1 != null) {
         return tex0.?.ptr == tex1.?.ptr;
     }
@@ -434,9 +433,9 @@ pub inline fn isSameTexture(tex0: ?sdl.Texture, tex1: ?sdl.Texture) bool {
 pub const RenderJob = struct {
     pub const RenderBatch = struct {
         indices: std.ArrayList(u32),
-        vertices: std.ArrayList(sdl.Vertex),
+        vertices: std.ArrayList(jok.Vertex),
         depths: std.ArrayList(f32),
-        textures: std.ArrayList(?sdl.Texture),
+        textures: std.ArrayList(?jok.Texture),
 
         pub fn deinit(batch: RenderBatch) void {
             batch.indices.deinit();
@@ -446,13 +445,13 @@ pub const RenderJob = struct {
         }
     };
 
-    wireframe_color: ?sdl.Color,
+    wireframe_color: ?jok.Color,
     triangle_sort: j3d.TriangleSort,
     indices: std.ArrayList(u32),
-    vertices: std.ArrayList(sdl.Vertex),
+    vertices: std.ArrayList(jok.Vertex),
     depths: std.ArrayList(f32),
-    textures: std.ArrayList(?sdl.Texture),
-    all_tex: std.AutoHashMap(*sdl.c.SDL_Texture, bool),
+    textures: std.ArrayList(?jok.Texture),
+    all_tex: std.AutoHashMap(*anyopaque, bool),
     dl: imgui.DrawList,
 
     pub fn init(allocator: std.mem.Allocator) RenderJob {
@@ -460,10 +459,10 @@ pub const RenderJob = struct {
             .wireframe_color = undefined,
             .triangle_sort = .none,
             .indices = std.ArrayList(u32).init(allocator),
-            .vertices = std.ArrayList(sdl.Vertex).init(allocator),
+            .vertices = std.ArrayList(jok.Vertex).init(allocator),
             .depths = std.ArrayList(f32).init(allocator),
-            .textures = std.ArrayList(?sdl.Texture).init(allocator),
-            .all_tex = std.AutoHashMap(*sdl.c.SDL_Texture, bool).init(allocator),
+            .textures = std.ArrayList(?jok.Texture).init(allocator),
+            .all_tex = std.AutoHashMap(*anyopaque, bool).init(allocator),
             .dl = imgui.createDrawList(),
         };
         return target;
@@ -491,7 +490,7 @@ pub const RenderJob = struct {
     pub fn reset(
         self: *RenderJob,
         ctx: jok.Context,
-        wireframe_color: ?sdl.Color,
+        wireframe_color: ?jok.Color,
         triangle_sort: j3d.TriangleSort,
         recycle_memory: bool,
     ) void {
@@ -501,7 +500,7 @@ pub const RenderJob = struct {
         self.dl.reset();
         self.dl.pushClipRect(.{
             .pmin = .{ 0, 0 },
-            .pmax = .{ csz.x, csz.y },
+            .pmax = .{ @floatFromInt(csz.width), @floatFromInt(csz.height) },
         });
         self.dl.setDrawListFlags(.{
             .anti_aliased_lines = true,
@@ -558,9 +557,9 @@ pub const RenderJob = struct {
         );
     }
 
-    pub fn submit(self: *RenderJob, ctx: jok.Context, blend_mode: c_uint) void {
+    pub fn submit(self: *RenderJob, ctx: jok.Context, blend_mode: jok.BlendMode) void {
         const S = struct {
-            inline fn addTriangles(dl: imgui.DrawList, indices: []u32, vertices: []sdl.Vertex, texture: ?sdl.Texture) void {
+            inline fn addTriangles(dl: imgui.DrawList, indices: []u32, vertices: []jok.Vertex, texture: ?jok.Texture) void {
                 if (texture) |tex| dl.pushTextureId(tex.ptr);
                 defer if (texture != null) dl.popTextureId();
 
@@ -570,8 +569,8 @@ pub const RenderJob = struct {
                 for (indices) |i| {
                     const p = vertices[i];
                     dl.primWriteVtx(
-                        .{ p.position.x, p.position.y },
-                        if (texture != null) .{ p.tex_coord.x, p.tex_coord.y } else white_pixel_uv,
+                        .{ p.pos.x, p.pos.y },
+                        if (texture != null) .{ p.texcoord.x, p.texcoord.y } else white_pixel_uv,
                         imgui.sdl.convertColor(p.color),
                     );
                 }
@@ -587,7 +586,8 @@ pub const RenderJob = struct {
             // Apply blend mode to textures
             var it = self.all_tex.keyIterator();
             while (it.next()) |k| {
-                _ = sdl.c.SDL_SetTextureBlendMode(k.*, blend_mode);
+                const tex = jok.Texture{ .ptr = @ptrCast(k.*) };
+                tex.setBlendMode(blend_mode) catch unreachable;
             }
 
             switch (self.triangle_sort) {
@@ -600,7 +600,7 @@ pub const RenderJob = struct {
 
                     // Send triangles
                     var offset: usize = 0;
-                    var last_texture: ?sdl.Texture = null;
+                    var last_texture: ?jok.Texture = null;
                     var i: usize = 0;
                     while (i < self.indices.items.len) : (i += 3) {
                         const idx = self.indices.items[i];
@@ -631,9 +631,9 @@ pub const RenderJob = struct {
     pub fn pushTriangles(
         self: *RenderJob,
         indices: []const u32,
-        vertices: []const sdl.Vertex,
+        vertices: []const jok.Vertex,
         depths: []const f32,
-        texture: ?sdl.Texture,
+        texture: ?jok.Texture,
     ) !void {
         assert(@rem(indices.len, 3) == 0);
         assert(vertices.len == depths.len);
@@ -643,9 +643,9 @@ pub const RenderJob = struct {
             var i: usize = 2;
             while (i < indices.len) : (i += 3) {
                 self.dl.addTriangle(.{
-                    .p1 = .{ vertices[i - 2].position.x, vertices[i - 2].position.y },
-                    .p2 = .{ vertices[i - 1].position.x, vertices[i - 1].position.y },
-                    .p3 = .{ vertices[i].position.x, vertices[i].position.y },
+                    .p1 = .{ vertices[i - 2].pos.x, vertices[i - 2].pos.y },
+                    .p2 = .{ vertices[i - 1].pos.x, vertices[i - 1].pos.y },
+                    .p3 = .{ vertices[i].pos.x, vertices[i].pos.y },
                     .col = col,
                 });
             }
@@ -662,8 +662,8 @@ pub const RenderJob = struct {
                     while (i < vertices.len) : (i += 1) {
                         const p = vertices[i];
                         self.dl.primWriteVtx(
-                            .{ p.position.x, p.position.y },
-                            if (texture != null) .{ p.tex_coord.x, p.tex_coord.y } else white_pixel_uv,
+                            .{ p.pos.x, p.pos.y },
+                            if (texture != null) .{ p.texcoord.x, p.texcoord.y } else white_pixel_uv,
                             imgui.sdl.convertColor(p.color),
                         );
                     }

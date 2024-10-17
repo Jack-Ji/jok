@@ -2,7 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const unicode = std.unicode;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const truetype = jok.stb.truetype;
 const Sprite = jok.j2d.Sprite;
 const codepoint_ranges = @import("codepoint_ranges.zig");
@@ -17,7 +16,7 @@ const CharRange = struct {
 const default_map_size = 2048;
 
 allocator: std.mem.Allocator,
-tex: sdl.Texture,
+tex: jok.Texture,
 ranges: std.ArrayList(CharRange),
 codepoint_search: std.AutoHashMap(u32, u8),
 scale: f32,
@@ -85,15 +84,12 @@ pub fn create(
     }
 
     // Create texture
-    var tex = try jok.utils.gfx.createTextureFromPixels(
-        ctx,
+    const tex = try ctx.renderer().createTexture(
+        .{ .width = atlas_size, .height = atlas_size },
         real_pixels,
-        jok.utils.gfx.getFormatByEndian(),
-        .static,
-        atlas_size,
-        atlas_size,
+        .{ .access = .static },
     );
-    try tex.setScaleMode(.linear);
+    errdefer tex.destroy();
 
     var ascent: c_int = undefined;
     var descent: c_int = undefined;
@@ -140,17 +136,17 @@ pub const BoxType = enum { aligned, drawed };
 pub fn getBoundingBox(
     self: *Atlas,
     text: []const u8,
-    _pos: sdl.PointF,
+    _pos: jok.Point,
     ypos_type: YPosType,
     box_type: BoxType,
-) !sdl.RectangleF {
+) !jok.Rectangle {
     const yoffset = switch (ypos_type) {
         .baseline => -self.vmetric_ascent * self.scale,
         .top => 0,
         .bottom => (self.vmetric_descent - self.vmetric_ascent) * self.scale,
     };
     var pos = _pos;
-    var rect = sdl.RectangleF{
+    var rect = jok.Rectangle{
         .x = pos.x,
         .y = switch (box_type) {
             .aligned => pos.y + yoffset,
@@ -169,15 +165,15 @@ pub fn getBoundingBox(
     while (i < text.len) {
         const size = try unicode.utf8ByteSequenceLength(text[i]);
         const codepoint = @as(u32, @intCast(try unicode.utf8Decode(text[i .. i + size])));
-        if (self.getVerticesOfCodePoint(pos, ypos_type, sdl.Color.white, codepoint)) |cs| {
+        if (self.getVerticesOfCodePoint(pos, ypos_type, jok.Color.white, codepoint)) |cs| {
             switch (box_type) {
                 .aligned => {
                     rect.width = cs.next_x - rect.x;
                 },
                 .drawed => {
-                    if (cs.vs[0].position.y < rect.y) rect.y = cs.vs[0].position.y;
-                    if (cs.vs[3].position.y - rect.y > rect.height) rect.height = cs.vs[3].position.y - rect.y;
-                    rect.width = cs.vs[1].position.x - rect.x;
+                    if (cs.vs[0].pos.y < rect.y) rect.y = cs.vs[0].pos.y;
+                    if (cs.vs[3].pos.y - rect.y > rect.height) rect.height = cs.vs[3].pos.y - rect.y;
+                    rect.width = cs.vs[1].pos.x - rect.x;
                 },
             }
             pos.x = cs.next_x;
@@ -192,20 +188,20 @@ pub fn getBoundingBox(
 pub fn appendDrawDataFromUTF8String(
     self: *Atlas,
     text: []const u8,
-    _pos: sdl.PointF,
+    _pos: jok.Point,
     ypos_type: YPosType,
     box_type: BoxType,
-    color: sdl.Color,
-    vattrib: *std.ArrayList(sdl.Vertex),
+    color: jok.Color,
+    vattrib: *std.ArrayList(jok.Vertex),
     vindices: *std.ArrayList(u32),
-) !sdl.RectangleF {
+) !jok.Rectangle {
     const yoffset = switch (ypos_type) {
         .baseline => -self.vmetric_ascent * self.scale,
         .top => 0,
         .bottom => (self.vmetric_descent - self.vmetric_ascent) * self.scale,
     };
     var pos = _pos;
-    var rect = sdl.RectangleF{
+    var rect = jok.Rectangle{
         .x = pos.x,
         .y = switch (box_type) {
             .aligned => pos.y + yoffset,
@@ -240,9 +236,9 @@ pub fn appendDrawDataFromUTF8String(
                     rect.width = cs.next_x - rect.x;
                 },
                 .drawed => {
-                    if (cs.vs[0].position.y < rect.y) rect.y = cs.vs[0].position.y;
-                    if (cs.vs[3].position.y - rect.y > rect.height) rect.height = cs.vs[3].position.y - rect.y;
-                    rect.width = cs.vs[1].position.x - rect.x;
+                    if (cs.vs[0].pos.y < rect.y) rect.y = cs.vs[0].pos.y;
+                    if (cs.vs[3].pos.y - rect.y > rect.height) rect.height = cs.vs[3].pos.y - rect.y;
+                    rect.width = cs.vs[1].pos.x - rect.x;
                 },
             }
             pos.x = cs.next_x;
@@ -256,11 +252,11 @@ pub fn appendDrawDataFromUTF8String(
 /// Search coordinates of codepoint (in the order of left-top/right-top/right-bottom/left-bottom)
 pub inline fn getVerticesOfCodePoint(
     self: *Atlas,
-    pos: sdl.PointF,
+    pos: jok.Point,
     ypos_type: YPosType,
-    color: sdl.Color,
+    color: jok.Color,
     codepoint: u32,
-) ?struct { vs: [4]sdl.Vertex, next_x: f32 } {
+) ?struct { vs: [4]jok.Vertex, next_x: f32 } {
     var xpos = pos.x;
     var ypos = pos.y;
     const pxpos = &xpos;
@@ -294,26 +290,26 @@ pub inline fn getVerticesOfCodePoint(
         .bottom => self.vmetric_descent * self.scale,
     };
     return .{
-        .vs = [_]sdl.Vertex{
+        .vs = [_]jok.Vertex{
             .{
-                .position = .{ .x = quad.x0, .y = quad.y0 + yoffset },
+                .pos = .{ .x = quad.x0, .y = quad.y0 + yoffset },
                 .color = color,
-                .tex_coord = .{ .x = quad.s0, .y = quad.t0 },
+                .texcoord = .{ .x = quad.s0, .y = quad.t0 },
             },
             .{
-                .position = .{ .x = quad.x1, .y = quad.y0 + yoffset },
+                .pos = .{ .x = quad.x1, .y = quad.y0 + yoffset },
                 .color = color,
-                .tex_coord = .{ .x = quad.s1, .y = quad.t0 },
+                .texcoord = .{ .x = quad.s1, .y = quad.t0 },
             },
             .{
-                .position = .{ .x = quad.x1, .y = quad.y1 + yoffset },
+                .pos = .{ .x = quad.x1, .y = quad.y1 + yoffset },
                 .color = color,
-                .tex_coord = .{ .x = quad.s1, .y = quad.t1 },
+                .texcoord = .{ .x = quad.s1, .y = quad.t1 },
             },
             .{
-                .position = .{ .x = quad.x0, .y = quad.y1 + yoffset },
+                .pos = .{ .x = quad.x0, .y = quad.y1 + yoffset },
                 .color = color,
-                .tex_coord = .{ .x = quad.s0, .y = quad.t1 },
+                .texcoord = .{ .x = quad.s0, .y = quad.t1 },
             },
         },
         .next_x = xpos,
@@ -325,14 +321,14 @@ pub fn getSpriteOfCodePoint(self: *Atlas, codepoint: u32) ?Sprite {
     if (self.getVerticesOfCodePoint(
         .{ .x = 0, .y = 0 },
         .top,
-        sdl.Color.white,
+        jok.Color.white,
         codepoint,
     )) |cs| {
         return Sprite{
-            .width = cs.vs[1].position.x - cs.vs[0].position.x,
-            .height = cs.vs[3].position.y - cs.vs[0].position.y,
-            .uv0 = cs.vs[0].tex_coord,
-            .uv1 = cs.vs[2].tex_coord,
+            .width = cs.vs[1].pos.x - cs.vs[0].pos.x,
+            .height = cs.vs[3].pos.y - cs.vs[0].pos.y,
+            .uv0 = cs.vs[0].texcoord,
+            .uv1 = cs.vs[2].texcoord,
             .tex = self.tex,
         };
     } else {

@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const assert = std.debug.assert;
 const math = std.math;
 const zmath = jok.zmath;
@@ -50,13 +49,13 @@ pub const IsometricTransform = struct {
     screen_to_iso: zmath.Mat,
 
     pub const IsometricOption = struct {
-        xy_offset: sdl.PointF = .{ .x = 0, .y = 0 },
+        xy_offset: jok.Point = .{ .x = 0, .y = 0 },
         scale: f32 = 1.0,
     };
-    pub fn init(tile_size: sdl.Size, opt: IsometricOption) @This() {
+    pub fn init(tile_size: jok.Size, opt: IsometricOption) @This() {
         assert(tile_size.width > 0 and tile_size.height > 0);
-        const w = @as(f32, @floatFromInt(tile_size.width)) * opt.scale;
-        const h = @as(f32, @floatFromInt(tile_size.height)) * opt.scale;
+        const w = tile_size.getWidthFloat() * opt.scale;
+        const h = tile_size.getHeightFloat() * opt.scale;
         const mat = zmath.loadMat(&.{
             0.5 * w,                   0.5 * h,         0, 0,
             -0.5 * w,                  0.5 * h,         0, 0,
@@ -70,12 +69,12 @@ pub const IsometricTransform = struct {
         };
     }
 
-    pub fn transformToScreen(self: @This(), p: sdl.PointF, zoffset: f32) sdl.PointF {
+    pub fn transformToScreen(self: @This(), p: jok.Point, zoffset: f32) jok.Point {
         const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.iso_to_screen);
         return .{ .x = v[0], .y = v[1] - zoffset };
     }
 
-    pub fn transformToIso(self: @This(), p: sdl.PointF) sdl.PointF {
+    pub fn transformToIso(self: @This(), p: jok.Point) jok.Point {
         const v = zmath.mul(
             zmath.f32x4(p.x - self.tile_width * 0.5, p.y, 0, 1),
             self.screen_to_iso,

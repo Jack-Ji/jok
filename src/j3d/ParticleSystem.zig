@@ -6,7 +6,6 @@ const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const j3d = jok.j3d;
 const j2d = jok.j2d;
 const zmesh = jok.zmesh;
@@ -201,7 +200,7 @@ pub const Effect = struct {
     /// Render to output
     pub fn render(
         self: Effect,
-        csz: sdl.PointF,
+        csz: jok.Size,
         rdjob: *internal.RenderJob,
         camera: Camera,
         tri_rd: *TriangleRenderer,
@@ -216,8 +215,8 @@ pub const Effect = struct {
         comptime _radius: f32,
         comptime _acceleration: f32,
         comptime _age: f32,
-        comptime _color_initial: sdl.Color,
-        comptime _color_final: sdl.Color,
+        comptime _color_initial: jok.Color,
+        comptime _color_final: jok.Color,
         comptime _color_fade_age: f32,
     ) type {
         return struct {
@@ -262,15 +261,15 @@ pub const DrawData = union(enum) {
         shape: zmesh.Shape,
         scale: [3]f32 = .{ 1, 1, 1 },
         aabb: ?[6]f32 = null,
-        texture: ?sdl.Texture = null,
+        texture: ?jok.Texture = null,
     },
     sprite: struct {
-        size: sdl.PointF,
-        uv: [2]sdl.PointF = .{ .{ .x = 0, .y = 0 }, .{ .x = 1, .y = 1 } },
-        texture: ?sdl.Texture = null,
+        size: jok.Point,
+        uv: [2]jok.Point = .{ .{ .x = 0, .y = 0 }, .{ .x = 1, .y = 1 } },
+        texture: ?jok.Texture = null,
     },
 
-    pub fn fromSprite(sp: j2d.Sprite, scale: ?sdl.PointF) DrawData {
+    pub fn fromSprite(sp: j2d.Sprite, scale: ?jok.Point) DrawData {
         return .{
             .sprite = .{
                 .size = .{
@@ -310,9 +309,9 @@ pub const Particle = struct {
     scale_max: f32 = 1,
 
     /// Color changing
-    color: sdl.Color = undefined,
-    color_initial: sdl.Color = sdl.Color.white,
-    color_final: sdl.Color = sdl.Color.white,
+    color: jok.Color = undefined,
+    color_initial: jok.Color = jok.Color.white,
+    color_final: jok.Color = jok.Color.white,
     color_fade_age: f32 = 0,
 
     fn updatePos(self: *Particle, delta_time: f32) void {
@@ -373,7 +372,7 @@ pub const Particle = struct {
     /// Render to output
     fn render(
         self: Particle,
-        csz: sdl.PointF,
+        csz: jok.Size,
         rdjob: *internal.RenderJob,
         camera: Camera,
         tri_rd: *TriangleRenderer,

@@ -1,12 +1,11 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const font = jok.font;
 const j2d = jok.j2d;
 
 const Tile = struct {
-    pos: sdl.PointF,
+    pos: jok.Point,
     sprite: j2d.Sprite,
 };
 
@@ -42,13 +41,13 @@ pub fn init(ctx: jok.Context) !void {
     iso_transform = jok.utils.math.IsometricTransform.init(
         .{ .width = 111, .height = 65 },
         .{
-            .xy_offset = .{ .x = csz.x / 2, .y = 50 },
+            .xy_offset = .{ .x = csz.getWidthFloat() / 2, .y = 50 },
             .scale = scale,
         },
     );
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -58,13 +57,10 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(null);
+    try ctx.renderer().clear(null);
 
-    const mouse = ctx.getMouseState();
-    const mouse_pos_in_iso_space = iso_transform.transformToIso(.{
-        .x = @floatFromInt(mouse.x),
-        .y = @floatFromInt(mouse.y),
-    });
+    const mouse = jok.io.getMouseState();
+    const mouse_pos_in_iso_space = iso_transform.transformToIso(mouse.pos);
     const selected_x: isize = @intFromFloat(@floor(mouse_pos_in_iso_space.x));
     const selected_y: isize = @intFromFloat(@floor(mouse_pos_in_iso_space.y));
 
@@ -73,12 +69,12 @@ pub fn draw(ctx: jok.Context) !void {
 
     for (0..10) |y| {
         for (0..10) |x| {
-            var tint_color = sdl.Color.white;
+            var tint_color = jok.Color.white;
 
             if (selected_x == @as(isize, @intCast(x)) and
                 selected_y == @as(isize, @intCast(y)))
             {
-                tint_color = sdl.Color.rgb(120, 99, 50);
+                tint_color = jok.Color.rgb(120, 99, 50);
             }
 
             const tile = map[y][x];

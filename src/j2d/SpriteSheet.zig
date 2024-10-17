@@ -4,7 +4,6 @@ const json = std.json;
 const native_endian = @import("builtin").target.cpu.arch.endian();
 const Sprite = @import("Sprite.zig");
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const stb_rect_pack = jok.stb.rect_pack;
 const stb_image = jok.stb.image;
@@ -17,11 +16,11 @@ pub const Error = error{
 };
 
 /// Image pixels
+/// Only support sdl.SDL_PIXELFORMAT_RGBA32
 pub const ImagePixels = struct {
     data: []const u8,
     width: u32,
     height: u32,
-    format: sdl.Texture.Format = jok.utils.gfx.getFormatByEndian(),
 };
 
 /// Image data source
@@ -53,13 +52,13 @@ pub const SpriteRect = struct {
 allocator: std.mem.Allocator,
 
 // Size of sheet
-size: sdl.PointF,
+size: jok.Size,
 
 // Packed pixels
 packed_pixels: ?ImagePixels = null,
 
 // Packed texture
-tex: sdl.Texture,
+tex: jok.Texture,
 
 // Sprite rectangles
 rects: []SpriteRect,
@@ -142,7 +141,6 @@ pub fn create(
                         .data = image_data[0..image_len],
                         .width = @intCast(image_width),
                         .height = @intCast(image_height),
-                        .format = jok.utils.gfx.getFormatByEndian(),
                     },
                 };
             },
@@ -166,15 +164,12 @@ pub fn create(
                         .data = image_data[0..image_len],
                         .width = @intCast(image_width),
                         .height = @intCast(image_height),
-                        .format = jok.utils.gfx.getFormatByEndian(),
                     },
                 };
             },
             .pixels => |ps| {
                 assert(ps.data.len > 0 and ps.width > 0 and ps.height > 0);
-                const channels = jok.utils.gfx.getChannels(ps.format);
-                assert(channels == 4);
-                assert(ps.data.len == ps.width * ps.height * channels);
+                assert(ps.data.len == ps.width * ps.height * 4);
                 images[i] = .{
                     .is_file = false,
                     .pixels = ps,
@@ -241,13 +236,10 @@ pub fn create(
             );
         }
     }
-    var tex = try jok.utils.gfx.createTextureFromPixels(
-        ctx,
+    var tex = try ctx.renderer().createTexture(
+        .{ .width = width, .height = height },
         pixels,
-        jok.utils.gfx.getFormatByEndian(),
-        .static,
-        width,
-        height,
+        .{},
     );
     try tex.setScaleMode(.nearest);
     errdefer tex.destroy();
@@ -264,14 +256,13 @@ pub fn create(
     self.* = .{
         .allocator = allocator,
         .size = .{
-            .x = @floatFromInt(width),
-            .y = @floatFromInt(height),
+            .width = width,
+            .height = height,
         },
         .packed_pixels = if (opt.keep_packed_pixels) ImagePixels{
             .width = width,
             .height = height,
             .data = pixels,
-            .format = jok.utils.gfx.getFormatByEndian(),
         } else blk: {
             allocator.free(pixels);
             break :blk null;
@@ -377,15 +368,15 @@ pub fn fromPicturesInDir(
 /// Create a very raw sheet with a single picture, initialize name tree if possible
 pub const SpriteInfo = struct {
     name: []const u8,
-    rect: sdl.RectangleF,
+    rect: jok.Rectangle,
 };
 pub fn fromSinglePicture(
     ctx: jok.Context,
     path: [*:0]const u8,
     sprites: []const SpriteInfo,
 ) !*Self {
-    var tex = try jok.utils.gfx.createTextureFromFile(
-        ctx,
+    var tex = try ctx.renderer().createTextureFromFile(
+        ctx.allocator(),
         path,
         .static,
         false,
@@ -421,7 +412,7 @@ pub fn fromSinglePicture(
     const self = try allocator.create(Self);
     self.* = .{
         .allocator = allocator,
-        .size = .{ .x = tex_width, .y = tex_height },
+        .size = .{ .width = info.width, .height = info.height },
         .tex = tex,
         .rects = rects,
         .search_tree = tree,
@@ -456,7 +447,6 @@ pub fn save(self: Self, ctx: jok.Context, path: []const u8) !void {
         self.packed_pixels.?.data,
         self.packed_pixels.?.width,
         self.packed_pixels.?.height,
-        self.packed_pixels.?.format,
         image_path,
         .{ .format = .png },
     );
@@ -515,8 +505,8 @@ pub fn load(ctx: jok.Context, path: []const u8) !*Self {
 
     // Load texture
     const image_path = try std.fmt.bufPrintZ(&path_buf, "{s}.png", .{path});
-    var tex = try jok.utils.gfx.createTextureFromFile(
-        ctx,
+    var tex = try ctx.renderer().createTextureFromFile(
+        ctx.allocator(),
         image_path,
         .static,
         false,
@@ -574,7 +564,7 @@ pub fn load(ctx: jok.Context, path: []const u8) !*Self {
     const ss = try allocator.create(Self);
     ss.* = Self{
         .allocator = allocator,
-        .size = .{ .x = @floatFromInt(info.width), .y = @floatFromInt(info.height) },
+        .size = .{ .width = info.width, .height = info.height },
         .tex = tex,
         .rects = rects,
         .search_tree = search_tree,
@@ -597,7 +587,7 @@ pub fn getSpriteByName(self: *Self, name: []const u8) ?Sprite {
 }
 
 /// Get sprite by rectangle
-pub fn getSpriteByRectangle(self: *Self, rect: sdl.RectangleF) Sprite {
+pub fn getSpriteByRectangle(self: *Self, rect: jok.Rectangle) Sprite {
     const info = try self.tex.query();
     const tex_width = @as(f32, @floatFromInt(info.width));
     const tex_height = @as(f32, @floatFromInt(info.height));

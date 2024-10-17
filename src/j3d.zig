@@ -2,7 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("jok.zig");
-const sdl = jok.sdl;
 const imgui = jok.imgui;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
@@ -23,19 +22,19 @@ pub const Vector = @import("j3d/Vector.zig");
 
 pub const RenderOption = struct {
     cull_faces: bool = true,
-    color: sdl.Color = sdl.Color.white,
+    color: jok.Color = jok.Color.white,
     shading_method: ShadingMethod = .gouraud,
-    texture: ?sdl.Texture = null,
+    texture: ?jok.Texture = null,
     lighting: ?LightingOption = null,
 };
 
 pub const BeginOption = struct {
     camera: ?Camera = null,
-    wireframe_color: ?sdl.Color = null,
+    wireframe_color: ?jok.Color = null,
     triangle_sort: TriangleSort = .none,
-    blend_method: jok.BlendMethod = .blend,
-    offscreen_target: ?sdl.Texture = null,
-    offscreen_clear_color: ?sdl.Color = null,
+    blend_mode: jok.BlendMode = .blend,
+    offscreen_target: ?jok.Texture = null,
+    offscreen_clear_color: ?jok.Color = null,
 };
 
 pub const TriangleSort = union(enum(u8)) {
@@ -53,9 +52,9 @@ var tri_rd: TriangleRenderer = undefined;
 var skybox_rd: SkyboxRenderer = undefined;
 var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
 var camera: Camera = undefined;
-var blend_method: jok.BlendMethod = undefined;
-var offscreen_target: ?sdl.Texture = undefined;
-var offscreen_clear_color: ?sdl.Color = undefined;
+var blend_mode: jok.BlendMode = undefined;
+var offscreen_target: ?jok.Texture = undefined;
+var offscreen_clear_color: ?jok.Color = undefined;
 var submitted: bool = undefined;
 
 pub fn init(_ctx: jok.Context) !void {
@@ -92,7 +91,7 @@ pub fn begin(opt: BeginOption) void {
             .{ 0, 0, 0 },
         );
     };
-    blend_method = opt.blend_method;
+    blend_mode = opt.blend_mode;
     offscreen_target = opt.offscreen_target;
     offscreen_clear_color = opt.offscreen_clear_color;
     if (offscreen_target) |t| {
@@ -106,28 +105,22 @@ pub fn begin(opt: BeginOption) void {
 pub fn end() void {
     // Apply blend mode to renderer
     const rd = ctx.renderer();
-    var old_blend: sdl.c.SDL_BlendMode = undefined;
-    _ = sdl.c.SDL_GetRenderDrawBlendMode(rd.ptr, &old_blend);
-    defer _ = sdl.c.SDL_SetRenderDrawBlendMode(rd.ptr, old_blend);
-    _ = sdl.c.SDL_SetRenderDrawBlendMode(rd.ptr, blend_method.toMode());
+    const old_blend = rd.getBlendMode() catch unreachable;
+    defer rd.setBlendMode(old_blend) catch unreachable;
+    rd.setBlendMode(blend_mode) catch unreachable;
 
     // Apply offscreen target if given
     const old_target = rd.getTarget();
     if (offscreen_target) |t| {
         rd.setTarget(t) catch unreachable;
-        if (offscreen_clear_color) |c| {
-            const old_color = rd.getColor() catch unreachable;
-            rd.setColor(c) catch unreachable;
-            rd.clear() catch unreachable;
-            rd.setColor(old_color) catch unreachable;
-        }
+        if (offscreen_clear_color) |c| rd.clear(c) catch unreachable;
     }
     defer if (offscreen_target != null) {
         rd.setTarget(old_target) catch unreachable;
     };
 
     // Submit draw command
-    rdjob.submit(ctx, blend_method.toMode());
+    rdjob.submit(ctx, blend_mode);
 }
 
 pub fn clearMemory() void {
@@ -145,7 +138,7 @@ pub fn batch(b: RenderBatch) !void {
 }
 
 /// Render skybox, textures order: right/left/top/bottom/front/back
-pub fn skybox(textures: [6]sdl.Texture, color: ?sdl.Color) !void {
+pub fn skybox(textures: [6]jok.Texture, color: ?jok.Color) !void {
     try skybox_rd.render(
         ctx.getCanvasSize(),
         &rdjob,
@@ -173,7 +166,7 @@ pub fn effects(ps: *ParticleSystem) !void {
 }
 
 /// Render given sprite
-pub fn sprite(model: zmath.Mat, size: sdl.PointF, uv: [2]sdl.PointF, opt: TriangleRenderer.RenderSpriteOption) !void {
+pub fn sprite(model: zmath.Mat, size: jok.Point, uv: [2]jok.Point, opt: TriangleRenderer.RenderSpriteOption) !void {
     try tri_rd.renderSprite(
         ctx.getCanvasSize(),
         &rdjob,
@@ -186,7 +179,7 @@ pub fn sprite(model: zmath.Mat, size: sdl.PointF, uv: [2]sdl.PointF, opt: Triang
 }
 
 pub const LineOption = struct {
-    color: sdl.Color = sdl.Color.white,
+    color: jok.Color = jok.Color.white,
     thickness: f32 = 0.1,
     stacks: u32 = 10,
 };
@@ -236,7 +229,7 @@ pub const TriangleOption = struct {
 };
 
 /// Render given triangle
-pub fn triangle(model: zmath.Mat, pos: [3][3]f32, colors: ?[3]sdl.Color, texcoords: ?[3][2]f32, opt: TriangleOption) !void {
+pub fn triangle(model: zmath.Mat, pos: [3][3]f32, colors: ?[3]jok.Color, texcoords: ?[3][2]f32, opt: TriangleOption) !void {
     if (opt.fill) {
         const v0 = zmath.f32x4(
             pos[1][0] - pos[0][0],
@@ -283,7 +276,7 @@ pub fn triangles(
     indices: []const u32,
     pos: []const [3]f32,
     normals: ?[]const [3]f32,
-    colors: ?[]const [3]sdl.Color,
+    colors: ?[]const [3]jok.Color,
     texcoords: ?[]const [2]f32,
     opt: TriangleOption,
 ) !void {
@@ -380,9 +373,9 @@ pub const AxisOption = struct {
     length: f32 = 4,
     pos: [3]f32 = .{ 0, 0, 0 },
     rotation: zmath.Quat = zmath.matToQuat(zmath.identity()),
-    color_x: sdl.Color = sdl.Color.red,
-    color_y: sdl.Color = sdl.Color.green,
-    color_z: sdl.Color = sdl.Color.blue,
+    color_x: jok.Color = jok.Color.red,
+    color_y: jok.Color = jok.Color.green,
+    color_z: jok.Color = jok.Color.blue,
 };
 
 /// Render a simple axis

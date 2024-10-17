@@ -5,7 +5,6 @@ const math = std.math;
 const internal = @import("internal.zig");
 const Mesh = @import("Mesh.zig");
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const zmath = jok.zmath;
 const j3d = jok.j3d;
 const lighting = j3d.lighting;
@@ -21,21 +20,21 @@ pub const MeshObj = struct {
     transform: zmath.Mat,
     mesh: *Mesh,
     cull_faces: bool = true,
-    color: sdl.Color = sdl.Color.white,
-    texture: ?sdl.Texture = null,
+    color: jok.Color = jok.Color.white,
+    texture: ?jok.Texture = null,
     disable_lighting: bool = false,
 };
 
 /// Represent a sprite in 3d space
 pub const SpriteObj = struct {
     transform: zmath.Mat,
-    size: sdl.PointF,
-    uv: [2]sdl.PointF,
-    texture: ?sdl.Texture = null,
-    tint_color: sdl.Color = sdl.Color.white,
-    scale: sdl.PointF = .{ .x = 1.0, .y = 1.0 },
+    size: jok.Point,
+    uv: [2]jok.Point,
+    texture: ?jok.Texture = null,
+    tint_color: jok.Color = jok.Color.white,
+    scale: jok.Point = .{ .x = 1.0, .y = 1.0 },
     rotate_degree: f32 = 0,
-    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    anchor_point: jok.Point = .{ .x = 0, .y = 0 },
     flip_h: bool = false,
     flip_v: bool = false,
     facing_dir: ?[3]f32 = null,

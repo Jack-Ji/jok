@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const imgui = jok.imgui;
 const font = jok.font;
@@ -57,20 +56,20 @@ pub fn init(ctx: jok.Context) !void {
     animation3_3 = try j3d.Animation.create(ctx.allocator(), mesh3.getAnimation("Run").?);
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(_: jok.Context, e: jok.Event) !void {
     if (imgui.io.getWantCaptureMouse()) return;
 
     switch (e) {
         .mouse_motion => |me| {
-            const mouse_state = ctx.getMouseState();
-            if (!mouse_state.buttons.getPressed(.left)) {
+            const mouse_state = jok.io.getMouseState();
+            if (!mouse_state.buttons.isPressed(.left)) {
                 return;
             }
 
             camera.rotateAroundBy(
                 null,
-                @as(f32, @floatFromInt(me.delta_x)) * 0.01,
-                @as(f32, @floatFromInt(me.delta_y)) * 0.01,
+                me.delta.x * 0.01,
+                me.delta.y * 0.01,
             );
         },
         .mouse_wheel => |me| {
@@ -83,28 +82,29 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 pub fn update(ctx: jok.Context) !void {
     // camera movement
     const distance = ctx.deltaSeconds() * 5;
-    if (ctx.isKeyPressed(.w)) {
+    const kbd = jok.io.getKeyboardState();
+    if (kbd.isPressed(.w)) {
         camera.moveBy(.forward, distance);
     }
-    if (ctx.isKeyPressed(.s)) {
+    if (kbd.isPressed(.s)) {
         camera.moveBy(.backward, distance);
     }
-    if (ctx.isKeyPressed(.a)) {
+    if (kbd.isPressed(.a)) {
         camera.moveBy(.left, distance);
     }
-    if (ctx.isKeyPressed(.d)) {
+    if (kbd.isPressed(.d)) {
         camera.moveBy(.right, distance);
     }
-    if (ctx.isKeyPressed(.left)) {
+    if (kbd.isPressed(.left)) {
         camera.rotateBy(0, -std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.right)) {
+    if (kbd.isPressed(.right)) {
         camera.rotateBy(0, std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.up)) {
+    if (kbd.isPressed(.up)) {
         camera.rotateBy(std.math.pi / 180.0, 0);
     }
-    if (ctx.isKeyPressed(.down)) {
+    if (kbd.isPressed(.down)) {
         camera.rotateBy(-std.math.pi / 180.0, 0);
     }
 
@@ -130,7 +130,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(sdl.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
     if (imgui.begin("Control Panel", .{})) {
@@ -229,7 +229,7 @@ pub fn draw(ctx: jok.Context) !void {
     j3d.begin(.{
         .camera = camera,
         .triangle_sort = .simple,
-        .wireframe_color = if (wireframe) sdl.Color.green else null,
+        .wireframe_color = if (wireframe) jok.Color.green else null,
     });
     defer j3d.end();
     if (animation1) |a| {
@@ -257,7 +257,7 @@ pub fn draw(ctx: jok.Context) !void {
             a,
             zmath.translation(-4, 0, 0),
             .{
-                .color = sdl.Color.cyan,
+                .color = jok.Color.cyan,
                 .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
                 .playtime = animation_playtime2,
@@ -268,7 +268,7 @@ pub fn draw(ctx: jok.Context) !void {
             mesh2,
             zmath.translation(-4, 0, 0),
             .{
-                .color = sdl.Color.cyan,
+                .color = jok.Color.cyan,
                 .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
             },

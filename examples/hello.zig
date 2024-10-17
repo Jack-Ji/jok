@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const font = jok.font;
 const zmath = jok.zmath;
@@ -14,15 +13,15 @@ pub const jok_window_size = jok.config.WindowSize{
 };
 
 var camera: j3d.Camera = undefined;
-var text_draw_pos: sdl.PointF = undefined;
-var text_speed: sdl.PointF = undefined;
+var text_draw_pos: jok.Point = undefined;
+var text_speed: jok.Point = undefined;
 var screenshot_time: i64 = -1;
-var screenshot_tex: ?sdl.Texture = null;
-var screenshot_pos: sdl.PointF = undefined;
-var screenshot_size: sdl.PointF = undefined;
-var screenshot_tint_color: sdl.Color = undefined;
-var point_easing_system: *easing.EasingSystem(sdl.PointF) = undefined;
-var color_easing_system: *easing.EasingSystem(sdl.Color) = undefined;
+var screenshot_tex: ?jok.Texture = null;
+var screenshot_pos: jok.Point = undefined;
+var screenshot_size: jok.Point = undefined;
+var screenshot_tint_color: jok.Color = undefined;
+var point_easing_system: *easing.EasingSystem(jok.Point) = undefined;
+var color_easing_system: *easing.EasingSystem(jok.Color) = undefined;
 var show_stats: bool = true;
 
 pub fn init(ctx: jok.Context) !void {
@@ -45,18 +44,18 @@ pub fn init(ctx: jok.Context) !void {
         .{ 0, 0, 0 },
     );
     text_draw_pos = .{
-        .x = csz.x / 2,
-        .y = csz.y / 2,
+        .x = csz.getWidthFloat() / 2,
+        .y = csz.getHeightFloat() / 2,
     };
     text_speed = .{
         .x = 100,
         .y = 100,
     };
-    point_easing_system = try easing.EasingSystem(sdl.PointF).create(ctx.allocator());
-    color_easing_system = try easing.EasingSystem(sdl.Color).create(ctx.allocator());
+    point_easing_system = try easing.EasingSystem(jok.Point).create(ctx.allocator());
+    color_easing_system = try easing.EasingSystem(jok.Color).create(ctx.allocator());
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     const S = struct {
         var fullscreen = false;
     };
@@ -68,26 +67,33 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
                 try ctx.window().setFullscreen(S.fullscreen);
             } else if (k.scancode == .f2) {
                 const csz = ctx.getCanvasSize();
-                const pixels = try jok.utils.gfx.getScreenPixels(ctx, null);
+                const pixels = try ctx.renderer().getPixels(ctx.allocator(), null);
                 defer pixels.destroy();
-                try pixels.saveToFile("screenshot.png", .{});
-                screenshot_tex = try pixels.createTexture();
+                try jok.utils.gfx.savePixelsToFile(
+                    ctx,
+                    pixels.pixels,
+                    pixels.width,
+                    pixels.height,
+                    "screenshot.png",
+                    .{},
+                );
+                screenshot_tex = try pixels.createTexture(ctx.renderer(), .{});
                 screenshot_time = std.time.timestamp();
                 try point_easing_system.add(
                     &screenshot_pos,
                     .in_out_circ,
-                    easing.easePointF,
+                    easing.easePoint,
                     1,
                     .{ .x = 0, .y = 0 },
-                    .{ .x = csz.x * 0.75, .y = 0 },
+                    .{ .x = csz.getWidthFloat() * 0.75, .y = 0 },
                 );
                 try point_easing_system.add(
                     &screenshot_size,
                     .out_bounce,
-                    easing.easePointF,
+                    easing.easePoint,
                     1,
-                    csz,
-                    .{ .x = csz.x / 5, .y = csz.y / 5 },
+                    .{ .x = csz.getWidthFloat(), .y = csz.getHeightFloat() },
+                    .{ .x = csz.getWidthFloat() / 5, .y = csz.getHeightFloat() / 5 },
                 );
                 try color_easing_system.add(
                     &screenshot_tint_color,
@@ -95,7 +101,7 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
                     easing.easeColor,
                     1,
                     .{ .r = 0, .g = 0, .b = 0, .a = 0 },
-                    sdl.Color.white,
+                    jok.Color.white,
                 );
             } else if (k.scancode == .f3) {
                 show_stats = !show_stats;
@@ -111,7 +117,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(null);
+    try ctx.renderer().clear(null);
     if (show_stats) ctx.displayStats(.{});
 
     if (imgui.begin("canvas", .{})) {
@@ -123,8 +129,8 @@ pub fn draw(ctx: jok.Context) !void {
     imgui.end();
 
     const csz = ctx.getCanvasSize();
-    const center_x = csz.x / 2;
-    const center_y = csz.y / 2;
+    const center_x: f32 = @floatFromInt(csz.width / 2);
+    const center_y: f32 = @floatFromInt(csz.height / 2);
 
     {
         j2d.begin(.{});
@@ -154,10 +160,10 @@ pub fn draw(ctx: jok.Context) !void {
             });
             try j2d.rectFilledMultiColor(
                 .{ .x = -10, .y = -10, .width = 20, .height = 20 },
-                sdl.Color.white,
-                sdl.Color.red,
-                sdl.Color.green,
-                sdl.Color.blue,
+                jok.Color.white,
+                jok.Color.red,
+                jok.Color.green,
+                jok.Color.blue,
                 .{},
             );
         }
@@ -170,7 +176,7 @@ pub fn draw(ctx: jok.Context) !void {
             .{
                 .atlas = atlas,
                 .pos = .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
-                .tint_color = sdl.Color.red,
+                .tint_color = jok.Color.red,
             },
             "Hello Jok!",
             .{},
@@ -184,19 +190,19 @@ pub fn draw(ctx: jok.Context) !void {
         if (area.x < 0) {
             text_speed.x = @abs(text_speed.x);
         }
-        if (area.x + area.width > csz.x) {
+        if (area.x + area.width > @as(f32, @floatFromInt(csz.width))) {
             text_speed.x = -@abs(text_speed.x);
         }
         if (area.y < 0) {
             text_speed.y = @abs(text_speed.y);
         }
-        if (area.y + area.height > csz.y) {
+        if (area.y + area.height > @as(f32, @floatFromInt(csz.height))) {
             text_speed.y = -@abs(text_speed.y);
         }
     }
 
     {
-        const color = sdl.Color.rgb(
+        const color = jok.Color.rgb(
             @intFromFloat(128 + 127 * std.math.sin(ctx.seconds())),
             100,
             @intFromFloat(128 + 127 * std.math.cos(ctx.seconds())),
@@ -244,7 +250,7 @@ pub fn draw(ctx: jok.Context) !void {
                     .width = screenshot_size.x,
                     .height = screenshot_size.y,
                 },
-                sdl.Color.rgba(255, 255, 255, 200),
+                jok.Color.rgba(255, 255, 255, 200),
                 .{},
             );
             try j2d.imageRounded(
@@ -255,8 +261,8 @@ pub fn draw(ctx: jok.Context) !void {
                 },
                 .{
                     .size = .{
-                        .x = screenshot_size.x - 10,
-                        .y = screenshot_size.y - 10,
+                        .width = @intFromFloat(screenshot_size.x - 10),
+                        .height = @intFromFloat(screenshot_size.y - 10),
                     },
                     .tint_color = screenshot_tint_color,
                 },

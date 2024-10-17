@@ -1,7 +1,6 @@
 const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const font = jok.font;
 const zmath = jok.zmath;
@@ -110,13 +109,13 @@ pub fn init(ctx: jok.Context) !void {
                 sphere_mesh,
                 .{},
             ),
-            .color = sdl.Color.white,
+            .color = jok.Color.white,
         },
     });
     try scene.root.addChild(sphere_obj);
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -124,28 +123,29 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 pub fn update(ctx: jok.Context) !void {
     // camera movement
     const distance = ctx.deltaSeconds() * 10;
-    if (ctx.isKeyPressed(.w)) {
+    const kbd = jok.io.getKeyboardState();
+    if (kbd.isPressed(.w)) {
         camera.moveBy(.forward, distance);
     }
-    if (ctx.isKeyPressed(.s)) {
+    if (kbd.isPressed(.s)) {
         camera.moveBy(.backward, distance);
     }
-    if (ctx.isKeyPressed(.a)) {
+    if (kbd.isPressed(.a)) {
         camera.moveBy(.left, distance);
     }
-    if (ctx.isKeyPressed(.d)) {
+    if (kbd.isPressed(.d)) {
         camera.moveBy(.right, distance);
     }
-    if (ctx.isKeyPressed(.left)) {
+    if (kbd.isPressed(.left)) {
         camera.rotateBy(0, -std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.right)) {
+    if (kbd.isPressed(.right)) {
         camera.rotateBy(0, std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.up)) {
+    if (kbd.isPressed(.up)) {
         camera.rotateBy(std.math.pi / 180.0, 0);
     }
-    if (ctx.isKeyPressed(.down)) {
+    if (kbd.isPressed(.down)) {
         camera.rotateBy(-std.math.pi / 180.0, 0);
     }
 
@@ -153,7 +153,7 @@ pub fn update(ctx: jok.Context) !void {
         zmath.rotationX(ctx.seconds()),
         zmath.rotationY(ctx.seconds()),
     ));
-    sprites[12].actor.sprite.tint_color = sdl.Color.rgb(
+    sprites[12].actor.sprite.tint_color = jok.Color.rgb(
         @intFromFloat(127 * (1 + @sin(ctx.seconds()))),
         @intFromFloat(127 * (1 + @cos(ctx.seconds()))),
         100,
@@ -162,7 +162,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(sdl.Color.rgb(80, 80, 80));
+    try ctx.renderer().clear(jok.Color.rgb(80, 80, 80));
 
     j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
     defer j3d.end();

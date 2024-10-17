@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const j2d = jok.j2d;
 
@@ -8,7 +7,7 @@ var sheet: *j2d.SpriteSheet = undefined;
 var as: *j2d.AnimationSystem = undefined;
 const velocity = 100;
 var animation: []const u8 = "player_down";
-var pos = sdl.PointF{ .x = 200, .y = 200 };
+var pos = jok.Point{ .x = 200, .y = 200 };
 var flip_h = false;
 
 pub fn init(ctx: jok.Context) !void {
@@ -21,8 +20,8 @@ pub fn init(ctx: jok.Context) !void {
     sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
         "images",
-        @intFromFloat(size.x),
-        @intFromFloat(size.y),
+        @intFromFloat(size.getWidthFloat()),
+        @intFromFloat(size.getHeightFloat()),
         .{},
     );
     as = try j2d.AnimationSystem.create(ctx.allocator());
@@ -59,29 +58,30 @@ pub fn init(ctx: jok.Context) !void {
     );
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
 
 pub fn update(ctx: jok.Context) !void {
     var force_replay = false;
-    if (ctx.isKeyPressed(.up)) {
+    const kbd = jok.io.getKeyboardState();
+    if (kbd.isPressed(.up)) {
         pos.y -= velocity * ctx.deltaSeconds();
         animation = "player_up";
         flip_h = false;
         force_replay = true;
-    } else if (ctx.isKeyPressed(.down)) {
+    } else if (kbd.isPressed(.down)) {
         pos.y += velocity * ctx.deltaSeconds();
         animation = "player_down";
         flip_h = false;
         force_replay = true;
-    } else if (ctx.isKeyPressed(.right)) {
+    } else if (kbd.isPressed(.right)) {
         pos.x += velocity * ctx.deltaSeconds();
         animation = "player_left_right";
         flip_h = true;
         force_replay = true;
-    } else if (ctx.isKeyPressed(.left)) {
+    } else if (kbd.isPressed(.left)) {
         pos.x -= velocity * ctx.deltaSeconds();
         animation = "player_left_right";
         flip_h = false;
@@ -94,7 +94,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(sdl.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
 
     j2d.begin(.{});
     defer j2d.end();
@@ -102,7 +102,7 @@ pub fn draw(ctx: jok.Context) !void {
         sheet.getSpriteByName("player").?,
         .{
             .pos = .{ .x = 0, .y = 50 },
-            .tint_color = sdl.Color.rgb(100, 100, 100),
+            .tint_color = jok.Color.rgb(100, 100, 100),
             .scale = .{ .x = 4, .y = 4 },
         },
     );

@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const imgui = jok.imgui;
 const font = jok.font;
@@ -10,7 +9,7 @@ const j3d = jok.j3d;
 
 var camera: j3d.Camera = undefined;
 var cube: zmesh.Shape = undefined;
-var tex: sdl.Texture = undefined;
+var tex: jok.Texture = undefined;
 var texcoords = [_][2]f32{
     .{ 0, 1 },
     .{ 0, 0 },
@@ -21,8 +20,8 @@ var texcoords = [_][2]f32{
     .{ 0, 0 },
     .{ 1, 0 },
 };
-var skybox_textures: [6]sdl.Texture = undefined;
-var skybox_tint_color: sdl.Color = sdl.Color.white;
+var skybox_textures: [6]jok.Texture = undefined;
+var skybox_tint_color: jok.Color = jok.Color.white;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -50,52 +49,52 @@ pub fn init(ctx: jok.Context) !void {
     cube = zmesh.Shape.initCube();
     cube.computeNormals();
     cube.texcoords = texcoords[0..];
-    tex = try jok.utils.gfx.createTextureFromFile(
-        ctx,
+    tex = try ctx.renderer().createTextureFromFile(
+        ctx.allocator(),
         "images/image5.jpg",
         .static,
         false,
     );
 
-    skybox_textures[0] = try jok.utils.gfx.createTextureFromFile(
-        ctx,
+    skybox_textures[0] = try ctx.renderer().createTextureFromFile(
+        ctx.allocator(),
         "images/skybox/right.jpg",
         .static,
         true,
     );
-    skybox_textures[1] = try jok.utils.gfx.createTextureFromFile(
-        ctx,
+    skybox_textures[1] = try ctx.renderer().createTextureFromFile(
+        ctx.allocator(),
         "images/skybox/left.jpg",
         .static,
         true,
     );
-    skybox_textures[2] = try jok.utils.gfx.createTextureFromFile(
-        ctx,
+    skybox_textures[2] = try ctx.renderer().createTextureFromFile(
+        ctx.allocator(),
         "images/skybox/top.jpg",
         .static,
         true,
     );
-    skybox_textures[3] = try jok.utils.gfx.createTextureFromFile(
-        ctx,
+    skybox_textures[3] = try ctx.renderer().createTextureFromFile(
+        ctx.allocator(),
         "images/skybox/bottom.jpg",
         .static,
         true,
     );
-    skybox_textures[4] = try jok.utils.gfx.createTextureFromFile(
-        ctx,
+    skybox_textures[4] = try ctx.renderer().createTextureFromFile(
+        ctx.allocator(),
         "images/skybox/front.jpg",
         .static,
         true,
     );
-    skybox_textures[5] = try jok.utils.gfx.createTextureFromFile(
-        ctx,
+    skybox_textures[5] = try ctx.renderer().createTextureFromFile(
+        ctx.allocator(),
         "images/skybox/back.jpg",
         .static,
         true,
     );
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -103,34 +102,35 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 pub fn update(ctx: jok.Context) !void {
     // camera movement
     const distance = ctx.deltaSeconds() * 2;
-    if (ctx.isKeyPressed(.w)) {
+    const kbd = jok.io.getKeyboardState();
+    if (kbd.isPressed(.w)) {
         camera.moveBy(.forward, distance);
     }
-    if (ctx.isKeyPressed(.s)) {
+    if (kbd.isPressed(.s)) {
         camera.moveBy(.backward, distance);
     }
-    if (ctx.isKeyPressed(.a)) {
+    if (kbd.isPressed(.a)) {
         camera.moveBy(.left, distance);
     }
-    if (ctx.isKeyPressed(.d)) {
+    if (kbd.isPressed(.d)) {
         camera.moveBy(.right, distance);
     }
-    if (ctx.isKeyPressed(.left)) {
+    if (kbd.isPressed(.left)) {
         camera.rotateBy(0, -std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.right)) {
+    if (kbd.isPressed(.right)) {
         camera.rotateBy(0, std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.up)) {
+    if (kbd.isPressed(.up)) {
         camera.rotateBy(std.math.pi / 180.0, 0);
     }
-    if (ctx.isKeyPressed(.down)) {
+    if (kbd.isPressed(.down)) {
         camera.rotateBy(-std.math.pi / 180.0, 0);
     }
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(sdl.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
 
     if (imgui.begin("Tint Color", .{})) {
         var cs: [3]f32 = .{

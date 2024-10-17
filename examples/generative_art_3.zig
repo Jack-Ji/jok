@@ -1,7 +1,6 @@
 const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
-const sdl = jok.sdl;
 const font = jok.font;
 const zmath = jok.zmath;
 const j2d = jok.j2d;
@@ -16,7 +15,7 @@ pub fn init(ctx: jok.Context) !void {
     _ = ctx;
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -26,10 +25,10 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(null);
+    try ctx.renderer().clear(null);
 
     const fb_size = ctx.getCanvasSize();
-    const rect = sdl.RectangleF{
+    const rect = jok.Rectangle{
         .x = -rect_size / 2,
         .y = -rect_size / 2,
         .width = rect_size,
@@ -61,11 +60,11 @@ pub fn draw(ctx: jok.Context) !void {
             var tr = transform.clone();
             tr.rotateByOrigin(-angle_step * step);
             tr.translate(.{
-                .x = fb_size.x / 4,
-                .y = fb_size.y / 4,
+                .x = fb_size.getWidthFloat() / 4,
+                .y = fb_size.getHeightFloat() / 4,
             });
             j2d.setTransform(tr);
-            try j2d.rect(rect, sdl.Color.white, .{});
+            try j2d.rect(rect, jok.Color.white, .{});
         }
 
         // top-right
@@ -73,11 +72,11 @@ pub fn draw(ctx: jok.Context) !void {
             var tr = transform.clone();
             tr.rotateByOrigin(angle_step * step);
             tr.translate(.{
-                .x = fb_size.x * 3 / 4,
-                .y = fb_size.y / 4,
+                .x = fb_size.getWidthFloat() * 3 / 4,
+                .y = fb_size.getHeightFloat() / 4,
             });
             j2d.setTransform(tr);
-            try j2d.rect(rect, sdl.Color.white, .{});
+            try j2d.rect(rect, jok.Color.white, .{});
         }
 
         // bottom-right
@@ -85,11 +84,11 @@ pub fn draw(ctx: jok.Context) !void {
             var tr = transform.clone();
             tr.rotateByOrigin(-angle_step * step);
             tr.translate(.{
-                .x = fb_size.x * 3 / 4,
-                .y = fb_size.y * 3 / 4,
+                .x = fb_size.getWidthFloat() * 3 / 4,
+                .y = fb_size.getHeightFloat() * 3 / 4,
             });
             j2d.setTransform(tr);
-            try j2d.rect(rect, sdl.Color.white, .{});
+            try j2d.rect(rect, jok.Color.white, .{});
         }
 
         // bottom-left
@@ -97,11 +96,11 @@ pub fn draw(ctx: jok.Context) !void {
             var tr = transform.clone();
             tr.rotateByOrigin(angle_step * step);
             tr.translate(.{
-                .x = fb_size.x / 4,
-                .y = fb_size.y * 3 / 4,
+                .x = fb_size.getWidthFloat() / 4,
+                .y = fb_size.getHeightFloat() * 3 / 4,
             });
             j2d.setTransform(tr);
-            try j2d.rect(rect, sdl.Color.white, .{});
+            try j2d.rect(rect, jok.Color.white, .{});
         }
     }
 }

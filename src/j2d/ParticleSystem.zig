@@ -1,7 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const DrawCmd = @import("internal.zig").DrawCmd;
 const Vector = @import("Vector.zig");
 const Sprite = @import("Sprite.zig");
@@ -219,8 +218,8 @@ pub const Effect = struct {
         comptime _radius: f32,
         comptime _acceleration: f32,
         comptime _age: f32,
-        comptime _color_initial: sdl.Color,
-        comptime _color_final: sdl.Color,
+        comptime _color_initial: jok.Color,
+        comptime _color_final: jok.Color,
         comptime _color_fade_age: f32,
     ) type {
         return struct {
@@ -285,9 +284,9 @@ pub const Particle = struct {
     scale_max: f32 = 1,
 
     /// Color changing
-    color: sdl.Color = undefined,
-    color_initial: sdl.Color = sdl.Color.white,
-    color_final: sdl.Color = sdl.Color.white,
+    color: jok.Color = undefined,
+    color_initial: jok.Color = jok.Color.white,
+    color_final: jok.Color = jok.Color.white,
     color_fade_age: f32 = 0,
 
     fn updatePos(self: *Particle, delta_time: f32) void {

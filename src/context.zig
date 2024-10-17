@@ -7,6 +7,7 @@ const pp = @import("post_processing.zig");
 const blend = @import("blend.zig");
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
+const io = jok.io;
 const physfs = jok.physfs;
 const font = jok.font;
 const imgui = jok.imgui;
@@ -29,16 +30,15 @@ pub const Context = struct {
         deltaSeconds: *const fn (ctx: *anyopaque) f32,
         fps: *const fn (ctx: *anyopaque) f32,
         window: *const fn (ctx: *anyopaque) jok.Window,
-        renderer: *const fn (ctx: *anyopaque) sdl.Renderer,
-        canvas: *const fn (ctx: *anyopaque) sdl.Texture,
+        renderer: *const fn (ctx: *anyopaque) jok.Renderer,
+        canvas: *const fn (ctx: *anyopaque) jok.Texture,
         audioEngine: *const fn (ctx: *anyopaque) *miniaudio.Engine,
         kill: *const fn (ctx: *anyopaque) void,
-        getCanvasSize: *const fn (ctx: *anyopaque) sdl.PointF,
-        setCanvasSize: *const fn (ctx: *anyopaque, size: ?sdl.Size) anyerror!void,
+        getCanvasSize: *const fn (ctx: *anyopaque) jok.Size,
+        setCanvasSize: *const fn (ctx: *anyopaque, size: ?jok.Size) anyerror!void,
+        getCanvasArea: *const fn (ctx: *anyopaque) jok.Rectangle,
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
         getDpiScale: *const fn (ctx: *anyopaque) f32,
-        isKeyPressed: *const fn (ctx: *anyopaque, key: sdl.Scancode) bool,
-        getMouseState: *const fn (ctx: *anyopaque) sdl.MouseState,
         setPostProcessing: *const fn (ctx: *anyopaque, ppfn: pp.PostProcessingFn, data: ?*anyopaque) void,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
@@ -85,12 +85,12 @@ pub const Context = struct {
     }
 
     /// Get SDL renderer
-    pub fn renderer(self: Context) sdl.Renderer {
+    pub fn renderer(self: Context) jok.Renderer {
         return self.vtable.renderer(self.ctx);
     }
 
     /// Get canvas texture
-    pub fn canvas(self: Context) sdl.Texture {
+    pub fn canvas(self: Context) jok.Texture {
         return self.vtable.canvas(self.ctx);
     }
 
@@ -105,8 +105,18 @@ pub const Context = struct {
     }
 
     /// Get size of canvas
-    pub fn getCanvasSize(self: Context) sdl.PointF {
+    pub fn getCanvasSize(self: Context) jok.Size {
         return self.vtable.getCanvasSize(self.ctx);
+    }
+
+    /// Set size of canvas (null means same as current framebuffer)
+    pub fn setCanvasSize(self: Context, size: ?jok.Size) !void {
+        return self.vtable.setCanvasSize(self.ctx, size);
+    }
+
+    /// Get canvas drawing area in framebuffer
+    pub fn getCanvasArea(self: Context) jok.Rectangle {
+        return self.vtable.getCanvasArea(self.ctx);
     }
 
     /// Get aspect ratio of drawing area
@@ -114,24 +124,9 @@ pub const Context = struct {
         return self.vtable.getAspectRatio(self.ctx);
     }
 
-    /// Set size of canvas (null means same as current framebuffer)
-    pub fn setCanvasSize(self: Context, size: ?sdl.Size) !void {
-        return self.vtable.setCanvasSize(self.ctx, size);
-    }
-
     /// Get dpi scale
     pub fn getDpiScale(self: Context) f32 {
         return self.vtable.getDpiScale(self.ctx);
-    }
-
-    /// Get key status
-    pub fn isKeyPressed(self: Context, key: sdl.Scancode) bool {
-        return self.vtable.isKeyPressed(self.ctx, key);
-    }
-
-    /// Get mouse state
-    pub fn getMouseState(self: Context) sdl.MouseState {
-        return self.vtable.getMouseState(self.ctx);
     }
 
     /// Set post-processing callback
@@ -147,15 +142,6 @@ pub const Context = struct {
     /// Display statistics
     pub fn displayStats(self: Context, opt: DisplayStats) void {
         return self.vtable.displayStats(self.ctx, opt);
-    }
-
-    /// Clear canvas
-    pub fn clear(ctx: Context, color: ?sdl.Color) void {
-        const rd = ctx.renderer();
-        const old_color = rd.getColor() catch unreachable;
-        defer rd.setColor(old_color) catch unreachable;
-        rd.setColor(color orelse sdl.Color.black) catch unreachable;
-        rd.clear() catch unreachable;
     }
 };
 
@@ -200,14 +186,13 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _display_dpi: f32 = undefined,
 
         // Renderer instance
-        _renderer: sdl.Renderer = undefined,
+        _renderer: jok.Renderer = undefined,
         _is_software: bool = false,
 
         // Rendering target
-        _canvas_texture: sdl.Texture = undefined,
-        _canvas_size: ?sdl.Size = cfg.jok_canvas_size,
-        _canvas_target_area: ?sdl.Rectangle = null,
-        _canvas_scale: f32 = 1.0,
+        _canvas_texture: jok.Texture = undefined,
+        _canvas_size: ?jok.Size = cfg.jok_canvas_size,
+        _canvas_target_area: ?jok.Rectangle = null,
 
         // Post-processing
         _post_processing: PostProcessingType = undefined,
@@ -295,9 +280,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             );
 
             // Misc.
-            self._pc_freq = sdl.c.SDL_GetPerformanceFrequency();
+            self._pc_freq = sdl.SDL_GetPerformanceFrequency();
             self._pc_max_accumulated = self._pc_freq / 2;
-            self._pc_last = sdl.c.SDL_GetPerformanceCounter();
+            self._pc_last = sdl.SDL_GetPerformanceCounter();
             self._recent_update_costs = try CostDataType.init(self._allocator, max_costs_num);
             self._recent_draw_costs = try CostDataType.init(self._allocator, max_costs_num);
             self._recent_total_costs = try CostDataType.init(self._allocator, max_costs_num);
@@ -345,7 +330,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Ticking of application
         pub fn tick(
             self: *@This(),
-            comptime eventFn: *const fn (Context, sdl.Event) anyerror!void,
+            comptime eventFn: *const fn (Context, jok.Event) anyerror!void,
             comptime updateFn: *const fn (Context) anyerror!void,
             comptime drawFn: *const fn (Context) anyerror!void,
         ) void {
@@ -358,14 +343,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Update game
             if (pc_threshold > 0) {
                 while (true) {
-                    const pc = sdl.c.SDL_GetPerformanceCounter();
+                    const pc = sdl.SDL_GetPerformanceCounter();
                     self._pc_accumulated += pc - self._pc_last;
                     self._pc_last = pc;
                     if (self._pc_accumulated >= pc_threshold) {
                         break;
                     }
                     if ((pc_threshold - self._pc_accumulated) * 1000 > self._pc_freq) {
-                        sdl.delay(1);
+                        sdl.SDL_Delay(1);
                     }
                 }
 
@@ -402,7 +387,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._delta_seconds = @as(f32, @floatFromInt(step_count)) * fps_delta_seconds;
             } else {
                 // Perform one update
-                const pc = sdl.c.SDL_GetPerformanceCounter();
+                const pc = sdl.SDL_GetPerformanceCounter();
                 self._delta_seconds = @floatCast(
                     @as(f64, @floatFromInt(pc - self._pc_last)) / @as(f64, @floatFromInt(self._pc_freq)),
                 );
@@ -414,14 +399,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
 
             // Do rendering
-            const old_color = self._renderer.getColor() catch unreachable;
-            self._renderer.setColor(sdl.Color.black) catch unreachable;
-            self._renderer.clear() catch unreachable;
-            self._renderer.setColor(old_color) catch unreachable;
+            self._renderer.clear(jok.Color.black) catch unreachable;
             {
-                const pc_begin = sdl.c.SDL_GetPerformanceCounter();
+                const pc_begin = sdl.SDL_GetPerformanceCounter();
                 defer if (cfg.jok_detailed_frame_stats) {
-                    const cost = @as(f32, @floatFromInt((sdl.c.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
+                    const cost = @as(f32, @floatFromInt((sdl.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
                         @as(f32, @floatFromInt(self._pc_freq));
                     self._draw_cost = if (self._draw_cost > 0) (self._draw_cost + cost) / 2 else cost;
                 };
@@ -436,7 +418,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         self._post_processing.applyFn(f, self._ppdata);
                         self._post_processing.render(self._renderer, self._canvas_texture);
                     } else {
-                        self._renderer.copy(self._canvas_texture, self._canvas_target_area, null) catch unreachable;
+                        self._renderer.drawTexture(self._canvas_texture, self._canvas_target_area) catch unreachable;
                     }
                 }
 
@@ -456,26 +438,26 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Update game state
         inline fn _update(
             self: *@This(),
-            comptime eventFn: *const fn (Context, sdl.Event) anyerror!void,
+            comptime eventFn: *const fn (Context, jok.Event) anyerror!void,
             comptime updateFn: *const fn (Context) anyerror!void,
         ) void {
-            const pc_begin = sdl.c.SDL_GetPerformanceCounter();
+            const pc_begin = sdl.SDL_GetPerformanceCounter();
             defer if (cfg.jok_detailed_frame_stats) {
-                const cost = @as(f32, @floatFromInt((sdl.c.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
+                const cost = @as(f32, @floatFromInt((sdl.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
                     @as(f32, @floatFromInt(self._pc_freq));
                 self._update_cost = if (self._update_cost > 0) (self._update_cost + cost) / 2 else cost;
             };
 
-            while (sdl.pollNativeEvent()) |native_event| {
+            while (io.pollNativeEvent()) |ne| {
                 // ImGui event processing
-                var e = native_event;
+                var e = ne;
                 if (cfg.jok_window_high_dpi) {
                     switch (e.type) {
-                        sdl.c.SDL_MOUSEMOTION => {
+                        sdl.SDL_MOUSEMOTION => {
                             e.motion.x = @intFromFloat(@as(f32, @floatFromInt(e.motion.x)) / getDpiScale(self));
                             e.motion.y = @intFromFloat(@as(f32, @floatFromInt(e.motion.y)) / getDpiScale(self));
                         },
-                        sdl.c.SDL_MOUSEBUTTONDOWN, sdl.c.SDL_MOUSEBUTTONUP => {
+                        sdl.SDL_MOUSEBUTTONDOWN, sdl.SDL_MOUSEBUTTONUP => {
                             e.button.x = @intFromFloat(@as(f32, @floatFromInt(e.button.x)) / getDpiScale(self));
                             e.button.y = @intFromFloat(@as(f32, @floatFromInt(e.button.y)) / getDpiScale(self));
                         },
@@ -485,24 +467,20 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 _ = imgui.sdl.processEvent(e);
 
                 // Game event processing
-                var wrapped_event = sdl.Event.from(native_event);
-                if (cfg.jok_exit_on_recv_esc and wrapped_event == .key_up and
-                    wrapped_event.key_up.scancode == .escape)
+                const we = jok.Event.from(ne);
+                if (cfg.jok_exit_on_recv_esc and we == .key_up and
+                    we.key_up.scancode == .escape)
                 {
                     kill(self);
-                } else if (cfg.jok_exit_on_recv_quit and wrapped_event == .quit) {
+                } else if (cfg.jok_exit_on_recv_quit and we == .quit) {
                     kill(self);
                 } else {
-                    if (wrapped_event == .window) {
-                        switch (wrapped_event.window.type) {
+                    if (we == .window) {
+                        switch (we.window.type) {
                             .resized, .size_changed => {
                                 if (self._canvas_size == null) {
                                     self._canvas_texture.destroy();
-                                    self._canvas_texture =
-                                        jok.utils.gfx.createTextureAsTarget(
-                                        self.context(),
-                                        .{},
-                                    ) catch unreachable;
+                                    self._canvas_texture = self._renderer.createTarget(.{}) catch unreachable;
                                 }
                                 self.updateCanvasTargetArea();
                             },
@@ -510,39 +488,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         }
                     }
 
-                    if (self._canvas_size != null) {
-                        // Remapping mouse position to canvas
-                        switch (wrapped_event) {
-                            .mouse_button_down => |*me| {
-                                const pos = self.mapPositionFromFramebufferToCanvas(.{
-                                    .x = @intCast(me.x),
-                                    .y = @intCast(me.y),
-                                });
-                                me.x = @intCast(pos.x);
-                                me.y = @intCast(pos.y);
-                            },
-                            .mouse_button_up => |*me| {
-                                const pos = self.mapPositionFromFramebufferToCanvas(.{
-                                    .x = @intCast(me.x),
-                                    .y = @intCast(me.y),
-                                });
-                                me.x = @intCast(pos.x);
-                                me.y = @intCast(pos.y);
-                            },
-                            .mouse_motion => |*me| {
-                                const pos = self.mapPositionFromFramebufferToCanvas(.{
-                                    .x = @intCast(me.x),
-                                    .y = @intCast(me.y),
-                                });
-                                me.x = @intCast(pos.x);
-                                me.y = @intCast(pos.y);
-                            },
-                            else => {},
-                        }
-                    }
-
                     // Passed to game code
-                    eventFn(self._ctx, wrapped_event) catch |err| {
+                    eventFn(self._ctx, we) catch |err| {
                         log.err("Got error in `event`: {}", .{err});
                         if (@errorReturnTrace()) |trace| {
                             std.debug.dumpStackTrace(trace.*);
@@ -589,9 +536,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Check system information
         fn checkSys(self: *@This()) !void {
             const target = builtin.target;
-            var sdl_version: sdl.c.SDL_version = undefined;
-            sdl.c.SDL_GetVersion(&sdl_version);
-            const ram_size = sdl.c.SDL_GetSystemRAM();
+            var sdl_version: sdl.SDL_version = undefined;
+            sdl.SDL_GetVersion(&sdl_version);
+            const ram_size = sdl.SDL_GetSystemRAM();
 
             // Print system info
             log.info(
@@ -625,7 +572,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             if (sdl_version.major < 2 or (sdl_version.minor == 0 and sdl_version.patch < 18)) {
                 log.err("SDL version too low, need at least 2.0.18", .{});
-                return sdl.makeError();
+                return sdl.Error.SdlError;
             }
 
             if (cfg.jok_exit_on_recv_esc) {
@@ -635,8 +582,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Initialize SDL
         fn initSDL(self: *@This()) !void {
-            const sdl_flags = sdl.InitFlags.everything;
-            try sdl.init(sdl_flags);
+            if (sdl.SDL_Init(sdl.SDL_INIT_EVERYTHING) < 0) {
+                log.err("Initialize SDL2 failed: {s}", .{sdl.SDL_GetError()});
+                return sdl.Error.SdlError;
+            }
 
             // Initialize dpi
             self._default_dpi = switch (builtin.target.os.tag) {
@@ -649,7 +598,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     // BUG: only workable on single monitor system
                     _ = w32.SetProcessDPIAware();
                 }
-                if (sdl.c.SDL_GetDisplayDPI(0, null, &self._display_dpi, null) < 0) {
+                if (sdl.SDL_GetDisplayDPI(0, null, &self._display_dpi, null) < 0) {
                     self._display_dpi = self._default_dpi;
                 }
             } else {
@@ -659,56 +608,28 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Initialize blending methods
             blend.init();
 
-            // Initialize window
-            self._window = try jok.Window.init(self._cfg, getDpiScale(self));
+            // Initialize i/o context
+            io.init(self._ctx);
 
-            // Create hardware accelerated renderer
-            // Fallback to software renderer if allowed
-            const __window = sdl.Window{ .ptr = @ptrCast(self._window.ptr) };
-            self._renderer = sdl.createRenderer(
-                __window,
-                null,
-                .{
-                    .software = cfg.jok_software_renderer,
-                    .present_vsync = cfg.jok_fps_limit == .auto,
-                    .target_texture = true,
-                },
-            ) catch blk: {
-                if (cfg.jok_software_renderer_fallback) {
-                    log.warn("Hardware accelerated renderer isn't supported, fallback to software backend", .{});
-                    break :blk try sdl.createRenderer(
-                        __window,
-                        null,
-                        .{
-                            .software = true,
-                            .present_vsync = cfg.jok_fps_limit == .auto, // Doesn't matter actually, vsync won't work anyway
-                            .target_texture = true,
-                        },
-                    );
-                } else {
-                    @panic("Failed to create renderer!");
-                }
-            };
-            try self._renderer.setDrawBlendMode(.blend);
-            const rdinfo = try self._renderer.getInfo();
-            self._is_software = ((rdinfo.flags & sdl.c.SDL_RENDERER_SOFTWARE) != 0);
+            // Initialize window
+            self._window = try jok.Window.init(cfg, getDpiScale(self));
+
+            // Initialize renderer
+            self._renderer = try jok.Renderer.init(cfg, self._window);
 
             // Create drawing target
-            self._canvas_texture = try jok.utils.gfx.createTextureAsTarget(
-                self.context(),
-                .{ .size = self._canvas_size },
-            );
+            self._canvas_texture = try self._renderer.createTarget(.{ .size = self._canvas_size });
             self._post_processing = try PostProcessingType.init(self._allocator);
             self.updateCanvasTargetArea();
         }
 
         /// Deinitialize SDL
         fn deinitSDL(self: *@This()) void {
-            self._post_processing.deinit();
+            self._post_processing.destroy();
             self._canvas_texture.destroy();
             self._renderer.destroy();
-            self._window.deinit();
-            sdl.quit();
+            self._window.destroy();
+            sdl.SDL_Quit();
         }
 
         /// Get type-erased context for application
@@ -730,10 +651,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .kill = kill,
                     .getCanvasSize = getCanvasSize,
                     .setCanvasSize = setCanvasSize,
+                    .getCanvasArea = getCanvasArea,
                     .getAspectRatio = getAspectRatio,
                     .getDpiScale = getDpiScale,
-                    .isKeyPressed = isKeyPressed,
-                    .getMouseState = getMouseState,
                     .setPostProcessing = setPostProcessing,
                     .isRunningSlow = isRunningSlow,
                     .displayStats = displayStats,
@@ -745,40 +665,25 @@ pub fn JokContext(comptime cfg: config.Config) type {
         inline fn updateCanvasTargetArea(self: *@This()) void {
             if (self._canvas_size) |sz| {
                 const fbsize = self._renderer.getOutputSize() catch unreachable;
-                const vpw: f32 = @floatFromInt(fbsize.width_pixels);
-                const vph: f32 = @floatFromInt(fbsize.height_pixels);
+                const vpw: f32 = @floatFromInt(fbsize.width);
+                const vph: f32 = @floatFromInt(fbsize.height);
                 const rw: f32 = @floatFromInt(sz.width);
                 const rh: f32 = @floatFromInt(sz.height);
-                self._canvas_target_area = if (rw * vph < rh * vpw) sdl.Rectangle{
-                    .x = @intFromFloat(@trunc((vpw - rw * vph / rh) / 2.0)),
+                self._canvas_target_area = if (rw * vph < rh * vpw) jok.Rectangle{
+                    .x = (vpw - rw * vph / rh) / 2.0,
                     .y = 0,
-                    .width = @intFromFloat(@trunc(rw * vph / rh)),
-                    .height = fbsize.height_pixels,
+                    .width = rw * vph / rh,
+                    .height = @floatFromInt(fbsize.height),
                 } else .{
                     .x = 0,
-                    .y = @intFromFloat(@trunc((vph - rh * vpw / rw) / 2.0)),
-                    .width = fbsize.width_pixels,
-                    .height = @intFromFloat(@trunc(rh * vpw / rw)),
+                    .y = (vph - rh * vpw / rw) / 2.0,
+                    .width = @floatFromInt(fbsize.width),
+                    .height = rh * vpw / rw,
                 };
-                self._canvas_scale = @as(f32, @floatFromInt(sz.width)) /
-                    @as(f32, @floatFromInt(self._canvas_target_area.?.width));
             } else {
                 self._canvas_target_area = null;
-                self._canvas_scale = 1.0;
             }
             self._post_processing.onCanvasChange(self._renderer, self._canvas_target_area);
-        }
-
-        /// Map position from framebuffer to canvas
-        inline fn mapPositionFromFramebufferToCanvas(self: *@This(), pos: sdl.Point) sdl.Point {
-            if (self._canvas_size != null) {
-                const area = self._canvas_target_area.?;
-                return .{
-                    .x = @intFromFloat(@as(f32, @floatFromInt(pos.x - area.x)) * self._canvas_scale),
-                    .y = @intFromFloat(@as(f32, @floatFromInt(pos.y - area.y)) * self._canvas_scale),
-                };
-            }
-            return pos;
         }
 
         ///////////////////// Wrapped API for Application Context //////////////////
@@ -832,13 +737,13 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Get SDL renderer
-        fn renderer(ptr: *anyopaque) sdl.Renderer {
+        fn renderer(ptr: *anyopaque) jok.Renderer {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._renderer;
         }
 
         /// Get canvas texture
-        fn canvas(ptr: *anyopaque) sdl.Texture {
+        fn canvas(ptr: *anyopaque) jok.Texture {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._canvas_texture;
         }
@@ -856,36 +761,39 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Get size of canvas
-        fn getCanvasSize(ptr: *anyopaque) sdl.PointF {
+        fn getCanvasSize(ptr: *anyopaque) jok.Size {
             const self: *@This() = @ptrCast(@alignCast(ptr));
-            if (self._canvas_size) |sz| return .{
-                .x = @floatFromInt(sz.width),
-                .y = @floatFromInt(sz.height),
-            };
-            const fbsize = self._renderer.getOutputSize() catch unreachable;
-            return .{
-                .x = @floatFromInt(fbsize.width_pixels),
-                .y = @floatFromInt(fbsize.height_pixels),
-            };
+            if (self._canvas_size) |sz| return sz;
+            return self._renderer.getOutputSize() catch unreachable;
         }
 
         /// Set size of canvas (null means same as current framebuffer)
-        fn setCanvasSize(ptr: *anyopaque, size: ?sdl.Size) !void {
+        fn setCanvasSize(ptr: *anyopaque, size: ?jok.Size) !void {
             assert(size == null or (size.?.width > 0 and size.?.width > 0));
             const self: *@This() = @ptrCast(@alignCast(ptr));
             self._canvas_texture.destroy();
             self._canvas_size = size;
-            self._canvas_texture = try jok.utils.gfx.createTextureAsTarget(
-                self.context(),
-                .{ .size = self._canvas_size },
-            );
+            self._canvas_texture = try self._renderer.createTarget(.{ .size = self._canvas_size });
             self.updateCanvasTargetArea();
+        }
+
+        /// Get canvas drawing area (stretched to fill framebuffer)
+        fn getCanvasArea(ptr: *anyopaque) jok.Rectangle {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            if (self._canvas_target_area) |area| return area;
+            const output = self._renderer.getOutputSize() catch unreachable;
+            return .{
+                .x = 0,
+                .y = 0,
+                .width = @floatFromInt(output.width),
+                .height = @floatFromInt(output.height),
+            };
         }
 
         /// Get aspect ratio of drawing area
         fn getAspectRatio(ptr: *anyopaque) f32 {
             const size = getCanvasSize(ptr);
-            return size.x / size.y;
+            return @as(f32, @floatFromInt(size.width)) / @as(f32, @floatFromInt(size.height));
         }
 
         /// Get dpi scale
@@ -900,27 +808,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 S.scale = self._display_dpi / self._default_dpi;
                 return S.scale.?;
             }
-        }
-
-        /// Get key status
-        fn isKeyPressed(_: *anyopaque, key: sdl.Scancode) bool {
-            const kb_state = sdl.getKeyboardState();
-            return kb_state.isPressed(key);
-        }
-
-        /// Get mouse state
-        fn getMouseState(ptr: *anyopaque) sdl.MouseState {
-            const self: *@This() = @ptrCast(@alignCast(ptr));
-            var state = sdl.getMouseState();
-            if (self._canvas_size != null) {
-                const pos = self.mapPositionFromFramebufferToCanvas(.{
-                    .x = state.x,
-                    .y = state.y,
-                });
-                state.x = pos.x;
-                state.y = pos.y;
-            }
-            return state;
         }
 
         /// Set post-processing callback
@@ -944,7 +831,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const cs = getCanvasSize(ptr);
             imgui.setNextWindowBgAlpha(.{ .alpha = 0.7 });
             imgui.setNextWindowPos(.{
-                .x = ws.width,
+                .x = @floatFromInt(ws.width),
                 .y = 0,
                 .pivot_x = 1,
                 .cond = if (opt.movable) .once else .always,
@@ -958,10 +845,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 },
             })) {
                 imgui.text("Window Size: {d:.0}x{d:.0}", .{ ws.width, ws.height });
-                imgui.text("Canvas Size: {d}x{d}", .{ cs.x, cs.y });
+                imgui.text("Canvas Size: {d:.0}x{d:.0}", .{ cs.width, cs.height });
                 imgui.text("Display DPI: {d:.1}", .{self._display_dpi});
                 imgui.text("GPU Enabled: {}", .{!self._is_software});
-                imgui.text("V-Sync Enabled: {}", .{rdinfo.flags & sdl.c.SDL_RENDERER_PRESENTVSYNC != 0});
+                imgui.text("V-Sync Enabled: {}", .{rdinfo.flags & sdl.SDL_RENDERER_PRESENTVSYNC != 0});
                 imgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
                 imgui.separator();
                 imgui.text("Duration: {}", .{std.fmt.fmtDuration(@intFromFloat(self._seconds_real * 1e9))});

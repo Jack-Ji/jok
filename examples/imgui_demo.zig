@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const imgui = jok.imgui;
 
@@ -26,7 +25,7 @@ const NonExhaustiveEnum = enum(i32) {
     _,
 };
 
-var tex: sdl.Texture = undefined;
+var tex: jok.Texture = undefined;
 
 var alloced_input_text_buf: [:0]u8 = undefined;
 var alloced_input_text_multiline_buf: [:0]u8 = undefined;
@@ -37,8 +36,8 @@ pub fn init(ctx: jok.Context) !void {
 
     try physfs.mount("assets", "", true);
 
-    tex = try jok.utils.gfx.createTextureFromFile(
-        ctx,
+    tex = try ctx.renderer().createTextureFromFile(
+        ctx.allocator(),
         "images/image9.jpg",
         .static,
         false,
@@ -65,7 +64,7 @@ pub fn init(ctx: jok.Context) !void {
     alloced_input_text_with_hint_buf = try ctx.allocator().allocSentinel(u8, 4, 0);
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -76,7 +75,7 @@ pub fn update(ctx: jok.Context) !void {
 
 pub fn draw(ctx: jok.Context) !void {
     // No need at all
-    ctx.clear(null);
+    try ctx.renderer().clear(null);
 
     imgui.setNextWindowPos(.{ .x = 20.0, .y = 20.0, .cond = .first_use_ever });
     imgui.setNextWindowSize(.{ .w = -1.0, .h = -1.0, .cond = .first_use_ever });

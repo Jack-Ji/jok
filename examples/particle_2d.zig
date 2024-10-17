@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const j2d = jok.j2d;
 
@@ -15,16 +14,16 @@ const emitter1 = j2d.ParticleSystem.Effect.FireEmitter(
     50,
     200,
     3,
-    sdl.Color.red,
-    sdl.Color.yellow,
+    jok.Color.red,
+    jok.Color.yellow,
     2.75,
 );
 const emitter2 = j2d.ParticleSystem.Effect.FireEmitter(
     50,
     200,
     3,
-    sdl.Color.red,
-    sdl.Color.green,
+    jok.Color.red,
+    jok.Color.green,
     2.75,
 );
 
@@ -78,25 +77,26 @@ pub fn init(ctx: jok.Context) !void {
     );
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
 
 pub fn update(ctx: jok.Context) !void {
-    if (ctx.isKeyPressed(.up)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, -10));
-    if (ctx.isKeyPressed(.down)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, 10));
-    if (ctx.isKeyPressed(.left)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(-10, 0));
-    if (ctx.isKeyPressed(.right)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(10, 0));
+    const kbd = jok.io.getKeyboardState();
+    if (kbd.isPressed(.up)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, -10));
+    if (kbd.isPressed(.down)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, 10));
+    if (kbd.isPressed(.left)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(-10, 0));
+    if (kbd.isPressed(.right)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(10, 0));
 
     ps.update(ctx.deltaSeconds());
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(null);
+    try ctx.renderer().clear(null);
     ctx.displayStats(.{});
 
-    j2d.begin(.{ .blend_method = .additive });
+    j2d.begin(.{ .blend_mode = .additive });
     defer j2d.end();
     try j2d.effects(ps);
 }

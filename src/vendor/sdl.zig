@@ -23,7 +23,7 @@ pub extern fn SDL_QuitSubSystem(flags: u32) void;
 pub extern fn SDL_WasInit(flags: u32) u32;
 pub extern fn SDL_Quit() void;
 
-const is_big_endian = @import("builtin").target.cpu.arch.endian() == .Big;
+const is_big_endian = @import("builtin").target.cpu.arch.endian() == .big;
 
 pub const SDL_VERSION = SDL_version{
     .major = SDL_MAJOR_VERSION,
@@ -1420,7 +1420,7 @@ pub extern fn SDL_CreateSoftwareRenderer(surface: ?*SDL_Surface) ?*SDL_Renderer;
 pub extern fn SDL_GetRenderer(window: ?*SDL_Window) ?*SDL_Renderer;
 pub extern fn SDL_GetRendererInfo(renderer: ?*SDL_Renderer, info: [*c]SDL_RendererInfo) c_int;
 pub extern fn SDL_GetRendererOutputSize(renderer: ?*SDL_Renderer, w: [*c]c_int, h: [*c]c_int) c_int;
-pub extern fn SDL_CreateTexture(renderer: ?*SDL_Renderer, format: u32, access: c_int, w: c_int, h: c_int) ?*SDL_Texture;
+pub extern fn SDL_CreateTexture(renderer: ?*SDL_Renderer, format: u32, access: SDL_TextureAccess, w: c_int, h: c_int) ?*SDL_Texture;
 pub extern fn SDL_CreateTextureFromSurface(renderer: ?*SDL_Renderer, surface: ?*SDL_Surface) ?*SDL_Texture;
 pub extern fn SDL_QueryTexture(texture: ?*SDL_Texture, format: [*c]u32, access: [*c]c_int, w: [*c]c_int, h: [*c]c_int) c_int;
 pub extern fn SDL_SetTextureColorMod(texture: ?*SDL_Texture, r: u8, g: u8, b: u8) c_int;

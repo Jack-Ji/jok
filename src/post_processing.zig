@@ -2,10 +2,9 @@ const std = @import("std");
 const assert = std.debug.assert;
 const config = @import("config.zig");
 const jok = @import("jok.zig");
-const sdl = jok.sdl;
 
 /// Post-processing function, coordinate's range is [0-1]
-pub const PostProcessingFn = *const fn (pos: sdl.PointF, data: ?*anyopaque) ?sdl.Color;
+pub const PostProcessingFn = *const fn (pos: jok.Point, data: ?*anyopaque) ?jok.Color;
 
 /// Post-processing effect generator
 pub fn PostProcessingEffect(comptime cfg: config.Config) type {
@@ -15,35 +14,30 @@ pub fn PostProcessingEffect(comptime cfg: config.Config) type {
         const vs_count = max_rows * max_cols * 6;
 
         allocator: std.mem.Allocator,
-        _vs: []sdl.Vertex,
-        vs: []sdl.Vertex,
+        _vs: []jok.Vertex,
+        vs: []jok.Vertex,
 
         pub fn init(allocator: std.mem.Allocator) !@This() {
             return .{
                 .allocator = allocator,
-                ._vs = try allocator.alloc(sdl.Vertex, vs_count),
-                .vs = try allocator.alloc(sdl.Vertex, vs_count),
+                ._vs = try allocator.alloc(jok.Vertex, vs_count),
+                .vs = try allocator.alloc(jok.Vertex, vs_count),
             };
         }
 
-        pub fn deinit(self: *@This()) void {
+        pub fn destroy(self: *@This()) void {
             self.allocator.free(self._vs);
             self.allocator.free(self.vs);
         }
 
-        pub fn onCanvasChange(self: *@This(), rd: sdl.Renderer, canvas_area: ?sdl.Rectangle) void {
-            const draw_area: sdl.RectangleF = if (canvas_area) |a| .{
-                .x = @floatFromInt(a.x),
-                .y = @floatFromInt(a.y),
-                .width = @floatFromInt(a.width),
-                .height = @floatFromInt(a.height),
-            } else BLK: {
+        pub fn onCanvasChange(self: *@This(), rd: jok.Renderer, canvas_area: ?jok.Rectangle) void {
+            const draw_area: jok.Rectangle = canvas_area orelse BLK: {
                 const fbsize = rd.getOutputSize() catch unreachable;
                 break :BLK .{
                     .x = 0,
                     .y = 0,
-                    .width = @floatFromInt(fbsize.width_pixels),
-                    .height = @floatFromInt(fbsize.height_pixels),
+                    .width = @floatFromInt(fbsize.width),
+                    .height = @floatFromInt(fbsize.height),
                 };
             };
             const pos_unit_w = draw_area.width / @as(f32, @floatFromInt(max_cols));
@@ -54,41 +48,41 @@ pub fn PostProcessingEffect(comptime cfg: config.Config) type {
             var col: u32 = 0;
             var i: usize = 0;
             while (i < self._vs.len) : (i += 6) {
-                self._vs[i].position = .{
+                self._vs[i].pos = .{
                     .x = draw_area.x + pos_unit_w * @as(f32, @floatFromInt(col)),
                     .y = draw_area.y + pos_unit_h * @as(f32, @floatFromInt(row)),
                 };
-                self._vs[i].color = sdl.Color.white;
-                self._vs[i].tex_coord = .{
+                self._vs[i].color = jok.Color.white;
+                self._vs[i].texcoord = .{
                     .x = texcoord_unit_w * @as(f32, @floatFromInt(col)),
                     .y = texcoord_unit_h * @as(f32, @floatFromInt(row)),
                 };
-                self._vs[i + 1].position = .{
+                self._vs[i + 1].pos = .{
                     .x = draw_area.x + pos_unit_w * @as(f32, @floatFromInt(col + 1)),
                     .y = draw_area.y + pos_unit_h * @as(f32, @floatFromInt(row)),
                 };
-                self._vs[i + 1].color = sdl.Color.white;
-                self._vs[i + 1].tex_coord = .{
+                self._vs[i + 1].color = jok.Color.white;
+                self._vs[i + 1].texcoord = .{
                     .x = texcoord_unit_w * @as(f32, @floatFromInt(col + 1)),
                     .y = texcoord_unit_h * @as(f32, @floatFromInt(row)),
                 };
-                self._vs[i + 2].position = .{
+                self._vs[i + 2].pos = .{
                     .x = draw_area.x + pos_unit_w * @as(f32, @floatFromInt(col + 1)),
                     .y = draw_area.y + pos_unit_h * @as(f32, @floatFromInt(row + 1)),
                 };
-                self._vs[i + 2].color = sdl.Color.white;
-                self._vs[i + 2].tex_coord = .{
+                self._vs[i + 2].color = jok.Color.white;
+                self._vs[i + 2].texcoord = .{
                     .x = texcoord_unit_w * @as(f32, @floatFromInt(col + 1)),
                     .y = texcoord_unit_h * @as(f32, @floatFromInt(row + 1)),
                 };
                 self._vs[i + 3] = self._vs[i];
                 self._vs[i + 4] = self._vs[i + 2];
-                self._vs[i + 5].position = .{
+                self._vs[i + 5].pos = .{
                     .x = draw_area.x + pos_unit_w * @as(f32, @floatFromInt(col)),
                     .y = draw_area.y + pos_unit_h * @as(f32, @floatFromInt(row + 1)),
                 };
-                self._vs[i + 5].color = sdl.Color.white;
-                self._vs[i + 5].tex_coord = .{
+                self._vs[i + 5].color = jok.Color.white;
+                self._vs[i + 5].texcoord = .{
                     .x = texcoord_unit_w * @as(f32, @floatFromInt(col)),
                     .y = texcoord_unit_h * @as(f32, @floatFromInt(row + 1)),
                 };
@@ -108,8 +102,8 @@ pub fn PostProcessingEffect(comptime cfg: config.Config) type {
             var i: usize = 0;
             while (i < self.vs.len) : (i += 6) {
                 if (ppfn(.{
-                    .x = self.vs[i].tex_coord.x,
-                    .y = self.vs[i].tex_coord.y,
+                    .x = self.vs[i].texcoord.x,
+                    .y = self.vs[i].texcoord.y,
                 }, data)) |c| {
                     self.vs[i].color = c;
                     self.vs[i + 1].color = c;
@@ -121,8 +115,8 @@ pub fn PostProcessingEffect(comptime cfg: config.Config) type {
             }
         }
 
-        pub fn render(self: @This(), rd: sdl.Renderer, tex: sdl.Texture) void {
-            rd.drawGeometry(tex, self.vs, null) catch unreachable;
+        pub fn render(self: @This(), rd: jok.Renderer, tex: jok.Texture) void {
+            rd.drawTriangles(tex, self.vs, null) catch unreachable;
         }
     };
 }

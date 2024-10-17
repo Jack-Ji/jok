@@ -3,7 +3,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 const j3d = jok.j3d;
@@ -41,13 +40,13 @@ pub const RenderMeshOption = struct {
     front_face: FrontFace = .cw,
 
     /// Uniform material color
-    color: sdl.Color = sdl.Color.white,
+    color: jok.Color = jok.Color.white,
 
     /// Shading style
     shading_method: ShadingMethod = .gouraud,
 
     /// Binded texture
-    texture: ?sdl.Texture = null,
+    texture: ?jok.Texture = null,
 
     /// Lighting effect (only apply to sprites with explicit direction)
     lighting: ?lighting.LightingOption = null,
@@ -58,22 +57,22 @@ pub const RenderMeshOption = struct {
 
 pub const RenderSpriteOption = struct {
     /// Binded texture
-    texture: ?sdl.Texture = null,
+    texture: ?jok.Texture = null,
 
     /// Tint color
-    tint_color: sdl.Color = sdl.Color.white,
+    tint_color: jok.Color = jok.Color.white,
 
     /// Shading style
     shading_method: ShadingMethod = .gouraud,
 
     /// Scale of width/height
-    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    scale: jok.Point = .{ .x = 1, .y = 1 },
 
     /// Rotation around anchor-point
     rotate_degree: f32 = 0,
 
     /// Anchor-point of sprite, around which rotation and translation is calculated
-    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    anchor_point: jok.Point = .{ .x = 0, .y = 0 },
 
     /// Horizontal/vertial flipping
     flip_h: bool = false,
@@ -94,8 +93,8 @@ pub const RenderSpriteOption = struct {
 
 // Temporary storage for clipping
 clip_vertices: std.ArrayList(zmath.Vec),
-clip_colors: std.ArrayList(sdl.Color),
-clip_texcoords: std.ArrayList(sdl.PointF),
+clip_colors: std.ArrayList(jok.Color),
+clip_texcoords: std.ArrayList(jok.Point),
 
 // Vertices in world space (after clipped)
 world_positions: std.ArrayList(zmath.Vec),
@@ -107,8 +106,8 @@ planes: [10]zmesh.Shape,
 pub fn init(allocator: std.mem.Allocator) Self {
     var self = Self{
         .clip_vertices = std.ArrayList(zmath.Vec).init(allocator),
-        .clip_colors = std.ArrayList(sdl.Color).init(allocator),
-        .clip_texcoords = std.ArrayList(sdl.PointF).init(allocator),
+        .clip_colors = std.ArrayList(jok.Color).init(allocator),
+        .clip_texcoords = std.ArrayList(jok.Point).init(allocator),
         .world_positions = std.ArrayList(zmath.Vec).init(allocator),
         .world_normals = std.ArrayList(zmath.Vec).init(allocator),
         .planes = undefined,
@@ -145,14 +144,14 @@ inline fn clear(self: *Self) void {
 
 pub fn renderMesh(
     self: *Self,
-    csz: sdl.PointF,
+    csz: jok.Size,
     rdjob: *internal.RenderJob,
     model: zmath.Mat,
     camera: Camera,
     indices: []const u32,
     positions: []const [3]f32,
     normals: ?[]const [3]f32,
-    colors: ?[]const sdl.Color,
+    colors: ?[]const jok.Color,
     texcoords: ?[]const [2]f32,
     opt: RenderMeshOption,
 ) !void {
@@ -162,11 +161,13 @@ pub fn renderMesh(
     assert(if (texcoords) |ts| ts.len >= positions.len else true);
     assert(if (opt.animation) |anim| anim.joints.len == anim.weights.len else true);
     if (indices.len == 0) return;
+    const csz_w = csz.getWidthFloat();
+    const csz_h = csz.getHeightFloat();
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * csz.x, 0.0,          0.0,
-        0.0,         -0.5 * csz.y, 0.0,
+        0.5 * csz_w, 0.0,          0.0,
+        0.0,         -0.5 * csz_h, 0.0,
         0.0,         0.0,          0.5,
-        0.5 * csz.x, 0.5 * csz.y,  0.5,
+        0.5 * csz_w, 0.5 * csz_h,  0.5,
     });
     const vp = camera.getViewProjectMatrix();
     const mvp = zmath.mul(model, vp);
@@ -300,12 +301,12 @@ pub fn renderMesh(
                 zmath.normalize3(world_n2),
             };
         } else null;
-        const tri_colors: ?[3]sdl.Color = if (colors) |cs|
-            [3]sdl.Color{ cs[idx0], cs[idx1], cs[idx2] }
+        const tri_colors: ?[3]jok.Color = if (colors) |cs|
+            [3]jok.Color{ cs[idx0], cs[idx1], cs[idx2] }
         else
             null;
-        const tri_texcoords: ?[3]sdl.PointF = if (texcoords) |ts|
-            [3]sdl.PointF{
+        const tri_texcoords: ?[3]jok.Point = if (texcoords) |ts|
+            [3]jok.Point{
                 .{ .x = ts[idx0][0], .y = ts[idx0][1] },
                 .{ .x = ts[idx1][0], .y = ts[idx1][1] },
                 .{ .x = ts[idx2][0], .y = ts[idx2][1] },
@@ -352,9 +353,9 @@ pub fn renderMesh(
             zmath.f32x4(0.0, 0.0, 0.0, 1.0),
         };
         const positions_screen = zmath.mul(ndcs, ndc_to_screen);
-        const p0 = sdl.PointF{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
-        const p1 = sdl.PointF{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
-        const p2 = sdl.PointF{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
+        const p0 = jok.Point{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
+        const p1 = jok.Point{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
+        const p2 = jok.Point{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
 
         // Get depths
         const d0 = positions_screen[0][2];
@@ -362,9 +363,9 @@ pub fn renderMesh(
         const d2 = positions_screen[2][2];
 
         // Get color of vertices
-        var c0: sdl.Color = undefined;
-        var c1: sdl.Color = undefined;
-        var c2: sdl.Color = undefined;
+        var c0: jok.Color = undefined;
+        var c1: jok.Color = undefined;
+        var c2: jok.Color = undefined;
         switch (opt.shading_method) {
             .gouraud => {
                 const c0_diffuse = if (colors) |_| self.clip_colors.items[idx0] else opt.color;
@@ -390,7 +391,7 @@ pub fn renderMesh(
                 } else c2_diffuse;
             },
             .flat => {
-                const c0_diffuse = if (colors) |_| sdl.Color{
+                const c0_diffuse = if (colors) |_| jok.Color{
                     .r = @intCast((@as(u16, self.clip_colors.items[idx0].r) +
                         @as(u16, self.clip_colors.items[idx1].r) +
                         @as(u16, self.clip_colors.items[idx2].r)) / 3),
@@ -428,10 +429,10 @@ pub fn renderMesh(
         // Render to ouput
         try rdjob.pushTriangles(
             &.{ 0, 1, 2 },
-            &[_]sdl.Vertex{
-                .{ .position = p0, .color = c0, .tex_coord = t0 },
-                .{ .position = p1, .color = c1, .tex_coord = t1 },
-                .{ .position = p2, .color = c2, .tex_coord = t2 },
+            &[_]jok.Vertex{
+                .{ .pos = p0, .color = c0, .texcoord = t0 },
+                .{ .pos = p1, .color = c1, .texcoord = t1 },
+                .{ .pos = p2, .color = c2, .texcoord = t2 },
             },
             &.{ d0, d1, d2 },
             opt.texture,
@@ -441,18 +442,20 @@ pub fn renderMesh(
 
 pub fn renderSprite(
     self: *Self,
-    csz: sdl.PointF,
+    csz: jok.Size,
     rdjob: *internal.RenderJob,
     model: zmath.Mat,
     camera: Camera,
-    size: sdl.PointF,
-    uv: [2]sdl.PointF,
+    size: jok.Point,
+    uv: [2]jok.Point,
     opt: RenderSpriteOption,
 ) !void {
     assert(size.x > 0 and size.y > 0);
     assert(opt.scale.x >= 0 and opt.scale.y >= 0);
     assert(opt.anchor_point.x >= 0 and opt.anchor_point.x <= 1);
     assert(opt.anchor_point.y >= 0 and opt.anchor_point.y <= 1);
+    const csz_w = csz.getWidthFloat();
+    const csz_h = csz.getHeightFloat();
 
     // Only consider translation
     const translation = zmath.translationV(zmath.util.getTranslationVec(model));
@@ -526,9 +529,9 @@ pub fn renderSprite(
             1 - opt.anchor_point.x, opt.anchor_point.y, 0, 1, // Right top
         });
         const t0 = uv0;
-        const t1 = sdl.PointF{ .x = uv0.x, .y = uv1.y };
+        const t1 = jok.Point{ .x = uv0.x, .y = uv1.y };
         const t2 = uv1;
-        const t3 = sdl.PointF{ .x = uv1.x, .y = uv0.y };
+        const t3 = jok.Point{ .x = uv1.x, .y = uv0.y };
         var ndc0: zmath.Vec = undefined;
         var ndc1: zmath.Vec = undefined;
         var ndc2: zmath.Vec = undefined;
@@ -540,8 +543,8 @@ pub fn renderSprite(
             if (ndc_center[2] <= -1 or ndc_center[2] >= 1) {
                 return;
             }
-            const size_x = size.x / csz.x * 2;
-            const size_y = size.y / csz.y * 2;
+            const size_x = size.x / csz_w * 2;
+            const size_y = size.y / csz_h * 2;
             const m_scale = zmath.scaling(size_x * opt.scale.x, size_y * opt.scale.y, 1);
             const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(-opt.rotate_degree));
             const m_translate = zmath.translation(ndc_center[0], ndc_center[1], 0);
@@ -601,10 +604,10 @@ pub fn renderSprite(
 
         // Calculate screen coordinate
         const ndc_to_screen = zmath.loadMat43(&[_]f32{
-            0.5 * csz.x, 0.0,          0.0,
-            0.0,         -0.5 * csz.y, 0.0,
+            0.5 * csz_w, 0.0,          0.0,
+            0.0,         -0.5 * csz_h, 0.0,
             0.0,         0.0,          0.5,
-            0.5 * csz.x, 0.5 * csz.y,  0.5,
+            0.5 * csz_w, 0.5 * csz_h,  0.5,
         });
         const ndcs = zmath.Mat{
             ndc0,
@@ -615,10 +618,10 @@ pub fn renderSprite(
         const positions_screen = zmath.mul(ndcs, ndc_to_screen);
 
         // Get screen coordinate
-        const p0 = sdl.PointF{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
-        const p1 = sdl.PointF{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
-        const p2 = sdl.PointF{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
-        const p3 = sdl.PointF{ .x = positions_screen[3][0], .y = positions_screen[3][1] };
+        const p0 = jok.Point{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
+        const p1 = jok.Point{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
+        const p2 = jok.Point{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
+        const p3 = jok.Point{ .x = positions_screen[3][0], .y = positions_screen[3][1] };
 
         // Get depths
         const d0 = positions_screen[0][2];
@@ -629,11 +632,11 @@ pub fn renderSprite(
         // Render to ouput
         try rdjob.pushTriangles(
             &.{ 0, 1, 2, 0, 2, 3 },
-            &[_]sdl.Vertex{
-                .{ .position = p0, .color = opt.tint_color, .tex_coord = t0 },
-                .{ .position = p1, .color = opt.tint_color, .tex_coord = t1 },
-                .{ .position = p2, .color = opt.tint_color, .tex_coord = t2 },
-                .{ .position = p3, .color = opt.tint_color, .tex_coord = t3 },
+            &[_]jok.Vertex{
+                .{ .pos = p0, .color = opt.tint_color, .texcoord = t0 },
+                .{ .pos = p1, .color = opt.tint_color, .texcoord = t1 },
+                .{ .pos = p2, .color = opt.tint_color, .texcoord = t2 },
+                .{ .pos = p3, .color = opt.tint_color, .texcoord = t3 },
             },
             &.{ d0, d1, d2, d3 },
             opt.texture,

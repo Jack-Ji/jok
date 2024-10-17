@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const cp = jok.cp;
 
 var rng: std.Random.Xoshiro256 = undefined;
@@ -22,7 +21,7 @@ pub fn init(ctx: jok.Context) !void {
     const dynamic_body: cp.World.ObjectOption.BodyProperty = .{
         .dynamic = .{
             .position = .{
-                .x = size.x / 2,
+                .x = size.getWidthFloat() / 2,
                 .y = 10,
             },
         },
@@ -141,7 +140,7 @@ pub fn init(ctx: jok.Context) !void {
             .{
                 .segment = .{
                     .a = .{ .x = 0, .y = 0 },
-                    .b = .{ .x = 0, .y = size.y },
+                    .b = .{ .x = 0, .y = size.getHeightFloat() },
                     .physics = .{
                         .elasticity = 1.0,
                     },
@@ -149,8 +148,8 @@ pub fn init(ctx: jok.Context) !void {
             },
             .{
                 .segment = .{
-                    .a = .{ .x = 0, .y = size.y },
-                    .b = .{ .x = size.x, .y = size.y },
+                    .a = .{ .x = 0, .y = size.getHeightFloat() },
+                    .b = .{ .x = size.getWidthFloat(), .y = size.getHeightFloat() },
                     .physics = .{
                         .elasticity = 1.0,
                     },
@@ -158,8 +157,8 @@ pub fn init(ctx: jok.Context) !void {
             },
             .{
                 .segment = .{
-                    .a = .{ .x = size.x, .y = 0 },
-                    .b = .{ .x = size.x, .y = size.y },
+                    .a = .{ .x = size.getWidthFloat(), .y = 0 },
+                    .b = .{ .x = size.getWidthFloat(), .y = size.getHeightFloat() },
                     .physics = .{
                         .elasticity = 1.0,
                     },
@@ -169,7 +168,7 @@ pub fn init(ctx: jok.Context) !void {
     });
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -179,7 +178,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(null);
+    try ctx.renderer().clear(null);
     ctx.displayStats(.{});
     try world.debugDraw(ctx.renderer());
 }

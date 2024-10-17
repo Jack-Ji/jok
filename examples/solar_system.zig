@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const font = jok.font;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
@@ -44,7 +43,7 @@ pub fn init(ctx: jok.Context) !void {
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.6)),
             .mesh = try Mesh.fromShape(ctx.allocator(), sphere, .{}),
-            .color = sdl.Color.rgb(255, 255, 0),
+            .color = jok.Color.rgb(255, 255, 0),
             .disable_lighting = true,
         },
     });
@@ -52,14 +51,14 @@ pub fn init(ctx: jok.Context) !void {
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.2)),
             .mesh = try Mesh.fromShape(ctx.allocator(), sphere, .{}),
-            .color = sdl.Color.rgb(0, 0, 255),
+            .color = jok.Color.rgb(0, 0, 255),
         },
     });
     moon = try Scene.Object.create(ctx.allocator(), .{
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.06)),
             .mesh = try Mesh.fromShape(ctx.allocator(), sphere, .{}),
-            .color = sdl.Color.rgb(192, 192, 192),
+            .color = jok.Color.rgb(192, 192, 192),
         },
     });
     try scene.root.addChild(sun);
@@ -69,7 +68,7 @@ pub fn init(ctx: jok.Context) !void {
     try moon_orbit.addChild(moon);
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -77,28 +76,29 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 pub fn update(ctx: jok.Context) !void {
     // camera movement
     const distance = ctx.deltaSeconds() * 2;
-    if (ctx.isKeyPressed(.w)) {
+    const kbd = jok.io.getKeyboardState();
+    if (kbd.isPressed(.w)) {
         camera.moveBy(.forward, distance);
     }
-    if (ctx.isKeyPressed(.s)) {
+    if (kbd.isPressed(.s)) {
         camera.moveBy(.backward, distance);
     }
-    if (ctx.isKeyPressed(.a)) {
+    if (kbd.isPressed(.a)) {
         camera.moveBy(.left, distance);
     }
-    if (ctx.isKeyPressed(.d)) {
+    if (kbd.isPressed(.d)) {
         camera.moveBy(.right, distance);
     }
-    if (ctx.isKeyPressed(.left)) {
+    if (kbd.isPressed(.left)) {
         camera.rotateBy(0, -std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.right)) {
+    if (kbd.isPressed(.right)) {
         camera.rotateBy(0, std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.up)) {
+    if (kbd.isPressed(.up)) {
         camera.rotateBy(std.math.pi / 180.0, 0);
     }
-    if (ctx.isKeyPressed(.down)) {
+    if (kbd.isPressed(.down)) {
         camera.rotateBy(-std.math.pi / 180.0, 0);
     }
 
@@ -111,7 +111,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(sdl.Color.rgb(80, 80, 80));
+    try ctx.renderer().clear(jok.Color.rgb(80, 80, 80));
 
     var lighting_opt = j3d.lighting.LightingOption{};
     lighting_opt.lights[0] = j3d.lighting.Light{

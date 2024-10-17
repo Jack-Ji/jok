@@ -1,13 +1,12 @@
 const std = @import("std");
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const assert = std.debug.assert;
 const math = std.math;
 const minAndMax = @import("math.zig").minAndMax;
 const zmath = jok.zmath;
 
 /// Calculate Barycentric coordinate, checkout link https://blackpawn.com/texts/pointinpoly
-pub inline fn barycentricCoord(tri: [3]sdl.PointF, point: sdl.PointF) [3]f32 {
+pub inline fn barycentricCoord(tri: [3]jok.Point, point: jok.Point) [3]f32 {
     const v0 = zmath.f32x4(tri[2].x - tri[0].x, tri[2].y - tri[0].y, 0, 0);
     const v1 = zmath.f32x4(tri[1].x - tri[0].x, tri[1].y - tri[0].y, 0, 0);
     const v2 = zmath.f32x4(point.x - tri[0].x, point.y - tri[0].y, 0, 0);
@@ -23,20 +22,20 @@ pub inline fn barycentricCoord(tri: [3]sdl.PointF, point: sdl.PointF) [3]f32 {
 }
 
 /// Test whether a point is in triangle
-pub inline fn isPointInTriangle(tri: [3]sdl.PointF, point: sdl.PointF) bool {
+pub inline fn isPointInTriangle(tri: [3]jok.Point, point: jok.Point) bool {
     const p = barycentricCoord(tri, point);
     return p[0] >= 0 and p[1] >= 0 and p[2] >= 0;
 }
 
 /// Test whether point is in circle
-pub inline fn isPointInCircle(center: sdl.PointF, radius: f32, point: sdl.PointF) bool {
+pub inline fn isPointInCircle(center: jok.Point, radius: f32, point: jok.Point) bool {
     const v: @Vector(2, f32) = .{ center.x - point.x, center.y - point.y };
     return @reduce(.Add, v * v) < radius * radius;
 }
 
 /// Test whether point is in rectangle
-pub inline fn isPointInRectangle(rect: sdl.RectangleF, point: sdl.PointF) bool {
-    const right_bottom = sdl.PointF{
+pub inline fn isPointInRectangle(rect: jok.Rectangle, point: jok.Point) bool {
+    const right_bottom = jok.Point{
         .x = rect.x + rect.width,
         .y = rect.y + rect.height,
     };
@@ -45,18 +44,18 @@ pub inline fn isPointInRectangle(rect: sdl.RectangleF, point: sdl.PointF) bool {
 }
 
 /// Test whether triangle tr0 is contained by tr1
-pub inline fn isTriangleInTriangle(tri0: [3]sdl.PointF, tri1: [3]sdl.PointF) bool {
+pub inline fn isTriangleInTriangle(tri0: [3]jok.Point, tri1: [3]jok.Point) bool {
     return isPointInTriangle(tri1, tri0[0]) and
         isPointInTriangle(tri1, tri0[1]) and
         isPointInTriangle(tri1, tri0[2]);
 }
 
 /// Test whether two triangles intersect
-pub inline fn areTrianglesIntersect(tri0: [3]sdl.PointF, tri1: [3]sdl.PointF) bool {
+pub inline fn areTrianglesIntersect(tri0: [3]jok.Point, tri1: [3]jok.Point) bool {
     const S = struct {
         const Range = std.meta.Tuple(&[_]type{ f32, f32 });
 
-        inline fn getRange(v: zmath.Vec, tri: [3]sdl.PointF) Range {
+        inline fn getRange(v: zmath.Vec, tri: [3]jok.Point) Range {
             const tm = zmath.loadMat34(&[_]f32{
                 tri[0].x, tri[1].x, tri[2].x, 0,
                 tri[0].y, tri[1].y, tri[2].y, 0,
@@ -88,7 +87,7 @@ pub inline fn areTrianglesIntersect(tri0: [3]sdl.PointF, tri1: [3]sdl.PointF) bo
 }
 
 /// Test whether two line intersect
-pub inline fn areLinesIntersect(line0: [2]sdl.PointF, line1: [2]sdl.PointF) bool {
+pub inline fn areLinesIntersect(line0: [2]jok.Point, line1: [2]jok.Point) bool {
     if (@max(line0[0].x, line0[1].x) < @min(line1[0].x, line1[1].x) or
         @min(line0[0].x, line0[1].x) > @max(line1[0].x, line1[1].x) or
         @max(line0[0].y, line0[1].y) < @min(line1[0].y, line1[1].y) or
@@ -109,19 +108,19 @@ pub inline fn areLinesIntersect(line0: [2]sdl.PointF, line1: [2]sdl.PointF) bool
 
 /// Test whether two rectangle intersect
 /// Moved from SDL2 to here for convernience
-pub inline fn areRectanglesIntersect(r1: sdl.RectangleF, r2: sdl.RectangleF) bool {
+pub inline fn areRectanglesIntersect(r1: jok.Rectangle, r2: jok.Rectangle) bool {
     return r1.hasIntersection(r2);
 }
 
 /// Test whether line and rectangle intersect
 /// Moved from SDL2 to here for convernience
-pub inline fn areLineAndRectangleIntersect(r1: sdl.RectangleF, line: []sdl.PointF) bool {
+pub inline fn areLineAndRectangleIntersect(r1: jok.Rectangle, line: []jok.Point) bool {
     assert(line.len == 2);
     return r1.intersectRectAndLine(&line[0].x, &line[0].y, &line[1].x, &line[1].y);
 }
 
 /// Get area of triangle
-pub inline fn triangleArea(tri: [3]sdl.PointF) f32 {
+pub inline fn triangleArea(tri: [3]jok.Point) f32 {
     const x1 = tri[0].x;
     const y1 = tri[0].y;
     const x2 = tri[1].x;
@@ -132,7 +131,7 @@ pub inline fn triangleArea(tri: [3]sdl.PointF) f32 {
 }
 
 /// Get bounding rect of triangle
-pub inline fn triangleRect(tri: [3]sdl.PointF) sdl.RectangleF {
+pub inline fn triangleRect(tri: [3]jok.Point) jok.Rectangle {
     const min_max_x = minAndMax(tri[0].x, tri[1].x, tri[2].x);
     const min_max_y = minAndMax(tri[0].y, tri[1].y, tri[2].y);
     return .{
@@ -144,7 +143,7 @@ pub inline fn triangleRect(tri: [3]sdl.PointF) sdl.RectangleF {
 }
 
 /// Get bounding rect of points
-pub inline fn getBoundingRect(ps: []sdl.PointF) sdl.RectangleF {
+pub inline fn getBoundingRect(ps: []jok.Point) jok.Rectangle {
     var min_x = math.f32_max;
     var min_y = math.f32_max;
     var max_x = math.f32_min;

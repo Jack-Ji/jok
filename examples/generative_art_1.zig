@@ -1,7 +1,6 @@
 const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
-const sdl = jok.sdl;
 const zmath = jok.zmath;
 const j2d = jok.j2d;
 
@@ -13,19 +12,19 @@ pub const jok_window_size = jok.config.WindowSize{
 var rot: f32 = 0.3;
 const ntex = 50;
 const render_interval = 2.0 / @as(f32, ntex);
-var targets = std.DoublyLinkedList(sdl.Texture){};
+var targets = std.DoublyLinkedList(jok.Texture){};
 var render_time: f32 = render_interval;
-var clear_color: ?sdl.Color = sdl.Color.rgba(0, 0, 0, 0);
+var clear_color: ?jok.Color = jok.Color.rgba(0, 0, 0, 0);
 
 pub fn init(ctx: jok.Context) !void {
     for (0..ntex) |_| {
-        var node = try ctx.allocator().create(std.DoublyLinkedList(sdl.Texture).Node);
-        node.data = try jok.utils.gfx.createTextureAsTarget(ctx, .{});
+        var node = try ctx.allocator().create(std.DoublyLinkedList(jok.Texture).Node);
+        node.data = try ctx.renderer().createTarget(.{});
         targets.append(node);
     }
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -35,14 +34,14 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(clear_color);
+    try ctx.renderer().clear(clear_color);
 
     // Swap oldest to newest if needed
     render_time -= ctx.deltaSeconds();
     if (render_time < 0) {
         render_time = render_interval;
         targets.append(targets.popFirst().?);
-        clear_color = sdl.Color.rgba(0, 0, 0, 0);
+        clear_color = jok.Color.rgba(0, 0, 0, 0);
     } else {
         clear_color = null;
     }
@@ -62,7 +61,7 @@ pub fn draw(ctx: jok.Context) !void {
 
         for (0..ncircle) |i| {
             var tr = j2d.AffineTransform.init();
-            tr.translate(.{ .x = csz.x / 2, .y = csz.y / 2 });
+            tr.translate(.{ .x = csz.getWidthFloat() / 2, .y = csz.getHeightFloat() / 2 });
             tr.translateX(jok.utils.math.linearMap(
                 math.sin(ctx.seconds()),
                 -1,
@@ -71,11 +70,11 @@ pub fn draw(ctx: jok.Context) !void {
                 radius,
             ));
             tr.rotateByPoint(
-                .{ .x = csz.x / 2, .y = csz.y / 2 },
+                .{ .x = csz.getWidthFloat() / 2, .y = csz.getHeightFloat() / 2 },
                 jok.utils.math.degreeToRadian(rot + 360.0 * @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(ncircle))),
             );
             j2d.setTransform(tr);
-            try j2d.circleFilled(.{ .x = 0, .y = 0 }, 10, sdl.Color.green, .{});
+            try j2d.circleFilled(.{ .x = 0, .y = 0 }, 10, jok.Color.green, .{});
         }
     }
 
@@ -89,7 +88,7 @@ pub fn draw(ctx: jok.Context) !void {
             jok.utils.math.linearMap(@floatFromInt(idx), 0, ntex, 0, 255),
         ));
         try j2d.image(n.data, .{ .x = 0, .y = 0 }, .{
-            .tint_color = sdl.Color.rgba(255, 255, 255, c),
+            .tint_color = jok.Color.rgba(255, 255, 255, c),
         });
         idx += 1;
         node = n.next;

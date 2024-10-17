@@ -1,14 +1,8 @@
 const std = @import("std");
 const jok = @import("jok.zig");
-const sdl = @import("sdl.zig");
+const sdl = jok.sdl;
 
 const log = std.log.scoped(.jok);
-
-pub const FullscreenMode = enum {
-    none,
-    fullscreen,
-    fullscreen_desktop,
-};
 
 pub const Window = struct {
     ptr: *sdl.SDL_Window,
@@ -95,7 +89,7 @@ pub const Window = struct {
         return window;
     }
 
-    pub fn deinit(w: Window) void {
+    pub fn destroy(w: Window) void {
         sdl.SDL_DestroyWindow(w.ptr);
     }
 
@@ -104,28 +98,28 @@ pub const Window = struct {
         var height: c_int = undefined;
         sdl.SDL_GetWindowSize(w.ptr, &width, &height);
         return .{
-            .width = @floatFromInt(width),
-            .height = @floatFromInt(height),
+            .width = @intCast(width),
+            .height = @intCast(height),
         };
     }
 
     pub fn setSize(w: Window, s: jok.Size) void {
-        sdl.SDL_SetWindowSize(w.ptr, @intFromFloat(s.width), @intFromFloat(s.height));
+        sdl.SDL_SetWindowSize(w.ptr, @intCast(s.width), @intCast(s.height));
     }
 
     pub fn setMinimumSize(w: Window, s: jok.Size) void {
-        sdl.SDL_SetWindowMinimumSize(w.ptr, @intFromFloat(s.width), @intFromFloat(s.height));
+        sdl.SDL_SetWindowMinimumSize(w.ptr, @intCast(s.width), @intCast(s.height));
     }
 
     pub fn setMaximumSize(w: Window, s: jok.Size) void {
-        sdl.SDL_SetWindowMaximumSize(w.ptr, @intFromFloat(s.width), @intFromFloat(s.height));
+        sdl.SDL_SetWindowMaximumSize(w.ptr, @intCast(s.width), @intCast(s.height));
     }
 
     pub fn setResizable(w: Window, resizable: bool) void {
         sdl.SDL_SetWindowResizable(w.ptr, @intFromBool(resizable));
     }
 
-    pub fn getPosition(w: Window) !jok.Point {
+    pub fn getPosition(w: Window) jok.Point {
         var x: c_int = undefined;
         var y: c_int = undefined;
         sdl.SDL_GetWindowPosition(w.ptr, &x, &y);
@@ -157,6 +151,7 @@ pub const Window = struct {
         else
             0) != 0)
         {
+            log.err("switch fullscreen failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;
         }
     }

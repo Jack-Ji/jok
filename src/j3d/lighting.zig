@@ -3,7 +3,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const zmath = jok.zmath;
 
 /// Lighting options
@@ -45,22 +44,22 @@ pub const LightingOption = struct {
 
     // Calculate color of light source
     light_calc_fn: ?*const fn (
-        material_color: sdl.Color,
+        material_color: jok.Color,
         eye_pos: zmath.Vec,
         vertex_pos: zmath.Vec,
         normal: zmath.Vec,
         opt: LightingOption,
-    ) sdl.Color = null,
+    ) jok.Color = null,
 };
 
 /// Calculate tint color of vertex according to lighting paramters
 pub fn calcLightColor(
-    material_color: sdl.Color,
+    material_color: jok.Color,
     eye_pos: zmath.Vec,
     vertex_pos: zmath.Vec,
     normal: zmath.Vec,
     opt: LightingOption,
-) sdl.Color {
+) jok.Color {
     const S = struct {
         inline fn calcColor(
             raw_color: zmath.Vec,

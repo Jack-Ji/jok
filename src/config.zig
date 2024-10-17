@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok.zig");
-const sdl = jok.sdl;
 
 pub const Config = struct {
     /// Logging level
@@ -28,10 +27,10 @@ pub const Config = struct {
     jok_software_renderer_fallback: bool = true,
 
     /// Canvas size (default to framebuffer's size)
-    jok_canvas_size: ?sdl.Size = null,
+    jok_canvas_size: ?jok.Size = null,
 
     /// Post-processing granularity
-    jok_post_processing_size: sdl.Size = .{ .width = 100, .height = 100 },
+    jok_post_processing_size: jok.Size = .{ .width = 100, .height = 100 },
 
     /// Window attributes
     jok_window_title: [:0]const u8 = "mygame",

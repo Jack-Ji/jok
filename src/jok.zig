@@ -6,15 +6,28 @@ pub const Context = @import("context.zig").Context;
 pub const JokContext = @import("context.zig").JokContext;
 
 /// Basic types
-pub const Point = @import("basic.zig").Point;
-pub const Size = @import("basic.zig").Size;
-pub const Rectangle = @import("basic.zig").Rectangle;
+const basic = @import("basic.zig");
+pub const Point = basic.Point;
+pub const Size = basic.Size;
+pub const Rectangle = basic.Rectangle;
+pub const Color = basic.Color;
+pub const Vertex = basic.Vertex;
 
 /// Window of App
 pub const Window = @import("window.zig").Window;
 
-/// blend method
-pub const BlendMethod = @import("blend.zig").BlendMethod;
+/// I/O system
+pub const io = @import("io.zig");
+pub const Event = io.Event;
+
+/// Graphics Renderer
+pub const Renderer = @import("renderer.zig").Renderer;
+
+/// Graphics Texture
+pub const Texture = @import("texture.zig").Texture;
+
+/// blend mode
+pub const BlendMode = @import("blend.zig").BlendMode;
 
 /// 2d rendering
 pub const j2d = @import("j2d.zig");

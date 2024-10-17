@@ -4,7 +4,6 @@ const std = @import("std");
 const math = std.math;
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const zmath = jok.zmath;
 
 pub const EasingType = enum(u8) {
@@ -171,7 +170,7 @@ pub fn EaseVector(comptime N: u32, comptime T: type) type {
     };
 }
 
-pub fn easePointF(x: f32, from: sdl.PointF, to: sdl.PointF) sdl.PointF {
+pub fn easePoint(x: f32, from: jok.Point, to: jok.Point) jok.Point {
     const es = EaseScalar(f32);
     return .{
         .x = es.ease(x, from.x, to.x),
@@ -179,7 +178,7 @@ pub fn easePointF(x: f32, from: sdl.PointF, to: sdl.PointF) sdl.PointF {
     };
 }
 
-pub fn easeColor(x: f32, _from: sdl.Color, _to: sdl.Color) sdl.Color {
+pub fn easeColor(x: f32, _from: jok.Color, _to: jok.Color) jok.Color {
     const es = EaseVector(4, u8);
     const from = @Vector(4, u8){ _from.r, _from.g, _from.b, _from.a };
     const to = @Vector(4, u8){ _to.r, _to.g, _to.b, _to.a };

@@ -2,7 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const DrawCmd = @import("internal.zig").DrawCmd;
 const Vector = @import("Vector.zig");
 const Sprite = @import("Sprite.zig");

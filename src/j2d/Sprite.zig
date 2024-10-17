@@ -1,7 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const DrawCmd = @import("internal.zig").DrawCmd;
 const imgui = jok.imgui;
 const zmath = jok.zmath;
@@ -12,11 +11,11 @@ width: f32,
 height: f32,
 
 // Tex-coords of sprite
-uv0: sdl.PointF,
-uv1: sdl.PointF,
+uv0: jok.Point,
+uv1: jok.Point,
 
 // Reference to texture
-tex: sdl.Texture,
+tex: jok.Texture,
 
 /// Get sub-sprite by offsets/size
 pub fn getSubSprite(
@@ -47,19 +46,19 @@ pub fn getSubSprite(
 
 /// Sprite's drawing params
 pub const RenderOption = struct {
-    pos: sdl.PointF,
+    pos: jok.Point,
 
     /// Tint color
-    tint_color: sdl.Color = sdl.Color.white,
+    tint_color: jok.Color = jok.Color.white,
 
     /// Scale of width/height
-    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    scale: jok.Point = .{ .x = 1, .y = 1 },
 
     /// Rotation around anchor-point
     rotate_degree: f32 = 0,
 
     /// Anchor-point of sprite, around which rotation and translation is calculated
-    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    anchor_point: jok.Point = .{ .x = 0, .y = 0 },
 
     /// Horizontal/vertial flipping
     flip_h: bool = false,

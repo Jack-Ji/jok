@@ -1,6 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const sdl = @import("sdl");
+const jok = @import("../../jok.zig");
 pub const c = @import("c.zig");
 
 pub const Error = error{
@@ -354,7 +354,7 @@ pub const World = struct {
     }
 
     /// Debug draw
-    pub fn debugDraw(self: World, renderer: sdl.Renderer) !void {
+    pub fn debugDraw(self: World, renderer: jok.Renderer) !void {
         if (self.debug) |dbg| {
             dbg.clear();
             c.cpSpaceDebugDraw(self.space, &dbg.space_draw_option);
@@ -369,7 +369,7 @@ const PhysicsDebug = struct {
 
     allocator: std.mem.Allocator,
     max_vertex_num: u32,
-    vattribs: std.ArrayList(sdl.Vertex),
+    vattribs: std.ArrayList(jok.Vertex),
     vindices: std.ArrayList(u32),
     space_draw_option: c.cpSpaceDebugDrawOptions,
 
@@ -377,7 +377,7 @@ const PhysicsDebug = struct {
         var debug = try allocator.create(PhysicsDebug);
         debug.allocator = allocator;
         debug.max_vertex_num = max_vertex_num;
-        debug.vattribs = std.ArrayList(sdl.Vertex).initCapacity(allocator, 1000) catch unreachable;
+        debug.vattribs = std.ArrayList(jok.Vertex).initCapacity(allocator, 1000) catch unreachable;
         debug.vindices = std.ArrayList(u32).initCapacity(allocator, 3000) catch unreachable;
         debug.space_draw_option = .{
             .drawCircle = drawCircle,
@@ -411,11 +411,11 @@ const PhysicsDebug = struct {
         debug.vindices.clearRetainingCapacity();
     }
 
-    fn draw(debug: *PhysicsDebug, renderer: sdl.Renderer) !void {
-        try renderer.drawGeometry(null, debug.vattribs.items, debug.vindices.items);
+    fn draw(debug: *PhysicsDebug, renderer: jok.Renderer) !void {
+        try renderer.drawTriangles(null, debug.vattribs.items, debug.vindices.items);
     }
 
-    fn addVertices(debug: *PhysicsDebug, vcount: u32, indices: []const u32) []sdl.Vertex {
+    fn addVertices(debug: *PhysicsDebug, vcount: u32, indices: []const u32) []jok.Vertex {
         assert((@as(u32, @intCast(debug.vattribs.items.len)) + vcount) <= debug.max_vertex_num);
         const base_index = debug.vattribs.items.len;
         debug.vattribs.resize(debug.vattribs.items.len + @as(usize, @intCast(vcount))) catch unreachable;
@@ -426,14 +426,14 @@ const PhysicsDebug = struct {
         return debug.vattribs.items[debug.vattribs.items.len - @as(usize, @intCast(vcount)) ..];
     }
 
-    fn cpPosToPoint(pos: c.cpVect) sdl.PointF {
+    fn cpPosToPoint(pos: c.cpVect) jok.Point {
         return .{
             .x = @floatCast(pos.x),
             .y = @floatCast(pos.y),
         };
     }
 
-    fn cpColorToRGBA(color: c.cpSpaceDebugColor) sdl.Color {
+    fn cpColorToRGBA(color: c.cpSpaceDebugColor) jok.Color {
         //return .{
         //    .r = @floatToInt(u8, @round(color.r * 255)),
         //    .g = @floatToInt(u8, @round(color.g * 255)),
@@ -471,14 +471,14 @@ const PhysicsDebug = struct {
         );
         const theta = std.math.tau / 19.0;
         vs[0] = .{
-            .position = cpPosToPoint(pos),
+            .pos = cpPosToPoint(pos),
             .color = cpColorToRGBA(fill_color),
         };
         for (vs[1..], 0..) |_, i| {
             const offset_x = @cos(angle + theta * @as(f32, @floatFromInt(i))) * radius;
             const offset_y = @sin(angle + theta * @as(f32, @floatFromInt(i))) * radius;
             vs[i + 1] = .{
-                .position = .{ .x = pos.x + offset_x, .y = pos.y + offset_y },
+                .pos = .{ .x = pos.x + offset_x, .y = pos.y + offset_y },
                 .color = cpColorToRGBA(fill_color),
             };
         }
@@ -518,18 +518,18 @@ const PhysicsDebug = struct {
         );
         const theta = std.math.pi / 5.0;
         vs[0] = .{
-            .position = cpPosToPoint(a),
+            .pos = cpPosToPoint(a),
             .color = cpColorToRGBA(fill_color),
         };
         vs[7] = .{
-            .position = cpPosToPoint(b),
+            .pos = cpPosToPoint(b),
             .color = cpColorToRGBA(fill_color),
         };
         for (vs[1..7], 0..) |_, i| {
             const offset_x = @cos(angle + std.math.pi / 2.0 + theta * @as(f32, @floatFromInt(i))) * radius;
             const offset_y = @sin(angle + std.math.pi / 2.0 + theta * @as(f32, @floatFromInt(i))) * radius;
             vs[i + 1] = .{
-                .position = .{ .x = a.x + offset_x, .y = a.y + offset_y },
+                .pos = .{ .x = a.x + offset_x, .y = a.y + offset_y },
                 .color = cpColorToRGBA(fill_color),
             };
         }
@@ -537,7 +537,7 @@ const PhysicsDebug = struct {
             const offset_x = @cos(angle - std.math.pi / 2.0 + theta * @as(f32, @floatFromInt(i))) * radius;
             const offset_y = @sin(angle - std.math.pi / 2.0 + theta * @as(f32, @floatFromInt(i))) * radius;
             vs[8 + i] = .{
-                .position = .{ .x = b.x + offset_x, .y = b.y + offset_y },
+                .pos = .{ .x = b.x + offset_x, .y = b.y + offset_y },
                 .color = cpColorToRGBA(fill_color),
             };
         }
@@ -572,7 +572,7 @@ const PhysicsDebug = struct {
         i = 0;
         while (i < count) : (i += 1) {
             vs[i] = .{
-                .position = cpPosToPoint(verts[i]),
+                .pos = cpPosToPoint(verts[i]),
                 .color = cpColorToRGBA(fill_color),
             };
         }

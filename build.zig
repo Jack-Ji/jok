@@ -128,7 +128,6 @@ fn initJok(
     lib: *std.Build.Step.Compile,
 } {
     const builder = getJokBuilder(b, opt);
-    const sdl_sdk = getSdlSdk(b, opt);
 
     // Create module
     const bos = builder.addOptions();
@@ -168,7 +167,6 @@ fn initJok(
             .{ .name = "zmath", .module = zmath.module("root") },
             .{ .name = "zmesh", .module = zmesh.module("root") },
             .{ .name = "znoise", .module = znoise.module("root") },
-            .{ .name = "sdl", .module = sdl_sdk.getWrapperModule() }, // TODO eliminate this when we use raw bindings only
         },
     });
     if (opt.use_ztracy) {

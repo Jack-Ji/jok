@@ -1,7 +1,6 @@
 const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const j2d = jok.j2d;
 const j3d = jok.j3d;
@@ -20,16 +19,16 @@ const emitter1 = j3d.ParticleSystem.Effect.FireEmitter(
     20,
     50,
     3,
-    sdl.Color.red,
-    sdl.Color.yellow,
+    jok.Color.red,
+    jok.Color.yellow,
     1.75,
 );
 const emitter2 = j3d.ParticleSystem.Effect.FireEmitter(
     20,
     50,
     3,
-    sdl.Color.black,
-    sdl.Color.white,
+    jok.Color.black,
+    jok.Color.white,
     2.75,
 );
 
@@ -100,35 +99,36 @@ pub fn init(ctx: jok.Context) !void {
     );
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
 
 pub fn update(ctx: jok.Context) !void {
     const distance = ctx.deltaSeconds() * 100;
-    if (ctx.isKeyPressed(.w)) {
+    const kbd = jok.io.getKeyboardState();
+    if (kbd.isPressed(.w)) {
         camera.moveBy(.forward, distance);
     }
-    if (ctx.isKeyPressed(.s)) {
+    if (kbd.isPressed(.s)) {
         camera.moveBy(.backward, distance);
     }
-    if (ctx.isKeyPressed(.a)) {
+    if (kbd.isPressed(.a)) {
         camera.moveBy(.left, distance);
     }
-    if (ctx.isKeyPressed(.d)) {
+    if (kbd.isPressed(.d)) {
         camera.moveBy(.right, distance);
     }
-    if (ctx.isKeyPressed(.left)) {
+    if (kbd.isPressed(.left)) {
         camera.rotateBy(0, -std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.right)) {
+    if (kbd.isPressed(.right)) {
         camera.rotateBy(0, std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.up)) {
+    if (kbd.isPressed(.up)) {
         camera.rotateBy(std.math.pi / 180.0, 0);
     }
-    if (ctx.isKeyPressed(.down)) {
+    if (kbd.isPressed(.down)) {
         camera.rotateBy(-std.math.pi / 180.0, 0);
     }
 
@@ -136,7 +136,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(null);
+    try ctx.renderer().clear(null);
     ctx.displayStats(.{});
 
     if (imgui.begin("Control", .{})) {
@@ -159,7 +159,7 @@ pub fn draw(ctx: jok.Context) !void {
         ),
         .{
             .rdopt = .{
-                .color = sdl.Color.rgba(100, 100, 100, 200),
+                .color = jok.Color.rgba(100, 100, 100, 200),
                 .lighting = .{},
             },
         },

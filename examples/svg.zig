@@ -1,12 +1,11 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const font = jok.font;
 const j2d = jok.j2d;
 
 var svg: jok.svg.SvgBitmap = undefined;
-var tex: sdl.Texture = undefined;
+var tex: jok.Texture = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -19,17 +18,10 @@ pub fn init(ctx: jok.Context) !void {
         .{},
     );
 
-    tex = try jok.utils.gfx.createTextureFromPixels(
-        ctx,
-        svg.pixels,
-        svg.format,
-        .static,
-        svg.width,
-        svg.height,
-    );
+    tex = try ctx.renderer().createTexture(svg.size, svg.pixels, .{});
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -39,15 +31,15 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(sdl.Color.rgb(100, 100, 100));
+    try ctx.renderer().clear(jok.Color.rgb(100, 100, 100));
 
     j2d.begin(.{});
     defer j2d.end();
     try j2d.image(
         tex,
         .{
-            .x = ctx.getCanvasSize().x / 2,
-            .y = ctx.getCanvasSize().y / 2,
+            .x = ctx.getCanvasSize().getWidthFloat() / 2,
+            .y = ctx.getCanvasSize().getHeightFloat() / 2,
         },
         .{
             .rotate_degree = ctx.seconds() * 60,

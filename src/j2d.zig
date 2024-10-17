@@ -3,7 +3,6 @@ const assert = std.debug.assert;
 const math = std.math;
 const unicode = std.unicode;
 const jok = @import("jok.zig");
-const sdl = jok.sdl;
 const imgui = jok.imgui;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
@@ -31,10 +30,10 @@ pub const DepthSortMethod = enum {
 pub const BeginOption = struct {
     transform: AffineTransform = AffineTransform.init(),
     depth_sort: DepthSortMethod = .none,
-    blend_method: jok.BlendMethod = .blend,
+    blend_mode: jok.BlendMode = .blend,
     antialiased: bool = true,
-    offscreen_target: ?sdl.Texture = null,
-    offscreen_clear_color: ?sdl.Color = null,
+    offscreen_target: ?jok.Texture = null,
+    offscreen_clear_color: ?jok.Color = null,
 };
 
 var ctx: jok.Context = undefined;
@@ -42,16 +41,16 @@ var draw_list: imgui.DrawList = undefined;
 var draw_commands: std.ArrayList(internal.DrawCmd) = undefined;
 var transform: AffineTransform = undefined;
 var depth_sort: DepthSortMethod = undefined;
-var blend_method: jok.BlendMethod = undefined;
-var offscreen_target: ?sdl.Texture = undefined;
-var offscreen_clear_color: ?sdl.Color = undefined;
-var all_tex: std.AutoHashMap(*sdl.c.SDL_Texture, bool) = undefined;
+var blend_mode: jok.BlendMode = undefined;
+var offscreen_target: ?jok.Texture = undefined;
+var offscreen_clear_color: ?jok.Color = undefined;
+var all_tex: std.AutoHashMap(*anyopaque, bool) = undefined;
 
 pub fn init(_ctx: jok.Context) !void {
     ctx = _ctx;
     draw_list = imgui.createDrawList();
     draw_commands = std.ArrayList(internal.DrawCmd).init(ctx.allocator());
-    all_tex = std.AutoHashMap(*sdl.c.SDL_Texture, bool).init(ctx.allocator());
+    all_tex = std.AutoHashMap(*anyopaque, bool).init(ctx.allocator());
 }
 
 pub fn deinit() void {
@@ -65,7 +64,7 @@ pub fn begin(opt: BeginOption) void {
     draw_list.reset();
     draw_list.pushClipRect(.{
         .pmin = .{ 0, 0 },
-        .pmax = .{ csz.x, csz.y },
+        .pmax = .{ @as(f32, @floatFromInt(csz.width)), @as(f32, @floatFromInt(csz.height)) },
     });
     if (opt.antialiased) {
         draw_list.setDrawListFlags(.{
@@ -79,7 +78,7 @@ pub fn begin(opt: BeginOption) void {
     all_tex.clearRetainingCapacity();
     transform = opt.transform;
     depth_sort = opt.depth_sort;
-    blend_method = opt.blend_method;
+    blend_mode = opt.blend_mode;
     offscreen_target = opt.offscreen_target;
     offscreen_clear_color = opt.offscreen_clear_color;
     if (offscreen_target) |t| {
@@ -131,25 +130,20 @@ pub fn end() void {
 
     // Apply blend mode to renderer and textures
     const rd = ctx.renderer();
-    var old_blend: sdl.c.SDL_BlendMode = undefined;
-    _ = sdl.c.SDL_GetRenderDrawBlendMode(rd.ptr, &old_blend);
-    defer _ = sdl.c.SDL_SetRenderDrawBlendMode(rd.ptr, old_blend);
-    _ = sdl.c.SDL_SetRenderDrawBlendMode(rd.ptr, blend_method.toMode());
+    const old_blend = rd.getBlendMode() catch unreachable;
+    defer rd.setBlendMode(old_blend) catch unreachable;
+    rd.setBlendMode(blend_mode) catch unreachable;
     var it = all_tex.keyIterator();
     while (it.next()) |k| {
-        _ = sdl.c.SDL_SetTextureBlendMode(k.*, blend_method.toMode());
+        const tex = jok.Texture{ .ptr = @ptrCast(k.*) };
+        tex.setBlendMode(blend_mode) catch unreachable;
     }
 
     // Apply offscreen target if given
     const old_target = rd.getTarget();
     if (offscreen_target) |t| {
         rd.setTarget(t) catch unreachable;
-        if (offscreen_clear_color) |c| {
-            const old_color = rd.getColor() catch unreachable;
-            rd.setColor(c) catch unreachable;
-            rd.clear() catch unreachable;
-            rd.setColor(old_color) catch unreachable;
-        }
+        if (offscreen_clear_color) |c| rd.clear(c) catch unreachable;
     }
     defer if (offscreen_target != null) {
         rd.setTarget(old_target) catch unreachable;
@@ -165,7 +159,7 @@ pub fn clearMemory() void {
     all_tex.clearAndFree();
 }
 
-pub fn pushClipRect(r: sdl.RectangleF, intersect_with_current: bool) void {
+pub fn pushClipRect(r: jok.Rectangle, intersect_with_current: bool) void {
     draw_list.pushClipRect(.{
         .pmin = .{ r.x, r.y },
         .pmax = .{ r.x + r.width, r.y + r.height },
@@ -186,29 +180,29 @@ pub fn getTransform() *AffineTransform {
 }
 
 pub const ImageOption = struct {
-    size: ?sdl.PointF = null,
-    uv0: sdl.PointF = .{ .x = 0, .y = 0 },
-    uv1: sdl.PointF = .{ .x = 1, .y = 1 },
-    tint_color: sdl.Color = sdl.Color.white,
-    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    size: ?jok.Size = null,
+    uv0: jok.Point = .{ .x = 0, .y = 0 },
+    uv1: jok.Point = .{ .x = 1, .y = 1 },
+    tint_color: jok.Color = jok.Color.white,
+    scale: jok.Point = .{ .x = 1, .y = 1 },
     rotate_degree: f32 = 0,
-    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    anchor_point: jok.Point = .{ .x = 0, .y = 0 },
     flip_h: bool = false,
     flip_v: bool = false,
     depth: f32 = 0.5,
 };
-pub fn image(texture: sdl.Texture, pos: sdl.PointF, opt: ImageOption) !void {
+pub fn image(texture: jok.Texture, pos: jok.Point, opt: ImageOption) !void {
     const scale = transform.getScale();
     const size = opt.size orelse BLK: {
         const info = try texture.query();
-        break :BLK sdl.PointF{
-            .x = @floatFromInt(info.width),
-            .y = @floatFromInt(info.height),
+        break :BLK jok.Size{
+            .width = info.width,
+            .height = info.height,
         };
     };
     const s = Sprite{
-        .width = size.x,
-        .height = size.y,
+        .width = @floatFromInt(size.width),
+        .height = @floatFromInt(size.height),
         .uv0 = opt.uv0,
         .uv1 = opt.uv1,
         .tex = texture,
@@ -227,29 +221,29 @@ pub fn image(texture: sdl.Texture, pos: sdl.PointF, opt: ImageOption) !void {
 
 /// NOTE: Rounded image is always axis-aligned
 pub const ImageRoundedOption = struct {
-    size: ?sdl.PointF = null,
-    uv0: sdl.PointF = .{ .x = 0, .y = 0 },
-    uv1: sdl.PointF = .{ .x = 1, .y = 1 },
-    tint_color: sdl.Color = sdl.Color.white,
-    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    size: ?jok.Size = null,
+    uv0: jok.Point = .{ .x = 0, .y = 0 },
+    uv1: jok.Point = .{ .x = 1, .y = 1 },
+    tint_color: jok.Color = jok.Color.white,
+    scale: jok.Point = .{ .x = 1, .y = 1 },
     flip_h: bool = false,
     flip_v: bool = false,
     rounding: f32 = 4,
     depth: f32 = 0.5,
 };
-pub fn imageRounded(texture: sdl.Texture, pos: sdl.PointF, opt: ImageRoundedOption) !void {
+pub fn imageRounded(texture: jok.Texture, pos: jok.Point, opt: ImageRoundedOption) !void {
     const scale = transform.getScale();
     const size = opt.size orelse BLK: {
         const info = try texture.query();
-        break :BLK sdl.PointF{
-            .x = @floatFromInt(info.width),
-            .y = @floatFromInt(info.height),
+        break :BLK jok.Size{
+            .width = info.width,
+            .height = info.height,
         };
     };
     const pmin = transform.transformPoint(pos);
-    const pmax = sdl.PointF{
-        .x = pmin.x + size.x * scale.x,
-        .y = pmin.y + size.y * scale.y,
+    const pmax = jok.Point{
+        .x = pmin.x + @as(f32, @floatFromInt(size.width)) * scale.x,
+        .y = pmin.y + @as(f32, @floatFromInt(size.height)) * scale.y,
     };
     var uv0 = opt.uv0;
     var uv1 = opt.uv1;
@@ -282,11 +276,11 @@ pub fn effects(ps: *const ParticleSystem) !void {
 }
 
 pub const SpriteOption = struct {
-    pos: sdl.PointF,
-    tint_color: sdl.Color = sdl.Color.white,
-    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    pos: jok.Point,
+    tint_color: jok.Color = jok.Color.white,
+    scale: jok.Point = .{ .x = 1, .y = 1 },
     rotate_degree: f32 = 0,
-    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    anchor_point: jok.Point = .{ .x = 0, .y = 0 },
     flip_h: bool = false,
     flip_v: bool = false,
     depth: f32 = 0.5,
@@ -307,12 +301,12 @@ pub fn sprite(s: Sprite, opt: SpriteOption) !void {
 
 pub const TextOption = struct {
     atlas: *Atlas,
-    pos: sdl.PointF,
+    pos: jok.Point,
     ypos_type: Atlas.YPosType = .top,
-    tint_color: sdl.Color = sdl.Color.white,
-    scale: sdl.PointF = .{ .x = 1, .y = 1 },
+    tint_color: jok.Color = jok.Color.white,
+    scale: jok.Point = .{ .x = 1, .y = 1 },
     rotate_degree: f32 = 0,
-    anchor_point: sdl.PointF = .{ .x = 0, .y = 0 },
+    anchor_point: jok.Point = .{ .x = 0, .y = 0 },
     depth: f32 = 0.5,
 };
 pub fn text(opt: TextOption, comptime fmt: []const u8, args: anytype) !void {
@@ -335,22 +329,22 @@ pub fn text(opt: TextOption, comptime fmt: []const u8, args: anytype) !void {
     while (i < txt.len) {
         const size = try unicode.utf8ByteSequenceLength(txt[i]);
         const cp = @as(u32, @intCast(try unicode.utf8Decode(txt[i .. i + size])));
-        if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, sdl.Color.white, cp)) |cs| {
+        if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, jok.Color.white, cp)) |cs| {
             const v = zmath.mul(
                 zmath.f32x4(
-                    cs.vs[0].position.x,
-                    pos.y + (cs.vs[0].position.y - pos.y) * scale.y,
+                    cs.vs[0].pos.x,
+                    pos.y + (cs.vs[0].pos.y - pos.y) * scale.y,
                     0,
                     1,
                 ),
                 mat,
             );
-            const draw_pos = sdl.PointF{ .x = v[0], .y = v[1] };
+            const draw_pos = jok.Point{ .x = v[0], .y = v[1] };
             const s = Sprite{
-                .width = cs.vs[1].position.x - cs.vs[0].position.x,
-                .height = cs.vs[3].position.y - cs.vs[0].position.y,
-                .uv0 = cs.vs[0].tex_coord,
-                .uv1 = cs.vs[2].tex_coord,
+                .width = cs.vs[1].pos.x - cs.vs[0].pos.x,
+                .height = cs.vs[3].pos.y - cs.vs[0].pos.y,
+                .uv0 = cs.vs[0].texcoord,
+                .uv1 = cs.vs[2].texcoord,
                 .tex = opt.atlas.tex,
             };
             try s.render(&draw_commands, .{
@@ -371,7 +365,7 @@ pub const LineOption = struct {
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
-pub fn line(p1: sdl.PointF, p2: sdl.PointF, color: sdl.Color, opt: LineOption) !void {
+pub fn line(p1: jok.Point, p2: jok.Point, color: jok.Color, opt: LineOption) !void {
     try draw_commands.append(.{
         .cmd = .{
             .line = .{
@@ -389,11 +383,11 @@ pub const RectOption = struct {
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
-pub fn rect(r: sdl.RectangleF, color: sdl.Color, opt: RectOption) !void {
-    const p1 = sdl.PointF{ .x = r.x, .y = r.y };
-    const p2 = sdl.PointF{ .x = p1.x + r.width, .y = p1.y };
-    const p3 = sdl.PointF{ .x = p1.x + r.width, .y = p1.y + r.height };
-    const p4 = sdl.PointF{ .x = p1.x, .y = p1.y + r.height };
+pub fn rect(r: jok.Rectangle, color: jok.Color, opt: RectOption) !void {
+    const p1 = jok.Point{ .x = r.x, .y = r.y };
+    const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
+    const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
+    const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
     try draw_commands.append(.{
         .cmd = .{
             .quad = .{
@@ -412,11 +406,11 @@ pub fn rect(r: sdl.RectangleF, color: sdl.Color, opt: RectOption) !void {
 pub const FillRect = struct {
     depth: f32 = 0.5,
 };
-pub fn rectFilled(r: sdl.RectangleF, color: sdl.Color, opt: FillRect) !void {
-    const p1 = sdl.PointF{ .x = r.x, .y = r.y };
-    const p2 = sdl.PointF{ .x = p1.x + r.width, .y = p1.y };
-    const p3 = sdl.PointF{ .x = p1.x + r.width, .y = p1.y + r.height };
-    const p4 = sdl.PointF{ .x = p1.x, .y = p1.y + r.height };
+pub fn rectFilled(r: jok.Rectangle, color: jok.Color, opt: FillRect) !void {
+    const p1 = jok.Point{ .x = r.x, .y = r.y };
+    const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
+    const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
+    const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
     const c = imgui.sdl.convertColor(color);
     try draw_commands.append(.{
         .cmd = .{
@@ -439,17 +433,17 @@ pub const FillRectMultiColor = struct {
     depth: f32 = 0.5,
 };
 pub fn rectFilledMultiColor(
-    r: sdl.RectangleF,
-    color_top_left: sdl.Color,
-    color_top_right: sdl.Color,
-    color_bottom_right: sdl.Color,
-    color_bottom_left: sdl.Color,
+    r: jok.Rectangle,
+    color_top_left: jok.Color,
+    color_top_right: jok.Color,
+    color_bottom_right: jok.Color,
+    color_bottom_left: jok.Color,
     opt: FillRectMultiColor,
 ) !void {
-    const p1 = sdl.PointF{ .x = r.x, .y = r.y };
-    const p2 = sdl.PointF{ .x = p1.x + r.width, .y = p1.y };
-    const p3 = sdl.PointF{ .x = p1.x + r.width, .y = p1.y + r.height };
-    const p4 = sdl.PointF{ .x = p1.x, .y = p1.y + r.height };
+    const p1 = jok.Point{ .x = r.x, .y = r.y };
+    const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
+    const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
+    const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
     const c1 = imgui.sdl.convertColor(color_top_left);
     const c2 = imgui.sdl.convertColor(color_top_right);
     const c3 = imgui.sdl.convertColor(color_bottom_right);
@@ -477,10 +471,10 @@ pub const RectRoundedOption = struct {
     rounding: f32 = 4,
     depth: f32 = 0.5,
 };
-pub fn rectRounded(r: sdl.RectangleF, color: sdl.Color, opt: RectRoundedOption) !void {
+pub fn rectRounded(r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
     const scale = transform.getScale();
     const pmin = transform.transformPoint(.{ .x = r.x, .y = r.y });
-    const pmax = sdl.PointF{
+    const pmax = jok.Point{
         .x = pmin.x + r.width * scale.x,
         .y = pmin.y + r.height * scale.y,
     };
@@ -503,10 +497,10 @@ pub const FillRectRounded = struct {
     rounding: f32 = 4,
     depth: f32 = 0.5,
 };
-pub fn rectRoundedFilled(r: sdl.RectangleF, color: sdl.Color, opt: FillRectRounded) !void {
+pub fn rectRoundedFilled(r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
     const scale = transform.getScale();
     const pmin = transform.transformPoint(.{ .x = r.x, .y = r.y });
-    const pmax = sdl.PointF{
+    const pmax = jok.Point{
         .x = pmin.x + r.width * scale.x,
         .y = pmin.y + r.height * scale.y,
     };
@@ -528,11 +522,11 @@ pub const QuadOption = struct {
     depth: f32 = 0.5,
 };
 pub fn quad(
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
-    p4: sdl.PointF,
-    color: sdl.Color,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
+    p4: jok.Point,
+    color: jok.Color,
     opt: QuadOption,
 ) !void {
     try draw_commands.append(.{
@@ -554,11 +548,11 @@ pub const FillQuad = struct {
     depth: f32 = 0.5,
 };
 pub fn quadFilled(
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
-    p4: sdl.PointF,
-    color: sdl.Color,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
+    p4: jok.Point,
+    color: jok.Color,
     opt: FillQuad,
 ) !void {
     const c = imgui.sdl.convertColor(color);
@@ -583,14 +577,14 @@ pub const FillQuadMultiColor = struct {
     depth: f32 = 0.5,
 };
 pub fn quadFilledMultiColor(
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
-    p4: sdl.PointF,
-    color1: sdl.Color,
-    color2: sdl.Color,
-    color3: sdl.Color,
-    color4: sdl.Color,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
+    p4: jok.Point,
+    color1: jok.Color,
+    color2: jok.Color,
+    color3: jok.Color,
+    color4: jok.Color,
     opt: FillQuadMultiColor,
 ) !void {
     const c1 = imgui.sdl.convertColor(color1);
@@ -619,10 +613,10 @@ pub const TriangleOption = struct {
     depth: f32 = 0.5,
 };
 pub fn triangle(
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
-    color: sdl.Color,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
+    color: jok.Color,
     opt: TriangleOption,
 ) !void {
     try draw_commands.append(.{
@@ -643,10 +637,10 @@ pub const FillTriangle = struct {
     depth: f32 = 0.5,
 };
 pub fn triangleFilled(
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
-    color: sdl.Color,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
+    color: jok.Color,
     opt: FillTriangle,
 ) !void {
     const c = imgui.sdl.convertColor(color);
@@ -669,12 +663,12 @@ pub const FillTriangleMultiColor = struct {
     depth: f32 = 0.5,
 };
 pub fn triangleFilledMultiColor(
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
-    color1: sdl.Color,
-    color2: sdl.Color,
-    color3: sdl.Color,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
+    color1: jok.Color,
+    color2: jok.Color,
+    color3: jok.Color,
     opt: FillTriangleMultiColor,
 ) !void {
     const c1 = imgui.sdl.convertColor(color1);
@@ -701,9 +695,9 @@ pub const CircleOption = struct {
     depth: f32 = 0.5,
 };
 pub fn circle(
-    center: sdl.PointF,
+    center: jok.Point,
     radius: f32,
-    color: sdl.Color,
+    color: jok.Color,
     opt: CircleOption,
 ) !void {
     const scale = transform.getScale();
@@ -726,9 +720,9 @@ pub const FillCircle = struct {
     depth: f32 = 0.5,
 };
 pub fn circleFilled(
-    center: sdl.PointF,
+    center: jok.Point,
     radius: f32,
-    color: sdl.Color,
+    color: jok.Color,
     opt: FillCircle,
 ) !void {
     const scale = transform.getScale();
@@ -750,9 +744,9 @@ pub const NgonOption = struct {
     depth: f32 = 0.5,
 };
 pub fn ngon(
-    center: sdl.PointF,
+    center: jok.Point,
     radius: f32,
-    color: sdl.Color,
+    color: jok.Color,
     num_segments: u32,
     opt: NgonOption,
 ) !void {
@@ -775,9 +769,9 @@ pub const FillNgon = struct {
     depth: f32 = 0.5,
 };
 pub fn ngonFilled(
-    center: sdl.PointF,
+    center: jok.Point,
     radius: f32,
-    color: sdl.Color,
+    color: jok.Color,
     num_segments: u32,
     opt: FillNgon,
 ) !void {
@@ -801,11 +795,11 @@ pub const BezierCubicOption = struct {
     depth: f32 = 0.5,
 };
 pub fn bezierCubic(
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
-    p4: sdl.PointF,
-    color: sdl.Color,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
+    p4: jok.Point,
+    color: jok.Color,
     opt: BezierCubicOption,
 ) !void {
     try draw_commands.append(.{
@@ -830,10 +824,10 @@ pub const BezierQuadraticOption = struct {
     depth: f32 = 0.5,
 };
 pub fn bezierQuadratic(
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
-    color: sdl.Color,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
+    color: jok.Color,
     opt: BezierQuadraticOption,
 ) !void {
     try draw_commands.append(.{
@@ -855,7 +849,7 @@ pub const PolyOption = struct {
     thickness: f32 = 1.0,
     depth: f32 = 0.5,
 };
-pub fn convexPoly(poly: ConvexPoly, color: sdl.Color, opt: PolyOption) !void {
+pub fn convexPoly(poly: ConvexPoly, color: jok.Color, opt: PolyOption) !void {
     if (!poly.finished) return error.PathNotFinished;
     try draw_commands.append(.{
         .cmd = .{
@@ -888,14 +882,14 @@ pub fn convexPolyFilled(poly: ConvexPoly, opt: FillPoly) !void {
 }
 
 pub const ConvexPoly = struct {
-    texture: ?sdl.Texture,
-    points: std.ArrayList(sdl.Vertex),
+    texture: ?jok.Texture,
+    points: std.ArrayList(jok.Vertex),
     finished: bool = false,
 
-    pub fn begin(allocator: std.mem.Allocator, texture: ?sdl.Texture) ConvexPoly {
+    pub fn begin(allocator: std.mem.Allocator, texture: ?jok.Texture) ConvexPoly {
         return .{
             .texture = texture,
-            .points = std.ArrayList(sdl.Vertex).init(allocator),
+            .points = std.ArrayList(jok.Vertex).init(allocator),
         };
     }
 
@@ -908,18 +902,18 @@ pub const ConvexPoly = struct {
         self.* = undefined;
     }
 
-    pub fn reset(self: *ConvexPoly, texture: ?sdl.Texture) void {
+    pub fn reset(self: *ConvexPoly, texture: ?jok.Texture) void {
         self.texture = texture;
         self.points.clearRetainingCapacity();
         self.finished = false;
     }
 
-    pub fn point(self: *ConvexPoly, p: sdl.Vertex) !void {
+    pub fn point(self: *ConvexPoly, p: jok.Vertex) !void {
         assert(!self.finished);
         try self.cmd.points.append(p);
     }
 
-    pub fn nPoints(self: *ConvexPoly, ps: []sdl.Vertex) !void {
+    pub fn nPoints(self: *ConvexPoly, ps: []jok.Vertex) !void {
         assert(!self.finished);
         try self.cmd.points.appendSlice(ps);
     }
@@ -930,7 +924,7 @@ pub const PolylineOption = struct {
     closed: bool = false,
     depth: f32 = 0.5,
 };
-pub fn polyline(pl: Polyline, color: sdl.Color, opt: PolylineOption) !void {
+pub fn polyline(pl: Polyline, color: jok.Color, opt: PolylineOption) !void {
     if (!pl.finished) return error.PathNotFinished;
     try draw_commands.append(.{
         .cmd = .{
@@ -948,14 +942,14 @@ pub fn polyline(pl: Polyline, color: sdl.Color, opt: PolylineOption) !void {
 }
 
 pub const Polyline = struct {
-    points: std.ArrayList(sdl.PointF),
-    transformed: std.ArrayList(sdl.PointF),
+    points: std.ArrayList(jok.Point),
+    transformed: std.ArrayList(jok.Point),
     finished: bool = false,
 
     pub fn begin(allocator: std.mem.Allocator) Polyline {
         return .{
-            .points = std.ArrayList(sdl.PointF).init(allocator),
-            .transformed = std.ArrayList(sdl.PointF).init(allocator),
+            .points = std.ArrayList(jok.Point).init(allocator),
+            .transformed = std.ArrayList(jok.Point).init(allocator),
         };
     }
 
@@ -979,12 +973,12 @@ pub const Polyline = struct {
         self.finished = false;
     }
 
-    pub fn point(self: *Polyline, p: sdl.PointF) !void {
+    pub fn point(self: *Polyline, p: jok.Point) !void {
         assert(!self.finished);
         try self.points.append(p);
     }
 
-    pub fn nPoints(self: *Polyline, ps: []sdl.PointF) !void {
+    pub fn nPoints(self: *Polyline, ps: []jok.Point) !void {
         assert(!self.finished);
         try self.points.appendSlice(ps);
     }
@@ -1016,7 +1010,7 @@ pub const Path = struct {
 
     /// End definition of path
     pub const PathEnd = struct {
-        color: sdl.Color = sdl.Color.white,
+        color: jok.Color = jok.Color.white,
         thickness: f32 = 1.0,
         closed: bool = false,
     };
@@ -1042,7 +1036,7 @@ pub const Path = struct {
         self.finished = false;
     }
 
-    pub fn lineTo(self: *Path, pos: sdl.PointF) !void {
+    pub fn lineTo(self: *Path, pos: jok.Point) !void {
         assert(!self.finished);
         try self.path.cmds.append(.{ .line_to = .{ .p = pos } });
     }
@@ -1052,7 +1046,7 @@ pub const Path = struct {
     };
     pub fn arcTo(
         self: *Path,
-        pos: sdl.PointF,
+        pos: jok.Point,
         radius: f32,
         degree_begin: f32,
         degree_end: f32,
@@ -1075,9 +1069,9 @@ pub const Path = struct {
     };
     pub fn bezierCubicCurveTo(
         self: *Path,
-        p2: sdl.PointF,
-        p3: sdl.PointF,
-        p4: sdl.PointF,
+        p2: jok.Point,
+        p3: jok.Point,
+        p4: jok.Point,
         opt: BezierCurveTo,
     ) !void {
         assert(!self.finished);
@@ -1092,8 +1086,8 @@ pub const Path = struct {
     }
     pub fn bezierQuadraticCurveTo(
         self: *Path,
-        p2: sdl.PointF,
-        p3: sdl.PointF,
+        p2: jok.Point,
+        p3: jok.Point,
         opt: BezierCurveTo,
     ) !void {
         assert(!self.finished);
@@ -1112,12 +1106,12 @@ pub const Path = struct {
     };
     pub fn rect(
         self: *Path,
-        r: sdl.RectangleF,
+        r: jok.Rectangle,
         opt: Rect,
     ) !void {
         assert(!self.finished);
-        const pmin = sdl.PointF{ .x = r.x, .y = r.y };
-        const pmax = sdl.PointF{
+        const pmin = jok.Point{ .x = r.x, .y = r.y };
+        const pmax = jok.Point{
             .x = pmin.x + r.width,
             .y = pmin.y + r.height,
         };

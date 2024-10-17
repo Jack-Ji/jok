@@ -1,7 +1,6 @@
 const std = @import("std");
 const jok = @import("jok");
 const j2d = jok.j2d;
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const font = jok.font;
 const miniaudio = jok.miniaudio;
@@ -42,7 +41,7 @@ pub fn init(ctx: jok.Context) !void {
     sfx2.setPan(1);
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     const S = struct {
         var pcm_frame_index: u64 = undefined;
     };
@@ -92,7 +91,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(null);
+    try ctx.renderer().clear(null);
 
     j2d.begin(.{});
     defer j2d.end();
@@ -115,7 +114,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .atlas = atlas,
             .pos = .{ .x = 10, .y = 100 },
-            .tint_color = if (sfx1.isPlaying()) sdl.Color.red else sdl.Color.white,
+            .tint_color = if (sfx1.isPlaying()) jok.Color.red else jok.Color.white,
         },
         "Double-click mouse's left button to trigger sound effect on your left ear",
         .{},
@@ -124,7 +123,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .atlas = atlas,
             .pos = .{ .x = 200, .y = 150 },
-            .tint_color = if (sfx2.isPlaying()) sdl.Color.magenta else sdl.Color.white,
+            .tint_color = if (sfx2.isPlaying()) jok.Color.magenta else jok.Color.white,
         },
         "Double-click mouse's right button to trigger sound effect on your right ear",
         .{},

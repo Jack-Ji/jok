@@ -116,7 +116,6 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     ```zig
     const std = @import("std");
     const jok = @import("jok");
-    const sdl = jok.sdl;
     const j2d = jok.j2d;
     const j3d = jok.j3d;
     
@@ -124,7 +123,7 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
         // your init code
     }
     
-    pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+    pub fn event(ctx: jok.Context, e: jok.Event) !void {
         // your event processing code
     }
     

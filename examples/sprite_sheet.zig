@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const j2d = jok.j2d;
 
@@ -20,8 +19,8 @@ pub fn init(ctx: jok.Context) !void {
     sheet1 = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
         "images",
-        @intFromFloat(size.x),
-        @intFromFloat(size.y),
+        @intFromFloat(size.getWidthFloat()),
+        @intFromFloat(size.getHeightFloat()),
         .{ .keep_packed_pixels = true },
     );
     try sheet1.save(ctx, "sheet1");
@@ -43,7 +42,7 @@ pub fn init(ctx: jok.Context) !void {
     );
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -53,7 +52,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(sdl.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
 
     const sprite = sheet2.getSpriteByName("ogre").?;
     j2d.begin(.{ .depth_sort = .back_to_forth });
@@ -72,7 +71,7 @@ pub fn draw(ctx: jok.Context) !void {
     });
     try j2d.sprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
-        .tint_color = sdl.Color.rgb(255, 0, 0),
+        .tint_color = jok.Color.rgb(255, 0, 0),
         .scale = .{
             .x = 4 + 2 * @cos(ctx.seconds()),
             .y = 4 + 2 * @sin(ctx.seconds()),

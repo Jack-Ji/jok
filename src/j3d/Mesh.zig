@@ -3,7 +3,6 @@ const std = @import("std");
 const math = std.math;
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const internal = @import("internal.zig");
 const Vector = @import("Vector.zig");
@@ -21,8 +20,8 @@ pub const Error = error{
 };
 
 pub const RenderOption = struct {
-    texture: ?sdl.Texture = null,
-    color: sdl.Color = sdl.Color.white,
+    texture: ?jok.Texture = null,
+    color: jok.Color = jok.Color.white,
     shading_method: ShadingMethod = .gouraud,
     cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,
@@ -35,7 +34,7 @@ pub const Node = struct {
         indices: std.ArrayList(u32),
         positions: std.ArrayList([3]f32),
         normals: std.ArrayList([3]f32),
-        colors: std.ArrayList(sdl.Color),
+        colors: std.ArrayList(jok.Color),
         texcoords: std.ArrayList([2]f32),
         joints: std.ArrayList([4]u8),
         weights: std.ArrayList([4]f32),
@@ -48,7 +47,7 @@ pub const Node = struct {
                 .indices = std.ArrayList(u32).init(allocator),
                 .positions = std.ArrayList([3]f32).init(allocator),
                 .normals = std.ArrayList([3]f32).init(allocator),
-                .colors = std.ArrayList(sdl.Color).init(allocator),
+                .colors = std.ArrayList(jok.Color).init(allocator),
                 .texcoords = std.ArrayList([2]f32).init(allocator),
                 .joints = std.ArrayList([4]u8).init(allocator),
                 .weights = std.ArrayList([4]f32).init(allocator),
@@ -63,7 +62,7 @@ pub const Node = struct {
             indices: []u32,
             positions: [][3]f32,
             normals: ?[][3]f32,
-            colors: ?[]sdl.Color,
+            colors: ?[]jok.Color,
             texcoords: ?[][2]f32,
             joints: ?[][4]u8,
             weights: ?[][4]f32,
@@ -122,7 +121,7 @@ pub const Node = struct {
         }
 
         /// Remap texture coordinates to new range
-        pub fn remapTexcoords(self: *SubMesh, uv0: sdl.PointF, uv1: sdl.PointF) void {
+        pub fn remapTexcoords(self: *SubMesh, uv0: jok.Point, uv1: jok.Point) void {
             for (self.texcoords.items) |*ts| {
                 ts[0] = jok.utils.math.linearMap(ts[0], 0, 1, uv0.x, uv1.x);
                 ts[1] = jok.utils.math.linearMap(ts[1], 0, 1, uv0.y, uv1.y);
@@ -130,7 +129,7 @@ pub const Node = struct {
         }
 
         /// Get texture
-        pub fn getTexture(self: *const SubMesh) ?sdl.Texture {
+        pub fn getTexture(self: *const SubMesh) ?jok.Texture {
             return self.mesh.textures.get(self.tex_id);
         }
     };
@@ -227,7 +226,7 @@ pub const Node = struct {
 
     fn render(
         node: *Node,
-        csz: sdl.PointF,
+        csz: jok.Size,
         rdjob: *internal.RenderJob,
         model: zmath.Mat,
         camera: Camera,
@@ -399,7 +398,7 @@ pub const Skin = struct {
 allocator: std.mem.Allocator,
 arena: std.heap.ArenaAllocator,
 root: *Node,
-textures: std.AutoHashMap(usize, sdl.Texture),
+textures: std.AutoHashMap(usize, jok.Texture),
 nodes_map: std.AutoHashMap(*const GltfNode, *Node),
 animations: std.StringHashMap(Animation),
 skins_map: std.AutoHashMap(*const GltfSkin, *Skin),
@@ -412,7 +411,7 @@ pub fn create(allocator: std.mem.Allocator, mesh_count: usize, is_gltf: bool) !*
     self.allocator = allocator;
     self.arena = std.heap.ArenaAllocator.init(allocator);
     self.root = try self.createRootNode(mesh_count);
-    self.textures = std.AutoHashMap(usize, sdl.Texture).init(self.arena.allocator());
+    self.textures = std.AutoHashMap(usize, jok.Texture).init(self.arena.allocator());
     self.nodes_map = std.AutoHashMap(*const GltfNode, *Node).init(self.arena.allocator());
     self.animations = std.StringHashMap(Animation).init(self.arena.allocator());
     self.skins_map = std.AutoHashMap(*const GltfSkin, *Skin).init(self.arena.allocator());
@@ -424,8 +423,8 @@ pub fn create(allocator: std.mem.Allocator, mesh_count: usize, is_gltf: bool) !*
 /// Create mesh with zmesh.Shape
 pub const ShapeOption = struct {
     compute_aabb: bool = true,
-    tex: ?sdl.Texture = null,
-    uvs: ?[2]sdl.PointF = null,
+    tex: ?jok.Texture = null,
+    uvs: ?[2]jok.Point = null,
 };
 pub fn fromShape(
     allocator: std.mem.Allocator,
@@ -460,8 +459,8 @@ pub fn fromShape(
 /// Create mesh with GLTF model file
 pub const GltfOption = struct {
     compute_aabb: bool = true,
-    tex: ?sdl.Texture = null,
-    uvs: ?[2]sdl.PointF = null,
+    tex: ?jok.Texture = null,
+    uvs: ?[2]jok.Point = null,
 };
 pub fn fromGltf(
     ctx: jok.Context,
@@ -551,7 +550,7 @@ pub fn destroy(self: *Self) void {
 
 pub fn render(
     self: *const Self,
-    csz: sdl.PointF,
+    csz: jok.Size,
     rdjob: *internal.RenderJob,
     model: zmath.Mat,
     camera: Camera,
@@ -627,7 +626,7 @@ fn loadNodeTree(
 
                     // Lazily load textures
                     if (self.textures.get(sm.tex_id) == null) {
-                        var tex: sdl.Texture = undefined;
+                        var tex: jok.Texture = undefined;
                         if (image.uri) |p| { // Read external file
                             const uri_path = std.mem.sliceTo(p, '\x00');
                             const path = try std.mem.joinZ(
@@ -636,8 +635,8 @@ fn loadNodeTree(
                                 &.{ dir, uri_path },
                             );
                             defer self.allocator.free(path);
-                            tex = try jok.utils.gfx.createTextureFromFile(
-                                ctx,
+                            tex = try ctx.renderer().createTextureFromFile(
+                                ctx.allocator(),
                                 path,
                                 .static,
                                 false,
@@ -646,8 +645,7 @@ fn loadNodeTree(
                             var file_data: []u8 = undefined;
                             file_data.ptr = @as([*]u8, @ptrCast(v.buffer.data.?)) + v.offset;
                             file_data.len = v.size;
-                            tex = try jok.utils.gfx.createTextureFromFileData(
-                                ctx,
+                            tex = try ctx.renderer().createTextureFromFileData(
                                 file_data,
                                 .static,
                                 false,
@@ -729,14 +727,14 @@ fn loadNodeTree(
                         assert(accessor.component_type == .r_32f);
                         if (accessor.type == .vec3) {
                             const slice = @as([*]const [3]f32, @ptrFromInt(data_addr))[0..num_vertices];
-                            for (slice) |c| try sm.colors.append(sdl.Color.rgb(
+                            for (slice) |c| try sm.colors.append(jok.Color.rgb(
                                 @intFromFloat(255 * c[0]),
                                 @intFromFloat(255 * c[1]),
                                 @intFromFloat(255 * c[2]),
                             ));
                         } else if (accessor.type == .vec4) {
                             const slice = @as([*]const [4]f32, @ptrFromInt(data_addr))[0..num_vertices];
-                            for (slice) |c| try sm.colors.append(sdl.Color.rgba(
+                            for (slice) |c| try sm.colors.append(jok.Color.rgba(
                                 @intFromFloat(255 * c[0]),
                                 @intFromFloat(255 * c[1]),
                                 @intFromFloat(255 * c[2]),

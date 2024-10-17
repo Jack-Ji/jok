@@ -1,69 +1,68 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const AffineTransform = @import("AffineTransform.zig");
 const imgui = jok.imgui;
 
 pub const QuadImageCmd = struct {
-    texture: sdl.Texture,
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
-    p4: sdl.PointF,
-    uv1: sdl.PointF,
-    uv2: sdl.PointF,
-    uv3: sdl.PointF,
-    uv4: sdl.PointF,
+    texture: jok.Texture,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
+    p4: jok.Point,
+    uv1: jok.Point,
+    uv2: jok.Point,
+    uv3: jok.Point,
+    uv4: jok.Point,
     tint_color: u32,
 };
 
 pub const ImageRoundedCmd = struct {
-    texture: sdl.Texture,
-    pmin: sdl.PointF,
-    pmax: sdl.PointF,
-    uv0: sdl.PointF,
-    uv1: sdl.PointF,
+    texture: jok.Texture,
+    pmin: jok.Point,
+    pmax: jok.Point,
+    uv0: jok.Point,
+    uv1: jok.Point,
     tint_color: u32,
     rounding: f32,
 };
 
 pub const LineCmd = struct {
-    p1: sdl.PointF,
-    p2: sdl.PointF,
+    p1: jok.Point,
+    p2: jok.Point,
     color: u32,
     thickness: f32,
 };
 
 pub const RectRoundedCmd = struct {
-    pmin: sdl.PointF,
-    pmax: sdl.PointF,
+    pmin: jok.Point,
+    pmax: jok.Point,
     color: u32,
     thickness: f32,
     rounding: f32,
 };
 
 pub const RectFillRoundedCmd = struct {
-    pmin: sdl.PointF,
-    pmax: sdl.PointF,
+    pmin: jok.Point,
+    pmax: jok.Point,
     color: u32,
     rounding: f32,
 };
 
 pub const QuadCmd = struct {
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
-    p4: sdl.PointF,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
+    p4: jok.Point,
     color: u32,
     thickness: f32,
 };
 
 pub const QuadFillCmd = struct {
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
-    p4: sdl.PointF,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
+    p4: jok.Point,
     color1: u32,
     color2: u32,
     color3: u32,
@@ -71,24 +70,24 @@ pub const QuadFillCmd = struct {
 };
 
 pub const TriangleCmd = struct {
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
     color: u32,
     thickness: f32,
 };
 
 pub const TriangleFillCmd = struct {
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
     color1: u32,
     color2: u32,
     color3: u32,
 };
 
 pub const CircleCmd = struct {
-    p: sdl.PointF,
+    p: jok.Point,
     radius: f32,
     color: u32,
     thickness: f32,
@@ -96,14 +95,14 @@ pub const CircleCmd = struct {
 };
 
 pub const CircleFillCmd = struct {
-    p: sdl.PointF,
+    p: jok.Point,
     radius: f32,
     color: u32,
     num_segments: u32,
 };
 
 pub const NgonCmd = struct {
-    p: sdl.PointF,
+    p: jok.Point,
     radius: f32,
     color: u32,
     thickness: f32,
@@ -111,47 +110,47 @@ pub const NgonCmd = struct {
 };
 
 pub const NgonFillCmd = struct {
-    p: sdl.PointF,
+    p: jok.Point,
     radius: f32,
     color: u32,
     num_segments: u32,
 };
 
 pub const ConvexPolyCmd = struct {
-    points: std.ArrayList(sdl.Vertex),
+    points: std.ArrayList(jok.Vertex),
     color: u32,
     thickness: f32,
     transform: AffineTransform,
 };
 
 pub const ConvexPolyFillCmd = struct {
-    points: std.ArrayList(sdl.Vertex),
-    texture: ?sdl.Texture,
+    points: std.ArrayList(jok.Vertex),
+    texture: ?jok.Texture,
     transform: AffineTransform,
 };
 
 pub const BezierCubicCmd = struct {
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
-    p4: sdl.PointF,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
+    p4: jok.Point,
     color: u32,
     thickness: f32,
     num_segments: u32,
 };
 
 pub const BezierQuadraticCmd = struct {
-    p1: sdl.PointF,
-    p2: sdl.PointF,
-    p3: sdl.PointF,
+    p1: jok.Point,
+    p2: jok.Point,
+    p3: jok.Point,
     color: u32,
     thickness: f32,
     num_segments: u32,
 };
 
 pub const PolylineCmd = struct {
-    points: std.ArrayList(sdl.PointF),
-    transformed: std.ArrayList(sdl.PointF),
+    points: std.ArrayList(jok.Point),
+    transformed: std.ArrayList(jok.Point),
     color: u32,
     thickness: f32,
     closed: bool,
@@ -160,29 +159,29 @@ pub const PolylineCmd = struct {
 
 pub const PathCmd = struct {
     pub const LineTo = struct {
-        p: sdl.PointF,
+        p: jok.Point,
     };
     pub const ArcTo = struct {
-        p: sdl.PointF,
+        p: jok.Point,
         radius: f32,
         amin: f32,
         amax: f32,
         num_segments: u32,
     };
     pub const BezierCubicTo = struct {
-        p2: sdl.PointF,
-        p3: sdl.PointF,
-        p4: sdl.PointF,
+        p2: jok.Point,
+        p3: jok.Point,
+        p4: jok.Point,
         num_segments: u32,
     };
     pub const BezierQuadraticTo = struct {
-        p2: sdl.PointF,
-        p3: sdl.PointF,
+        p2: jok.Point,
+        p3: jok.Point,
         num_segments: u32,
     };
     pub const RectRounded = struct {
-        pmin: sdl.PointF,
-        pmax: sdl.PointF,
+        pmin: jok.Point,
+        pmax: jok.Point,
         rounding: f32,
     };
     pub const Cmd = union(enum) {
@@ -360,7 +359,7 @@ pub const DrawCmd = struct {
             .convex_polygon => |c| {
                 dl.pathClear();
                 for (c.points.items) |_p| {
-                    const p = c.transform.transformPoint(_p.position);
+                    const p = c.transform.transformPoint(_p.pos);
                     dl.pathLineTo(.{ p.x, p.y });
                 }
                 dl.pathStroke(.{
@@ -383,10 +382,10 @@ pub const DrawCmd = struct {
                 var i: usize = 0;
                 while (i < vtx_count) : (i += 1) {
                     const p = c.points.items[i];
-                    const pos = c.transform.transformPoint(p.position);
+                    const pos = c.transform.transformPoint(p.pos);
                     dl.primWriteVtx(
                         .{ pos.x, pos.y },
-                        if (c.texture != null) .{ p.tex_coord.x, p.tex_coord.y } else white_pixel_uv,
+                        if (c.texture != null) .{ p.texcoord.x, p.texcoord.y } else white_pixel_uv,
                         imgui.sdl.convertColor(p.color),
                     );
                 }

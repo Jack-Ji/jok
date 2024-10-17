@@ -2,7 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const Atlas = @import("Atlas.zig");
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const truetype = jok.stb.truetype;
 const Font = @This();

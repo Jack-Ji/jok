@@ -3,7 +3,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const zmath = jok.zmath;
 const j3d = jok.j3d;
 const internal = @import("internal.zig");
@@ -227,13 +226,15 @@ pub fn calcScreenPosition(
     ctx: jok.Context,
     model: zmath.Mat,
     _coord: ?[3]f32,
-) sdl.PointF {
+) jok.Point {
     const csz = ctx.getCanvasSize();
+    const csz_w = csz.getWidthFloat();
+    const csz_h = csz.getHeightFloat();
     const ndc_to_screen = zmath.loadMat43(&[_]f32{
-        0.5 * csz.x, 0.0,          0.0,
-        0.0,         -0.5 * csz.y, 0.0,
+        0.5 * csz_w, 0.0,          0.0,
+        0.0,         -0.5 * csz_h, 0.0,
         0.0,         0.0,          0.5,
-        0.5 * csz.x, 0.5 * csz.y,  0.5,
+        0.5 * csz_w, 0.5 * csz_h,  0.5,
     });
     const mvp = zmath.mul(model, self.getViewProjectMatrix());
     const coord = if (_coord) |c|

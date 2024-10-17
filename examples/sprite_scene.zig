@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const j2d = jok.j2d;
 
@@ -19,8 +18,8 @@ pub fn init(ctx: jok.Context) !void {
     sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
         "images",
-        @intFromFloat(size.x),
-        @intFromFloat(size.y),
+        @intFromFloat(size.getWidthFloat()),
+        @intFromFloat(size.getHeightFloat()),
         .{},
     );
     scene = try j2d.Scene.create(ctx.allocator());
@@ -41,7 +40,7 @@ pub fn init(ctx: jok.Context) !void {
     try scene.root.addChild(ogre1);
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -51,11 +50,11 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(sdl.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
 
     ogre1.setRenderOptions(.{
         .pos = .{ .x = 400, .y = 300 },
-        .tint_color = sdl.Color.rgb(255, 0, 0),
+        .tint_color = jok.Color.rgb(255, 0, 0),
         .scale = .{
             .x = 4 + 2 * @cos(ctx.seconds()),
             .y = 4 + 2 * @sin(ctx.seconds()),

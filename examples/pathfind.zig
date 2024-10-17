@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const font = jok.font;
 const zmath = jok.zmath;
 const imgui = jok.imgui;
@@ -101,10 +100,10 @@ pub fn init(ctx: jok.Context) !void {
     searched_blocks = try std.DynamicBitSet.initEmpty(ctx.allocator(), 10000);
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     if (e == .mouse_button_down) {
-        const x: usize = @intCast(@divTrunc(e.mouse_button_down.x, cell_size));
-        const y: usize = @intCast(@divTrunc(e.mouse_button_down.y, cell_size));
+        const x: usize = @divTrunc(@as(usize, @intFromFloat(e.mouse_button_down.pos.x)), cell_size);
+        const y: usize = @divTrunc(@as(usize, @intFromFloat(e.mouse_button_down.pos.y)), cell_size);
         const dst = y * graph_width + x;
         if (path) |p| p.deinit();
         searched_blocks.setRangeValue(.{ .start = 0, .end = 10000 }, false);
@@ -123,7 +122,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(null);
+    try ctx.renderer().clear(null);
 
     j2d.begin(.{});
     defer j2d.end();
@@ -135,7 +134,7 @@ pub fn draw(ctx: jok.Context) !void {
                     .y = @floatFromInt(cell_size * i),
                     .width = cell_size,
                     .height = cell_size,
-                }, sdl.Color.white, .{});
+                }, jok.Color.white, .{});
             }
         }
     }
@@ -149,7 +148,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .y = @floatFromInt(cell_size * y),
                 .width = cell_size,
                 .height = cell_size,
-            }, sdl.Color.rgb(200, 255, 200), .{});
+            }, jok.Color.rgb(200, 255, 200), .{});
         }
     }
     {
@@ -158,14 +157,14 @@ pub fn draw(ctx: jok.Context) !void {
         try j2d.circleFilled(.{
             .x = @floatFromInt(cell_size * x + cell_size / 2),
             .y = @floatFromInt(cell_size * y + cell_size / 2),
-        }, 5, sdl.Color.blue, .{});
+        }, 5, jok.Color.blue, .{});
     }
     if (path) |p| {
         const dst = p.items[p.items.len - 1];
         try j2d.circleFilled(.{
             .x = @floatFromInt(dst % graph_width * cell_size + cell_size / 2),
             .y = @floatFromInt(dst / graph_width * cell_size + cell_size / 2),
-        }, 5, sdl.Color.red, .{});
+        }, 5, jok.Color.red, .{});
 
         if (source != dst) {
             source_update_time -= ctx.deltaSeconds();
@@ -188,7 +187,7 @@ pub fn draw(ctx: jok.Context) !void {
                         .x = @floatFromInt(cell_size * x + cell_size / 2),
                         .y = @floatFromInt(cell_size * y + cell_size / 2),
                     },
-                    sdl.Color.magenta,
+                    jok.Color.magenta,
                     .{},
                 );
                 last_x = x;

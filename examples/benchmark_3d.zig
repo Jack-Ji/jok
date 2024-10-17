@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const font = jok.font;
 const j3d = jok.j3d;
@@ -13,7 +12,7 @@ pub const jok_window_resizable = true;
 var camera: j3d.Camera = undefined;
 var cube: zmesh.Shape = undefined;
 var aabb: [6]f32 = undefined;
-var tex: sdl.Texture = undefined;
+var tex: jok.Texture = undefined;
 var translations: std.ArrayList(zmath.Mat) = undefined;
 var rotation_axises: std.ArrayList(zmath.Vec) = undefined;
 var texcoords = [_][2]f32{
@@ -55,8 +54,8 @@ pub fn init(ctx: jok.Context) !void {
     cube.texcoords = texcoords[0..];
     aabb = cube.computeAabb();
 
-    tex = try jok.utils.gfx.createTextureFromFile(
-        ctx,
+    tex = try ctx.renderer().createTextureFromFile(
+        ctx.allocator(),
         "images/image5.jpg",
         .static,
         false,
@@ -81,7 +80,7 @@ pub fn init(ctx: jok.Context) !void {
     }
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -90,34 +89,35 @@ pub fn update(ctx: jok.Context) !void {
     // camera movement
     const distance = ctx.deltaSeconds() * 2;
     const angle = std.math.pi * ctx.deltaSeconds() / 2;
-    if (ctx.isKeyPressed(.w)) {
+    const kbd = jok.io.getKeyboardState();
+    if (kbd.isPressed(.w)) {
         camera.moveBy(.forward, distance);
     }
-    if (ctx.isKeyPressed(.s)) {
+    if (kbd.isPressed(.s)) {
         camera.moveBy(.backward, distance);
     }
-    if (ctx.isKeyPressed(.a)) {
+    if (kbd.isPressed(.a)) {
         camera.moveBy(.left, distance);
     }
-    if (ctx.isKeyPressed(.d)) {
+    if (kbd.isPressed(.d)) {
         camera.moveBy(.right, distance);
     }
-    if (ctx.isKeyPressed(.left)) {
+    if (kbd.isPressed(.left)) {
         camera.rotateBy(0, -angle);
     }
-    if (ctx.isKeyPressed(.right)) {
+    if (kbd.isPressed(.right)) {
         camera.rotateBy(0, angle);
     }
-    if (ctx.isKeyPressed(.up)) {
+    if (kbd.isPressed(.up)) {
         camera.rotateBy(angle, 0);
     }
-    if (ctx.isKeyPressed(.down)) {
+    if (kbd.isPressed(.down)) {
         camera.rotateBy(-angle, 0);
     }
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(sdl.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
     {

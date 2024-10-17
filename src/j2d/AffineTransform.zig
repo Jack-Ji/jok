@@ -5,7 +5,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const zmath = jok.zmath;
 const Self = @This();
 
@@ -22,12 +21,12 @@ pub fn clone(self: Self) Self {
     return cloned;
 }
 
-pub fn transformPoint(self: Self, p: sdl.PointF) sdl.PointF {
+pub fn transformPoint(self: Self, p: jok.Point) jok.Point {
     const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.mat);
     return .{ .x = v[0], .y = v[1] };
 }
 
-pub fn inverseTransformPoint(self: Self, p: sdl.PointF) sdl.PointF {
+pub fn inverseTransformPoint(self: Self, p: jok.Point) jok.Point {
     const mat = zmath.inverse(self.mat);
     const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), mat);
     return .{ .x = v[0], .y = v[1] };
@@ -41,7 +40,7 @@ pub fn setToIdentity(self: *Self) void {
     self.mat = zmath.identity();
 }
 
-pub fn setToTranslate(self: *Self, t: sdl.PointF) void {
+pub fn setToTranslate(self: *Self, t: jok.Point) void {
     self.mat = zmath.translation(t.x, t.y, 0);
 }
 
@@ -53,7 +52,7 @@ pub fn setToTranslateY(self: *Self, t: f32) void {
     self.mat = zmath.translation(0, t, 0);
 }
 
-pub fn setToScale(self: *Self, s: sdl.PointF) void {
+pub fn setToScale(self: *Self, s: jok.Point) void {
     self.mat = zmath.scaling(s.x, s.y, 0);
 }
 
@@ -69,7 +68,7 @@ pub fn setToRotateByOrigin(self: *Self, radian: f32) void {
     self.mat = zmath.rotationZ(radian);
 }
 
-pub fn setToRotateByPoint(self: *Self, p: sdl.PointF, radian: f32) void {
+pub fn setToRotateByPoint(self: *Self, p: jok.Point, radian: f32) void {
     self.mat = zmath.mul(
         zmath.mul(
             zmath.translation(-p.x, -p.y, 0),
@@ -79,11 +78,11 @@ pub fn setToRotateByPoint(self: *Self, p: sdl.PointF, radian: f32) void {
     );
 }
 
-pub fn setToRotateToVec(self: *Self, v: sdl.PointF) void {
+pub fn setToRotateToVec(self: *Self, v: jok.Point) void {
     self.mat = zmath.rotationZ(math.atan2(f32, v.y, v.x));
 }
 
-pub fn setToRotateToVecByPoint(self: *Self, p: sdl.PointF, v: sdl.PointF) void {
+pub fn setToRotateToVecByPoint(self: *Self, p: jok.Point, v: jok.Point) void {
     self.mat = zmath.mul(
         zmath.mul(
             zmath.translation(-p.x, -p.y, 0),
@@ -93,7 +92,7 @@ pub fn setToRotateToVecByPoint(self: *Self, p: sdl.PointF, v: sdl.PointF) void {
     );
 }
 
-pub fn translate(self: *Self, t: sdl.PointF) void {
+pub fn translate(self: *Self, t: jok.Point) void {
     self.mat = zmath.mul(self.mat, zmath.translation(t.x, t.y, 0));
 }
 
@@ -105,7 +104,7 @@ pub fn translateY(self: *Self, t: f32) void {
     self.mat = zmath.mul(self.mat, zmath.translation(0, t, 0));
 }
 
-pub fn scale(self: *Self, s: sdl.PointF) void {
+pub fn scale(self: *Self, s: jok.Point) void {
     self.mat = zmath.mul(self.mat, zmath.scaling(s.x, s.y, 0));
 }
 
@@ -121,7 +120,7 @@ pub fn rotateByOrigin(self: *Self, radian: f32) void {
     self.mat = zmath.mul(self.mat, zmath.rotationZ(radian));
 }
 
-pub fn rotateByPoint(self: *Self, p: sdl.PointF, radian: f32) void {
+pub fn rotateByPoint(self: *Self, p: jok.Point, radian: f32) void {
     self.mat = zmath.mul(
         self.mat,
         zmath.mul(
@@ -134,11 +133,11 @@ pub fn rotateByPoint(self: *Self, p: sdl.PointF, radian: f32) void {
     );
 }
 
-pub fn rotateToVec(self: *Self, v: sdl.PointF) void {
+pub fn rotateToVec(self: *Self, v: jok.Point) void {
     self.mat = zmath.mul(self.mat, zmath.rotationZ(math.atan2(f32, v.y, v.x)));
 }
 
-pub fn rotateToVecByPoint(self: *Self, v: sdl.PointF, p: sdl.PointF) void {
+pub fn rotateToVecByPoint(self: *Self, v: jok.Point, p: jok.Point) void {
     self.mat = zmath.mul(
         self.mat,
         zmath.mul(
@@ -151,7 +150,7 @@ pub fn rotateToVecByPoint(self: *Self, v: sdl.PointF, p: sdl.PointF) void {
     );
 }
 
-pub fn getTranslation(self: Self) sdl.PointF {
+pub fn getTranslation(self: Self) jok.Point {
     const v = zmath.util.getTranslationVec(self.mat);
     return .{ .x = v[0], .y = v[1] };
 }
@@ -166,7 +165,7 @@ pub fn getTranslationY(self: Self) f32 {
     return v[1];
 }
 
-pub fn getScale(self: Self) sdl.PointF {
+pub fn getScale(self: Self) jok.Point {
     const v = zmath.util.getScaleVec(self.mat);
     return .{ .x = v[0], .y = v[1] };
 }

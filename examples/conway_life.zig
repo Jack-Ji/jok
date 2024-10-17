@@ -1,12 +1,11 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const j2d = jok.j2d;
 
 const Cell = struct {
-    rect: sdl.RectangleF,
+    rect: jok.Rectangle,
     alive: bool,
-    color: sdl.Color,
+    color: jok.Color,
 };
 
 const cell_size = 5;
@@ -35,13 +34,13 @@ pub fn init(ctx: jok.Context) !void {
                     .height = @floatFromInt(cell_size),
                 },
                 .alive = alive,
-                .color = if (alive) sdl.Color.white else sdl.Color.black,
+                .color = if (alive) jok.Color.white else jok.Color.black,
             };
         }
     }
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -77,7 +76,7 @@ pub fn update(ctx: jok.Context) !void {
                 switch (alive_neighbour) {
                     0, 1, 4, 5, 6, 7, 8 => {
                         next[_y][_x].alive = false;
-                        next[_y][_x].color = sdl.Color.black;
+                        next[_y][_x].color = jok.Color.black;
                     },
                     2 => {
                         // nothing to do here
@@ -85,7 +84,7 @@ pub fn update(ctx: jok.Context) !void {
                     3 => {
                         if (!c.alive) {
                             next[_y][_x].alive = true;
-                            next[_y][_x].color = sdl.Color.white;
+                            next[_y][_x].color = jok.Color.white;
                         }
                     },
                     else => unreachable,
@@ -97,7 +96,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(null);
+    try ctx.renderer().clear(null);
 
     j2d.begin(.{});
     defer j2d.end();

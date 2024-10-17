@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("../../jok.zig");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const builtin = @import("builtin");
 
@@ -11,9 +10,7 @@ pub const Error = error{
 // Rasterized SVG bitmap (RGBA format)
 pub const SvgBitmap = struct {
     allocator: std.mem.Allocator,
-    width: u32,
-    height: u32,
-    format: sdl.PixelFormatEnum,
+    size: jok.Size,
     pixels: []u8,
 
     pub fn destroy(self: *SvgBitmap) void {
@@ -79,12 +76,7 @@ pub fn createBitmapFromData(
             const pixels = try allocator.alloc(u8, w * h * 4);
             const svg = SvgBitmap{
                 .allocator = allocator,
-                .width = w,
-                .height = h,
-                .format = if (builtin.cpu.arch.endian() == .big)
-                    .rgba8888
-                else
-                    .abgr8888,
+                .size = .{ .width = w, .height = h },
                 .pixels = pixels,
             };
 
@@ -95,9 +87,9 @@ pub fn createBitmapFromData(
                 0,
                 scale,
                 svg.pixels.ptr,
-                @intCast(svg.width),
-                @intCast(svg.height),
-                @intCast(svg.width * 4),
+                @intCast(svg.size.width),
+                @intCast(svg.size.height),
+                @intCast(svg.size.width * 4),
             );
 
             return svg;

@@ -3,7 +3,6 @@ const assert = std.debug.assert;
 const math = std.math;
 const builtin = @import("builtin");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const imgui = jok.imgui;
 const znoise = jok.znoise;
 const zmath = jok.zmath;
@@ -62,7 +61,7 @@ pub fn init(ctx: jok.Context) !void {
     terran.computeNormals();
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     const S = struct {
         var fullscreen = false;
     };
@@ -93,34 +92,35 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 pub fn update(ctx: jok.Context) !void {
     // camera movement
     const distance = ctx.deltaSeconds() * 20;
-    if (ctx.isKeyPressed(.w)) {
+    const kbd = jok.io.getKeyboardState();
+    if (kbd.isPressed(.w)) {
         camera.moveBy(.forward, distance);
     }
-    if (ctx.isKeyPressed(.s)) {
+    if (kbd.isPressed(.s)) {
         camera.moveBy(.backward, distance);
     }
-    if (ctx.isKeyPressed(.a)) {
+    if (kbd.isPressed(.a)) {
         camera.moveBy(.left, distance);
     }
-    if (ctx.isKeyPressed(.d)) {
+    if (kbd.isPressed(.d)) {
         camera.moveBy(.right, distance);
     }
-    if (ctx.isKeyPressed(.left)) {
+    if (kbd.isPressed(.left)) {
         camera.rotateBy(0, -std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.right)) {
+    if (kbd.isPressed(.right)) {
         camera.rotateBy(0, std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.up)) {
+    if (kbd.isPressed(.up)) {
         camera.rotateBy(std.math.pi / 180.0, 0);
     }
-    if (ctx.isKeyPressed(.down)) {
+    if (kbd.isPressed(.down)) {
         camera.rotateBy(-std.math.pi / 180.0, 0);
     }
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(sdl.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
     if (imgui.begin("Control Panel", .{})) {
@@ -176,7 +176,7 @@ pub fn draw(ctx: jok.Context) !void {
     j3d.begin(.{
         .camera = camera,
         .triangle_sort = .simple,
-        .wireframe_color = if (wireframe) sdl.Color.green else null,
+        .wireframe_color = if (wireframe) jok.Color.green else null,
     });
     defer j3d.end();
     try j3d.shape(
@@ -185,7 +185,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = sdl.Color.rgb(130, 160, 190),
+            .color = jok.Color.rgb(130, 160, 190),
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -197,7 +197,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .rdopt = .{
                 .lighting = lighting_opt,
-                .color = sdl.Color.red,
+                .color = jok.Color.red,
                 .shading_method = @enumFromInt(shading_method),
             },
         },
@@ -210,7 +210,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .rdopt = .{
                 .lighting = lighting_opt,
-                .color = sdl.Color.green,
+                .color = jok.Color.green,
                 .shading_method = @enumFromInt(shading_method),
             },
         },
@@ -223,7 +223,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .rdopt = .{
                 .lighting = lighting_opt,
-                .color = sdl.Color.green,
+                .color = jok.Color.green,
                 .shading_method = @enumFromInt(shading_method),
             },
         },
@@ -236,7 +236,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .rdopt = .{
                 .lighting = lighting_opt,
-                .color = sdl.Color.green,
+                .color = jok.Color.green,
                 .shading_method = @enumFromInt(shading_method),
             },
         },
@@ -252,7 +252,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .rdopt = .{
                 .lighting = lighting_opt,
-                .color = sdl.Color.blue,
+                .color = jok.Color.blue,
                 .shading_method = @enumFromInt(shading_method),
             },
         },
@@ -269,7 +269,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .cull_faces = false,
                 .lighting = lighting_opt,
-                .color = sdl.Color.magenta,
+                .color = jok.Color.magenta,
                 .shading_method = @enumFromInt(shading_method),
             },
         },
@@ -286,7 +286,7 @@ pub fn draw(ctx: jok.Context) !void {
             .rdopt = .{
                 .cull_faces = false,
                 .lighting = lighting_opt,
-                .color = sdl.Color.yellow,
+                .color = jok.Color.yellow,
                 .shading_method = @enumFromInt(shading_method),
             },
         },
@@ -299,7 +299,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .rdopt = .{
                 .lighting = lighting_opt,
-                .color = sdl.Color.white,
+                .color = jok.Color.white,
                 .shading_method = @enumFromInt(shading_method),
             },
         },
@@ -312,7 +312,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .rdopt = .{
                 .lighting = lighting_opt,
-                .color = sdl.Color.rgb(150, 160, 190),
+                .color = jok.Color.rgb(150, 160, 190),
                 .shading_method = @enumFromInt(shading_method),
             },
         },
@@ -325,7 +325,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .rdopt = .{
                 .lighting = lighting_opt,
-                .color = sdl.Color.rgb(180, 170, 190),
+                .color = jok.Color.rgb(180, 170, 190),
                 .shading_method = @enumFromInt(shading_method),
             },
         },
@@ -338,7 +338,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .rdopt = .{
                 .lighting = lighting_opt,
-                .color = sdl.Color.rgb(180, 70, 90),
+                .color = jok.Color.rgb(180, 70, 90),
                 .shading_method = @enumFromInt(shading_method),
             },
         },
@@ -351,7 +351,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .rdopt = .{
                 .lighting = lighting_opt,
-                .color = sdl.Color.rgb(230, 230, 50),
+                .color = jok.Color.rgb(230, 230, 50),
                 .shading_method = @enumFromInt(shading_method),
             },
         },
@@ -364,7 +364,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .rdopt = .{
                 .lighting = lighting_opt,
-                .color = sdl.Color.yellow,
+                .color = jok.Color.yellow,
                 .shading_method = @enumFromInt(shading_method),
             },
             .seed = 100,
@@ -381,7 +381,7 @@ pub fn draw(ctx: jok.Context) !void {
             zmath.translation(light_pos1[0], light_pos1[1], light_pos1[2]),
             .{
                 .rdopt = .{
-                    .color = sdl.Color.rgb(
+                    .color = jok.Color.rgb(
                         @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[0] * 255),
                         @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[1] * 255),
                         @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[2] * 255),
@@ -393,7 +393,7 @@ pub fn draw(ctx: jok.Context) !void {
             zmath.translation(light_pos2[0], light_pos2[1], light_pos2[2]),
             .{
                 .rdopt = .{
-                    .color = sdl.Color.rgb(
+                    .color = jok.Color.rgb(
                         @intFromFloat(lighting_opt.?.lights[1].point.diffuse[0] * 255),
                         @intFromFloat(lighting_opt.?.lights[1].point.diffuse[1] * 255),
                         @intFromFloat(lighting_opt.?.lights[1].point.diffuse[2] * 255),
@@ -411,7 +411,7 @@ pub fn draw(ctx: jok.Context) !void {
             ),
             .{
                 .rdopt = .{
-                    .color = sdl.Color.rgba(
+                    .color = jok.Color.rgba(
                         @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[0] * 255),
                         @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[1] * 255),
                         @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[2] * 255),

@@ -2,7 +2,6 @@
 const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
-const sdl = jok.sdl;
 const imgui = jok.imgui;
 const nfd = jok.nfd;
 const j2d = jok.j2d;
@@ -89,7 +88,7 @@ const Point = struct {
     vy: f32 = 0,
 
     // color,
-    color: sdl.Color = sdl.Color.black,
+    color: jok.Color = jok.Color.black,
 
     fn draw(p: Point) !void {
         try j2d.circleFilled(
@@ -128,7 +127,7 @@ fn createPoints(allocator: std.mem.Allocator, n: i32, r: u8, g: u8, b: u8) !std.
         ps.appendAssumeCapacity(.{
             .x = randomRange(f32, 200, 1000),
             .y = randomRange(f32, 50, 750),
-            .color = sdl.Color.rgb(r, g, b),
+            .color = jok.Color.rgb(r, g, b),
         });
     }
     return ps;
@@ -559,14 +558,14 @@ fn renderSimulation() !void {
         try j2d.circleFilled(
             .{ .x = xshift, .y = yshift },
             150,
-            sdl.Color.black,
+            jok.Color.black,
             .{},
         );
 
         try j2d.line(
             .{ .x = p1x, .y = p1y - 10 },
             .{ .x = p2x, .y = p2y - 10 },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_gr),
                 @intFromFloat(150 + power_gr),
                 150,
@@ -578,7 +577,7 @@ fn renderSimulation() !void {
         try j2d.line(
             .{ .x = p1x, .y = p1y + 10 },
             .{ .x = p2x, .y = p2y + 10 },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_rg),
                 @intFromFloat(150 + power_rg),
                 150,
@@ -590,7 +589,7 @@ fn renderSimulation() !void {
         try j2d.line(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p1x, .y = p1y - 10 },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_gw),
                 @intFromFloat(150 + power_gw),
                 150,
@@ -602,7 +601,7 @@ fn renderSimulation() !void {
         try j2d.line(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p1x, .y = p1y + 10 },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_wg),
                 @intFromFloat(150 + power_wg),
                 150,
@@ -615,7 +614,7 @@ fn renderSimulation() !void {
         try j2d.line(
             .{ .x = p4x - 10, .y = p4y },
             .{ .x = p1x - 10, .y = p1y },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_gb),
                 @intFromFloat(150 + power_gb),
                 150,
@@ -627,7 +626,7 @@ fn renderSimulation() !void {
         try j2d.line(
             .{ .x = p4x + 10, .y = p4y },
             .{ .x = p1x + 10, .y = p1y },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_bg),
                 @intFromFloat(150 + power_bg),
                 150,
@@ -640,7 +639,7 @@ fn renderSimulation() !void {
         try j2d.line(
             .{ .x = p2x - 10, .y = p2y },
             .{ .x = p3x - 10, .y = p3y },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_rw),
                 @intFromFloat(150 + power_rw),
                 150,
@@ -652,7 +651,7 @@ fn renderSimulation() !void {
         try j2d.line(
             .{ .x = p2x + 10, .y = p2y },
             .{ .x = p3x + 10, .y = p3y },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_wr),
                 @intFromFloat(150 + power_wr),
                 150,
@@ -665,7 +664,7 @@ fn renderSimulation() !void {
         try j2d.line(
             .{ .x = p2x, .y = p2y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_rb),
                 @intFromFloat(150 + power_rb),
                 150,
@@ -677,7 +676,7 @@ fn renderSimulation() !void {
         try j2d.line(
             .{ .x = p2x, .y = p2y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_br),
                 @intFromFloat(150 + power_br),
                 150,
@@ -690,7 +689,7 @@ fn renderSimulation() !void {
         try j2d.line(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_wb),
                 @intFromFloat(150 + power_wb),
                 150,
@@ -702,7 +701,7 @@ fn renderSimulation() !void {
         try j2d.line(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_bw),
                 @intFromFloat(150 + power_bw),
                 150,
@@ -715,7 +714,7 @@ fn renderSimulation() !void {
         try j2d.circle(
             .{ .x = p1x - 20, .y = p1y - 20 },
             rr + 20,
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_gg),
                 @intFromFloat(150 + power_gg),
                 150,
@@ -727,7 +726,7 @@ fn renderSimulation() !void {
         try j2d.circle(
             .{ .x = p2x + 20, .y = p2y - 20 },
             rr + 20,
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_rr),
                 @intFromFloat(150 + power_rr),
                 150,
@@ -739,7 +738,7 @@ fn renderSimulation() !void {
         try j2d.circle(
             .{ .x = p3x + 20, .y = p3y + 20 },
             rr + 20,
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_ww),
                 @intFromFloat(150 + power_ww),
                 150,
@@ -751,7 +750,7 @@ fn renderSimulation() !void {
         try j2d.circle(
             .{ .x = p4x - 20, .y = p4y + 20 },
             rr + 20,
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @intFromFloat(150 - power_bb),
                 @intFromFloat(150 + power_bb),
                 150,
@@ -764,25 +763,25 @@ fn renderSimulation() !void {
         try j2d.circleFilled(
             .{ .x = p1x, .y = p1y },
             rr,
-            sdl.Color.rgb(100, 250, 10),
+            jok.Color.rgb(100, 250, 10),
             .{},
         );
         try j2d.circleFilled(
             .{ .x = p2x, .y = p2y },
             rr,
-            sdl.Color.rgb(250, 10, 100),
+            jok.Color.rgb(250, 10, 100),
             .{},
         );
         try j2d.circleFilled(
             .{ .x = p3x, .y = p3y },
             rr,
-            sdl.Color.rgb(250, 250, 250),
+            jok.Color.rgb(250, 250, 250),
             .{},
         );
         try j2d.circleFilled(
             .{ .x = p4x, .y = p4y },
             rr,
-            sdl.Color.rgb(100, 100, 250),
+            jok.Color.rgb(100, 100, 250),
             .{},
         );
     }
@@ -799,7 +798,7 @@ pub fn init(ctx: jok.Context) !void {
     try restart(ctx.allocator());
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -809,7 +808,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(null);
+    try ctx.renderer().clear(null);
     ctx.displayStats(.{});
 
     if (number_w > 0) {

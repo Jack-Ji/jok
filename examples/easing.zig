@@ -1,6 +1,5 @@
 const std = @import("std");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const j2d = jok.j2d;
 const easing = jok.utils.easing;
 
@@ -8,12 +7,12 @@ pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 800, .height = 800 },
 };
 
-var point_easing_system: *easing.EasingSystem(sdl.PointF) = undefined;
+var point_easing_system: *easing.EasingSystem(jok.Point) = undefined;
 var blocks: [31]EasingBlock = undefined;
 var easing_over_time_accu: f32 = 0;
 
 const EasingBlock = struct {
-    pos: sdl.PointF,
+    pos: jok.Point,
 
     fn draw(self: @This()) !void {
         try j2d.rectRoundedFilled(.{
@@ -21,18 +20,18 @@ const EasingBlock = struct {
             .y = self.pos.y,
             .width = 20,
             .height = 20,
-        }, sdl.Color.white, .{});
+        }, jok.Color.white, .{});
     }
 };
 
 pub fn init(ctx: jok.Context) !void {
     point_easing_system =
-        try easing.EasingSystem(sdl.PointF).create(ctx.allocator());
+        try easing.EasingSystem(jok.Point).create(ctx.allocator());
     for (&blocks, 0..) |*b, i| {
         try point_easing_system.add(
             &b.pos,
             @enumFromInt(@as(u8, @intCast(i))),
-            easing.easePointF,
+            easing.easePoint,
             2,
             .{
                 .x = 150,
@@ -46,7 +45,7 @@ pub fn init(ctx: jok.Context) !void {
     }
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -60,7 +59,7 @@ pub fn update(ctx: jok.Context) !void {
                 try point_easing_system.add(
                     &b.pos,
                     @enumFromInt(@as(u8, @intCast(i))),
-                    easing.easePointF,
+                    easing.easePoint,
                     2,
                     .{
                         .x = 150,
@@ -78,7 +77,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(null);
+    try ctx.renderer().clear(null);
 
     j2d.begin(.{});
     defer j2d.end();
@@ -90,7 +89,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .width = 550,
                 .height = 25,
             },
-            sdl.Color.rgb(
+            jok.Color.rgb(
                 @as(u8, @intCast(i)) * 4,
                 @as(u8, @intCast(i)) * 4,
                 @as(u8, @intCast(i)) * 4,
@@ -109,7 +108,7 @@ pub fn draw(ctx: jok.Context) !void {
         try j2d.line(
             .{ .x = 0, .y = @as(f32, @floatFromInt(i)) * 25 + 20 },
             .{ .x = 750, .y = @as(f32, @floatFromInt(i)) * 25 + 20 },
-            sdl.Color.white,
+            jok.Color.white,
             .{},
         );
     }

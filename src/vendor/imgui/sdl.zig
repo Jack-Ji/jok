@@ -51,8 +51,8 @@ pub fn newFrame(ctx: jok.Context) void {
 
     const fbsize = ctx.renderer().getOutputSize() catch unreachable;
     imgui.io.setDisplaySize(
-        @floatFromInt(fbsize.width_pixels),
-        @floatFromInt(fbsize.height_pixels),
+        fbsize.getWidthFloat(),
+        fbsize.getHeightFloat(),
     );
     imgui.io.setDisplayFramebufferScale(1.0, 1.0);
 
@@ -65,7 +65,7 @@ pub fn draw(ctx: jok.Context) void {
     ImGui_ImplSDLRenderer2_RenderDrawData(imgui.getDrawData(), renderer.ptr);
 }
 
-pub fn processEvent(event: sdl.c.SDL_Event) bool {
+pub fn processEvent(event: sdl.SDL_Event) bool {
     return ImGui_ImplSDL2_ProcessEvent(&event);
 }
 
@@ -86,11 +86,11 @@ pub fn renderDrawList(ctx: jok.Context, dl: zgui.DrawList) void {
         if (cmd.user_callback != null or cmd.elem_count == 0) continue;
 
         // Apply clip rect
-        var clip_rect: sdl.Rectangle = undefined;
-        clip_rect.x = @intFromFloat(@max(0.0, cmd.clip_rect[0]));
-        clip_rect.y = @intFromFloat(@max(0.0, cmd.clip_rect[1]));
-        clip_rect.width = @intFromFloat(@min(csz.x - cmd.clip_rect[0], cmd.clip_rect[2] - cmd.clip_rect[0]));
-        clip_rect.height = @intFromFloat(@min(csz.y - cmd.clip_rect[1], cmd.clip_rect[3] - cmd.clip_rect[1]));
+        var clip_rect: jok.Rectangle = undefined;
+        clip_rect.x = @max(0.0, cmd.clip_rect[0]);
+        clip_rect.y = @max(0.0, cmd.clip_rect[1]);
+        clip_rect.width = @min(@as(f32, @floatFromInt(csz.width)) - cmd.clip_rect[0], cmd.clip_rect[2] - cmd.clip_rect[0]);
+        clip_rect.height = @min(@as(f32, @floatFromInt(csz.height)) - cmd.clip_rect[1], cmd.clip_rect[3] - cmd.clip_rect[1]);
         if (clip_rect.width <= 0 or clip_rect.height <= 0) continue;
         rd.setClipRect(clip_rect) catch unreachable;
 
@@ -100,12 +100,12 @@ pub fn renderDrawList(ctx: jok.Context, dl: zgui.DrawList) void {
         const cs = @intFromPtr(vs_ptr + @as(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "color");
         const is = @intFromPtr(is_ptr + cmd.idx_offset);
         const tex = cmd.texture_id;
-        _ = sdl.c.SDL_RenderGeometryRaw(
+        _ = sdl.SDL_RenderGeometryRaw(
             rd.ptr,
-            @as(?*sdl.c.SDL_Texture, @ptrCast(tex)),
+            @as(?*sdl.SDL_Texture, @ptrCast(tex)),
             @as([*c]const f32, @ptrFromInt(xy)),
             @sizeOf(imgui.DrawVert),
-            @as([*c]const sdl.c.SDL_Color, @ptrFromInt(cs)),
+            @as([*c]const sdl.SDL_Color, @ptrFromInt(cs)),
             @sizeOf(imgui.DrawVert),
             @as([*c]const f32, @ptrFromInt(uv)),
             @sizeOf(imgui.DrawVert),
@@ -120,7 +120,7 @@ pub fn renderDrawList(ctx: jok.Context, dl: zgui.DrawList) void {
 }
 
 /// Convert SDL color to imgui integer
-pub inline fn convertColor(color: sdl.Color) u32 {
+pub inline fn convertColor(color: jok.Color) u32 {
     return @as(u32, color.r) |
         (@as(u32, color.g) << 8) |
         (@as(u32, color.b) << 16) |

@@ -2,7 +2,6 @@ const std = @import("std");
 const math = std.math;
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
 const internal = @import("internal.zig");
 const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
@@ -19,8 +18,8 @@ pub const Transition = struct {
 };
 
 pub const RenderOption = struct {
-    texture: ?sdl.Texture = null,
-    color: sdl.Color = sdl.Color.white,
+    texture: ?jok.Texture = null,
+    color: jok.Color = jok.Color.white,
     shading_method: ShadingMethod = .gouraud,
     cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,
@@ -79,7 +78,7 @@ pub fn destroy(self: *Self) void {
 
 pub fn render(
     self: *Self,
-    csz: sdl.PointF,
+    csz: jok.Size,
     rdjob: *internal.RenderJob,
     model: zmath.Mat,
     camera: Camera,
@@ -233,7 +232,7 @@ pub fn getDuration(self: *const Self) f32 {
 fn renderNode(
     self: *Self,
     node: *Mesh.Node,
-    csz: sdl.PointF,
+    csz: jok.Size,
     rdjob: *internal.RenderJob,
     model: zmath.Mat,
     camera: Camera,

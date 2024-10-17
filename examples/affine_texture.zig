@@ -3,7 +3,6 @@ const assert = std.debug.assert;
 const math = std.math;
 const builtin = @import("builtin");
 const jok = @import("jok");
-const sdl = jok.sdl;
 const physfs = jok.physfs;
 const imgui = jok.imgui;
 const zmath = jok.zmath;
@@ -16,7 +15,7 @@ var wireframe: bool = true;
 var camera: Camera = undefined;
 var slices: i32 = 1;
 var stacks: i32 = 1;
-var tex: sdl.Texture = undefined;
+var tex: jok.Texture = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -36,15 +35,15 @@ pub fn init(ctx: jok.Context) !void {
         [_]f32{ 0, 0, 0 },
     );
 
-    tex = try jok.utils.gfx.createTextureFromFile(
-        ctx,
+    tex = try ctx.renderer().createTextureFromFile(
+        ctx.allocator(),
         "images/image5.jpg",
         .static,
         true,
     );
 }
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
@@ -52,34 +51,35 @@ pub fn event(ctx: jok.Context, e: sdl.Event) !void {
 pub fn update(ctx: jok.Context) !void {
     // camera movement
     const distance = ctx.deltaSeconds() * 2;
-    if (ctx.isKeyPressed(.w)) {
+    const kbd = jok.io.getKeyboardState();
+    if (kbd.isPressed(.w)) {
         camera.moveBy(.forward, distance);
     }
-    if (ctx.isKeyPressed(.s)) {
+    if (kbd.isPressed(.s)) {
         camera.moveBy(.backward, distance);
     }
-    if (ctx.isKeyPressed(.a)) {
+    if (kbd.isPressed(.a)) {
         camera.moveBy(.left, distance);
     }
-    if (ctx.isKeyPressed(.d)) {
+    if (kbd.isPressed(.d)) {
         camera.moveBy(.right, distance);
     }
-    if (ctx.isKeyPressed(.left)) {
+    if (kbd.isPressed(.left)) {
         camera.rotateBy(0, -std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.right)) {
+    if (kbd.isPressed(.right)) {
         camera.rotateBy(0, std.math.pi / 180.0);
     }
-    if (ctx.isKeyPressed(.up)) {
+    if (kbd.isPressed(.up)) {
         camera.rotateBy(std.math.pi / 180.0, 0);
     }
-    if (ctx.isKeyPressed(.down)) {
+    if (kbd.isPressed(.down)) {
         camera.rotateBy(-std.math.pi / 180.0, 0);
     }
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(sdl.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
 
     if (imgui.begin("Control Panel", .{})) {
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
@@ -113,7 +113,7 @@ pub fn draw(ctx: jok.Context) !void {
     if (wireframe) {
         j3d.begin(.{
             .camera = camera,
-            .wireframe_color = sdl.Color.green,
+            .wireframe_color = jok.Color.green,
         });
         try j3d.plane(mat, plane_opt);
         j3d.end();
