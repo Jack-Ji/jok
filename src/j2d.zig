@@ -32,6 +32,7 @@ pub const BeginOption = struct {
     depth_sort: DepthSortMethod = .none,
     blend_mode: jok.BlendMode = .blend,
     antialiased: bool = true,
+    clip_rect: ?jok.Rectangle = null,
     offscreen_target: ?jok.Texture = null,
     offscreen_clear_color: ?jok.Color = null,
 };
@@ -60,12 +61,19 @@ pub fn deinit() void {
 }
 
 pub fn begin(opt: BeginOption) void {
-    const csz = ctx.getCanvasSize();
     draw_list.reset();
-    draw_list.pushClipRect(.{
-        .pmin = .{ 0, 0 },
-        .pmax = .{ @as(f32, @floatFromInt(csz.width)), @as(f32, @floatFromInt(csz.height)) },
-    });
+    if (opt.clip_rect) |r| {
+        draw_list.pushClipRect(.{
+            .pmin = .{ r.x, r.y },
+            .pmax = .{ r.x + r.width, r.y + r.height },
+        });
+    } else {
+        const csz = ctx.getCanvasSize();
+        draw_list.pushClipRect(.{
+            .pmin = .{ 0, 0 },
+            .pmax = .{ @floatFromInt(csz.width), @floatFromInt(csz.height) },
+        });
+    }
     if (opt.antialiased) {
         draw_list.setDrawListFlags(.{
             .anti_aliased_lines = true,
@@ -157,18 +165,6 @@ pub fn clearMemory() void {
     draw_list.clearMemory();
     draw_commands.clearAndFree();
     all_tex.clearAndFree();
-}
-
-pub fn pushClipRect(r: jok.Rectangle, intersect_with_current: bool) void {
-    draw_list.pushClipRect(.{
-        .pmin = .{ r.x, r.y },
-        .pmax = .{ r.x + r.width, r.y + r.height },
-        .intersect_with_current = intersect_with_current,
-    });
-}
-
-pub fn popClipRect() void {
-    draw_list.popClipRect();
 }
 
 pub fn setTransform(t: AffineTransform) void {

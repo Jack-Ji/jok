@@ -492,16 +492,24 @@ pub const RenderJob = struct {
         ctx: jok.Context,
         wireframe_color: ?jok.Color,
         triangle_sort: j3d.TriangleSort,
+        clip_rect: ?jok.Rectangle,
         recycle_memory: bool,
     ) void {
-        const csz = ctx.getCanvasSize();
         self.wireframe_color = wireframe_color;
         self.triangle_sort = triangle_sort;
         self.dl.reset();
-        self.dl.pushClipRect(.{
-            .pmin = .{ 0, 0 },
-            .pmax = .{ @floatFromInt(csz.width), @floatFromInt(csz.height) },
-        });
+        if (clip_rect) |r| {
+            self.dl.pushClipRect(.{
+                .pmin = .{ r.x, r.y },
+                .pmax = .{ r.x + r.width, r.y + r.height },
+            });
+        } else {
+            const csz = ctx.getCanvasSize();
+            self.dl.pushClipRect(.{
+                .pmin = .{ 0, 0 },
+                .pmax = .{ @floatFromInt(csz.width), @floatFromInt(csz.height) },
+            });
+        }
         self.dl.setDrawListFlags(.{
             .anti_aliased_lines = true,
             .anti_aliased_lines_use_tex = false,

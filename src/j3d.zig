@@ -33,6 +33,7 @@ pub const BeginOption = struct {
     wireframe_color: ?jok.Color = null,
     triangle_sort: TriangleSort = .none,
     blend_mode: jok.BlendMode = .blend,
+    clip_rect: ?jok.Rectangle = null,
     offscreen_target: ?jok.Texture = null,
     offscreen_clear_color: ?jok.Color = null,
 };
@@ -76,7 +77,13 @@ pub fn deinit() void {
 }
 
 pub fn begin(opt: BeginOption) void {
-    rdjob.reset(ctx, opt.wireframe_color, opt.triangle_sort, false);
+    rdjob.reset(
+        ctx,
+        opt.wireframe_color,
+        opt.triangle_sort,
+        opt.clip_rect,
+        false,
+    );
     camera = opt.camera orelse BLK: {
         break :BLK Camera.fromPositionAndTarget(
             .{
