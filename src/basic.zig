@@ -1,9 +1,24 @@
+const std = @import("std");
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
 
 pub const Point = extern struct {
     x: f32,
     y: f32,
+
+    pub inline fn isSame(p0: Point, p1: Point) bool {
+        const tolerance = 0.0001;
+        return std.math.approxEqAbs(f32, p0.x, p1.x, tolerance) and
+            std.math.approxEqAbs(f32, p0.y, p1.y, tolerance);
+    }
+
+    pub inline fn distance2(p0: Point, p1: Point) f32 {
+        return (p0.x - p1.x) * (p0.x - p1.x) + (p0.y - p1.y) * (p0.y - p1.y);
+    }
+
+    pub inline fn distance(p0: Point, p1: Point) f32 {
+        return @sqrt(distance2(p0, p1));
+    }
 };
 
 pub const Size = extern struct {
