@@ -70,15 +70,8 @@ pub fn init(allocator: std.mem.Allocator) void {
     }
 }
 
-/// This closes any files opened via PhysicsFS, blanks the search/write paths,
+/// This closes any files opened via physfs, blanks the search/write paths,
 /// frees memory, and invalidates all of your file handles.
-///
-/// Note that this call can FAIL if there's a file open for writing that
-/// refuses to close (for example, the underlying operating system was
-/// buffering writes to network filesystem, and the fileserver has crashed,
-/// or a hard drive has failed, etc). It is usually best to close all write
-/// handles yourself before calling this function, so that you can gracefully
-/// handle a specific failure.
 pub fn deinit() void {
     if (PHYSFS_deinit() == 0) {
         @panic(getLastErrorCode().toDesc());
@@ -88,8 +81,6 @@ pub fn deinit() void {
 /// Get the "base dir". This is the directory where the application was run
 /// from, which is probably the installation directory, and may or may not
 /// be the process's current working directory.
-///
-/// You should probably use the base dir in your search path.
 pub fn getBaseDir() [*:0]const u8 {
     return PHYSFS_getBaseDir();
 }
@@ -100,7 +91,7 @@ pub fn getBaseDir() [*:0]const u8 {
 ///
 /// This function will decide the appropriate location in the native filesystem,
 /// create the directory if necessary, and return a string in
-/// platform-dependent notation, suitable for passing to PHYSFS_setWriteDir().
+/// platform-dependent notation, suitable for passing to setWriteDir().
 ///
 /// On Windows, this might look like:
 ///  "C:\\Users\\bob\\AppData\\Roaming\\My Company\\My Program Name"
@@ -112,36 +103,6 @@ pub fn getBaseDir() [*:0]const u8 {
 ///  "/Users/bob/Library/Application Support/My Program Name"
 ///
 /// (etc.)
-///
-/// You should probably use the pref dir for your write dir, and also put it
-/// near the beginning of your search path. Older versions of PhysicsFS
-/// offered only PHYSFS_getUserDir() and left you to figure out where the
-/// files should go under that tree. This finds the correct location
-/// for whatever platform, which not only changes between operating systems,
-/// but also versions of the same operating system.
-///
-/// You specify the name of your organization (if it's not a real organization,
-/// your name or an Internet domain you own might do) and the name of your
-/// application. These should be proper names.
-///
-/// Both the (org) and (app) strings may become part of a directory name, so
-/// please follow these rules:
-///
-///   - Try to use the same org string (including case-sensitivity) for
-///     all your applications that use this function.
-///   - Always use a unique app string for each one, and make sure it never
-///     changes for an app once you've decided on it.
-///   - Unicode characters are legal, as long as it's UTF-8 encoded, but...
-///   - ...only use letters, numbers, and spaces. Avoid punctuation like
-///     "Game Name 2: Bad Guy's Revenge!" ... "Game Name 2" is sufficient.
-///
-/// The pointer returned by this function remains valid until you call this
-/// function again, or call PHYSFS_deinit(). This is not necessarily a fast
-/// call, though, so you should call this once at startup and copy the string
-/// if you need it.
-///
-/// You should assume the path returned by this function is the only safe
-/// place to write files.
 pub fn getPrefDir(ctx: jok.Context) [*:0]const u8 {
     if (PHYSFS_getPrefDir(ctx.cfg().jok_pref_org, ctx.cfg().jok_pref_app)) |p| {
         return p;
@@ -158,9 +119,6 @@ pub fn getWriteDir() ?[*:0]const u8 {
 /// New path is specified in platform-dependent notation.
 /// Setting to NULL disables the write dir, so no files can be opened
 /// for writing via PhysicsFS.
-///
-/// This call will fail (and fail to change the write dir) if the current
-/// write dir still has files open in it.
 pub fn setWriteDir(path: ?[*:0]const u8) Error!void {
     if (PHYSFS_setWriteDir(path) == 0) {
         return getLastErrorCode().toError();
@@ -246,13 +204,23 @@ pub fn mount(dir_or_archive: [*:0]const u8, mount_point: [*:0]const u8, append: 
     }
 }
 
+/// Add an archive, contained in a memory buffer, to the search path.
+/// `newDir` must be a unique string to identify this archive.
+pub fn mountMemory(buf: []const u8, new_dir: [*:0]const u8, mount_point: [*:0]const u8, append: bool) Error!void {
+    assert(buf.len > 0);
+    if (PHYSFS_mountMemory(
+        @ptrCast(buf.ptr),
+        buf.len,
+        null,
+        new_dir,
+        mount_point,
+        if (append) 1 else 0,
+    ) == 0) {
+        return getLastErrorCode().toError();
+    }
+}
+
 /// Remove a directory or archive from the search path.
-///
-/// This must be a (case-sensitive) match to a dir or archive already in the
-/// search path, specified in platform-dependent notation.
-///
-/// This call will fail (and fail to remove from the path) if the element still
-/// has files open in it.
 pub fn unmount(dir_or_archive: [*:0]const u8) Error!void {
     if (PHYSFS_unmount(dir_or_archive) == 0) {
         return getLastErrorCode().toError();
@@ -264,13 +232,6 @@ pub fn unmount(dir_or_archive: [*:0]const u8) Error!void {
 /// This is specified in platform-independent notation in relation to the
 /// write dir. All missing parent directories are also created if they
 /// don't exist.
-///
-/// So if you've got the write dir set to "C:\mygame\writedir" and call
-/// PHYSFS_mkdir("downloads/maps") then the directories
-/// "C:\mygame\writedir\downloads" and "C:\mygame\writedir\downloads\maps"
-/// will be created if possible. If the creation of "maps" fails after we
-/// have successfully created "downloads", then the function leaves the
-/// created directory behind and reports failure.
 pub fn mkdir(dirname: [*:0]const u8) Error!void {
     if (PHYSFS_mkdir(dirname) == 0) {
         return getLastErrorCode().toError();
@@ -278,28 +239,8 @@ pub fn mkdir(dirname: [*:0]const u8) Error!void {
 }
 
 /// Delete a file or directory.
-///
-/// (filename) is specified in platform-independent notation in relation to the
-/// write dir.
-///
-/// A directory must be empty before this call can delete it.
-///
-/// Deleting a symlink will remove the link, not what it points to, regardless
-/// of whether you "permitSymLinks" or not.
-///
-/// So if you've got the write dir set to "C:\mygame\writedir" and call
-/// PHYSFS_delete("downloads/maps/level1.map") then the file
-/// "C:\mygame\writedir\downloads\maps\level1.map" is removed from the
-/// physical filesystem, if it exists and the operating system permits the
-/// deletion.
-///
-/// Note that on Unix systems, deleting a file may be successful, but the
-/// actual file won't be removed until all processes that have an open
-/// filehandle to it (including your program) close their handles.
-///
-/// Chances are, the bits that make up the file still exist, they are just
-/// made available to be written over at a later point. Don't consider this
-/// a security method or anything.  :)
+/// `filename` is specified in platform-independent notation in relation to the
+/// write dir. A directory must be empty before this call can delete it.
 pub fn delete(filename: [*:0]const u8) Error!void {
     if (PHYSFS_delete(filename) == 0) {
         return getLastErrorCode().toError();
@@ -307,25 +248,11 @@ pub fn delete(filename: [*:0]const u8) Error!void {
 }
 
 /// Figure out where in the search path a file resides.
-///
 /// The file is specified in platform-independent notation. The returned
 /// filename will be the element of the search path where the file was found,
 /// which may be a directory, or an archive. Even if there are multiple
 /// matches in different parts of the search path, only the first one found
 /// is used, just like when opening a file.
-///
-/// So, if you look for "maps/level1.map", and C:\\mygame is in your search
-/// path and C:\\mygame\\maps\\level1.map exists, then "C:\mygame" is returned.
-///
-/// If a any part of a match is a symbolic link, and you've not explicitly
-/// permitted symlinks, then it will be ignored, and the search for a match
-/// will continue.
-///
-/// If you specify a fake directory that only exists as a mount point, it'll
-/// be associated with the first archive mounted there, even though that
-/// directory isn't necessarily contained in a real archive.
-///
-/// This will return NULL if there is no real directory associated with (filename).
 pub fn getRealDir(filename: [*:0]const u8) ?[*:0]const u8 {
     return PHYSFS_getRealDir(filename);
 }
@@ -511,8 +438,8 @@ pub const File = struct {
     /// will be allocated and associated with (handle).
     ///
     /// For files opened for reading, up to (bufsize) bytes are read from (handle)
-    /// and stored in the internal buffer. Calls to PHYSFS_read() will pull
-    /// from this buffer until it is empty, and then refill it for more reading.
+    /// and stored in the internal buffer. Calls to read() will pull from this
+    /// buffer until it is empty, and then refill it for more reading.
     /// Note that compressed files, like ZIP archives, will decompress while
     /// buffering, so this can be handy for offsetting CPU-intensive operations.
     /// The buffer isn't filled until you do your next read.
@@ -889,6 +816,7 @@ extern fn PHYSFS_getWriteDir() ?[*:0]const u8;
 extern fn PHYSFS_setWriteDir(path: ?[*:0]const u8) c_int;
 extern fn PHYSFS_getSearchPath() ?[*]?[*:0]const u8;
 extern fn PHYSFS_mount(dir_or_archive: [*:0]const u8, mount_point: [*:0]const u8, append: c_int) c_int;
+extern fn PHYSFS_mountMemory(buf: *const anyopaque, len: usize, dummy: ?*anyopaque, new_dir: [*:0]const u8, mount_point: [*:0]const u8, append: c_int) c_int;
 extern fn PHYSFS_unmount(dir_or_archive: [*:0]const u8) c_int;
 extern fn PHYSFS_mkdir(dirName: [*:0]const u8) c_int;
 extern fn PHYSFS_delete(dirName: [*:0]const u8) c_int;
