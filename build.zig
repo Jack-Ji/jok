@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const sdl = @import("sdl");
 
 pub fn build(b: *std.Build) void {
@@ -82,7 +83,7 @@ pub const BuildOptions = struct {
     enable_ztracy: bool = false,
 };
 
-/// Create desktop application
+/// Create desktop application (windows/linux/macos)
 pub fn createDesktopApp(
     b: *std.Build,
     name: []const u8,
@@ -91,6 +92,8 @@ pub fn createDesktopApp(
     optimize: std.builtin.Mode,
     opt: BuildOptions,
 ) *std.Build.Step.Compile {
+    assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
+
     const builder = getJokBuilder(b, opt);
     const sdl_sdk = getSdlSdk(b, opt);
 
