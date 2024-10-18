@@ -1,5 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
+const math = std.math;
 const jok = @import("../jok.zig");
 const AffineTransform = @import("AffineTransform.zig");
 const imgui = jok.imgui;
@@ -243,6 +244,26 @@ pub const DrawCmd = struct {
         path: PathCmd,
     },
     depth: f32,
+
+    inline fn getTexture(d: DrawCmd) ?jok.Texture {
+        return switch (d.cmd) {
+            .quad_image => |cmd| cmd.texture,
+            .image_rounded => |cmd| cmd.texture,
+            .convex_polygon_fill => |cmd| cmd.texture,
+            else => null,
+        };
+    }
+
+    pub fn compare(d0: DrawCmd, d1: DrawCmd, ascend: bool) bool {
+        if (math.approxEqAbs(f32, d0.depth, d1.depth, 0.0001)) {
+            const tex0 = d0.getTexture();
+            const tex1 = d1.getTexture();
+            if (tex0 == null and tex1 == null) return if (ascend) d0.depth < d1.depth else d0.depth > d1.depth;
+            if (tex0 != null and tex1 != null) return @intFromPtr(tex0.?.ptr) < @intFromPtr(tex1.?.ptr);
+            return tex0 == null;
+        }
+        return if (ascend) d0.depth < d1.depth else d0.depth > d1.depth;
+    }
 
     pub fn render(self: DrawCmd, dl: imgui.DrawList) void {
         switch (self.cmd) {

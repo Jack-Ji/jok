@@ -549,6 +549,13 @@ pub const RenderJob = struct {
         const r_idx2 = rhs[2];
         const d0 = (self.depths.items[l_idx0] + self.depths.items[l_idx1] + self.depths.items[l_idx2]) / 3.0;
         const d1 = (self.depths.items[r_idx0] + self.depths.items[r_idx1] + self.depths.items[r_idx2]) / 3.0;
+        if (math.approxEqAbs(f32, d0, d1, 0.000001)) {
+            const tex0 = self.textures.items[l_idx0];
+            const tex1 = self.textures.items[r_idx0];
+            if (tex0 == null and tex1 == null) return d0 > d1;
+            if (tex0 != null and tex1 != null) return @intFromPtr(tex0.?.ptr) < @intFromPtr(tex1.?.ptr);
+            return tex0 == null;
+        }
         return d0 > d1;
     }
 

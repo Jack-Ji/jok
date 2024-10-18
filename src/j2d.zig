@@ -100,10 +100,10 @@ pub fn begin(opt: BeginOption) void {
 pub fn end() void {
     const S = struct {
         fn ascendCompare(_: ?*anyopaque, lhs: internal.DrawCmd, rhs: internal.DrawCmd) bool {
-            return lhs.depth < rhs.depth;
+            return lhs.compare(rhs, true);
         }
         fn descendCompare(_: ?*anyopaque, lhs: internal.DrawCmd, rhs: internal.DrawCmd) bool {
-            return lhs.depth > rhs.depth;
+            return lhs.compare(rhs, false);
         }
     };
 
@@ -111,13 +111,13 @@ pub fn end() void {
 
     switch (depth_sort) {
         .none => {},
-        .back_to_forth => std.sort.block(
+        .back_to_forth => std.sort.pdq(
             internal.DrawCmd,
             draw_commands.items,
             @as(?*anyopaque, null),
             S.descendCompare,
         ),
-        .forth_to_back => std.sort.block(
+        .forth_to_back => std.sort.pdq(
             internal.DrawCmd,
             draw_commands.items,
             @as(?*anyopaque, null),
