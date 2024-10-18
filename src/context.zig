@@ -24,7 +24,6 @@ pub const Context = struct {
     vtable: struct {
         cfg: *const fn (ctx: *anyopaque) config.Config,
         allocator: *const fn (ctx: *anyopaque) std.mem.Allocator,
-        running: *const fn (ctx: *anyopaque) bool,
         seconds: *const fn (ctx: *anyopaque) f32,
         realSeconds: *const fn (ctx: *anyopaque) f64,
         deltaSeconds: *const fn (ctx: *anyopaque) f32,
@@ -52,11 +51,6 @@ pub const Context = struct {
     /// Get meomry allocator
     pub fn allocator(self: Context) std.mem.Allocator {
         return self.vtable.allocator(self.ctx);
-    }
-
-    /// Get application running status
-    pub fn running(self: Context) bool {
-        return self.vtable.running(self.ctx);
     }
 
     /// Get running seconds of application
@@ -639,7 +633,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .vtable = .{
                     .cfg = getcfg,
                     .allocator = allocator,
-                    .running = running,
                     .seconds = seconds,
                     .realSeconds = realSeconds,
                     .deltaSeconds = deltaSeconds,
@@ -698,12 +691,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn allocator(ptr: *anyopaque) std.mem.Allocator {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._allocator;
-        }
-
-        /// Get application running status
-        fn running(ptr: *anyopaque) bool {
-            const self: *@This() = @ptrCast(@alignCast(ptr));
-            return self._running;
         }
 
         /// Get running seconds of application
