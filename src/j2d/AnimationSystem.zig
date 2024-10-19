@@ -31,8 +31,40 @@ pub fn destroy(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-/// Add animation
+/// Add animation, each frame has its own duration
 pub fn add(
+    self: *Self,
+    name: []const u8,
+    sprites: []const Sprite,
+    durations: []const f32,
+    loop: bool,
+) !void {
+    assert(name.len > 0);
+    assert(sprites.len > 0);
+    assert(sprites.len == durations.len);
+    if (self.animations.get(name) != null) {
+        return error.NameUsed;
+    }
+    const dname = try self.allocator.dupe(u8, name);
+    errdefer self.allocator.free(dname);
+    const anim = Animation{
+        .name = dname,
+        .frames = try self.allocator.alloc(Frame, sprites.len),
+        .loop = loop,
+        .play_index = 0,
+        .passed_time = 0,
+        .is_over = false,
+    };
+    errdefer self.allocator.free(anim.frames);
+    for (anim.frames, 0..) |*f, i| {
+        f.sp = sprites[i];
+        f.duration = durations[i];
+    }
+    try self.animations.put(dname, anim);
+}
+
+/// Add simple animation with fixed duration
+pub fn addSimple(
     self: *Self,
     name: []const u8,
     sprites: []const Sprite,
@@ -47,15 +79,21 @@ pub fn add(
     }
     const dname = try self.allocator.dupe(u8, name);
     errdefer self.allocator.free(dname);
-    try self.animations.put(dname, .{
+    const anim = Animation{
         .name = dname,
-        .frames = try self.allocator.dupe(Sprite, sprites),
-        .frame_interval = 1.0 / fps,
+        .frames = try self.allocator.alloc(Frame, sprites.len),
         .loop = loop,
         .play_index = 0,
         .passed_time = 0,
         .is_over = false,
-    });
+    };
+    errdefer self.allocator.free(anim.frames);
+    const duration = 1.0 / fps;
+    for (anim.frames, 0..) |*f, i| {
+        f.sp = sprites[i];
+        f.duration = duration;
+    }
+    try self.animations.put(dname, anim);
 }
 
 /// Remove animation
@@ -111,29 +149,35 @@ pub fn reset(self: *Self, name: []const u8) !void {
     return error.NameNotExist;
 }
 
+pub const Frame = struct {
+    sp: Sprite,
+    duration: f32,
+};
+
 /// Represent an animation
 pub const Animation = struct {
     name: []u8,
-    frames: []Sprite,
-    frame_interval: f32,
+    frames: []Frame,
     loop: bool,
     play_index: u32,
     passed_time: f32,
     is_over: bool,
 
     pub fn reset(anim: *Animation) void {
-        anim.is_over = false;
         anim.play_index = 0;
+        anim.passed_time = 0;
+        anim.is_over = false;
     }
 
     pub fn getCurrentFrame(self: Animation) Sprite {
-        return self.frames[self.play_index];
+        return self.frames[self.play_index].sp;
     }
 
     pub fn update(anim: *Animation, delta_tick: f32) void {
         if (anim.is_over) return;
         anim.passed_time += delta_tick;
-        while (anim.passed_time > anim.frame_interval) : (anim.passed_time -= anim.frame_interval) {
+        while (anim.passed_time >= anim.frames[anim.play_index].duration) {
+            anim.passed_time -= anim.frames[anim.play_index].duration;
             anim.play_index += 1;
             if (anim.play_index >= @as(u32, @intCast(anim.frames.len))) {
                 if (anim.loop) {
@@ -141,6 +185,7 @@ pub const Animation = struct {
                 } else {
                     anim.play_index = @as(u32, @intCast(anim.frames.len)) - 1;
                     anim.is_over = true;
+                    break;
                 }
             }
         }
