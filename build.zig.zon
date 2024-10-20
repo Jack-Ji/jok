@@ -1,6 +1,6 @@
 .{
     .name = "jok",
-    .version = "0.11.2",
+    .version = "0.12.0",
     .paths = .{
         "build.zig",
         "build.zig.zon",

@@ -68,6 +68,16 @@ pub const Rectangle = extern struct {
         }
         return false;
     }
+
+    pub inline fn containsPoint(r: Rectangle, p: Point) bool {
+        return p.x >= r.x and p.x < r.x + r.width and
+            p.y >= r.y and p.y < r.y + r.height;
+    }
+
+    pub inline fn containsRect(r: Rectangle, b: Rectangle) bool {
+        return b.x >= r.x and b.x + b.width < r.x + r.width and
+            b.y >= r.y and b.y + b.height < r.y + r.height;
+    }
 };
 
 pub const Color = extern struct {
