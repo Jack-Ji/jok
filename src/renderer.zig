@@ -308,17 +308,25 @@ pub const Renderer = struct {
         });
     }
 
-    pub fn getPixels(self: Renderer, _allocator: std.mem.Allocator, region: ?jok.Region) !struct {
+    /// Readonly pixels of previous rendered result
+    pub const PixelData = struct {
         allocator: std.mem.Allocator,
         pixels: []u8,
         width: u32,
         height: u32,
 
-        pub fn destroy(px: @This()) void {
+        pub inline fn destroy(px: @This()) void {
             px.allocator.free(px.pixels);
         }
 
-        pub fn createTexture(px: @This(), rd: Renderer, opt: TextureOption) !jok.Texture {
+        pub inline fn getPixel(px: @This(), x: u32, y: u32) jok.Color {
+            assert(x < px.width);
+            assert(y < px.height);
+            const line: [*]u32 = @alignCast(@ptrCast(px.pixels.ptr + y * px.width * 4));
+            return jok.Color.fromRGBA32(line[x]);
+        }
+
+        pub inline fn createTexture(px: @This(), rd: Renderer, opt: TextureOption) !jok.Texture {
             return try rd.createTexture(
                 .{
                     .width = px.width,
@@ -328,7 +336,8 @@ pub const Renderer = struct {
                 opt,
             );
         }
-    } {
+    };
+    pub fn getPixels(self: Renderer, _allocator: std.mem.Allocator, region: ?jok.Region) !PixelData {
         const rect: sdl.SDL_Rect = if (region) |r|
             @bitCast(r)
         else BLK: {

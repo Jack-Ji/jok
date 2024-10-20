@@ -93,6 +93,7 @@ pub const Texture = struct {
         }
     }
 
+    /// Pixels meant to be written to textures
     pub const PixelData = struct {
         allocator: std.mem.Allocator,
         region: ?jok.Region,
@@ -101,7 +102,7 @@ pub const Texture = struct {
         width: u32,
         height: u32,
 
-        pub fn destroy(self: PixelData) void {
+        pub inline fn destroy(self: PixelData) void {
             self.allocator.free(self.pixels);
         }
 
