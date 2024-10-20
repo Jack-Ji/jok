@@ -4,7 +4,6 @@ const builtin = @import("builtin");
 const bos = @import("build_options");
 const config = @import("config.zig");
 const pp = @import("post_processing.zig");
-const blend = @import("blend.zig");
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
 const io = jok.io;
@@ -412,7 +411,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         self._post_processing.applyFn(f, self._ppdata);
                         self._post_processing.render(self._renderer, self._canvas_texture);
                     } else {
-                        self._renderer.drawTexture(self._canvas_texture, self._canvas_target_area) catch unreachable;
+                        self._renderer.drawTexture(
+                            self._canvas_texture,
+                            null,
+                            self._canvas_target_area,
+                        ) catch unreachable;
                     }
                 }
 
@@ -599,9 +602,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._display_dpi = self._default_dpi;
             }
 
-            // Initialize blending methods
-            blend.init();
-
             // Initialize i/o context
             io.init(self._ctx);
 
@@ -610,6 +610,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Initialize renderer
             self._renderer = try jok.Renderer.init(cfg, self._window);
+
+            // Misc stuff
+            jok.Color.init();
+            jok.BlendMode.init();
 
             // Create drawing target
             self._canvas_texture = try self._renderer.createTarget(.{ .size = self._canvas_size });

@@ -34,20 +34,27 @@ pub const Size = extern struct {
     }
 };
 
+pub const Region = extern struct {
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+};
+
 pub const Rectangle = extern struct {
     x: f32,
     y: f32,
     width: f32,
     height: f32,
 
-    pub fn hasIntersection(r: Rectangle, b: Rectangle) bool {
+    pub inline fn hasIntersection(r: Rectangle, b: Rectangle) bool {
         if (sdl.SDL_HasIntersectionF(@ptrCast(&r), @ptrCast(&b)) == 1) {
             return true;
         }
         return false;
     }
 
-    pub fn intersectRect(r: Rectangle, b: Rectangle) ?Rectangle {
+    pub inline fn intersectRect(r: Rectangle, b: Rectangle) ?Rectangle {
         var result: Rectangle = undefined;
         if (sdl.SDL_IntersectFRect(@ptrCast(&r), @ptrCast(&b), @ptrCast(&result)) == 1) {
             return result;
@@ -55,7 +62,7 @@ pub const Rectangle = extern struct {
         return null;
     }
 
-    pub fn intersectRectAndLine(r: Rectangle, p0: *Point, p1: *Point) bool {
+    pub inline fn intersectRectAndLine(r: Rectangle, p0: *Point, p1: *Point) bool {
         if (sdl.SDL_IntersectFRectAndLine(@ptrCast(&r), &p0.x, &p0.y, &p1.x, &p1.y) == 1) {
             return true;
         }
@@ -64,6 +71,8 @@ pub const Rectangle = extern struct {
 };
 
 pub const Color = extern struct {
+    var pixel_format: *sdl.SDL_PixelFormat = undefined;
+
     pub const none = rgba(0x00, 0x00, 0x00, 0x00);
     pub const black = rgb(0x00, 0x00, 0x00);
     pub const white = rgb(0xFF, 0xFF, 0xFF);
@@ -79,12 +88,26 @@ pub const Color = extern struct {
     b: u8,
     a: u8 = 255,
 
-    pub fn rgb(r: u8, g: u8, b: u8) Color {
+    pub fn init() void {
+        pixel_format = @ptrCast(sdl.SDL_AllocFormat(sdl.SDL_PIXELFORMAT_RGBA32));
+    }
+
+    pub inline fn rgb(r: u8, g: u8, b: u8) Color {
         return Color{ .r = r, .g = g, .b = b };
     }
 
-    pub fn rgba(r: u8, g: u8, b: u8, a: u8) Color {
+    pub inline fn rgba(r: u8, g: u8, b: u8, a: u8) Color {
         return Color{ .r = r, .g = g, .b = b, .a = a };
+    }
+
+    pub inline fn fromRGBA32(i: u32) Color {
+        var c: Color = undefined;
+        sdl.SDL_GetRGBA(i, @ptrCast(pixel_format), &c.r, &c.g, &c.b, &c.a);
+        return c;
+    }
+
+    pub inline fn toRGBA32(c: Color) u32 {
+        return sdl.SDL_MapRGBA(@ptrCast(pixel_format), c.r, c.g, c.b, c.a);
     }
 };
 

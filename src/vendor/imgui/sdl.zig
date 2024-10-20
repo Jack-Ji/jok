@@ -74,8 +74,8 @@ pub fn renderDrawList(ctx: jok.Context, dl: zgui.DrawList) void {
 
     const rd = ctx.renderer();
     const csz = ctx.getCanvasSize();
-    const old_clip_rect = rd.getClipRect() catch unreachable;
-    defer rd.setClipRect(old_clip_rect) catch unreachable;
+    const old_clip = rd.getClipRegion();
+    defer rd.setClipRegion(old_clip) catch unreachable;
 
     const commands = dl.getCmdBufferData()[0..@as(u32, @intCast(dl.getCmdBufferLength()))];
     const vs_ptr = dl.getVertexBufferData();
@@ -85,14 +85,14 @@ pub fn renderDrawList(ctx: jok.Context, dl: zgui.DrawList) void {
     for (commands) |cmd| {
         if (cmd.user_callback != null or cmd.elem_count == 0) continue;
 
-        // Apply clip rect
-        var clip_rect: jok.Rectangle = undefined;
-        clip_rect.x = @max(0.0, cmd.clip_rect[0]);
-        clip_rect.y = @max(0.0, cmd.clip_rect[1]);
-        clip_rect.width = @min(@as(f32, @floatFromInt(csz.width)) - cmd.clip_rect[0], cmd.clip_rect[2] - cmd.clip_rect[0]);
-        clip_rect.height = @min(@as(f32, @floatFromInt(csz.height)) - cmd.clip_rect[1], cmd.clip_rect[3] - cmd.clip_rect[1]);
-        if (clip_rect.width <= 0 or clip_rect.height <= 0) continue;
-        rd.setClipRect(clip_rect) catch unreachable;
+        // Apply clip region
+        var clip_region: jok.Region = undefined;
+        clip_region.x = @intFromFloat(std.math.clamp(cmd.clip_rect[0], 0.0, csz.getWidthFloat()));
+        clip_region.y = @intFromFloat(std.math.clamp(cmd.clip_rect[1], 0.0, csz.getHeightFloat()));
+        clip_region.width = @intFromFloat(@min(@as(f32, @floatFromInt(csz.width - clip_region.x)), cmd.clip_rect[2] - cmd.clip_rect[0]));
+        clip_region.height = @intFromFloat(@min(@as(f32, @floatFromInt(csz.height - clip_region.y)), cmd.clip_rect[3] - cmd.clip_rect[1]));
+        if (clip_region.width <= 0 or clip_region.height <= 0) continue;
+        rd.setClipRegion(clip_region) catch unreachable;
 
         // Bind texture and draw
         const xy = @intFromPtr(vs_ptr + @as(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "pos");

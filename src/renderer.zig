@@ -102,26 +102,20 @@ pub const Renderer = struct {
         sdl.SDL_RenderPresent(self.ptr);
     }
 
-    pub fn setClipRect(self: Renderer, clip_rectangle: ?jok.Rectangle) !void {
-        if (sdl.SDL_RenderSetClipRect(self.ptr, if (clip_rectangle) |r| &.{
-            .x = @intFromFloat(r.x),
-            .y = @intFromFloat(r.y),
-            .w = @intFromFloat(r.width),
-            .h = @intFromFloat(r.height),
-        } else null) < 0) {
-            log.err("set clip rectangle failed: {s}", .{sdl.SDL_GetError()});
-        }
-    }
-
-    pub fn getClipRect(self: Renderer) !?jok.Rectangle {
+    pub fn getClipRegion(self: Renderer) ?jok.Region {
         var rect: sdl.SDL_Rect = undefined;
         sdl.SDL_RenderGetClipRect(self.ptr, &rect);
-        return .{
-            .x = @floatFromInt(rect.x),
-            .y = @floatFromInt(rect.y),
-            .width = @floatFromInt(rect.w),
-            .height = @floatFromInt(rect.h),
-        };
+        if (rect.w == 0 or rect.h == 0) return null;
+        return @bitCast(rect);
+    }
+
+    pub fn setClipRegion(self: Renderer, clip_region: ?jok.Region) !void {
+        if (sdl.SDL_RenderSetClipRect(
+            self.ptr,
+            if (clip_region) |r| @ptrCast(&r) else null,
+        ) < 0) {
+            log.err("set clip region failed: {s}", .{sdl.SDL_GetError()});
+        }
     }
 
     pub fn getBlendMode(self: Renderer) !jok.BlendMode {
@@ -170,12 +164,12 @@ pub const Renderer = struct {
         }
     }
 
-    pub fn drawTexture(self: Renderer, tex: jok.Texture, dstRect: ?jok.Rectangle) !void {
+    pub fn drawTexture(self: Renderer, tex: jok.Texture, src_region: ?jok.Region, dst_rect: ?jok.Rectangle) !void {
         if (sdl.SDL_RenderCopyF(
             self.ptr,
             tex.ptr,
-            null,
-            if (dstRect) |r| @ptrCast(&r) else null,
+            if (src_region) |r| @ptrCast(&r) else null,
+            if (dst_rect) |r| @ptrCast(&r) else null,
         ) < 0) {
             log.err("render texture failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;
@@ -221,7 +215,7 @@ pub const Renderer = struct {
         }
         const tex = jok.Texture{ .ptr = ptr.? };
         errdefer tex.destroy();
-        if (pixels) |px| try tex.update(px);
+        if (pixels) |px| try tex.updateSlow(px);
         try tex.setBlendMode(opt.blend_mode);
         try tex.setScaleMode(opt.scale_mode);
         return tex;
@@ -314,7 +308,7 @@ pub const Renderer = struct {
         });
     }
 
-    pub fn getPixels(self: Renderer, _allocator: std.mem.Allocator, _rect: ?jok.Rectangle) !struct {
+    pub fn getPixels(self: Renderer, _allocator: std.mem.Allocator, region: ?jok.Region) !struct {
         allocator: std.mem.Allocator,
         pixels: []u8,
         width: u32,
@@ -335,12 +329,9 @@ pub const Renderer = struct {
             );
         }
     } {
-        const rect: sdl.SDL_Rect = if (_rect) |r| .{
-            .x = @intFromFloat(r.x),
-            .y = @intFromFloat(r.y),
-            .w = @intFromFloat(r.width),
-            .h = @intFromFloat(r.height),
-        } else BLK: {
+        const rect: sdl.SDL_Rect = if (region) |r|
+            @bitCast(r)
+        else BLK: {
             const sz = try self.getOutputSize();
             break :BLK .{
                 .x = 0,

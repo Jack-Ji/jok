@@ -9,6 +9,7 @@ pub const JokContext = @import("context.zig").JokContext;
 const basic = @import("basic.zig");
 pub const Point = basic.Point;
 pub const Size = basic.Size;
+pub const Region = basic.Region;
 pub const Rectangle = basic.Rectangle;
 pub const Color = basic.Color;
 pub const Vertex = basic.Vertex;
