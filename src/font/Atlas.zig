@@ -4,16 +4,13 @@ const unicode = std.unicode;
 const jok = @import("../jok.zig");
 const truetype = jok.stb.truetype;
 const Sprite = jok.j2d.Sprite;
-const codepoint_ranges = @import("codepoint_ranges.zig");
 const Atlas = @This();
 
-const CharRange = struct {
+pub const CharRange = struct {
     codepoint_begin: u32,
     codepoint_end: u32,
     packedchar: std.ArrayList(truetype.stbtt_packedchar),
 };
-
-const default_map_size = 2048;
 
 allocator: std.mem.Allocator,
 tex: jok.Texture,
@@ -23,93 +20,6 @@ scale: f32,
 vmetric_ascent: f32,
 vmetric_descent: f32,
 vmetric_line_gap: f32,
-
-/// Create font atlas
-pub fn create(
-    ctx: jok.Context,
-    font_info: *const truetype.stbtt_fontinfo,
-    font_size: u32,
-    _cp_ranges: ?[]const [2]u32,
-    map_size: ?u32,
-) !*Atlas {
-    const cp_ranges = _cp_ranges orelse &codepoint_ranges.default;
-    assert(cp_ranges.len > 0);
-
-    var ranges = try std.ArrayList(CharRange).initCapacity(ctx.allocator(), cp_ranges.len);
-    errdefer ranges.deinit();
-    const atlas_size = map_size orelse default_map_size;
-    const stb_pixels = try ctx.allocator().alloc(u8, atlas_size * atlas_size);
-    defer ctx.allocator().free(stb_pixels);
-    const real_pixels = try ctx.allocator().alloc(u8, atlas_size * atlas_size * 4);
-    defer ctx.allocator().free(real_pixels);
-
-    // Generate atlas
-    var pack_ctx = std.mem.zeroes(truetype.stbtt_pack_context);
-    const rc = truetype.stbtt_PackBegin(
-        &pack_ctx,
-        stb_pixels.ptr,
-        @intCast(atlas_size),
-        @intCast(atlas_size),
-        0,
-        1,
-        null,
-    );
-    assert(rc > 0);
-    for (cp_ranges, 0..) |cs, i| {
-        assert(cs[1] >= cs[0]);
-        ranges.appendAssumeCapacity(
-            .{
-                .codepoint_begin = cs[0],
-                .codepoint_end = cs[1],
-                .packedchar = try std.ArrayList(truetype.stbtt_packedchar)
-                    .initCapacity(ctx.allocator(), cs[1] - cs[0] + 1),
-            },
-        );
-        _ = truetype.stbtt_PackFontRange(
-            &pack_ctx,
-            font_info.data,
-            0,
-            @floatFromInt(font_size),
-            @intCast(cs[0]),
-            @intCast(cs[1] - cs[0] + 1),
-            ranges.items[i].packedchar.items.ptr,
-        );
-    }
-    truetype.stbtt_PackEnd(&pack_ctx);
-    for (stb_pixels, 0..) |px, i| {
-        real_pixels[i * 4] = px;
-        real_pixels[i * 4 + 1] = px;
-        real_pixels[i * 4 + 2] = px;
-        real_pixels[i * 4 + 3] = px;
-    }
-
-    // Create texture
-    const tex = try ctx.renderer().createTexture(
-        .{ .width = atlas_size, .height = atlas_size },
-        real_pixels,
-        .{ .access = .static },
-    );
-    errdefer tex.destroy();
-
-    var ascent: c_int = undefined;
-    var descent: c_int = undefined;
-    var line_gap: c_int = undefined;
-    const scale = truetype.stbtt_ScaleForPixelHeight(font_info, @floatFromInt(font_size));
-    truetype.stbtt_GetFontVMetrics(font_info, &ascent, &descent, &line_gap);
-
-    const atlas = try ctx.allocator().create(Atlas);
-    atlas.* = .{
-        .allocator = ctx.allocator(),
-        .tex = tex,
-        .ranges = ranges,
-        .codepoint_search = std.AutoHashMap(u32, u8).init(ctx.allocator()),
-        .scale = scale,
-        .vmetric_ascent = @floatFromInt(ascent),
-        .vmetric_descent = @floatFromInt(descent),
-        .vmetric_line_gap = @floatFromInt(line_gap),
-    };
-    return atlas;
-}
 
 pub fn destroy(self: *Atlas) void {
     self.tex.destroy();
