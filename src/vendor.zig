@@ -1,6 +1,6 @@
 const bos = @import("build_options");
 
-pub const sdl = @import("vendor/sdl.zig");
+pub const sdl = @import("vendor/sdl/sdl.zig");
 pub const physfs = @import("vendor/physfs/physfs.zig");
 pub const zmath = @import("zmath");
 pub const zmesh = @import("zmesh");

@@ -211,17 +211,35 @@ fn injectVendorLibraries(
     optimize: std.builtin.Mode,
     opt: BuildOptions,
 ) void {
-    // libc is required
+    // Setup path to common libraries
+    const system_sdk = b.dependency("system_sdk", .{});
+    switch (target.result.os.tag) {
+        .windows => {
+            bin.addIncludePath(b.path("src/vendor/sdl/c/windows"));
+        },
+        .macos => {
+            bin.addFrameworkPath(system_sdk.path("macos12/System/Library/Frameworks"));
+            bin.addSystemIncludePath(system_sdk.path("macos12/usr/include"));
+            bin.addLibraryPath(system_sdk.path("macos12/usr/lib"));
+            bin.addIncludePath(b.path("src/vendor/sdl/c/macos"));
+        },
+        .linux => {
+            bin.addSystemIncludePath(system_sdk.path("linux/include"));
+            bin.addSystemIncludePath(system_sdk.path("linux/include/wayland"));
+            if (target.result.cpu.arch.isX86()) {
+                bin.addLibraryPath(system_sdk.path("linux/lib/x86_64-linux-gnu"));
+            } else {
+                bin.addLibraryPath(system_sdk.path("linux/lib/aarch64-linux-gnu"));
+            }
+            bin.addIncludePath(b.path("src/vendor/sdl/c/linux"));
+        },
+        else => {},
+    }
+
+    // libc is always required
     bin.linkLibC();
 
     // dear-imgui backend
-    if (bin.rootModuleTarget().os.tag == .windows) {
-        bin.addIncludePath(b.path("src/vendor/imgui/c/SDL2/windows"));
-    } else if (target.result.os.tag == .macos) {
-        bin.addIncludePath(b.path("src/vendor/imgui/c/SDL2/macos"));
-    } else if (target.result.os.tag == .linux) {
-        bin.addIncludePath(b.path("src/vendor/imgui/c/SDL2/linux"));
-    } else unreachable;
     bin.addIncludePath(b.path("deps/zgui/libs/imgui"));
     bin.addIncludePath(b.path("src/vendor/imgui/c"));
     bin.addCSourceFiles(.{
@@ -309,11 +327,6 @@ fn injectVendorLibraries(
                 "-fno-sanitize=undefined",
             },
         });
-        if (b.lazyDependency("system_sdk", .{})) |system_sdk| {
-            bin.addFrameworkPath(system_sdk.path("macos12/System/Library/Frameworks"));
-            bin.addSystemIncludePath(system_sdk.path("macos12/usr/include"));
-            bin.addLibraryPath(system_sdk.path("macos12/usr/lib"));
-        }
         bin.linkSystemLibrary("objc");
         bin.linkFramework("IOKit");
         bin.linkFramework("Foundation");
@@ -543,8 +556,6 @@ const CrossSDL = struct {
         const b = sdk.builder;
         const target = exe.root_module.resolved_target.?;
         const is_native = target.query.isNativeOs();
-
-        exe.linkLibC();
 
         if (target.result.os.tag == .linux) {
             if (!is_native) {
