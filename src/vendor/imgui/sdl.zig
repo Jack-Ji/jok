@@ -95,27 +95,22 @@ pub fn renderDrawList(ctx: jok.Context, dl: zgui.DrawList) void {
         rd.setClipRegion(clip_region) catch unreachable;
 
         // Bind texture and draw
-        const xy = @intFromPtr(vs_ptr + @as(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "pos");
-        const uv = @intFromPtr(vs_ptr + @as(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "uv");
-        const cs = @intFromPtr(vs_ptr + @as(usize, cmd.vtx_offset)) + @offsetOf(imgui.DrawVert, "color");
-        const is = @intFromPtr(is_ptr + cmd.idx_offset);
-        const tex = cmd.texture_id;
-        _ = sdl.SDL_RenderGeometryRaw(
-            rd.ptr,
-            @as(?*sdl.SDL_Texture, @ptrCast(tex)),
-            @as([*c]const f32, @ptrFromInt(xy)),
+        const tex = jok.Texture{ .ptr = @ptrCast(cmd.texture_id) };
+        var indices: []u32 = undefined;
+        indices.ptr = @ptrCast(is_ptr + cmd.idx_offset);
+        indices.len = @intCast(cmd.elem_count);
+        rd.drawTrianglesRaw(
+            tex,
+            @ptrCast(vs_ptr + @as(usize, cmd.vtx_offset)),
+            @intCast(@as(u32, @intCast(vs_count)) - cmd.vtx_offset),
+            @offsetOf(imgui.DrawVert, "pos"),
             @sizeOf(imgui.DrawVert),
-            @as([*c]const sdl.SDL_Color, @ptrFromInt(cs)),
+            @offsetOf(imgui.DrawVert, "color"),
             @sizeOf(imgui.DrawVert),
-            @as([*c]const f32, @ptrFromInt(uv)),
+            @offsetOf(imgui.DrawVert, "uv"),
             @sizeOf(imgui.DrawVert),
-            @as(c_int, vs_count) - @as(c_int, @intCast(cmd.vtx_offset)),
-            @as([*c]const u16, @ptrFromInt(is)),
-            @intCast(cmd.elem_count),
-            @sizeOf(imgui.DrawIdx),
-        );
-        dcstats.drawcall_count += 1;
-        dcstats.triangle_count += cmd.elem_count / 3;
+            indices,
+        ) catch unreachable;
     }
 }
 
@@ -126,17 +121,6 @@ pub inline fn convertColor(color: jok.Color) u32 {
         (@as(u32, color.b) << 16) |
         (@as(u32, color.a) << 24);
 }
-
-// Draw call statistics
-pub const dcstats = struct {
-    pub var drawcall_count: u32 = 0;
-    pub var triangle_count: u32 = 0;
-
-    pub fn clear() void {
-        drawcall_count = 0;
-        triangle_count = 0;
-    }
-};
 
 // These functions are defined in `imgui_impl_sdl2.cpp` and 'imgui_impl_sdlrenderer2.cpp`
 extern fn ImGui_ImplSDL2_InitForSDLRenderer(window: *const anyopaque, renderer: *const anyopaque) bool;

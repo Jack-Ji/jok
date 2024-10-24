@@ -2,7 +2,9 @@ const std = @import("std");
 const assert = std.debug.assert;
 const builtin = @import("builtin");
 const bos = @import("build_options");
+const w32 = @import("w32.zig");
 const config = @import("config.zig");
+const dcstats = @import("renderer.zig").dcstats;
 const pp = @import("post_processing.zig");
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
@@ -13,7 +15,6 @@ const imgui = jok.imgui;
 const plot = imgui.plot;
 const miniaudio = jok.miniaudio;
 const zmesh = jok.zmesh;
-const w32 = @import("w32.zig");
 
 const log = std.log.scoped(.jok);
 
@@ -515,9 +516,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     @as(f64, @floatFromInt(self._frame_count)) / duration,
                 ));
                 self._last_fps_refresh_time = self._seconds_real;
-                self._drawcall_count = imgui.sdl.dcstats.drawcall_count / self._frame_count;
-                self._triangle_count = imgui.sdl.dcstats.triangle_count / self._frame_count;
-                imgui.sdl.dcstats.clear();
+                self._drawcall_count = dcstats.drawcall_count / self._frame_count;
+                self._triangle_count = dcstats.triangle_count / self._frame_count;
+                dcstats.clear();
                 self._frame_count = 0;
             }
             if (cfg.jok_detailed_frame_stats and (self._seconds_real - self._last_costs_refresh_time) >= 0.1) {

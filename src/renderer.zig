@@ -13,6 +13,17 @@ pub const Error = error{
     EncodeTextureFailed,
 };
 
+// Draw call statistics
+pub const dcstats = struct {
+    pub var drawcall_count: u32 = 0;
+    pub var triangle_count: u32 = 0;
+
+    pub fn clear() void {
+        drawcall_count = 0;
+        triangle_count = 0;
+    }
+};
+
 pub const Renderer = struct {
     ptr: *sdl.SDL_Renderer,
     is_software: bool,
@@ -174,20 +185,61 @@ pub const Renderer = struct {
             log.err("render texture failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;
         }
+        dcstats.drawcall_count += 1;
     }
 
-    pub fn drawTriangles(self: Renderer, tex: ?jok.Texture, vs: []const jok.Vertex, is: ?[]const u32) !void {
+    pub fn drawTriangles(self: Renderer, tex: ?jok.Texture, vs: []const jok.Vertex, indices: ?[]const u32) !void {
         if (sdl.SDL_RenderGeometry(
             self.ptr,
             if (tex) |t| t.ptr else null,
             @ptrCast(vs.ptr),
             @intCast(vs.len),
-            if (is) |idx| @ptrCast(idx.ptr) else null,
-            if (is) |idx| @intCast(idx.len) else 0,
+            if (indices) |is| @ptrCast(is.ptr) else null,
+            if (indices) |is| @intCast(is.len) else 0,
         ) < 0) {
             log.err("render triangles failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;
         }
+        dcstats.drawcall_count += 1;
+        dcstats.triangle_count += if (indices) |is|
+            @as(u32, @intCast(is.len)) / 3
+        else
+            @as(u32, @intCast(vs.len)) / 3;
+    }
+
+    pub fn drawTrianglesRaw(
+        self: Renderer,
+        tex: ?jok.Texture,
+        vs: *anyopaque,
+        vs_count: usize,
+        xy_offset: usize,
+        xy_stride: u32,
+        cs_offset: usize,
+        cs_stride: u32,
+        uv_offset: usize,
+        uv_stride: u32,
+        indices: []u32,
+    ) !void {
+        const base = @intFromPtr(vs);
+        if (sdl.SDL_RenderGeometryRaw(
+            self.ptr,
+            if (tex) |t| t.ptr else null,
+            @ptrFromInt(base + xy_offset),
+            @intCast(xy_stride),
+            @ptrFromInt(base + cs_offset),
+            @intCast(cs_stride),
+            @ptrFromInt(base + uv_offset),
+            @intCast(uv_stride),
+            @intCast(vs_count),
+            @ptrCast(indices.ptr),
+            @intCast(indices.len),
+            4,
+        ) < 0) {
+            log.err("render triangles failed: {s}", .{sdl.SDL_GetError()});
+            return sdl.Error.SdlError;
+        }
+        dcstats.drawcall_count += 1;
+        dcstats.triangle_count += @as(u32, @intCast(indices.len)) / 3;
     }
 
     pub const TextureOption = struct {
