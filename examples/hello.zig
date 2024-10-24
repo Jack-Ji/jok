@@ -105,6 +105,8 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                 );
             } else if (k.scancode == .f3) {
                 show_stats = !show_stats;
+            } else if (k.scancode == .f4) {
+                ctx.window().setPosition(.center);
             }
         },
         else => {},
@@ -289,6 +291,12 @@ pub fn draw(ctx: jok.Context) !void {
         ctx,
         .{ .x = 0, .y = 34 * ctx.getDpiScale() },
         "Press F3 to toggle frame statistics",
+        .{},
+    );
+    font.debugDraw(
+        ctx,
+        .{ .x = 0, .y = 51 * ctx.getDpiScale() },
+        "Press F4 to center the window",
         .{},
     );
 }

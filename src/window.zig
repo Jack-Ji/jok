@@ -129,8 +129,15 @@ pub const Window = struct {
         };
     }
 
-    pub fn setPosition(w: Window, p: jok.Point) void {
-        sdl.SDL_SetWindowPosition(w.ptr, @intFromFloat(p.x), @intFromFloat(p.y));
+    pub const WindowPos = union(enum) {
+        center,
+        custom: jok.Point,
+    };
+    pub fn setPosition(w: Window, pos: WindowPos) void {
+        switch (pos) {
+            .center => sdl.SDL_SetWindowPosition(w.ptr, sdl.SDL_WINDOWPOS_CENTERED, sdl.SDL_WINDOWPOS_CENTERED),
+            .custom => |p| sdl.SDL_SetWindowPosition(w.ptr, @intFromFloat(p.x), @intFromFloat(p.y)),
+        }
     }
 
     pub fn setTitle(w: Window, title: [:0]const u8) void {
