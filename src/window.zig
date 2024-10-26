@@ -152,12 +152,17 @@ pub const Window = struct {
         }
     }
 
-    pub fn setFullscreen(w: Window, fullscreen: bool) !void {
-        if (sdl.SDL_SetWindowFullscreen(w.ptr, if (fullscreen)
-            sdl.SDL_WINDOW_FULLSCREEN_DESKTOP
-        else
-            0) != 0)
-        {
+    pub const FullScreenMode = enum {
+        none,
+        desktop_fullscreen,
+        true_fullscreen,
+    };
+    pub fn setFullscreen(w: Window, mode: FullScreenMode) !void {
+        if (sdl.SDL_SetWindowFullscreen(w.ptr, switch (mode) {
+            .none => 0,
+            .desktop_fullscreen => sdl.SDL_WINDOW_FULLSCREEN_DESKTOP,
+            .true_fullscreen => sdl.SDL_WINDOW_FULLSCREEN,
+        }) != 0) {
             log.err("switch fullscreen failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;
         }

@@ -70,7 +70,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
         .key_down => |k| {
             if (k.scancode == .f1) {
                 S.fullscreen = !S.fullscreen;
-                try ctx.window().setFullscreen(S.fullscreen);
+                try ctx.window().setFullscreen(if (S.fullscreen) .desktop_fullscreen else .none);
             }
         },
         .window => |we| {
