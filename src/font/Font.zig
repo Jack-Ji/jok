@@ -111,7 +111,7 @@ pub fn createAtlas(
                 .codepoint_begin = cs[0],
                 .codepoint_end = cs[1],
                 .packedchar = try std.ArrayList(truetype.stbtt_packedchar)
-                    .initCapacity(ctx.allocator(), cs[1] - cs[0] + 1),
+                    .initCapacity(ctx.allocator(), cs[1] - cs[0]),
             },
         );
         _ = truetype.stbtt_PackFontRange(
@@ -120,7 +120,7 @@ pub fn createAtlas(
             0,
             @floatFromInt(font_size),
             @intCast(cs[0]),
-            @intCast(cs[1] - cs[0] + 1),
+            @intCast(cs[1] - cs[0]),
             ranges.items[i].packedchar.items.ptr,
         );
     }
@@ -156,11 +156,6 @@ pub fn createAtlas(
     return atlas;
 }
 
-pub fn findGlyphIndex(self: Font, cp: u32) ?u32 {
-    const idx = truetype.stbtt_FindGlyphIndex(&self.font_info, @intCast(cp));
-    return if (idx == 0) null else @intCast(idx);
-}
-
 pub fn getScale(self: Font, font_size: u32) f32 {
     return truetype.stbtt_ScaleForPixelHeight(&self.font_info, @floatFromInt(font_size));
 }
@@ -186,6 +181,11 @@ pub fn getVMetrics(self: Font) struct {
     };
 }
 
+pub fn findGlyphIndex(self: Font, cp: u32) ?u32 {
+    const idx = truetype.stbtt_FindGlyphIndex(&self.font_info, @intCast(cp));
+    return if (idx == 0) null else @intCast(idx);
+}
+
 pub fn getGlyphHMetrics(self: Font, glyph_index: u32) struct {
     advance_width: f32,
     left_side_bearing: f32,
@@ -204,37 +204,7 @@ pub fn getGlyphHMetrics(self: Font, glyph_index: u32) struct {
     };
 }
 
-pub fn getGlyphBox(self: Font, glyph_index: u32) jok.Rectangle {
-    var x0: c_int = undefined;
-    var y0: c_int = undefined;
-    var x1: c_int = undefined;
-    var y1: c_int = undefined;
-    _ = truetype.stbtt_GetGlyphBox(
-        &self.font_info,
-        @intCast(glyph_index),
-        &x0,
-        &y0,
-        &x1,
-        &y1,
-    );
-    return .{
-        .x = @floatFromInt(x0),
-        .y = @floatFromInt(y0),
-        .width = @floatFromInt(x1 - x0 + 1),
-        .height = @floatFromInt(y1 - y0 + 1),
-    };
-}
-
-pub fn getGlyphBitmap(self: Font, allocator: std.mem.Allocator, glyph_index: u32, scale_x: f32, scale_y: f32) !struct {
-    allocator: std.mem.Allocator,
-    bitmap: []u8,
-    width: u32,
-    height: u32,
-
-    pub fn destroy(map: @This()) void {
-        map.allocator.free(self.bitmap);
-    }
-} {
+pub fn getGlyphScaledSize(self: Font, glyph_index: u32, scale_x: f32, scale_y: f32) jok.Size {
     var x0: c_int = undefined;
     var y0: c_int = undefined;
     var x1: c_int = undefined;
@@ -249,16 +219,30 @@ pub fn getGlyphBitmap(self: Font, allocator: std.mem.Allocator, glyph_index: u32
         &x1,
         &y1,
     );
+    return .{
+        .width = @intCast(x1 - x0),
+        .height = @intCast(y1 - y0),
+    };
+}
 
-    const width: u32 = @intCast(x1 - x0);
-    const height: u32 = @intCast(y1 - y0);
-    const bitmap = try allocator.alloc(u8, width * height);
+pub fn createGlyphBitmap(self: Font, allocator: std.mem.Allocator, glyph_index: u32, scale_x: f32, scale_y: f32) !struct {
+    allocator: std.mem.Allocator,
+    bitmap: []u8,
+    size: jok.Size,
+
+    pub fn destroy(map: @This()) void {
+        map.allocator.free(self.bitmap);
+    }
+} {
+    const size = self.getGlyphScaledSize(glyph_index, scale_x, scale_y);
+    const bitmap = try allocator.alloc(u8, size.width * size.height);
+    @memset(bitmap, 0);
     _ = truetype.stbtt_MakeGlyphBitmap(
         &self.font_info,
         bitmap.ptr,
-        @intCast(width),
-        @intCast(height),
-        @intCast(width),
+        @intCast(size.width),
+        @intCast(size.height),
+        @intCast(size.width),
         scale_x,
         scale_y,
         @intCast(glyph_index),
@@ -266,7 +250,6 @@ pub fn getGlyphBitmap(self: Font, allocator: std.mem.Allocator, glyph_index: u32
     return .{
         .allocator = allocator,
         .bitmap = bitmap,
-        .width = width,
-        .height = height,
+        .size = size,
     };
 }
