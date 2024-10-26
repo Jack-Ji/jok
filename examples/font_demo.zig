@@ -4,8 +4,33 @@ const font = jok.font;
 const j2d = jok.j2d;
 
 pub fn init(ctx: jok.Context) !void {
-    _ = ctx;
     std.log.info("game init", .{});
+
+    const font_size = 16;
+    const vmetrics = font.DebugFont.font.getVMetrics(font_size);
+    const height = @as(u32, @intFromFloat(vmetrics.ascent - vmetrics.descent));
+    const output = "jok is here!";
+    for (0..height) |j| {
+        const ypos = @as(f32, @floatFromInt(j));
+        var xpos: f32 = 0;
+        for (output) |c| {
+            const glyph = font.DebugFont.font.findGlyphIndex(c).?;
+            const map = try font.DebugFont.font.createGlyphBitmap(ctx.allocator(), glyph, font_size);
+            defer map.destroy();
+            const metrics = font.DebugFont.font.getGlyphMetrics(glyph, font_size);
+            const bbox = metrics.getBBox(.{ .x = xpos, .y = 0 }, .top);
+            for (0..@as(usize, @intFromFloat(metrics.advance_width))) |k| {
+                const x = xpos + @as(f32, @floatFromInt(k));
+                const char = if (bbox.containsPoint(.{ .x = x, .y = ypos }))
+                    ".-*%#@"[std.math.clamp(map.getValue(@intFromFloat(x - bbox.x), @intFromFloat(ypos - bbox.y)), 0, 5)]
+                else
+                    '.';
+                std.debug.print("{c}", .{char});
+            }
+            xpos += metrics.advance_width;
+        }
+        std.debug.print("\n", .{});
+    }
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
@@ -105,6 +130,73 @@ pub fn draw(ctx: jok.Context) !void {
         .aligned,
     );
     try j2d.rectFilled(area, rect_color, .{});
+
+    atlas = try font.DebugFont.getAtlas(ctx, 128);
+    const metrics = font.DebugFont.font.getGlyphMetrics(
+        font.DebugFont.font.findGlyphIndex('Q').?,
+        128,
+    );
+    const q_pos = jok.Point{
+        .x = (size.getWidthFloat() - 128) / 2,
+        .y = (size.getHeightFloat() - 128) / 2,
+    };
+    try j2d.rectFilled(
+        metrics.getSpace(q_pos, .baseline),
+        jok.Color.rgba(255, 0, 0, 128),
+        .{},
+    );
+    try j2d.rectFilled(
+        metrics.getBBox(q_pos, .baseline),
+        jok.Color.rgba(0, 255, 0, 128),
+        .{},
+    );
+    try j2d.rectFilled(
+        metrics.getSpace(q_pos.add(.{ .x = metrics.advance_width, .y = 0 }), .top),
+        jok.Color.rgba(255, 0, 0, 128),
+        .{},
+    );
+    try j2d.rectFilled(
+        metrics.getBBox(q_pos.add(.{ .x = metrics.advance_width, .y = 0 }), .top),
+        jok.Color.rgba(0, 255, 0, 128),
+        .{},
+    );
+    try j2d.rectFilled(
+        metrics.getSpace(q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }), .bottom),
+        jok.Color.rgba(255, 0, 0, 128),
+        .{},
+    );
+    try j2d.rectFilled(
+        metrics.getBBox(q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }), .bottom),
+        jok.Color.rgba(0, 255, 0, 128),
+        .{},
+    );
+    try j2d.text(
+        .{
+            .atlas = atlas,
+            .pos = q_pos,
+            .ypos_type = .baseline,
+        },
+        "Q",
+        .{},
+    );
+    try j2d.text(
+        .{
+            .atlas = atlas,
+            .pos = q_pos.add(.{ .x = metrics.advance_width, .y = 0 }),
+            .ypos_type = .top,
+        },
+        "Q",
+        .{},
+    );
+    try j2d.text(
+        .{
+            .atlas = atlas,
+            .pos = q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }),
+            .ypos_type = .bottom,
+        },
+        "Q",
+        .{},
+    );
 }
 
 pub fn quit(ctx: jok.Context) void {

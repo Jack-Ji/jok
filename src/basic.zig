@@ -6,6 +6,20 @@ pub const Point = extern struct {
     x: f32,
     y: f32,
 
+    pub inline fn add(p0: Point, p1: Point) Point {
+        return .{
+            .x = p0.x + p1.x,
+            .y = p0.y + p1.y,
+        };
+    }
+
+    pub inline fn sub(p0: Point, p1: Point) Point {
+        return .{
+            .x = p0.x - p1.x,
+            .y = p0.y - p1.y,
+        };
+    }
+
     pub inline fn isSame(p0: Point, p1: Point) bool {
         const tolerance = 0.0001;
         return std.math.approxEqAbs(f32, p0.x, p1.x, tolerance) and

@@ -16,7 +16,6 @@ allocator: std.mem.Allocator,
 tex: jok.Texture,
 ranges: std.ArrayList(CharRange),
 codepoint_search: std.AutoHashMap(u32, u8),
-scale: f32,
 vmetric_ascent: f32,
 vmetric_descent: f32,
 vmetric_line_gap: f32,
@@ -33,7 +32,7 @@ pub fn destroy(self: *Atlas) void {
 
 /// Calculate next line's y coordinate
 pub fn getVPosOfNextLine(self: Atlas, current_ypos: f32) f32 {
-    return current_ypos + @round((self.vmetric_ascent - self.vmetric_descent + self.vmetric_line_gap) * self.scale);
+    return current_ypos + @round(self.vmetric_ascent - self.vmetric_descent + self.vmetric_line_gap);
 }
 
 /// Position type of y axis (determine where text will be aligned to vertically)
@@ -51,9 +50,9 @@ pub fn getBoundingBox(
     box_type: BoxType,
 ) !jok.Rectangle {
     const yoffset = switch (ypos_type) {
-        .baseline => -self.vmetric_ascent * self.scale,
+        .baseline => -self.vmetric_ascent,
         .top => 0,
-        .bottom => (self.vmetric_descent - self.vmetric_ascent) * self.scale,
+        .bottom => self.vmetric_descent - self.vmetric_ascent,
     };
     var pos = _pos;
     var rect = jok.Rectangle{
@@ -64,7 +63,7 @@ pub fn getBoundingBox(
         },
         .width = 0,
         .height = switch (box_type) {
-            .aligned => @round((self.vmetric_ascent - self.vmetric_descent) * self.scale),
+            .aligned => @round(self.vmetric_ascent - self.vmetric_descent),
             .drawed => 0,
         },
     };
@@ -106,9 +105,9 @@ pub fn appendDrawDataFromUTF8String(
     vindices: *std.ArrayList(u32),
 ) !jok.Rectangle {
     const yoffset = switch (ypos_type) {
-        .baseline => -self.vmetric_ascent * self.scale,
+        .baseline => -self.vmetric_ascent,
         .top => 0,
-        .bottom => (self.vmetric_descent - self.vmetric_ascent) * self.scale,
+        .bottom => self.vmetric_descent - self.vmetric_ascent,
     };
     var pos = _pos;
     var rect = jok.Rectangle{
@@ -119,7 +118,7 @@ pub fn appendDrawDataFromUTF8String(
         },
         .width = 0,
         .height = switch (box_type) {
-            .aligned => @round((self.vmetric_ascent - self.vmetric_descent) * self.scale),
+            .aligned => @round(self.vmetric_ascent - self.vmetric_descent),
             .drawed => 0,
         },
     };
@@ -196,8 +195,8 @@ pub inline fn getVerticesOfCodePoint(
     );
     const yoffset = switch (ypos_type) {
         .baseline => 0,
-        .top => self.vmetric_ascent * self.scale,
-        .bottom => self.vmetric_descent * self.scale,
+        .top => self.vmetric_ascent,
+        .bottom => self.vmetric_descent,
     };
     return .{
         .vs = [_]jok.Vertex{
