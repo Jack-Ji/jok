@@ -39,6 +39,7 @@ pub const Context = struct {
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
         getDpiScale: *const fn (ctx: *anyopaque) f32,
         setPostProcessing: *const fn (ctx: *anyopaque, ppfn: pp.PostProcessingFn, data: ?*anyopaque) void,
+        supressDraw: *const fn (ctx: *anyopaque) void,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
     },
@@ -128,6 +129,11 @@ pub const Context = struct {
         return self.vtable.setPostProcessing(self.ctx, ppfn, data);
     }
 
+    /// Supress drawcall of current frame
+    pub fn supressDraw(self: Context) void {
+        return self.vtable.supressDraw(self.ctx);
+    }
+
     /// Whether game is running slow
     pub fn isRunningSlow(self: Context) bool {
         return self.vtable.isRunningSlow(self.ctx);
@@ -192,6 +198,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _post_processing: PostProcessingType = undefined,
         _ppfn: ?pp.PostProcessingFn = null,
         _ppdata: ?*anyopaque = null,
+
+        // Drawcall supress
+        _supress_draw: bool = false,
 
         // Audio stuff
         _audio_ctx: *miniaudio.Context = undefined,
@@ -393,8 +402,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
 
             // Do rendering
-            self._renderer.clear(jok.Color.black) catch unreachable;
-            {
+            if (self._supress_draw) {
+                self._supress_draw = false;
+            } else {
                 const pc_begin = sdl.SDL_GetPerformanceCounter();
                 defer if (cfg.jok_detailed_frame_stats) {
                     const cost = @as(f32, @floatFromInt((sdl.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
@@ -402,9 +412,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     self._draw_cost = if (self._draw_cost > 0) (self._draw_cost + cost) / 2 else cost;
                 };
 
+                defer self._renderer.present();
+
                 imgui.sdl.newFrame(self.context());
                 defer imgui.sdl.draw(self.context());
 
+                self._renderer.clear(jok.Color.black) catch unreachable;
                 self._renderer.setTarget(self._canvas_texture) catch unreachable;
                 defer {
                     self._renderer.setTarget(null) catch unreachable;
@@ -429,7 +442,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     }
                 };
             }
-            self._renderer.present();
+
             self._updateFrameStats();
         }
 
@@ -449,7 +462,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             while (io.pollNativeEvent()) |ne| {
                 // ImGui event processing
                 var e = ne;
-                if (cfg.jok_window_high_dpi) {
+                if (cfg.jok_window_highdpi) {
                     switch (e.type) {
                         sdl.SDL_MOUSEMOTION => {
                             e.motion.x = @intFromFloat(@as(f32, @floatFromInt(e.motion.x)) / getDpiScale(self));
@@ -590,7 +603,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .macos => 72.0,
                 else => 96.0,
             };
-            if (cfg.jok_window_high_dpi) {
+            if (cfg.jok_window_highdpi) {
                 if (builtin.target.os.tag == .windows) {
                     // Enable High-DPI awareness
                     // BUG: only workable on single monitor system
@@ -653,6 +666,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .getAspectRatio = getAspectRatio,
                     .getDpiScale = getDpiScale,
                     .setPostProcessing = setPostProcessing,
+                    .supressDraw = supressDraw,
                     .isRunningSlow = isRunningSlow,
                     .displayStats = displayStats,
                 },
@@ -807,6 +821,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             self._ppfn = ppfn;
             self._ppdata = data;
+        }
+
+        /// Supress drawcall of current frame
+        pub fn supressDraw(ptr: *anyopaque) void {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            self._supress_draw = true;
         }
 
         /// Indicating game loop is running too slow

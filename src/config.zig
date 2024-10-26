@@ -42,7 +42,7 @@ pub const Config = struct {
     jok_window_always_on_top: bool = false,
     jok_window_ime_ui: bool = false,
     jok_window_mouse_mode: MouseMode = .normal,
-    jok_window_high_dpi: bool = false,
+    jok_window_highdpi: bool = false,
 
     /// Exit event processing
     jok_exit_on_recv_esc: bool = true,
@@ -107,6 +107,8 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_mem_leak_checks", .desc = "whether default memory allocator check memleak when exiting" },
         .{ .name = "jok_mem_detail_logs", .desc = "whether default memory allocator print detailed memory alloc/free logs" },
         .{ .name = "jok_enable_physfs", .desc = "whether use physfs to access game assets" },
+        .{ .name = "jok_pref_org", .desc = "Org part of app preference path" },
+        .{ .name = "jok_pref_app", .desc = "App part of app preference path" },
         .{ .name = "jok_software_renderer", .desc = "whether use software renderer" },
         .{ .name = "jok_software_renderer_fallback", .desc = "whether fallback to software renderer when hardware acceleration isn't available" },
         .{ .name = "jok_canvas_size", .desc = "size of canvas" },
@@ -120,14 +122,12 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_window_ime_ui", .desc = "whether show ime ui" },
         .{ .name = "jok_window_always_on_top", .desc = "whether window is locked to most front layer" },
         .{ .name = "jok_window_mouse_mode", .desc = "mouse mode setting" },
-        .{ .name = "jok_window_high_dpi", .desc = "whether enable high dpi support" },
+        .{ .name = "jok_window_highdpi", .desc = "whether enable high dpi support" },
         .{ .name = "jok_exit_on_recv_esc", .desc = "whether exit game when esc is pressed" },
         .{ .name = "jok_exit_on_recv_quit", .desc = "whether exit game when getting quit event" },
         .{ .name = "jok_imgui_ini_file", .desc = "whether let imgui load/save ini file" },
         .{ .name = "jok_prebuild_atlas", .desc = "whether prebuild atlas for debug font" },
         .{ .name = "jok_detailed_frame_stats", .desc = "whether enable detailed frame statistics" },
-        .{ .name = "jok_pref_org", .desc = "Org part of app preference path" },
-        .{ .name = "jok_pref_app", .desc = "App part of app preference path" },
     };
     const game_struct = @typeInfo(game).@"struct";
     for (game_struct.decls) |f| {

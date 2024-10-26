@@ -11,7 +11,7 @@ pub const Window = struct {
         var flags: u32 = 0;
         flags |= sdl.SDL_WINDOW_MOUSE_CAPTURE;
         flags |= sdl.SDL_WINDOW_MOUSE_FOCUS;
-        if (cfg.jok_window_high_dpi) {
+        if (cfg.jok_window_highdpi) {
             flags |= sdl.SDL_WINDOW_ALLOW_HIGHDPI;
         }
         if (cfg.jok_window_borderless) {

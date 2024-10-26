@@ -23,6 +23,7 @@ var screenshot_tint_color: jok.Color = undefined;
 var point_easing_system: *easing.EasingSystem(jok.Point) = undefined;
 var color_easing_system: *easing.EasingSystem(jok.Color) = undefined;
 var show_stats: bool = true;
+var suppress: bool = true;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -114,6 +115,9 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
+    if (jok.io.getKeyboardState().isPressed(.f5)) {
+        ctx.supressDraw();
+    }
     point_easing_system.update(ctx.deltaSeconds());
     color_easing_system.update(ctx.deltaSeconds());
 }
@@ -122,6 +126,7 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(null);
     if (show_stats) ctx.displayStats(.{});
 
+    imgui.setNextWindowPos(.{ .x = 50, .y = 200 });
     if (imgui.begin("canvas", .{})) {
         imgui.image(ctx.canvas().ptr, .{
             .w = ctx.getAspectRatio() * 100,
@@ -297,6 +302,12 @@ pub fn draw(ctx: jok.Context) !void {
         ctx,
         .{ .x = 0, .y = 51 * ctx.getDpiScale() },
         "Press F4 to center the window",
+        .{},
+    );
+    font.debugDraw(
+        ctx,
+        .{ .x = 0, .y = 68 * ctx.getDpiScale() },
+        "Press F5 to suppress rendering",
         .{},
     );
 }
