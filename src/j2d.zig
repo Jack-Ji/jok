@@ -909,7 +909,7 @@ pub const ConvexPoly = struct {
         try self.cmd.points.append(p);
     }
 
-    pub fn nPoints(self: *ConvexPoly, ps: []jok.Vertex) !void {
+    pub fn npoints(self: *ConvexPoly, ps: []jok.Vertex) !void {
         assert(!self.finished);
         try self.cmd.points.appendSlice(ps);
     }
@@ -963,8 +963,10 @@ pub const Polyline = struct {
         self.* = undefined;
     }
 
-    pub fn reset(self: *Polyline) void {
-        self.points.clearRetainingCapacity();
+    pub fn reset(self: *Polyline, cleardata: bool) void {
+        if (cleardata) {
+            self.points.clearRetainingCapacity();
+        }
         self.transformed.clearRetainingCapacity();
         self.finished = false;
     }
@@ -974,7 +976,7 @@ pub const Polyline = struct {
         try self.points.append(p);
     }
 
-    pub fn nPoints(self: *Polyline, ps: []jok.Point) !void {
+    pub fn npoints(self: *Polyline, ps: []jok.Point) !void {
         assert(!self.finished);
         try self.points.appendSlice(ps);
     }
@@ -1027,8 +1029,10 @@ pub const Path = struct {
         self.* = undefined;
     }
 
-    pub fn reset(self: *Path) void {
-        self.path.cmds.clearRetainingCapacity();
+    pub fn reset(self: *Path, cleardata: bool) void {
+        if (cleardata) {
+            self.path.cmds.clearRetainingCapacity();
+        }
         self.finished = false;
     }
 

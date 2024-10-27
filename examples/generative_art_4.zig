@@ -1,4 +1,4 @@
-// Directly ported from ebitenine's doomfire example
+// Directly ported from ebitengine's doomfire example
 const std = @import("std");
 const jok = @import("jok");
 

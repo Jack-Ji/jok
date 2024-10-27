@@ -57,6 +57,7 @@ pub fn build(b: *Build) void {
         .{ .name = "generative_art_2", .opt = .{ .dep_name = null } },
         .{ .name = "generative_art_3", .opt = .{ .dep_name = null } },
         .{ .name = "generative_art_4", .opt = .{ .dep_name = null } },
+        .{ .name = "generative_art_5", .opt = .{ .dep_name = null } },
     };
     const build_examples = b.step("examples", "compile and install all examples");
     inline for (examples) |demo| {
