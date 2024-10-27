@@ -30,7 +30,7 @@ pub fn draw(ctx: jok.Context) !void {
     const statechange = math.sin(ctx.seconds()) * 0.2;
     const scale = ctx.getCanvasSize().getHeightFloat() / 4;
 
-    path.reset();
+    path.reset(true);
     var i: usize = 0;
     while (i < 360 * 4 + 1) : (i += 1) {
         var point = jok.Point{ .x = 0, .y = 0 };
