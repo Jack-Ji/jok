@@ -21,7 +21,7 @@ pub const Point = extern struct {
     }
 
     pub inline fn isSame(p0: Point, p1: Point) bool {
-        const tolerance = 0.0001;
+        const tolerance = 0.000001;
         return std.math.approxEqAbs(f32, p0.x, p1.x, tolerance) and
             std.math.approxEqAbs(f32, p0.y, p1.y, tolerance);
     }
@@ -46,6 +46,14 @@ pub const Size = extern struct {
     pub inline fn getHeightFloat(s: Size) f32 {
         return @as(f32, @floatFromInt(s.height));
     }
+
+    pub inline fn isSame(s0: Size, s1: Size) bool {
+        return s0.width == s1.width and s0.height == s1.height;
+    }
+
+    pub inline fn area(s: Size) u32 {
+        return s.width * s.height;
+    }
 };
 
 pub const Region = extern struct {
@@ -53,6 +61,15 @@ pub const Region = extern struct {
     y: u32,
     width: u32,
     height: u32,
+
+    pub inline fn isSame(r0: Region, r1: Region) bool {
+        return r0.x == r1.x and r0.y == r1.y and
+            r0.width == r1.width and r0.height == r1.height;
+    }
+
+    pub inline fn area(r: Region) f32 {
+        return r.width * r.height;
+    }
 };
 
 pub const Rectangle = extern struct {
@@ -60,6 +77,18 @@ pub const Rectangle = extern struct {
     y: f32,
     width: f32,
     height: f32,
+
+    pub inline fn isSame(r0: Rectangle, r1: Rectangle) bool {
+        const tolerance = 0.000001;
+        return std.math.approxEqAbs(f32, r0.x, r1.x, tolerance) and
+            std.math.approxEqAbs(f32, r0.y, r1.y, tolerance) and
+            std.math.approxEqAbs(f32, r0.width, r1.width, tolerance) and
+            std.math.approxEqAbs(f32, r0.height, r1.height, tolerance);
+    }
+
+    pub inline fn area(r: Rectangle) f32 {
+        return r.width * r.height;
+    }
 
     pub inline fn hasIntersection(r: Rectangle, b: Rectangle) bool {
         if (sdl.SDL_HasIntersectionF(@ptrCast(&r), @ptrCast(&b)) == 1) {

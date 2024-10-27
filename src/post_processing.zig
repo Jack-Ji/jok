@@ -6,117 +6,150 @@ const jok = @import("jok.zig");
 /// Post-processing function, coordinate's range is [0-1]
 pub const PostProcessingFn = *const fn (pos: jok.Point, data: ?*anyopaque) ?jok.Color;
 
-/// Post-processing effect generator
-pub fn PostProcessingEffect(comptime cfg: config.Config) type {
-    return struct {
-        const max_cols: usize = @intCast(cfg.jok_post_processing_size.width);
-        const max_rows: usize = @intCast(cfg.jok_post_processing_size.height);
-        const vs_count = max_rows * max_cols * 6;
+pub const Actor = struct {
+    ppfn: PostProcessingFn,
+    region: ?jok.Region = null,
+    data: ?*anyopaque = null,
+};
 
-        allocator: std.mem.Allocator,
-        _vs: []jok.Vertex,
-        vs: []jok.Vertex,
+/// Post-processing effect
+pub const PostProcessingEffect = struct {
+    ctx: jok.Context,
+    size: jok.Size,
+    vs: []jok.Vertex,
+    processed_vs: std.ArrayList(jok.Vertex),
 
-        pub fn init(allocator: std.mem.Allocator) !@This() {
-            return .{
-                .allocator = allocator,
-                ._vs = try allocator.alloc(jok.Vertex, vs_count),
-                .vs = try allocator.alloc(jok.Vertex, vs_count),
-            };
+    pub fn init(ctx: jok.Context) !@This() {
+        return .{
+            .ctx = ctx,
+            .size = undefined,
+            .vs = &.{},
+            .processed_vs = std.ArrayList(jok.Vertex).init(ctx.allocator()),
+        };
+    }
+
+    pub fn destroy(self: *@This()) void {
+        self.ctx.allocator().free(self.vs);
+        self.processed_vs.deinit();
+    }
+
+    pub fn onCanvasChange(self: *@This()) void {
+        const allocator = self.ctx.allocator();
+        const canvas_size = self.ctx.getCanvasSize();
+        if (!self.size.isSame(canvas_size)) {
+            if (self.vs.len > 0) {
+                allocator.free(self.vs);
+            }
+            self.size = canvas_size;
+            self.vs = allocator.alloc(jok.Vertex, self.size.area() * 6) catch unreachable;
+            self.processed_vs.ensureTotalCapacityPrecise(self.size.area() * 6) catch unreachable;
         }
 
-        pub fn destroy(self: *@This()) void {
-            self.allocator.free(self._vs);
-            self.allocator.free(self.vs);
-        }
-
-        pub fn onCanvasChange(self: *@This(), rd: jok.Renderer, canvas_area: ?jok.Rectangle) void {
-            const draw_area: jok.Rectangle = canvas_area orelse BLK: {
-                const fbsize = rd.getOutputSize() catch unreachable;
-                break :BLK .{
-                    .x = 0,
-                    .y = 0,
-                    .width = @floatFromInt(fbsize.width),
-                    .height = @floatFromInt(fbsize.height),
-                };
+        const canvas_area = self.ctx.getCanvasArea();
+        const pos_unit_w = canvas_area.width / @as(f32, @floatFromInt(self.size.width));
+        const pos_unit_h = canvas_area.height / @as(f32, @floatFromInt(self.size.height));
+        const texcoord_unit_w = 1.0 / @as(f32, @floatFromInt(self.size.width));
+        const texcoord_unit_h = 1.0 / @as(f32, @floatFromInt(self.size.height));
+        var row: u32 = 0;
+        var col: u32 = 0;
+        var i: usize = 0;
+        while (i < self.vs.len) : (i += 6) {
+            self.vs[i].pos = .{
+                .x = canvas_area.x + pos_unit_w * @as(f32, @floatFromInt(col)),
+                .y = canvas_area.y + pos_unit_h * @as(f32, @floatFromInt(row)),
             };
-            const pos_unit_w = draw_area.width / @as(f32, @floatFromInt(max_cols));
-            const pos_unit_h = draw_area.height / @as(f32, @floatFromInt(max_rows));
-            const texcoord_unit_w = 1.0 / @as(f32, @floatFromInt(max_cols));
-            const texcoord_unit_h = 1.0 / @as(f32, @floatFromInt(max_rows));
-            var row: u32 = 0;
-            var col: u32 = 0;
-            var i: usize = 0;
-            while (i < self._vs.len) : (i += 6) {
-                self._vs[i].pos = .{
-                    .x = draw_area.x + pos_unit_w * @as(f32, @floatFromInt(col)),
-                    .y = draw_area.y + pos_unit_h * @as(f32, @floatFromInt(row)),
-                };
-                self._vs[i].color = jok.Color.white;
-                self._vs[i].texcoord = .{
-                    .x = texcoord_unit_w * @as(f32, @floatFromInt(col)),
-                    .y = texcoord_unit_h * @as(f32, @floatFromInt(row)),
-                };
-                self._vs[i + 1].pos = .{
-                    .x = draw_area.x + pos_unit_w * @as(f32, @floatFromInt(col + 1)),
-                    .y = draw_area.y + pos_unit_h * @as(f32, @floatFromInt(row)),
-                };
-                self._vs[i + 1].color = jok.Color.white;
-                self._vs[i + 1].texcoord = .{
-                    .x = texcoord_unit_w * @as(f32, @floatFromInt(col + 1)),
-                    .y = texcoord_unit_h * @as(f32, @floatFromInt(row)),
-                };
-                self._vs[i + 2].pos = .{
-                    .x = draw_area.x + pos_unit_w * @as(f32, @floatFromInt(col + 1)),
-                    .y = draw_area.y + pos_unit_h * @as(f32, @floatFromInt(row + 1)),
-                };
-                self._vs[i + 2].color = jok.Color.white;
-                self._vs[i + 2].texcoord = .{
-                    .x = texcoord_unit_w * @as(f32, @floatFromInt(col + 1)),
-                    .y = texcoord_unit_h * @as(f32, @floatFromInt(row + 1)),
-                };
-                self._vs[i + 3] = self._vs[i];
-                self._vs[i + 4] = self._vs[i + 2];
-                self._vs[i + 5].pos = .{
-                    .x = draw_area.x + pos_unit_w * @as(f32, @floatFromInt(col)),
-                    .y = draw_area.y + pos_unit_h * @as(f32, @floatFromInt(row + 1)),
-                };
-                self._vs[i + 5].color = jok.Color.white;
-                self._vs[i + 5].texcoord = .{
-                    .x = texcoord_unit_w * @as(f32, @floatFromInt(col)),
-                    .y = texcoord_unit_h * @as(f32, @floatFromInt(row + 1)),
-                };
-                col += 1;
-                if (col == max_cols) {
-                    row += 1;
-                    col = 0;
-                }
+            self.vs[i].color = jok.Color.white;
+            self.vs[i].texcoord = .{
+                .x = texcoord_unit_w * @as(f32, @floatFromInt(col)),
+                .y = texcoord_unit_h * @as(f32, @floatFromInt(row)),
+            };
+            self.vs[i + 1].pos = .{
+                .x = canvas_area.x + pos_unit_w * @as(f32, @floatFromInt(col + 1)),
+                .y = canvas_area.y + pos_unit_h * @as(f32, @floatFromInt(row)),
+            };
+            self.vs[i + 1].color = jok.Color.white;
+            self.vs[i + 1].texcoord = .{
+                .x = texcoord_unit_w * @as(f32, @floatFromInt(col + 1)),
+                .y = texcoord_unit_h * @as(f32, @floatFromInt(row)),
+            };
+            self.vs[i + 2].pos = .{
+                .x = canvas_area.x + pos_unit_w * @as(f32, @floatFromInt(col + 1)),
+                .y = canvas_area.y + pos_unit_h * @as(f32, @floatFromInt(row + 1)),
+            };
+            self.vs[i + 2].color = jok.Color.white;
+            self.vs[i + 2].texcoord = .{
+                .x = texcoord_unit_w * @as(f32, @floatFromInt(col + 1)),
+                .y = texcoord_unit_h * @as(f32, @floatFromInt(row + 1)),
+            };
+            self.vs[i + 3] = self.vs[i];
+            self.vs[i + 4] = self.vs[i + 2];
+            self.vs[i + 5].pos = .{
+                .x = canvas_area.x + pos_unit_w * @as(f32, @floatFromInt(col)),
+                .y = canvas_area.y + pos_unit_h * @as(f32, @floatFromInt(row + 1)),
+            };
+            self.vs[i + 5].color = jok.Color.white;
+            self.vs[i + 5].texcoord = .{
+                .x = texcoord_unit_w * @as(f32, @floatFromInt(col)),
+                .y = texcoord_unit_h * @as(f32, @floatFromInt(row + 1)),
+            };
+            col += 1;
+            if (col == self.size.width) {
+                row += 1;
+                col = 0;
             }
         }
+    }
 
-        pub fn applyFn(self: *@This(), ppfn: PostProcessingFn, data: ?*anyopaque) void {
-            // Reset vertices
-            @memcpy(self.vs, self._vs);
+    pub fn reset(self: *@This()) void {
+        self.processed_vs.clearRetainingCapacity();
+    }
 
-            // Update vertices with post-processing callback
+    pub fn applyActor(self: *@This(), ppa: Actor) void {
+        if (ppa.region) |r| {
+            assert(r.x < self.size.width);
+            assert(r.y < self.size.height);
+            var y: u32 = 0;
+            while (y < r.height) : (y += 1) {
+                var x: u32 = 0;
+                while (x < r.width) : (x += 1) {
+                    const i = ((y + r.y) * self.size.width + x + r.x) * 6;
+                    if (ppa.ppfn(.{
+                        .x = @as(f32, @floatFromInt(x)) / @as(f32, @floatFromInt(r.width)),
+                        .y = @as(f32, @floatFromInt(y)) / @as(f32, @floatFromInt(r.height)),
+                    }, ppa.data)) |c| {
+                        self.vs[i].color = c;
+                        self.vs[i + 1].color = c;
+                        self.vs[i + 2].color = c;
+                        self.vs[i + 3].color = c;
+                        self.vs[i + 4].color = c;
+                        self.vs[i + 5].color = c;
+                        self.processed_vs.appendSliceAssumeCapacity(self.vs[i .. i + 6]);
+                    }
+                }
+            }
+        } else {
             var i: usize = 0;
             while (i < self.vs.len) : (i += 6) {
-                if (ppfn(.{
+                if (ppa.ppfn(.{
                     .x = self.vs[i].texcoord.x,
                     .y = self.vs[i].texcoord.y,
-                }, data)) |c| {
+                }, ppa.data)) |c| {
                     self.vs[i].color = c;
                     self.vs[i + 1].color = c;
                     self.vs[i + 2].color = c;
                     self.vs[i + 3].color = c;
                     self.vs[i + 4].color = c;
                     self.vs[i + 5].color = c;
+                    self.processed_vs.appendSliceAssumeCapacity(self.vs[i .. i + 6]);
                 }
             }
         }
+    }
 
-        pub fn render(self: @This(), rd: jok.Renderer, tex: jok.Texture) void {
-            rd.drawTriangles(tex, self.vs, null) catch unreachable;
-        }
-    };
-}
+    pub fn render(self: @This()) void {
+        const rd = self.ctx.renderer();
+        const tex = self.ctx.canvas();
+        rd.drawTexture(tex, null, self.ctx.getCanvasArea()) catch unreachable;
+        rd.drawTriangles(tex, self.processed_vs.items, null) catch unreachable;
+    }
+};

@@ -29,9 +29,6 @@ pub const Config = struct {
     /// Canvas size (default to framebuffer's size)
     jok_canvas_size: ?jok.Size = null,
 
-    /// Post-processing granularity
-    jok_post_processing_size: jok.Size = .{ .width = 100, .height = 100 },
-
     /// Window attributes
     jok_window_title: [:0]const u8 = "mygame",
     jok_window_size: WindowSize = .{ .custom = .{ .width = 800, .height = 600 } },
@@ -112,7 +109,6 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_software_renderer", .desc = "whether use software renderer" },
         .{ .name = "jok_software_renderer_fallback", .desc = "whether fallback to software renderer when hardware acceleration isn't available" },
         .{ .name = "jok_canvas_size", .desc = "size of canvas" },
-        .{ .name = "jok_post_processing_size", .desc = "post-processing granularity" },
         .{ .name = "jok_window_title", .desc = "title of window" },
         .{ .name = "jok_window_size", .desc = "size of window" },
         .{ .name = "jok_window_min_size", .desc = "minimum size of window" },

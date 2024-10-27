@@ -38,7 +38,8 @@ pub const Context = struct {
         getCanvasArea: *const fn (ctx: *anyopaque) jok.Rectangle,
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
         getDpiScale: *const fn (ctx: *anyopaque) f32,
-        setPostProcessing: *const fn (ctx: *anyopaque, ppfn: pp.PostProcessingFn, data: ?*anyopaque) void,
+        addPostProcessing: *const fn (ctx: *anyopaque, ppa: pp.Actor) anyerror!void,
+        clearPostProcessing: *const fn (ctx: *anyopaque) void,
         supressDraw: *const fn (ctx: *anyopaque) void,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
@@ -124,9 +125,19 @@ pub const Context = struct {
         return self.vtable.getDpiScale(self.ctx);
     }
 
-    /// Set post-processing callback
-    pub fn setPostProcessing(self: Context, ppfn: pp.PostProcessingFn, data: ?*anyopaque) void {
-        return self.vtable.setPostProcessing(self.ctx, ppfn, data);
+    /// Add post-processing effect
+    pub fn addPostProcessing(self: Context, ppa: pp.Actor) !void {
+        if (ppa.region) |r| {
+            const canvas_size = self.getCanvasSize();
+            assert(r.width < canvas_size.width);
+            assert(r.height < canvas_size.height);
+        }
+        try self.vtable.addPostProcessing(self.ctx, ppa);
+    }
+
+    /// Clear post-processing effects
+    pub fn clearPostProcessing(self: Context) void {
+        return self.vtable.clearPostProcessing(self.ctx);
     }
 
     /// Supress drawcall of current frame
@@ -159,7 +170,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
         .verbose_log = cfg.jok_mem_detail_logs,
         .enable_memory_limit = true,
     });
-    const PostProcessingType = pp.PostProcessingEffect(cfg);
 
     return struct {
         var gpa: AllocatorType = .{};
@@ -195,9 +205,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _canvas_target_area: ?jok.Rectangle = null,
 
         // Post-processing
-        _post_processing: PostProcessingType = undefined,
-        _ppfn: ?pp.PostProcessingFn = null,
-        _ppdata: ?*anyopaque = null,
+        _post_processing: pp.PostProcessingEffect = undefined,
+        _pp_actors: std.ArrayList(pp.Actor) = undefined,
 
         // Drawcall supress
         _supress_draw: bool = false,
@@ -421,9 +430,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._renderer.setTarget(self._canvas_texture) catch unreachable;
                 defer {
                     self._renderer.setTarget(null) catch unreachable;
-                    if (self._ppfn) |f| {
-                        self._post_processing.applyFn(f, self._ppdata);
-                        self._post_processing.render(self._renderer, self._canvas_texture);
+                    if (self._pp_actors.items.len > 0) {
+                        self._post_processing.reset();
+                        for (self._pp_actors.items) |a| {
+                            self._post_processing.applyActor(a);
+                        }
+                        self._post_processing.render();
                     } else {
                         self._renderer.drawTexture(
                             self._canvas_texture,
@@ -631,12 +643,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Create drawing target
             self._canvas_texture = try self._renderer.createTarget(.{ .size = self._canvas_size });
-            self._post_processing = try PostProcessingType.init(self._allocator);
+            self._post_processing = try pp.PostProcessingEffect.init(self._ctx);
+            self._pp_actors = std.ArrayList(pp.Actor).init(self._allocator);
             self.updateCanvasTargetArea();
         }
 
         /// Deinitialize SDL
         fn deinitSDL(self: *@This()) void {
+            self._pp_actors.deinit();
             self._post_processing.destroy();
             self._canvas_texture.destroy();
             self._renderer.destroy();
@@ -665,7 +679,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .getCanvasArea = getCanvasArea,
                     .getAspectRatio = getAspectRatio,
                     .getDpiScale = getDpiScale,
-                    .setPostProcessing = setPostProcessing,
+                    .addPostProcessing = addPostProcessing,
+                    .clearPostProcessing = clearPostProcessing,
                     .supressDraw = supressDraw,
                     .isRunningSlow = isRunningSlow,
                     .displayStats = displayStats,
@@ -695,7 +710,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             } else {
                 self._canvas_target_area = null;
             }
-            self._post_processing.onCanvasChange(self._renderer, self._canvas_target_area);
+            self._post_processing.onCanvasChange();
         }
 
         ///////////////////// Wrapped API for Application Context //////////////////
@@ -816,11 +831,16 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
         }
 
-        /// Set post-processing callback
-        pub fn setPostProcessing(ptr: *anyopaque, ppfn: pp.PostProcessingFn, data: ?*anyopaque) void {
+        /// Add post-processing effect
+        pub fn addPostProcessing(ptr: *anyopaque, ppa: pp.Actor) !void {
             const self: *@This() = @ptrCast(@alignCast(ptr));
-            self._ppfn = ppfn;
-            self._ppdata = data;
+            try self._pp_actors.append(ppa);
+        }
+
+        /// Clear post-processing effect
+        pub fn clearPostProcessing(ptr: *anyopaque) void {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            self._pp_actors.clearRetainingCapacity();
         }
 
         /// Supress drawcall of current frame

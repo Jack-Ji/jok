@@ -5,7 +5,6 @@ const j3d = jok.j3d;
 
 pub const jok_window_resizable = true;
 pub const jok_canvas_size = jok.Size{ .width = 320, .height = 180 };
-pub const jok_post_processing_size: jok.Size = jok_canvas_size;
 
 var camera: j3d.Camera = undefined;
 var skybox_textures: [6]jok.Texture = undefined;
@@ -18,7 +17,7 @@ fn ppCallback(pos: jok.Point, data: ?*anyopaque) ?jok.Color {
         .r = @intFromFloat((1.0 + @cos(t * pos.x)) * 125),
         .g = @intFromFloat((1.0 + @sin(t * pos.y)) * 125),
         .b = @intFromFloat((1.0 + @sin(t * pos.x * pos.y)) * 125),
-        .a = 1,
+        .a = 255,
     };
 }
 
@@ -77,7 +76,24 @@ pub fn init(ctx: jok.Context) !void {
         true,
     );
 
-    ctx.setPostProcessing(ppCallback, null);
+    try ctx.addPostProcessing(.{
+        .ppfn = ppCallback,
+        .region = .{
+            .x = 50,
+            .y = 50,
+            .width = 100,
+            .height = 50,
+        },
+    });
+    try ctx.addPostProcessing(.{
+        .ppfn = ppCallback,
+        .region = .{
+            .x = 200,
+            .y = 100,
+            .width = 120,
+            .height = 80,
+        },
+    });
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
