@@ -182,8 +182,39 @@ pub fn findGlyphIndex(self: Font, cp: u32) ?u32 {
 }
 
 pub const GlyphMetrics = struct {
-    // For important concepts, read follwing page:
-    // https://developer.apple.com/library/archive/documentation/StringsTextFonts/Conceptual/TextAndWebiPhoneOS/TypoFeatures/TextSystemFeatures.html
+    // For detailed description of font metrics, read follwing page:
+    // https://freetype.org/freetype2/docs/glyphs/glyphs-3.html
+    //
+    //      y         -------------------------------     .--- Top-right of bbox
+    //     ^           ^                                 /
+    //     |           |     @@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    //    -+----> x    |     @    =#@@%**+==+**%@@#=    @
+    //     |           |     @  -*@@@*-        -*%@@#:  @
+    //                 |     @ .%@@%*            +%@@@= @
+    //                 |     @:@@@@%:            :#@@@%+@<------- Bounding-Box
+    //                 |     @@@@@%+              =@@@@#@
+    //              Ascent   @@@@@%-              -@@@@%@
+    //                 |     @@@@@%:              :@@@@@@
+    //                 |     @@@@@%:              -@@@@@@
+    //      Leftside --+--.  @@@@@%-     ...      -@@@@%@    |
+    //      bearing    |  |  @%@@@%=  =*%@@@@**.  =@@@@#@    |
+    //                 |  v  @-@@@@#:+@%+. .+%@%=:#@@@%=@    |
+    //                 |<--->@ :#@@@=%@:     :%@#+@@@%= @    |
+    //                 |     @  :*@@@@%:      *@@@@@+:  @    |
+    //                 v     @    =*@@@%+.  .-#@@@*-    @    |
+    //      Baseline --+-----@---------#@@@@@@%@@@------@----+-----------------
+    //                /^     @                 %@@@=    @    |
+    //               / |<-.  @                  @@@@=   @    |
+    //              /  v  |  @                   @@@@@  @    |
+    //             /  ----+--@@@@@@@@@@@@@@@@@@@@@@@@@@@@    |
+    //            /    |  |   \                              |
+    //   origin__/     |<-+----*---------------------------->|
+    //                 |  |     \         ^                  |
+    //                    |      \        |
+    //                    |       \       `---------- Advance width
+    //                    |        \
+    //                   Descent    `---- Bottom-left of bbox
+    //
 
     // Deepest vertical size, globally same
     ascent: f32,
