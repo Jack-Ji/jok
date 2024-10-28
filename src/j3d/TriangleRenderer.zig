@@ -8,7 +8,6 @@ const zmesh = jok.zmesh;
 const j3d = jok.j3d;
 const lighting = j3d.lighting;
 const Camera = j3d.Camera;
-const utils = jok.utils;
 const internal = @import("internal.zig");
 const Mesh = @import("Mesh.zig");
 const Animation = @import("Animation.zig");
@@ -481,7 +480,7 @@ pub fn renderSprite(
         const m_translate = zmath.translation(opt.anchor_point.x, opt.anchor_point.y, 0.0);
         const m_scale = zmath.scaling(size.x * opt.scale.x, size.y * opt.scale.y, 1.0);
         const m_rotate2 = zmath.mul(
-            zmath.rotationZ(jok.utils.math.degreeToRadian(opt.rotate_degree)),
+            zmath.rotationZ(std.math.degreesToRadians(opt.rotate_degree)),
             zmath.mul(zmath.rotationX(pitch), zmath.rotationY(yaw)),
         );
         const transform = zmath.mul(zmath.mul(
@@ -546,7 +545,7 @@ pub fn renderSprite(
             const size_x = size.x / csz_w * 2;
             const size_y = size.y / csz_h * 2;
             const m_scale = zmath.scaling(size_x * opt.scale.x, size_y * opt.scale.y, 1);
-            const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(-opt.rotate_degree));
+            const m_rotate = zmath.rotationZ(std.math.degreesToRadians(-opt.rotate_degree));
             const m_translate = zmath.translation(ndc_center[0], ndc_center[1], 0);
             const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
             const ndc_coords = zmath.mul(basic_coords, m_transform);
@@ -570,7 +569,7 @@ pub fn renderSprite(
             }
 
             const m_scale = zmath.scaling(size.x * opt.scale.x, size.y * opt.scale.y, 1);
-            const m_rotate = zmath.rotationZ(jok.utils.math.degreeToRadian(-opt.rotate_degree));
+            const m_rotate = zmath.rotationZ(std.math.degreesToRadians(-opt.rotate_degree));
             const m_translate = zmath.translation(
                 pos_in_camera_space[0],
                 pos_in_camera_space[1],

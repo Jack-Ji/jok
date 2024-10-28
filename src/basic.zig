@@ -135,6 +135,7 @@ pub const Color = extern struct {
     pub const magenta = rgb(0xFF, 0x00, 0xFF);
     pub const cyan = rgb(0x00, 0xFF, 0xFF);
     pub const yellow = rgb(0xFF, 0xFF, 0x00);
+    pub const purple = rgb(255, 128, 255);
 
     r: u8,
     g: u8,

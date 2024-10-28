@@ -60,18 +60,18 @@ pub fn draw(ctx: jok.Context) !void {
         defer j2d.end();
 
         for (0..ncircle) |i| {
-            var tr = j2d.AffineTransform.init();
-            tr.translate(.{ .x = csz.getWidthFloat() / 2, .y = csz.getHeightFloat() / 2 });
-            tr.translateX(jok.utils.math.linearMap(
+            const tr = j2d.AffineTransform.init().translate(.{
+                .x = csz.getWidthFloat() / 2,
+                .y = csz.getHeightFloat() / 2,
+            }).translateX(jok.utils.math.linearMap(
                 math.sin(ctx.seconds()),
                 -1,
                 1,
                 -radius,
                 radius,
-            ));
-            tr.rotateByPoint(
+            )).rotateByPoint(
                 .{ .x = csz.getWidthFloat() / 2, .y = csz.getHeightFloat() / 2 },
-                jok.utils.math.degreeToRadian(rot + 360.0 * @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(ncircle))),
+                std.math.degreesToRadians(rot + 360.0 * @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(ncircle))),
             );
             j2d.setTransform(tr);
             try j2d.circleFilled(.{ .x = 0, .y = 0 }, 10, jok.Color.green, .{});

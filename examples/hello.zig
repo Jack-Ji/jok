@@ -155,16 +155,15 @@ pub fn draw(ctx: jok.Context) !void {
             const translate_m = jok.zmath.translation(center_x, center_y, 0);
             const offset_transformed = jok.zmath.mul(jok.zmath.mul(offset_origin, rotate_m), translate_m);
 
-            j2d.getTransform().setToIdentity();
-            j2d.getTransform().scale(.{
-                .x = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
-                .y = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
-            });
-            j2d.getTransform().rotateByOrigin(ctx.seconds());
-            j2d.getTransform().translate(.{
-                .x = offset_transformed[0],
-                .y = offset_transformed[1],
-            });
+            j2d.setTransform(
+                j2d.AffineTransform.init().scale(.{
+                    .x = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
+                    .y = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
+                }).rotateByOrigin(ctx.seconds()).translate(.{
+                    .x = offset_transformed[0],
+                    .y = offset_transformed[1],
+                }),
+            );
             try j2d.rectFilledMultiColor(
                 .{ .x = -10, .y = -10, .width = 20, .height = 20 },
                 jok.Color.white,
@@ -175,7 +174,7 @@ pub fn draw(ctx: jok.Context) !void {
             );
         }
 
-        j2d.getTransform().setToIdentity();
+        j2d.setTransform(j2d.AffineTransform.init());
         text_draw_pos.x += text_speed.x * ctx.deltaSeconds();
         text_draw_pos.y += text_speed.y * ctx.deltaSeconds();
         const atlas = try font.DebugFont.getAtlas(ctx, 50);

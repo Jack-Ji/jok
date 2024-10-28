@@ -25,7 +25,7 @@ pub fn init(ctx: jok.Context) !void {
     camera = Camera.fromPositionAndTarget(
         .{
             .perspective = .{
-                .fov = jok.utils.math.degreeToRadian(70),
+                .fov = std.math.degreesToRadians(70),
                 .aspect_ratio = ctx.getAspectRatio(),
                 .near = 0.1,
                 .far = 100,

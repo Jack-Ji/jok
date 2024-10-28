@@ -171,8 +171,8 @@ pub fn setTransform(t: AffineTransform) void {
     transform = t;
 }
 
-pub fn getTransform() *AffineTransform {
-    return &transform;
+pub fn getTransform() AffineTransform {
+    return transform;
 }
 
 pub const ImageOption = struct {
@@ -313,7 +313,7 @@ pub fn text(opt: TextOption, comptime fmt: []const u8, args: anytype) !void {
     var scale = transform.getScale();
     scale.x *= opt.scale.x;
     scale.y *= opt.scale.y;
-    const angle = jok.utils.math.degreeToRadian(opt.rotate_degree);
+    const angle = std.math.degreesToRadians(opt.rotate_degree);
     const mat = zmath.mul(
         zmath.mul(
             zmath.translation(-pos.x, -pos.y, 0),
@@ -1057,8 +1057,8 @@ pub const Path = struct {
             .arc_to = .{
                 .p = pos,
                 .radius = radius,
-                .amin = jok.utils.math.degreeToRadian(degree_begin),
-                .amax = jok.utils.math.degreeToRadian(degree_end),
+                .amin = std.math.degreesToRadians(degree_begin),
+                .amax = std.math.degreesToRadians(degree_end),
                 .num_segments = opt.num_segments,
             },
         });

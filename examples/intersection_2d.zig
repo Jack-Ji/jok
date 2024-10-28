@@ -57,7 +57,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     j2d.begin(.{});
     defer j2d.end();
-    j2d.getTransform().setToTranslate(.{ .x = offset0.x, .y = offset0.y });
+    j2d.setTransform(j2d.AffineTransform.init().translate(.{ .x = offset0.x, .y = offset0.y }));
     try j2d.triangle(
         .{ .x = p0.x, .y = p0.y },
         .{ .x = p1.x, .y = p1.y },
@@ -66,7 +66,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{ .thickness = tri_thickness },
     );
 
-    j2d.getTransform().setToTranslate(.{ .x = offset1.x, .y = offset1.y });
+    j2d.setTransform(j2d.AffineTransform.init().translate(.{ .x = offset1.x, .y = offset1.y }));
     try j2d.triangle(
         .{ .x = p3.x, .y = p3.y },
         .{ .x = p4.x, .y = p4.y },
@@ -75,7 +75,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{ .thickness = tri_thickness },
     );
 
-    j2d.getTransform().setToIdentity();
+    j2d.setTransform(j2d.AffineTransform.init());
     try j2d.rect(
         rect0,
         rect_color,

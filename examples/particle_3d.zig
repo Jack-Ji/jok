@@ -62,7 +62,7 @@ pub fn init(ctx: jok.Context) !void {
     camera = j3d.Camera.fromPositionAndTarget(
         .{
             .perspective = .{
-                .fov = jok.utils.math.degreeToRadian(45),
+                .fov = std.math.degreesToRadians(45),
                 .aspect_ratio = ctx.getAspectRatio(),
                 .near = 0.1,
                 .far = 1000,

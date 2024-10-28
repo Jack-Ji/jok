@@ -49,59 +49,50 @@ pub fn draw(ctx: jok.Context) !void {
     var i: u32 = 0;
     while (i < rect_num) : (i += 1) {
         const step = @as(f32, @floatFromInt(i));
-        var transform = j2d.AffineTransform.init();
-        transform.scale(.{
+        var transform = j2d.AffineTransform.init().scale(.{
             .x = math.pow(f32, scale_step, step),
             .y = math.pow(f32, scale_step, step),
         });
 
         // top-left
-        {
-            var tr = transform.clone();
-            tr.rotateByOrigin(-angle_step * step);
-            tr.translate(.{
+        j2d.setTransform(
+            transform.rotateByOrigin(-angle_step * step)
+                .translate(.{
                 .x = fb_size.getWidthFloat() / 4,
                 .y = fb_size.getHeightFloat() / 4,
-            });
-            j2d.setTransform(tr);
-            try j2d.rect(rect, jok.Color.white, .{});
-        }
+            }),
+        );
+        try j2d.rect(rect, jok.Color.white, .{});
 
         // top-right
-        {
-            var tr = transform.clone();
-            tr.rotateByOrigin(angle_step * step);
-            tr.translate(.{
+        j2d.setTransform(
+            transform.rotateByOrigin(angle_step * step)
+                .translate(.{
                 .x = fb_size.getWidthFloat() * 3 / 4,
                 .y = fb_size.getHeightFloat() / 4,
-            });
-            j2d.setTransform(tr);
-            try j2d.rect(rect, jok.Color.white, .{});
-        }
+            }),
+        );
+        try j2d.rect(rect, jok.Color.white, .{});
 
         // bottom-right
-        {
-            var tr = transform.clone();
-            tr.rotateByOrigin(-angle_step * step);
-            tr.translate(.{
+        j2d.setTransform(
+            transform.rotateByOrigin(-angle_step * step)
+                .translate(.{
                 .x = fb_size.getWidthFloat() * 3 / 4,
                 .y = fb_size.getHeightFloat() * 3 / 4,
-            });
-            j2d.setTransform(tr);
-            try j2d.rect(rect, jok.Color.white, .{});
-        }
+            }),
+        );
+        try j2d.rect(rect, jok.Color.white, .{});
 
         // bottom-left
-        {
-            var tr = transform.clone();
-            tr.rotateByOrigin(angle_step * step);
-            tr.translate(.{
+        j2d.setTransform(
+            transform.rotateByOrigin(angle_step * step)
+                .translate(.{
                 .x = fb_size.getWidthFloat() / 4,
                 .y = fb_size.getHeightFloat() * 3 / 4,
-            });
-            j2d.setTransform(tr);
-            try j2d.rect(rect, jok.Color.white, .{});
-        }
+            }),
+        );
+        try j2d.rect(rect, jok.Color.white, .{});
     }
 }
 

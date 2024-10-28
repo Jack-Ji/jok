@@ -18,16 +18,6 @@ pub inline fn smoothMap(_v: f32, from: f32, to: f32, map_from: f32, map_to: f32)
     return map_from + (map_to - map_from) * step;
 }
 
-/// Convert radian to degree
-pub inline fn radianToDegree(r: f32) f32 {
-    return r * 180.0 / math.pi;
-}
-
-/// Convert degree to radian
-pub inline fn degreeToRadian(d: f32) f32 {
-    return d * math.pi / 180.0;
-}
-
 /// Get min and max of 3 value
 pub inline fn minAndMax(_x: anytype, _y: anytype, _z: anytype) std.meta.Tuple(&[_]type{
     @TypeOf(_x, _y, _z),

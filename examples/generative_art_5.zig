@@ -10,10 +10,11 @@ pub const jok_canvas_size = jok.Size{
     .height = 800,
 };
 
-const max_points = 1000;
+const max_points = 800;
 const radius1: f32 = 45;
 const radius2: f32 = 5;
 const radius3: f32 = 3;
+const thickness: f32 = 2;
 const colors = [7]jok.Color{
     jok.Color.red,
     jok.Color.green,
@@ -21,7 +22,7 @@ const colors = [7]jok.Color{
     jok.Color.magenta,
     jok.Color.cyan,
     jok.Color.yellow,
-    jok.Color.rgb(255, 128, 255),
+    jok.Color.purple,
 };
 var points_angular_velocity: [7]f32 = undefined;
 var points_row: [7]jok.Point = undefined;
@@ -52,18 +53,15 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    // step
     for (0..7) |i| {
         const rotation = std.math.degreesToRadians(points_angular_velocity[i] * ctx.deltaSeconds());
-        var trs = j2d.AffineTransform.init();
-        trs.rotateByPoint(.{
+        var trs = j2d.AffineTransform.init().rotateByPoint(.{
             .x = @floatFromInt(100 * (i + 1) + 50),
             .y = 50,
         }, rotation);
         points_row[i] = trs.transformPoint(points_row[i]);
 
-        trs.setToIdentity();
-        trs.rotateByPoint(.{
+        trs = j2d.AffineTransform.init().rotateByPoint(.{
             .x = 50,
             .y = @floatFromInt(100 * (i + 1) + 50),
         }, rotation);
@@ -93,10 +91,6 @@ pub fn draw(ctx: jok.Context) !void {
     j2d.begin(.{});
     defer j2d.end();
     for (0..7) |i| {
-        try j2d.circle(.{ .x = @floatFromInt(100 * (i + 1) + 50), .y = 50 }, radius1, colors[i], .{});
-        try j2d.circle(.{ .x = 50, .y = @floatFromInt(100 * (i + 1) + 50) }, radius1, colors[i], .{});
-        try j2d.circleFilled(points_row[i], radius2, jok.Color.white, .{});
-        try j2d.circleFilled(points_col[i], radius2, jok.Color.white, .{});
         try j2d.line(
             points_row[i].add(.{ .x = 0, .y = -800 }),
             points_row[i].add(.{ .x = 0, .y = 800 }),
@@ -109,11 +103,25 @@ pub fn draw(ctx: jok.Context) !void {
             jok.Color.rgba(30, 30, 30, 128),
             .{},
         );
+        try j2d.circle(
+            .{ .x = @floatFromInt(100 * (i + 1) + 50), .y = 50 },
+            radius1,
+            colors[i],
+            .{ .thickness = thickness },
+        );
+        try j2d.circle(
+            .{ .x = 50, .y = @floatFromInt(100 * (i + 1) + 50) },
+            radius1,
+            colors[i],
+            .{ .thickness = thickness },
+        );
+        try j2d.circleFilled(points_row[i], radius2, jok.Color.white, .{});
+        try j2d.circleFilled(points_col[i], radius2, jok.Color.white, .{});
     }
     for (0..7) |j| {
         for (0..7) |i| {
             const idx = j * 7 + i;
-            try j2d.polyline(curves[idx], colors[i], .{});
+            try j2d.polyline(curves[idx], colors[i], .{ .thickness = thickness });
             try j2d.circleFilled(
                 .{ .x = points_row[i].x, .y = points_col[j].y },
                 radius3,

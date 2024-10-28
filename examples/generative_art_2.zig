@@ -36,7 +36,9 @@ pub fn draw(ctx: jok.Context) !void {
         var point = jok.Point{ .x = 0, .y = 0 };
         var j: usize = 0;
         while (j < 5) : (j += 1) {
-            const angle = jok.utils.math.degreeToRadian(@as(f32, @floatFromInt(i)) / 4 * math.pow(f32, 3.0, @as(f32, @floatFromInt(j))));
+            const angle = std.math.degreesToRadians(
+                @as(f32, @floatFromInt(i)) / 4 * math.pow(f32, 3.0, @as(f32, @floatFromInt(j))),
+            );
             const off = math.pow(f32, 0.4 + statechange, @as(f32, @floatFromInt(j)));
             point.x += math.cos(angle) * off;
             point.y += math.sin(angle) * off;
@@ -45,9 +47,9 @@ pub fn draw(ctx: jok.Context) !void {
     }
     path.end(.stroke, .{ .closed = true });
 
-    var transform = j2d.AffineTransform.init();
-    transform.scale(.{ .x = scale, .y = scale });
-    transform.translate(.{
+    const transform = j2d.AffineTransform.init()
+        .scale(.{ .x = scale, .y = scale })
+        .translate(.{
         .x = ctx.getCanvasSize().getWidthFloat() / 2,
         .y = ctx.getCanvasSize().getHeightFloat() / 2,
     });
