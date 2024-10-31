@@ -25,6 +25,19 @@ pub const xml = @import("utils/xml.zig");
 /// Trait system
 pub const trait = @import("utils/trait.zig");
 
+/// Whether current thread is main thread
+pub fn isMainThread() bool {
+    const std = @import("std");
+    const S = struct {
+        var main_thread_id: ?std.Thread.Id = null;
+    };
+    if (S.main_thread_id) |id| {
+        return id == std.Thread.getCurrentId();
+    }
+    S.main_thread_id = std.Thread.getCurrentId();
+    return true;
+}
+
 test "utils" {
     _ = pathfind;
     _ = asynctool;

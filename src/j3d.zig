@@ -6,10 +6,8 @@ const imgui = jok.imgui;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 
-const internal = @import("j3d/internal.zig");
 const TriangleRenderer = @import("j3d/TriangleRenderer.zig");
 const SkyboxRenderer = @import("j3d/SkyboxRenderer.zig");
-pub const RenderBatch = internal.RenderJob.RenderBatch;
 pub const ShadingMethod = TriangleRenderer.ShadingMethod;
 pub const LightingOption = lighting.LightingOption;
 pub const Mesh = @import("j3d/Mesh.zig");
@@ -28,7 +26,7 @@ pub const RenderOption = struct {
     lighting: ?LightingOption = null,
 };
 
-pub const BeginOption = struct {
+pub const BatchOption = struct {
     camera: ?Camera = null,
     wireframe_color: ?jok.Color = null,
     triangle_sort: TriangleSort = .none,
@@ -46,1168 +44,790 @@ pub const TriangleSort = union(enum(u8)) {
     simple,
 };
 
-var ctx: jok.Context = undefined;
-var arena: std.heap.ArenaAllocator = undefined;
-var rdjob: internal.RenderJob = undefined;
-var tri_rd: TriangleRenderer = undefined;
-var skybox_rd: SkyboxRenderer = undefined;
-var all_shapes: std.ArrayList(zmesh.Shape) = undefined;
-var camera: Camera = undefined;
-var blend_mode: jok.BlendMode = undefined;
-var offscreen_target: ?jok.Texture = undefined;
-var offscreen_clear_color: ?jok.Color = undefined;
-var submitted: bool = undefined;
+const invalid_batch_id = std.math.maxInt(usize);
 
-pub fn init(_ctx: jok.Context) !void {
-    ctx = _ctx;
-    arena = std.heap.ArenaAllocator.init(ctx.allocator());
-    rdjob = internal.RenderJob.init(ctx.allocator());
-    tri_rd = TriangleRenderer.init(ctx.allocator());
-    skybox_rd = SkyboxRenderer.init(ctx.allocator(), .{});
-    all_shapes = std.ArrayList(zmesh.Shape).init(arena.allocator());
-    submitted = true;
-}
+pub const Batch = struct {
+    /// All fields are private, DON'T use it directly.
+    id: usize = invalid_batch_id,
+    reclaimer: BatchReclaimer = undefined,
+    is_submitted: bool = false,
+    ctx: jok.Context,
+    camera: Camera,
+    tri_rd: TriangleRenderer,
+    skybox_rd: SkyboxRenderer,
+    wireframe_color: ?jok.Color,
+    triangle_sort: TriangleSort,
+    indices: std.ArrayList(u32),
+    vertices: std.ArrayList(jok.Vertex),
+    depths: std.ArrayList(f32),
+    textures: std.ArrayList(?jok.Texture),
+    all_tex: std.AutoHashMap(*anyopaque, bool),
+    draw_list: imgui.DrawList,
+    blend_mode: jok.BlendMode,
+    offscreen_target: ?jok.Texture,
+    offscreen_clear_color: ?jok.Color,
 
-pub fn deinit() void {
-    for (all_shapes.items) |s| s.deinit();
-    tri_rd.deinit();
-    skybox_rd.deinit();
-    rdjob.deinit();
-    arena.deinit();
-}
-
-pub fn begin(opt: BeginOption) void {
-    rdjob.reset(
-        ctx,
-        opt.wireframe_color,
-        opt.triangle_sort,
-        opt.clip_rect,
-        false,
-    );
-    camera = opt.camera orelse BLK: {
-        break :BLK Camera.fromPositionAndTarget(
-            .{
-                .perspective = .{
-                    .fov = math.pi / 4.0,
-                    .aspect_ratio = ctx.getAspectRatio(),
-                    .near = 0.1,
-                    .far = 100,
-                },
-            },
-            .{ 0, 0, -1 },
-            .{ 0, 0, 0 },
-        );
-    };
-    blend_mode = opt.blend_mode;
-    offscreen_target = opt.offscreen_target;
-    offscreen_clear_color = opt.offscreen_clear_color;
-    if (offscreen_target) |t| {
-        const info = t.query() catch unreachable;
-        if (info.access != .target) {
-            @panic("Given texture isn't suitable for offscreen rendering!");
-        }
-    }
-}
-
-pub fn end() void {
-    // Apply blend mode to renderer
-    const rd = ctx.renderer();
-    const old_blend = rd.getBlendMode() catch unreachable;
-    defer rd.setBlendMode(old_blend) catch unreachable;
-    rd.setBlendMode(blend_mode) catch unreachable;
-
-    // Apply offscreen target if given
-    const old_target = rd.getTarget();
-    if (offscreen_target) |t| {
-        rd.setTarget(t) catch unreachable;
-        if (offscreen_clear_color) |c| rd.clear(c) catch unreachable;
-    }
-    defer if (offscreen_target != null) {
-        rd.setTarget(old_target) catch unreachable;
-    };
-
-    // Submit draw command
-    rdjob.submit(ctx, blend_mode);
-}
-
-pub fn clearMemory() void {
-    rdjob.clear(true);
-}
-
-/// Get current batched data
-pub fn getBatch() !RenderBatch {
-    return try rdjob.createBatch();
-}
-
-/// Render previous batched data
-pub fn batch(b: RenderBatch) !void {
-    try rdjob.pushBatch(b);
-}
-
-/// Render skybox, textures order: right/left/top/bottom/front/back
-pub fn skybox(textures: [6]jok.Texture, color: ?jok.Color) !void {
-    try skybox_rd.render(
-        ctx.getCanvasSize(),
-        &rdjob,
-        camera,
-        textures,
-        color,
-    );
-}
-
-/// Render given scene
-pub fn scene(s: *const Scene, opt: Scene.RenderOption) !void {
-    try s.render(null, opt);
-}
-
-/// Render particle effects
-pub fn effects(ps: *ParticleSystem) !void {
-    for (ps.effects.items) |eff| {
-        try eff.render(
-            ctx.getCanvasSize(),
-            &rdjob,
-            camera,
-            &tri_rd,
-        );
-    }
-}
-
-/// Render given sprite
-pub fn sprite(model: zmath.Mat, size: jok.Point, uv: [2]jok.Point, opt: TriangleRenderer.RenderSpriteOption) !void {
-    try tri_rd.renderSprite(
-        ctx.getCanvasSize(),
-        &rdjob,
-        model,
-        camera,
-        size,
-        uv,
-        opt,
-    );
-}
-
-pub const LineOption = struct {
-    color: jok.Color = jok.Color.white,
-    thickness: f32 = 0.1,
-    stacks: u32 = 10,
-};
-
-/// Render given line
-pub fn line(model: zmath.Mat, _p0: [3]f32, _p1: [3]f32, opt: LineOption) !void {
-    assert(opt.thickness > 0);
-    assert(opt.stacks > 0);
-    const v0 = zmath.mul(zmath.f32x4(_p0[0], _p0[1], _p0[2], 1), model);
-    const v1 = zmath.mul(zmath.f32x4(_p1[0], _p1[1], _p1[2], 1), model);
-    const perpv = zmath.normalize3(zmath.cross3(v1 - v0, camera.dir));
-    const veps = zmath.f32x4s(opt.thickness);
-    const unit = (v1 - v0) / zmath.f32x4s(@floatFromInt(opt.stacks));
-    for (0..opt.stacks) |i| {
-        const p0 = v0 + zmath.f32x4s(@floatFromInt(i)) * unit + veps * perpv;
-        const p1 = v0 + zmath.f32x4s(@floatFromInt(i)) * unit - veps * perpv;
-        const p2 = v0 + zmath.f32x4s(@floatFromInt(i + 1)) * unit - veps * perpv;
-        const p3 = v0 + zmath.f32x4s(@floatFromInt(i + 1)) * unit + veps * perpv;
-        try tri_rd.renderMesh(
-            ctx.getCanvasSize(),
-            &rdjob,
-            zmath.identity(),
-            camera,
-            &.{ 0, 1, 2, 0, 2, 3 },
-            &.{
-                .{ p0[0], p0[1], p0[2] },
-                .{ p1[0], p1[1], p1[2] },
-                .{ p2[0], p2[1], p2[2] },
-                .{ p3[0], p3[1], p3[2] },
-            },
-            null,
-            null,
-            null,
-            .{
-                .cull_faces = false,
-                .color = opt.color,
-                .shading_method = .flat,
-            },
-        );
-    }
-}
-
-pub const TriangleOption = struct {
-    rdopt: RenderOption = .{},
-    aabb: ?[6]f32,
-    fill: bool = true,
-};
-
-/// Render given triangle
-pub fn triangle(model: zmath.Mat, pos: [3][3]f32, colors: ?[3]jok.Color, texcoords: ?[3][2]f32, opt: TriangleOption) !void {
-    if (opt.fill) {
-        const v0 = zmath.f32x4(
-            pos[1][0] - pos[0][0],
-            pos[1][1] - pos[0][1],
-            pos[1][2] - pos[0][2],
-            0,
-        );
-        const v1 = zmath.f32x4(
-            pos[2][0] - pos[1][0],
-            pos[2][1] - pos[1][1],
-            pos[2][2] - pos[1][2],
-            0,
-        );
-        const normal = zmath.vecToArr3(zmath.cross3(v0, v1));
-        try tri_rd.renderMesh(
-            ctx.getCanvasSize(),
-            &rdjob,
-            model,
-            camera,
-            &.{ 0, 1, 2 },
-            &pos,
-            &.{ normal, normal, normal },
-            if (colors) |cs| &cs else null,
-            if (texcoords) |tex| &tex else null,
-            .{
-                .aabb = opt.aabb,
-                .cull_faces = opt.rdopt.cull_faces,
-                .color = opt.rdopt.color,
-                .shading_method = opt.rdopt.shading_method,
-                .texture = opt.rdopt.texture,
-                .lighting = opt.rdopt.lighting,
-            },
-        );
-    } else {
-        try line(model, pos[0], pos[1], .{ .color = opt.rdopt.color });
-        try line(model, pos[1], pos[2], .{ .color = opt.rdopt.color });
-        try line(model, pos[2], pos[0], .{ .color = opt.rdopt.color });
-    }
-}
-
-/// Render multiple triangles
-pub fn triangles(
-    model: zmath.Mat,
-    indices: []const u32,
-    pos: []const [3]f32,
-    normals: ?[]const [3]f32,
-    colors: ?[]const [3]jok.Color,
-    texcoords: ?[]const [2]f32,
-    opt: TriangleOption,
-) !void {
-    assert(@rem(indices, 3) == 0);
-
-    if (opt.fill) {
-        try tri_rd.renderMesh(
-            ctx.getCanvasSize(),
-            &rdjob,
-            model,
-            camera,
-            indices,
-            pos,
-            normals,
-            colors,
-            texcoords,
-            .{
-                .aabb = opt.aabb,
-                .cull_faces = opt.rdopt.cull_faces,
-                .color = opt.rdopt.color,
-                .shading_method = opt.rdopt.shading_method,
-                .texture = opt.rdopt.texture,
-                .lighting = opt.rdopt.lighting,
-            },
-        );
-    } else {
-        var i: u32 = 2;
-        while (i < indices) : (i += 2) {
-            const idx0 = indices[i - 2];
-            const idx1 = indices[i - 1];
-            const idx2 = indices[i];
-            try line(model, idx0, idx1, .{ .color = opt.rdopt.color });
-            try line(model, idx1, idx2, .{ .color = opt.rdopt.color });
-            try line(model, idx2, idx0, .{ .color = opt.rdopt.color });
-        }
-    }
-}
-
-/// Render a prebuilt shape
-pub fn shape(s: zmesh.Shape, model: zmath.Mat, aabb: ?[6]f32, opt: RenderOption) !void {
-    try tri_rd.renderMesh(
-        ctx.getCanvasSize(),
-        &rdjob,
-        model,
-        camera,
-        s.indices,
-        s.positions,
-        s.normals.?,
-        null,
-        s.texcoords,
-        .{
-            .aabb = aabb,
-            .cull_faces = opt.cull_faces,
-            .color = opt.color,
-            .shading_method = opt.shading_method,
-            .texture = opt.texture,
-            .lighting = opt.lighting,
-        },
-    );
-}
-
-/// Render a loaded mesh
-pub fn mesh(m: *const Mesh, model: zmath.Mat, opt: RenderOption) !void {
-    try m.render(
-        ctx.getCanvasSize(),
-        &rdjob,
-        model,
-        camera,
-        &tri_rd,
-        .{
-            .cull_faces = opt.cull_faces,
-            .color = opt.color,
-            .shading_method = opt.shading_method,
-            .texture = opt.texture,
-            .lighting = opt.lighting,
-        },
-    );
-}
-
-/// Render given animation's current frame
-pub fn animation(anim: *Animation, model: zmath.Mat, opt: Animation.RenderOption) !void {
-    try anim.render(
-        ctx.getCanvasSize(),
-        &rdjob,
-        model,
-        camera,
-        &tri_rd,
-        opt,
-    );
-}
-
-pub const AxisOption = struct {
-    radius: f32 = 0.1,
-    length: f32 = 4,
-    pos: [3]f32 = .{ 0, 0, 0 },
-    rotation: zmath.Quat = zmath.matToQuat(zmath.identity()),
-    color_x: jok.Color = jok.Color.red,
-    color_y: jok.Color = jok.Color.green,
-    color_z: jok.Color = jok.Color.blue,
-};
-
-/// Render a simple axis
-pub fn axises(opt: AxisOption) !void {
-    const scale_cylinder = zmath.scaling(opt.radius, opt.radius, opt.length);
-    const scale_cone = zmath.scaling(opt.radius * 2.5, opt.radius * 2.5, opt.length / 9);
-    const move_cylinder = zmath.translation(opt.pos[0], opt.pos[1], opt.pos[2]);
-    const rotation = zmath.matFromQuat(opt.rotation);
-    const right_angle = math.pi / 2.0;
-
-    // X axis
-    try cone(
-        zmath.mul(
-            zmath.mul(
-                zmath.mul(scale_cone, zmath.rotationY(right_angle)),
-                rotation,
-            ),
-            zmath.mul(zmath.translation(opt.length, 0, 0), move_cylinder),
-        ),
-        .{ .rdopt = .{ .color = opt.color_x, .cull_faces = false } },
-    );
-    try cylinder(
-        zmath.mul(
-            zmath.mul(
-                zmath.mul(scale_cylinder, zmath.rotationY(right_angle)),
-                rotation,
-            ),
-            move_cylinder,
-        ),
-        .{ .rdopt = .{ .color = opt.color_x }, .stacks = 10 },
-    );
-
-    // Y axis
-    try cone(
-        zmath.mul(
-            zmath.mul(
-                zmath.mul(scale_cone, zmath.rotationX(-right_angle)),
-                rotation,
-            ),
-            zmath.mul(zmath.translation(0, opt.length, 0), move_cylinder),
-        ),
-        .{ .rdopt = .{ .color = opt.color_y, .cull_faces = false } },
-    );
-    try cylinder(
-        zmath.mul(
-            zmath.mul(
-                zmath.mul(scale_cylinder, zmath.rotationX(-right_angle)),
-                rotation,
-            ),
-            move_cylinder,
-        ),
-        .{ .rdopt = .{ .color = opt.color_y }, .stacks = 10 },
-    );
-
-    // Z axis
-    try cone(
-        zmath.mul(
-            zmath.mul(scale_cone, rotation),
-            zmath.mul(zmath.translation(0, 0, opt.length), move_cylinder),
-        ),
-        .{ .rdopt = .{ .color = opt.color_z, .cull_faces = false } },
-    );
-    try cylinder(
-        zmath.mul(
-            zmath.mul(scale_cylinder, rotation),
-            move_cylinder,
-        ),
-        .{ .rdopt = .{ .color = opt.color_z }, .stacks = 10 },
-    );
-}
-
-pub const CubeOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-};
-
-/// Render a cube
-pub fn cube(model: zmath.Mat, opt: CubeOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
+    fn init(_ctx: jok.Context) Batch {
+        const allocator = _ctx.allocator();
+        return .{
+            .ctx = _ctx,
+            .camera = undefined,
+            .tri_rd = TriangleRenderer.init(allocator),
+            .skybox_rd = SkyboxRenderer.init(allocator, .{}),
+            .wireframe_color = null,
+            .triangle_sort = .none,
+            .indices = std.ArrayList(u32).init(allocator),
+            .vertices = std.ArrayList(jok.Vertex).init(allocator),
+            .depths = std.ArrayList(f32).init(allocator),
+            .textures = std.ArrayList(?jok.Texture).init(allocator),
+            .all_tex = std.AutoHashMap(*anyopaque, bool).init(allocator),
+            .draw_list = imgui.createDrawList(),
+            .blend_mode = .blend,
+            .offscreen_target = null,
+            .offscreen_clear_color = null,
         };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [32]u8 = undefined;
-
-        fn getKey(_opt: CubeOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}",
-                .{_opt.weld_threshold},
-            ) catch unreachable;
-        }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    const m = BLK: {
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
-        }
-
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initCube();
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
-        }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
-    };
-
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
-
-pub const PlaneOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-    slices: u32 = 10,
-    stacks: u32 = 10,
-};
-
-/// Render a plane
-pub fn plane(model: zmath.Mat, opt: PlaneOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
-        };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [32]u8 = undefined;
-
-        fn getKey(_opt: PlaneOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}-{d}-{d}",
-                .{ _opt.weld_threshold, _opt.slices, _opt.stacks },
-            ) catch unreachable;
-        }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
+    fn deinit(self: *Batch) void {
+        self.tri_rd.deinit();
+        self.skybox_rd.deinit();
+        self.indices.deinit();
+        self.vertices.deinit();
+        self.depths.deinit();
+        self.textures.deinit();
+        self.all_tex.deinit();
+        imgui.destroyDrawList(self.draw_list);
     }
 
-    const m = BLK: {
-        assert(opt.slices > 0);
-        assert(opt.stacks > 0);
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
-        }
-
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initPlane(@intCast(opt.slices), @intCast(opt.stacks));
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
-        }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
-    };
-
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
-
-pub const ParametricSphereOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-    slices: u32 = 15,
-    stacks: u32 = 15,
-};
-
-/// Render a parametric sphere
-pub fn parametricSphere(model: zmath.Mat, opt: ParametricSphereOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
-        };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [32]u8 = undefined;
-
-        fn getKey(_opt: ParametricSphereOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}-{d}-{d}",
-                .{ _opt.weld_threshold, _opt.slices, _opt.stacks },
-            ) catch unreachable;
-        }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
+    pub fn recycleMemory(self: *Batch) void {
+        self.indices.clearAndFree();
+        self.vertices.clearAndFree();
+        self.depths.clearAndFree();
+        self.textures.clearAndFree();
+        self.draw_list.clearMemory();
+        self.all_tex.clearRetainingCapacity();
     }
 
-    const m = BLK: {
-        assert(opt.slices > 0);
-        assert(opt.stacks > 0);
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
+    /// Reinitialize batch, abandon all commands, no reclaiming
+    pub fn reset(self: *Batch, opt: BatchOption) void {
+        assert(self.id != invalid_batch_id);
+        defer self.is_submitted = false;
+
+        self.wireframe_color = opt.wireframe_color;
+        self.triangle_sort = opt.triangle_sort;
+        self.draw_list.reset();
+        if (opt.clip_rect) |r| {
+            self.draw_list.pushClipRect(.{
+                .pmin = .{ r.x, r.y },
+                .pmax = .{ r.x + r.width, r.y + r.height },
+            });
+        } else {
+            const csz = self.ctx.getCanvasSize();
+            self.draw_list.pushClipRect(.{
+                .pmin = .{ 0, 0 },
+                .pmax = .{ @floatFromInt(csz.width), @floatFromInt(csz.height) },
+            });
         }
-
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initParametricSphere(@intCast(opt.slices), @intCast(opt.stacks));
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
-        }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
-    };
-
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
-
-pub const SubdividedSphereOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-    sub_num: u32 = 2,
-};
-
-/// Render a subdivided sphere
-pub fn subdividedSphere(model: zmath.Mat, opt: SubdividedSphereOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
-        };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [32]u8 = undefined;
-
-        fn getKey(_opt: SubdividedSphereOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}-{d}",
-                .{ _opt.weld_threshold, _opt.sub_num },
-            ) catch unreachable;
-        }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
-    }
-
-    const m = BLK: {
-        assert(opt.sub_num > 0);
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
-        }
-
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initSubdividedSphere(@intCast(opt.sub_num));
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
-        }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
-    };
-
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
-
-pub const HemisphereOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-    slices: u32 = 15,
-    stacks: u32 = 15,
-};
-
-/// Render a hemisphere
-pub fn hemisphere(model: zmath.Mat, opt: HemisphereOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
-        };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [32]u8 = undefined;
-
-        fn getKey(_opt: HemisphereOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}-{d}-{d}",
-                .{ _opt.weld_threshold, _opt.slices, _opt.stacks },
-            ) catch unreachable;
-        }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
-    }
-
-    const m = BLK: {
-        assert(opt.slices > 0);
-        assert(opt.stacks > 0);
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
-        }
-
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initHemisphere(@intCast(opt.slices), @intCast(opt.stacks));
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
-        }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
-    };
-
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
-
-pub const ConeOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-    slices: u32 = 15,
-    stacks: u32 = 1,
-};
-
-/// Render a cone
-pub fn cone(model: zmath.Mat, opt: ConeOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
-        };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [32]u8 = undefined;
-
-        fn getKey(_opt: ConeOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}-{d}-{d}",
-                .{ _opt.weld_threshold, _opt.slices, _opt.stacks },
-            ) catch unreachable;
-        }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
-    }
-
-    const m = BLK: {
-        assert(opt.slices > 0);
-        assert(opt.stacks > 0);
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
-        }
-
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initCone(@intCast(opt.slices), @intCast(opt.stacks));
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
-        }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
-    };
-
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
-
-pub const CylinderOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-    slices: u32 = 20,
-    stacks: u32 = 1,
-};
-
-/// Render a cylinder
-pub fn cylinder(model: zmath.Mat, opt: CylinderOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
-        };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [32]u8 = undefined;
-
-        fn getKey(_opt: CylinderOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}-{d}-{d}",
-                .{ _opt.weld_threshold, _opt.slices, _opt.stacks },
-            ) catch unreachable;
-        }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
-    }
-
-    const m = BLK: {
-        assert(opt.slices > 0);
-        assert(opt.stacks > 0);
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
-        }
-
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initCylinder(@intCast(opt.slices), @intCast(opt.stacks));
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
-        }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
-    };
-
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
-
-pub const DiskOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-    radius: f32 = 1,
-    slices: u32 = 20,
-    center: [3]f32 = .{ 0, 0, 0 },
-    normal: [3]f32 = .{ 0, 0, 1 },
-};
-
-/// Render a disk
-pub fn disk(model: zmath.Mat, opt: DiskOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
-        };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [64]u8 = undefined;
-
-        fn getKey(_opt: DiskOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}-{d:.3}-{d}-({d:.3}/{d:.3}/{d:.3})-({d:.3}/{d:.3}/{d:.3})",
+        self.draw_list.setDrawListFlags(.{
+            .anti_aliased_lines = true,
+            .anti_aliased_lines_use_tex = false,
+            .anti_aliased_fill = true,
+            .allow_vtx_offset = true,
+        });
+        self.indices.clearRetainingCapacity();
+        self.vertices.clearRetainingCapacity();
+        self.depths.clearRetainingCapacity();
+        self.textures.clearRetainingCapacity();
+        self.all_tex.clearAndFree();
+        self.camera = opt.camera orelse BLK: {
+            break :BLK Camera.fromPositionAndTarget(
                 .{
-                    _opt.weld_threshold, _opt.radius,    _opt.slices,
-                    _opt.center[0],      _opt.center[1], _opt.center[2],
-                    _opt.normal[0],      _opt.normal[1], _opt.normal[2],
+                    .perspective = .{
+                        .fov = math.pi / 4.0,
+                        .aspect_ratio = self.ctx.getAspectRatio(),
+                        .near = 0.1,
+                        .far = 100,
+                    },
                 },
-            ) catch unreachable;
+                .{ 0, 0, -1 },
+                .{ 0, 0, 0 },
+            );
+        };
+        self.blend_mode = opt.blend_mode;
+        self.offscreen_target = opt.offscreen_target;
+        self.offscreen_clear_color = opt.offscreen_clear_color;
+        if (self.offscreen_target) |t| {
+            const info = t.query() catch unreachable;
+            if (info.access != .target) {
+                @panic("Given texture isn't suitable for offscreen rendering!");
+            }
         }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    const m = BLK: {
-        assert(opt.radius > 0);
-        assert(opt.slices > 0);
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
+    inline fn isSameTexture(tex0: ?jok.Texture, tex1: ?jok.Texture) bool {
+        if (tex0 != null and tex1 != null) {
+            return tex0.?.ptr == tex1.?.ptr;
         }
+        return tex0 == null and tex1 == null;
+    }
 
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initDisk(opt.radius, @intCast(opt.slices), &opt.center, &opt.normal);
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
+    inline fn reserveCapacity(self: *Batch, idx_size: usize, vtx_size: usize) !void {
+        try self.indices.ensureTotalCapacity(self.indices.items.len + idx_size);
+        try self.vertices.ensureTotalCapacity(self.vertices.items.len + vtx_size);
+        try self.depths.ensureTotalCapacity(self.depths.items.len + vtx_size);
+        try self.textures.ensureTotalCapacity(self.textures.items.len + vtx_size);
+    }
+
+    // Compare triangles by average depth
+    fn compareTrianglesByDepth(self: *Batch, lhs: [3]u32, rhs: [3]u32) bool {
+        const l_idx0 = lhs[0];
+        const l_idx1 = lhs[1];
+        const l_idx2 = lhs[2];
+        const r_idx0 = rhs[0];
+        const r_idx1 = rhs[1];
+        const r_idx2 = rhs[2];
+        const d0 = (self.depths.items[l_idx0] + self.depths.items[l_idx1] + self.depths.items[l_idx2]) / 3.0;
+        const d1 = (self.depths.items[r_idx0] + self.depths.items[r_idx1] + self.depths.items[r_idx2]) / 3.0;
+        if (math.approxEqAbs(f32, d0, d1, 0.000001)) {
+            const tex0 = self.textures.items[l_idx0];
+            const tex1 = self.textures.items[r_idx0];
+            if (tex0 == null and tex1 == null) return d0 > d1;
+            if (tex0 != null and tex1 != null) return @intFromPtr(tex0.?.ptr) < @intFromPtr(tex1.?.ptr);
+            return tex0 == null;
         }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
-    };
+        return d0 > d1;
+    }
 
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
+    fn sortTriangles(self: *Batch, indices: []u32) void {
+        assert(@rem(indices.len, 3) == 0);
+        var _indices: [][3]u32 = undefined;
+        _indices.ptr = @ptrCast(indices.ptr);
+        _indices.len = @divTrunc(indices.len, 3);
+        std.sort.pdq(
+            [3]u32,
+            _indices,
+            self,
+            compareTrianglesByDepth,
+        );
+    }
 
-pub const TorusOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-    radius: f32 = 0.2,
-    slices: u32 = 15,
-    stacks: u32 = 20,
-};
+    /// Submit batch, issue draw calls, don't reclaim itself
+    pub fn submitWithoutReclaim(self: *Batch) void {
+        const S = struct {
+            inline fn addTriangles(dl: imgui.DrawList, indices: []u32, vertices: []jok.Vertex, texture: ?jok.Texture) void {
+                if (texture) |tex| dl.pushTextureId(tex.ptr);
+                defer if (texture != null) dl.popTextureId();
 
-/// Render a torus
-pub fn torus(model: zmath.Mat, opt: TorusOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
+                dl.primReserve(@intCast(indices.len), @intCast(indices.len));
+                const white_pixel_uv = imgui.getFontTexUvWhitePixel();
+                const cur_idx = dl.getCurrentIndex();
+                for (indices) |i| {
+                    const p = vertices[i];
+                    dl.primWriteVtx(
+                        .{ p.pos.x, p.pos.y },
+                        if (texture != null) .{ p.texcoord.x, p.texcoord.y } else white_pixel_uv,
+                        imgui.sdl.convertColor(p.color),
+                    );
+                }
+                for (0..indices.len) |i| {
+                    dl.primWriteIdx(cur_idx + @as(u32, @intCast(i)));
+                }
+            }
         };
 
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [64]u8 = undefined;
+        assert(self.id != invalid_batch_id);
+        assert(jok.utils.isMainThread());
 
-        fn getKey(_opt: TorusOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}-{d:.3}-{d}-{d}",
-                .{ _opt.weld_threshold, _opt.radius, _opt.slices, _opt.stacks },
-            ) catch unreachable;
+        defer self.is_submitted = true;
+
+        // Apply blend mode to renderer
+        const rd = self.ctx.renderer();
+        const old_blend = rd.getBlendMode() catch unreachable;
+        defer rd.setBlendMode(old_blend) catch unreachable;
+        rd.setBlendMode(self.blend_mode) catch unreachable;
+
+        // Apply offscreen target if given
+        const old_target = rd.getTarget();
+        if (self.offscreen_target) |t| {
+            rd.setTarget(t) catch unreachable;
+            if (self.offscreen_clear_color) |c| rd.clear(c) catch unreachable;
         }
-    };
+        defer if (self.offscreen_target != null) {
+            rd.setTarget(old_target) catch unreachable;
+        };
 
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
+        if (self.wireframe_color != null) {
+            imgui.sdl.renderDrawList(self.ctx, self.draw_list);
+        } else {
+            // Apply blend mode to textures
+            var it = self.all_tex.keyIterator();
+            while (it.next()) |k| {
+                const tex = jok.Texture{ .ptr = @ptrCast(k.*) };
+                tex.setBlendMode(self.blend_mode) catch unreachable;
+            }
+
+            switch (self.triangle_sort) {
+                .none => {
+                    imgui.sdl.renderDrawList(self.ctx, self.draw_list);
+                },
+                .simple => {
+                    if (!self.is_submitted) {
+                        // Sort by average depth
+                        self.sortTriangles(self.indices.items);
+
+                        // Send triangles
+                        var offset: usize = 0;
+                        var last_texture: ?jok.Texture = null;
+                        var i: usize = 0;
+                        while (i < self.indices.items.len) : (i += 3) {
+                            const idx = self.indices.items[i];
+                            if (i > 0 and !isSameTexture(self.textures.items[idx], last_texture)) {
+                                S.addTriangles(
+                                    self.draw_list,
+                                    self.indices.items[offset..i],
+                                    self.vertices.items,
+                                    last_texture,
+                                );
+                                offset = i;
+                            }
+                            last_texture = self.textures.items[idx];
+                        }
+                        S.addTriangles(
+                            self.draw_list,
+                            self.indices.items[offset..],
+                            self.vertices.items,
+                            last_texture,
+                        );
+                    }
+
+                    imgui.sdl.renderDrawList(self.ctx, self.draw_list);
+                },
+            }
+        }
     }
 
-    const m = BLK: {
-        assert(opt.radius > 0);
-        assert(opt.slices > 0);
+    /// Submit batch, issue draw calls, and reclaim itself
+    pub fn submit(self: *Batch) void {
+        defer self.reclaimer.reclaim(self);
+        self.submitWithoutReclaim();
+    }
+
+    /// Reclaim itself without drawing
+    pub fn abort(self: *Batch) void {
+        assert(self.id != invalid_batch_id);
+        self.reclaimer.reclaim(self);
+    }
+
+    /// Get current batched data
+    pub fn getBatch(self: Batch) !RenderBatch {
+        assert(self.id != invalid_batch_id);
+        return .{
+            .indices = try self.indices.clone(),
+            .vertices = try self.vertices.clone(),
+            .depths = try self.depths.clone(),
+            .textures = try self.textures.clone(),
+        };
+    }
+
+    /// Directly push previous batched data to final dataset
+    pub fn pushBatch(self: *Batch, b: RenderBatch) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        assert(b.vertices.items.len == b.depths.items.len);
+        assert(b.vertices.items.len == b.textures.items.len);
+        try self.reserveCapacity(b.indices.items.len, b.vertices.items.len);
+        const current_index: u32 = @intCast(self.vertices.items.len);
+        if (current_index > 0) {
+            for (b.indices.items) |idx| {
+                self.indices.appendAssumeCapacity(idx + current_index);
+            }
+        } else {
+            self.indices.appendSliceAssumeCapacity(b.indices.items);
+        }
+        self.vertices.appendSliceAssumeCapacity(b.vertices.items);
+        self.depths.appendSliceAssumeCapacity(b.depths.items);
+        self.textures.appendSliceAssumeCapacity(b.textures.items);
+        for (b.textures.items) |texture| {
+            if (texture) |tex| try self.all_tex.put(tex.ptr, true);
+        }
+    }
+
+    /// Directly push triangles to final dataset
+    pub fn pushTriangles(
+        self: *Batch,
+        indices: []const u32,
+        vertices: []const jok.Vertex,
+        depths: []const f32,
+        texture: ?jok.Texture,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        assert(@rem(indices.len, 3) == 0);
+        assert(vertices.len == depths.len);
+
+        if (self.wireframe_color) |color| {
+            const col = imgui.sdl.convertColor(color);
+            var i: usize = 2;
+            while (i < indices.len) : (i += 3) {
+                self.draw_list.addTriangle(.{
+                    .p1 = .{ vertices[i - 2].pos.x, vertices[i - 2].pos.y },
+                    .p2 = .{ vertices[i - 1].pos.x, vertices[i - 1].pos.y },
+                    .p3 = .{ vertices[i].pos.x, vertices[i].pos.y },
+                    .col = col,
+                });
+            }
+        } else {
+            switch (self.triangle_sort) {
+                .none => {
+                    if (texture) |tex| self.draw_list.pushTextureId(tex.ptr);
+                    defer if (texture != null) self.draw_list.popTextureId();
+
+                    self.draw_list.primReserve(@intCast(indices.len), @intCast(vertices.len));
+                    const white_pixel_uv = imgui.getFontTexUvWhitePixel();
+                    const cur_idx = self.draw_list.getCurrentIndex();
+                    var i: usize = 0;
+                    while (i < vertices.len) : (i += 1) {
+                        const p = vertices[i];
+                        self.draw_list.primWriteVtx(
+                            .{ p.pos.x, p.pos.y },
+                            if (texture != null)
+                                .{ p.texcoord.x, p.texcoord.y }
+                            else
+                                white_pixel_uv,
+                            imgui.sdl.convertColor(p.color),
+                        );
+                    }
+                    for (indices) |j| {
+                        self.draw_list.primWriteIdx(cur_idx + @as(u32, @intCast(j)));
+                    }
+                },
+                .simple => {
+                    try self.reserveCapacity(indices.len, vertices.len);
+                    const current_index: u32 = @intCast(self.vertices.items.len);
+                    if (current_index > 0) {
+                        for (indices) |idx| {
+                            self.indices.appendAssumeCapacity(idx + current_index);
+                        }
+                    } else {
+                        self.indices.appendSliceAssumeCapacity(indices);
+                    }
+                    self.vertices.appendSliceAssumeCapacity(vertices);
+                    self.depths.appendSliceAssumeCapacity(depths);
+                    self.textures.appendNTimesAssumeCapacity(
+                        texture,
+                        vertices.len,
+                    );
+                },
+            }
+            if (texture) |tex| try self.all_tex.put(tex.ptr, true);
+        }
+    }
+
+    /// Render skybox, textures order: right/left/top/bottom/front/back
+    pub fn skybox(
+        self: *Batch,
+        textures: [6]jok.Texture,
+        color: ?jok.Color,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try self.skybox_rd.render(
+            self.ctx.getCanvasSize(),
+            self,
+            self.camera,
+            textures,
+            color,
+        );
+    }
+
+    /// Render given scene
+    pub fn scene(
+        self: *Batch,
+        s: *const Scene,
+        opt: Scene.RenderOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try s.render(self, null, opt);
+    }
+
+    /// Render particle effects
+    pub fn effects(self: *Batch, ps: *ParticleSystem) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        for (ps.effects.items) |eff| {
+            try eff.render(
+                self.ctx.getCanvasSize(),
+                self,
+                self.camera,
+                &self.tri_rd,
+            );
+        }
+    }
+
+    /// Render given sprite
+    pub fn sprite(
+        self: *Batch,
+        model: zmath.Mat,
+        size: jok.Point,
+        uv: [2]jok.Point,
+        opt: TriangleRenderer.RenderSpriteOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try self.tri_rd.renderSprite(
+            self.ctx.getCanvasSize(),
+            self,
+            model,
+            self.camera,
+            size,
+            uv,
+            opt,
+        );
+    }
+
+    pub const LineOption = struct {
+        color: jok.Color = jok.Color.white,
+        thickness: f32 = 0.1,
+        stacks: u32 = 10,
+    };
+
+    /// Render given line
+    pub fn line(
+        self: *Batch,
+        model: zmath.Mat,
+        _p0: [3]f32,
+        _p1: [3]f32,
+        opt: LineOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        assert(opt.thickness > 0);
         assert(opt.stacks > 0);
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
+        const v0 = zmath.mul(zmath.f32x4(_p0[0], _p0[1], _p0[2], 1), model);
+        const v1 = zmath.mul(zmath.f32x4(_p1[0], _p1[1], _p1[2], 1), model);
+        const perpv = zmath.normalize3(zmath.cross3(v1 - v0, self.camera.dir));
+        const veps = zmath.f32x4s(opt.thickness);
+        const unit = (v1 - v0) / zmath.f32x4s(@floatFromInt(opt.stacks));
+        for (0..opt.stacks) |i| {
+            const p0 = v0 + zmath.f32x4s(@floatFromInt(i)) * unit + veps * perpv;
+            const p1 = v0 + zmath.f32x4s(@floatFromInt(i)) * unit - veps * perpv;
+            const p2 = v0 + zmath.f32x4s(@floatFromInt(i + 1)) * unit - veps * perpv;
+            const p3 = v0 + zmath.f32x4s(@floatFromInt(i + 1)) * unit + veps * perpv;
+            try self.tri_rd.renderMesh(
+                self.ctx.getCanvasSize(),
+                self,
+                zmath.identity(),
+                self.camera,
+                &.{ 0, 1, 2, 0, 2, 3 },
+                &.{
+                    .{ p0[0], p0[1], p0[2] },
+                    .{ p1[0], p1[1], p1[2] },
+                    .{ p2[0], p2[1], p2[2] },
+                    .{ p3[0], p3[1], p3[2] },
+                },
+                null,
+                null,
+                null,
+                .{
+                    .cull_faces = false,
+                    .color = opt.color,
+                    .shading_method = .flat,
+                },
+            );
         }
-
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initTorus(@intCast(opt.slices), @intCast(opt.stacks), opt.radius);
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
-        }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
-    };
-
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
-
-pub const IcosahedronOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-};
-
-/// Render a icosahedron
-pub fn icosahedron(model: zmath.Mat, opt: IcosahedronOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
-        };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [32]u8 = undefined;
-
-        fn getKey(_opt: IcosahedronOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}",
-                .{_opt.weld_threshold},
-            ) catch unreachable;
-        }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    const m = BLK: {
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
-        }
-
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initIcosahedron();
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
-        }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
+    pub const TriangleOption = struct {
+        rdopt: RenderOption = .{},
+        aabb: ?[6]f32,
+        fill: bool = true,
     };
 
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
-
-pub const DodecahedronOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-};
-
-/// Render a dodecahedron
-pub fn dodecahedron(model: zmath.Mat, opt: DodecahedronOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
-        };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [32]u8 = undefined;
-
-        fn getKey(_opt: DodecahedronOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}",
-                .{_opt.weld_threshold},
-            ) catch unreachable;
+    /// Render given triangle
+    pub fn triangle(
+        self: *Batch,
+        model: zmath.Mat,
+        pos: [3][3]f32,
+        colors: ?[3]jok.Color,
+        texcoords: ?[3][2]f32,
+        opt: TriangleOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        if (opt.fill) {
+            const v0 = zmath.f32x4(
+                pos[1][0] - pos[0][0],
+                pos[1][1] - pos[0][1],
+                pos[1][2] - pos[0][2],
+                0,
+            );
+            const v1 = zmath.f32x4(
+                pos[2][0] - pos[1][0],
+                pos[2][1] - pos[1][1],
+                pos[2][2] - pos[1][2],
+                0,
+            );
+            const normal = zmath.vecToArr3(zmath.cross3(v0, v1));
+            try self.tri_rd.renderMesh(
+                self.ctx.getCanvasSize(),
+                self,
+                model,
+                self.camera,
+                &.{ 0, 1, 2 },
+                &pos,
+                &.{ normal, normal, normal },
+                if (colors) |cs| &cs else null,
+                if (texcoords) |tex| &tex else null,
+                .{
+                    .aabb = opt.aabb,
+                    .cull_faces = opt.rdopt.cull_faces,
+                    .color = opt.rdopt.color,
+                    .shading_method = opt.rdopt.shading_method,
+                    .texture = opt.rdopt.texture,
+                    .lighting = opt.rdopt.lighting,
+                },
+            );
+        } else {
+            try line(model, pos[0], pos[1], .{ .color = opt.rdopt.color });
+            try line(model, pos[1], pos[2], .{ .color = opt.rdopt.color });
+            try line(model, pos[2], pos[0], .{ .color = opt.rdopt.color });
         }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    const m = BLK: {
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
+    /// Render multiple triangles
+    pub fn triangles(
+        self: *Batch,
+        model: zmath.Mat,
+        indices: []const u32,
+        pos: []const [3]f32,
+        normals: ?[]const [3]f32,
+        colors: ?[]const [3]jok.Color,
+        texcoords: ?[]const [2]f32,
+        opt: TriangleOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        assert(@rem(indices, 3) == 0);
+
+        if (opt.fill) {
+            try self.tri_rd.renderMesh(
+                self.ctx.getCanvasSize(),
+                self,
+                model,
+                self.camera,
+                indices,
+                pos,
+                normals,
+                colors,
+                texcoords,
+                .{
+                    .aabb = opt.aabb,
+                    .cull_faces = opt.rdopt.cull_faces,
+                    .color = opt.rdopt.color,
+                    .shading_method = opt.rdopt.shading_method,
+                    .texture = opt.rdopt.texture,
+                    .lighting = opt.rdopt.lighting,
+                },
+            );
+        } else {
+            var i: u32 = 2;
+            while (i < indices) : (i += 2) {
+                const idx0 = indices[i - 2];
+                const idx1 = indices[i - 1];
+                const idx2 = indices[i];
+                try line(model, idx0, idx1, .{ .color = opt.rdopt.color });
+                try line(model, idx1, idx2, .{ .color = opt.rdopt.color });
+                try line(model, idx2, idx0, .{ .color = opt.rdopt.color });
+            }
         }
-
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initDodecahedron();
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
-        }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
-    };
-
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
-
-pub const OctahedronOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-};
-
-/// Render a octahedron
-pub fn octahedron(model: zmath.Mat, opt: OctahedronOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
-        };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [32]u8 = undefined;
-
-        fn getKey(_opt: OctahedronOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}",
-                .{_opt.weld_threshold},
-            ) catch unreachable;
-        }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
     }
 
-    const m = BLK: {
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
-        }
-
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initOctahedron();
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
-        }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
-    };
-
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
-
-pub const TetrahedronOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-};
-
-/// Render a tetrahedron
-pub fn tetrahedron(model: zmath.Mat, opt: TetrahedronOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
-        };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [32]u8 = undefined;
-
-        fn getKey(_opt: TetrahedronOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}",
-                .{_opt.weld_threshold},
-            ) catch unreachable;
-        }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
+    /// Render a prebuilt shape
+    pub fn shape(
+        self: *Batch,
+        model: zmath.Mat,
+        s: zmesh.Shape,
+        aabb: ?[6]f32,
+        opt: RenderOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try self.tri_rd.renderMesh(
+            self.ctx.getCanvasSize(),
+            self,
+            model,
+            self.camera,
+            s.indices,
+            s.positions,
+            s.normals.?,
+            null,
+            s.texcoords,
+            .{
+                .aabb = aabb,
+                .cull_faces = opt.cull_faces,
+                .color = opt.color,
+                .shading_method = opt.shading_method,
+                .texture = opt.texture,
+                .lighting = opt.lighting,
+            },
+        );
     }
 
-    const m = BLK: {
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
-        }
-
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initTetrahedron();
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
-        }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
-    };
-
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
-
-pub const RockOption = struct {
-    rdopt: RenderOption = .{},
-    weld_threshold: ?f32 = null,
-    seed: i32 = 3,
-    sub_num: u32 = 1,
-};
-
-/// Render a rock
-pub fn rock(model: zmath.Mat, opt: RockOption) !void {
-    const S = struct {
-        const Shape = struct {
-            shape: zmesh.Shape,
-            aabb: [6]f32,
-        };
-
-        var meshes: ?std.StringHashMap(*Shape) = null;
-        var buf: [32]u8 = undefined;
-
-        fn getKey(_opt: RockOption) []u8 {
-            return std.fmt.bufPrint(
-                &buf,
-                "{?:.5}-{d}-{d}",
-                .{ _opt.weld_threshold, _opt.seed, _opt.sub_num },
-            ) catch unreachable;
-        }
-    };
-
-    if (S.meshes == null) {
-        S.meshes = std.StringHashMap(*S.Shape).init(arena.allocator());
+    /// Render a loaded mesh
+    pub fn mesh(
+        self: *Batch,
+        m: *const Mesh,
+        model: zmath.Mat,
+        opt: RenderOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try m.render(
+            self.ctx.getCanvasSize(),
+            self,
+            model,
+            self.camera,
+            &self.tri_rd,
+            .{
+                .cull_faces = opt.cull_faces,
+                .color = opt.color,
+                .shading_method = opt.shading_method,
+                .texture = opt.texture,
+                .lighting = opt.lighting,
+            },
+        );
     }
 
-    const m = BLK: {
-        assert(opt.sub_num > 0);
-        const key = S.getKey(opt);
-        if (S.meshes.?.get(key)) |s| {
-            break :BLK s;
+    /// Render given animation's current frame
+    pub fn animation(
+        self: *Batch,
+        anim: *Animation,
+        model: zmath.Mat,
+        opt: Animation.RenderOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try anim.render(
+            self.ctx.getCanvasSize(),
+            self,
+            model,
+            self.camera,
+            &self.tri_rd,
+            opt,
+        );
+    }
+};
+
+pub const RenderBatch = struct {
+    indices: std.ArrayList(u32),
+    vertices: std.ArrayList(jok.Vertex),
+    depths: std.ArrayList(f32),
+    textures: std.ArrayList(?jok.Texture),
+
+    pub fn deinit(batch: RenderBatch) void {
+        batch.indices.deinit();
+        batch.vertices.deinit();
+        batch.depths.deinit();
+        batch.textures.deinit();
+    }
+};
+
+pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
+    const AllocSet = std.StaticBitSet(pool_size);
+    const mutex_init = if (thread_safe)
+        std.Thread.Mutex{}
+    else
+        DummyMutex{};
+
+    return struct {
+        ctx: jok.Context,
+        alloc_set: AllocSet,
+        batches: []Batch,
+        mutex: @TypeOf(mutex_init),
+
+        pub fn init(_ctx: jok.Context) !@This() {
+            const bs = try _ctx.allocator().alloc(Batch, pool_size);
+            for (bs) |*b| {
+                b.* = Batch.init(_ctx);
+            }
+            return .{
+                .ctx = _ctx,
+                .alloc_set = AllocSet.initFull(),
+                .batches = bs,
+                .mutex = mutex_init,
+            };
         }
 
-        var m = try arena.allocator().create(S.Shape);
-        m.shape = zmesh.Shape.initRock(@intCast(opt.seed), @intCast(opt.sub_num));
-        m.shape.unweld();
-        if (opt.weld_threshold) |w| {
-            m.shape.weld(w, null);
+        pub fn deinit(self: *@This()) void {
+            for (self.batches) |*b| b.deinit();
+            self.ctx.allocator().free(self.batches);
         }
-        m.shape.computeNormals();
-        m.aabb = m.shape.computeAabb();
-        all_shapes.append(m.shape) catch unreachable;
-        try S.meshes.?.put(try arena.allocator().dupe(u8, key), m);
-        break :BLK m;
+
+        fn allocBatch(self: *@This()) !*Batch {
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            if (self.alloc_set.count() == 0) {
+                return error.TooManyBatches;
+            }
+            const idx = self.alloc_set.toggleFirstSet().?;
+            var b = &self.batches[idx];
+            b.id = idx;
+            b.reclaimer = .{
+                .ptr = @ptrCast(self),
+                .vtable = .{
+                    .reclaim = reclaim,
+                },
+            };
+            return b;
+        }
+
+        fn reclaim(ptr: *anyopaque, b: *Batch) void {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            assert(&self.batches[b.id] == b);
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            self.alloc_set.set(b.id);
+            b.id = invalid_batch_id;
+            b.reclaimer = undefined;
+        }
+
+        /// Recycle all internally reserved memories.
+        ///
+        /// NOTE: should only be used when no batch is being used.
+        pub fn recycleMemory(self: @This()) void {
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            assert(self.alloc_set.count() == pool_size);
+            for (self.batches) |*b| b.recycleMemory();
+        }
+
+        /// Allocate and initialize new batch
+        pub fn new(self: *@This(), opt: BatchOption) !*Batch {
+            var b = try self.allocBatch();
+            b.reset(opt);
+            return b;
+        }
+    };
+}
+
+const DummyMutex = struct {
+    fn lock(_: *DummyMutex) void {}
+    fn unlock(_: *DummyMutex) void {}
+};
+
+const BatchReclaimer = struct {
+    ptr: *anyopaque,
+    vtable: VTable,
+
+    const VTable = struct {
+        reclaim: *const fn (ctx: *anyopaque, b: *Batch) void,
     };
 
-    try shape(m.shape, model, m.aabb, opt.rdopt);
-}
+    fn reclaim(self: BatchReclaimer, b: *Batch) void {
+        self.vtable.reclaim(self.ptr, b);
+    }
+};
 
 test "j3d" {
     _ = Vector;

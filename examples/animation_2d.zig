@@ -3,6 +3,7 @@ const jok = @import("jok");
 const physfs = jok.physfs;
 const j2d = jok.j2d;
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var as: *j2d.AnimationSystem = undefined;
 const velocity = 100;
@@ -14,6 +15,8 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     try physfs.mount("assets", "", true);
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     // create sprite sheet
     const size = ctx.getCanvasSize();
@@ -96,9 +99,9 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
 
-    j2d.begin(.{});
-    defer j2d.end();
-    try j2d.sprite(
+    var b = try batchpool.new(.{});
+    defer b.submit();
+    try b.sprite(
         sheet.getSpriteByName("player").?,
         .{
             .pos = .{ .x = 0, .y = 50 },
@@ -106,7 +109,7 @@ pub fn draw(ctx: jok.Context) !void {
             .scale = .{ .x = 4, .y = 4 },
         },
     );
-    try j2d.sprite(
+    try b.sprite(
         try as.getCurrentFrame(animation),
         .{
             .pos = pos,
@@ -128,4 +131,5 @@ pub fn quit(ctx: jok.Context) void {
     std.log.info("game quit", .{});
     sheet.destroy();
     as.destroy();
+    batchpool.deinit();
 }

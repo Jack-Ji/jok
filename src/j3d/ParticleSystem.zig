@@ -1,7 +1,6 @@
 /// Particle system
 const std = @import("std");
 const assert = std.debug.assert;
-const internal = @import("internal.zig");
 const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
@@ -201,12 +200,12 @@ pub const Effect = struct {
     pub fn render(
         self: Effect,
         csz: jok.Size,
-        rdjob: *internal.RenderJob,
+        batch: *j3d.Batch,
         camera: Camera,
         tri_rd: *TriangleRenderer,
     ) !void {
         for (self.particles.items) |p| {
-            try p.render(csz, rdjob, camera, tri_rd);
+            try p.render(csz, batch, camera, tri_rd);
         }
     }
 
@@ -373,7 +372,7 @@ pub const Particle = struct {
     fn render(
         self: Particle,
         csz: jok.Size,
-        rdjob: *internal.RenderJob,
+        batch: *j3d.Batch,
         camera: Camera,
         tri_rd: *TriangleRenderer,
     ) !void {
@@ -404,7 +403,7 @@ pub const Particle = struct {
                 );
                 try tri_rd.renderMesh(
                     csz,
-                    rdjob,
+                    batch,
                     model,
                     camera,
                     d.shape.indices,
@@ -422,7 +421,7 @@ pub const Particle = struct {
             .sprite => |d| {
                 try tri_rd.renderSprite(
                     csz,
-                    rdjob,
+                    batch,
                     zmath.translation(
                         self.pos.x(),
                         self.pos.y(),

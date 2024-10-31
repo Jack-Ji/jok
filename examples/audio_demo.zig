@@ -5,6 +5,7 @@ const physfs = jok.physfs;
 const font = jok.font;
 const miniaudio = jok.miniaudio;
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var atlas: *font.Atlas = undefined;
 var music: *miniaudio.Sound = undefined;
 var music_played_length: u32 = undefined;
@@ -16,6 +17,8 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     try physfs.mount("assets", "", true);
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     atlas = try font.DebugFont.getAtlas(ctx, 16);
     music = try ctx.audioEngine().createSoundFromFile(
@@ -93,10 +96,10 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(null);
 
-    j2d.begin(.{});
-    defer j2d.end();
+    var b = try batchpool.new(.{});
+    defer b.submit();
 
-    try j2d.text(
+    try b.text(
         .{ .atlas = atlas, .pos = .{ .x = 10, .y = 10 } },
         "Press *RETURN* to start/pause playing, current status: {s}, progress: {d}/{d}(s)",
         .{
@@ -105,12 +108,12 @@ pub fn draw(ctx: jok.Context) !void {
             music_total_length,
         },
     );
-    try j2d.text(
+    try b.text(
         .{ .atlas = atlas, .pos = .{ .x = 10, .y = 26 } },
         "Press *Z/X* to decrease/increase volume of music, current volume: {d:.1}",
         .{music.getVolume()},
     );
-    try j2d.text(
+    try b.text(
         .{
             .atlas = atlas,
             .pos = .{ .x = 10, .y = 100 },
@@ -119,7 +122,7 @@ pub fn draw(ctx: jok.Context) !void {
         "Double-click mouse's left button to trigger sound effect on your left ear",
         .{},
     );
-    try j2d.text(
+    try b.text(
         .{
             .atlas = atlas,
             .pos = .{ .x = 200, .y = 150 },
@@ -136,4 +139,5 @@ pub fn quit(ctx: jok.Context) void {
     music.destroy();
     sfx1.destroy();
     sfx2.destroy();
+    batchpool.deinit();
 }

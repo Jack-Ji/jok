@@ -3,8 +3,12 @@ const jok = @import("jok");
 const font = jok.font;
 const j2d = jok.j2d;
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
+
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     const font_size = 16;
     const vmetrics = font.DebugFont.font.getVMetrics(font_size);
@@ -50,10 +54,10 @@ pub fn draw(ctx: jok.Context) !void {
     var area: jok.Rectangle = undefined;
     var atlas: *font.Atlas = undefined;
 
-    j2d.begin(.{ .depth_sort = .back_to_forth });
-    defer j2d.end();
+    var b = try batchpool.new(.{ .depth_sort = .back_to_forth });
+    defer b.submit();
     atlas = try font.DebugFont.getAtlas(ctx, 20);
-    try j2d.text(
+    try b.text(
         .{
             .atlas = atlas,
             .pos = .{ .x = 0, .y = 0 },
@@ -69,10 +73,10 @@ pub fn draw(ctx: jok.Context) !void {
         .top,
         .aligned,
     );
-    try j2d.rectFilled(area, rect_color, .{});
+    try b.rectFilled(area, rect_color, .{});
 
     atlas = try font.DebugFont.getAtlas(ctx, 80);
-    try j2d.text(
+    try b.text(
         .{
             .atlas = atlas,
             .pos = .{ .x = 0, .y = size.getHeightFloat() / 2 },
@@ -87,9 +91,9 @@ pub fn draw(ctx: jok.Context) !void {
         .bottom,
         .aligned,
     );
-    try j2d.rectFilled(area, rect_color, .{});
+    try b.rectFilled(area, rect_color, .{});
 
-    try j2d.text(
+    try b.text(
         .{
             .atlas = atlas,
             .pos = .{
@@ -113,7 +117,7 @@ pub fn draw(ctx: jok.Context) !void {
     );
 
     atlas = try font.DebugFont.getAtlas(ctx, 32);
-    try j2d.text(
+    try b.text(
         .{
             .atlas = atlas,
             .pos = .{ .x = 0, .y = size.getHeightFloat() },
@@ -129,7 +133,7 @@ pub fn draw(ctx: jok.Context) !void {
         .bottom,
         .aligned,
     );
-    try j2d.rectFilled(area, rect_color, .{});
+    try b.rectFilled(area, rect_color, .{});
 
     atlas = try font.DebugFont.getAtlas(ctx, 128);
     const metrics = font.DebugFont.font.getGlyphMetrics(
@@ -140,37 +144,37 @@ pub fn draw(ctx: jok.Context) !void {
         .x = (size.getWidthFloat() - 128) / 2,
         .y = (size.getHeightFloat() - 128) / 2,
     };
-    try j2d.rectFilled(
+    try b.rectFilled(
         metrics.getSpace(q_pos, .baseline),
         jok.Color.rgba(255, 0, 0, 128),
         .{},
     );
-    try j2d.rectFilled(
+    try b.rectFilled(
         metrics.getBBox(q_pos, .baseline),
         jok.Color.rgba(0, 255, 0, 128),
         .{},
     );
-    try j2d.rectFilled(
+    try b.rectFilled(
         metrics.getSpace(q_pos.add(.{ .x = metrics.advance_width, .y = 0 }), .top),
         jok.Color.rgba(255, 0, 0, 128),
         .{},
     );
-    try j2d.rectFilled(
+    try b.rectFilled(
         metrics.getBBox(q_pos.add(.{ .x = metrics.advance_width, .y = 0 }), .top),
         jok.Color.rgba(0, 255, 0, 128),
         .{},
     );
-    try j2d.rectFilled(
+    try b.rectFilled(
         metrics.getSpace(q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }), .bottom),
         jok.Color.rgba(255, 0, 0, 128),
         .{},
     );
-    try j2d.rectFilled(
+    try b.rectFilled(
         metrics.getBBox(q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }), .bottom),
         jok.Color.rgba(0, 255, 0, 128),
         .{},
     );
-    try j2d.text(
+    try b.text(
         .{
             .atlas = atlas,
             .pos = q_pos,
@@ -179,7 +183,7 @@ pub fn draw(ctx: jok.Context) !void {
         "Q",
         .{},
     );
-    try j2d.text(
+    try b.text(
         .{
             .atlas = atlas,
             .pos = q_pos.add(.{ .x = metrics.advance_width, .y = 0 }),
@@ -188,7 +192,7 @@ pub fn draw(ctx: jok.Context) !void {
         "Q",
         .{},
     );
-    try j2d.text(
+    try b.text(
         .{
             .atlas = atlas,
             .pos = q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }),
@@ -202,4 +206,5 @@ pub fn draw(ctx: jok.Context) !void {
 pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
+    batchpool.deinit();
 }

@@ -19,6 +19,7 @@ const names = [_][]const u8{
     "sphinx",
 };
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var characters: std.ArrayList(Actor) = undefined;
 var rand_gen: std.Random.DefaultPrng = undefined;
@@ -28,6 +29,8 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     try physfs.mount("assets", "/", true);
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     const csz = ctx.getCanvasSize();
 
@@ -76,11 +79,11 @@ pub fn update(ctx: jok.Context) !void {
         const curpos = c.pos;
         if (curpos.x < 0)
             c.velocity.x = @abs(c.velocity.x);
-        if (curpos.x + c.sprite.width > size.getWidthFloat())
+        if (curpos.x > size.getWidthFloat())
             c.velocity.x = -@abs(c.velocity.x);
         if (curpos.y < 0)
             c.velocity.y = @abs(c.velocity.y);
-        if (curpos.y + c.sprite.height > size.getHeightFloat())
+        if (curpos.y > size.getHeightFloat())
             c.velocity.y = -@abs(c.velocity.y);
         c.pos.x += c.velocity.x * ctx.deltaSeconds();
         c.pos.y += c.velocity.y * ctx.deltaSeconds();
@@ -91,14 +94,15 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
-    j2d.begin(.{});
-    defer j2d.end();
+    var b = try batchpool.new(.{});
+    defer b.submit();
     for (characters.items) |c| {
-        try j2d.sprite(c.sprite, .{
+        try b.sprite(c.sprite, .{
             .pos = c.pos,
+            .anchor_point = .{ .x = 0.5, .y = 0.5 },
         });
     }
-    try j2d.text(
+    try b.text(
         .{
             .atlas = try jok.font.DebugFont.getAtlas(ctx, 16),
             .pos = .{ .x = 0, .y = 0 },
@@ -113,4 +117,5 @@ pub fn quit(ctx: jok.Context) void {
     std.log.info("game quit", .{});
     sheet.destroy();
     characters.deinit();
+    batchpool.deinit();
 }

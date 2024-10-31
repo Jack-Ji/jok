@@ -15,7 +15,6 @@ const imgui = jok.imgui;
 const plot = imgui.plot;
 const miniaudio = jok.miniaudio;
 const zmesh = jok.zmesh;
-
 const log = std.log.scoped(.jok);
 
 /// Application context
@@ -259,6 +258,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._allocator = _allocator;
             self._ctx = self.context();
 
+            // Init main-thread id
+            _ = jok.utils.isMainThread();
+
             // Init PhysicsFS
             physfs.init(self._allocator);
 
@@ -273,10 +275,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Init zmesh
             zmesh.init(self._allocator);
-
-            // Init 2d and 3d modules
-            try jok.j2d.init(self.context());
-            try jok.j3d.init(self.context());
 
             // Init audio engine
             self._audio_ctx = try miniaudio.sdl.init(self._ctx);
@@ -313,10 +311,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Destroy audio engine
             self._audio_engine.destroy();
             miniaudio.sdl.deinit(self._audio_ctx);
-
-            // Destroy 2d and 3d modules
-            jok.j3d.deinit();
-            jok.j2d.deinit();
 
             // Destroy zmesh
             zmesh.deinit();
@@ -430,7 +424,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._renderer.setTarget(self._canvas_texture) catch unreachable;
                 defer {
                     self._renderer.setTarget(null) catch unreachable;
-                    if (self._pp_actors.items.len > 0) {
+                    if (cfg.jok_enable_post_processing and self._pp_actors.items.len > 0) {
                         self._post_processing.reset();
                         for (self._pp_actors.items) |a| {
                             self._post_processing.applyActor(a);
@@ -641,17 +635,23 @@ pub fn JokContext(comptime cfg: config.Config) type {
             jok.Color.init();
             jok.BlendMode.init();
 
-            // Create drawing target
+            // Init drawing target
             self._canvas_texture = try self._renderer.createTarget(.{ .size = self._canvas_size });
-            self._post_processing = try pp.PostProcessingEffect.init(self._ctx);
-            self._pp_actors = std.ArrayList(pp.Actor).init(self._allocator);
+
+            if (cfg.jok_enable_post_processing) {
+                // Init post-processing facility
+                self._post_processing = try pp.PostProcessingEffect.init(self._ctx);
+                self._pp_actors = std.ArrayList(pp.Actor).init(self._allocator);
+            }
             self.updateCanvasTargetArea();
         }
 
         /// Deinitialize SDL
         fn deinitSDL(self: *@This()) void {
-            self._pp_actors.deinit();
-            self._post_processing.destroy();
+            if (cfg.jok_enable_post_processing) {
+                self._pp_actors.deinit();
+                self._post_processing.destroy();
+            }
             self._canvas_texture.destroy();
             self._renderer.destroy();
             self._window.destroy();
@@ -710,7 +710,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             } else {
                 self._canvas_target_area = null;
             }
-            self._post_processing.onCanvasChange();
+            if (cfg.jok_enable_post_processing) {
+                self._post_processing.onCanvasChange();
+            }
         }
 
         ///////////////////// Wrapped API for Application Context //////////////////
@@ -833,12 +835,18 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Add post-processing effect
         pub fn addPostProcessing(ptr: *anyopaque, ppa: pp.Actor) !void {
+            if (!cfg.jok_enable_post_processing) {
+                @panic("post-processing isn't enabled!");
+            }
             const self: *@This() = @ptrCast(@alignCast(ptr));
             try self._pp_actors.append(ppa);
         }
 
         /// Clear post-processing effect
         pub fn clearPostProcessing(ptr: *anyopaque) void {
+            if (!cfg.jok_enable_post_processing) {
+                @panic("post-processing isn't enabled!");
+            }
             const self: *@This() = @ptrCast(@alignCast(ptr));
             self._pp_actors.clearRetainingCapacity();
         }

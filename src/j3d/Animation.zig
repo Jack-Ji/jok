@@ -2,14 +2,14 @@ const std = @import("std");
 const math = std.math;
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const internal = @import("internal.zig");
+const j3d = jok.j3d;
+const zmath = jok.zmath;
 const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const ShadingMethod = TriangleRenderer.ShadingMethod;
 const Camera = @import("Camera.zig");
 const lighting = @import("lighting.zig");
 const Mesh = @import("Mesh.zig");
-const zmath = jok.zmath;
 const Self = @This();
 
 pub const Transition = struct {
@@ -79,7 +79,7 @@ pub fn destroy(self: *Self) void {
 pub fn render(
     self: *Self,
     csz: jok.Size,
-    rdjob: *internal.RenderJob,
+    batch: *j3d.Batch,
     model: zmath.Mat,
     camera: Camera,
     tri_rd: *TriangleRenderer,
@@ -213,7 +213,7 @@ pub fn render(
     try self.renderNode(
         self.anim.mesh.root,
         csz,
-        rdjob,
+        batch,
         zmath.mul(zmath.scaling(-1, 1, 1), model),
         camera,
         tri_rd,
@@ -233,7 +233,7 @@ fn renderNode(
     self: *Self,
     node: *Mesh.Node,
     csz: jok.Size,
-    rdjob: *internal.RenderJob,
+    batch: *j3d.Batch,
     model: zmath.Mat,
     camera: Camera,
     tri_rd: *TriangleRenderer,
@@ -252,7 +252,7 @@ fn renderNode(
     for (node.meshes) |sm| {
         try tri_rd.renderMesh(
             csz,
-            rdjob,
+            batch,
             matrix,
             camera,
             sm.indices.items,
@@ -294,7 +294,7 @@ fn renderNode(
         try self.renderNode(
             c,
             csz,
-            rdjob,
+            batch,
             model,
             camera,
             tri_rd,

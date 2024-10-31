@@ -8,6 +8,7 @@ const Camera = j3d.Camera;
 const Scene = j3d.Scene;
 const Mesh = j3d.Mesh;
 
+var batchpool: j3d.BatchPool(64, false) = undefined;
 var camera: Camera = undefined;
 var sphere: zmesh.Shape = undefined;
 var scene: *Scene = undefined;
@@ -20,6 +21,7 @@ var moon: *Scene.Object = undefined;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    batchpool = try @TypeOf(batchpool).init(ctx);
     camera = Camera.fromPositionAndTarget(
         .{
             .perspective = .{
@@ -122,9 +124,9 @@ pub fn draw(ctx: jok.Context) !void {
         },
     };
 
-    j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
-    defer j3d.end();
-    try j3d.scene(scene, .{ .lighting = lighting_opt });
+    var b = try batchpool.new(.{ .camera = camera, .triangle_sort = .simple });
+    defer b.submit();
+    try b.scene(scene, .{ .lighting = lighting_opt });
 
     font.debugDraw(
         ctx,
@@ -150,5 +152,5 @@ pub fn quit(ctx: jok.Context) void {
 
     sphere.deinit();
     scene.destroy(true);
+    batchpool.deinit();
 }
-

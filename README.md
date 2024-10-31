@@ -12,6 +12,7 @@ A minimal 2d/3d game framework for zig.
 * Excellent rendering performance (thanks to SDL2's [geometry rendering](https://wiki.libsdl.org/SDL2/SDL_RenderGeometryRaw))
 * Fully integrated Dear-ImGui
 * Asset system (via [physfs](https://github.com/icculus/physfs), supports fs/zip/7zip/iso etc)
+* 2D batch system
 * 2D vector graphics (line/rectangle/quad/triangle/circle/bezier-curve/convex-polygon/polyline/custom-path)
 * 2D sprite rendering (scale/rotate/blending/flipping/depth)
 * 2D sprite sheet generation/save/load
@@ -19,6 +20,7 @@ A minimal 2d/3d game framework for zig.
 * 2D particle system
 * 2D scene management
 * 2D physics system (via [chipmunk](https://chipmunk-physics.net/), optional)
+* 3D batch system
 * 3D skybox rendering
 * 3D mesh rendering (gouraud/flat shading)
 * 3D glTF 2.0 support
@@ -116,8 +118,6 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     ```zig
     const std = @import("std");
     const jok = @import("jok");
-    const j2d = jok.j2d;
-    const j3d = jok.j3d;
     
     pub fn init(ctx: jok.Context) !void {
         // your init code
@@ -132,19 +132,7 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     }
     
     pub fn draw(ctx: jok.Context) !void {
-      // your 2d drawing
-      {
-          j2d.begin(.{});
-          defer j2d.end();
-          // ......
-      }
-    
-      // your 3d drawing
-      {
-          j3d.begin(.{});
-          defer j3d.end();
-          // ......
-      }
+        // your drawing code
     }
     
     pub fn quit(ctx: jok.Context) void {

@@ -3,6 +3,7 @@ const jok = @import("jok");
 const physfs = jok.physfs;
 const j2d = jok.j2d;
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var scene: *j2d.Scene = undefined;
 var ogre1: *j2d.Scene.Object = undefined;
@@ -12,6 +13,8 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     try physfs.mount("assets", "", true);
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     // create sprite sheet
     const size = ctx.getCanvasSize();
@@ -63,14 +66,14 @@ pub fn draw(ctx: jok.Context) !void {
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
     });
 
-    j2d.begin(.{ .depth_sort = .back_to_forth });
-    defer j2d.end();
-    try j2d.image(
+    var b = try batchpool.new(.{ .depth_sort = .back_to_forth });
+    defer b.submit();
+    try b.image(
         sheet.tex,
         .{ .x = 0, .y = 0 },
         .{},
     );
-    try j2d.scene(scene);
+    try b.scene(scene);
 }
 
 pub fn quit(ctx: jok.Context) void {
@@ -78,4 +81,5 @@ pub fn quit(ctx: jok.Context) void {
     std.log.info("game quit", .{});
     sheet.destroy();
     scene.destroy(true);
+    batchpool.deinit();
 }

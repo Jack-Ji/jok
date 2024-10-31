@@ -10,6 +10,7 @@ const j3d = jok.j3d;
 const Camera = j3d.Camera;
 const Scene = j3d.Scene;
 
+var batchpool: j3d.BatchPool(64, false) = undefined;
 var camera: Camera = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var scene: *Scene = undefined;
@@ -21,6 +22,8 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     try physfs.mount("assets", "", true);
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     camera = Camera.fromPositionAndTarget(
         .{
@@ -164,10 +167,10 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(jok.Color.rgb(80, 80, 80));
 
-    j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
-    defer j3d.end();
-    try j3d.scene(scene, .{ .lighting = .{} });
-    try j3d.sprite(
+    var b = try batchpool.new(.{ .camera = camera, .triangle_sort = .simple });
+    defer b.submit();
+    try b.scene(scene, .{ .lighting = .{} });
+    try b.sprite(
         zmath.translation(10, -10, -30),
         .{ .x = 50, .y = 20 },
         .{
@@ -180,7 +183,6 @@ pub fn draw(ctx: jok.Context) !void {
             .tessellation_level = 9,
         },
     );
-    try j3d.axises(.{});
 
     const ogre_pos = camera.calcScreenPosition(ctx, sprites[13].transform, null);
     font.debugDraw(
@@ -214,5 +216,5 @@ pub fn quit(ctx: jok.Context) void {
     sphere_mesh.deinit();
     sheet.destroy();
     scene.destroy(true);
+    batchpool.deinit();
 }
-

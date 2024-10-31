@@ -13,14 +13,14 @@ const map_width = 800 / cell_size;
 const map_height = 600 / cell_size;
 const Map = [map_height][map_width]Cell;
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var map_a: Map = undefined;
 var map_b: Map = undefined;
 var map: *Map = undefined;
 var time: f32 = 0;
 
 pub fn init(ctx: jok.Context) !void {
-    _ = ctx;
-
+    batchpool = try @TypeOf(batchpool).init(ctx);
     var rng = std.Random.DefaultPrng.init(@intCast(std.time.milliTimestamp()));
     map = &map_a;
     for (0..map_height) |y| {
@@ -98,15 +98,17 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(null);
 
-    j2d.begin(.{});
-    defer j2d.end();
+    var b = try batchpool.new(.{});
+    defer b.submit();
     for (map[0..]) |row| {
         for (row[0..]) |c| {
-            try j2d.rectFilled(c.rect, c.color, .{});
+            try b.rectFilled(c.rect, c.color, .{});
         }
     }
 }
 
 pub fn quit(ctx: jok.Context) void {
     _ = ctx;
+
+    batchpool.deinit();
 }

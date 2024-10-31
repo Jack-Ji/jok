@@ -5,14 +5,17 @@ const font = jok.font;
 const zmath = jok.zmath;
 const j2d = jok.j2d;
 
-const rect_size = 400;
-const rect_num = 1000;
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 2 * rect_size, .height = 2 * rect_size },
 };
 
+const rect_size = 400;
+const rect_num = 1000;
+
+var batchpool: j2d.BatchPool(64, false) = undefined;
+
 pub fn init(ctx: jok.Context) !void {
-    _ = ctx;
+    batchpool = try @TypeOf(batchpool).init(ctx);
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
@@ -44,8 +47,8 @@ pub fn draw(ctx: jok.Context) !void {
     const angle_step =
         math.asin(1 / (scale_step * math.sqrt(2.0))) - math.pi / 4.0;
 
-    j2d.begin(.{});
-    defer j2d.end();
+    var b = try batchpool.new(.{});
+    defer b.submit();
     var i: u32 = 0;
     while (i < rect_num) : (i += 1) {
         const step = @as(f32, @floatFromInt(i));
@@ -55,47 +58,49 @@ pub fn draw(ctx: jok.Context) !void {
         });
 
         // top-left
-        j2d.setTransform(
+        b.setTransform(
             transform.rotateByOrigin(-angle_step * step)
                 .translate(.{
                 .x = fb_size.getWidthFloat() / 4,
                 .y = fb_size.getHeightFloat() / 4,
             }),
         );
-        try j2d.rect(rect, jok.Color.white, .{});
+        try b.rect(rect, jok.Color.white, .{});
 
         // top-right
-        j2d.setTransform(
+        b.setTransform(
             transform.rotateByOrigin(angle_step * step)
                 .translate(.{
                 .x = fb_size.getWidthFloat() * 3 / 4,
                 .y = fb_size.getHeightFloat() / 4,
             }),
         );
-        try j2d.rect(rect, jok.Color.white, .{});
+        try b.rect(rect, jok.Color.white, .{});
 
         // bottom-right
-        j2d.setTransform(
+        b.setTransform(
             transform.rotateByOrigin(-angle_step * step)
                 .translate(.{
                 .x = fb_size.getWidthFloat() * 3 / 4,
                 .y = fb_size.getHeightFloat() * 3 / 4,
             }),
         );
-        try j2d.rect(rect, jok.Color.white, .{});
+        try b.rect(rect, jok.Color.white, .{});
 
         // bottom-left
-        j2d.setTransform(
+        b.setTransform(
             transform.rotateByOrigin(angle_step * step)
                 .translate(.{
                 .x = fb_size.getWidthFloat() / 4,
                 .y = fb_size.getHeightFloat() * 3 / 4,
             }),
         );
-        try j2d.rect(rect, jok.Color.white, .{});
+        try b.rect(rect, jok.Color.white, .{});
     }
 }
 
 pub fn quit(ctx: jok.Context) void {
     _ = ctx;
+
+    batchpool.deinit();
 }

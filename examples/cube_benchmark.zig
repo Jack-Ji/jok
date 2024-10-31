@@ -9,6 +9,7 @@ const zmesh = jok.zmesh;
 pub const jok_fps_limit: jok.config.FpsLimit = .none;
 pub const jok_window_resizable = true;
 
+var batchpool: j3d.BatchPool(64, false) = undefined;
 var camera: j3d.Camera = undefined;
 var cube: zmesh.Shape = undefined;
 var aabb: [6]f32 = undefined;
@@ -30,6 +31,8 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     try physfs.mount("assets", "", true);
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     camera = j3d.Camera.fromPositionAndTarget(
         .{
@@ -121,8 +124,11 @@ pub fn draw(ctx: jok.Context) !void {
     ctx.displayStats(.{});
 
     {
-        j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
-        defer j3d.end();
+        var b = try batchpool.new(.{
+            .camera = camera,
+            .triangle_sort = .simple,
+        });
+        defer b.submit();
         for (translations.items, 0..) |tr, i| {
             const model = zmath.mul(
                 zmath.translation(-0.5, -0.5, -0.5),
@@ -137,9 +143,9 @@ pub fn draw(ctx: jok.Context) !void {
                     tr,
                 ),
             );
-            try j3d.shape(
-                cube,
+            try b.shape(
                 model,
+                cube,
                 aabb,
                 .{ .texture = tex },
             );
@@ -161,4 +167,5 @@ pub fn quit(ctx: jok.Context) void {
     cube.deinit();
     translations.deinit();
     rotation_axises.deinit();
+    batchpool.deinit();
 }

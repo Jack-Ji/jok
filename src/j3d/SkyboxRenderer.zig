@@ -2,7 +2,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
-const internal = @import("internal.zig");
 const jok = @import("../jok.zig");
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
@@ -89,7 +88,7 @@ pub fn deinit(self: *Self) void {
 pub fn render(
     self: *Self,
     csz: jok.Size,
-    rdjob: *internal.RenderJob,
+    batch: *j3d.Batch,
     camera: Camera,
     textures: [6]jok.Texture, // cube textures: right/left/top/bottom/front/back
     color: ?jok.Color, // tint color
@@ -166,7 +165,7 @@ pub fn render(
             const t0 = self.clip_texcoords.items[idx0];
             const t1 = self.clip_texcoords.items[idx1];
             const t2 = self.clip_texcoords.items[idx2];
-            try rdjob.pushTriangles(
+            try batch.pushTriangles(
                 &.{ 0, 1, 2 },
                 &[_]jok.Vertex{
                     .{

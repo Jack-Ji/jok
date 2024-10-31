@@ -5,7 +5,9 @@ const j3d = jok.j3d;
 
 pub const jok_window_resizable = true;
 pub const jok_canvas_size = jok.Size{ .width = 320, .height = 180 };
+pub const jok_enable_post_processing = true;
 
+var batchpool: j3d.BatchPool(64, false) = undefined;
 var camera: j3d.Camera = undefined;
 var skybox_textures: [6]jok.Texture = undefined;
 var appctx: jok.Context = undefined;
@@ -25,6 +27,8 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     try physfs.mount("assets", "", true);
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     appctx = ctx;
     camera = j3d.Camera.fromPositionAndTarget(
@@ -133,9 +137,9 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(jok.Color.white);
 
-    j3d.begin(.{ .camera = camera });
-    defer j3d.end();
-    try j3d.skybox(skybox_textures, null);
+    var b = try batchpool.new(.{ .camera = camera });
+    defer b.submit();
+    try b.skybox(skybox_textures, null);
 
     ctx.displayStats(.{});
 }
@@ -143,4 +147,5 @@ pub fn draw(ctx: jok.Context) !void {
 pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
+    batchpool.deinit();
 }

@@ -10,6 +10,8 @@ pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1200, .height = 800 },
 };
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
+
 // Image positions
 const xshift = 50;
 const yshift = 50;
@@ -90,8 +92,8 @@ const Point = struct {
     // color,
     color: jok.Color = jok.Color.black,
 
-    fn draw(p: Point) !void {
-        try j2d.circleFilled(
+    fn draw(p: Point, batch: *j2d.Batch) !void {
+        try batch.circleFilled(
             .{ .x = p.x, .y = p.y },
             3,
             p.color,
@@ -110,9 +112,9 @@ inline fn randomRange(comptime T: type, a: T, b: T) T {
 }
 
 // Draw all points from given group
-inline fn drawPoints(points: std.ArrayList(Point)) !void {
+inline fn drawPoints(points: std.ArrayList(Point), batch: *j2d.Batch) !void {
     for (points.items) |p| {
-        try p.draw();
+        try p.draw(batch);
     }
 }
 
@@ -547,22 +549,22 @@ fn updateGui(ctx: jok.Context) !void {
 }
 
 fn renderSimulation() !void {
-    j2d.begin(.{});
-    defer j2d.end();
+    var b = try batchpool.new(.{});
+    defer b.submit();
 
-    if (number_w > 0) try drawPoints(white.?);
-    if (number_r > 0) try drawPoints(red.?);
-    if (number_g > 0) try drawPoints(green.?);
-    if (number_b > 0) try drawPoints(blue.?);
+    if (number_w > 0) try drawPoints(white.?, b);
+    if (number_r > 0) try drawPoints(red.?, b);
+    if (number_g > 0) try drawPoints(green.?, b);
+    if (number_b > 0) try drawPoints(blue.?, b);
     if (show_model) {
-        try j2d.circleFilled(
+        try b.circleFilled(
             .{ .x = xshift, .y = yshift },
             150,
             jok.Color.black,
             .{},
         );
 
-        try j2d.line(
+        try b.line(
             .{ .x = p1x, .y = p1y - 10 },
             .{ .x = p2x, .y = p2y - 10 },
             jok.Color.rgb(
@@ -574,7 +576,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.line(
+        try b.line(
             .{ .x = p1x, .y = p1y + 10 },
             .{ .x = p2x, .y = p2y + 10 },
             jok.Color.rgb(
@@ -586,7 +588,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.line(
+        try b.line(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p1x, .y = p1y - 10 },
             jok.Color.rgb(
@@ -598,7 +600,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.line(
+        try b.line(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p1x, .y = p1y + 10 },
             jok.Color.rgb(
@@ -611,7 +613,7 @@ fn renderSimulation() !void {
             },
         );
 
-        try j2d.line(
+        try b.line(
             .{ .x = p4x - 10, .y = p4y },
             .{ .x = p1x - 10, .y = p1y },
             jok.Color.rgb(
@@ -623,7 +625,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.line(
+        try b.line(
             .{ .x = p4x + 10, .y = p4y },
             .{ .x = p1x + 10, .y = p1y },
             jok.Color.rgb(
@@ -636,7 +638,7 @@ fn renderSimulation() !void {
             },
         );
 
-        try j2d.line(
+        try b.line(
             .{ .x = p2x - 10, .y = p2y },
             .{ .x = p3x - 10, .y = p3y },
             jok.Color.rgb(
@@ -648,7 +650,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.line(
+        try b.line(
             .{ .x = p2x + 10, .y = p2y },
             .{ .x = p3x + 10, .y = p3y },
             jok.Color.rgb(
@@ -661,7 +663,7 @@ fn renderSimulation() !void {
             },
         );
 
-        try j2d.line(
+        try b.line(
             .{ .x = p2x, .y = p2y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
             jok.Color.rgb(
@@ -673,7 +675,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.line(
+        try b.line(
             .{ .x = p2x, .y = p2y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
             jok.Color.rgb(
@@ -686,7 +688,7 @@ fn renderSimulation() !void {
             },
         );
 
-        try j2d.line(
+        try b.line(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
             jok.Color.rgb(
@@ -698,7 +700,7 @@ fn renderSimulation() !void {
                 .thickness = 5,
             },
         );
-        try j2d.line(
+        try b.line(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
             jok.Color.rgb(
@@ -711,7 +713,7 @@ fn renderSimulation() !void {
             },
         );
 
-        try j2d.circle(
+        try b.circle(
             .{ .x = p1x - 20, .y = p1y - 20 },
             rr + 20,
             jok.Color.rgb(
@@ -723,7 +725,7 @@ fn renderSimulation() !void {
                 .thickness = 2,
             },
         );
-        try j2d.circle(
+        try b.circle(
             .{ .x = p2x + 20, .y = p2y - 20 },
             rr + 20,
             jok.Color.rgb(
@@ -735,7 +737,7 @@ fn renderSimulation() !void {
                 .thickness = 2,
             },
         );
-        try j2d.circle(
+        try b.circle(
             .{ .x = p3x + 20, .y = p3y + 20 },
             rr + 20,
             jok.Color.rgb(
@@ -747,7 +749,7 @@ fn renderSimulation() !void {
                 .thickness = 2,
             },
         );
-        try j2d.circle(
+        try b.circle(
             .{ .x = p4x - 20, .y = p4y + 20 },
             rr + 20,
             jok.Color.rgb(
@@ -760,25 +762,25 @@ fn renderSimulation() !void {
             },
         );
 
-        try j2d.circleFilled(
+        try b.circleFilled(
             .{ .x = p1x, .y = p1y },
             rr,
             jok.Color.rgb(100, 250, 10),
             .{},
         );
-        try j2d.circleFilled(
+        try b.circleFilled(
             .{ .x = p2x, .y = p2y },
             rr,
             jok.Color.rgb(250, 10, 100),
             .{},
         );
-        try j2d.circleFilled(
+        try b.circleFilled(
             .{ .x = p3x, .y = p3y },
             rr,
             jok.Color.rgb(250, 250, 250),
             .{},
         );
-        try j2d.circleFilled(
+        try b.circleFilled(
             .{ .x = p4x, .y = p4y },
             rr,
             jok.Color.rgb(100, 100, 250),
@@ -790,6 +792,7 @@ fn renderSimulation() !void {
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    batchpool = try @TypeOf(batchpool).init(ctx);
     rand_gen = std.Random.DefaultPrng.init(
         @intCast(std.time.timestamp()),
     );
@@ -847,4 +850,6 @@ pub fn quit(ctx: jok.Context) void {
     if (red) |g| g.deinit();
     if (white) |g| g.deinit();
     if (blue) |g| g.deinit();
+
+    batchpool.deinit();
 }

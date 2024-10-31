@@ -5,10 +5,13 @@ const physfs = jok.physfs;
 const j2d = jok.j2d;
 const j3d = jok.j3d;
 const zmath = jok.zmath;
+const zmesh = jok.zmesh;
 const font = jok.font;
 const imgui = jok.imgui;
 
+var batchpool: j3d.BatchPool(64, false) = undefined;
 var rand: std.Random.DefaultPrng = undefined;
+var plane: zmesh.Shape = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var ps: *j3d.ParticleSystem = undefined;
 var camera: j3d.Camera = undefined;
@@ -37,7 +40,9 @@ pub fn init(ctx: jok.Context) !void {
 
     try physfs.mount("assets", "", true);
 
+    batchpool = try @TypeOf(batchpool).init(ctx);
     rand = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
+    plane = zmesh.Shape.initPlane(20, 20);
     sheet = try j2d.SpriteSheet.create(
         ctx,
         &.{
@@ -144,12 +149,12 @@ pub fn draw(ctx: jok.Context) !void {
     }
     imgui.end();
 
-    j3d.begin(.{
+    var b = try batchpool.new(.{
         .camera = camera,
         .triangle_sort = if (sort_by_depth) .simple else .none,
     });
-    defer j3d.end();
-    try j3d.plane(
+    defer b.submit();
+    try b.shape(
         zmath.mul(
             zmath.mul(
                 zmath.rotationX(-math.pi * 0.5),
@@ -157,14 +162,14 @@ pub fn draw(ctx: jok.Context) !void {
             ),
             zmath.scaling(200, 1, 200),
         ),
+        plane,
+        null,
         .{
-            .rdopt = .{
-                .color = jok.Color.rgba(100, 100, 100, 200),
-                .lighting = .{},
-            },
+            .color = jok.Color.rgba(100, 100, 100, 200),
+            .lighting = .{},
         },
     );
-    try j3d.effects(ps);
+    try b.effects(ps);
 
     font.debugDraw(
         ctx,
@@ -189,4 +194,6 @@ pub fn quit(ctx: jok.Context) void {
     std.log.info("game quit", .{});
     ps.destroy();
     sheet.destroy();
+    plane.deinit();
+    batchpool.deinit();
 }

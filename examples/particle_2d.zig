@@ -3,6 +3,7 @@ const jok = @import("jok");
 const physfs = jok.physfs;
 const j2d = jok.j2d;
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var rd: std.Random.DefaultPrng = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var font: *jok.font.Font = undefined;
@@ -32,6 +33,7 @@ pub fn init(ctx: jok.Context) !void {
 
     try physfs.mount("assets", "/", true);
 
+    batchpool = try @TypeOf(batchpool).init(ctx);
     rd = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
     sheet = try j2d.SpriteSheet.create(
         ctx,
@@ -96,9 +98,9 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(null);
     ctx.displayStats(.{});
 
-    j2d.begin(.{ .blend_mode = .additive });
-    defer j2d.end();
-    try j2d.effects(ps);
+    var b = try batchpool.new(.{ .blend_mode = .additive });
+    defer b.submit();
+    try b.effects(ps);
 }
 
 pub fn quit(ctx: jok.Context) void {
@@ -108,4 +110,5 @@ pub fn quit(ctx: jok.Context) void {
     font.destroy();
     sheet.destroy();
     ps.destroy();
+    batchpool.deinit();
 }

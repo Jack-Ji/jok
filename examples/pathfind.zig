@@ -6,6 +6,7 @@ const imgui = jok.imgui;
 const j2d = jok.j2d;
 const pathfind = jok.utils.pathfind;
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 const cell_size = 10;
 const graph_width = 800 / cell_size;
 const graph_height = 600 / cell_size;
@@ -87,6 +88,7 @@ var walk_idx: usize = undefined;
 var searched_blocks: std.DynamicBitSet = undefined;
 
 pub fn init(ctx: jok.Context) !void {
+    batchpool = try @TypeOf(batchpool).init(ctx);
     rng = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
     graph = Graph.init(rng.random());
     LOOP: for (0..graph_height) |i| {
@@ -124,12 +126,12 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(null);
 
-    j2d.begin(.{});
-    defer j2d.end();
+    var b = try batchpool.new(.{});
+    defer b.submit();
     for (0..graph_height) |i| {
         for (0..graph_width) |j| {
             if (graph.map[i][j]) {
-                try j2d.rectFilled(.{
+                try b.rectFilled(.{
                     .x = @floatFromInt(cell_size * j),
                     .y = @floatFromInt(cell_size * i),
                     .width = cell_size,
@@ -143,7 +145,7 @@ pub fn draw(ctx: jok.Context) !void {
         while (it.next()) |id| {
             const x = id % graph_width;
             const y = id / graph_width;
-            try j2d.rectFilled(.{
+            try b.rectFilled(.{
                 .x = @floatFromInt(cell_size * x),
                 .y = @floatFromInt(cell_size * y),
                 .width = cell_size,
@@ -154,14 +156,14 @@ pub fn draw(ctx: jok.Context) !void {
     {
         const x = source % graph_width;
         const y = source / graph_width;
-        try j2d.circleFilled(.{
+        try b.circleFilled(.{
             .x = @floatFromInt(cell_size * x + cell_size / 2),
             .y = @floatFromInt(cell_size * y + cell_size / 2),
         }, 5, jok.Color.blue, .{});
     }
     if (path) |p| {
         const dst = p.items[p.items.len - 1];
-        try j2d.circleFilled(.{
+        try b.circleFilled(.{
             .x = @floatFromInt(dst % graph_width * cell_size + cell_size / 2),
             .y = @floatFromInt(dst / graph_width * cell_size + cell_size / 2),
         }, 5, jok.Color.red, .{});
@@ -178,7 +180,7 @@ pub fn draw(ctx: jok.Context) !void {
             for (p.items[walk_idx..]) |id| {
                 const x = id % graph_width;
                 const y = id / graph_width;
-                try j2d.line(
+                try b.line(
                     .{
                         .x = @floatFromInt(cell_size * last_x + cell_size / 2),
                         .y = @floatFromInt(cell_size * last_y + cell_size / 2),
@@ -201,4 +203,5 @@ pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     searched_blocks.deinit();
     if (path) |p| p.deinit();
+    batchpool.deinit();
 }

@@ -4,6 +4,7 @@ const physfs = jok.physfs;
 const font = jok.font;
 const j2d = jok.j2d;
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var svg: jok.svg.SvgBitmap = undefined;
 var tex: jok.Texture = undefined;
 
@@ -11,6 +12,8 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     try physfs.mount("assets", "/", true);
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     svg = try jok.svg.createBitmapFromFile(
         ctx.allocator(),
@@ -33,9 +36,9 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(jok.Color.rgb(100, 100, 100));
 
-    j2d.begin(.{});
-    defer j2d.end();
-    try j2d.image(
+    var b = try batchpool.new(.{});
+    defer b.submit();
+    try b.image(
         tex,
         .{
             .x = ctx.getCanvasSize().getWidthFloat() / 2,
@@ -58,4 +61,5 @@ pub fn quit(ctx: jok.Context) void {
 
     svg.destroy();
     tex.destroy();
+    batchpool.deinit();
 }

@@ -8,7 +8,6 @@ const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 
 const internal = @import("j2d/internal.zig");
-const Atlas = @import("font/Atlas.zig");
 pub const AffineTransform = @import("j2d/AffineTransform.zig");
 pub const Sprite = @import("j2d/Sprite.zig");
 pub const SpriteSheet = @import("j2d/SpriteSheet.zig");
@@ -19,6 +18,7 @@ pub const Vector = @import("j2d/Vector.zig");
 
 pub const Error = error{
     PathNotFinished,
+    TooManyBatches,
 };
 
 pub const DepthSortMethod = enum {
@@ -27,7 +27,7 @@ pub const DepthSortMethod = enum {
     forth_to_back,
 };
 
-pub const BeginOption = struct {
+pub const BatchOption = struct {
     transform: AffineTransform = AffineTransform.init(),
     depth_sort: DepthSortMethod = .none,
     blend_mode: jok.BlendMode = .blend,
@@ -37,845 +37,1009 @@ pub const BeginOption = struct {
     offscreen_clear_color: ?jok.Color = null,
 };
 
-var ctx: jok.Context = undefined;
-var draw_list: imgui.DrawList = undefined;
-var draw_commands: std.ArrayList(internal.DrawCmd) = undefined;
-var transform: AffineTransform = undefined;
-var depth_sort: DepthSortMethod = undefined;
-var blend_mode: jok.BlendMode = undefined;
-var offscreen_target: ?jok.Texture = undefined;
-var offscreen_clear_color: ?jok.Color = undefined;
-var all_tex: std.AutoHashMap(*anyopaque, bool) = undefined;
+const invalid_batch_id = std.math.maxInt(usize);
 
-pub fn init(_ctx: jok.Context) !void {
-    ctx = _ctx;
-    draw_list = imgui.createDrawList();
-    draw_commands = std.ArrayList(internal.DrawCmd).init(ctx.allocator());
-    all_tex = std.AutoHashMap(*anyopaque, bool).init(ctx.allocator());
-}
+/// Batched rendering job, managed by BatchPool
+pub const Batch = struct {
+    /// All fields are private, DON'T use it directly.
+    id: usize = invalid_batch_id,
+    reclaimer: BatchReclaimer = undefined,
+    is_submitted: bool = false,
+    ctx: jok.Context,
+    draw_list: imgui.DrawList,
+    draw_commands: std.ArrayList(internal.DrawCmd),
+    transform: AffineTransform,
+    depth_sort: DepthSortMethod,
+    blend_mode: jok.BlendMode,
+    offscreen_target: ?jok.Texture,
+    offscreen_clear_color: ?jok.Color,
+    all_tex: std.AutoHashMap(*anyopaque, bool),
 
-pub fn deinit() void {
-    imgui.destroyDrawList(draw_list);
-    draw_commands.deinit();
-    all_tex.deinit();
-}
-
-pub fn begin(opt: BeginOption) void {
-    draw_list.reset();
-    if (opt.clip_rect) |r| {
-        draw_list.pushClipRect(.{
-            .pmin = .{ r.x, r.y },
-            .pmax = .{ r.x + r.width, r.y + r.height },
-        });
-    } else {
-        const csz = ctx.getCanvasSize();
-        draw_list.pushClipRect(.{
-            .pmin = .{ 0, 0 },
-            .pmax = .{ @floatFromInt(csz.width), @floatFromInt(csz.height) },
-        });
-    }
-    if (opt.antialiased) {
-        draw_list.setDrawListFlags(.{
-            .anti_aliased_lines = true,
-            .anti_aliased_lines_use_tex = false,
-            .anti_aliased_fill = true,
-            .allow_vtx_offset = true,
-        });
-    }
-    draw_commands.clearRetainingCapacity();
-    all_tex.clearRetainingCapacity();
-    transform = opt.transform;
-    depth_sort = opt.depth_sort;
-    blend_mode = opt.blend_mode;
-    offscreen_target = opt.offscreen_target;
-    offscreen_clear_color = opt.offscreen_clear_color;
-    if (offscreen_target) |t| {
-        const info = t.query() catch unreachable;
-        if (info.access != .target) {
-            @panic("Given texture isn't suitable for offscreen rendering!");
-        }
-    }
-}
-
-pub fn end() void {
-    const S = struct {
-        fn ascendCompare(_: ?*anyopaque, lhs: internal.DrawCmd, rhs: internal.DrawCmd) bool {
-            return lhs.compare(rhs, true);
-        }
-        fn descendCompare(_: ?*anyopaque, lhs: internal.DrawCmd, rhs: internal.DrawCmd) bool {
-            return lhs.compare(rhs, false);
-        }
-    };
-
-    if (draw_commands.items.len == 0) return;
-
-    switch (depth_sort) {
-        .none => {},
-        .back_to_forth => std.sort.pdq(
-            internal.DrawCmd,
-            draw_commands.items,
-            @as(?*anyopaque, null),
-            S.descendCompare,
-        ),
-        .forth_to_back => std.sort.pdq(
-            internal.DrawCmd,
-            draw_commands.items,
-            @as(?*anyopaque, null),
-            S.ascendCompare,
-        ),
-    }
-    for (draw_commands.items) |dcmd| {
-        switch (dcmd.cmd) {
-            .quad_image => |c| all_tex.put(c.texture.ptr, true) catch unreachable,
-            .image_rounded => |c| all_tex.put(c.texture.ptr, true) catch unreachable,
-            .convex_polygon_fill => |c| {
-                if (c.texture) |tex| all_tex.put(tex.ptr, true) catch unreachable;
-            },
-            else => {},
-        }
-        dcmd.render(draw_list);
-    }
-
-    // Apply blend mode to renderer and textures
-    const rd = ctx.renderer();
-    const old_blend = rd.getBlendMode() catch unreachable;
-    defer rd.setBlendMode(old_blend) catch unreachable;
-    rd.setBlendMode(blend_mode) catch unreachable;
-    var it = all_tex.keyIterator();
-    while (it.next()) |k| {
-        const tex = jok.Texture{ .ptr = @ptrCast(k.*) };
-        tex.setBlendMode(blend_mode) catch unreachable;
-    }
-
-    // Apply offscreen target if given
-    const old_target = rd.getTarget();
-    if (offscreen_target) |t| {
-        rd.setTarget(t) catch unreachable;
-        if (offscreen_clear_color) |c| rd.clear(c) catch unreachable;
-    }
-    defer if (offscreen_target != null) {
-        rd.setTarget(old_target) catch unreachable;
-    };
-
-    // Submit draw command
-    imgui.sdl.renderDrawList(ctx, draw_list);
-}
-
-pub fn clearMemory() void {
-    draw_list.clearMemory();
-    draw_commands.clearAndFree();
-    all_tex.clearAndFree();
-}
-
-pub fn setTransform(t: AffineTransform) void {
-    transform = t;
-}
-
-pub fn getTransform() AffineTransform {
-    return transform;
-}
-
-pub const ImageOption = struct {
-    size: ?jok.Size = null,
-    uv0: jok.Point = .{ .x = 0, .y = 0 },
-    uv1: jok.Point = .{ .x = 1, .y = 1 },
-    tint_color: jok.Color = jok.Color.white,
-    scale: jok.Point = .{ .x = 1, .y = 1 },
-    rotate_degree: f32 = 0,
-    anchor_point: jok.Point = .{ .x = 0, .y = 0 },
-    flip_h: bool = false,
-    flip_v: bool = false,
-    depth: f32 = 0.5,
-};
-pub fn image(texture: jok.Texture, pos: jok.Point, opt: ImageOption) !void {
-    const scale = transform.getScale();
-    const size = opt.size orelse BLK: {
-        const info = try texture.query();
-        break :BLK jok.Size{
-            .width = info.width,
-            .height = info.height,
+    fn init(_ctx: jok.Context) Batch {
+        const _draw_list = imgui.createDrawList();
+        const _draw_commands = std.ArrayList(internal.DrawCmd).init(_ctx.allocator());
+        const _all_tex = std.AutoHashMap(*anyopaque, bool).init(_ctx.allocator());
+        return .{
+            .ctx = _ctx,
+            .draw_list = _draw_list,
+            .draw_commands = _draw_commands,
+            .transform = AffineTransform.init(),
+            .depth_sort = .none,
+            .blend_mode = .blend,
+            .offscreen_target = null,
+            .offscreen_clear_color = null,
+            .all_tex = _all_tex,
         };
-    };
-    const s = Sprite{
-        .width = @floatFromInt(size.width),
-        .height = @floatFromInt(size.height),
-        .uv0 = opt.uv0,
-        .uv1 = opt.uv1,
-        .tex = texture,
-    };
-    try s.render(&draw_commands, .{
-        .pos = transform.transformPoint(pos),
-        .tint_color = opt.tint_color,
-        .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
-        .rotate_degree = opt.rotate_degree,
-        .anchor_point = opt.anchor_point,
-        .flip_h = opt.flip_h,
-        .flip_v = opt.flip_v,
-        .depth = opt.depth,
-    });
-}
-
-/// NOTE: Rounded image is always axis-aligned
-pub const ImageRoundedOption = struct {
-    size: ?jok.Size = null,
-    uv0: jok.Point = .{ .x = 0, .y = 0 },
-    uv1: jok.Point = .{ .x = 1, .y = 1 },
-    tint_color: jok.Color = jok.Color.white,
-    scale: jok.Point = .{ .x = 1, .y = 1 },
-    flip_h: bool = false,
-    flip_v: bool = false,
-    rounding: f32 = 4,
-    depth: f32 = 0.5,
-};
-pub fn imageRounded(texture: jok.Texture, pos: jok.Point, opt: ImageRoundedOption) !void {
-    const scale = transform.getScale();
-    const size = opt.size orelse BLK: {
-        const info = try texture.query();
-        break :BLK jok.Size{
-            .width = info.width,
-            .height = info.height,
-        };
-    };
-    const pmin = transform.transformPoint(pos);
-    const pmax = jok.Point{
-        .x = pmin.x + @as(f32, @floatFromInt(size.width)) * scale.x,
-        .y = pmin.y + @as(f32, @floatFromInt(size.height)) * scale.y,
-    };
-    var uv0 = opt.uv0;
-    var uv1 = opt.uv1;
-    if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
-    if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
-    try draw_commands.append(.{
-        .cmd = .{
-            .image_rounded = .{
-                .texture = texture,
-                .pmin = pmin,
-                .pmax = pmax,
-                .uv0 = uv0,
-                .uv1 = uv1,
-                .rounding = opt.rounding,
-                .tint_color = imgui.sdl.convertColor(opt.tint_color),
-            },
-        },
-        .depth = opt.depth,
-    });
-}
-
-pub fn scene(s: *const Scene) !void {
-    try s.render(&draw_commands, .{ .transform = transform });
-}
-
-pub fn effects(ps: *const ParticleSystem) !void {
-    for (ps.effects.items) |eff| {
-        try eff.render(&draw_commands, .{ .transform = transform });
     }
-}
 
-pub const SpriteOption = struct {
-    pos: jok.Point,
-    tint_color: jok.Color = jok.Color.white,
-    scale: jok.Point = .{ .x = 1, .y = 1 },
-    rotate_degree: f32 = 0,
-    anchor_point: jok.Point = .{ .x = 0, .y = 0 },
-    flip_h: bool = false,
-    flip_v: bool = false,
-    depth: f32 = 0.5,
-};
-pub fn sprite(s: Sprite, opt: SpriteOption) !void {
-    const scale = transform.getScale();
-    try s.render(&draw_commands, .{
-        .pos = transform.transformPoint(opt.pos),
-        .tint_color = opt.tint_color,
-        .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
-        .rotate_degree = opt.rotate_degree,
-        .anchor_point = opt.anchor_point,
-        .flip_h = opt.flip_h,
-        .flip_v = opt.flip_v,
-        .depth = opt.depth,
-    });
-}
+    fn deinit(self: *Batch) void {
+        imgui.destroyDrawList(self.draw_list);
+        self.draw_commands.deinit();
+        self.all_tex.deinit();
+    }
 
-pub const TextOption = struct {
-    atlas: *Atlas,
-    pos: jok.Point,
-    ypos_type: Atlas.YPosType = .top,
-    tint_color: jok.Color = jok.Color.white,
-    scale: jok.Point = .{ .x = 1, .y = 1 },
-    rotate_degree: f32 = 0,
-    anchor_point: jok.Point = .{ .x = 0, .y = 0 },
-    depth: f32 = 0.5,
-};
-pub fn text(opt: TextOption, comptime fmt: []const u8, args: anytype) !void {
-    const txt = imgui.format(fmt, args);
-    if (txt.len == 0) return;
+    pub fn recycleMemory(self: *Batch) void {
+        self.draw_list.clearMemory();
+        self.draw_commands.clearAndFree();
+        self.all_tex.clearAndFree();
+    }
 
-    var pos = transform.transformPoint(opt.pos);
-    var scale = transform.getScale();
-    scale.x *= opt.scale.x;
-    scale.y *= opt.scale.y;
-    const angle = std.math.degreesToRadians(opt.rotate_degree);
-    const mat = zmath.mul(
-        zmath.mul(
-            zmath.translation(-pos.x, -pos.y, 0),
-            zmath.rotationZ(angle),
-        ),
-        zmath.translation(pos.x, pos.y, 0),
-    );
-    var i: u32 = 0;
-    while (i < txt.len) {
-        const size = try unicode.utf8ByteSequenceLength(txt[i]);
-        const cp = @as(u32, @intCast(try unicode.utf8Decode(txt[i .. i + size])));
-        if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, jok.Color.white, cp)) |cs| {
-            const v = zmath.mul(
-                zmath.f32x4(
-                    cs.vs[0].pos.x,
-                    pos.y + (cs.vs[0].pos.y - pos.y) * scale.y,
-                    0,
-                    1,
-                ),
-                mat,
-            );
-            const draw_pos = jok.Point{ .x = v[0], .y = v[1] };
-            const s = Sprite{
-                .width = cs.vs[1].pos.x - cs.vs[0].pos.x,
-                .height = cs.vs[3].pos.y - cs.vs[0].pos.y,
-                .uv0 = cs.vs[0].texcoord,
-                .uv1 = cs.vs[2].texcoord,
-                .tex = opt.atlas.tex,
-            };
-            try s.render(&draw_commands, .{
-                .pos = draw_pos,
-                .tint_color = opt.tint_color,
-                .scale = scale,
-                .rotate_degree = opt.rotate_degree,
-                .anchor_point = opt.anchor_point,
-                .depth = opt.depth,
+    /// Reinitialize batch, abandon all commands, no reclaiming
+    pub fn reset(self: *Batch, opt: BatchOption) void {
+        assert(self.id != invalid_batch_id);
+        defer self.is_submitted = false;
+
+        self.draw_list.reset();
+        if (opt.clip_rect) |r| {
+            self.draw_list.pushClipRect(.{
+                .pmin = .{ r.x, r.y },
+                .pmax = .{ r.x + r.width, r.y + r.height },
             });
-            pos.x += (cs.next_x - pos.x) * scale.x;
+        } else {
+            const csz = self.ctx.getCanvasSize();
+            self.draw_list.pushClipRect(.{
+                .pmin = .{ 0, 0 },
+                .pmax = .{ @floatFromInt(csz.width), @floatFromInt(csz.height) },
+            });
         }
-        i += size;
+        if (opt.antialiased) {
+            self.draw_list.setDrawListFlags(.{
+                .anti_aliased_lines = true,
+                .anti_aliased_lines_use_tex = false,
+                .anti_aliased_fill = true,
+                .allow_vtx_offset = true,
+            });
+        }
+        self.draw_commands.clearRetainingCapacity();
+        self.all_tex.clearRetainingCapacity();
+        self.transform = opt.transform;
+        self.depth_sort = opt.depth_sort;
+        self.blend_mode = opt.blend_mode;
+        self.offscreen_target = opt.offscreen_target;
+        self.offscreen_clear_color = opt.offscreen_clear_color;
+        if (self.offscreen_target) |t| {
+            const info = t.query() catch unreachable;
+            if (info.access != .target) {
+                @panic("Given texture isn't suitable for offscreen rendering!");
+            }
+        }
     }
-}
 
-pub const LineOption = struct {
-    thickness: f32 = 1.0,
-    depth: f32 = 0.5,
-};
-pub fn line(p1: jok.Point, p2: jok.Point, color: jok.Color, opt: LineOption) !void {
-    try draw_commands.append(.{
-        .cmd = .{
-            .line = .{
-                .p1 = transform.transformPoint(p1),
-                .p2 = transform.transformPoint(p2),
-                .color = imgui.sdl.convertColor(color),
-                .thickness = opt.thickness,
-            },
-        },
-        .depth = opt.depth,
-    });
-}
+    fn ascendCompare(_: ?*anyopaque, lhs: internal.DrawCmd, rhs: internal.DrawCmd) bool {
+        return lhs.compare(rhs, true);
+    }
 
-pub const RectOption = struct {
-    thickness: f32 = 1.0,
-    depth: f32 = 0.5,
-};
-pub fn rect(r: jok.Rectangle, color: jok.Color, opt: RectOption) !void {
-    const p1 = jok.Point{ .x = r.x, .y = r.y };
-    const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
-    const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
-    const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
-    try draw_commands.append(.{
-        .cmd = .{
-            .quad = .{
-                .p1 = transform.transformPoint(p1),
-                .p2 = transform.transformPoint(p2),
-                .p3 = transform.transformPoint(p3),
-                .p4 = transform.transformPoint(p4),
-                .color = imgui.sdl.convertColor(color),
-                .thickness = opt.thickness,
-            },
-        },
-        .depth = opt.depth,
-    });
-}
+    fn descendCompare(_: ?*anyopaque, lhs: internal.DrawCmd, rhs: internal.DrawCmd) bool {
+        return lhs.compare(rhs, false);
+    }
 
-pub const FillRect = struct {
-    depth: f32 = 0.5,
-};
-pub fn rectFilled(r: jok.Rectangle, color: jok.Color, opt: FillRect) !void {
-    const p1 = jok.Point{ .x = r.x, .y = r.y };
-    const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
-    const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
-    const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
-    const c = imgui.sdl.convertColor(color);
-    try draw_commands.append(.{
-        .cmd = .{
-            .quad_fill = .{
-                .p1 = transform.transformPoint(p1),
-                .p2 = transform.transformPoint(p2),
-                .p3 = transform.transformPoint(p3),
-                .p4 = transform.transformPoint(p4),
-                .color1 = c,
-                .color2 = c,
-                .color3 = c,
-                .color4 = c,
-            },
-        },
-        .depth = opt.depth,
-    });
-}
+    /// Submit batch, issue draw calls, don't reclaim itself
+    pub fn submitWithoutReclaim(self: *Batch) void {
+        assert(self.id != invalid_batch_id);
+        assert(jok.utils.isMainThread());
 
-pub const FillRectMultiColor = struct {
-    depth: f32 = 0.5,
-};
-pub fn rectFilledMultiColor(
-    r: jok.Rectangle,
-    color_top_left: jok.Color,
-    color_top_right: jok.Color,
-    color_bottom_right: jok.Color,
-    color_bottom_left: jok.Color,
-    opt: FillRectMultiColor,
-) !void {
-    const p1 = jok.Point{ .x = r.x, .y = r.y };
-    const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
-    const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
-    const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
-    const c1 = imgui.sdl.convertColor(color_top_left);
-    const c2 = imgui.sdl.convertColor(color_top_right);
-    const c3 = imgui.sdl.convertColor(color_bottom_right);
-    const c4 = imgui.sdl.convertColor(color_bottom_left);
-    try draw_commands.append(.{
-        .cmd = .{
-            .quad_fill = .{
-                .p1 = transform.transformPoint(p1),
-                .p2 = transform.transformPoint(p2),
-                .p3 = transform.transformPoint(p3),
-                .p4 = transform.transformPoint(p4),
-                .color1 = c1,
-                .color2 = c2,
-                .color3 = c3,
-                .color4 = c4,
-            },
-        },
-        .depth = opt.depth,
-    });
-}
+        defer self.is_submitted = true;
 
-/// NOTE: Rounded rectangle is always axis-aligned
-pub const RectRoundedOption = struct {
-    thickness: f32 = 1.0,
-    rounding: f32 = 4,
-    depth: f32 = 0.5,
-};
-pub fn rectRounded(r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
-    const scale = transform.getScale();
-    const pmin = transform.transformPoint(.{ .x = r.x, .y = r.y });
-    const pmax = jok.Point{
-        .x = pmin.x + r.width * scale.x,
-        .y = pmin.y + r.height * scale.y,
+        if (self.draw_commands.items.len == 0) return;
+
+        if (!self.is_submitted) {
+            switch (self.depth_sort) {
+                .none => {},
+                .back_to_forth => std.sort.pdq(
+                    internal.DrawCmd,
+                    self.draw_commands.items,
+                    @as(?*anyopaque, null),
+                    descendCompare,
+                ),
+                .forth_to_back => std.sort.pdq(
+                    internal.DrawCmd,
+                    self.draw_commands.items,
+                    @as(?*anyopaque, null),
+                    ascendCompare,
+                ),
+            }
+            for (self.draw_commands.items) |dcmd| {
+                switch (dcmd.cmd) {
+                    .quad_image => |c| self.all_tex.put(c.texture.ptr, true) catch unreachable,
+                    .image_rounded => |c| self.all_tex.put(c.texture.ptr, true) catch unreachable,
+                    .convex_polygon_fill => |c| {
+                        if (c.texture) |tex| self.all_tex.put(tex.ptr, true) catch unreachable;
+                    },
+                    else => {},
+                }
+                dcmd.render(self.draw_list);
+            }
+        }
+
+        // Apply blend mode to renderer and textures
+        const rd = self.ctx.renderer();
+        const old_blend = rd.getBlendMode() catch unreachable;
+        defer rd.setBlendMode(old_blend) catch unreachable;
+        rd.setBlendMode(self.blend_mode) catch unreachable;
+        var it = self.all_tex.keyIterator();
+        while (it.next()) |k| {
+            const tex = jok.Texture{ .ptr = @ptrCast(k.*) };
+            tex.setBlendMode(self.blend_mode) catch unreachable;
+        }
+
+        // Apply offscreen target if given
+        const old_target = rd.getTarget();
+        if (self.offscreen_target) |t| {
+            rd.setTarget(t) catch unreachable;
+            if (self.offscreen_clear_color) |c| rd.clear(c) catch unreachable;
+        }
+        defer if (self.offscreen_target != null) {
+            rd.setTarget(old_target) catch unreachable;
+        };
+
+        // Submit draw command
+        imgui.sdl.renderDrawList(self.ctx, self.draw_list);
+    }
+
+    /// Submit batch, issue draw calls, and reclaim itself
+    pub fn submit(self: *Batch) void {
+        defer self.reclaimer.reclaim(self);
+        self.submitWithoutReclaim();
+    }
+
+    /// Reclaim itself without drawing
+    pub fn abort(self: *Batch) void {
+        assert(self.id != invalid_batch_id);
+        self.reclaimer.reclaim(self);
+    }
+
+    pub fn setTransform(self: *Batch, t: AffineTransform) void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        self.transform = t;
+    }
+
+    pub fn getTransform(self: Batch) AffineTransform {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        return self.transform;
+    }
+
+    pub const ImageOption = struct {
+        size: ?jok.Size = null,
+        uv0: jok.Point = .{ .x = 0, .y = 0 },
+        uv1: jok.Point = .{ .x = 1, .y = 1 },
+        tint_color: jok.Color = jok.Color.white,
+        scale: jok.Point = .{ .x = 1, .y = 1 },
+        rotate_degree: f32 = 0,
+        anchor_point: jok.Point = .{ .x = 0, .y = 0 },
+        flip_h: bool = false,
+        flip_v: bool = false,
+        depth: f32 = 0.5,
     };
-    try draw_commands.append(.{
-        .cmd = .{
-            .rect_rounded = .{
-                .pmin = pmin,
-                .pmax = pmax,
-                .color = imgui.sdl.convertColor(color),
-                .thickness = opt.thickness,
-                .rounding = opt.rounding,
-            },
-        },
-        .depth = opt.depth,
-    });
-}
+    pub fn image(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageOption) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const scale = self.transform.getScale();
+        const size = opt.size orelse BLK: {
+            const info = try texture.query();
+            break :BLK jok.Size{
+                .width = info.width,
+                .height = info.height,
+            };
+        };
+        const s = Sprite{
+            .width = @floatFromInt(size.width),
+            .height = @floatFromInt(size.height),
+            .uv0 = opt.uv0,
+            .uv1 = opt.uv1,
+            .tex = texture,
+        };
+        try s.render(&self.draw_commands, .{
+            .pos = self.transform.transformPoint(pos),
+            .tint_color = opt.tint_color,
+            .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
+            .rotate_degree = opt.rotate_degree,
+            .anchor_point = opt.anchor_point,
+            .flip_h = opt.flip_h,
+            .flip_v = opt.flip_v,
+            .depth = opt.depth,
+        });
+    }
 
-/// NOTE: Rounded rectangle is always axis-aligned
-pub const FillRectRounded = struct {
-    rounding: f32 = 4,
-    depth: f32 = 0.5,
-};
-pub fn rectRoundedFilled(r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
-    const scale = transform.getScale();
-    const pmin = transform.transformPoint(.{ .x = r.x, .y = r.y });
-    const pmax = jok.Point{
-        .x = pmin.x + r.width * scale.x,
-        .y = pmin.y + r.height * scale.y,
+    /// NOTE: Rounded image is always axis-aligned
+    pub const ImageRoundedOption = struct {
+        size: ?jok.Size = null,
+        uv0: jok.Point = .{ .x = 0, .y = 0 },
+        uv1: jok.Point = .{ .x = 1, .y = 1 },
+        tint_color: jok.Color = jok.Color.white,
+        scale: jok.Point = .{ .x = 1, .y = 1 },
+        flip_h: bool = false,
+        flip_v: bool = false,
+        rounding: f32 = 4,
+        depth: f32 = 0.5,
     };
-    try draw_commands.append(.{
-        .cmd = .{
-            .rect_rounded_fill = .{
-                .pmin = pmin,
-                .pmax = pmax,
-                .color = imgui.sdl.convertColor(color),
-                .rounding = opt.rounding,
+    pub fn imageRounded(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageRoundedOption) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const scale = self.transform.getScale();
+        const size = opt.size orelse BLK: {
+            const info = try texture.query();
+            break :BLK jok.Size{
+                .width = info.width,
+                .height = info.height,
+            };
+        };
+        const pmin = self.transform.transformPoint(pos);
+        const pmax = jok.Point{
+            .x = pmin.x + @as(f32, @floatFromInt(size.width)) * scale.x,
+            .y = pmin.y + @as(f32, @floatFromInt(size.height)) * scale.y,
+        };
+        var uv0 = opt.uv0;
+        var uv1 = opt.uv1;
+        if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
+        if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .image_rounded = .{
+                    .texture = texture,
+                    .pmin = pmin,
+                    .pmax = pmax,
+                    .uv0 = uv0,
+                    .uv1 = uv1,
+                    .rounding = opt.rounding,
+                    .tint_color = imgui.sdl.convertColor(opt.tint_color),
+                },
             },
-        },
-        .depth = opt.depth,
-    });
-}
+            .depth = opt.depth,
+        });
+    }
 
-pub const QuadOption = struct {
-    thickness: f32 = 1.0,
-    depth: f32 = 0.5,
-};
-pub fn quad(
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
-    p4: jok.Point,
-    color: jok.Color,
-    opt: QuadOption,
-) !void {
-    try draw_commands.append(.{
-        .cmd = .{
-            .quad = .{
-                .p1 = transform.transformPoint(p1),
-                .p2 = transform.transformPoint(p2),
-                .p3 = transform.transformPoint(p3),
-                .p4 = transform.transformPoint(p4),
-                .color = imgui.sdl.convertColor(color),
-                .thickness = opt.thickness,
-            },
-        },
-        .depth = opt.depth,
-    });
-}
+    pub fn scene(self: *Batch, s: *const Scene) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try s.render(&self.draw_commands, .{ .transform = self.transform });
+    }
 
-pub const FillQuad = struct {
-    depth: f32 = 0.5,
-};
-pub fn quadFilled(
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
-    p4: jok.Point,
-    color: jok.Color,
-    opt: FillQuad,
-) !void {
-    const c = imgui.sdl.convertColor(color);
-    try draw_commands.append(.{
-        .cmd = .{
-            .quad_fill = .{
-                .p1 = transform.transformPoint(p1),
-                .p2 = transform.transformPoint(p2),
-                .p3 = transform.transformPoint(p3),
-                .p4 = transform.transformPoint(p4),
-                .color1 = c,
-                .color2 = c,
-                .color3 = c,
-                .color4 = c,
-            },
-        },
-        .depth = opt.depth,
-    });
-}
+    pub fn effects(self: *Batch, ps: *const ParticleSystem) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        for (ps.effects.items) |eff| {
+            try eff.render(&self.draw_commands, .{ .transform = self.transform });
+        }
+    }
 
-pub const FillQuadMultiColor = struct {
-    depth: f32 = 0.5,
-};
-pub fn quadFilledMultiColor(
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
-    p4: jok.Point,
-    color1: jok.Color,
-    color2: jok.Color,
-    color3: jok.Color,
-    color4: jok.Color,
-    opt: FillQuadMultiColor,
-) !void {
-    const c1 = imgui.sdl.convertColor(color1);
-    const c2 = imgui.sdl.convertColor(color2);
-    const c3 = imgui.sdl.convertColor(color3);
-    const c4 = imgui.sdl.convertColor(color4);
-    try draw_commands.append(.{
-        .cmd = .{
-            .quad_fill = .{
-                .p1 = transform.transformPoint(p1),
-                .p2 = transform.transformPoint(p2),
-                .p3 = transform.transformPoint(p3),
-                .p4 = transform.transformPoint(p4),
-                .color1 = c1,
-                .color2 = c2,
-                .color3 = c3,
-                .color4 = c4,
-            },
-        },
-        .depth = opt.depth,
-    });
-}
+    pub const SpriteOption = struct {
+        pos: jok.Point,
+        tint_color: jok.Color = jok.Color.white,
+        scale: jok.Point = .{ .x = 1, .y = 1 },
+        rotate_degree: f32 = 0,
+        anchor_point: jok.Point = .{ .x = 0, .y = 0 },
+        flip_h: bool = false,
+        flip_v: bool = false,
+        depth: f32 = 0.5,
+    };
+    pub fn sprite(self: *Batch, s: Sprite, opt: SpriteOption) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const scale = self.transform.getScale();
+        try s.render(&self.draw_commands, .{
+            .pos = self.transform.transformPoint(opt.pos),
+            .tint_color = opt.tint_color,
+            .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
+            .rotate_degree = opt.rotate_degree,
+            .anchor_point = opt.anchor_point,
+            .flip_h = opt.flip_h,
+            .flip_v = opt.flip_v,
+            .depth = opt.depth,
+        });
+    }
 
-pub const TriangleOption = struct {
-    thickness: f32 = 1.0,
-    depth: f32 = 0.5,
-};
-pub fn triangle(
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
-    color: jok.Color,
-    opt: TriangleOption,
-) !void {
-    try draw_commands.append(.{
-        .cmd = .{
-            .triangle = .{
-                .p1 = transform.transformPoint(p1),
-                .p2 = transform.transformPoint(p2),
-                .p3 = transform.transformPoint(p3),
-                .color = imgui.sdl.convertColor(color),
-                .thickness = opt.thickness,
-            },
-        },
-        .depth = opt.depth,
-    });
-}
+    pub const TextOption = struct {
+        atlas: *jok.font.Atlas,
+        pos: jok.Point,
+        ypos_type: jok.font.Atlas.YPosType = .top,
+        tint_color: jok.Color = jok.Color.white,
+        scale: jok.Point = .{ .x = 1, .y = 1 },
+        rotate_degree: f32 = 0,
+        anchor_point: jok.Point = .{ .x = 0, .y = 0 },
+        depth: f32 = 0.5,
+    };
+    pub fn text(self: *Batch, opt: TextOption, comptime fmt: []const u8, args: anytype) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const txt = imgui.format(fmt, args);
+        if (txt.len == 0) return;
 
-pub const FillTriangle = struct {
-    depth: f32 = 0.5,
-};
-pub fn triangleFilled(
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
-    color: jok.Color,
-    opt: FillTriangle,
-) !void {
-    const c = imgui.sdl.convertColor(color);
-    try draw_commands.append(.{
-        .cmd = .{
-            .triangle_fill = .{
-                .p1 = transform.transformPoint(p1),
-                .p2 = transform.transformPoint(p2),
-                .p3 = transform.transformPoint(p3),
-                .color1 = c,
-                .color2 = c,
-                .color3 = c,
-            },
-        },
-        .depth = opt.depth,
-    });
-}
+        var pos = self.transform.transformPoint(opt.pos);
+        var scale = self.transform.getScale();
+        scale.x *= opt.scale.x;
+        scale.y *= opt.scale.y;
+        const angle = std.math.degreesToRadians(opt.rotate_degree);
+        const mat = zmath.mul(
+            zmath.mul(
+                zmath.translation(-pos.x, -pos.y, 0),
+                zmath.rotationZ(angle),
+            ),
+            zmath.translation(pos.x, pos.y, 0),
+        );
+        var i: u32 = 0;
+        while (i < txt.len) {
+            const size = try unicode.utf8ByteSequenceLength(txt[i]);
+            const cp = @as(u32, @intCast(try unicode.utf8Decode(txt[i .. i + size])));
+            if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, jok.Color.white, cp)) |cs| {
+                const v = zmath.mul(
+                    zmath.f32x4(
+                        cs.vs[0].pos.x,
+                        pos.y + (cs.vs[0].pos.y - pos.y) * scale.y,
+                        0,
+                        1,
+                    ),
+                    mat,
+                );
+                const draw_pos = jok.Point{ .x = v[0], .y = v[1] };
+                const s = Sprite{
+                    .width = cs.vs[1].pos.x - cs.vs[0].pos.x,
+                    .height = cs.vs[3].pos.y - cs.vs[0].pos.y,
+                    .uv0 = cs.vs[0].texcoord,
+                    .uv1 = cs.vs[2].texcoord,
+                    .tex = opt.atlas.tex,
+                };
+                try s.render(&self.draw_commands, .{
+                    .pos = draw_pos,
+                    .tint_color = opt.tint_color,
+                    .scale = scale,
+                    .rotate_degree = opt.rotate_degree,
+                    .anchor_point = opt.anchor_point,
+                    .depth = opt.depth,
+                });
+                pos.x += (cs.next_x - pos.x) * scale.x;
+            }
+            i += size;
+        }
+    }
 
-pub const FillTriangleMultiColor = struct {
-    depth: f32 = 0.5,
-};
-pub fn triangleFilledMultiColor(
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
-    color1: jok.Color,
-    color2: jok.Color,
-    color3: jok.Color,
-    opt: FillTriangleMultiColor,
-) !void {
-    const c1 = imgui.sdl.convertColor(color1);
-    const c2 = imgui.sdl.convertColor(color2);
-    const c3 = imgui.sdl.convertColor(color3);
-    try draw_commands.append(.{
-        .cmd = .{
-            .triangle_fill = .{
-                .p1 = transform.transformPoint(p1),
-                .p2 = transform.transformPoint(p2),
-                .p3 = transform.transformPoint(p3),
-                .color1 = c1,
-                .color2 = c2,
-                .color3 = c3,
+    pub const LineOption = struct {
+        thickness: f32 = 1.0,
+        depth: f32 = 0.5,
+    };
+    pub fn line(self: *Batch, p1: jok.Point, p2: jok.Point, color: jok.Color, opt: LineOption) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .line = .{
+                    .p1 = self.transform.transformPoint(p1),
+                    .p2 = self.transform.transformPoint(p2),
+                    .color = imgui.sdl.convertColor(color),
+                    .thickness = opt.thickness,
+                },
             },
-        },
-        .depth = opt.depth,
-    });
-}
+            .depth = opt.depth,
+        });
+    }
 
-pub const CircleOption = struct {
-    thickness: f32 = 1.0,
-    num_segments: u32 = 0,
-    depth: f32 = 0.5,
-};
-pub fn circle(
-    center: jok.Point,
-    radius: f32,
-    color: jok.Color,
-    opt: CircleOption,
-) !void {
-    const scale = transform.getScale();
-    try draw_commands.append(.{
-        .cmd = .{
-            .circle = .{
-                .p = transform.transformPoint(center),
-                .radius = radius * scale.x,
-                .color = imgui.sdl.convertColor(color),
-                .thickness = opt.thickness,
-                .num_segments = opt.num_segments,
+    pub const RectOption = struct {
+        thickness: f32 = 1.0,
+        depth: f32 = 0.5,
+    };
+    pub fn rect(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectOption) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const p1 = jok.Point{ .x = r.x, .y = r.y };
+        const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
+        const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
+        const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .quad = .{
+                    .p1 = self.transform.transformPoint(p1),
+                    .p2 = self.transform.transformPoint(p2),
+                    .p3 = self.transform.transformPoint(p3),
+                    .p4 = self.transform.transformPoint(p4),
+                    .color = imgui.sdl.convertColor(color),
+                    .thickness = opt.thickness,
+                },
             },
-        },
-        .depth = opt.depth,
-    });
-}
+            .depth = opt.depth,
+        });
+    }
 
-pub const FillCircle = struct {
-    num_segments: u32 = 0,
-    depth: f32 = 0.5,
-};
-pub fn circleFilled(
-    center: jok.Point,
-    radius: f32,
-    color: jok.Color,
-    opt: FillCircle,
-) !void {
-    const scale = transform.getScale();
-    try draw_commands.append(.{
-        .cmd = .{
-            .circle_fill = .{
-                .p = transform.transformPoint(center),
-                .radius = radius * scale.x,
-                .color = imgui.sdl.convertColor(color),
-                .num_segments = opt.num_segments,
+    pub const FillRect = struct {
+        depth: f32 = 0.5,
+    };
+    pub fn rectFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRect) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const p1 = jok.Point{ .x = r.x, .y = r.y };
+        const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
+        const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
+        const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
+        const c = imgui.sdl.convertColor(color);
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .quad_fill = .{
+                    .p1 = self.transform.transformPoint(p1),
+                    .p2 = self.transform.transformPoint(p2),
+                    .p3 = self.transform.transformPoint(p3),
+                    .p4 = self.transform.transformPoint(p4),
+                    .color1 = c,
+                    .color2 = c,
+                    .color3 = c,
+                    .color4 = c,
+                },
             },
-        },
-        .depth = opt.depth,
-    });
-}
+            .depth = opt.depth,
+        });
+    }
 
-pub const NgonOption = struct {
-    thickness: f32 = 1.0,
-    depth: f32 = 0.5,
-};
-pub fn ngon(
-    center: jok.Point,
-    radius: f32,
-    color: jok.Color,
-    num_segments: u32,
-    opt: NgonOption,
-) !void {
-    const scale = transform.getScale();
-    try draw_commands.append(.{
-        .cmd = .{
-            .ngon = .{
-                .p = transform.transformPoint(center),
-                .radius = radius * scale.x,
-                .color = imgui.sdl.convertColor(color),
-                .thickness = opt.thickness,
-                .num_segments = num_segments,
+    pub const FillRectMultiColor = struct {
+        depth: f32 = 0.5,
+    };
+    pub fn rectFilledMultiColor(
+        self: *Batch,
+        r: jok.Rectangle,
+        color_top_left: jok.Color,
+        color_top_right: jok.Color,
+        color_bottom_right: jok.Color,
+        color_bottom_left: jok.Color,
+        opt: FillRectMultiColor,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const p1 = jok.Point{ .x = r.x, .y = r.y };
+        const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
+        const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
+        const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
+        const c1 = imgui.sdl.convertColor(color_top_left);
+        const c2 = imgui.sdl.convertColor(color_top_right);
+        const c3 = imgui.sdl.convertColor(color_bottom_right);
+        const c4 = imgui.sdl.convertColor(color_bottom_left);
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .quad_fill = .{
+                    .p1 = self.transform.transformPoint(p1),
+                    .p2 = self.transform.transformPoint(p2),
+                    .p3 = self.transform.transformPoint(p3),
+                    .p4 = self.transform.transformPoint(p4),
+                    .color1 = c1,
+                    .color2 = c2,
+                    .color3 = c3,
+                    .color4 = c4,
+                },
             },
-        },
-        .depth = opt.depth,
-    });
-}
+            .depth = opt.depth,
+        });
+    }
 
-pub const FillNgon = struct {
-    depth: f32 = 0.5,
-};
-pub fn ngonFilled(
-    center: jok.Point,
-    radius: f32,
-    color: jok.Color,
-    num_segments: u32,
-    opt: FillNgon,
-) !void {
-    const scale = transform.getScale();
-    try draw_commands.append(.{
-        .cmd = .{
-            .ngon_fill = .{
-                .p = transform.transformPoint(center),
-                .radius = radius * scale.x,
-                .color = imgui.sdl.convertColor(color),
-                .num_segments = num_segments,
+    /// NOTE: Rounded rectangle is always axis-aligned
+    pub const RectRoundedOption = struct {
+        thickness: f32 = 1.0,
+        rounding: f32 = 4,
+        depth: f32 = 0.5,
+    };
+    pub fn rectRounded(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const scale = self.transform.getScale();
+        const pmin = self.transform.transformPoint(.{ .x = r.x, .y = r.y });
+        const pmax = jok.Point{
+            .x = pmin.x + r.width * scale.x,
+            .y = pmin.y + r.height * scale.y,
+        };
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .rect_rounded = .{
+                    .pmin = pmin,
+                    .pmax = pmax,
+                    .color = imgui.sdl.convertColor(color),
+                    .thickness = opt.thickness,
+                    .rounding = opt.rounding,
+                },
             },
-        },
-        .depth = opt.depth,
-    });
-}
+            .depth = opt.depth,
+        });
+    }
 
-pub const BezierCubicOption = struct {
-    thickness: f32 = 1.0,
-    num_segments: u32 = 0,
-    depth: f32 = 0.5,
-};
-pub fn bezierCubic(
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
-    p4: jok.Point,
-    color: jok.Color,
-    opt: BezierCubicOption,
-) !void {
-    try draw_commands.append(.{
-        .cmd = .{
-            .bezier_cubic = .{
-                .p1 = transform.transformPoint(p1),
-                .p2 = transform.transformPoint(p2),
-                .p3 = transform.transformPoint(p3),
-                .p4 = transform.transformPoint(p4),
-                .color = imgui.sdl.convertColor(color),
-                .thickness = opt.thickness,
-                .num_segments = opt.num_segments,
+    /// NOTE: Rounded rectangle is always axis-aligned
+    pub const FillRectRounded = struct {
+        rounding: f32 = 4,
+        depth: f32 = 0.5,
+    };
+    pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const scale = self.transform.getScale();
+        const pmin = self.transform.transformPoint(.{ .x = r.x, .y = r.y });
+        const pmax = jok.Point{
+            .x = pmin.x + r.width * scale.x,
+            .y = pmin.y + r.height * scale.y,
+        };
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .rect_rounded_fill = .{
+                    .pmin = pmin,
+                    .pmax = pmax,
+                    .color = imgui.sdl.convertColor(color),
+                    .rounding = opt.rounding,
+                },
             },
-        },
-        .depth = opt.depth,
-    });
-}
+            .depth = opt.depth,
+        });
+    }
 
-pub const BezierQuadraticOption = struct {
-    thickness: f32 = 1.0,
-    num_segments: u32 = 0,
-    depth: f32 = 0.5,
-};
-pub fn bezierQuadratic(
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
-    color: jok.Color,
-    opt: BezierQuadraticOption,
-) !void {
-    try draw_commands.append(.{
-        .cmd = .{
-            .bezier_quadratic = .{
-                .p1 = transform.transformPoint(p1),
-                .p2 = transform.transformPoint(p2),
-                .p3 = transform.transformPoint(p3),
-                .color = imgui.sdl.convertColor(color),
-                .thickness = opt.thickness,
-                .num_segments = opt.num_segments,
+    pub const QuadOption = struct {
+        thickness: f32 = 1.0,
+        depth: f32 = 0.5,
+    };
+    pub fn quad(
+        self: *Batch,
+        p1: jok.Point,
+        p2: jok.Point,
+        p3: jok.Point,
+        p4: jok.Point,
+        color: jok.Color,
+        opt: QuadOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .quad = .{
+                    .p1 = self.transform.transformPoint(p1),
+                    .p2 = self.transform.transformPoint(p2),
+                    .p3 = self.transform.transformPoint(p3),
+                    .p4 = self.transform.transformPoint(p4),
+                    .color = imgui.sdl.convertColor(color),
+                    .thickness = opt.thickness,
+                },
             },
-        },
-        .depth = opt.depth,
-    });
-}
+            .depth = opt.depth,
+        });
+    }
 
-pub const PolyOption = struct {
-    thickness: f32 = 1.0,
-    depth: f32 = 0.5,
-};
-pub fn convexPoly(poly: ConvexPoly, color: jok.Color, opt: PolyOption) !void {
-    if (!poly.finished) return error.PathNotFinished;
-    try draw_commands.append(.{
-        .cmd = .{
-            .convex_polygon = .{
-                .points = poly.points,
-                .color = imgui.sdl.convertColor(color),
-                .thickness = opt.thickness,
-                .transform = transform,
+    pub const FillQuad = struct {
+        depth: f32 = 0.5,
+    };
+    pub fn quadFilled(
+        self: *Batch,
+        p1: jok.Point,
+        p2: jok.Point,
+        p3: jok.Point,
+        p4: jok.Point,
+        color: jok.Color,
+        opt: FillQuad,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const c = imgui.sdl.convertColor(color);
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .quad_fill = .{
+                    .p1 = self.transform.transformPoint(p1),
+                    .p2 = self.transform.transformPoint(p2),
+                    .p3 = self.transform.transformPoint(p3),
+                    .p4 = self.transform.transformPoint(p4),
+                    .color1 = c,
+                    .color2 = c,
+                    .color3 = c,
+                    .color4 = c,
+                },
             },
-        },
-        .depth = opt.depth,
-    });
-}
+            .depth = opt.depth,
+        });
+    }
 
-pub const FillPoly = struct {
-    depth: f32 = 0.5,
-};
-pub fn convexPolyFilled(poly: ConvexPoly, opt: FillPoly) !void {
-    if (!poly.finished) return error.PathNotFinished;
-    try draw_commands.append(.{
-        .cmd = .{
-            .convex_polygon_fill = .{
-                .points = poly.points,
-                .texture = poly.texture,
-                .transform = transform,
+    pub const FillQuadMultiColor = struct {
+        depth: f32 = 0.5,
+    };
+    pub fn quadFilledMultiColor(
+        self: *Batch,
+        p1: jok.Point,
+        p2: jok.Point,
+        p3: jok.Point,
+        p4: jok.Point,
+        color1: jok.Color,
+        color2: jok.Color,
+        color3: jok.Color,
+        color4: jok.Color,
+        opt: FillQuadMultiColor,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const c1 = imgui.sdl.convertColor(color1);
+        const c2 = imgui.sdl.convertColor(color2);
+        const c3 = imgui.sdl.convertColor(color3);
+        const c4 = imgui.sdl.convertColor(color4);
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .quad_fill = .{
+                    .p1 = self.transform.transformPoint(p1),
+                    .p2 = self.transform.transformPoint(p2),
+                    .p3 = self.transform.transformPoint(p3),
+                    .p4 = self.transform.transformPoint(p4),
+                    .color1 = c1,
+                    .color2 = c2,
+                    .color3 = c3,
+                    .color4 = c4,
+                },
             },
-        },
-        .depth = opt.depth,
-    });
-}
+            .depth = opt.depth,
+        });
+    }
+
+    pub const TriangleOption = struct {
+        thickness: f32 = 1.0,
+        depth: f32 = 0.5,
+    };
+    pub fn triangle(
+        self: *Batch,
+        p1: jok.Point,
+        p2: jok.Point,
+        p3: jok.Point,
+        color: jok.Color,
+        opt: TriangleOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .triangle = .{
+                    .p1 = self.transform.transformPoint(p1),
+                    .p2 = self.transform.transformPoint(p2),
+                    .p3 = self.transform.transformPoint(p3),
+                    .color = imgui.sdl.convertColor(color),
+                    .thickness = opt.thickness,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const FillTriangle = struct {
+        depth: f32 = 0.5,
+    };
+    pub fn triangleFilled(
+        self: *Batch,
+        p1: jok.Point,
+        p2: jok.Point,
+        p3: jok.Point,
+        color: jok.Color,
+        opt: FillTriangle,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const c = imgui.sdl.convertColor(color);
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .triangle_fill = .{
+                    .p1 = self.transform.transformPoint(p1),
+                    .p2 = self.transform.transformPoint(p2),
+                    .p3 = self.transform.transformPoint(p3),
+                    .color1 = c,
+                    .color2 = c,
+                    .color3 = c,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const FillTriangleMultiColor = struct {
+        depth: f32 = 0.5,
+    };
+    pub fn triangleFilledMultiColor(
+        self: *Batch,
+        p1: jok.Point,
+        p2: jok.Point,
+        p3: jok.Point,
+        color1: jok.Color,
+        color2: jok.Color,
+        color3: jok.Color,
+        opt: FillTriangleMultiColor,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const c1 = imgui.sdl.convertColor(color1);
+        const c2 = imgui.sdl.convertColor(color2);
+        const c3 = imgui.sdl.convertColor(color3);
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .triangle_fill = .{
+                    .p1 = self.transform.transformPoint(p1),
+                    .p2 = self.transform.transformPoint(p2),
+                    .p3 = self.transform.transformPoint(p3),
+                    .color1 = c1,
+                    .color2 = c2,
+                    .color3 = c3,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const CircleOption = struct {
+        thickness: f32 = 1.0,
+        num_segments: u32 = 0,
+        depth: f32 = 0.5,
+    };
+    pub fn circle(
+        self: *Batch,
+        center: jok.Point,
+        radius: f32,
+        color: jok.Color,
+        opt: CircleOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const scale = self.transform.getScale();
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .circle = .{
+                    .p = self.transform.transformPoint(center),
+                    .radius = radius * scale.x,
+                    .color = imgui.sdl.convertColor(color),
+                    .thickness = opt.thickness,
+                    .num_segments = opt.num_segments,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const FillCircle = struct {
+        num_segments: u32 = 0,
+        depth: f32 = 0.5,
+    };
+    pub fn circleFilled(
+        self: *Batch,
+        center: jok.Point,
+        radius: f32,
+        color: jok.Color,
+        opt: FillCircle,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const scale = self.transform.getScale();
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .circle_fill = .{
+                    .p = self.transform.transformPoint(center),
+                    .radius = radius * scale.x,
+                    .color = imgui.sdl.convertColor(color),
+                    .num_segments = opt.num_segments,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const NgonOption = struct {
+        thickness: f32 = 1.0,
+        depth: f32 = 0.5,
+    };
+    pub fn ngon(
+        self: *Batch,
+        center: jok.Point,
+        radius: f32,
+        color: jok.Color,
+        num_segments: u32,
+        opt: NgonOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const scale = self.transform.getScale();
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .ngon = .{
+                    .p = self.transform.transformPoint(center),
+                    .radius = radius * scale.x,
+                    .color = imgui.sdl.convertColor(color),
+                    .thickness = opt.thickness,
+                    .num_segments = num_segments,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const FillNgon = struct {
+        depth: f32 = 0.5,
+    };
+    pub fn ngonFilled(
+        self: *Batch,
+        center: jok.Point,
+        radius: f32,
+        color: jok.Color,
+        num_segments: u32,
+        opt: FillNgon,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        const scale = self.transform.getScale();
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .ngon_fill = .{
+                    .p = self.transform.transformPoint(center),
+                    .radius = radius * scale.x,
+                    .color = imgui.sdl.convertColor(color),
+                    .num_segments = num_segments,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const BezierCubicOption = struct {
+        thickness: f32 = 1.0,
+        num_segments: u32 = 0,
+        depth: f32 = 0.5,
+    };
+    pub fn bezierCubic(
+        self: *Batch,
+        p1: jok.Point,
+        p2: jok.Point,
+        p3: jok.Point,
+        p4: jok.Point,
+        color: jok.Color,
+        opt: BezierCubicOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .bezier_cubic = .{
+                    .p1 = self.transform.transformPoint(p1),
+                    .p2 = self.transform.transformPoint(p2),
+                    .p3 = self.transform.transformPoint(p3),
+                    .p4 = self.transform.transformPoint(p4),
+                    .color = imgui.sdl.convertColor(color),
+                    .thickness = opt.thickness,
+                    .num_segments = opt.num_segments,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const BezierQuadraticOption = struct {
+        thickness: f32 = 1.0,
+        num_segments: u32 = 0,
+        depth: f32 = 0.5,
+    };
+    pub fn bezierQuadratic(
+        self: *Batch,
+        p1: jok.Point,
+        p2: jok.Point,
+        p3: jok.Point,
+        color: jok.Color,
+        opt: BezierQuadraticOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .bezier_quadratic = .{
+                    .p1 = self.transform.transformPoint(p1),
+                    .p2 = self.transform.transformPoint(p2),
+                    .p3 = self.transform.transformPoint(p3),
+                    .color = imgui.sdl.convertColor(color),
+                    .thickness = opt.thickness,
+                    .num_segments = opt.num_segments,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const PolyOption = struct {
+        thickness: f32 = 1.0,
+        depth: f32 = 0.5,
+    };
+    pub fn convexPoly(
+        self: *Batch,
+        poly: ConvexPoly,
+        color: jok.Color,
+        opt: PolyOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        if (!poly.finished) return error.PathNotFinished;
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .convex_polygon = .{
+                    .points = poly.points,
+                    .color = imgui.sdl.convertColor(color),
+                    .thickness = opt.thickness,
+                    .transform = self.transform,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const FillPoly = struct {
+        depth: f32 = 0.5,
+    };
+    pub fn convexPolyFilled(
+        self: *Batch,
+        poly: ConvexPoly,
+        opt: FillPoly,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        if (!poly.finished) return error.PathNotFinished;
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .convex_polygon_fill = .{
+                    .points = poly.points,
+                    .texture = poly.texture,
+                    .transform = self.transform,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const PolylineOption = struct {
+        thickness: f32 = 1.0,
+        closed: bool = false,
+        depth: f32 = 0.5,
+    };
+    pub fn polyline(
+        self: *Batch,
+        pl: Polyline,
+        color: jok.Color,
+        opt: PolylineOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        if (!pl.finished) return error.PathNotFinished;
+        try self.draw_commands.append(.{
+            .cmd = .{
+                .polyline = .{
+                    .points = pl.points,
+                    .transformed = pl.transformed,
+                    .color = imgui.sdl.convertColor(color),
+                    .thickness = opt.thickness,
+                    .closed = opt.closed,
+                    .transform = self.transform,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const PathOption = struct {
+        depth: f32 = 0.5,
+    };
+    pub fn path(self: *Batch, p: Path, opt: PathOption) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        if (!p.finished) return error.PathNotFinished;
+        var rpath = p.path;
+        rpath.transform = self.transform;
+        try self.draw_commands.append(.{
+            .cmd = .{ .path = rpath },
+            .depth = opt.depth,
+        });
+    }
+};
 
 pub const ConvexPoly = struct {
     texture: ?jok.Texture,
@@ -914,28 +1078,6 @@ pub const ConvexPoly = struct {
         try self.cmd.points.appendSlice(ps);
     }
 };
-
-pub const PolylineOption = struct {
-    thickness: f32 = 1.0,
-    closed: bool = false,
-    depth: f32 = 0.5,
-};
-pub fn polyline(pl: Polyline, color: jok.Color, opt: PolylineOption) !void {
-    if (!pl.finished) return error.PathNotFinished;
-    try draw_commands.append(.{
-        .cmd = .{
-            .polyline = .{
-                .points = pl.points,
-                .transformed = pl.transformed,
-                .color = imgui.sdl.convertColor(color),
-                .thickness = opt.thickness,
-                .closed = opt.closed,
-                .transform = transform,
-            },
-        },
-        .depth = opt.depth,
-    });
-}
 
 pub const Polyline = struct {
     points: std.ArrayList(jok.Point),
@@ -982,27 +1124,14 @@ pub const Polyline = struct {
     }
 };
 
-pub const PathOption = struct {
-    depth: f32 = 0.5,
-};
-pub fn path(p: Path, opt: PathOption) !void {
-    if (!p.finished) return error.PathNotFinished;
-    var rpath = p.path;
-    rpath.transform = transform;
-    try draw_commands.append(.{
-        .cmd = .{ .path = rpath },
-        .depth = opt.depth,
-    });
-}
-
 pub const Path = struct {
     path: internal.PathCmd,
     finished: bool = false,
 
     /// Begin definition of path
-    pub fn begin() Path {
+    pub fn begin(allocator: std.mem.Allocator) Path {
         return .{
-            .path = internal.PathCmd.init(ctx.allocator()),
+            .path = internal.PathCmd.init(allocator),
         };
     }
 
@@ -1122,6 +1251,102 @@ pub const Path = struct {
                 .rounding = opt.rounding,
             },
         });
+    }
+};
+
+pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
+    const AllocSet = std.StaticBitSet(pool_size);
+    const mutex_init = if (thread_safe)
+        std.Thread.Mutex{}
+    else
+        DummyMutex{};
+
+    return struct {
+        ctx: jok.Context,
+        alloc_set: AllocSet,
+        batches: []Batch,
+        mutex: @TypeOf(mutex_init),
+
+        pub fn init(_ctx: jok.Context) !@This() {
+            const bs = try _ctx.allocator().alloc(Batch, pool_size);
+            for (bs) |*b| {
+                b.* = Batch.init(_ctx);
+            }
+            return .{
+                .ctx = _ctx,
+                .alloc_set = AllocSet.initFull(),
+                .batches = bs,
+                .mutex = mutex_init,
+            };
+        }
+
+        pub fn deinit(self: *@This()) void {
+            for (self.batches) |*b| b.deinit();
+            self.ctx.allocator().free(self.batches);
+        }
+
+        fn allocBatch(self: *@This()) !*Batch {
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            if (self.alloc_set.count() == 0) {
+                return error.TooManyBatches;
+            }
+            const idx = self.alloc_set.toggleFirstSet().?;
+            var b = &self.batches[idx];
+            b.id = idx;
+            b.reclaimer = .{
+                .ptr = @ptrCast(self),
+                .vtable = .{
+                    .reclaim = reclaim,
+                },
+            };
+            return b;
+        }
+
+        fn reclaim(ptr: *anyopaque, b: *Batch) void {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            assert(&self.batches[b.id] == b);
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            self.alloc_set.set(b.id);
+            b.id = invalid_batch_id;
+            b.reclaimer = undefined;
+        }
+
+        /// Recycle all internally reserved memories.
+        ///
+        /// NOTE: should only be used when no batch is being used.
+        pub fn recycleMemory(self: @This()) void {
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            assert(self.alloc_set.count() == pool_size);
+            for (self.batches) |*b| b.recycleMemory();
+        }
+
+        /// Allocate and initialize new batch
+        pub fn new(self: *@This(), opt: BatchOption) !*Batch {
+            var b = try self.allocBatch();
+            b.reset(opt);
+            return b;
+        }
+    };
+}
+
+const DummyMutex = struct {
+    fn lock(_: *DummyMutex) void {}
+    fn unlock(_: *DummyMutex) void {}
+};
+
+const BatchReclaimer = struct {
+    ptr: *anyopaque,
+    vtable: VTable,
+
+    const VTable = struct {
+        reclaim: *const fn (ctx: *anyopaque, b: *Batch) void,
+    };
+
+    fn reclaim(self: BatchReclaimer, b: *Batch) void {
+        self.vtable.reclaim(self.ptr, b);
     }
 };
 

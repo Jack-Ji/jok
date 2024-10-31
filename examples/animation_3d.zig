@@ -7,6 +7,7 @@ const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 const j3d = jok.j3d;
 
+var batchpool: j3d.BatchPool(64, false) = undefined;
 var lighting: bool = true;
 var wireframe: bool = false;
 var shading_method: i32 = 0;
@@ -32,6 +33,8 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     try physfs.mount("assets", "", true);
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     camera = j3d.Camera.fromPositionAndTarget(
         .{
@@ -226,14 +229,14 @@ pub fn draw(ctx: jok.Context) !void {
     }
     imgui.end();
 
-    j3d.begin(.{
+    var b = try batchpool.new(.{
         .camera = camera,
         .triangle_sort = .simple,
         .wireframe_color = if (wireframe) jok.Color.green else null,
     });
-    defer j3d.end();
+    defer b.submit();
     if (animation1) |a| {
-        try j3d.animation(
+        try b.animation(
             a,
             zmath.scalingV(zmath.f32x4s(3)),
             .{
@@ -243,7 +246,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         );
     } else {
-        try j3d.mesh(
+        try b.mesh(
             mesh1,
             zmath.scalingV(zmath.f32x4s(3)),
             .{
@@ -253,7 +256,7 @@ pub fn draw(ctx: jok.Context) !void {
         );
     }
     if (animation2) |a| {
-        try j3d.animation(
+        try b.animation(
             a,
             zmath.translation(-4, 0, 0),
             .{
@@ -264,7 +267,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         );
     } else {
-        try j3d.mesh(
+        try b.mesh(
             mesh2,
             zmath.translation(-4, 0, 0),
             .{
@@ -275,7 +278,7 @@ pub fn draw(ctx: jok.Context) !void {
         );
     }
     if (animation3) |a| {
-        try j3d.animation(
+        try b.animation(
             a,
             zmath.mul(
                 zmath.rotationY(-std.math.pi / 6.0),
@@ -298,7 +301,7 @@ pub fn draw(ctx: jok.Context) !void {
             },
         );
     } else {
-        try j3d.mesh(
+        try b.mesh(
             mesh3,
             zmath.mul(
                 zmath.rotationY(-std.math.pi / 6.0),
@@ -313,7 +316,6 @@ pub fn draw(ctx: jok.Context) !void {
             },
         );
     }
-    try j3d.axises(.{ .radius = 0.01, .length = 0.5 });
 
     font.debugDraw(
         ctx,
@@ -344,4 +346,5 @@ pub fn quit(ctx: jok.Context) void {
     animation3_1.destroy();
     animation3_2.destroy();
     animation3_3.destroy();
+    batchpool.deinit();
 }

@@ -8,6 +8,7 @@ pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 800, .height = 750 },
 };
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var target: jok.Texture = undefined;
 var src: jok.Texture = undefined;
 var dst: jok.Texture = undefined;
@@ -41,6 +42,8 @@ pub fn init(ctx: jok.Context) !void {
 
     try physfs.mount("assets", "", true);
 
+    batchpool = try @TypeOf(batchpool).init(ctx);
+
     target = try ctx.renderer().createTarget(.{ .blend_mode = .blend });
     src = try ctx.renderer().createTextureFromFile(ctx.allocator(), "images/source.png", .static, false);
     dst = try ctx.renderer().createTextureFromFile(ctx.allocator(), "images/dest.png", .static, false);
@@ -59,34 +62,34 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(jok.Color.rgb(170, 170, 170));
 
     // draw dest
-    j2d.begin(.{
+    var batch = try batchpool.new(.{
         .offscreen_target = target,
         .offscreen_clear_color = jok.Color.none,
     });
     for (blends) |b| {
-        try j2d.image(dst, b.pos, .{});
+        try batch.image(dst, b.pos, .{});
     }
-    j2d.end();
+    batch.submit();
 
     // draw source
     for (blends) |b| {
-        j2d.begin(.{
+        batch = try batchpool.new(.{
             .offscreen_target = target,
             .blend_mode = b.blend,
         });
-        try j2d.image(src, b.pos, .{});
-        j2d.end();
+        try batch.image(src, b.pos, .{});
+        batch.submit();
     }
 
     // draw labels
     {
-        j2d.begin(.{});
-        defer j2d.end();
+        batch = try batchpool.new(.{});
+        defer batch.submit();
 
-        try j2d.image(target, .{ .x = 0, .y = 0 }, .{});
+        try batch.image(target, .{ .x = 0, .y = 0 }, .{});
 
         for (blends) |b| {
-            try j2d.text(
+            try batch.text(
                 .{
                     .atlas = try font.DebugFont.getAtlas(ctx, 16),
                     .pos = .{ .x = b.pos.x, .y = b.pos.y + 112 },
@@ -97,13 +100,13 @@ pub fn draw(ctx: jok.Context) !void {
             );
         }
 
-        try j2d.rectRounded(
+        try batch.rectRounded(
             .{ .x = 20, .y = 20, .width = 760, .height = 160 },
             jok.Color.red,
             .{},
         );
 
-        try j2d.text(
+        try batch.text(
             .{
                 .atlas = try font.DebugFont.getAtlas(ctx, 20),
                 .pos = .{ .x = 520, .y = 155 },
@@ -113,13 +116,13 @@ pub fn draw(ctx: jok.Context) !void {
             .{},
         );
 
-        try j2d.rectRounded(
+        try batch.rectRounded(
             .{ .x = 100, .y = 190, .width = 600, .height = 530 },
             jok.Color.red,
             .{},
         );
 
-        try j2d.text(
+        try batch.text(
             .{
                 .atlas = try font.DebugFont.getAtlas(ctx, 20),
                 .pos = .{ .x = 370, .y = 690 },
@@ -137,4 +140,5 @@ pub fn quit(ctx: jok.Context) void {
 
     src.destroy();
     dst.destroy();
+    batchpool.deinit();
 }

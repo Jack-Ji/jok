@@ -7,6 +7,7 @@ const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 const j3d = jok.j3d;
 
+var batchpool: j3d.BatchPool(64, false) = undefined;
 var camera: j3d.Camera = undefined;
 var cube: zmesh.Shape = undefined;
 var tex: jok.Texture = undefined;
@@ -27,6 +28,8 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     try physfs.mount("assets", "", true);
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     camera = j3d.Camera.fromPositionAndTarget(
         .{
@@ -146,10 +149,9 @@ pub fn draw(ctx: jok.Context) !void {
     }
     imgui.end();
 
-    j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
-    defer j3d.end();
-    try j3d.shape(
-        cube,
+    var b = try batchpool.new(.{ .camera = camera, .triangle_sort = .simple });
+    defer b.submit();
+    try b.shape(
         zmath.mul(
             zmath.translation(-0.5, -0.5, -0.5),
             zmath.mul(
@@ -157,10 +159,11 @@ pub fn draw(ctx: jok.Context) !void {
                 zmath.rotationY(ctx.seconds() * std.math.pi),
             ),
         ),
+        cube,
         null,
         .{ .texture = tex },
     );
-    try j3d.skybox(skybox_textures, skybox_tint_color);
+    try b.skybox(skybox_textures, skybox_tint_color);
 
     font.debugDraw(
         ctx,
@@ -185,4 +188,5 @@ pub fn quit(ctx: jok.Context) void {
     std.log.info("game quit", .{});
 
     cube.deinit();
+    batchpool.deinit();
 }

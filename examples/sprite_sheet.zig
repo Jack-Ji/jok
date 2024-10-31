@@ -3,6 +3,7 @@ const jok = @import("jok");
 const physfs = jok.physfs;
 const j2d = jok.j2d;
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var sheet1: *j2d.SpriteSheet = undefined;
 var sheet2: *j2d.SpriteSheet = undefined;
 var sheet3: *j2d.SpriteSheet = undefined;
@@ -13,6 +14,8 @@ pub fn init(ctx: jok.Context) !void {
     try physfs.mount("assets", "", true);
     try physfs.mount(physfs.getBaseDir(), "", true);
     try physfs.setWriteDir(physfs.getBaseDir());
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     // create sprite sheet1
     const size = ctx.getCanvasSize();
@@ -55,21 +58,21 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
 
     const sprite = sheet2.getSpriteByName("ogre").?;
-    j2d.begin(.{ .depth_sort = .back_to_forth });
-    defer j2d.end();
-    try j2d.image(
+    var b = try batchpool.new(.{ .depth_sort = .back_to_forth });
+    defer b.submit();
+    try b.image(
         sheet2.tex,
         .{ .x = 0, .y = 0 },
         .{ .depth = 1 },
     );
-    try j2d.sprite(sprite, .{
+    try b.sprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .scale = .{ .x = 2, .y = 2 },
         .flip_h = true,
         .flip_v = true,
         //.rotate_degree = ctx.seconds() * 30,
     });
-    try j2d.sprite(sprite, .{
+    try b.sprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .tint_color = jok.Color.rgb(255, 0, 0),
         .scale = .{
@@ -80,7 +83,7 @@ pub fn draw(ctx: jok.Context) !void {
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
         .depth = 0.6,
     });
-    try j2d.sprite(sheet3.getSpriteByName("cute").?, .{
+    try b.sprite(sheet3.getSpriteByName("cute").?, .{
         .pos = .{ .x = 50, .y = 400 },
         .scale = .{ .x = 2, .y = 2 },
     });
@@ -92,4 +95,5 @@ pub fn quit(ctx: jok.Context) void {
     sheet1.destroy();
     sheet2.destroy();
     sheet3.destroy();
+    batchpool.deinit();
 }

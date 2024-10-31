@@ -13,6 +13,7 @@ const Camera = j3d.Camera;
 
 pub const jok_window_resizable = true;
 
+var batchpool: j3d.BatchPool(64, false) = undefined;
 var lighting: bool = true;
 var wireframe: bool = false;
 var shading_method: i32 = 0;
@@ -20,6 +21,19 @@ var light_pos1: [3]f32 = undefined;
 var light_pos2: [3]f32 = undefined;
 var camera: Camera = undefined;
 var terran: zmesh.Shape = undefined;
+var cube: zmesh.Shape = undefined;
+var parametric_sphere: zmesh.Shape = undefined;
+var subdivided_sphere: zmesh.Shape = undefined;
+var hemisphere: zmesh.Shape = undefined;
+var cone: zmesh.Shape = undefined;
+var cylinder: zmesh.Shape = undefined;
+var disk: zmesh.Shape = undefined;
+var torus: zmesh.Shape = undefined;
+var icosahedron: zmesh.Shape = undefined;
+var dodecahedron: zmesh.Shape = undefined;
+var octahedron: zmesh.Shape = undefined;
+var tetrahedron: zmesh.Shape = undefined;
+var rock: zmesh.Shape = undefined;
 
 var noise_gen = znoise.FnlGenerator{
     .fractal_type = .fbm,
@@ -37,6 +51,7 @@ fn uvToPos(uv: *const [2]f32, position: *[3]f32, userdata: ?*anyopaque) callconv
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    batchpool = try @TypeOf(batchpool).init(ctx);
     camera = Camera.fromPositionAndTarget(
         .{
             .perspective = .{
@@ -59,6 +74,37 @@ pub fn init(ctx: jok.Context) !void {
     terran.invert(0, 0);
     terran.scale(100, 20, 100);
     terran.computeNormals();
+    cube = zmesh.Shape.initCube();
+    cube.computeNormals();
+    parametric_sphere = zmesh.Shape.initParametricSphere(15, 15);
+    parametric_sphere.computeNormals();
+    subdivided_sphere = zmesh.Shape.initSubdividedSphere(2);
+    subdivided_sphere.computeNormals();
+    hemisphere = zmesh.Shape.initHemisphere(15, 15);
+    hemisphere.computeNormals();
+    cone = zmesh.Shape.initCone(15, 40);
+    cone.computeNormals();
+    cylinder = zmesh.Shape.initCylinder(20, 1);
+    cylinder.computeNormals();
+    disk = zmesh.Shape.initDisk(
+        1,
+        20,
+        &.{ 0, 0, 0 },
+        &.{ 0, 0, 1 },
+    );
+    disk.computeNormals();
+    torus = zmesh.Shape.initTorus(15, 20, 0.2);
+    torus.computeNormals();
+    icosahedron = zmesh.Shape.initIcosahedron();
+    icosahedron.computeNormals();
+    dodecahedron = zmesh.Shape.initDodecahedron();
+    dodecahedron.computeNormals();
+    octahedron = zmesh.Shape.initOctahedron();
+    octahedron.computeNormals();
+    tetrahedron = zmesh.Shape.initTetrahedron();
+    tetrahedron.computeNormals();
+    rock = zmesh.Shape.initRock(3, 1);
+    rock.computeNormals();
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
@@ -173,15 +219,15 @@ pub fn draw(ctx: jok.Context) !void {
         lighting_opt = null;
     }
 
-    j3d.begin(.{
+    var b = try batchpool.new(.{
         .camera = camera,
         .triangle_sort = .simple,
         .wireframe_color = if (wireframe) jok.Color.green else null,
     });
-    defer j3d.end();
-    try j3d.shape(
-        terran,
+    defer b.submit();
+    try b.shape(
         zmath.identity(),
+        terran,
         null,
         .{
             .lighting = lighting_opt,
@@ -189,59 +235,59 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.cube(
+    try b.shape(
         zmath.mul(
             zmath.scaling(5, 5, 5),
             zmath.translation(30, 5, 10),
         ),
+        cube,
+        null,
         .{
-            .rdopt = .{
-                .lighting = lighting_opt,
-                .color = jok.Color.red,
-                .shading_method = @enumFromInt(shading_method),
-            },
+            .lighting = lighting_opt,
+            .color = jok.Color.red,
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.parametricSphere(
+    try b.shape(
         zmath.mul(
             zmath.scaling(5, 5, 5),
             zmath.translation(-30, 10, -20),
         ),
+        parametric_sphere,
+        null,
         .{
-            .rdopt = .{
-                .lighting = lighting_opt,
-                .color = jok.Color.green,
-                .shading_method = @enumFromInt(shading_method),
-            },
+            .lighting = lighting_opt,
+            .color = jok.Color.green,
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.subdividedSphere(
+    try b.shape(
         zmath.mul(
             zmath.scaling(5, 5, 5),
             zmath.translation(-20, 10, -20),
         ),
+        subdivided_sphere,
+        null,
         .{
-            .rdopt = .{
-                .lighting = lighting_opt,
-                .color = jok.Color.green,
-                .shading_method = @enumFromInt(shading_method),
-            },
+            .lighting = lighting_opt,
+            .color = jok.Color.green,
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.hemisphere(
+    try b.shape(
         zmath.mul(
             zmath.scaling(5, 5, 5),
             zmath.translation(-15, 5, -10),
         ),
+        hemisphere,
+        null,
         .{
-            .rdopt = .{
-                .lighting = lighting_opt,
-                .color = jok.Color.green,
-                .shading_method = @enumFromInt(shading_method),
-            },
+            .lighting = lighting_opt,
+            .color = jok.Color.green,
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.cone(
+    try b.shape(
         zmath.mul(
             zmath.mul(
                 zmath.scaling(5, 5, 20),
@@ -249,15 +295,15 @@ pub fn draw(ctx: jok.Context) !void {
             ),
             zmath.translation(15, 5, -10),
         ),
+        cone,
+        null,
         .{
-            .rdopt = .{
-                .lighting = lighting_opt,
-                .color = jok.Color.blue,
-                .shading_method = @enumFromInt(shading_method),
-            },
+            .lighting = lighting_opt,
+            .color = jok.Color.blue,
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.cylinder(
+    try b.shape(
         zmath.mul(
             zmath.mul(
                 zmath.scaling(5, 5, 20),
@@ -265,16 +311,16 @@ pub fn draw(ctx: jok.Context) !void {
             ),
             zmath.translation(15, 5, -25),
         ),
+        cylinder,
+        null,
         .{
-            .rdopt = .{
-                .cull_faces = false,
-                .lighting = lighting_opt,
-                .color = jok.Color.magenta,
-                .shading_method = @enumFromInt(shading_method),
-            },
+            .cull_faces = false,
+            .lighting = lighting_opt,
+            .color = jok.Color.magenta,
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.disk(
+    try b.shape(
         zmath.mul(
             zmath.mul(
                 zmath.scaling(5, 5, 1),
@@ -282,126 +328,119 @@ pub fn draw(ctx: jok.Context) !void {
             ),
             zmath.translation(15, 8, 9),
         ),
+        disk,
+        null,
         .{
-            .rdopt = .{
-                .cull_faces = false,
-                .lighting = lighting_opt,
-                .color = jok.Color.yellow,
-                .shading_method = @enumFromInt(shading_method),
-            },
+            .cull_faces = false,
+            .lighting = lighting_opt,
+            .color = jok.Color.yellow,
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.torus(
+    try b.shape(
         zmath.mul(
             zmath.scaling(8, 8, 8),
             zmath.translation(-5, 15, 25),
         ),
+        torus,
+        null,
         .{
-            .rdopt = .{
-                .lighting = lighting_opt,
-                .color = jok.Color.white,
-                .shading_method = @enumFromInt(shading_method),
-            },
+            .lighting = lighting_opt,
+            .color = jok.Color.white,
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.icosahedron(
+    try b.shape(
         zmath.mul(
             zmath.scaling(8, 8, 8),
             zmath.translation(-30, 15, 35),
         ),
+        icosahedron,
+        null,
         .{
-            .rdopt = .{
-                .lighting = lighting_opt,
-                .color = jok.Color.rgb(150, 160, 190),
-                .shading_method = @enumFromInt(shading_method),
-            },
+            .lighting = lighting_opt,
+            .color = jok.Color.rgb(150, 160, 190),
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.dodecahedron(
+    try b.shape(
         zmath.mul(
             zmath.scaling(8, 8, 8),
             zmath.translation(-20, 10, 15),
         ),
+        dodecahedron,
+        null,
         .{
-            .rdopt = .{
-                .lighting = lighting_opt,
-                .color = jok.Color.rgb(180, 170, 190),
-                .shading_method = @enumFromInt(shading_method),
-            },
+            .lighting = lighting_opt,
+            .color = jok.Color.rgb(180, 170, 190),
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.octahedron(
+    try b.shape(
         zmath.mul(
             zmath.scaling(8, 8, 8),
             zmath.translation(36, 10, 0),
         ),
+        octahedron,
+        null,
         .{
-            .rdopt = .{
-                .lighting = lighting_opt,
-                .color = jok.Color.rgb(180, 70, 90),
-                .shading_method = @enumFromInt(shading_method),
-            },
+            .lighting = lighting_opt,
+            .color = jok.Color.rgb(180, 70, 90),
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.tetrahedron(
+    try b.shape(
         zmath.mul(
             zmath.scaling(12, 12, 12),
             zmath.translation(14, 5, 28),
         ),
+        tetrahedron,
+        null,
         .{
-            .rdopt = .{
-                .lighting = lighting_opt,
-                .color = jok.Color.rgb(230, 230, 50),
-                .shading_method = @enumFromInt(shading_method),
-            },
+            .lighting = lighting_opt,
+            .color = jok.Color.rgb(230, 230, 50),
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.rock(
+    try b.shape(
         zmath.mul(
             zmath.scaling(6, 6, 6),
             zmath.translation(35, 5, 35),
         ),
+        rock,
+        null,
         .{
-            .rdopt = .{
-                .lighting = lighting_opt,
-                .color = jok.Color.yellow,
-                .shading_method = @enumFromInt(shading_method),
-            },
-            .seed = 100,
-            .sub_num = 2,
+            .lighting = lighting_opt,
+            .color = jok.Color.yellow,
+            .shading_method = @enumFromInt(shading_method),
         },
     );
-    try j3d.axises(.{
-        .pos = .{ 0, 5, 0 },
-        .radius = 0.3,
-        .length = 15,
-    });
     if (lighting) {
-        try j3d.subdividedSphere(
+        try b.shape(
             zmath.translation(light_pos1[0], light_pos1[1], light_pos1[2]),
+            subdivided_sphere,
+            null,
             .{
-                .rdopt = .{
-                    .color = jok.Color.rgb(
-                        @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[0] * 255),
-                        @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[1] * 255),
-                        @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[2] * 255),
-                    ),
-                },
+                .color = jok.Color.rgb(
+                    @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[0] * 255),
+                    @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[1] * 255),
+                    @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[2] * 255),
+                ),
             },
         );
-        try j3d.subdividedSphere(
+        try b.shape(
             zmath.translation(light_pos2[0], light_pos2[1], light_pos2[2]),
+            subdivided_sphere,
+            null,
             .{
-                .rdopt = .{
-                    .color = jok.Color.rgb(
-                        @intFromFloat(lighting_opt.?.lights[1].point.diffuse[0] * 255),
-                        @intFromFloat(lighting_opt.?.lights[1].point.diffuse[1] * 255),
-                        @intFromFloat(lighting_opt.?.lights[1].point.diffuse[2] * 255),
-                    ),
-                },
+                .color = jok.Color.rgb(
+                    @intFromFloat(lighting_opt.?.lights[1].point.diffuse[0] * 255),
+                    @intFromFloat(lighting_opt.?.lights[1].point.diffuse[1] * 255),
+                    @intFromFloat(lighting_opt.?.lights[1].point.diffuse[2] * 255),
+                ),
             },
         );
-        try j3d.cone(
+        try b.shape(
             zmath.mul(
                 zmath.mul(
                     zmath.scaling(15, 15, 30),
@@ -409,16 +448,15 @@ pub fn draw(ctx: jok.Context) !void {
                 ),
                 zmath.translation(light_pos1[0], 0, light_pos1[2]),
             ),
+            cone,
+            null,
             .{
-                .rdopt = .{
-                    .color = jok.Color.rgba(
-                        @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[0] * 255),
-                        @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[1] * 255),
-                        @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[2] * 255),
-                        10,
-                    ),
-                },
-                .stacks = 40,
+                .color = jok.Color.rgba(
+                    @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[0] * 255),
+                    @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[1] * 255),
+                    @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[2] * 255),
+                    10,
+                ),
             },
         );
     }
@@ -446,4 +484,18 @@ pub fn quit(ctx: jok.Context) void {
     std.log.info("game quit", .{});
 
     terran.deinit();
+    cube.deinit();
+    parametric_sphere.deinit();
+    subdivided_sphere.deinit();
+    hemisphere.deinit();
+    cone.deinit();
+    cylinder.deinit();
+    disk.deinit();
+    torus.deinit();
+    icosahedron.deinit();
+    dodecahedron.deinit();
+    octahedron.deinit();
+    tetrahedron.deinit();
+    rock.deinit();
+    batchpool.deinit();
 }

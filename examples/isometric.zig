@@ -9,6 +9,7 @@ const Tile = struct {
     sprite: j2d.Sprite,
 };
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var sps: [4]j2d.Sprite = undefined;
 var map: [10][10]Tile = undefined;
@@ -19,6 +20,8 @@ pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     try physfs.mount("assets", "", true);
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 
     sheet = try j2d.SpriteSheet.fromPicturesInDir(ctx, "images/iso", 1024, 1024, .{});
     sps[0] = sheet.getSpriteByName("tile1").?;
@@ -64,8 +67,8 @@ pub fn draw(ctx: jok.Context) !void {
     const selected_x: isize = @intFromFloat(@floor(mouse_pos_in_iso_space.x));
     const selected_y: isize = @intFromFloat(@floor(mouse_pos_in_iso_space.y));
 
-    j2d.begin(.{});
-    defer j2d.end();
+    var b = try batchpool.new(.{});
+    defer b.submit();
 
     for (0..10) |y| {
         for (0..10) |x| {
@@ -79,7 +82,7 @@ pub fn draw(ctx: jok.Context) !void {
 
             const tile = map[y][x];
             const zoffset = @sin(ctx.seconds() + @as(f32, @floatFromInt(x + y))) * 10;
-            try j2d.sprite(
+            try b.sprite(
                 tile.sprite,
                 .{
                     .pos = iso_transform.transformToScreen(tile.pos, zoffset),
@@ -96,4 +99,5 @@ pub fn quit(ctx: jok.Context) void {
     std.log.info("game quit", .{});
 
     sheet.destroy();
+    batchpool.deinit();
 }

@@ -7,12 +7,14 @@ pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1024, .height = 768 },
 };
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var path: j2d.Path = undefined;
 
-pub fn init(_: jok.Context) !void {
+pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    path = j2d.Path.begin();
+    batchpool = try @TypeOf(batchpool).init(ctx);
+    path = j2d.Path.begin(ctx.allocator());
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
@@ -54,9 +56,9 @@ pub fn draw(ctx: jok.Context) !void {
         .y = ctx.getCanvasSize().getHeightFloat() / 2,
     });
 
-    j2d.begin(.{ .transform = transform });
-    defer j2d.end();
-    try j2d.path(path, .{});
+    var b = try batchpool.new(.{ .transform = transform });
+    defer b.submit();
+    try b.path(path, .{});
 }
 
 pub fn quit(ctx: jok.Context) void {
@@ -64,4 +66,5 @@ pub fn quit(ctx: jok.Context) void {
     std.log.info("game quit", .{});
 
     path.deinit();
+    batchpool.deinit();
 }

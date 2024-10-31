@@ -144,7 +144,7 @@ inline fn clear(self: *Self) void {
 pub fn renderMesh(
     self: *Self,
     csz: jok.Size,
-    rdjob: *internal.RenderJob,
+    batch: *j3d.Batch,
     model: zmath.Mat,
     camera: Camera,
     indices: []const u32,
@@ -426,7 +426,7 @@ pub fn renderMesh(
         const t2 = if (texcoords) |_| self.clip_texcoords.items[idx2] else undefined;
 
         // Render to ouput
-        try rdjob.pushTriangles(
+        try batch.pushTriangles(
             &.{ 0, 1, 2 },
             &[_]jok.Vertex{
                 .{ .pos = p0, .color = c0, .texcoord = t0 },
@@ -442,7 +442,7 @@ pub fn renderMesh(
 pub fn renderSprite(
     self: *Self,
     csz: jok.Size,
-    rdjob: *internal.RenderJob,
+    batch: *j3d.Batch,
     model: zmath.Mat,
     camera: Camera,
     size: jok.Point,
@@ -504,7 +504,7 @@ pub fn renderSprite(
         }
         try self.renderMesh(
             csz,
-            rdjob,
+            batch,
             transform,
             camera,
             shape.indices,
@@ -629,7 +629,7 @@ pub fn renderSprite(
         const d3 = positions_screen[3][2];
 
         // Render to ouput
-        try rdjob.pushTriangles(
+        try batch.pushTriangles(
             &.{ 0, 1, 2, 0, 2, 3 },
             &[_]jok.Vertex{
                 .{ .pos = p0, .color = opt.tint_color, .texcoord = t0 },

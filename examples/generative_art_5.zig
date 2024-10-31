@@ -24,12 +24,14 @@ const colors = [7]jok.Color{
     jok.Color.yellow,
     jok.Color.purple,
 };
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var points_angular_velocity: [7]f32 = undefined;
 var points_row: [7]jok.Point = undefined;
 var points_col: [7]jok.Point = undefined;
 var curves: [49]j2d.Polyline = undefined;
 
 pub fn init(ctx: jok.Context) !void {
+    batchpool = try @TypeOf(batchpool).init(ctx);
     for (0..7) |i| {
         points_angular_velocity[i] = @floatFromInt((i + 1) * 30);
         points_row[i] = .{
@@ -88,41 +90,41 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(jok.Color.rgb(50, 50, 50));
     ctx.displayStats(.{});
 
-    j2d.begin(.{});
-    defer j2d.end();
+    var b = try batchpool.new(.{});
+    defer b.submit();
     for (0..7) |i| {
-        try j2d.line(
+        try b.line(
             points_row[i].add(.{ .x = 0, .y = -800 }),
             points_row[i].add(.{ .x = 0, .y = 800 }),
             jok.Color.rgba(30, 30, 30, 128),
             .{},
         );
-        try j2d.line(
+        try b.line(
             points_col[i].add(.{ .x = -800, .y = 0 }),
             points_col[i].add(.{ .x = 800, .y = 0 }),
             jok.Color.rgba(30, 30, 30, 128),
             .{},
         );
-        try j2d.circle(
+        try b.circle(
             .{ .x = @floatFromInt(100 * (i + 1) + 50), .y = 50 },
             radius1,
             colors[i],
             .{ .thickness = thickness },
         );
-        try j2d.circle(
+        try b.circle(
             .{ .x = 50, .y = @floatFromInt(100 * (i + 1) + 50) },
             radius1,
             colors[i],
             .{ .thickness = thickness },
         );
-        try j2d.circleFilled(points_row[i], radius2, jok.Color.white, .{});
-        try j2d.circleFilled(points_col[i], radius2, jok.Color.white, .{});
+        try b.circleFilled(points_row[i], radius2, jok.Color.white, .{});
+        try b.circleFilled(points_col[i], radius2, jok.Color.white, .{});
     }
     for (0..7) |j| {
         for (0..7) |i| {
             const idx = j * 7 + i;
-            try j2d.polyline(curves[idx], colors[i], .{ .thickness = thickness });
-            try j2d.circleFilled(
+            try b.polyline(curves[idx], colors[i], .{ .thickness = thickness });
+            try b.circleFilled(
                 .{ .x = points_row[i].x, .y = points_col[j].y },
                 radius3,
                 jok.Color.white,
@@ -138,4 +140,5 @@ pub fn quit(ctx: jok.Context) void {
     for (&curves) |*c| {
         c.deinit();
     }
+    batchpool.deinit();
 }

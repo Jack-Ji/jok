@@ -6,13 +6,20 @@ const zmath = jok.zmath;
 const imgui = jok.imgui;
 const j2d = jok.j2d;
 const j3d = jok.j3d;
+const zmesh = jok.zmesh;
 const easing = jok.utils.easing;
 
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1280, .height = 720 },
 };
 
+var batchpool_2d: j2d.BatchPool(64, false) = undefined;
+var batchpool_3d: j3d.BatchPool(64, false) = undefined;
 var camera: j3d.Camera = undefined;
+var shape_icosahedron: zmesh.Shape = undefined;
+var shape_torus: zmesh.Shape = undefined;
+var shape_parametric_sphere: zmesh.Shape = undefined;
+var shape_tetrahedron: zmesh.Shape = undefined;
 var text_draw_pos: jok.Point = undefined;
 var text_speed: jok.Point = undefined;
 var screenshot_time: i64 = -1;
@@ -30,8 +37,10 @@ pub fn init(ctx: jok.Context) !void {
 
     try physfs.setWriteDir(physfs.getPrefDir(ctx));
 
-    const csz = ctx.getCanvasSize();
+    batchpool_2d = try @TypeOf(batchpool_2d).init(ctx);
+    batchpool_3d = try @TypeOf(batchpool_3d).init(ctx);
 
+    const csz = ctx.getCanvasSize();
     camera = j3d.Camera.fromPositionAndTarget(
         .{
             .perspective = .{
@@ -44,6 +53,14 @@ pub fn init(ctx: jok.Context) !void {
         .{ 0, 0, 10 },
         .{ 0, 0, 0 },
     );
+    shape_icosahedron = zmesh.Shape.initIcosahedron();
+    shape_icosahedron.computeNormals();
+    shape_torus = zmesh.Shape.initTorus(15, 20, 0.2);
+    shape_torus.computeNormals();
+    shape_parametric_sphere = zmesh.Shape.initParametricSphere(15, 15);
+    shape_parametric_sphere.computeNormals();
+    shape_tetrahedron = zmesh.Shape.initTetrahedron();
+    shape_tetrahedron.computeNormals();
     text_draw_pos = .{
         .x = csz.getWidthFloat() / 2,
         .y = csz.getHeightFloat() / 2,
@@ -140,22 +157,22 @@ pub fn draw(ctx: jok.Context) !void {
     const center_y: f32 = @floatFromInt(csz.height / 2);
 
     {
-        j2d.begin(.{});
-        defer j2d.end();
+        var b = try batchpool_2d.new(.{});
+        defer b.submit();
 
         var i: u32 = 0;
         while (i < 100) : (i += 1) {
             const row = @as(f32, @floatFromInt(i / 10)) - 5;
             const col = @as(f32, @floatFromInt(i % 10)) - 5;
-            const offset_origin = jok.zmath.f32x4(row * 50, col * 50, 0, 1);
-            const rotate_m = jok.zmath.matFromAxisAngle(
-                jok.zmath.f32x4(center_x, center_y, 1, 0),
+            const offset_origin = zmath.f32x4(row * 50, col * 50, 0, 1);
+            const rotate_m = zmath.matFromAxisAngle(
+                zmath.f32x4(center_x, center_y, 1, 0),
                 ctx.seconds(),
             );
-            const translate_m = jok.zmath.translation(center_x, center_y, 0);
-            const offset_transformed = jok.zmath.mul(jok.zmath.mul(offset_origin, rotate_m), translate_m);
+            const translate_m = zmath.translation(center_x, center_y, 0);
+            const offset_transformed = zmath.mul(zmath.mul(offset_origin, rotate_m), translate_m);
 
-            j2d.setTransform(
+            b.setTransform(
                 j2d.AffineTransform.init().scale(.{
                     .x = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
                     .y = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
@@ -164,7 +181,7 @@ pub fn draw(ctx: jok.Context) !void {
                     .y = offset_transformed[1],
                 }),
             );
-            try j2d.rectFilledMultiColor(
+            try b.rectFilledMultiColor(
                 .{ .x = -10, .y = -10, .width = 20, .height = 20 },
                 jok.Color.white,
                 jok.Color.red,
@@ -174,11 +191,11 @@ pub fn draw(ctx: jok.Context) !void {
             );
         }
 
-        j2d.setTransform(j2d.AffineTransform.init());
+        b.setTransform(j2d.AffineTransform.init());
         text_draw_pos.x += text_speed.x * ctx.deltaSeconds();
         text_draw_pos.y += text_speed.y * ctx.deltaSeconds();
         const atlas = try font.DebugFont.getAtlas(ctx, 50);
-        try j2d.text(
+        try b.text(
             .{
                 .atlas = atlas,
                 .pos = .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
@@ -208,48 +225,58 @@ pub fn draw(ctx: jok.Context) !void {
     }
 
     {
+        var b = try batchpool_3d.new(.{ .camera = camera, .triangle_sort = .simple });
+        defer b.submit();
+
         const color = jok.Color.rgb(
             @intFromFloat(128 + 127 * std.math.sin(ctx.seconds())),
             100,
             @intFromFloat(128 + 127 * std.math.cos(ctx.seconds())),
         );
-        j3d.begin(.{ .camera = camera, .triangle_sort = .simple });
-        defer j3d.end();
-        try j3d.icosahedron(
+        try b.shape(
             zmath.mul(
                 zmath.rotationY(ctx.seconds()),
                 zmath.translation(-3, 3, 0),
             ),
-            .{ .rdopt = .{ .lighting = .{}, .color = color } },
+            shape_icosahedron,
+            null,
+            .{ .lighting = .{}, .color = color },
         );
-        try j3d.torus(
+        try b.shape(
             zmath.mul(
                 zmath.rotationY(ctx.seconds()),
                 zmath.translation(3, 3, 0),
             ),
-            .{ .rdopt = .{ .lighting = .{}, .color = color } },
+            shape_torus,
+            null,
+            .{ .lighting = .{}, .color = color },
         );
-        try j3d.parametricSphere(
+        try b.shape(
             zmath.mul(
                 zmath.rotationY(ctx.seconds()),
                 zmath.translation(3, -3, 0),
             ),
-            .{ .rdopt = .{ .lighting = .{}, .color = color } },
+            shape_parametric_sphere,
+            null,
+            .{ .lighting = .{}, .color = color },
         );
-        try j3d.tetrahedron(
+        try b.shape(
             zmath.mul(
                 zmath.rotationY(ctx.seconds()),
                 zmath.translation(-3, -3, 0),
             ),
-            .{ .rdopt = .{ .lighting = .{}, .color = color } },
+            shape_tetrahedron,
+            null,
+            .{ .lighting = .{}, .color = color },
         );
     }
 
     if (screenshot_tex) |tex| {
         if (std.time.timestamp() - screenshot_time < 5) {
-            j2d.begin(.{});
-            defer j2d.end();
-            try j2d.rectRoundedFilled(
+            var b = try batchpool_2d.new(.{});
+            defer b.submit();
+
+            try b.rectRoundedFilled(
                 .{
                     .x = screenshot_pos.x,
                     .y = screenshot_pos.y,
@@ -259,7 +286,7 @@ pub fn draw(ctx: jok.Context) !void {
                 jok.Color.rgba(255, 255, 255, 200),
                 .{},
             );
-            try j2d.imageRounded(
+            try b.imageRounded(
                 tex,
                 .{
                     .x = screenshot_pos.x + 5,
@@ -315,7 +342,13 @@ pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 
+    shape_icosahedron.deinit();
+    shape_torus.deinit();
+    shape_parametric_sphere.deinit();
+    shape_tetrahedron.deinit();
     if (screenshot_tex) |tex| tex.destroy();
     point_easing_system.destroy();
     color_easing_system.destroy();
+    batchpool_2d.deinit();
+    batchpool_3d.deinit();
 }

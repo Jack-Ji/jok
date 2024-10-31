@@ -3,15 +3,15 @@ const std = @import("std");
 const math = std.math;
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
+const j3d = jok.j3d;
 const physfs = jok.physfs;
-const internal = @import("internal.zig");
+const zmath = jok.zmath;
+const zmesh = jok.zmesh;
 const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const ShadingMethod = TriangleRenderer.ShadingMethod;
 const Camera = @import("Camera.zig");
 const lighting = @import("lighting.zig");
-const zmath = jok.zmath;
-const zmesh = jok.zmesh;
 const Self = @This();
 
 pub const Error = error{
@@ -227,7 +227,7 @@ pub const Node = struct {
     fn render(
         node: *Node,
         csz: jok.Size,
-        rdjob: *internal.RenderJob,
+        batch: *j3d.Batch,
         model: zmath.Mat,
         camera: Camera,
         tri_rd: *TriangleRenderer,
@@ -236,7 +236,7 @@ pub const Node = struct {
         for (node.meshes) |sm| {
             try tri_rd.renderMesh(
                 csz,
-                rdjob,
+                batch,
                 zmath.mul(node.matrix, model),
                 camera,
                 sm.indices.items,
@@ -268,7 +268,7 @@ pub const Node = struct {
         for (node.children.items) |c| {
             try c.render(
                 csz,
-                rdjob,
+                batch,
                 model,
                 camera,
                 tri_rd,
@@ -551,7 +551,7 @@ pub fn destroy(self: *Self) void {
 pub fn render(
     self: *const Self,
     csz: jok.Size,
-    rdjob: *internal.RenderJob,
+    batch: *j3d.Batch,
     model: zmath.Mat,
     camera: Camera,
     tri_rd: *TriangleRenderer,
@@ -559,7 +559,7 @@ pub fn render(
 ) !void {
     try self.root.render(
         csz,
-        rdjob,
+        batch,
         if (self.is_gltf) // Convert to right-handed system (glTF use left-handed system)
             zmath.mul(zmath.scaling(-1, 1, 1), model)
         else

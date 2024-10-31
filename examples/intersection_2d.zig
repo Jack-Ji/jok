@@ -3,6 +3,7 @@ const jok = @import("jok");
 const imgui = jok.imgui;
 const j2d = jok.j2d;
 
+var batchpool: j2d.BatchPool(64, false) = undefined;
 var offset0: jok.Point = .{ .x = 0, .y = 0 };
 var offset1: jok.Point = .{ .x = 0, .y = 0 };
 var p0: jok.Point = .{ .x = 10, .y = 10 };
@@ -13,9 +14,9 @@ var p4: jok.Point = .{ .x = 220, .y = 50 };
 var p5: jok.Point = .{ .x = 150, .y = 80 };
 
 pub fn init(ctx: jok.Context) !void {
-    _ = ctx;
-
     std.log.info("game init", .{});
+
+    batchpool = try @TypeOf(batchpool).init(ctx);
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
@@ -55,10 +56,10 @@ pub fn draw(ctx: jok.Context) !void {
         rect_thickness = 3;
     }
 
-    j2d.begin(.{});
-    defer j2d.end();
-    j2d.setTransform(j2d.AffineTransform.init().translate(.{ .x = offset0.x, .y = offset0.y }));
-    try j2d.triangle(
+    var b = try batchpool.new(.{});
+    defer b.submit();
+    b.setTransform(j2d.AffineTransform.init().translate(.{ .x = offset0.x, .y = offset0.y }));
+    try b.triangle(
         .{ .x = p0.x, .y = p0.y },
         .{ .x = p1.x, .y = p1.y },
         .{ .x = p2.x, .y = p2.y },
@@ -66,8 +67,8 @@ pub fn draw(ctx: jok.Context) !void {
         .{ .thickness = tri_thickness },
     );
 
-    j2d.setTransform(j2d.AffineTransform.init().translate(.{ .x = offset1.x, .y = offset1.y }));
-    try j2d.triangle(
+    b.setTransform(j2d.AffineTransform.init().translate(.{ .x = offset1.x, .y = offset1.y }));
+    try b.triangle(
         .{ .x = p3.x, .y = p3.y },
         .{ .x = p4.x, .y = p4.y },
         .{ .x = p5.x, .y = p5.y },
@@ -75,13 +76,13 @@ pub fn draw(ctx: jok.Context) !void {
         .{ .thickness = tri_thickness },
     );
 
-    j2d.setTransform(j2d.AffineTransform.init());
-    try j2d.rect(
+    b.setTransform(j2d.AffineTransform.init());
+    try b.rect(
         rect0,
         rect_color,
         .{ .thickness = rect_thickness },
     );
-    try j2d.rect(
+    try b.rect(
         rect1,
         rect_color,
         .{ .thickness = rect_thickness },
@@ -106,4 +107,5 @@ pub fn draw(ctx: jok.Context) !void {
 pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
+    batchpool.deinit();
 }

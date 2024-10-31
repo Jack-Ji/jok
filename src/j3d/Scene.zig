@@ -201,11 +201,11 @@ pub fn destroy(self: *Self, destroy_objects: bool) void {
 pub const RenderOption = struct {
     lighting: ?lighting.LightingOption = null,
 };
-pub fn render(self: Self, object: ?*Object, opt: RenderOption) !void {
+pub fn render(self: Self, batch: *j3d.Batch, object: ?*Object, opt: RenderOption) !void {
     const o = object orelse self.root;
     switch (o.actor) {
         .position => {},
-        .mesh => |m| try j3d.mesh(
+        .mesh => |m| try batch.mesh(
             m.mesh,
             o.transform,
             .{
@@ -218,7 +218,7 @@ pub fn render(self: Self, object: ?*Object, opt: RenderOption) !void {
                     opt.lighting,
             },
         ),
-        .sprite => |s| try j3d.sprite(
+        .sprite => |s| try batch.sprite(
             o.transform,
             s.size,
             s.uv,
@@ -242,6 +242,6 @@ pub fn render(self: Self, object: ?*Object, opt: RenderOption) !void {
     }
 
     for (o.children.items) |c| {
-        try self.render(c, opt);
+        try self.render(batch, c, opt);
     }
 }
