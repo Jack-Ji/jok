@@ -90,18 +90,18 @@ pub const Batch = struct {
         defer self.is_submitted = false;
 
         self.draw_list.reset();
-        if (opt.clip_rect) |r| {
-            self.draw_list.pushClipRect(.{
+        self.draw_list.pushClipRect(if (opt.clip_rect) |r|
+            .{
                 .pmin = .{ r.x, r.y },
                 .pmax = .{ r.x + r.width, r.y + r.height },
-            });
-        } else {
+            }
+        else BLK: {
             const csz = self.ctx.getCanvasSize();
-            self.draw_list.pushClipRect(.{
+            break :BLK .{
                 .pmin = .{ 0, 0 },
                 .pmax = .{ @floatFromInt(csz.width), @floatFromInt(csz.height) },
-            });
-        }
+            };
+        });
         if (opt.antialiased) {
             self.draw_list.setDrawListFlags(.{
                 .anti_aliased_lines = true,

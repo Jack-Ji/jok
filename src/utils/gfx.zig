@@ -162,8 +162,8 @@ pub const jpng = struct {
     /// Magic u64 number at end of file
     const magic = [_]u8{ 'p', 'n', 'g', '@', 'j', 'o', 'k', '\x00' };
 
-    /// Maximum size of custom data (1MB)
-    const max_custom_size = (1 << 20);
+    /// Maximum size of custom data (64MB)
+    const max_custom_size = (1 << 26);
 
     /// Save texture in jpng format
     pub fn save(

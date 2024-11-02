@@ -1,7 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const json = std.json;
-const native_endian = @import("builtin").target.cpu.arch.endian();
 const Sprite = @import("Sprite.zig");
 const jok = @import("../jok.zig");
 const physfs = jok.physfs;
@@ -11,9 +10,13 @@ const Self = @This();
 
 pub const Error = error{
     TextureNotLargeEnough,
-    InvalidJson,
+    InvalidFormat,
     NoTextureData,
 };
+
+// Maximum size of serialized sheet data (8MB)
+const magic_sheet_header = [_]u8{ 's', 'h', 'e', 'e', 't', '@', 'j', 'o', 'k' };
+const max_sheet_data_size = 1 << 23;
 
 /// Image pixels
 /// Only support sdl.SDL_PIXELFORMAT_RGBA32
@@ -435,105 +438,71 @@ pub fn destroy(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-/// Save sprite-sheet to 2 files (image and json)
-pub fn save(self: Self, ctx: jok.Context, path: []const u8) !void {
+/// Save sprite-sheet to jpng
+pub fn save(self: Self, ctx: jok.Context, path: [*:0]const u8) !void {
     if (self.packed_pixels == null) return error.NoTextureData;
-    var path_buf: [128]u8 = undefined;
+    var arena = std.heap.ArenaAllocator.init(self.allocator);
+    defer arena.deinit();
+    const databuf = try arena.allocator().alloc(u8, max_sheet_data_size);
+    var bufstream = std.io.fixedBufferStream(databuf);
 
-    // Save image file
-    const image_path = try std.fmt.bufPrintZ(&path_buf, "{s}.png", .{path});
-    try jok.utils.gfx.savePixelsToFile(
+    // Magic header
+    try bufstream.writer().writeAll(&magic_sheet_header);
+
+    // Serialize sheet info
+    var json_root = json.Value{
+        .object = json.ObjectMap.init(arena.allocator()),
+    };
+    var it = self.search_tree.iterator();
+    while (it.next()) |entry| {
+        const name = entry.key_ptr.*;
+        const rect = self.rects[entry.value_ptr.*];
+        var obj = json.ObjectMap.init(arena.allocator());
+        try obj.put("s0", json.Value{ .float = @as(f64, rect.s0) });
+        try obj.put("t0", json.Value{ .float = @as(f64, rect.t0) });
+        try obj.put("s1", json.Value{ .float = @as(f64, rect.s1) });
+        try obj.put("t1", json.Value{ .float = @as(f64, rect.t1) });
+        try obj.put("w", json.Value{ .float = @as(f64, rect.width) });
+        try obj.put("h", json.Value{ .float = @as(f64, rect.height) });
+        try json_root.object.put(name, json.Value{ .object = obj });
+    }
+    var stream = json.writeStream(bufstream.writer(), .{});
+    try json_root.jsonStringify(&stream);
+
+    // Save to disk
+    try jok.utils.gfx.jpng.save(
         ctx,
         self.packed_pixels.?.data,
         self.packed_pixels.?.width,
         self.packed_pixels.?.height,
-        image_path,
-        .{ .format = .png },
+        path,
+        bufstream.getWritten(),
     );
-
-    // Save json file
-    var arena_allocator = std.heap.ArenaAllocator.init(self.allocator);
-    defer arena_allocator.deinit();
-    var json_root = json.Value{
-        .object = json.ObjectMap.init(arena_allocator.allocator()),
-    };
-    const json_path = try std.fmt.bufPrintZ(&path_buf, "{s}.json", .{path});
-    if (ctx.cfg().jok_enable_physfs) {
-        var json_file = try physfs.open(json_path, .write);
-        defer json_file.close();
-
-        var it = self.search_tree.iterator();
-        while (it.next()) |entry| {
-            const name = entry.key_ptr.*;
-            const rect = self.rects[entry.value_ptr.*];
-            var obj = json.ObjectMap.init(arena_allocator.allocator());
-            try obj.put("s0", json.Value{ .float = @as(f64, rect.s0) });
-            try obj.put("t0", json.Value{ .float = @as(f64, rect.t0) });
-            try obj.put("s1", json.Value{ .float = @as(f64, rect.s1) });
-            try obj.put("t1", json.Value{ .float = @as(f64, rect.t1) });
-            try obj.put("width", json.Value{ .float = @as(f64, rect.width) });
-            try obj.put("height", json.Value{ .float = @as(f64, rect.height) });
-            try json_root.object.put(name, json.Value{ .object = obj });
-        }
-        var stream = json.writeStream(json_file.writer(), .{ .whitespace = .indent_2 });
-        try json_root.jsonStringify(&stream);
-    } else {
-        var json_file = try std.fs.cwd().createFileZ(json_path, .{});
-        defer json_file.close();
-
-        var it = self.search_tree.iterator();
-        while (it.next()) |entry| {
-            const name = entry.key_ptr.*;
-            const rect = self.rects[entry.value_ptr.*];
-            var obj = json.ObjectMap.init(arena_allocator.allocator());
-            try obj.put("s0", json.Value{ .float = @as(f64, rect.s0) });
-            try obj.put("t0", json.Value{ .float = @as(f64, rect.t0) });
-            try obj.put("s1", json.Value{ .float = @as(f64, rect.s1) });
-            try obj.put("t1", json.Value{ .float = @as(f64, rect.t1) });
-            try obj.put("width", json.Value{ .float = @as(f64, rect.width) });
-            try obj.put("height", json.Value{ .float = @as(f64, rect.height) });
-            try json_root.object.put(name, json.Value{ .object = obj });
-        }
-        var stream = json.writeStream(json_file.writer(), .{ .whitespace = .indent_2 });
-        try json_root.jsonStringify(&stream);
-    }
 }
 
-/// Create from previous written sheet files (a picture and a json file)
-pub fn load(ctx: jok.Context, path: []const u8) !*Self {
-    var path_buf: [128]u8 = undefined;
-
-    // Load texture
-    const image_path = try std.fmt.bufPrintZ(&path_buf, "{s}.png", .{path});
-    var tex = try ctx.renderer().createTextureFromFile(
-        ctx.allocator(),
-        image_path,
-        .static,
-        false,
-    );
-    try tex.setScaleMode(.nearest);
-    errdefer tex.destroy();
+/// Load sprite-sheet from jpng
+pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Self {
+    const loaded = try jok.utils.gfx.jpng.load(ctx, path, .static);
+    defer ctx.allocator().free(loaded.data);
+    errdefer loaded.tex.destroy();
+    if (loaded.data.len <= magic_sheet_header.len and
+        !std.mem.eql(u8, &magic_sheet_header, loaded.data[0..magic_sheet_header.len]))
+    {
+        return error.InvalidFormat;
+    }
 
     // Load sprites info
     const allocator = ctx.allocator();
-    const json_path = try std.fmt.bufPrintZ(&path_buf, "{s}.json", .{path});
-    var parsed = BLK: {
-        if (ctx.cfg().jok_enable_physfs) {
-            var file = try physfs.open(json_path, .read);
-            defer file.close();
-            var reader = json.reader(ctx.allocator(), file.reader());
-            defer reader.deinit();
-            break :BLK try json.parseFromTokenSource(json.Value, allocator, &reader, .{});
-        } else {
-            var file = try std.fs.cwd().openFileZ(std.mem.sliceTo(json_path, 0), .{});
-            defer file.close();
-            var reader = json.reader(ctx.allocator(), file.reader());
-            defer reader.deinit();
-            break :BLK try json.parseFromTokenSource(json.Value, allocator, &reader, .{});
-        }
-    };
+    var parsed = try json.parseFromSlice(
+        json.Value,
+        allocator,
+        loaded.data[magic_sheet_header.len..],
+        .{},
+    );
     defer parsed.deinit();
-    if (parsed.value != .object) return error.InvalidJson;
+    if (parsed.value != .object) {
+        return error.InvalidFormat;
+    }
     const rect_count = parsed.value.object.count();
     assert(rect_count > 0);
     var rects = try allocator.alloc(SpriteRect, rect_count);
@@ -550,8 +519,8 @@ pub fn load(ctx: jok.Context, path: []const u8) !*Self {
             .t0 = @floatCast(info.get("t0").?.float),
             .s1 = @floatCast(info.get("s1").?.float),
             .t1 = @floatCast(info.get("t1").?.float),
-            .width = @floatCast(info.get("width").?.float),
-            .height = @floatCast(info.get("height").?.float),
+            .width = @floatCast(info.get("w").?.float),
+            .height = @floatCast(info.get("h").?.float),
         };
         try search_tree.putNoClobber(
             try std.fmt.allocPrint(allocator, "{s}", .{name}),
@@ -560,12 +529,12 @@ pub fn load(ctx: jok.Context, path: []const u8) !*Self {
     }
 
     // Allocate and init SpriteSheet
-    const info = try tex.query();
+    const info = try loaded.tex.query();
     const ss = try allocator.create(Self);
     ss.* = Self{
         .allocator = allocator,
         .size = .{ .width = info.width, .height = info.height },
-        .tex = tex,
+        .tex = loaded.tex,
         .rects = rects,
         .search_tree = search_tree,
     };
