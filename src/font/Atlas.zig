@@ -19,6 +19,7 @@ pub const CharRange = struct {
 
 allocator: std.mem.Allocator,
 tex: jok.Texture,
+pixels: ?[]const u8,
 ranges: std.ArrayList(CharRange),
 codepoint_search: std.AutoHashMap(u32, u8),
 vmetric_ascent: f32,
@@ -27,6 +28,7 @@ vmetric_line_gap: f32,
 
 pub fn destroy(self: *Atlas) void {
     self.tex.destroy();
+    if (self.pixels) |px| self.allocator.free(px);
     for (self.ranges.items) |r| {
         r.packedchar.deinit();
     }

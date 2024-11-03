@@ -46,7 +46,7 @@ pub const DebugFont = struct {
                 ctx,
                 font_size,
                 &[_][2]u32{.{ 0x0020, 0x00FF }},
-                1024,
+                .{},
             );
             if (atlases.count() == 0) debug_Size = font_size;
             try atlases.put(font_size, a);

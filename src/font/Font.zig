@@ -15,9 +15,6 @@ pub const Error = error{
 // Accept 20M font file at most
 const max_font_size = 20 * (1 << 20);
 
-// Default atlas size
-const default_atlas_size = 1024;
-
 // Memory allocator
 allocator: std.mem.Allocator,
 
@@ -79,23 +76,25 @@ pub fn destroy(self: *Font) void {
     self.allocator.destroy(self);
 }
 
+pub const AtlasOption = struct {
+    size: jok.Size = .{ .width = 1024, .height = 1024 },
+    keep_pixels: bool = false,
+};
 pub fn createAtlas(
     self: Font,
     ctx: jok.Context,
     font_size: u32,
     _cp_ranges: ?[]const [2]u32,
-    size: ?u32,
+    opt: AtlasOption,
 ) !*Atlas {
     const cp_ranges = _cp_ranges orelse &codepoint_ranges.default;
     assert(cp_ranges.len > 0);
 
-    var ranges = try std.ArrayList(Atlas.CharRange).initCapacity(ctx.allocator(), cp_ranges.len);
+    const allocator = ctx.allocator();
+    var ranges = try std.ArrayList(Atlas.CharRange).initCapacity(allocator, cp_ranges.len);
     errdefer ranges.deinit();
-    const atlas_size = size orelse default_atlas_size;
-    const stb_pixels = try ctx.allocator().alloc(u8, atlas_size * atlas_size);
-    defer ctx.allocator().free(stb_pixels);
-    const real_pixels = try ctx.allocator().alloc(u8, atlas_size * atlas_size * 4);
-    defer ctx.allocator().free(real_pixels);
+    const stb_pixels = try allocator.alloc(u8, opt.size.area());
+    defer allocator.free(stb_pixels);
 
     // Generate atlas
     {
@@ -104,8 +103,8 @@ pub fn createAtlas(
         const rc = truetype.stbtt_PackBegin(
             &pack_ctx,
             stb_pixels.ptr,
-            @intCast(atlas_size),
-            @intCast(atlas_size),
+            @intCast(opt.size.width),
+            @intCast(opt.size.height),
             0,
             1,
             null,
@@ -118,7 +117,7 @@ pub fn createAtlas(
                 .codepoint_begin = cs[0],
                 .codepoint_end = cs[1],
                 .packedchar = try std.ArrayList(truetype.stbtt_packedchar)
-                    .initCapacity(ctx.allocator(), cs[1] - cs[0]),
+                    .initCapacity(allocator, cs[1] - cs[0]),
             });
             if (truetype.stbtt_PackFontRange(
                 &pack_ctx,
@@ -134,28 +133,32 @@ pub fn createAtlas(
             }
         }
     }
+
+    // Create texture
+    const real_pixels = try allocator.alloc(u8, opt.size.area() * 4);
+    defer if (!opt.keep_pixels) allocator.free(real_pixels);
+    errdefer if (opt.keep_pixels) allocator.free(real_pixels);
     for (stb_pixels, 0..) |px, i| {
         real_pixels[i * 4] = px;
         real_pixels[i * 4 + 1] = px;
         real_pixels[i * 4 + 2] = px;
         real_pixels[i * 4 + 3] = px;
     }
-
-    // Create texture
     const tex = try ctx.renderer().createTexture(
-        .{ .width = atlas_size, .height = atlas_size },
+        opt.size,
         real_pixels,
         .{ .access = .static },
     );
     errdefer tex.destroy();
 
     const vmetrics = self.getVMetrics(font_size);
-    const atlas = try ctx.allocator().create(Atlas);
+    const atlas = try allocator.create(Atlas);
     atlas.* = .{
-        .allocator = ctx.allocator(),
+        .allocator = allocator,
         .tex = tex,
+        .pixels = if (opt.keep_pixels) real_pixels else null,
         .ranges = ranges,
-        .codepoint_search = std.AutoHashMap(u32, u8).init(ctx.allocator()),
+        .codepoint_search = std.AutoHashMap(u32, u8).init(allocator),
         .vmetric_ascent = vmetrics.ascent,
         .vmetric_descent = vmetrics.descent,
         .vmetric_line_gap = vmetrics.line_gap,
