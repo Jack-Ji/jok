@@ -100,36 +100,36 @@ pub fn draw(ctx: jok.Context) !void {
     defer b.submit();
 
     try b.text(
-        .{ .atlas = atlas, .pos = .{ .x = 10, .y = 10 } },
         "Press *RETURN* to start/pause playing, current status: {s}, progress: {d}/{d}(s)",
         .{
             if (music.isPlaying()) "playing" else "paused",
             music_played_length,
             music_total_length,
         },
+        .{ .atlas = atlas, .pos = .{ .x = 10, .y = 10 } },
     );
     try b.text(
-        .{ .atlas = atlas, .pos = .{ .x = 10, .y = 26 } },
         "Press *Z/X* to decrease/increase volume of music, current volume: {d:.1}",
         .{music.getVolume()},
+        .{ .atlas = atlas, .pos = .{ .x = 10, .y = 26 } },
     );
     try b.text(
+        "Double-click mouse's left button to trigger sound effect on your left ear",
+        .{},
         .{
             .atlas = atlas,
             .pos = .{ .x = 10, .y = 100 },
             .tint_color = if (sfx1.isPlaying()) jok.Color.red else jok.Color.white,
         },
-        "Double-click mouse's left button to trigger sound effect on your left ear",
-        .{},
     );
     try b.text(
+        "Double-click mouse's right button to trigger sound effect on your right ear",
+        .{},
         .{
             .atlas = atlas,
             .pos = .{ .x = 200, .y = 150 },
             .tint_color = if (sfx2.isPlaying()) jok.Color.magenta else jok.Color.white,
         },
-        "Double-click mouse's right button to trigger sound effect on your right ear",
-        .{},
     );
 }
 

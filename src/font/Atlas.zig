@@ -6,6 +6,11 @@ const truetype = jok.stb.truetype;
 const Sprite = jok.j2d.Sprite;
 const Atlas = @This();
 
+pub const Error = error{
+    InvalidFormat,
+    NoPixelData,
+};
+
 pub const CharRange = struct {
     codepoint_begin: u32,
     codepoint_end: u32,

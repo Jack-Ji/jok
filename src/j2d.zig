@@ -6,6 +6,7 @@ const jok = @import("jok.zig");
 const imgui = jok.imgui;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
+const log = std.log.scoped(.jok);
 
 const internal = @import("j2d/internal.zig");
 pub const AffineTransform = @import("j2d/AffineTransform.zig");
@@ -19,6 +20,7 @@ pub const Vector = @import("j2d/Vector.zig");
 pub const Error = error{
     PathNotFinished,
     TooManyBatches,
+    UnsupportedCodepoint,
 };
 
 pub const DepthSortMethod = enum {
@@ -353,6 +355,7 @@ pub const Batch = struct {
     pub const TextOption = struct {
         atlas: *jok.font.Atlas,
         pos: jok.Point,
+        ignore_unexist: bool = true,
         ypos_type: jok.font.Atlas.YPosType = .top,
         tint_color: jok.Color = jok.Color.white,
         scale: jok.Point = .{ .x = 1, .y = 1 },
@@ -360,7 +363,7 @@ pub const Batch = struct {
         anchor_point: jok.Point = .{ .x = 0, .y = 0 },
         depth: f32 = 0.5,
     };
-    pub fn text(self: *Batch, opt: TextOption, comptime fmt: []const u8, args: anytype) !void {
+    pub fn text(self: *Batch, comptime fmt: []const u8, args: anytype, opt: TextOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const txt = imgui.format(fmt, args);
@@ -381,7 +384,8 @@ pub const Batch = struct {
         var i: u32 = 0;
         while (i < txt.len) {
             const size = try unicode.utf8ByteSequenceLength(txt[i]);
-            const cp = @as(u32, @intCast(try unicode.utf8Decode(txt[i .. i + size])));
+            const u8letter = txt[i .. i + size];
+            const cp = @as(u32, @intCast(try unicode.utf8Decode(u8letter)));
             if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, jok.Color.white, cp)) |cs| {
                 const v = zmath.mul(
                     zmath.f32x4(
@@ -409,6 +413,9 @@ pub const Batch = struct {
                     .depth = opt.depth,
                 });
                 pos.x += (cs.next_x - pos.x) * scale.x;
+            } else if (!opt.ignore_unexist) {
+                log.err("Doesn't support character: {s}({x})", .{ u8letter, cp });
+                return error.UnsupportedCodepoint;
             }
             i += size;
         }

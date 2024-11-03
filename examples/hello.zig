@@ -196,13 +196,13 @@ pub fn draw(ctx: jok.Context) !void {
         text_draw_pos.y += text_speed.y * ctx.deltaSeconds();
         const atlas = try font.DebugFont.getAtlas(ctx, 50);
         try b.text(
+            "Hello Jok!",
+            .{},
             .{
                 .atlas = atlas,
                 .pos = .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
                 .tint_color = jok.Color.red,
             },
-            "Hello Jok!",
-            .{},
         );
         const area = try atlas.getBoundingBox(
             "Hello Jok!",

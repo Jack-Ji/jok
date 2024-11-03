@@ -90,13 +90,13 @@ pub fn draw(ctx: jok.Context) !void {
 
         for (blends) |b| {
             try batch.text(
+                "{s}",
+                .{b.name},
                 .{
                     .atlas = try font.DebugFont.getAtlas(ctx, 16),
                     .pos = .{ .x = b.pos.x, .y = b.pos.y + 112 },
                     .tint_color = jok.Color.white,
                 },
-                "{s}",
-                .{b.name},
             );
         }
 
@@ -107,13 +107,13 @@ pub fn draw(ctx: jok.Context) !void {
         );
 
         try batch.text(
+            "Regular blending options",
+            .{},
             .{
                 .atlas = try font.DebugFont.getAtlas(ctx, 20),
                 .pos = .{ .x = 520, .y = 155 },
                 .tint_color = jok.Color.red,
             },
-            "Regular blending options",
-            .{},
         );
 
         try batch.rectRounded(
@@ -123,13 +123,13 @@ pub fn draw(ctx: jok.Context) !void {
         );
 
         try batch.text(
+            "Porter/Duff compositing options",
+            .{},
             .{
                 .atlas = try font.DebugFont.getAtlas(ctx, 20),
                 .pos = .{ .x = 370, .y = 690 },
                 .tint_color = jok.Color.red,
             },
-            "Porter/Duff compositing options",
-            .{},
         );
     }
 }

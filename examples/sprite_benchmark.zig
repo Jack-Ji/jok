@@ -103,12 +103,12 @@ pub fn draw(ctx: jok.Context) !void {
         });
     }
     try b.text(
+        "# of sprites: {d}",
+        .{characters.items.len},
         .{
             .atlas = try jok.font.DebugFont.getAtlas(ctx, 16),
             .pos = .{ .x = 0, .y = 0 },
         },
-        "# of sprites: {d}",
-        .{characters.items.len},
     );
 }
 

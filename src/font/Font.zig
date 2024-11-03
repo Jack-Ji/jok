@@ -5,7 +5,12 @@ const jok = @import("../jok.zig");
 const physfs = jok.physfs;
 const truetype = jok.stb.truetype;
 const codepoint_ranges = @import("codepoint_ranges.zig");
+const log = std.log.scoped(.jok);
 const Font = @This();
+
+pub const Error = error{
+    NoEnoughSpace,
+};
 
 // Accept 20M font file at most
 const max_font_size = 20 * (1 << 20);
@@ -93,38 +98,42 @@ pub fn createAtlas(
     defer ctx.allocator().free(real_pixels);
 
     // Generate atlas
-    var pack_ctx = std.mem.zeroes(truetype.stbtt_pack_context);
-    const rc = truetype.stbtt_PackBegin(
-        &pack_ctx,
-        stb_pixels.ptr,
-        @intCast(atlas_size),
-        @intCast(atlas_size),
-        0,
-        1,
-        null,
-    );
-    assert(rc > 0);
-    for (cp_ranges, 0..) |cs, i| {
-        assert(cs[1] >= cs[0]);
-        ranges.appendAssumeCapacity(
-            .{
+    {
+        var pack_ctx = std.mem.zeroes(truetype.stbtt_pack_context);
+        defer truetype.stbtt_PackEnd(&pack_ctx);
+        const rc = truetype.stbtt_PackBegin(
+            &pack_ctx,
+            stb_pixels.ptr,
+            @intCast(atlas_size),
+            @intCast(atlas_size),
+            0,
+            1,
+            null,
+        );
+        assert(rc > 0);
+
+        for (cp_ranges, 0..) |cs, i| {
+            assert(cs[1] >= cs[0]);
+            ranges.appendAssumeCapacity(.{
                 .codepoint_begin = cs[0],
                 .codepoint_end = cs[1],
                 .packedchar = try std.ArrayList(truetype.stbtt_packedchar)
                     .initCapacity(ctx.allocator(), cs[1] - cs[0]),
-            },
-        );
-        _ = truetype.stbtt_PackFontRange(
-            &pack_ctx,
-            self.font_info.data,
-            0,
-            @floatFromInt(font_size),
-            @intCast(cs[0]),
-            @intCast(cs[1] - cs[0]),
-            ranges.items[i].packedchar.items.ptr,
-        );
+            });
+            if (truetype.stbtt_PackFontRange(
+                &pack_ctx,
+                self.font_info.data,
+                0,
+                @floatFromInt(font_size),
+                @intCast(cs[0]),
+                @intCast(cs[1] - cs[0]),
+                ranges.items[i].packedchar.items.ptr,
+            ) == 0) {
+                log.err("Create atlas failed, need more space to pack pixels!", .{});
+                return error.NoEnoughSpace;
+            }
+        }
     }
-    truetype.stbtt_PackEnd(&pack_ctx);
     for (stb_pixels, 0..) |px, i| {
         real_pixels[i * 4] = px;
         real_pixels[i * 4 + 1] = px;

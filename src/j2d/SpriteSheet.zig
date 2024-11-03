@@ -11,7 +11,7 @@ const Self = @This();
 pub const Error = error{
     TextureNotLargeEnough,
     InvalidFormat,
-    NoTextureData,
+    NoPixelData,
 };
 
 // Maximum size of serialized sheet data (8MB)
@@ -440,7 +440,7 @@ pub fn destroy(self: *Self) void {
 
 /// Save sprite-sheet to jpng
 pub fn save(self: Self, ctx: jok.Context, path: [*:0]const u8) !void {
-    if (self.packed_pixels == null) return error.NoTextureData;
+    if (self.packed_pixels == null) return error.NoPixelData;
     var arena = std.heap.ArenaAllocator.init(self.allocator);
     defer arena.deinit();
     const databuf = try arena.allocator().alloc(u8, max_sheet_data_size);

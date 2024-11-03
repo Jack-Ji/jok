@@ -98,12 +98,12 @@ pub fn draw(ctx: jok.Context) !void {
             .{},
         );
         try b.text(
+            "{s}",
+            .{@tagName(@as(easing.EasingType, @enumFromInt(@as(u8, @intCast(i)))))},
             .{
                 .atlas = try jok.font.DebugFont.getAtlas(ctx, 16),
                 .pos = .{ .x = 10, .y = @as(f32, @floatFromInt(i)) * 25 },
             },
-            "{s}",
-            .{@tagName(@as(easing.EasingType, @enumFromInt(@as(u8, @intCast(i)))))},
         );
         try eb.draw(b);
         try b.line(

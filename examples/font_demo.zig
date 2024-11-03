@@ -58,14 +58,14 @@ pub fn draw(ctx: jok.Context) !void {
     defer b.submit();
     atlas = try font.DebugFont.getAtlas(ctx, 20);
     try b.text(
+        "ABCDEFGHIJKL abcdefghijkl",
+        .{},
         .{
             .atlas = atlas,
             .pos = .{ .x = 0, .y = 0 },
             .ypos_type = .top,
             .tint_color = jok.Color.cyan,
         },
-        "ABCDEFGHIJKL abcdefghijkl",
-        .{},
     );
     area = try atlas.getBoundingBox(
         "ABCDEFGHIJKL abcdefghijkl",
@@ -77,13 +77,14 @@ pub fn draw(ctx: jok.Context) !void {
 
     atlas = try font.DebugFont.getAtlas(ctx, 80);
     try b.text(
+        "Hello,",
+        .{},
         .{
             .atlas = atlas,
             .pos = .{ .x = 0, .y = size.getHeightFloat() / 2 },
             .ypos_type = .bottom,
+            .ignore_unexist = false,
         },
-        "Hello,",
-        .{},
     );
     area = try atlas.getBoundingBox(
         "Hello,",
@@ -94,6 +95,8 @@ pub fn draw(ctx: jok.Context) !void {
     try b.rectFilled(area, rect_color, .{});
 
     try b.text(
+        "jok!",
+        .{},
         .{
             .atlas = atlas,
             .pos = .{
@@ -112,20 +115,18 @@ pub fn draw(ctx: jok.Context) !void {
             .rotate_degree = ctx.seconds() * 30,
             .depth = 0,
         },
-        "jok!",
-        .{},
     );
 
     atlas = try font.DebugFont.getAtlas(ctx, 32);
     try b.text(
+        "ABCDEFGHIJKL abcdefghijkl",
+        .{},
         .{
             .atlas = atlas,
             .pos = .{ .x = 0, .y = size.getHeightFloat() },
             .ypos_type = .bottom,
             .tint_color = jok.Color.red,
         },
-        "ABCDEFGHIJKL abcdefghijkl",
-        .{},
     );
     area = try atlas.getBoundingBox(
         "ABCDEFGHIJKL abcdefghijkl",
@@ -175,31 +176,31 @@ pub fn draw(ctx: jok.Context) !void {
         .{},
     );
     try b.text(
+        "Q",
+        .{},
         .{
             .atlas = atlas,
             .pos = q_pos,
             .ypos_type = .baseline,
         },
-        "Q",
-        .{},
     );
     try b.text(
+        "Q",
+        .{},
         .{
             .atlas = atlas,
             .pos = q_pos.add(.{ .x = metrics.advance_width, .y = 0 }),
             .ypos_type = .top,
         },
-        "Q",
-        .{},
     );
     try b.text(
+        "Q",
+        .{},
         .{
             .atlas = atlas,
             .pos = q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }),
             .ypos_type = .bottom,
         },
-        "Q",
-        .{},
     );
 }
 
