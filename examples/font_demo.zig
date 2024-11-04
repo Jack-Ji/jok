@@ -44,12 +44,22 @@ pub fn init(ctx: jok.Context) !void {
     var atlas = try font.DebugFont.font.createAtlas(
         ctx,
         80,
-        null,
-        .{ .keep_pixels = true },
+        &font.codepoint_ranges.chinese_full,
+        .{
+            .keep_pixels = true,
+        },
     );
+    var t = std.time.nanoTimestamp();
     try atlas.save(ctx, "atlas.png");
+    std.debug.print("Atlas save time: {s}\n", .{std.fmt.fmtDuration(
+        @intCast(std.time.nanoTimestamp() - t),
+    )});
     atlas.destroy();
+    t = std.time.nanoTimestamp();
     saved_atlas = try font.Atlas.load(ctx, "atlas.png");
+    std.debug.print("Atlas load time: {s}\n", .{std.fmt.fmtDuration(
+        @intCast(std.time.nanoTimestamp() - t),
+    )});
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
