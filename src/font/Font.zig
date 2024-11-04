@@ -91,15 +91,26 @@ pub fn createAtlas(
     assert(cp_ranges.len > 0);
 
     const allocator = ctx.allocator();
-    var ranges = try std.ArrayList(Atlas.CharRange).initCapacity(allocator, cp_ranges.len);
-    errdefer ranges.deinit();
     const stb_pixels = try allocator.alloc(u8, opt.size.area());
     defer allocator.free(stb_pixels);
+    var ranges = try allocator.alloc(Atlas.CharRange, cp_ranges.len);
+    @memset(ranges, Atlas.CharRange{
+        .codepoint_begin = 0,
+        .codepoint_end = 0,
+        .packedchar = &.{},
+    });
+    errdefer {
+        for (ranges) |r| {
+            if (r.packedchar.len > 0) {
+                allocator.free(r.packedchar);
+            }
+        }
+        allocator.free(ranges);
+    }
 
     // Generate atlas
     {
         var pack_ctx = std.mem.zeroes(truetype.stbtt_pack_context);
-        defer truetype.stbtt_PackEnd(&pack_ctx);
         const rc = truetype.stbtt_PackBegin(
             &pack_ctx,
             stb_pixels.ptr,
@@ -110,23 +121,27 @@ pub fn createAtlas(
             null,
         );
         assert(rc > 0);
+        defer truetype.stbtt_PackEnd(&pack_ctx);
 
         for (cp_ranges, 0..) |cs, i| {
             assert(cs[1] >= cs[0]);
-            ranges.appendAssumeCapacity(.{
+            const chars_num = cs[1] - cs[0] + 1;
+            ranges[i] = .{
                 .codepoint_begin = cs[0],
                 .codepoint_end = cs[1],
-                .packedchar = try std.ArrayList(truetype.stbtt_packedchar)
-                    .initCapacity(allocator, cs[1] - cs[0]),
-            });
+                .packedchar = try allocator.alloc(
+                    truetype.stbtt_packedchar,
+                    chars_num,
+                ),
+            };
             if (truetype.stbtt_PackFontRange(
                 &pack_ctx,
                 self.font_info.data,
                 0,
                 @floatFromInt(font_size),
                 @intCast(cs[0]),
-                @intCast(cs[1] - cs[0]),
-                ranges.items[i].packedchar.items.ptr,
+                @intCast(chars_num),
+                ranges[i].packedchar.ptr,
             ) == 0) {
                 log.err("Create atlas failed, need more space to pack pixels!", .{});
                 return error.NoEnoughSpace;
@@ -158,10 +173,10 @@ pub fn createAtlas(
         .tex = tex,
         .pixels = if (opt.keep_pixels) real_pixels else null,
         .ranges = ranges,
-        .codepoint_search = std.AutoHashMap(u32, u8).init(allocator),
         .vmetric_ascent = vmetrics.ascent,
         .vmetric_descent = vmetrics.descent,
         .vmetric_line_gap = vmetrics.line_gap,
+        .codepoint_search = std.AutoHashMap(u32, u8).init(allocator),
     };
     return atlas;
 }

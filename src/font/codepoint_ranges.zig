@@ -178,7 +178,7 @@ fn genRanges(
     comptime offsets: []const u32,
 ) [base_ranges.len + offsets.len][2]u32 {
     var ranges: [base_ranges.len + offsets.len][2]u32 = undefined;
-    std.mem.copy([2]u32, ranges[0..], base_ranges);
+    @memcpy(ranges[0..base_ranges.len], base_ranges);
     unpackAccumulativeOffsets(
         base_codepoint,
         offsets,

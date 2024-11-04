@@ -14,9 +14,8 @@ pub const Error = error{
     NoPixelData,
 };
 
-// Maximum size of serialized sheet data (8MB)
-const magic_sheet_header = [_]u8{ 's', 'h', 'e', 'e', 't', '@', 'j', 'o', 'k' };
 const max_sheet_data_size = 1 << 23;
+const magic_sheet_header = [_]u8{ 's', 'h', 'e', 'e', 't', '@', 'j', 'o', 'k' };
 
 /// Image pixels
 /// Only support sdl.SDL_PIXELFORMAT_RGBA32

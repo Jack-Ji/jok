@@ -1,12 +1,17 @@
 const std = @import("std");
 const jok = @import("jok");
+const physfs = jok.physfs;
 const font = jok.font;
 const j2d = jok.j2d;
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
+var saved_atlas: *font.Atlas = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
+
+    try physfs.mount(physfs.getBaseDir(), "", true);
+    try physfs.setWriteDir(physfs.getBaseDir());
 
     batchpool = try @TypeOf(batchpool).init(ctx);
 
@@ -35,6 +40,16 @@ pub fn init(ctx: jok.Context) !void {
         }
         std.debug.print("\n", .{});
     }
+
+    var atlas = try font.DebugFont.font.createAtlas(
+        ctx,
+        80,
+        null,
+        .{ .keep_pixels = true },
+    );
+    try atlas.save(ctx, "atlas.png");
+    atlas.destroy();
+    saved_atlas = try font.Atlas.load(ctx, "atlas.png");
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
@@ -51,12 +66,10 @@ pub fn draw(ctx: jok.Context) !void {
 
     const size = ctx.getCanvasSize();
     const rect_color = jok.Color.rgba(0, 128, 0, 120);
-    var area: jok.Rectangle = undefined;
-    var atlas: *font.Atlas = undefined;
 
     var b = try batchpool.new(.{ .depth_sort = .back_to_forth });
     defer b.submit();
-    atlas = try font.DebugFont.getAtlas(ctx, 20);
+    var atlas = try font.DebugFont.getAtlas(ctx, 20);
     try b.text(
         "ABCDEFGHIJKL abcdefghijkl",
         .{},
@@ -67,7 +80,7 @@ pub fn draw(ctx: jok.Context) !void {
             .tint_color = jok.Color.cyan,
         },
     );
-    area = try atlas.getBoundingBox(
+    var area = try atlas.getBoundingBox(
         "ABCDEFGHIJKL abcdefghijkl",
         .{ .x = 0, .y = 0 },
         .top,
@@ -75,18 +88,17 @@ pub fn draw(ctx: jok.Context) !void {
     );
     try b.rectFilled(area, rect_color, .{});
 
-    atlas = try font.DebugFont.getAtlas(ctx, 80);
     try b.text(
         "Hello,",
         .{},
         .{
-            .atlas = atlas,
+            .atlas = saved_atlas,
             .pos = .{ .x = 0, .y = size.getHeightFloat() / 2 },
             .ypos_type = .bottom,
             .ignore_unexist = false,
         },
     );
-    area = try atlas.getBoundingBox(
+    area = try saved_atlas.getBoundingBox(
         "Hello,",
         .{ .x = 0, .y = size.getHeightFloat() / 2 },
         .bottom,
@@ -98,7 +110,7 @@ pub fn draw(ctx: jok.Context) !void {
         "jok!",
         .{},
         .{
-            .atlas = atlas,
+            .atlas = saved_atlas,
             .pos = .{
                 .x = area.x + area.width,
                 .y = size.getHeightFloat() / 2,
@@ -117,19 +129,18 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
 
-    atlas = try font.DebugFont.getAtlas(ctx, 32);
     try b.text(
-        "ABCDEFGHIJKL abcdefghijkl",
+        "ABCDE abcde",
         .{},
         .{
-            .atlas = atlas,
+            .atlas = saved_atlas,
             .pos = .{ .x = 0, .y = size.getHeightFloat() },
             .ypos_type = .bottom,
             .tint_color = jok.Color.red,
         },
     );
-    area = try atlas.getBoundingBox(
-        "ABCDEFGHIJKL abcdefghijkl",
+    area = try saved_atlas.getBoundingBox(
+        "ABCDE abcde",
         .{ .x = 0, .y = size.getHeightFloat() },
         .bottom,
         .aligned,
@@ -208,4 +219,5 @@ pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     batchpool.deinit();
+    saved_atlas.destroy();
 }

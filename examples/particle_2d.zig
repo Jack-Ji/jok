@@ -53,7 +53,7 @@ pub fn init(ctx: jok.Context) !void {
         ctx.allocator(),
         jok.font.DebugFont.font_data,
     );
-    atlas = try font.createAtlas(ctx, 60, null, null);
+    atlas = try font.createAtlas(ctx, 60, null, .{});
     ps = try j2d.ParticleSystem.create(ctx.allocator());
     emitter1.sprite = sheet.getSpriteByName("particle");
     emitter2.sprite = atlas.getSpriteOfCodePoint('*');
