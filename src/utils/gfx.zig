@@ -138,8 +138,9 @@ pub fn savePixelsToFile(
     }
 }
 
-/// PNG file with customly appended data
+/// PNG file with customly appended data.
 ///
+/// Overall Structure:
 ///   +----------------------------------------+
 ///   |                                        |
 ///   |                                        |
@@ -153,19 +154,28 @@ pub fn savePixelsToFile(
 ///   +----------------------------------------+
 ///   |  CRC (4 bytes) |  Data Length (4 byte) |
 ///   +----------------------------------------+
-///   | Flags (1 byte) | Magic String (7 byte) | <--- "png@jok"
+///   | Flags (1 byte) | Magic String (7 byte) |
 ///   +----------------------------------------+
 ///
-///
+/// Flags:
+///    7 6 5 4 3 2 1 0
+///   +---------------+
+///   |x|x|x|x|x|x|E|C|
+///   +---------------+
+///                ^ ^
+///                | |
+///                | +--- Compress Bit
+///                +--- Encryption Bit (not implemented)
 ///
 pub const jpng = struct {
     const CompressLevel = std.compress.flate.deflate.Level;
     const Flags = packed struct(u8) {
         compressed: bool,
-        dummy: u7 = 0,
+        encrypted: bool = false,
+        dummy: u6 = 0,
     };
 
-    /// Magic u64 number at end of file
+    /// Magic string at end of file
     const magic = [_]u8{ 'p', 'n', 'g', '@', 'j', 'o', 'k' };
 
     /// Maximum size of custom data (64MB)
