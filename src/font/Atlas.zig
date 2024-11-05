@@ -28,7 +28,7 @@ ranges: []CharRange,
 vmetric_ascent: f32,
 vmetric_descent: f32,
 vmetric_line_gap: f32,
-codepoint_search: std.AutoHashMap(u32, u8),
+codepoint_search: std.AutoHashMap(u32, u32),
 
 pub fn destroy(self: *Atlas) void {
     self.tex.destroy();
@@ -222,7 +222,7 @@ pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Atlas {
         .vmetric_ascent = ascent,
         .vmetric_descent = descent,
         .vmetric_line_gap = line_gap,
-        .codepoint_search = std.AutoHashMap(u32, u8).init(allocator),
+        .codepoint_search = std.AutoHashMap(u32, u32).init(allocator),
     };
     return atlas;
 }
@@ -372,7 +372,7 @@ pub inline fn getVerticesOfCodePoint(
         for (self.ranges, 0..) |range, idx| {
             if (codepoint < range.codepoint_begin or codepoint > range.codepoint_end) continue;
             self.codepoint_search.put(codepoint, @intCast(idx)) catch unreachable;
-            break :BLK @as(u8, @intCast(idx));
+            break :BLK @as(u32, @intCast(idx));
         } else {
             return null;
         }

@@ -176,7 +176,7 @@ pub fn createAtlas(
         .vmetric_ascent = vmetrics.ascent,
         .vmetric_descent = vmetrics.descent,
         .vmetric_line_gap = vmetrics.line_gap,
-        .codepoint_search = std.AutoHashMap(u32, u8).init(allocator),
+        .codepoint_search = std.AutoHashMap(u32, u32).init(allocator),
     };
     return atlas;
 }
