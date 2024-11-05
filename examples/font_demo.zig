@@ -45,12 +45,10 @@ pub fn init(ctx: jok.Context) !void {
         ctx,
         80,
         &font.codepoint_ranges.chinese_full,
-        .{
-            .keep_pixels = true,
-        },
+        .{ .keep_pixels = true },
     );
     var t = std.time.nanoTimestamp();
-    try atlas.save(ctx, "atlas.png");
+    try atlas.save(ctx, "atlas.png", .{});
     std.debug.print("Atlas save time: {s}\n", .{std.fmt.fmtDuration(
         @intCast(std.time.nanoTimestamp() - t),
     )});
@@ -173,7 +171,7 @@ pub fn draw(ctx: jok.Context) !void {
     );
     try b.rectFilled(
         metrics.getBBox(q_pos, .baseline),
-        jok.Color.rgba(0, 255, 0, 128),
+        jok.Color.rgba(0, 255, 0, 200),
         .{},
     );
     try b.rectFilled(
@@ -183,7 +181,7 @@ pub fn draw(ctx: jok.Context) !void {
     );
     try b.rectFilled(
         metrics.getBBox(q_pos.add(.{ .x = metrics.advance_width, .y = 0 }), .top),
-        jok.Color.rgba(0, 255, 0, 128),
+        jok.Color.rgba(0, 255, 0, 200),
         .{},
     );
     try b.rectFilled(
@@ -193,7 +191,7 @@ pub fn draw(ctx: jok.Context) !void {
     );
     try b.rectFilled(
         metrics.getBBox(q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }), .bottom),
-        jok.Color.rgba(0, 255, 0, 128),
+        jok.Color.rgba(0, 255, 0, 200),
         .{},
     );
     try b.text(

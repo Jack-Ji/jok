@@ -26,12 +26,9 @@ pub fn init(ctx: jok.Context) !void {
         @intFromFloat(size.getHeightFloat()),
         .{ .keep_packed_pixels = true },
     );
-    try sheet1.save(ctx, "sheet1.png");
+    try sheet1.save(ctx, "sheet1.png", .{});
 
-    sheet2 = try j2d.SpriteSheet.load(
-        ctx,
-        "sheet1.png",
-    );
+    sheet2 = try j2d.SpriteSheet.load(ctx, "sheet1.png");
 
     sheet3 = try j2d.SpriteSheet.fromSinglePicture(
         ctx,

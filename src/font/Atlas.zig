@@ -41,8 +41,13 @@ pub fn destroy(self: *Atlas) void {
     self.allocator.destroy(self);
 }
 
-/// Save atlas to jpng
-pub fn save(self: Atlas, ctx: jok.Context, path: [*:0]const u8) !void {
+/// Save atlas as jpng
+pub fn save(
+    self: Atlas,
+    ctx: jok.Context,
+    path: [*:0]const u8,
+    opt: jok.utils.gfx.jpng.SaveOption,
+) !void {
     if (self.pixels == null) return error.NoPixelData;
     var arena = std.heap.ArenaAllocator.init(self.allocator);
     defer arena.deinit();
@@ -139,10 +144,11 @@ pub fn save(self: Atlas, ctx: jok.Context, path: [*:0]const u8) !void {
         info.height,
         path,
         bufstream.getWritten(),
+        opt,
     );
 }
 
-/// Load atlas from jpng
+/// Load atlas from jpng file
 pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Atlas {
     const loaded = try jok.utils.gfx.jpng.load(ctx, path, .static);
     defer ctx.allocator().free(loaded.data);

@@ -438,7 +438,12 @@ pub fn destroy(self: *Self) void {
 }
 
 /// Save sprite-sheet to jpng
-pub fn save(self: Self, ctx: jok.Context, path: [*:0]const u8) !void {
+pub fn save(
+    self: Self,
+    ctx: jok.Context,
+    path: [*:0]const u8,
+    opt: jok.utils.gfx.jpng.SaveOption,
+) !void {
     if (self.packed_pixels == null) return error.NoPixelData;
     var arena = std.heap.ArenaAllocator.init(self.allocator);
     defer arena.deinit();
@@ -476,6 +481,7 @@ pub fn save(self: Self, ctx: jok.Context, path: [*:0]const u8) !void {
         self.packed_pixels.?.height,
         path,
         bufstream.getWritten(),
+        opt,
     );
 }
 
