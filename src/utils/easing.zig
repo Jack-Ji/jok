@@ -42,15 +42,21 @@ pub const EasingType = enum(u8) {
 
 pub fn EasingSystem(comptime T: type) type {
     return struct {
+        pub const Finish = struct {
+            callback: *const fn (v: *T, data: ?*anyopaque) void,
+            ptr: ?*anyopaque = null,
+        };
         const EasingApplyFn = *const fn (x: f32, from: T, to: T) T;
         const EasingValue = struct {
             easing_fn: EasingFn,
             easing_apply_fn: EasingApplyFn,
+            wait: f32,
             life_total: f32,
             life_passed: f32,
             v: *T,
             from: T,
             to: T,
+            finish: ?Finish,
         };
         const Self = @This();
 
@@ -71,20 +77,29 @@ pub fn EasingSystem(comptime T: type) type {
             self.allocator.destroy(self);
         }
 
-        pub fn count(self: *const Self) usize {
-            return self.vars.items.len;
-        }
-
-        pub fn update(self: *Self, delta_time: f32) void {
+        pub fn update(self: *Self, _delta_time: f32) void {
             if (self.vars.items.len == 0) return;
 
             var i: usize = 0;
             while (i < self.vars.items.len) {
                 var ev = &self.vars.items[i];
+                var delta_time = _delta_time;
+                if (ev.wait > 0) {
+                    if (ev.wait > delta_time) {
+                        ev.wait -= delta_time;
+                        i += 1;
+                        continue;
+                    }
+                    ev.wait = 0;
+                    delta_time -= ev.wait;
+                }
                 ev.life_passed += delta_time;
                 const x = ev.easing_fn(@min(1.0, ev.life_passed / ev.life_total));
                 ev.v.* = ev.easing_apply_fn(x, ev.from, ev.to);
                 if (ev.life_passed >= ev.life_total) {
+                    if (ev.finish) |fs| {
+                        fs.callback(ev.v, fs.ptr);
+                    }
                     _ = self.vars.swapRemove(i);
                 } else {
                     i += 1;
@@ -92,6 +107,10 @@ pub fn EasingSystem(comptime T: type) type {
             }
         }
 
+        pub const AddOption = struct {
+            wait_time: f32 = 0,
+            finish: ?Finish = null,
+        };
         pub fn add(
             self: *Self,
             v: *T,
@@ -100,16 +119,20 @@ pub fn EasingSystem(comptime T: type) type {
             life: f32,
             from: ?T,
             to: T,
+            opt: AddOption,
         ) !void {
             assert(life > 0);
+            assert(opt.wait_time >= 0);
             try self.vars.append(.{
                 .easing_fn = getEasingFn(easing_type),
                 .easing_apply_fn = easing_apply_fn,
+                .wait = opt.wait_time,
                 .life_total = life,
                 .life_passed = 0,
                 .v = v,
                 .from = from orelse v.*,
                 .to = to,
+                .finish = opt.finish,
             });
         }
     };

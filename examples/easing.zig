@@ -10,9 +10,10 @@ pub const jok_window_size = jok.config.WindowSize{
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var point_easing_system: *easing.EasingSystem(jok.Point) = undefined;
 var blocks: [31]EasingBlock = undefined;
-var easing_over_time_accu: f32 = 0;
+var finish_event: u32 = undefined;
 
 const EasingBlock = struct {
+    id: u32,
     pos: jok.Point,
 
     fn draw(self: @This(), batch: *j2d.Batch) !void {
@@ -23,58 +24,71 @@ const EasingBlock = struct {
             .height = 20,
         }, jok.Color.white, .{});
     }
-};
 
-pub fn init(ctx: jok.Context) !void {
-    batchpool = try @TypeOf(batchpool).init(ctx);
-    point_easing_system = try easing.EasingSystem(jok.Point).create(ctx.allocator());
-    for (&blocks, 0..) |*b, i| {
-        try point_easing_system.add(
-            &b.pos,
-            @enumFromInt(@as(u8, @intCast(i))),
+    fn startEasing(self: *@This(), es: *easing.EasingSystem(jok.Point)) !void {
+        try es.add(
+            &self.pos,
+            @enumFromInt(@as(u8, @intCast(self.id))),
             easing.easePoint,
             2,
             .{
                 .x = 150,
-                .y = 1 + @as(f32, @floatFromInt(i)) * 25,
+                .y = 1 + @as(f32, @floatFromInt(self.id)) * 25,
             },
             .{
                 .x = 680,
-                .y = 1 + @as(f32, @floatFromInt(i)) * 25,
+                .y = 1 + @as(f32, @floatFromInt(self.id)) * 25,
+            },
+            .{
+                .wait_time = 1,
+                .finish = .{
+                    .callback = struct {
+                        fn call(_: *jok.Point, ptr: ?*anyopaque) void {
+                            jok.io.pushEvent(
+                                finish_event,
+                                0,
+                                ptr,
+                                null,
+                            ) catch unreachable;
+                        }
+                    }.call,
+                    .ptr = @ptrCast(self),
+                },
             },
         );
+    }
+};
+
+pub fn init(ctx: jok.Context) !void {
+    batchpool = try @TypeOf(batchpool).init(ctx);
+    finish_event = try jok.io.registerEvents(1);
+    point_easing_system = try easing.EasingSystem(jok.Point).create(ctx.allocator());
+    for (&blocks, 0..) |*b, i| {
+        b.* = .{
+            .id = @intCast(i),
+            .pos = .{
+                .x = 150,
+                .y = 1 + @as(f32, @floatFromInt(i)) * 25,
+            },
+        };
+        try b.startEasing(point_easing_system);
     }
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
-    _ = e;
+
+    switch (e) {
+        .user => |ue| {
+            var b: *EasingBlock = @ptrCast(@alignCast(ue.data1.?));
+            try b.startEasing(point_easing_system);
+        },
+        else => {},
+    }
 }
 
 pub fn update(ctx: jok.Context) !void {
     point_easing_system.update(ctx.deltaSeconds());
-    if (point_easing_system.count() == 0) {
-        easing_over_time_accu += ctx.deltaSeconds();
-        if (easing_over_time_accu > 1) {
-            for (&blocks, 0..) |*b, i| {
-                try point_easing_system.add(
-                    &b.pos,
-                    @enumFromInt(@as(u8, @intCast(i))),
-                    easing.easePoint,
-                    2,
-                    .{
-                        .x = 150,
-                        .y = 1 + @as(f32, @floatFromInt(i)) * 25,
-                    },
-                    .{
-                        .x = 680,
-                        .y = 1 + @as(f32, @floatFromInt(i)) * 25,
-                    },
-                );
-            }
-            easing_over_time_accu = 0;
-        }
-    }
 }
 
 pub fn draw(ctx: jok.Context) !void {
