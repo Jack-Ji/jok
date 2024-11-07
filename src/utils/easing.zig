@@ -90,8 +90,8 @@ pub fn EasingSystem(comptime T: type) type {
                         i += 1;
                         continue;
                     }
-                    ev.wait = 0;
                     delta_time -= ev.wait;
+                    ev.wait = 0:
                 }
                 ev.life_passed += delta_time;
                 const x = ev.easing_fn(@min(1.0, ev.life_passed / ev.life_total));
