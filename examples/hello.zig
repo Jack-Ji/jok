@@ -104,6 +104,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                     1,
                     .{ .x = 0, .y = 0 },
                     .{ .x = csz.getWidthFloat() * 0.75, .y = 0 },
+                    .{},
                 );
                 try point_easing_system.add(
                     &screenshot_size,
@@ -112,6 +113,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                     1,
                     .{ .x = csz.getWidthFloat(), .y = csz.getHeightFloat() },
                     .{ .x = csz.getWidthFloat() / 5, .y = csz.getHeightFloat() / 5 },
+                    .{},
                 );
                 try color_easing_system.add(
                     &screenshot_tint_color,
@@ -120,6 +122,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                     1,
                     .{ .r = 0, .g = 0, .b = 0, .a = 0 },
                     jok.Color.white,
+                    .{},
                 );
             } else if (k.scancode == .f3) {
                 show_stats = !show_stats;
