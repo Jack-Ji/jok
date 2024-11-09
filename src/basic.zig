@@ -124,8 +124,11 @@ pub const Rectangle = extern struct {
 };
 
 pub const Color = extern struct {
-    var pixel_format: *sdl.SDL_PixelFormat = undefined;
-
+    pub const ParseError = error{
+        UnknownFormat,
+        InvalidCharacter,
+        Overflow,
+    };
     pub const none = rgba(0x00, 0x00, 0x00, 0x00);
     pub const black = rgb(0x00, 0x00, 0x00);
     pub const white = rgb(0xFF, 0xFF, 0xFF);
@@ -136,6 +139,7 @@ pub const Color = extern struct {
     pub const cyan = rgb(0x00, 0xFF, 0xFF);
     pub const yellow = rgb(0xFF, 0xFF, 0x00);
     pub const purple = rgb(255, 128, 255);
+    var pixel_format: *sdl.SDL_PixelFormat = undefined;
 
     r: u8,
     g: u8,
@@ -162,6 +166,82 @@ pub const Color = extern struct {
 
     pub inline fn toRGBA32(c: Color) u32 {
         return sdl.SDL_MapRGBA(@ptrCast(pixel_format), c.r, c.g, c.b, c.a);
+    }
+
+    /// parses a hex string color literal.
+    /// allowed formats are:
+    /// - `RGB`
+    /// - `RGBA`
+    /// - `#RGB`
+    /// - `#RGBA`
+    /// - `RRGGBB`
+    /// - `#RRGGBB`
+    /// - `RRGGBBAA`
+    /// - `#RRGGBBAA`
+    pub fn parse(str: []const u8) ParseError!Color {
+        switch (str.len) {
+            // RGB
+            3 => {
+                const r = try std.fmt.parseInt(u8, str[0..1], 16);
+                const g = try std.fmt.parseInt(u8, str[1..2], 16);
+                const b = try std.fmt.parseInt(u8, str[2..3], 16);
+
+                return rgb(
+                    r | (r << 4),
+                    g | (g << 4),
+                    b | (b << 4),
+                );
+            },
+
+            // #RGB, RGBA
+            4 => {
+                if (str[0] == '#')
+                    return parse(str[1..]);
+
+                const r = try std.fmt.parseInt(u8, str[0..1], 16);
+                const g = try std.fmt.parseInt(u8, str[1..2], 16);
+                const b = try std.fmt.parseInt(u8, str[2..3], 16);
+                const a = try std.fmt.parseInt(u8, str[3..4], 16);
+
+                // bit-expand the patters to a uniform range
+                return rgba(
+                    r | (r << 4),
+                    g | (g << 4),
+                    b | (b << 4),
+                    a | (a << 4),
+                );
+            },
+
+            // #RGBA
+            5 => return parse(str[1..]),
+
+            // RRGGBB
+            6 => {
+                const r = try std.fmt.parseInt(u8, str[0..2], 16);
+                const g = try std.fmt.parseInt(u8, str[2..4], 16);
+                const b = try std.fmt.parseInt(u8, str[4..6], 16);
+
+                return rgb(r, g, b);
+            },
+
+            // #RRGGBB
+            7 => return parse(str[1..]),
+
+            // RRGGBBAA
+            8 => {
+                const r = try std.fmt.parseInt(u8, str[0..2], 16);
+                const g = try std.fmt.parseInt(u8, str[2..4], 16);
+                const b = try std.fmt.parseInt(u8, str[4..6], 16);
+                const a = try std.fmt.parseInt(u8, str[6..8], 16);
+
+                return rgba(r, g, b, a);
+            },
+
+            // #RRGGBBAA
+            9 => return parse(str[1..]),
+
+            else => return error.UnknownFormat,
+        }
     }
 };
 
