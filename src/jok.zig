@@ -39,7 +39,7 @@ pub const j3d = @import("j3d.zig");
 /// Font module
 pub const font = @import("font.zig");
 
-/// Misc util functions
+/// Misc utils
 pub const utils = @import("utils.zig");
 
 /// Expose vendor libraries

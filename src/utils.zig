@@ -16,6 +16,9 @@ pub const easing = @import("utils/easing.zig");
 /// Async tools
 pub const asynctool = @import("utils/async.zig");
 
+/// Tile map support
+pub const tiled = @import("utils/tiled.zig");
+
 /// Generic ring data structure
 pub const ring = @import("utils/ring.zig");
 

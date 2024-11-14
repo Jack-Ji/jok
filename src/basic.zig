@@ -20,6 +20,13 @@ pub const Point = extern struct {
         };
     }
 
+    pub inline fn mul(p0: Point, p1: Point) Point {
+        return .{
+            .x = p0.x * p1.x,
+            .y = p0.y * p1.y,
+        };
+    }
+
     pub inline fn isSame(p0: Point, p1: Point) bool {
         const tolerance = 0.000001;
         return std.math.approxEqAbs(f32, p0.x, p1.x, tolerance) and
@@ -166,6 +173,15 @@ pub const Color = extern struct {
 
     pub inline fn toRGBA32(c: Color) u32 {
         return sdl.SDL_MapRGBA(@ptrCast(pixel_format), c.r, c.g, c.b, c.a);
+    }
+
+    pub inline fn mod(c0: Color, c1: Color) Color {
+        return .{
+            .r = @intFromFloat(@as(f32, @floatFromInt(c0.r)) * @as(f32, @floatFromInt(c1.r)) / 255.0),
+            .g = @intFromFloat(@as(f32, @floatFromInt(c0.g)) * @as(f32, @floatFromInt(c1.g)) / 255.0),
+            .b = @intFromFloat(@as(f32, @floatFromInt(c0.b)) * @as(f32, @floatFromInt(c1.b)) / 255.0),
+            .a = @intFromFloat(@as(f32, @floatFromInt(c0.a)) * @as(f32, @floatFromInt(c1.a)) / 255.0),
+        };
     }
 
     /// parses a hex string color literal.
