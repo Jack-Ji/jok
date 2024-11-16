@@ -225,33 +225,88 @@ const Chunk = struct {
     }
 };
 
-pub const TileLayer = struct {
+const TileLayer = struct {
     size: jok.Size,
     offset: jok.Point,
     parallax: jok.Point,
     tint_color: jok.Color,
     chunks: []Chunk,
     props: PropertyTree,
+
+    fn render(self: TileLayer, map: TiledMap, b: *j2d.Batch) !void {
+        assert(map.orientation == .orthogonal);
+        for (self.chunks) |c| {
+            var it = c.getSpriteIterator(&map, &self);
+            while (it.next()) |rs| {
+                try b.sprite(rs.sprite, .{
+                    .pos = rs.pos,
+                    .tint_color = rs.tint_color,
+                    .flip_h = rs.flip_h,
+                    .flip_v = rs.flip_v,
+                });
+            }
+        }
+    }
 };
 
-pub const ObjectGroup = struct {
+const ObjectGroup = struct {
     offset: jok.Point,
     parallax: jok.Point,
     tint_color: jok.Color,
     props: PropertyTree,
+
+    fn render(self: ObjectGroup, map: TiledMap, b: *j2d.Batch) !void {
+        assert(map.orientation == .orthogonal);
+        _ = self;
+        _ = b;
+        // TODO
+        return error.UnsupportedLayerType;
+    }
 };
 
-pub const ImageLayer = struct {
+const ImageLayer = struct {
     offset: jok.Point,
     parallax: jok.Point,
     tint_color: jok.Color,
     props: PropertyTree,
+
+    fn render(self: ImageLayer, map: TiledMap, b: *j2d.Batch) !void {
+        assert(map.orientation == .orthogonal);
+        _ = self;
+        _ = b;
+        // TODO
+        return error.UnsupportedLayerType;
+    }
 };
 
 pub const Layer = union(enum) {
     tile_layer: TileLayer,
     object_layer: ObjectGroup,
     image_layer: ImageLayer,
+
+    pub fn render(self: Layer, map: TiledMap, b: *j2d.Batch) !void {
+        switch (self) {
+            .tile_layer => |l| try l.render(map, b),
+            .object_layer => |l| try l.render(map, b),
+            .image_layer => |l| try l.render(map, b),
+        }
+    }
+
+    pub fn getParallax(self: Layer) jok.Point {
+        return switch (self) {
+            .tile_layer => |l| l.parallax,
+            .object_layer => |l| l.parallax,
+            .image_layer => |l| l.parallax,
+        };
+    }
+
+    pub fn getProperty(self: Layer, name: []const u8) ?PropertyValue {
+        return switch (self) {
+            .tile_layer => |l| try l.props.get(name),
+            .object_layer => |l| try l.props.get(name),
+            .image_layer => |l| try l.props.get(name),
+        };
+    }
 };
 
 pub const TiledMap = struct {
@@ -270,29 +325,6 @@ pub const TiledMap = struct {
     pub fn deinit(self: TiledMap) void {
         for (self.tilesets) |t| t.deinit();
         self.arena.deinit();
-    }
-
-    pub fn render(self: TiledMap, b: *j2d.Batch) !void {
-        assert(self.orientation == .orthogonal);
-        for (self.layers) |layer| {
-            switch (layer) {
-                .tile_layer => |l| {
-                    for (l.chunks) |c| {
-                        var it = c.getSpriteIterator(&self, &l);
-                        while (it.next()) |rs| {
-                            try b.sprite(rs.sprite, .{
-                                .pos = rs.pos,
-                                .tint_color = rs.tint_color,
-                                .flip_h = rs.flip_h,
-                                .flip_v = rs.flip_v,
-                            });
-                        }
-                    }
-                },
-                .object_layer => unreachable, // TODO
-                .image_layer => unreachable, // TODO
-            }
-        }
     }
 
     pub fn getTileset(self: TiledMap, gid: GlobalTileID) Tileset {

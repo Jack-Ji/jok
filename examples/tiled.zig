@@ -32,7 +32,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     var b = try batchpool.new(.{});
     defer b.submit();
-    try map.render(b);
+    for (map.layers) |l| try l.render(map, b);
 }
 
 pub fn quit(ctx: jok.Context) void {
