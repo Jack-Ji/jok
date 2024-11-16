@@ -1,15 +1,19 @@
 const std = @import("std");
 const jok = @import("jok");
 const physfs = jok.physfs;
+const j2d = jok.j2d;
 const tiled = jok.utils.tiled;
+
+var batchpool: j2d.BatchPool(64, false) = undefined;
+var map: tiled.TiledMap = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     // your init code
 
     try physfs.mount("assets", "", true);
 
-    const loaded = try tiled.loadTMX(ctx, "tiled/sample_urban.tmx");
-    defer loaded.deinit();
+    batchpool = try @TypeOf(batchpool).init(ctx);
+    map = try tiled.loadTMX(ctx, "tiled/sample_urban.tmx");
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
@@ -24,11 +28,16 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    // your drawing code
-    _ = ctx;
+    try ctx.renderer().clear(map.bgcolor);
+
+    var b = try batchpool.new(.{});
+    defer b.submit();
+    try map.render(b);
 }
 
 pub fn quit(ctx: jok.Context) void {
     // your deinit code
     _ = ctx;
+    map.deinit();
+    batchpool.deinit();
 }

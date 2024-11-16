@@ -1,6 +1,6 @@
 .{
     .name = "jok",
-    .version = "0.18.4",
+    .version = "0.19.0",
     .paths = .{
         "README.md",
         "build.zig",

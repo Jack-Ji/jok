@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const xml = @import("xml.zig");
 const jok = @import("../jok.zig");
+const j2d = jok.j2d;
 const physfs = jok.physfs;
 const log = std.log.scoped(.jok);
 
@@ -42,7 +43,8 @@ pub const PropertyTree = std.StringHashMap(PropertyValue);
 
 pub const Tile = struct {
     id: u32,
-    rect: jok.Rectangle,
+    uv0: jok.Point,
+    uv1: jok.Point,
     props: PropertyTree,
 };
 
@@ -57,6 +59,13 @@ pub const Tileset = struct {
 
     fn deinit(self: Tileset) void {
         self.texture.destroy();
+    }
+
+    pub fn getTile(self: Tileset, gid: GlobalTileID) Tile {
+        assert(gid.id() >= self.first_gid);
+        const id = gid.id() - self.first_gid;
+        assert(id < self.tiles.len);
+        return self.tiles[id];
     }
 };
 
@@ -85,11 +94,135 @@ const GlobalTileID = struct {
 };
 
 const Chunk = struct {
-    x: u32,
-    y: u32,
+    x: i32,
+    y: i32,
     width: u32,
     height: u32,
     gids: []GlobalTileID,
+
+    const RenderSprite = struct {
+        sprite: j2d.Sprite,
+        pos: jok.Point,
+        tint_color: jok.Color,
+        flip_h: bool,
+        flip_v: bool,
+    };
+    const Iterator = struct {
+        map: *const TiledMap,
+        layer: *const TileLayer,
+        order: RenderOrder,
+        gids: []GlobalTileID,
+        rect: jok.Rectangle,
+        idx: ?usize,
+
+        fn next(it: *Iterator) ?RenderSprite {
+            while (true) {
+                if (it.idx) |i| {
+                    defer it.idx = it.nextIdx();
+
+                    const gid = it.gids[i];
+                    if (gid._id == 0) continue;
+
+                    const tileset = it.map.getTileset(gid);
+                    const tile = tileset.getTile(gid);
+                    const x_in_rect: f32 = @floatFromInt(i % @as(u32, @intFromFloat(it.rect.width)));
+                    const y_in_rect: f32 = @floatFromInt(i / @as(u32, @intFromFloat(it.rect.width)));
+                    const pos_in_layer = jok.Point{
+                        .x = (it.rect.x + x_in_rect) * @as(f32, @floatFromInt(it.map.tile_size.width)),
+                        .y = (it.rect.y + y_in_rect) * @as(f32, @floatFromInt(it.map.tile_size.height)),
+                    };
+                    return .{
+                        .sprite = .{
+                            .width = @as(f32, @floatFromInt(it.map.tile_size.width)),
+                            .height = @as(f32, @floatFromInt(it.map.tile_size.height)),
+                            .uv0 = tile.uv0,
+                            .uv1 = tile.uv1,
+                            .tex = tileset.texture,
+                        },
+                        .pos = pos_in_layer.add(it.layer.offset),
+                        .tint_color = it.layer.tint_color,
+                        .flip_h = gid.flipH(),
+                        .flip_v = gid.flipV(),
+                    };
+                }
+                return null;
+            }
+        }
+
+        fn nextIdx(it: *const Iterator) ?usize {
+            if (it.idx) |i| {
+                const rect_w = @as(u32, @intFromFloat(it.rect.width));
+                const rect_h = @as(u32, @intFromFloat(it.rect.height));
+                var x_in_rect = @as(u32, @intCast(i)) % rect_w;
+                var y_in_rect = @as(u32, @intCast(i)) / rect_w;
+                switch (it.order) {
+                    .right_down => {
+                        if (x_in_rect > 0) {
+                            x_in_rect -= 1;
+                        } else if (y_in_rect == rect_h - 1) {
+                            return null;
+                        } else {
+                            x_in_rect = rect_w - 1;
+                            y_in_rect += 1;
+                        }
+                    },
+                    .right_up => {
+                        if (x_in_rect > 0) {
+                            x_in_rect -= 1;
+                        } else if (y_in_rect == 0) {
+                            return null;
+                        } else {
+                            x_in_rect = rect_w - 1;
+                            y_in_rect -= 1;
+                        }
+                    },
+                    .left_down => {
+                        if (x_in_rect < rect_w - 1) {
+                            x_in_rect += 1;
+                        } else if (y_in_rect == rect_h - 1) {
+                            return null;
+                        } else {
+                            x_in_rect = 0;
+                            y_in_rect += 1;
+                        }
+                    },
+                    .left_up => {
+                        if (x_in_rect < rect_w - 1) {
+                            x_in_rect += 1;
+                        } else if (y_in_rect == 0) {
+                            return null;
+                        } else {
+                            x_in_rect = 0;
+                            y_in_rect -= 1;
+                        }
+                    },
+                }
+                return x_in_rect + y_in_rect * @as(u32, @intFromFloat(it.rect.width));
+            }
+            return null;
+        }
+    };
+
+    fn getSpriteIterator(c: Chunk, map: *const TiledMap, layer: *const TileLayer) Iterator {
+        return .{
+            .map = map,
+            .layer = layer,
+            .order = map.order,
+            .gids = c.gids,
+            .rect = .{
+                .x = @floatFromInt(c.x),
+                .y = @floatFromInt(c.y),
+                .width = @floatFromInt(c.width),
+                .height = @floatFromInt(c.height),
+            },
+            .idx = switch (map.order) {
+                .right_down => c.width - 1,
+                .right_up => c.gids.len - 1,
+                .left_down => 0,
+                .left_up => c.gids.len - c.width,
+            },
+        };
+    }
 };
 
 pub const TileLayer = struct {
@@ -115,7 +248,7 @@ pub const ImageLayer = struct {
     props: PropertyTree,
 };
 
-pub const Layer = union {
+pub const Layer = union(enum) {
     tile_layer: TileLayer,
     object_layer: ObjectGroup,
     image_layer: ImageLayer,
@@ -124,8 +257,9 @@ pub const Layer = union {
 pub const TiledMap = struct {
     arena: std.heap.ArenaAllocator,
     orientation: Orientation,
-    render_order: RenderOrder,
+    order: RenderOrder,
     map_size: jok.Size,
+    tile_size: jok.Size,
     infinite: bool,
     parallax_origin: jok.Point,
     bgcolor: jok.Color = jok.Color.none,
@@ -137,6 +271,39 @@ pub const TiledMap = struct {
         for (self.tilesets) |t| t.deinit();
         self.arena.deinit();
     }
+
+    pub fn render(self: TiledMap, b: *j2d.Batch) !void {
+        assert(self.orientation == .orthogonal);
+        for (self.layers) |layer| {
+            switch (layer) {
+                .tile_layer => |l| {
+                    for (l.chunks) |c| {
+                        var it = c.getSpriteIterator(&self, &l);
+                        while (it.next()) |rs| {
+                            try b.sprite(rs.sprite, .{
+                                .pos = rs.pos,
+                                .tint_color = rs.tint_color,
+                                .flip_h = rs.flip_h,
+                                .flip_v = rs.flip_v,
+                            });
+                        }
+                    }
+                },
+                .object_layer => unreachable, // TODO
+                .image_layer => unreachable, // TODO
+            }
+        }
+    }
+
+    pub fn getTileset(self: TiledMap, gid: GlobalTileID) Tileset {
+        const id = gid.id();
+        for (self.tilesets) |t| {
+            if (id < t.first_gid + @as(u32, @intCast(t.tiles.len))) {
+                return t;
+            }
+        }
+        unreachable;
+    }
 };
 
 /// Load TMX file
@@ -147,8 +314,9 @@ pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !TiledMap {
     var tmap: TiledMap = .{
         .arena = std.heap.ArenaAllocator.init(allocator),
         .orientation = .orthogonal,
-        .render_order = .right_down,
+        .order = .right_down,
         .map_size = undefined,
+        .tile_size = undefined,
         .infinite = false,
         .parallax_origin = .{ .x = 0, .y = 0 },
         .bgcolor = jok.Color.none,
@@ -197,7 +365,7 @@ pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !TiledMap {
         }
 
         if (std.mem.eql(u8, a.name, "renderorder")) {
-            tmap.render_order = if (std.mem.eql(u8, a.value, "right-down"))
+            tmap.order = if (std.mem.eql(u8, a.value, "right-down"))
                 .right_down
             else if (std.mem.eql(u8, a.value, "left-down"))
                 .left_down
@@ -216,6 +384,14 @@ pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !TiledMap {
         }
         if (std.mem.eql(u8, a.name, "height")) {
             tmap.map_size.height = try std.fmt.parseInt(u32, a.value, 10);
+            continue;
+        }
+        if (std.mem.eql(u8, a.name, "tilewidth")) {
+            tmap.tile_size.width = try std.fmt.parseInt(u32, a.value, 10);
+            continue;
+        }
+        if (std.mem.eql(u8, a.name, "tileheight")) {
+            tmap.tile_size.height = try std.fmt.parseInt(u32, a.value, 10);
             continue;
         }
         if (std.mem.eql(u8, a.name, "infinite")) {
@@ -360,27 +536,11 @@ fn loadTilesets(
                 continue;
             }
         }
-        assert(ts[tsidx].first_gid > 0);
-        assert(ts[tsidx].tile_size.width > 0 and ts[tsidx].tile_size.height > 0);
-        assert(ts[tsidx].columns > 0);
-        assert(ts[tsidx].tiles.len > 0);
-        const cell_width = ts[tsidx].tile_size.width + ts[tsidx].spacing;
-        const cell_height = ts[tsidx].tile_size.height + ts[tsidx].spacing;
-        for (ts[tsidx].tiles, 1..) |*t, idx| {
-            t.id = @intCast(idx);
-            t.rect = .{
-                .x = @floatFromInt(idx % ts[tsidx].columns * cell_width),
-                .y = @floatFromInt(idx / ts[tsidx].columns * cell_height),
-                .width = ts[tsidx].tile_size.getWidthFloat(),
-                .height = ts[tsidx].tile_size.getHeightFloat(),
-            };
-            t.props = PropertyTree.init(arena_allocator);
-        }
 
         // Init tileset's properties
         try initPropertyTree(tileset, arena_allocator, &ts[tsidx].props);
 
-        // Get texture
+        // Get texture, only accept single sheet
         if (tileset.findChildByTag("image")) |img| {
             if (img.findChildByTag("data") != null) return error.UnsupportedImageData;
             for (img.attributes) |a| {
@@ -400,6 +560,31 @@ fn loadTilesets(
             }
         } else {
             return error.UnsupportedTilesetType;
+        }
+
+        // Init tiles
+        assert(ts[tsidx].first_gid > 0);
+        assert(ts[tsidx].tile_size.width > 0 and ts[tsidx].tile_size.height > 0);
+        assert(ts[tsidx].columns > 0);
+        assert(ts[tsidx].tiles.len > 0);
+        const cell_width = ts[tsidx].tile_size.width + ts[tsidx].spacing;
+        const cell_height = ts[tsidx].tile_size.height + ts[tsidx].spacing;
+        const texinfo = try ts[tsidx].texture.query();
+        const texwidth = @as(f32, @floatFromInt(texinfo.width));
+        const texheight = @as(f32, @floatFromInt(texinfo.height));
+        for (ts[tsidx].tiles, 0..) |*t, idx| {
+            const x: f32 = @floatFromInt(idx % ts[tsidx].columns * cell_width);
+            const y: f32 = @floatFromInt(idx / ts[tsidx].columns * cell_height);
+            t.id = @intCast(idx);
+            t.uv0 = .{
+                .x = x / texwidth,
+                .y = y / texheight,
+            };
+            t.uv1 = .{
+                .x = (x + ts[tsidx].tile_size.getWidthFloat()) / texwidth,
+                .y = (y + ts[tsidx].tile_size.getHeightFloat()) / texheight,
+            };
+            t.props = PropertyTree.init(arena_allocator);
         }
 
         // Get tiles' properties
@@ -609,7 +794,7 @@ fn loadLayers(temp_allocator: std.mem.Allocator, arena_allocator: std.mem.Alloca
             }
             var chunks = try std.ArrayList(Chunk).initCapacity(arena_allocator, 20);
             if (data.children.len > 0) {
-                if (data.children[0] == .char_data) {
+                if (data.findChildByTag("chunk") == null) {
                     try chunks.append(.{
                         .x = 0,
                         .y = 0,
@@ -623,18 +808,19 @@ fn loadLayers(temp_allocator: std.mem.Allocator, arena_allocator: std.mem.Alloca
                         if (s.len == 0) continue;
                         try gids.append(.{ ._id = try std.fmt.parseInt(u32, s, 10) });
                     }
-                    chunks.items[0].gids = try gids.toOwnedSlice();
+                    assert(gids.items.len == size.width * size.height);
+                    chunks.items[chunks.items.len - 1].gids = try gids.toOwnedSlice();
                 } else {
                     var it = data.findChildrenByTag("chunk");
                     while (it.next()) |ce| {
                         var c: Chunk = undefined;
                         for (ce.attributes) |a| {
                             if (std.mem.eql(u8, a.name, "x")) {
-                                c.x = try std.fmt.parseInt(u32, a.value, 10);
+                                c.x = try std.fmt.parseInt(i32, a.value, 10);
                                 continue;
                             }
                             if (std.mem.eql(u8, a.name, "y")) {
-                                c.y = try std.fmt.parseInt(u32, a.value, 10);
+                                c.y = try std.fmt.parseInt(i32, a.value, 10);
                                 continue;
                             }
                             if (std.mem.eql(u8, a.name, "width")) {
