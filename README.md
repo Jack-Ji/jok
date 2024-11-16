@@ -2,7 +2,7 @@
 A minimal 2d/3d game framework for zig.
 
 ## What you need?
-* **Latest** [zig compiler](https://ziglang.org/download/)
+* [Latest nominated zig compiler](https://machengine.org/docs/zig-version/)
 * SDL library
 * Any code editor you like (consider using [zls](https://github.com/zigtools/zls) for your own favor)
 
@@ -33,6 +33,7 @@ A minimal 2d/3d game framework for zig.
 * TrueType support, atlas generation/save/load
 * SVG loading/rendering
 * Sound/Music playing/mixing
+* Tiled editor support (tmx/tsx loading/rendering)
 
 ## Supported platforms
 * Windows
