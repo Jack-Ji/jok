@@ -149,6 +149,7 @@ fn initJok(
     const zgui = builder.dependency("zgui", .{
         .target = target,
         .optimize = optimize,
+        .use_32bit_draw_idx = true,
     });
     const zaudio = builder.dependency("zaudio", .{
         .target = target,
@@ -241,8 +242,6 @@ fn injectVendorLibraries(
     bin.linkLibC();
 
     // dear-imgui backend
-    bin.addIncludePath(b.path("deps/zgui/libs/imgui"));
-    bin.addIncludePath(b.path("src/vendor/imgui/c"));
     bin.addCSourceFiles(.{
         .files = &.{
             "src/vendor/imgui/c/imgui_impl_sdl2.cpp",
@@ -252,7 +251,6 @@ fn injectVendorLibraries(
     });
 
     // miniaudio
-    bin.addIncludePath(b.path("deps/zaudio/libs/miniaudio"));
     bin.addCSourceFile(.{
         .file = b.path("src/vendor/miniaudio/c/miniaudio_impl_sdl2.c"),
         .flags = &.{
