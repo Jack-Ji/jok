@@ -85,6 +85,7 @@ pub fn build(b: *Build) void {
 
 pub const BuildOptions = struct {
     dep_name: ?[]const u8 = "jok",
+    no_audio: bool = false,
     use_cp: bool = false,
     use_nfd: bool = false,
     use_ztracy: bool = false,
@@ -143,6 +144,7 @@ fn initJok(
 
     // Create module
     const bos = builder.addOptions();
+    bos.addOption(bool, "no_audio", opt.no_audio);
     bos.addOption(bool, "use_cp", opt.use_cp);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
     bos.addOption(bool, "use_ztracy", opt.use_ztracy);
@@ -176,12 +178,14 @@ fn initJok(
         .imports = &.{
             .{ .name = "build_options", .module = bos.createModule() },
             .{ .name = "zgui", .module = zgui.module("root") },
-            .{ .name = "zaudio", .module = zaudio.module("root") },
             .{ .name = "zmath", .module = zmath.module("root") },
             .{ .name = "zmesh", .module = zmesh.module("root") },
             .{ .name = "znoise", .module = znoise.module("root") },
         },
     });
+    if (!opt.no_audio) {
+        module.addImport("zaudio", zaudio.module("root"));
+    }
     if (opt.use_ztracy) {
         module.addImport("ztracy", ztracy.module("root"));
     }
@@ -194,9 +198,11 @@ fn initJok(
         .optimize = optimize,
     });
     lib.linkLibrary(zgui.artifact("imgui"));
-    lib.linkLibrary(zaudio.artifact("miniaudio"));
     lib.linkLibrary(zmesh.artifact("zmesh"));
     lib.linkLibrary(znoise.artifact("FastNoiseLite"));
+    if (!opt.no_audio) {
+        lib.linkLibrary(zaudio.artifact("miniaudio"));
+    }
     if (opt.use_ztracy) {
         lib.linkLibrary(ztracy.artifact("tracy"));
     }
@@ -251,15 +257,17 @@ fn injectVendorLibraries(
     });
 
     // miniaudio
-    bin.addCSourceFile(.{
-        .file = b.path("src/vendor/miniaudio/c/miniaudio_impl_sdl2.c"),
-        .flags = &.{
-            "-DMA_ENABLE_CUSTOM",
-            "-std=c99",
-            "-fno-sanitize=undefined",
-            if (target.result.os.tag == .macos) "-DMA_NO_RUNTIME_LINKING" else "",
-        },
-    });
+    if (!opt.no_audio) {
+        bin.addCSourceFile(.{
+            .file = b.path("src/vendor/miniaudio/c/miniaudio_impl_sdl2.c"),
+            .flags = &.{
+                "-DMA_ENABLE_CUSTOM",
+                "-std=c99",
+                "-fno-sanitize=undefined",
+                if (target.result.os.tag == .macos) "-DMA_NO_RUNTIME_LINKING" else "",
+            },
+        });
+    }
 
     // stb headers
     bin.addCSourceFile(.{

@@ -91,6 +91,7 @@ pub const Context = struct {
 
     /// Get audio engine
     pub fn audioEngine(self: Context) *miniaudio.Engine {
+        if (bos.no_audio) @panic("Audio is disabled!");
         return self.vtable.audioEngine(self.ctx);
     }
 
@@ -277,10 +278,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
             zmesh.init(self._allocator);
 
             // Init audio engine
-            self._audio_ctx = try miniaudio.sdl.init(self._ctx);
-            var audio_config = miniaudio.Engine.Config.init();
-            audio_config.resource_manager_vfs = &physfs.zaudio.vfs;
-            self._audio_engine = try miniaudio.Engine.create(audio_config);
+            if (!bos.no_audio) {
+                self._audio_ctx = try miniaudio.sdl.init(self._ctx);
+                var audio_config = miniaudio.Engine.Config.init();
+                audio_config.resource_manager_vfs = &physfs.zaudio.vfs;
+                self._audio_engine = try miniaudio.Engine.create(audio_config);
+            }
 
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
@@ -309,8 +312,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
             font.DebugFont.deinit();
 
             // Destroy audio engine
-            self._audio_engine.destroy();
-            miniaudio.sdl.deinit(self._audio_ctx);
+            if (!bos.no_audio) {
+                self._audio_engine.destroy();
+                miniaudio.sdl.deinit(self._audio_ctx);
+            }
 
             // Destroy zmesh
             zmesh.deinit();
@@ -599,7 +604,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Initialize SDL
         fn initSDL(self: *@This()) !void {
-            if (sdl.SDL_Init(sdl.SDL_INIT_EVERYTHING) < 0) {
+            var init_flags = sdl.SDL_INIT_EVERYTHING;
+            if (bos.no_audio) init_flags &= ~sdl.SDL_INIT_AUDIO;
+            if (sdl.SDL_Init(init_flags) < 0) {
                 log.err("Initialize SDL2 failed: {s}", .{sdl.SDL_GetError()});
                 return sdl.Error.SdlError;
             }
