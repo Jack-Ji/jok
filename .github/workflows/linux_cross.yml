@@ -1,0 +1,38 @@
+name: Cross Build (linux)
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  # Cancels pending runs when a PR gets updated.
+  group: ${{ github.head_ref || github.run_id }}-${{ github.actor }}
+  cancel-in-progress: true
+
+jobs:
+  build-cross-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [macos-latest, windows-latest]
+        target: [x86_64-linux-gnu, aarch64-linux-gnu]
+    runs-on: ${{matrix.host}}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Read .zig-version
+        id: zigversion
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./.zigversion
+      - name: Install Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: ${{ steps.zigversion.outputs.content }}
+      - name: Build examples
+        run: zig build -Dtarget=${{matrix.target}} -Dskip=particle_life examples
+

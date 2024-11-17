@@ -1,3 +1,6 @@
+[![build](/../../actions/workflows/windows_native.yml/badge.svg)](/../../actions/workflows/windows_native.yml) [![build](/../../actions/workflows/linux_native.yml/badge.svg)](/../../actions/workflows/linux_native.yml) [![build](/../../actions/workflows/windows_cross.yml/badge.svg)](/../../actions/workflows/windows_cross.yml) [![build](/../../actions/workflows/linux_cross.yml/badge.svg)](/../../actions/workflows/linux_cross.yml)
+
+
 # jok
 A minimal 2d/3d game framework for zig.
 
