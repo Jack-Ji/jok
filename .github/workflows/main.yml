@@ -133,7 +133,6 @@ jobs:
       fail-fast: false
       matrix:
         host: [ubuntu-latest, macos-latest]
-        target: [x86-windows-gnu, x86_64-windows-gnu]
     runs-on: ${{matrix.host}}
     steps:
       - name: Checkout repository
@@ -163,11 +162,6 @@ jobs:
           path: .build_config/sdl.json
           contents: |
             {
-              "x86-windows-gnu": {
-                "include": "SDL2-2.30.9/i686-w64-mingw32/include",
-                "libs": "SDL2-2.30.9/i686-w64-mingw32/lib",
-                "bin": "SDL2-2.30.9/i686-w64-mingw32/bin"
-              },
               "x86_64-windows-gnu": {
                 "include": "SDL2-2.30.9/x86_64-w64-mingw32/include",
                 "libs": "SDL2-2.30.9/x86_64-w64-mingw32/lib",
@@ -176,7 +170,7 @@ jobs:
             }
           write-mode: overwrite
       - name: Build examples
-        run: zig build -Dtarget=${{matrix.target}} examples
+        run: zig build -Dtarget=x86_64-windows-gnu examples
 
   build-cross-linux:
     strategy:

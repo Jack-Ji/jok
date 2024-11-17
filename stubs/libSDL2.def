@@ -317,6 +317,7 @@ SDL_HasColorKey
 SDL_HasEvent
 SDL_HasEvents
 SDL_HasIntersection
+SDL_HasIntersectionF
 SDL_HasMMX
 SDL_HasNEON
 SDL_HasRDTSC
@@ -331,7 +332,9 @@ SDL_HideWindow
 SDL_Init
 SDL_InitSubSystem
 SDL_IntersectRect
+SDL_IntersectFRect
 SDL_IntersectRectAndLine
+SDL_IntersectFRectAndLine
 SDL_IsGameController
 SDL_IsScreenKeyboardShown
 SDL_IsScreenSaverEnabled
