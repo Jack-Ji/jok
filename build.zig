@@ -11,14 +11,14 @@ pub fn build(b: *Build) void {
     }
 
     // Get skipped examples' names
-    var skipexamples = std.StringHashMap(bool).init(b.allocator);
+    var skiped_examples = std.StringHashMap(bool).init(b.allocator);
     if (b.option(
         []const u8,
-        "skipexamples",
-        "skip given examples when building all. e.g. \"particle_life,intersection_2d\"",
+        "skip",
+        "skip given demos when building `examples`. e.g. \"particle_life,intersection_2d\"",
     )) |s| {
         var it = std.mem.splitScalar(u8, s, ',');
-        while (it.next()) |name| skipexamples.put(name, true) catch unreachable;
+        while (it.next()) |name| skiped_examples.put(name, true) catch unreachable;
     }
 
     const target = b.standardTargetOptions(.{});
@@ -90,7 +90,7 @@ pub fn build(b: *Build) void {
             "compile & run example " ++ demo.name,
         );
         run_step.dependOn(&run_cmd.step);
-        if (skipexamples.get(demo.name) == null) {
+        if (skiped_examples.get(demo.name) == null) {
             build_examples.dependOn(&install_cmd.step);
         }
     }
