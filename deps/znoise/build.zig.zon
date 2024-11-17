@@ -1,0 +1,12 @@
+.{
+    .name = "znoise",
+    .version = "0.3.0-dev",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "libs",
+        "src",
+        "README.md",
+        "LICENSE",
+    },
+}

@@ -1,42 +1,22 @@
 .{
     .name = "jok",
-    .version = "0.20.1",
+    .version = "0.22.0",
     .paths = .{
         "README.md",
         "build.zig",
         "build.zig.zon",
         "src",
+        "deps",
         "stubs",
         "examples",
     },
     .dependencies = .{
-        .system_sdk = .{
-            .url = "git+https://github.com/zig-gamedev/system_sdk.git#bf49d627a191e339f70e72668c8333717fb969b0",
-            .hash = "122047a9298c4c9dd43389d418d6826d469b192246ba0944102964cdc57f94c562df",
-        },
-        .zaudio = .{
-            .url = "git+https://github.com/zig-gamedev/zaudio.git#7c8a86c1b7a44b906e5de5f3ee18cdd0b8de018b",
-            .hash = "1220423c756c4d6f58d9465a597c2b9f982d929a56fa5ceab4b7626d0ea2685bcd6c",
-        },
-        .zgui = .{
-            .url = "git+https://github.com/zig-gamedev/zgui.git#4f8ee943b81da3e344244818e397993a8be0a74c",
-            .hash = "1220d390fd5d5cb51fd9c894e970c9d7d65e6124e0cebb83f8f1b86fe3f4f976c070",
-        },
-        .zmath = .{
-            .url = "git+https://github.com/zig-gamedev/zmath.git#c6aa077003b53aaa3929541201b83bc394ed7ddb",
-            .hash = "1220081d55b58b968d953db1afc2fb01b2f5733929144e69522461ce25fa6450d84e",
-        },
-        .zmesh = .{
-            .url = "git+https://github.com/zig-gamedev/zmesh.git#696f568f16ffd31eef477db4ac755acb31e7de80",
-            .hash = "1220f914e117966d9d2fc5aca141859a3ebf94b4f1c36b881f201958699568a75f70",
-        },
-        .znoise = .{
-            .url = "git+https://github.com/zig-gamedev/znoise.git#a52da9babfe6d14a0b3e3bfcaabb2907cc2c4e3b",
-            .hash = "12208e16c80366e2a2f8bd3f1c676b09bf47c157f4d0f0d6440555f9b74d8a9d79f7",
-        },
-        .ztracy = .{
-            .url = "git+https://github.com/zig-gamedev/ztracy.git#9d3f75cb2c2e44f1d99eda0cbd5142205e4c4e1d",
-            .hash = "122058b9caf1299bcb723b8567999154b18d82e0e896471e10ef56b0e60c6dda59c2",
-        },
+        .system_sdk = .{ .path = "deps/system_sdk" },
+        .zaudio = .{ .path = "deps/zaudio" },
+        .zgui = .{ .path = "deps/zgui" },
+        .zmath = .{ .path = "deps/zmath" },
+        .zmesh = .{ .path = "deps/zmesh" },
+        .znoise = .{ .path = "deps/znoise" },
+        .ztracy = .{ .path = "deps/ztracy" },
     },
 }

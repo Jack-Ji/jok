@@ -1,0 +1,12 @@
+.{
+    .name = "zmesh",
+    .version = "0.11.0-dev",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "libs",
+        "src",
+        "README.md",
+        "LICENSE",
+    },
+}

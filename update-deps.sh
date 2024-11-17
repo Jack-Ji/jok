@@ -4,7 +4,7 @@ function latest_hash() {
     git ls-remote -h $1 | grep '\<main\>' | awk '{print $1}'
 }
 
-function update_dep() {
+function update_dep_remote() {
     url=$1
     name=`basename $url`
     hash=`latest_hash $url`
@@ -17,12 +17,24 @@ function update_dep() {
     rm -f $name.tar.gz
 }
 
-update_dep https://github.com/zig-gamedev/system_sdk
-update_dep https://github.com/zig-gamedev/zaudio
-update_dep https://github.com/zig-gamedev/zgui
-update_dep https://github.com/zig-gamedev/zmath
-update_dep https://github.com/zig-gamedev/zmesh
-update_dep https://github.com/zig-gamedev/znoise
-update_dep https://github.com/zig-gamedev/ztracy
+function update_dep_local() {
+    url=$1
+    name=${url##*/}
+    rm -rf deps/$name
+    if git clone --depth 1 $url deps/$name; then
+        rm -rf deps/$name/.*
+        return
+    fi
+    echo "Failed to clone $url"
+    exit
+}
+
+update_dep_local https://github.com/zig-gamedev/system_sdk
+update_dep_local https://github.com/zig-gamedev/zaudio
+update_dep_local https://github.com/zig-gamedev/zgui
+update_dep_local https://github.com/zig-gamedev/zmath
+update_dep_local https://github.com/zig-gamedev/zmesh
+update_dep_local https://github.com/zig-gamedev/znoise
+update_dep_local https://github.com/zig-gamedev/ztracy
 
 rm -f *.tar.gz
