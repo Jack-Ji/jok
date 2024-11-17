@@ -10,6 +10,17 @@ pub fn build(b: *Build) void {
         if (skip) return;
     }
 
+    // Get skipped examples' names
+    var skipexamples = std.StringHashMap(bool).init(b.allocator);
+    if (b.option(
+        []const u8,
+        "skipexamples",
+        "skip given examples when building all. e.g. \"particle_life,intersection_2d\"",
+    )) |s| {
+        var it = std.mem.splitScalar(u8, s, ',');
+        while (it.next()) |name| skipexamples.put(name, true) catch unreachable;
+    }
+
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -25,7 +36,7 @@ pub fn build(b: *Build) void {
         .install_dir = .bin,
         .install_subdir = "assets",
     });
-    const examples = [_]struct { name: []const u8, opt: BuildOptions, add_example: bool = true }{
+    const examples = [_]struct { name: []const u8, opt: BuildOptions }{
         .{ .name = "hello", .opt = .{ .dep_name = null } },
         .{ .name = "imgui_demo", .opt = .{ .dep_name = null } },
         .{ .name = "sprite_benchmark", .opt = .{ .dep_name = null } },
@@ -42,7 +53,7 @@ pub fn build(b: *Build) void {
         .{ .name = "solar_system", .opt = .{ .dep_name = null } },
         .{ .name = "font_demo", .opt = .{ .dep_name = null } },
         .{ .name = "skybox", .opt = .{ .dep_name = null } },
-        .{ .name = "particle_life", .opt = .{ .dep_name = null, .use_nfd = true }, .add_example = false },
+        .{ .name = "particle_life", .opt = .{ .dep_name = null, .use_nfd = true } },
         .{ .name = "audio_demo", .opt = .{ .dep_name = null } },
         .{ .name = "easing", .opt = .{ .dep_name = null } },
         .{ .name = "svg", .opt = .{ .dep_name = null } },
@@ -79,7 +90,9 @@ pub fn build(b: *Build) void {
             "compile & run example " ++ demo.name,
         );
         run_step.dependOn(&run_cmd.step);
-        if (demo.add_example) build_examples.dependOn(&install_cmd.step);
+        if (skipexamples.get(demo.name) == null) {
+            build_examples.dependOn(&install_cmd.step);
+        }
     }
 }
 
