@@ -91,14 +91,14 @@ jobs:
         uses: carlosperate/download-file-action@v1.0.3
         if: ${{ matrix.target == 'x86_64-windows-gnu' }}
         with:
-          file-url: https://www.libsdl.org/release/SDL2-devel-2.0.18-mingw.tar.gz
+          file-url: https://www.libsdl.org/release/SDL2-devel-2.30.9-mingw.tar.gz
           file-name: SDL2.tar.gz
           location: .
       - name: Download SDL2 (Visual Studio)
         uses: carlosperate/download-file-action@v1.0.3
         if: ${{ matrix.target == 'x86_64-windows-msvc' }}
         with:
-          file-url: https://www.libsdl.org/release/SDL2-devel-2.0.18-VC.zip
+          file-url: https://www.libsdl.org/release/SDL2-devel-2.30.9-VC.zip
           file-name: SDL2.tar.gz
           location: .
       - name: Extract SDL2
@@ -112,14 +112,14 @@ jobs:
           contents: |
             {
               "x86_64-windows-gnu": {
-                "include": "SDL2-2.0.18/x86_64-w64-mingw32/include",
-                "libs": "SDL2-2.0.18/x86_64-w64-mingw32/lib",
-                "bin": "SDL2-2.0.18/x86_64-w64-mingw32/bin"
+                "include": "SDL2-2.30.9/x86_64-w64-mingw32/include",
+                "libs": "SDL2-2.30.9/x86_64-w64-mingw32/lib",
+                "bin": "SDL2-2.30.9/x86_64-w64-mingw32/bin"
               },
               "x86_64-windows-msvc": {
-                "include": "SDL2-2.0.18/include",
-                "libs": "SDL2-2.0.18/lib/x64",
-                "bin": "SDL2-2.0.18/lib/x64"
+                "include": "SDL2-2.30.9/include",
+                "libs": "SDL2-2.30.9/lib/x64",
+                "bin": "SDL2-2.30.9/lib/x64"
               }
             }
           write-mode: overwrite
@@ -150,7 +150,7 @@ jobs:
       - name: Download SDL2 (MinGW)
         uses: carlosperate/download-file-action@v1.0.3
         with:
-          file-url: https://www.libsdl.org/release/SDL2-devel-2.0.18-mingw.tar.gz
+          file-url: https://www.libsdl.org/release/SDL2-devel-2.30.9-mingw.tar.gz
           file-name: SDL2.tar.gz
           location: .
       - name: Extract SDL2
@@ -164,14 +164,14 @@ jobs:
           contents: |
             {
               "x86-windows-gnu": {
-                "include": "SDL2-2.0.18/i686-w64-mingw32/include",
-                "libs": "SDL2-2.0.18/i686-w64-mingw32/lib",
-                "bin": "SDL2-2.0.18/i686-w64-mingw32/bin"
+                "include": "SDL2-2.30.9/i686-w64-mingw32/include",
+                "libs": "SDL2-2.30.9/i686-w64-mingw32/lib",
+                "bin": "SDL2-2.30.9/i686-w64-mingw32/bin"
               },
               "x86_64-windows-gnu": {
-                "include": "SDL2-2.0.18/x86_64-w64-mingw32/include",
-                "libs": "SDL2-2.0.18/x86_64-w64-mingw32/lib",
-                "bin": "SDL2-2.0.18/x86_64-w64-mingw32/bin"
+                "include": "SDL2-2.30.9/x86_64-w64-mingw32/include",
+                "libs": "SDL2-2.30.9/x86_64-w64-mingw32/lib",
+                "bin": "SDL2-2.30.9/x86_64-w64-mingw32/bin"
               }
             }
           write-mode: overwrite

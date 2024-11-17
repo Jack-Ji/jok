@@ -25,7 +25,7 @@ pub fn build(b: *Build) void {
         .install_dir = .bin,
         .install_subdir = "assets",
     });
-    const examples = [_]struct { name: []const u8, opt: BuildOptions }{
+    const examples = [_]struct { name: []const u8, opt: BuildOptions, add_example: bool = true }{
         .{ .name = "hello", .opt = .{ .dep_name = null } },
         .{ .name = "imgui_demo", .opt = .{ .dep_name = null } },
         .{ .name = "sprite_benchmark", .opt = .{ .dep_name = null } },
@@ -42,7 +42,7 @@ pub fn build(b: *Build) void {
         .{ .name = "solar_system", .opt = .{ .dep_name = null } },
         .{ .name = "font_demo", .opt = .{ .dep_name = null } },
         .{ .name = "skybox", .opt = .{ .dep_name = null } },
-        .{ .name = "particle_life", .opt = .{ .dep_name = null, .use_nfd = true } },
+        .{ .name = "particle_life", .opt = .{ .dep_name = null, .use_nfd = true }, .add_example = false },
         .{ .name = "audio_demo", .opt = .{ .dep_name = null } },
         .{ .name = "easing", .opt = .{ .dep_name = null } },
         .{ .name = "svg", .opt = .{ .dep_name = null } },
@@ -79,7 +79,7 @@ pub fn build(b: *Build) void {
             "compile & run example " ++ demo.name,
         );
         run_step.dependOn(&run_cmd.step);
-        build_examples.dependOn(&install_cmd.step);
+        if (demo.add_example) build_examples.dependOn(&install_cmd.step);
     }
 }
 
