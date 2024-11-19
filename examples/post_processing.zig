@@ -12,8 +12,7 @@ var camera: j3d.Camera = undefined;
 var skybox_textures: [6]jok.Texture = undefined;
 var appctx: jok.Context = undefined;
 
-fn ppCallback(pos: jok.Point, data: ?*anyopaque) ?jok.Color {
-    _ = data;
+fn ppCallback(pos: jok.Point, _: ?*anyopaque, _: ?*anyopaque) ?jok.Color {
     const t = appctx.seconds();
     return jok.Color{
         .r = @intFromFloat((1.0 + @cos(t * pos.x)) * 125),

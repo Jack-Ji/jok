@@ -43,8 +43,9 @@ pub const EasingType = enum(u8) {
 pub fn EasingSystem(comptime T: type) type {
     return struct {
         pub const Finish = struct {
-            callback: *const fn (v: *T, data: ?*anyopaque) void,
-            ptr: ?*anyopaque = null,
+            callback: *const fn (v: *T, data1: ?*anyopaque, data2: ?*anyopaque) void,
+            data1: ?*anyopaque = null,
+            data2: ?*anyopaque = null,
         };
         const EasingApplyFn = *const fn (x: f32, from: T, to: T) T;
         const EasingValue = struct {
@@ -98,7 +99,7 @@ pub fn EasingSystem(comptime T: type) type {
                 ev.v.* = ev.easing_apply_fn(x, ev.from, ev.to);
                 if (ev.life_passed >= ev.life_total) {
                     if (ev.finish) |fs| {
-                        fs.callback(ev.v, fs.ptr);
+                        fs.callback(ev.v, fs.data1, fs.data2);
                     }
                     _ = self.vars.swapRemove(i);
                 } else {

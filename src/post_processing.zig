@@ -4,12 +4,17 @@ const config = @import("config.zig");
 const jok = @import("jok.zig");
 
 /// Post-processing function, coordinate's range is [0-1]
-pub const PostProcessingFn = *const fn (pos: jok.Point, ptr: ?*anyopaque) ?jok.Color;
+pub const PostProcessingFn = *const fn (
+    pos: jok.Point,
+    data1: ?*anyopaque,
+    data2: ?*anyopaque,
+) ?jok.Color;
 
 pub const Actor = struct {
     ppfn: PostProcessingFn,
     region: ?jok.Region = null,
-    ptr: ?*anyopaque = null,
+    data1: ?*anyopaque = null,
+    data2: ?*anyopaque = null,
 };
 
 /// Post-processing effect
@@ -116,7 +121,7 @@ pub const PostProcessingEffect = struct {
                     if (ppa.ppfn(.{
                         .x = @as(f32, @floatFromInt(x)) / @as(f32, @floatFromInt(r.width)),
                         .y = @as(f32, @floatFromInt(y)) / @as(f32, @floatFromInt(r.height)),
-                    }, ppa.ptr)) |c| {
+                    }, ppa.data1, ppa.data2)) |c| {
                         self.vs[i].color = c;
                         self.vs[i + 1].color = c;
                         self.vs[i + 2].color = c;
@@ -133,7 +138,7 @@ pub const PostProcessingEffect = struct {
                 if (ppa.ppfn(.{
                     .x = self.vs[i].texcoord.x,
                     .y = self.vs[i].texcoord.y,
-                }, ppa.ptr)) |c| {
+                }, ppa.data1, ppa.data2)) |c| {
                     self.vs[i].color = c;
                     self.vs[i + 1].color = c;
                     self.vs[i + 2].color = c;

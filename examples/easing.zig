@@ -43,7 +43,7 @@ const EasingBlock = struct {
                 .wait_time = 1,
                 .finish = .{
                     .callback = struct {
-                        fn call(_: *jok.Point, ptr: ?*anyopaque) void {
+                        fn call(_: *jok.Point, ptr: ?*anyopaque, _: ?*anyopaque) void {
                             jok.io.pushEvent(
                                 finish_event,
                                 0,
@@ -52,7 +52,7 @@ const EasingBlock = struct {
                             ) catch unreachable;
                         }
                     }.call,
-                    .ptr = @ptrCast(self),
+                    .data1 = @ptrCast(self),
                 },
             },
         );
