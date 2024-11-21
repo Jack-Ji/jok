@@ -74,14 +74,14 @@ pub fn setToRotateByPoint(self: *Self, p: jok.Point, radian: f32) void {
 }
 
 pub fn setToRotateToVec(self: *Self, v: jok.Point) void {
-    self.mat = zmath.rotationZ(math.atan2(f32, v.y, v.x));
+    self.mat = zmath.rotationZ(math.atan2(v.y, v.x));
 }
 
 pub fn setToRotateToVecByPoint(self: *Self, p: jok.Point, v: jok.Point) void {
     self.mat = zmath.mul(
         zmath.mul(
             zmath.translation(-p.x, -p.y, 0),
-            zmath.rotationZ(math.atan2(f32, v.y, v.x)),
+            zmath.rotationZ(math.atan2(v.y, v.x)),
         ),
         zmath.translation(p.x, p.y, 0),
     );
@@ -146,7 +146,7 @@ pub fn rotateByPoint(self: Self, p: jok.Point, radian: f32) Self {
 
 pub fn rotateToVec(self: Self, v: jok.Point) Self {
     return .{
-        .mat = zmath.mul(self.mat, zmath.rotationZ(math.atan2(f32, v.y, v.x))),
+        .mat = zmath.mul(self.mat, zmath.rotationZ(math.atan2(v.y, v.x))),
     };
 }
 
@@ -157,7 +157,7 @@ pub fn rotateToVecByPoint(self: Self, v: jok.Point, p: jok.Point) Self {
             zmath.mul(
                 zmath.mul(
                     zmath.translation(-p.x, -p.y, 0),
-                    zmath.rotationZ(math.atan2(f32, v.y, v.x)),
+                    zmath.rotationZ(math.atan2(v.y, v.x)),
                 ),
                 zmath.translation(p.x, p.y, 0),
             ),
