@@ -1,5 +1,5 @@
-/// Easing system
-/// Checkout link: https://easings.net
+/// Easing System
+/// https://easings.net
 const std = @import("std");
 const math = std.math;
 const assert = std.debug.assert;

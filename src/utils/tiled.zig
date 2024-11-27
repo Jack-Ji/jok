@@ -1,3 +1,5 @@
+/// Tiled Editor
+/// https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
 const std = @import("std");
 const assert = std.debug.assert;
 const xml = @import("xml.zig");
