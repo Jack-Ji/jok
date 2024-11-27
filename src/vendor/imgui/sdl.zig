@@ -32,10 +32,6 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     zgui.io.setConfigFlags(.{ .no_mouse_cursor_change = true });
 
     zgui.plot.init();
-
-    // Initialize imgui's internal state
-    newFrame(ctx);
-    draw(ctx);
 }
 
 pub fn deinit() void {

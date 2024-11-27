@@ -172,7 +172,7 @@ pub const braille = [_][2]u32{
     .{ 0x2800, 0x28FF },
 };
 
-fn genRanges(
+pub fn genRanges(
     comptime base_ranges: []const [2]u32,
     comptime base_codepoint: u32,
     comptime offsets: []const u32,
@@ -187,7 +187,7 @@ fn genRanges(
     return ranges;
 }
 
-fn genRanges2(comptime codepoints: []const u32) [codepoints.len][2]u32 {
+pub fn genRanges2(comptime codepoints: []const u32) [codepoints.len][2]u32 {
     var ranges: [codepoints.len][2]u32 = undefined;
     for (codepoints, 0..) |c, i| {
         ranges[i][0] = c;
