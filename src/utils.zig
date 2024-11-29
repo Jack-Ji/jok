@@ -13,6 +13,9 @@ pub const pathfind = @import("utils/pathfind.zig");
 /// Easing utils
 pub const easing = @import("utils/easing.zig");
 
+/// Timer utils
+pub const timer = @import("utils/timer.zig");
+
 /// Async tools
 pub const asynctool = @import("utils/async.zig");
 

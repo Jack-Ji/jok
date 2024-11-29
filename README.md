@@ -33,6 +33,7 @@ A minimal 2d/3d game framework for zig.
 * 3D particle system
 * 3D scene management
 * Friendly easing system
+* Friendly timer system
 * TrueType support, atlas generation/save/load
 * SVG loading/rendering
 * Sound/Music playing/mixing
