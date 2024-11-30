@@ -1,6 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
+const internal = @import("internal.zig");
 const Sprite = @import("Sprite.zig");
 const Self = @This();
 
@@ -35,13 +36,13 @@ pub fn destroy(self: *Self) void {
 pub fn add(
     self: *Self,
     name: []const u8,
-    sprites: []const Sprite,
+    frames: []const Frame,
     durations: []const f32,
     loop: bool,
 ) !void {
     assert(name.len > 0);
-    assert(sprites.len > 0);
-    assert(sprites.len == durations.len);
+    assert(frames.len > 0);
+    assert(frames.len == durations.len);
     if (self.animations.get(name) != null) {
         return error.NameUsed;
     }
@@ -49,7 +50,7 @@ pub fn add(
     errdefer self.allocator.free(dname);
     const anim = Animation{
         .name = dname,
-        .frames = try self.allocator.alloc(Frame, sprites.len),
+        .frames = try self.allocator.alloc(Frame, frames.len),
         .loop = loop,
         .play_index = 0,
         .passed_time = 0,
@@ -57,7 +58,7 @@ pub fn add(
     };
     errdefer self.allocator.free(anim.frames);
     for (anim.frames, 0..) |*f, i| {
-        f.sp = sprites[i];
+        f.data = frames[i];
         f.duration = durations[i];
     }
     try self.animations.put(dname, anim);
@@ -67,12 +68,12 @@ pub fn add(
 pub fn addSimple(
     self: *Self,
     name: []const u8,
-    sprites: []const Sprite,
+    frames: []const Frame.Data,
     fps: f32,
     loop: bool,
 ) !void {
     assert(name.len > 0);
-    assert(sprites.len > 0);
+    assert(frames.len > 0);
     assert(fps > 0);
     if (self.animations.get(name) != null) {
         return error.NameUsed;
@@ -81,7 +82,7 @@ pub fn addSimple(
     errdefer self.allocator.free(dname);
     const anim = Animation{
         .name = dname,
-        .frames = try self.allocator.alloc(Frame, sprites.len),
+        .frames = try self.allocator.alloc(Frame, frames.len),
         .loop = loop,
         .play_index = 0,
         .passed_time = 0,
@@ -90,7 +91,7 @@ pub fn addSimple(
     errdefer self.allocator.free(anim.frames);
     const duration = 1.0 / fps;
     for (anim.frames, 0..) |*f, i| {
-        f.sp = sprites[i];
+        f.data = frames[i];
         f.duration = duration;
     }
     try self.animations.put(dname, anim);
@@ -129,7 +130,7 @@ pub fn update(self: *Self, delta_tick: f32) void {
 }
 
 /// Get animation's current frame
-pub fn getCurrentFrame(self: Self, name: []const u8) !Sprite {
+pub fn getCurrentFrame(self: Self, name: []const u8) !Frame.Data {
     if (self.animations.get(name)) |anim| {
         return anim.getCurrentFrame();
     }
@@ -153,7 +154,11 @@ pub fn reset(self: *Self, name: []const u8) !void {
 }
 
 pub const Frame = struct {
-    sp: Sprite,
+    pub const Data = union(enum) {
+        sp: Sprite,
+        dcmd: internal.DrawCmd,
+    };
+    data: Data,
     duration: f32,
 };
 
@@ -172,8 +177,8 @@ pub const Animation = struct {
         anim.is_over = false;
     }
 
-    pub fn getCurrentFrame(self: Animation) Sprite {
-        return self.frames[self.play_index].sp;
+    pub fn getCurrentFrame(self: Animation) Frame.Data {
+        return self.frames[self.play_index].data;
     }
 
     pub fn update(anim: *Animation, delta_tick: f32) void {

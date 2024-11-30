@@ -31,30 +31,30 @@ pub fn init(ctx: jok.Context) !void {
     const player = sheet.getSpriteByName("player").?;
     try as.addSimple(
         "player_left_right",
-        &[_]j2d.Sprite{
-            player.getSubSprite(4 * 16, 0, 16, 16),
-            player.getSubSprite(5 * 16, 0, 16, 16),
-            player.getSubSprite(3 * 16, 0, 16, 16),
+        &.{
+            .{ .sp = player.getSubSprite(4 * 16, 0, 16, 16) },
+            .{ .sp = player.getSubSprite(5 * 16, 0, 16, 16) },
+            .{ .sp = player.getSubSprite(3 * 16, 0, 16, 16) },
         },
         6,
         false,
     );
     try as.addSimple(
         "player_up",
-        &[_]j2d.Sprite{
-            player.getSubSprite(7 * 16, 0, 16, 16),
-            player.getSubSprite(8 * 16, 0, 16, 16),
-            player.getSubSprite(6 * 16, 0, 16, 16),
+        &.{
+            .{ .sp = player.getSubSprite(7 * 16, 0, 16, 16) },
+            .{ .sp = player.getSubSprite(8 * 16, 0, 16, 16) },
+            .{ .sp = player.getSubSprite(6 * 16, 0, 16, 16) },
         },
         6,
         false,
     );
     try as.addSimple(
         "player_down",
-        &[_]j2d.Sprite{
-            player.getSubSprite(1 * 16, 0, 16, 16),
-            player.getSubSprite(2 * 16, 0, 16, 16),
-            player.getSubSprite(0 * 16, 0, 16, 16),
+        &.{
+            .{ .sp = player.getSubSprite(1 * 16, 0, 16, 16) },
+            .{ .sp = player.getSubSprite(2 * 16, 0, 16, 16) },
+            .{ .sp = player.getSubSprite(0 * 16, 0, 16, 16) },
         },
         6,
         false,
@@ -110,7 +110,7 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
     try b.sprite(
-        try as.getCurrentFrame(animation),
+        (try as.getCurrentFrame(animation)).sp,
         .{
             .pos = pos,
             .flip_h = flip_h,
