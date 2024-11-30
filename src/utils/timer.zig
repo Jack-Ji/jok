@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const sdl = jok.sdl;
@@ -40,7 +41,7 @@ pub fn GenericTimer(comptime fun: anytype) type {
             if (controller) |c| {
                 self.controller = c;
                 self.node = try c.addTimer(self.timer());
-            } else {
+            } else if (!builtin.is_test) {
                 self.timer_id = sdl.SDL_AddTimer(
                     self.args[0],
                     call,
@@ -55,7 +56,7 @@ pub fn GenericTimer(comptime fun: anytype) type {
             if (self.controller) |c| {
                 assert(self.node != null);
                 c.removeNode(self.node.?);
-            } else {
+            } else if (!builtin.is_test) {
                 assert(self.timer_id != null);
                 _ = sdl.SDL_RemoveTimer(self.timer_id.?);
             }
@@ -133,7 +134,7 @@ pub const TimerController = struct {
     pub fn update(c: *TimerController, delta_seconds: f32) void {
         var delta_ms: u32 = @intFromFloat(delta_seconds * 1000);
 
-        // Update timers' left time
+        // Update timers' state
         var node = c.tlist.first;
         while (node) |n| {
             if (n.data.ms >= delta_ms) {
@@ -231,3 +232,33 @@ const Timer = struct {
         return t.vtable.doCallback(t.ptr);
     }
 };
+
+test "timer" {
+    const S = struct {
+        var sum: usize = 0;
+
+        fn fun(interval: u32, a: u64) u32 {
+            sum += a;
+            return interval - 1;
+        }
+    };
+    var controller = try TimerController.create(std.testing.allocator);
+    defer controller.destroy();
+    _ = try GenericTimer(S.fun).create(
+        std.testing.allocator,
+        S.fun,
+        .{ 10, 100 },
+        controller,
+    );
+    _ = try GenericTimer(S.fun).create(
+        std.testing.allocator,
+        S.fun,
+        .{ 5, 10 },
+        controller,
+    );
+    controller.update(0.010);
+    controller.update(0.009);
+    controller.update(0.008);
+    controller.update(0.007);
+    try std.testing.expectEqual(440, S.sum);
+}
