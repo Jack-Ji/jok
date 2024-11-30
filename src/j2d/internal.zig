@@ -121,13 +121,13 @@ pub const ConvexPolyCmd = struct {
     points: std.ArrayList(jok.Vertex),
     color: u32,
     thickness: f32,
-    transform: AffineTransform,
+    transform: AffineTransform = AffineTransform.init(),
 };
 
 pub const ConvexPolyFillCmd = struct {
     points: std.ArrayList(jok.Vertex),
     texture: ?jok.Texture,
-    transform: AffineTransform,
+    transform: AffineTransform = AffineTransform.init(),
 };
 
 pub const BezierCubicCmd = struct {
@@ -155,7 +155,7 @@ pub const PolylineCmd = struct {
     color: u32,
     thickness: f32,
     closed: bool,
-    transform: AffineTransform,
+    transform: AffineTransform = AffineTransform.init(),
 };
 
 pub const PathCmd = struct {
@@ -211,7 +211,7 @@ pub const PathCmd = struct {
             .color = 0xff_ff_ff_ff,
             .thickness = 1,
             .closed = false,
-            .transform = undefined,
+            .transform = AffineTransform.init(),
         };
     }
 
@@ -407,7 +407,7 @@ pub const DrawCmd = struct {
                     dl.primWriteVtx(
                         .{ pos.x, pos.y },
                         if (c.texture != null) .{ p.texcoord.x, p.texcoord.y } else white_pixel_uv,
-                        imgui.sdl.convertColor(p.color),
+                        p.color.toInternalColor(),
                     );
                 }
                 i = 2;

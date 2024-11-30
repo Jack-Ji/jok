@@ -110,14 +110,6 @@ pub fn renderDrawList(ctx: jok.Context, dl: zgui.DrawList) void {
     }
 }
 
-/// Convert SDL color to imgui integer
-pub inline fn convertColor(color: jok.Color) u32 {
-    return @as(u32, color.r) |
-        (@as(u32, color.g) << 8) |
-        (@as(u32, color.b) << 16) |
-        (@as(u32, color.a) << 24);
-}
-
 // These functions are defined in `imgui_impl_sdl2.cpp` and 'imgui_impl_sdlrenderer2.cpp`
 extern fn ImGui_ImplSDL2_InitForSDLRenderer(window: *const anyopaque, renderer: *const anyopaque) bool;
 extern fn ImGui_ImplSDL2_NewFrame() void;

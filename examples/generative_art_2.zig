@@ -49,15 +49,14 @@ pub fn draw(ctx: jok.Context) !void {
     }
     path.end(.stroke, .{ .closed = true });
 
-    const transform = j2d.AffineTransform.init()
+    var b = try batchpool.new(.{});
+    defer b.submit();
+    try b.pushTransform(j2d.AffineTransform.init()
         .scale(.{ .x = scale, .y = scale })
         .translate(.{
         .x = ctx.getCanvasSize().getWidthFloat() / 2,
         .y = ctx.getCanvasSize().getHeightFloat() / 2,
-    });
-
-    var b = try batchpool.new(.{ .transform = transform });
-    defer b.submit();
+    }));
     try b.path(path, .{});
 }
 

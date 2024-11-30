@@ -175,7 +175,7 @@ pub fn draw(ctx: jok.Context) !void {
             const translate_m = zmath.translation(center_x, center_y, 0);
             const offset_transformed = zmath.mul(zmath.mul(offset_origin, rotate_m), translate_m);
 
-            b.setTransform(
+            try b.pushTransform(
                 j2d.AffineTransform.init().scale(.{
                     .x = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
                     .y = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
@@ -184,6 +184,7 @@ pub fn draw(ctx: jok.Context) !void {
                     .y = offset_transformed[1],
                 }),
             );
+            defer b.popTransform();
             try b.rectFilledMultiColor(
                 .{ .x = -10, .y = -10, .width = 20, .height = 20 },
                 jok.Color.white,
@@ -194,7 +195,6 @@ pub fn draw(ctx: jok.Context) !void {
             );
         }
 
-        b.setTransform(j2d.AffineTransform.init());
         text_draw_pos.x += text_speed.x * ctx.deltaSeconds();
         text_draw_pos.y += text_speed.y * ctx.deltaSeconds();
         const atlas = try font.DebugFont.getAtlas(ctx, 50);

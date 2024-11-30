@@ -76,7 +76,8 @@ pub fn draw(ctx: jok.Context) !void {
                 .{ .x = csz.getWidthFloat() / 2, .y = csz.getHeightFloat() / 2 },
                 std.math.degreesToRadians(rot + 360.0 * @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(ncircle))),
             );
-            b.setTransform(tr);
+            try b.pushTransform(tr);
+            defer b.popTransform();
             try b.circleFilled(.{ .x = 0, .y = 0 }, 10, jok.Color.green, .{});
         }
     }

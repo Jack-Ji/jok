@@ -184,6 +184,14 @@ pub const Color = extern struct {
         };
     }
 
+    /// Used by ImGui's draw comand
+    pub inline fn toInternalColor(c: Color) u32 {
+        return @as(u32, c.r) |
+            (@as(u32, c.g) << 8) |
+            (@as(u32, c.b) << 16) |
+            (@as(u32, c.a) << 24);
+    }
+
     /// parses a hex string color literal.
     /// allowed formats are:
     /// - `RGB`

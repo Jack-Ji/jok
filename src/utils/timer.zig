@@ -102,8 +102,8 @@ pub fn GenericTimer(comptime fun: anytype) type {
     };
 }
 
-/// Timer controller for updating timers' states (NOTE: it's not thread-safe!)
-/// Use it when you want to invoke timers' callbacks in particular threads (e.g. main-thread)
+/// Timer controller for updating timers' states (Be warned: it's not thread-safe!)
+/// Use it when you want to invoke timers' callbacks in particular thread (e.g. main-thread)
 pub const TimerController = struct {
     const TimerData = struct {
         ms: u32,

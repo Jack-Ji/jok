@@ -115,7 +115,7 @@ pub fn render(
                 .uv2 = .{ .x = uv1.x, .y = uv0.y },
                 .uv3 = uv1,
                 .uv4 = .{ .x = uv0.x, .y = uv1.y },
-                .tint_color = imgui.sdl.convertColor(opt.tint_color),
+                .tint_color = opt.tint_color.toInternalColor(),
             },
         },
         .depth = opt.depth,

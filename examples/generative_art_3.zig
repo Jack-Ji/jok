@@ -58,7 +58,7 @@ pub fn draw(ctx: jok.Context) !void {
         });
 
         // top-left
-        b.setTransform(
+        try b.pushTransform(
             transform.rotateByOrigin(-angle_step * step)
                 .translate(.{
                 .x = fb_size.getWidthFloat() / 4,
@@ -66,9 +66,10 @@ pub fn draw(ctx: jok.Context) !void {
             }),
         );
         try b.rect(rect, jok.Color.white, .{});
+        b.popTransform();
 
         // top-right
-        b.setTransform(
+        try b.pushTransform(
             transform.rotateByOrigin(angle_step * step)
                 .translate(.{
                 .x = fb_size.getWidthFloat() * 3 / 4,
@@ -76,9 +77,10 @@ pub fn draw(ctx: jok.Context) !void {
             }),
         );
         try b.rect(rect, jok.Color.white, .{});
+        b.popTransform();
 
         // bottom-right
-        b.setTransform(
+        try b.pushTransform(
             transform.rotateByOrigin(-angle_step * step)
                 .translate(.{
                 .x = fb_size.getWidthFloat() * 3 / 4,
@@ -86,9 +88,10 @@ pub fn draw(ctx: jok.Context) !void {
             }),
         );
         try b.rect(rect, jok.Color.white, .{});
+        b.popTransform();
 
         // bottom-left
-        b.setTransform(
+        try b.pushTransform(
             transform.rotateByOrigin(angle_step * step)
                 .translate(.{
                 .x = fb_size.getWidthFloat() / 4,
@@ -96,6 +99,7 @@ pub fn draw(ctx: jok.Context) !void {
             }),
         );
         try b.rect(rect, jok.Color.white, .{});
+        b.popTransform();
     }
 }
 

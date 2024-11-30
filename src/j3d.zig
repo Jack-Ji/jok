@@ -226,7 +226,7 @@ pub const Batch = struct {
                     dl.primWriteVtx(
                         .{ p.pos.x, p.pos.y },
                         if (texture != null) .{ p.texcoord.x, p.texcoord.y } else white_pixel_uv,
-                        imgui.sdl.convertColor(p.color),
+                        p.color.toInternalColor(),
                     );
                 }
                 for (0..indices.len) |i| {
@@ -366,7 +366,7 @@ pub const Batch = struct {
         assert(vertices.len == depths.len);
 
         if (self.wireframe_color) |color| {
-            const col = imgui.sdl.convertColor(color);
+            const col = color.toInternalColor();
             var i: usize = 2;
             while (i < indices.len) : (i += 3) {
                 self.draw_list.addTriangle(.{
@@ -394,7 +394,7 @@ pub const Batch = struct {
                                 .{ p.texcoord.x, p.texcoord.y }
                             else
                                 white_pixel_uv,
-                            imgui.sdl.convertColor(p.color),
+                            p.color.toInternalColor(),
                         );
                     }
                     for (indices) |j| {
