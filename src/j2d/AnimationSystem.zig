@@ -37,12 +37,10 @@ pub fn add(
     self: *Self,
     name: []const u8,
     frames: []const Frame,
-    durations: []const f32,
     loop: bool,
 ) !void {
     assert(name.len > 0);
     assert(frames.len > 0);
-    assert(frames.len == durations.len);
     if (self.animations.get(name) != null) {
         return error.NameUsed;
     }
@@ -55,12 +53,10 @@ pub fn add(
         .play_index = 0,
         .passed_time = 0,
         .is_over = false,
+        .is_stopped = false,
     };
     errdefer self.allocator.free(anim.frames);
-    for (anim.frames, 0..) |*f, i| {
-        f.data = frames[i];
-        f.duration = durations[i];
-    }
+    @memcpy(anim.frames, frames);
     try self.animations.put(dname, anim);
 }
 
@@ -87,6 +83,7 @@ pub fn addSimple(
         .play_index = 0,
         .passed_time = 0,
         .is_over = false,
+        .is_stopped = false,
     };
     errdefer self.allocator.free(anim.frames);
     const duration = 1.0 / fps;
@@ -145,10 +142,28 @@ pub fn isOver(self: Self, name: []const u8) !bool {
     return error.NameNotExist;
 }
 
-/// Reset animation's status
+/// Reset animation's status (clear over/stop state)
 pub fn reset(self: *Self, name: []const u8) !void {
     if (self.animations.getPtr(name)) |anim| {
         return anim.reset();
+    }
+    return error.NameNotExist;
+}
+
+/// Set animation's stop state
+pub fn setStop(self: *Self, name: []const u8, b: bool) !void {
+    if (self.animations.getPtr(name)) |anim| {
+        anim.is_stopped = b;
+        return;
+    }
+    return error.NameNotExist;
+}
+
+/// Set animation's loop state
+pub fn setLoop(self: *Self, name: []const u8, b: bool) !void {
+    if (self.animations.getPtr(name)) |anim| {
+        anim.loop = b;
+        return;
     }
     return error.NameNotExist;
 }
@@ -170,19 +185,21 @@ pub const Animation = struct {
     play_index: u32,
     passed_time: f32,
     is_over: bool,
+    is_stopped: bool,
 
     pub fn reset(anim: *Animation) void {
         anim.play_index = 0;
         anim.passed_time = 0;
         anim.is_over = false;
+        anim.is_stopped = false;
     }
 
     pub fn getCurrentFrame(self: Animation) Frame.Data {
         return self.frames[self.play_index].data;
     }
 
-    pub fn update(anim: *Animation, delta_tick: f32) void {
-        if (anim.is_over) return;
+    fn update(anim: *Animation, delta_tick: f32) void {
+        if (anim.is_over or anim.is_stopped) return;
         anim.passed_time += delta_tick;
         while (anim.passed_time >= anim.frames[anim.play_index].duration) {
             anim.passed_time -= anim.frames[anim.play_index].duration;
