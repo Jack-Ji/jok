@@ -43,7 +43,7 @@ pub fn init(ctx: jok.Context) !void {
             .{ .sp = player.getSubSprite(3 * 16, 0, 16, 16) },
         },
         6,
-        false,
+        .{},
     );
     try as.addSimple(
         "player_up",
@@ -53,7 +53,7 @@ pub fn init(ctx: jok.Context) !void {
             .{ .sp = player.getSubSprite(6 * 16, 0, 16, 16) },
         },
         6,
-        false,
+        .{},
     );
     try as.addSimple(
         "player_down",
@@ -63,18 +63,19 @@ pub fn init(ctx: jok.Context) !void {
             .{ .sp = player.getSubSprite(0 * 16, 0, 16, 16) },
         },
         6,
-        false,
+        .{},
     );
-    var dcmds: [10]j2d.AnimationSystem.Frame.Data = undefined;
-    for (0..10) |i| {
+    var dcmds: [20]j2d.AnimationSystem.Frame.Data = undefined;
+    for (0..dcmds.len) |i| {
         dcmds[i] = .{
             .dcmd = .{
                 .cmd = .{
-                    .circle_fill = .{
+                    .circle = .{
                         .p = .{ .x = 0, .y = 0 },
-                        .radius = @floatFromInt(i * 10),
-                        .color = jok.Color.rgb(@intCast(i * 48 % 255), @intCast(i * 16 % 255), @intCast(i * 32 % 255)).toInternalColor(),
-                        .num_segments = @intCast(i),
+                        .radius = @floatFromInt(@abs(100 - @as(i32, @intCast(i)) * 10)),
+                        .color = jok.Color.rgb(@intCast(i * 50 % 255), @intCast(i * 50 % 255), 0).toInternalColor(),
+                        .num_segments = 20,
+                        .thickness = 6,
                     },
                 },
                 .depth = 0.5,
@@ -84,8 +85,8 @@ pub fn init(ctx: jok.Context) !void {
     try as.addSimple(
         "player_circle_bg",
         &dcmds,
-        8,
-        true,
+        10,
+        .{ .loop = true },
     );
 }
 
@@ -138,7 +139,7 @@ pub fn draw(ctx: jok.Context) !void {
             .scale = .{ .x = 4, .y = 4 },
         },
     );
-    {
+    if (!try as.isStopped("player_circle_bg")) {
         try b.pushTransform(j2d.AffineTransform.init().translate(pos));
         defer b.popTransform();
         try b.pushDrawCommand(((try as.getCurrentFrame("player_circle_bg")).dcmd));

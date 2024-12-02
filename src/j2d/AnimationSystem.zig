@@ -39,12 +39,17 @@ pub fn destroy(self: *Self) void {
     self.allocator.destroy(self);
 }
 
+pub const AnimOption = struct {
+    wait_time: f32 = 0,
+    loop: bool = false,
+};
+
 /// Add animation, each frame has its own duration
 pub fn add(
     self: *Self,
     name: []const u8,
     frames: []const Frame,
-    loop: bool,
+    opt: AnimOption,
 ) !void {
     assert(name.len > 0);
     assert(frames.len > 0);
@@ -56,7 +61,8 @@ pub fn add(
     const anim = Animation{
         .name = dname,
         .frames = try self.allocator.alloc(Frame, frames.len),
-        .loop = loop,
+        .wait_time = opt.wait_time,
+        .loop = opt.loop,
         .play_index = 0,
         .passed_time = 0,
         .is_over = false,
@@ -73,7 +79,7 @@ pub fn addSimple(
     name: []const u8,
     frames: []const Frame.Data,
     fps: f32,
-    loop: bool,
+    opt: AnimOption,
 ) !void {
     assert(name.len > 0);
     assert(frames.len > 0);
@@ -86,7 +92,8 @@ pub fn addSimple(
     const anim = Animation{
         .name = dname,
         .frames = try self.allocator.alloc(Frame, frames.len),
-        .loop = loop,
+        .wait_time = opt.wait_time,
+        .loop = opt.loop,
         .play_index = 0,
         .passed_time = 0,
         .is_over = false,
@@ -152,10 +159,31 @@ pub fn isOver(self: Self, name: []const u8) !bool {
     return error.NameNotExist;
 }
 
+/// Get animation's stop state
+pub fn isStopped(self: Self, name: []const u8) !bool {
+    if (self.animations.get(name)) |anim| {
+        return anim.is_stopped;
+    }
+    return error.NameNotExist;
+}
+
+/// Get animation's wait state
+pub fn isWaiting(self: Self, name: []const u8) !bool {
+    if (self.animations.get(name)) |anim| {
+        return anim.wait_time > 0;
+    }
+    return error.NameNotExist;
+}
+
 /// Reset animation's status (clear over/stop state)
 pub fn reset(self: *Self, name: []const u8) !void {
+    try self.resetWait(name, 0);
+}
+
+/// Reset animation's status (clear over/stop state), with wait time
+pub fn resetWait(self: *Self, name: []const u8, wait_time: f32) !void {
     if (self.animations.getPtr(name)) |anim| {
-        return anim.reset();
+        return anim.reset(wait_time);
     }
     return error.NameNotExist;
 }
@@ -191,13 +219,15 @@ pub const Frame = struct {
 pub const Animation = struct {
     name: []u8,
     frames: []Frame,
+    wait_time: f32,
     loop: bool,
     play_index: u32,
     passed_time: f32,
     is_over: bool,
     is_stopped: bool,
 
-    pub fn reset(anim: *Animation) void {
+    pub fn reset(anim: *Animation, wait_time: f32) void {
+        anim.wait_time = wait_time;
         anim.play_index = 0;
         anim.passed_time = 0;
         anim.is_over = false;
@@ -211,6 +241,11 @@ pub const Animation = struct {
     fn update(anim: *Animation, delta_tick: f32) void {
         if (anim.is_over or anim.is_stopped) return;
         anim.passed_time += delta_tick;
+        if (anim.passed_time < anim.wait_time) return;
+        if (anim.wait_time > 0) {
+            anim.passed_time -= anim.wait_time;
+            anim.wait_time = 0; // only take effect once
+        }
         while (anim.passed_time >= anim.frames[anim.play_index].duration) {
             anim.passed_time -= anim.frames[anim.play_index].duration;
             anim.play_index += 1;
