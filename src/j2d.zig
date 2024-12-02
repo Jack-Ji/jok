@@ -9,6 +9,7 @@ const zmesh = jok.zmesh;
 const log = std.log.scoped(.jok);
 
 const internal = @import("j2d/internal.zig");
+pub const DrawCmd = internal.DrawCmd;
 pub const AffineTransform = @import("j2d/AffineTransform.zig");
 pub const Sprite = @import("j2d/Sprite.zig");
 pub const SpriteSheet = @import("j2d/SpriteSheet.zig");
@@ -48,7 +49,7 @@ pub const Batch = struct {
     is_submitted: bool = false,
     ctx: jok.Context,
     draw_list: imgui.DrawList,
-    draw_commands: std.ArrayList(internal.DrawCmd),
+    draw_commands: std.ArrayList(DrawCmd),
     trs_stack: std.ArrayList(AffineTransform),
     depth_sort: DepthSortMethod,
     blend_mode: jok.BlendMode,
@@ -58,7 +59,7 @@ pub const Batch = struct {
 
     fn init(_ctx: jok.Context) Batch {
         const _draw_list = imgui.createDrawList();
-        const _draw_commands = std.ArrayList(internal.DrawCmd).init(_ctx.allocator());
+        const _draw_commands = std.ArrayList(DrawCmd).init(_ctx.allocator());
         const _all_tex = std.AutoHashMap(*anyopaque, bool).init(_ctx.allocator());
         return .{
             .ctx = _ctx,
@@ -128,11 +129,11 @@ pub const Batch = struct {
         }
     }
 
-    fn ascendCompare(_: ?*anyopaque, lhs: internal.DrawCmd, rhs: internal.DrawCmd) bool {
+    fn ascendCompare(_: ?*anyopaque, lhs: DrawCmd, rhs: DrawCmd) bool {
         return lhs.compare(rhs, true);
     }
 
-    fn descendCompare(_: ?*anyopaque, lhs: internal.DrawCmd, rhs: internal.DrawCmd) bool {
+    fn descendCompare(_: ?*anyopaque, lhs: DrawCmd, rhs: DrawCmd) bool {
         return lhs.compare(rhs, false);
     }
 
@@ -149,13 +150,13 @@ pub const Batch = struct {
             switch (self.depth_sort) {
                 .none => {},
                 .back_to_forth => std.sort.pdq(
-                    internal.DrawCmd,
+                    DrawCmd,
                     self.draw_commands.items,
                     @as(?*anyopaque, null),
                     descendCompare,
                 ),
                 .forth_to_back => std.sort.pdq(
-                    internal.DrawCmd,
+                    DrawCmd,
                     self.draw_commands.items,
                     @as(?*anyopaque, null),
                     ascendCompare,
@@ -1054,7 +1055,7 @@ pub const Batch = struct {
         });
     }
 
-    pub fn pushDrawCommand(self: *Batch, _dcmd: internal.DrawCmd) !void {
+    pub fn pushDrawCommand(self: *Batch, _dcmd: DrawCmd) !void {
         var dcmd = _dcmd;
         switch (dcmd.cmd) {
             .quad_image => |*cmd| {
