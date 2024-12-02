@@ -10,7 +10,6 @@ pub const jok_window_size = jok.config.WindowSize{
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var point_easing_system: *easing.EasingSystem(jok.Point) = undefined;
 var blocks: [31]EasingBlock = undefined;
-var finish_event: u32 = undefined;
 
 const EasingBlock = struct {
     id: u32,
@@ -39,30 +38,27 @@ const EasingBlock = struct {
                 .x = 680,
                 .y = 1 + @as(f32, @floatFromInt(self.id)) * 25,
             },
-            .{
-                .wait_time = 1,
-                .finish = .{
-                    .callback = struct {
-                        fn call(_: *jok.Point, ptr: ?*anyopaque, _: ?*anyopaque) void {
-                            jok.io.pushEvent(
-                                finish_event,
-                                0,
-                                ptr,
-                                null,
-                            ) catch unreachable;
-                        }
-                    }.call,
-                    .data1 = @ptrCast(self),
-                },
-            },
+            .{ .wait_time = 1 },
         );
     }
 };
 
+fn finish_easing(v: *jok.Point, from: jok.Point, to: jok.Point, et: easing.EasingType) void {
+    point_easing_system.add(
+        v,
+        et,
+        easing.easePoint,
+        2,
+        to,
+        from,
+        .{ .wait_time = 1 },
+    ) catch unreachable;
+}
+
 pub fn init(ctx: jok.Context) !void {
     batchpool = try @TypeOf(batchpool).init(ctx);
-    finish_event = try jok.io.registerEvents(1);
     point_easing_system = try easing.EasingSystem(jok.Point).create(ctx.allocator());
+    try point_easing_system.sig.connect(finish_easing);
     for (&blocks, 0..) |*b, i| {
         b.* = .{
             .id = @intCast(i),
@@ -77,14 +73,7 @@ pub fn init(ctx: jok.Context) !void {
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
-
-    switch (e) {
-        .user => |ue| {
-            var b: *EasingBlock = @ptrCast(@alignCast(ue.data1.?));
-            try b.startEasing(point_easing_system);
-        },
-        else => {},
-    }
+    _ = e;
 }
 
 pub fn update(ctx: jok.Context) !void {

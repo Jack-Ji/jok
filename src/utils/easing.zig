@@ -5,6 +5,7 @@ const math = std.math;
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const zmath = jok.zmath;
+const signal = @import("signal.zig");
 
 pub const EasingType = enum(u8) {
     linear,
@@ -49,6 +50,7 @@ pub fn EasingSystem(comptime T: type) type {
         };
         const EasingApplyFn = *const fn (x: f32, from: T, to: T) T;
         const EasingValue = struct {
+            easing_type: EasingType,
             easing_fn: EasingFn,
             easing_apply_fn: EasingApplyFn,
             wait: f32,
@@ -59,22 +61,26 @@ pub fn EasingSystem(comptime T: type) type {
             to: T,
             finish: ?Finish,
         };
+        const EasingSignal = signal.Signal(&.{ *T, T, T, EasingType });
         const Self = @This();
 
         allocator: std.mem.Allocator,
         vars: std.ArrayList(EasingValue),
+        sig: *EasingSignal,
 
         pub fn create(allocator: std.mem.Allocator) !*Self {
             const self = try allocator.create(Self);
             self.* = .{
                 .allocator = allocator,
                 .vars = std.ArrayList(EasingValue).init(allocator),
+                .sig = try EasingSignal.create(allocator),
             };
             return self;
         }
 
         pub fn destroy(self: *Self) void {
             self.vars.deinit();
+            self.sig.destroy();
             self.allocator.destroy(self);
         }
 
@@ -101,6 +107,7 @@ pub fn EasingSystem(comptime T: type) type {
                     if (ev.finish) |fs| {
                         fs.callback(ev.v, fs.data1, fs.data2);
                     }
+                    self.sig.emit(.{ ev.v, ev.from, ev.to, ev.easing_type });
                     _ = self.vars.swapRemove(i);
                 } else {
                     i += 1;
@@ -125,6 +132,7 @@ pub fn EasingSystem(comptime T: type) type {
             assert(life > 0);
             assert(opt.wait_time >= 0);
             try self.vars.append(.{
+                .easing_type = easing_type,
                 .easing_fn = getEasingFn(easing_type),
                 .easing_apply_fn = easing_apply_fn,
                 .wait = opt.wait_time,
