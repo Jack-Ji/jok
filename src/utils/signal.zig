@@ -48,6 +48,7 @@ pub fn Signal(comptime types: []const type) type {
         }
 
         pub fn emit(self: @This(), args: ArgsType) void {
+            if (self.connected.count() == 0) return;
             var it = self.connected.keyIterator();
             while (it.next()) |fpp| {
                 _ = @call(.auto, fpp.*, args);

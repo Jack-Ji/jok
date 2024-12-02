@@ -88,7 +88,8 @@ pub fn EasingSystem(comptime T: type) type {
             if (self.vars.items.len == 0) return;
 
             var i: usize = 0;
-            while (i < self.vars.items.len) {
+            var size = self.vars.items.len;
+            while (i < size) {
                 var ev = &self.vars.items[i];
                 var delta_time = _delta_time;
                 if (ev.wait > 0) {
@@ -109,6 +110,7 @@ pub fn EasingSystem(comptime T: type) type {
                     }
                     self.sig.emit(.{ ev.v, ev.from, ev.to, ev.easing_type });
                     _ = self.vars.swapRemove(i);
+                    size -= 1;
                 } else {
                     i += 1;
                 }
