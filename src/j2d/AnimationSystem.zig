@@ -10,17 +10,23 @@ pub const Error = error{
     NameNotExist,
 };
 
+const AnimationSignal = jok.utils.signal.Signal(&.{[]const u8});
+
 // Memory allocator
 allocator: std.mem.Allocator,
 
 // Animations
 animations: std.StringHashMap(Animation),
 
+// Notify animation is over
+sig: *AnimationSignal,
+
 pub fn create(allocator: std.mem.Allocator) !*Self {
     const self = try allocator.create(Self);
     self.* = .{
         .allocator = allocator,
         .animations = std.StringHashMap(Animation).init(allocator),
+        .sig = try AnimationSignal.create(allocator),
     };
     return self;
 }
@@ -29,6 +35,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
 pub fn destroy(self: *Self) void {
     self.clear();
     self.animations.deinit();
+    self.sig.destroy();
     self.allocator.destroy(self);
 }
 
@@ -123,6 +130,9 @@ pub fn update(self: *Self, delta_tick: f32) void {
             continue;
         }
         entry.value_ptr.update(delta_tick);
+        if (entry.value_ptr.is_over) {
+            self.sig.emit(.{entry.key_ptr.*});
+        }
     }
 }
 

@@ -11,6 +11,11 @@ var animation: []const u8 = "player_down";
 var pos = jok.Point{ .x = 200, .y = 200 };
 var flip_h = false;
 
+fn animation_over(name: []const u8) void {
+    _ = name;
+    as.setStop("player_circle_bg", true) catch unreachable;
+}
+
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
@@ -28,6 +33,7 @@ pub fn init(ctx: jok.Context) !void {
         .{},
     );
     as = try j2d.AnimationSystem.create(ctx.allocator());
+    try as.sig.connect(animation_over);
     const player = sheet.getSpriteByName("player").?;
     try as.addSimple(
         "player_left_right",
@@ -114,6 +120,7 @@ pub fn update(ctx: jok.Context) !void {
     }
     if (force_replay and try as.isOver(animation)) {
         try as.reset(animation);
+        try as.setStop("player_circle_bg", false);
     }
     as.update(ctx.deltaSeconds());
 }

@@ -66,7 +66,7 @@ pub fn EasingSystem(comptime T: type) type {
 
         allocator: std.mem.Allocator,
         vars: std.ArrayList(EasingValue),
-        sig: *EasingSignal,
+        sig: *EasingSignal, // Notify finished easing job
 
         pub fn create(allocator: std.mem.Allocator) !*Self {
             const self = try allocator.create(Self);
