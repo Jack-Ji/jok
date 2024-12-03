@@ -42,6 +42,7 @@ pub fn destroy(self: *Self) void {
 pub const AnimOption = struct {
     wait_time: f32 = 0,
     loop: bool = false,
+    reverse: bool = false,
 };
 
 /// Add animation, each frame has its own duration
@@ -63,6 +64,9 @@ pub fn add(
         .frames = try self.allocator.alloc(Frame, frames.len),
         .wait_time = opt.wait_time,
         .loop = opt.loop,
+        .reverse = opt.reverse,
+        .range_begin = 0,
+        .range_end = @intCast(frames.len - 1),
         .play_index = 0,
         .passed_time = 0,
         .is_over = false,
@@ -94,6 +98,9 @@ pub fn addSimple(
         .frames = try self.allocator.alloc(Frame, frames.len),
         .wait_time = opt.wait_time,
         .loop = opt.loop,
+        .reverse = opt.reverse,
+        .range_begin = 0,
+        .range_end = @intCast(frames.len - 1),
         .play_index = 0,
         .passed_time = 0,
         .is_over = false,
@@ -206,6 +213,28 @@ pub fn setLoop(self: *Self, name: []const u8, b: bool) !void {
     return error.NameNotExist;
 }
 
+/// Set animation's reverse state
+pub fn setReverse(self: *Self, name: []const u8, b: bool) !void {
+    if (self.animations.getPtr(name)) |anim| {
+        anim.reverse = b;
+        return;
+    }
+    return error.NameNotExist;
+}
+
+// Set animation's play range (inclusive)
+pub fn setRange(self: *Self, name: []const u8, _begin: ?u32, _end: ?u32) !void {
+    if (self.animations.getPtr(name)) |anim| {
+        const begin = _begin orelse 0;
+        const end = _end orelse @as(u32, @intCast(anim.frames.len - 1));
+        assert(begin <= end);
+        anim.range_begin = begin;
+        anim.range_end = end;
+        return;
+    }
+    return error.NameNotExist;
+}
+
 pub const Frame = struct {
     pub const Data = union(enum) {
         sp: Sprite,
@@ -221,6 +250,9 @@ pub const Animation = struct {
     frames: []Frame,
     wait_time: f32,
     loop: bool,
+    reverse: bool,
+    range_begin: u32,
+    range_end: u32,
     play_index: u32,
     passed_time: f32,
     is_over: bool,
@@ -228,7 +260,7 @@ pub const Animation = struct {
 
     pub fn reset(anim: *Animation, wait_time: f32) void {
         anim.wait_time = wait_time;
-        anim.play_index = 0;
+        anim.play_index = if (anim.reverse) anim.range_end else anim.range_begin;
         anim.passed_time = 0;
         anim.is_over = false;
         anim.is_stopped = false;
@@ -248,15 +280,20 @@ pub const Animation = struct {
         }
         while (anim.passed_time >= anim.frames[anim.play_index].duration) {
             anim.passed_time -= anim.frames[anim.play_index].duration;
-            anim.play_index += 1;
-            if (anim.play_index >= @as(u32, @intCast(anim.frames.len))) {
-                if (anim.loop) {
-                    anim.play_index = 0;
-                } else {
-                    anim.play_index = @as(u32, @intCast(anim.frames.len)) - 1;
-                    anim.is_over = true;
-                    break;
-                }
+            if (!anim.reverse and anim.play_index < anim.range_end) {
+                anim.play_index += 1;
+                continue;
+            }
+            if (anim.reverse and anim.play_index > anim.range_begin) {
+                anim.play_index -= 1;
+                continue;
+            }
+            if (anim.loop) {
+                anim.play_index = if (anim.reverse) anim.range_end else anim.range_begin;
+            } else {
+                anim.play_index = if (anim.reverse) anim.range_begin else anim.range_end;
+                anim.is_over = true;
+                break;
             }
         }
     }
