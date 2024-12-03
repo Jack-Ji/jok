@@ -69,11 +69,13 @@ pub fn EasingSystem(comptime T: type) type {
         pub const EasingApplyFn = *const fn (x: f32, from: T, to: T) T;
         const EasingList = std.DoublyLinkedList(EasingValue);
         const EasingPool = std.heap.MemoryPool(EasingList.Node);
+        const EasingSearchMap = std.AutoHashMap(*const T, void);
         const Self = @This();
 
         allocator: std.mem.Allocator,
         pool: EasingPool,
         vars: EasingList,
+        search_tree: EasingSearchMap,
         sig: *EasingSignal, // Notify finished easing job
 
         pub fn create(allocator: std.mem.Allocator) !*Self {
@@ -82,6 +84,7 @@ pub fn EasingSystem(comptime T: type) type {
                 .allocator = allocator,
                 .pool = EasingPool.init(allocator),
                 .vars = .{},
+                .search_tree = EasingSearchMap.init(allocator),
                 .sig = try EasingSignal.create(allocator),
             };
             return self;
@@ -89,6 +92,7 @@ pub fn EasingSystem(comptime T: type) type {
 
         pub fn destroy(self: *Self) void {
             self.sig.destroy();
+            self.search_tree.deinit();
             self.pool.deinit();
             self.allocator.destroy(self);
         }
@@ -113,12 +117,16 @@ pub fn EasingSystem(comptime T: type) type {
                 const x = ev.easing_fn(@min(1.0, ev.life_passed / ev.life_total));
                 ev.v.* = ev.easing_apply_fn(x, ev.from, ev.to);
                 if (ev.life_passed >= ev.life_total) {
+                    // Remove from search tree
+                    _ = self.search_tree.remove(ev.v);
+
+                    // Notify subscribers
                     if (ev.finish) |fs| {
                         fs.callback(ev.*, fs.data);
                     }
                     self.sig.emit(.{ ev.v, ev.from, ev.to, ev.life_total, ev.easing_type });
 
-                    // remove current node
+                    // remove node from var list
                     const next_node = n.next;
                     defer node = next_node;
                     self.vars.remove(n);
@@ -160,7 +168,13 @@ pub fn EasingSystem(comptime T: type) type {
                     .finish = opt.finish,
                 },
             };
+            errdefer self.pool.destroy(node);
+            try self.search_tree.put(v, {});
             self.vars.append(node);
+        }
+
+        pub fn has(self: Self, v: *const T) bool {
+            return self.search_tree.get(v) != null;
         }
     };
 }
