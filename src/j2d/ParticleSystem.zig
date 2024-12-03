@@ -42,14 +42,12 @@ pub fn destroy(self: *Self) void {
 /// Update system
 pub fn update(self: *Self, delta_time: f32) void {
     var i: usize = 0;
-    var size = self.effects.items.len;
-    while (i < size) {
+    while (i < self.effects.items.len) {
         var e = &self.effects.items[i];
         e.update(delta_time);
         if (e.isOver()) {
             e.deinit();
             _ = self.effects.swapRemove(i);
-            size -= 1;
         } else {
             i += 1;
         }
@@ -192,13 +190,11 @@ pub const Effect = struct {
 
         // Update each particles' status
         var i: usize = 0;
-        var size = self.particles.items.len;
-        while (i < size) {
+        while (i < self.particles.items.len) {
             var p = &self.particles.items[i];
             p.update(delta_time);
             if (p.isDead()) {
                 _ = self.particles.swapRemove(i);
-                size -= 1;
             } else {
                 i += 1;
             }

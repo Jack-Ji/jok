@@ -43,13 +43,7 @@ pub const EasingType = enum(u8) {
 
 pub fn EasingSystem(comptime T: type) type {
     return struct {
-        pub const Finish = struct {
-            callback: *const fn (v: *T, data1: ?*anyopaque, data2: ?*anyopaque) void,
-            data1: ?*anyopaque = null,
-            data2: ?*anyopaque = null,
-        };
-        const EasingApplyFn = *const fn (x: f32, from: T, to: T) T;
-        const EasingValue = struct {
+        pub const EasingValue = struct {
             easing_type: EasingType,
             easing_fn: EasingFn,
             easing_apply_fn: EasingApplyFn,
@@ -61,41 +55,55 @@ pub fn EasingSystem(comptime T: type) type {
             to: T,
             finish: ?Finish,
         };
-        const EasingSignal = signal.Signal(&.{ *T, T, T, f32, EasingType });
+        pub const Finish = struct {
+            callback: *const fn (EasingValue, data2: ?*anyopaque) void,
+            data: ?*anyopaque = null,
+        };
+        pub const EasingSignal = signal.Signal(&.{
+            *T, // Value being eased
+            T, // Ease-from value
+            T, // Ease-to value
+            f32, // Ease duration
+            EasingType, // Ease type
+        });
+        pub const EasingApplyFn = *const fn (x: f32, from: T, to: T) T;
+        const EasingList = std.DoublyLinkedList(EasingValue);
+        const EasingPool = std.heap.MemoryPool(EasingList.Node);
         const Self = @This();
 
         allocator: std.mem.Allocator,
-        vars: std.ArrayList(EasingValue),
+        pool: EasingPool,
+        vars: EasingList,
         sig: *EasingSignal, // Notify finished easing job
 
         pub fn create(allocator: std.mem.Allocator) !*Self {
             const self = try allocator.create(Self);
             self.* = .{
                 .allocator = allocator,
-                .vars = std.ArrayList(EasingValue).init(allocator),
+                .pool = EasingPool.init(allocator),
+                .vars = .{},
                 .sig = try EasingSignal.create(allocator),
             };
             return self;
         }
 
         pub fn destroy(self: *Self) void {
-            self.vars.deinit();
             self.sig.destroy();
+            self.pool.deinit();
             self.allocator.destroy(self);
         }
 
         pub fn update(self: *Self, _delta_time: f32) void {
-            if (self.vars.items.len == 0) return;
+            if (self.vars.len == 0) return;
 
-            var i: usize = 0;
-            var size = self.vars.items.len;
-            while (i < size) {
-                var ev = &self.vars.items[i];
+            var node = self.vars.first;
+            while (node) |n| {
+                var ev = &n.data;
                 var delta_time = _delta_time;
                 if (ev.wait > 0) {
                     if (ev.wait > delta_time) {
                         ev.wait -= delta_time;
-                        i += 1;
+                        node = n.next;
                         continue;
                     }
                     delta_time -= ev.wait;
@@ -106,13 +114,17 @@ pub fn EasingSystem(comptime T: type) type {
                 ev.v.* = ev.easing_apply_fn(x, ev.from, ev.to);
                 if (ev.life_passed >= ev.life_total) {
                     if (ev.finish) |fs| {
-                        fs.callback(ev.v, fs.data1, fs.data2);
+                        fs.callback(ev.*, fs.data);
                     }
                     self.sig.emit(.{ ev.v, ev.from, ev.to, ev.life_total, ev.easing_type });
-                    _ = self.vars.swapRemove(i);
-                    size -= 1;
+
+                    // remove current node
+                    const next_node = n.next;
+                    defer node = next_node;
+                    self.vars.remove(n);
+                    self.pool.destroy(n);
                 } else {
-                    i += 1;
+                    node = n.next;
                 }
             }
         }
@@ -133,18 +145,22 @@ pub fn EasingSystem(comptime T: type) type {
         ) !void {
             assert(life > 0);
             assert(opt.wait_time >= 0);
-            try self.vars.append(.{
-                .easing_type = easing_type,
-                .easing_fn = getEasingFn(easing_type),
-                .easing_apply_fn = easing_apply_fn,
-                .wait = opt.wait_time,
-                .life_total = life,
-                .life_passed = 0,
-                .v = v,
-                .from = from orelse v.*,
-                .to = to,
-                .finish = opt.finish,
-            });
+            const node = try self.pool.create();
+            node.* = .{
+                .data = .{
+                    .easing_type = easing_type,
+                    .easing_fn = getEasingFn(easing_type),
+                    .easing_apply_fn = easing_apply_fn,
+                    .wait = opt.wait_time,
+                    .life_total = life,
+                    .life_passed = 0,
+                    .v = v,
+                    .from = from orelse v.*,
+                    .to = to,
+                    .finish = opt.finish,
+                },
+            };
+            self.vars.append(node);
         }
     };
 }
