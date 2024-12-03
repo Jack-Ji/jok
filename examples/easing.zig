@@ -43,12 +43,12 @@ const EasingBlock = struct {
     }
 };
 
-fn finish_easing(v: *jok.Point, from: jok.Point, to: jok.Point, et: easing.EasingType) void {
+fn finishEase(v: *jok.Point, from: jok.Point, to: jok.Point, duration: f32, et: easing.EasingType) void {
     point_easing_system.add(
         v,
         et,
         easing.easePoint,
-        2,
+        duration,
         to,
         from,
         .{ .wait_time = 1 },
@@ -58,7 +58,7 @@ fn finish_easing(v: *jok.Point, from: jok.Point, to: jok.Point, et: easing.Easin
 pub fn init(ctx: jok.Context) !void {
     batchpool = try @TypeOf(batchpool).init(ctx);
     point_easing_system = try easing.EasingSystem(jok.Point).create(ctx.allocator());
-    try point_easing_system.sig.connect(finish_easing);
+    try point_easing_system.sig.connect(finishEase);
     for (&blocks, 0..) |*b, i| {
         b.* = .{
             .id = @intCast(i),

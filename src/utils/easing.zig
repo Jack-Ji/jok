@@ -61,7 +61,7 @@ pub fn EasingSystem(comptime T: type) type {
             to: T,
             finish: ?Finish,
         };
-        const EasingSignal = signal.Signal(&.{ *T, T, T, EasingType });
+        const EasingSignal = signal.Signal(&.{ *T, T, T, f32, EasingType });
         const Self = @This();
 
         allocator: std.mem.Allocator,
@@ -108,7 +108,7 @@ pub fn EasingSystem(comptime T: type) type {
                     if (ev.finish) |fs| {
                         fs.callback(ev.v, fs.data1, fs.data2);
                     }
-                    self.sig.emit(.{ ev.v, ev.from, ev.to, ev.easing_type });
+                    self.sig.emit(.{ ev.v, ev.from, ev.to, ev.life_total, ev.easing_type });
                     _ = self.vars.swapRemove(i);
                     size -= 1;
                 } else {

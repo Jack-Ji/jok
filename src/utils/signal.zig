@@ -47,6 +47,10 @@ pub fn Signal(comptime types: []const type) type {
             try self.connected.put(fp, {});
         }
 
+        pub fn disconnect(self: *@This(), fp: *const FunType) void {
+            _ = self.connected.remove(fp);
+        }
+
         pub fn emit(self: @This(), args: ArgsType) void {
             if (self.connected.count() == 0) return;
             var it = self.connected.keyIterator();
@@ -79,4 +83,8 @@ test "signal" {
     try sig.connect(S.fun3);
     sig.emit(.{ 10, 20, 30 });
     try std.testing.expectEqual(60, S.counter);
+
+    sig.disconnect(S.fun3);
+    sig.emit(.{ 10, 20, 30 });
+    try std.testing.expectEqual(90, S.counter);
 }
