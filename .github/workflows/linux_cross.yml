@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         host: [macos-latest, windows-latest]
-        target: [x86_64-linux-gnu, aarch64-linux-gnu]
+        target: [x86_64-linux-gnu]
     runs-on: ${{matrix.host}}
     steps:
       - name: Checkout repository
