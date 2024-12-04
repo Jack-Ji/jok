@@ -7,8 +7,10 @@ pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 800, .height = 800 },
 };
 
+const PointEase = easing.EasingSystem(jok.Point);
+
 var batchpool: j2d.BatchPool(64, false) = undefined;
-var point_easing_system: *easing.EasingSystem(jok.Point) = undefined;
+var point_easing_system: *PointEase = undefined;
 var blocks: [31]EasingBlock = undefined;
 
 const EasingBlock = struct {
@@ -24,7 +26,7 @@ const EasingBlock = struct {
         }, jok.Color.white, .{});
     }
 
-    fn startEasing(self: *@This(), es: *easing.EasingSystem(jok.Point)) !void {
+    fn startEasing(self: *@This(), es: *PointEase) !void {
         try es.add(
             &self.pos,
             @enumFromInt(@as(u8, @intCast(self.id))),
@@ -43,21 +45,21 @@ const EasingBlock = struct {
     }
 };
 
-fn finishEase(v: *jok.Point, from: jok.Point, to: jok.Point, duration: f32, et: easing.EasingType) void {
+fn finishEase(ev: *const PointEase.EasingValue) void {
     point_easing_system.add(
-        v,
-        et,
-        easing.easePoint,
-        duration,
-        to,
-        from,
+        ev.v,
+        ev.easing_type,
+        ev.easing_apply_fn,
+        ev.life_total,
+        ev.to,
+        ev.from,
         .{ .wait_time = 1 },
     ) catch unreachable;
 }
 
 pub fn init(ctx: jok.Context) !void {
     batchpool = try @TypeOf(batchpool).init(ctx);
-    point_easing_system = try easing.EasingSystem(jok.Point).create(ctx.allocator());
+    point_easing_system = try PointEase.create(ctx.allocator());
     try point_easing_system.sig.connect(finishEase);
     for (&blocks, 0..) |*b, i| {
         b.* = .{
@@ -120,7 +122,6 @@ pub fn draw(ctx: jok.Context) !void {
 
 pub fn quit(ctx: jok.Context) void {
     _ = ctx;
-
     point_easing_system.destroy();
     batchpool.deinit();
 }

@@ -227,7 +227,7 @@ pub fn setRange(self: *Self, name: []const u8, _begin: ?u32, _end: ?u32) !void {
     if (self.animations.getPtr(name)) |anim| {
         const begin = _begin orelse 0;
         const end = _end orelse @as(u32, @intCast(anim.frames.len - 1));
-        assert(begin <= end);
+        assert(begin <= end and end <= @as(u32, @intCast(anim.frames.len - 1)));
         anim.range_begin = begin;
         anim.range_end = end;
         return;

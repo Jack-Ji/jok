@@ -515,7 +515,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         log.err("Got error in `event`: {}", .{err});
                         if (@errorReturnTrace()) |trace| {
                             std.debug.dumpStackTrace(trace.*);
-                            break;
+                            kill(self);
+                            return;
                         }
                     };
                 }

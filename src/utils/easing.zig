@@ -41,13 +41,20 @@ pub const EasingType = enum(u8) {
     in_out_bounce,
 };
 
+const DummyMutex = struct {
+    fn lock(_: *DummyMutex) void {}
+    fn unlock(_: *DummyMutex) void {}
+};
+
 pub fn EasingSystem(comptime T: type) type {
     return struct {
         pub const EasingValue = struct {
+            state: VarState,
             easing_type: EasingType,
             easing_fn: EasingFn,
             easing_apply_fn: EasingApplyFn,
-            wait: f32,
+            wait_total: f32,
+            waited: f32,
             life_total: f32,
             life_passed: f32,
             v: *T,
@@ -59,17 +66,16 @@ pub fn EasingSystem(comptime T: type) type {
             callback: *const fn (EasingValue, data2: ?*anyopaque) void,
             data: ?*anyopaque = null,
         };
-        pub const EasingSignal = signal.Signal(&.{
-            *T, // Value being eased
-            T, // Ease-from value
-            T, // Ease-to value
-            f32, // Ease duration
-            EasingType, // Ease type
-        });
+        pub const EasingSignal = signal.Signal(&.{*const EasingValue});
         pub const EasingApplyFn = *const fn (x: f32, from: T, to: T) T;
+        const VarState = enum {
+            new,
+            easing,
+            deleted,
+        };
         const EasingList = std.DoublyLinkedList(EasingValue);
         const EasingPool = std.heap.MemoryPool(EasingList.Node);
-        const EasingSearchMap = std.AutoHashMap(*const T, void);
+        const EasingSearchMap = std.AutoHashMap(*const T, *EasingList.Node);
         const Self = @This();
 
         allocator: std.mem.Allocator,
@@ -91,48 +97,72 @@ pub fn EasingSystem(comptime T: type) type {
         }
 
         pub fn destroy(self: *Self) void {
+            self.clear();
             self.sig.destroy();
-            self.search_tree.deinit();
-            self.pool.deinit();
             self.allocator.destroy(self);
         }
 
         pub fn update(self: *Self, _delta_time: f32) void {
             if (self.vars.len == 0) return;
 
+            // Change newly added nodes' state to easing, and remove deleted node
             var node = self.vars.first;
             while (node) |n| {
+                node = n.next;
+                if (n.data.state == .new) {
+                    n.data.state = .easing;
+                    continue;
+                }
+                if (n.data.state == .deleted) {
+                    self.vars.remove(n);
+                    self.pool.destroy(n);
+                    continue;
+                }
+            }
+
+            // Apply easing to vars
+            node = self.vars.first;
+            while (self.vars.len != 0 and node != null) {
+                const n = node.?;
                 var ev = &n.data;
+                node = node.?.next;
+                if (n.data.state == .new) break;
+                if (n.data.state != .easing) continue;
+
+                // Check if wait enough
                 var delta_time = _delta_time;
-                if (ev.wait > 0) {
-                    if (ev.wait > delta_time) {
-                        ev.wait -= delta_time;
-                        node = n.next;
+                if (ev.waited < ev.wait_total) {
+                    const need_wait = ev.wait_total - ev.waited;
+                    if (need_wait > delta_time) {
+                        ev.waited += delta_time;
                         continue;
                     }
-                    delta_time -= ev.wait;
-                    ev.wait = 0;
+                    delta_time -= need_wait;
+                    ev.waited = ev.wait_total;
                 }
+
+                // Apply ease function
                 ev.life_passed += delta_time;
                 const x = ev.easing_fn(@min(1.0, ev.life_passed / ev.life_total));
                 ev.v.* = ev.easing_apply_fn(x, ev.from, ev.to);
+
+                // Remove if it's done
                 if (ev.life_passed >= ev.life_total) {
-                    // Remove from search tree
-                    _ = self.search_tree.remove(ev.v);
+                    // Remove node from var list
+                    // Release memory until subscribers are done
+                    self.vars.remove(n);
+                    defer self.pool.destroy(n);
+
+                    // Remove from search tree if current node is being pointed
+                    if (self.search_tree.get(ev.v).? == n) {
+                        _ = self.search_tree.remove(ev.v);
+                    }
 
                     // Notify subscribers
                     if (ev.finish) |fs| {
                         fs.callback(ev.*, fs.data);
                     }
-                    self.sig.emit(.{ ev.v, ev.from, ev.to, ev.life_total, ev.easing_type });
-
-                    // remove node from var list
-                    const next_node = n.next;
-                    defer node = next_node;
-                    self.vars.remove(n);
-                    self.pool.destroy(n);
-                } else {
-                    node = n.next;
+                    self.sig.emit(.{ev});
                 }
             }
         }
@@ -153,13 +183,19 @@ pub fn EasingSystem(comptime T: type) type {
         ) !void {
             assert(life > 0);
             assert(opt.wait_time >= 0);
+
+            // Remove old easing if exists
+            self.remove(v);
+
             const node = try self.pool.create();
             node.* = .{
                 .data = .{
+                    .state = .new,
                     .easing_type = easing_type,
                     .easing_fn = getEasingFn(easing_type),
                     .easing_apply_fn = easing_apply_fn,
-                    .wait = opt.wait_time,
+                    .wait_total = opt.wait_time,
+                    .waited = 0,
                     .life_total = life,
                     .life_passed = 0,
                     .v = v,
@@ -169,12 +205,28 @@ pub fn EasingSystem(comptime T: type) type {
                 },
             };
             errdefer self.pool.destroy(node);
-            try self.search_tree.put(v, {});
+            try self.search_tree.put(v, node);
             self.vars.append(node);
         }
 
-        pub fn has(self: Self, v: *const T) bool {
+        pub fn has(self: *Self, v: *const T) bool {
             return self.search_tree.get(v) != null;
+        }
+
+        pub fn remove(self: *Self, v: *const T) void {
+            if (self.search_tree.fetchRemove(v)) |kv| {
+                // Q: Why not remove node from list immediately?
+                // A: If we do, it would be impossible to correctly iterate
+                // through vars in `update`. Cause user might call `remove`
+                // function though callback/signal.
+                kv.value.data.state = .deleted;
+            }
+        }
+
+        pub fn clear(self: *Self) void {
+            self.search_tree.clearAndFree();
+            self.pool.deinit();
+            self.vars = .{};
         }
     };
 }
