@@ -265,9 +265,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Init PhysicsFS
             physfs.init(self._allocator);
 
-            // Check and print system info
-            try self.checkSys();
-
             // Init SDL window and renderer
             try self.initSDL();
 
@@ -562,9 +559,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
             var sdl_version: sdl.SDL_version = undefined;
             sdl.SDL_GetVersion(&sdl_version);
             const ram_size = sdl.SDL_GetSystemRAM();
+            const info = try self._renderer.getInfo();
 
             // Print system info
-            log.info(
+            try std.fmt.format(
+                std.io.getStdErr().writer(),
                 \\System info:
                 \\    Build Mode  : {s}
                 \\    Log Level   : {s}
@@ -576,6 +575,13 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 \\    Memory      : {d}MB
                 \\    App Dir     : {s} 
                 \\    Data Dir    : {s} 
+                \\    
+                \\Renderer info:
+                \\    Vertical Sync    : {}
+                \\    GPU Enabled      : {}
+                \\    Max Texture Size : {d}*{d}
+                \\
+                \\
             ,
                 .{
                     @tagName(builtin.mode),
@@ -590,16 +596,16 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     ram_size,
                     physfs.getBaseDir(),
                     physfs.getPrefDir(self._ctx),
+                    info.flags & sdl.SDL_RENDERER_PRESENTVSYNC != 0,
+                    info.flags & sdl.SDL_RENDERER_ACCELERATED != 0,
+                    info.max_texture_width,
+                    info.max_texture_height,
                 },
             );
 
             if (sdl_version.major < 2 or (sdl_version.minor == 0 and sdl_version.patch < 18)) {
                 log.err("SDL version too low, need at least 2.0.18", .{});
                 return sdl.Error.SdlError;
-            }
-
-            if (cfg.jok_exit_on_recv_esc) {
-                log.info("Press ESC to exit game", .{});
             }
         }
 
@@ -633,11 +639,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Initialize i/o context
             io.init(self._ctx);
 
-            // Initialize window
+            // Initialize window and renderer
             self._window = try jok.Window.init(cfg, getDpiScale(self));
-
-            // Initialize renderer
             self._renderer = try jok.Renderer.init(cfg, self._window);
+
+            // Check and print system info
+            try self.checkSys();
 
             // Misc stuff
             jok.Color.init();
@@ -652,6 +659,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._pp_actors = std.ArrayList(pp.Actor).init(self._allocator);
             }
             self.updateCanvasTargetArea();
+
+            if (cfg.jok_exit_on_recv_esc) {
+                log.info("Press ESC to exit game", .{});
+            }
         }
 
         /// Deinitialize SDL
