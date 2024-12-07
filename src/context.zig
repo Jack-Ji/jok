@@ -215,15 +215,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _audio_ctx: *miniaudio.Context = undefined,
         _audio_engine: *miniaudio.Engine = undefined,
 
-        // Resizable mode
-        _resizable: bool = undefined,
-
-        // Fullscreen mode
-        _fullscreen: bool = undefined,
-
-        // Whether always on top
-        _always_on_top: bool = undefined,
-
         // Elapsed time of game
         _seconds: f32 = 0,
         _seconds_real: f64 = 0,
