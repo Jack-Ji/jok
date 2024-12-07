@@ -122,6 +122,13 @@ pub const Batch = struct {
                 .pmax = .{ r.x + r.width, r.y + r.height },
             }
         else BLK: {
+            if (opt.offscreen_target) |tex| {
+                const info = tex.query() catch unreachable;
+                break :BLK .{
+                    .pmin = .{ 0, 0 },
+                    .pmax = .{ @floatFromInt(info.width), @floatFromInt(info.height) },
+                };
+            }
             const csz = self.ctx.getCanvasSize();
             break :BLK .{
                 .pmin = .{ 0, 0 },
