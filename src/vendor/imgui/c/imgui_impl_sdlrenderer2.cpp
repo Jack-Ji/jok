@@ -107,7 +107,7 @@ void ImGui_ImplSDLRenderer2_NewFrame()
     IM_ASSERT(bd != nullptr && "Context or backend not initialized! Did you call ImGui_ImplSDLRenderer2_Init()?");
 
     if (!bd->FontTexture)
-        ImGui_ImplSDLRenderer2_CreateDeviceObjects();
+        IM_ASSERT(ImGui_ImplSDLRenderer2_CreateDeviceObjects() && "Failed to initialize font texture!");
 }
 
 void ImGui_ImplSDLRenderer2_RenderDrawData(ImDrawData* draw_data, SDL_Renderer* renderer)
