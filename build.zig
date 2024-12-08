@@ -126,7 +126,7 @@ pub fn createDesktopApp(
     const builder = getJokBuilder(b, opt);
     const exe = builder.addExecutable(.{
         .name = name,
-        .root_source_file = builder.path("src/app.zig"),
+        .root_source_file = builder.path("src/entrypoints/app.zig"),
         .target = target,
         .optimize = optimize,
     });
