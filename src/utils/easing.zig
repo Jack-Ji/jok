@@ -97,7 +97,8 @@ pub fn EasingSystem(comptime T: type) type {
         }
 
         pub fn destroy(self: *Self) void {
-            self.clear();
+            self.pool.deinit();
+            self.search_tree.deinit();
             self.sig.destroy();
             self.allocator.destroy(self);
         }
@@ -151,12 +152,8 @@ pub fn EasingSystem(comptime T: type) type {
                     // Remove node from var list
                     // Release memory until subscribers are done
                     self.vars.remove(n);
+                    _ = self.search_tree.remove(ev.v);
                     defer self.pool.destroy(n);
-
-                    // Remove from search tree if current node is being pointed
-                    if (self.search_tree.get(ev.v).? == n) {
-                        _ = self.search_tree.remove(ev.v);
-                    }
 
                     // Notify subscribers
                     if (ev.finish) |fs| {
@@ -224,8 +221,8 @@ pub fn EasingSystem(comptime T: type) type {
         }
 
         pub fn clear(self: *Self) void {
-            self.search_tree.clearAndFree();
-            self.pool.deinit();
+            _ = self.pool.reset(.retain_capacity);
+            self.search_tree.clearRetainingCapacity();
             self.vars = .{};
         }
     };
