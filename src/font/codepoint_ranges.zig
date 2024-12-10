@@ -4,6 +4,7 @@ const assert = std.debug.assert;
 
 pub const default = [_][2]u32{
     .{ 0x0020, 0x00FF },
+    .{ 0, 0 },
 };
 
 pub const chinese_full = [_][2]u32{
@@ -14,6 +15,7 @@ pub const chinese_full = [_][2]u32{
     .{ 0xFF00, 0xFFEF }, // Half-width characters
     .{ 0xFFFD, 0xFFFD }, // Invalid
     .{ 0x4e00, 0x9FAF }, // CJK Ideograms
+    .{ 0, 0 },
 };
 
 pub const chinese_common = genRanges(
@@ -176,23 +178,27 @@ pub fn genRanges(
     comptime base_ranges: []const [2]u32,
     comptime base_codepoint: u32,
     comptime offsets: []const u32,
-) [base_ranges.len + offsets.len][2]u32 {
-    var ranges: [base_ranges.len + offsets.len][2]u32 = undefined;
+) [base_ranges.len + offsets.len + 1][2]u32 {
+    var ranges: [base_ranges.len + offsets.len + 1][2]u32 = undefined;
     @memcpy(ranges[0..base_ranges.len], base_ranges);
     unpackAccumulativeOffsets(
         base_codepoint,
         offsets,
-        ranges[base_ranges.len..],
+        ranges[base_ranges.len .. ranges.len - 1],
     );
+    ranges[ranges.len - 1][0] = 0;
+    ranges[ranges.len - 1][1] = 0;
     return ranges;
 }
 
-pub fn genRanges2(comptime codepoints: []const u32) [codepoints.len][2]u32 {
-    var ranges: [codepoints.len][2]u32 = undefined;
+pub fn genRanges2(comptime codepoints: []const u32) [codepoints.len + 1][2]u32 {
+    var ranges: [codepoints.len + 1][2]u32 = undefined;
     for (codepoints, 0..) |c, i| {
         ranges[i][0] = c;
         ranges[i][1] = c;
     }
+    ranges[ranges.len - 1][0] = 0;
+    ranges[ranges.len - 1][1] = 0;
     return ranges;
 }
 
