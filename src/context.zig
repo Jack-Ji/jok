@@ -197,7 +197,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         // Renderer instance
         _renderer: jok.Renderer = undefined,
-        _is_software: bool = false,
 
         // Rendering target
         _canvas_texture: jok.Texture = undefined,
@@ -335,7 +334,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         ) void {
             const pc_threshold: u64 = switch (cfg.jok_fps_limit) {
                 .none => 0,
-                .auto => if (self._is_software) @divTrunc(self._pc_freq, 30) else 0,
+                .auto => 0,
                 .manual => |_fps| self._pc_freq / @as(u64, _fps),
             };
 
@@ -565,11 +564,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 \\    Platform    : {s}
                 \\    Memory      : {d}MB
                 \\    App Dir     : {s} 
-                \\    Data Dir    : {s} 
                 \\    
                 \\Renderer info:
                 \\    Vertical Sync    : {}
-                \\    GPU Enabled      : {}
                 \\    Max Texture Size : {d}*{d}
                 \\
                 \\
@@ -586,9 +583,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     @tagName(target.os.tag),
                     ram_size,
                     physfs.getBaseDir(),
-                    physfs.getPrefDir(self._ctx),
                     info.flags & sdl.SDL_RENDERER_PRESENTVSYNC != 0,
-                    info.flags & sdl.SDL_RENDERER_ACCELERATED != 0,
                     info.max_texture_width,
                     info.max_texture_height,
                 },
@@ -897,7 +892,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 imgui.text("Window Size: {d:.0}x{d:.0}", .{ ws.width, ws.height });
                 imgui.text("Canvas Size: {d:.0}x{d:.0}", .{ cs.width, cs.height });
                 imgui.text("Display DPI: {d:.1}", .{self._display_dpi});
-                imgui.text("GPU Enabled: {}", .{!self._is_software});
                 imgui.text("V-Sync Enabled: {}", .{rdinfo.flags & sdl.SDL_RENDERER_PRESENTVSYNC != 0});
                 imgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
                 imgui.separator();

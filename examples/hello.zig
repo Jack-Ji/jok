@@ -35,7 +35,7 @@ var suppress: bool = true;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    try physfs.setWriteDir(physfs.getPrefDir(ctx));
+    try physfs.setWriteDir(physfs.getPrefDir("myorg", "mygame"));
 
     batchpool_2d = try @TypeOf(batchpool_2d).init(ctx);
     batchpool_3d = try @TypeOf(batchpool_3d).init(ctx);

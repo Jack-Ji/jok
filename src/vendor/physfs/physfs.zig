@@ -103,8 +103,8 @@ pub fn getBaseDir() [*:0]const u8 {
 ///  "/Users/bob/Library/Application Support/My Program Name"
 ///
 /// (etc.)
-pub fn getPrefDir(ctx: jok.Context) [*:0]const u8 {
-    if (PHYSFS_getPrefDir(ctx.cfg().jok_pref_org, ctx.cfg().jok_pref_app)) |p| {
+pub fn getPrefDir(org: [*:0]const u8, app: [*:0]const u8) [*:0]const u8 {
+    if (PHYSFS_getPrefDir(org, app)) |p| {
         return p;
     }
     @panic("can't get data dir");

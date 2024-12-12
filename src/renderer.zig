@@ -26,28 +26,15 @@ pub const dcstats = struct {
 
 pub const Renderer = struct {
     ptr: *sdl.SDL_Renderer,
-    is_software: bool,
     cfg: jok.config.Config,
 
     // Create hardware accelerated renderer
-    // Fallback to software renderer if allowed
     pub fn init(cfg: jok.config.Config, window: jok.Window) !Renderer {
-        var flags: u32 = sdl.SDL_RENDERER_TARGETTEXTURE;
-        if (cfg.jok_software_renderer) {
-            flags |= sdl.SDL_RENDERER_SOFTWARE;
-        }
+        var flags: u32 = sdl.SDL_RENDERER_TARGETTEXTURE | sdl.SDL_RENDERER_ACCELERATED;
         if (cfg.jok_fps_limit == .auto) {
             flags |= sdl.SDL_RENDERER_PRESENTVSYNC;
         }
-        var ptr = sdl.SDL_CreateRenderer(window.ptr, -1, flags);
-        if (ptr == null and
-            !cfg.jok_software_renderer and
-            cfg.jok_software_renderer_fallback)
-        {
-            log.warn("Hardware accelerated renderer isn't supported, fallback to software backend", .{});
-            flags |= sdl.SDL_RENDERER_SOFTWARE;
-            ptr = sdl.SDL_CreateRenderer(window.ptr, -1, flags);
-        }
+        const ptr = sdl.SDL_CreateRenderer(window.ptr, -1, flags);
         if (ptr == null) {
             log.err("create renderer failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;
@@ -55,12 +42,11 @@ pub const Renderer = struct {
 
         var rd = Renderer{
             .ptr = ptr.?,
-            .is_software = undefined,
             .cfg = cfg,
         };
         try rd.setBlendMode(.blend);
         const rdinfo = try rd.getInfo();
-        rd.is_software = ((rdinfo.flags & sdl.SDL_RENDERER_SOFTWARE) != 0);
+        assert((rdinfo.flags & sdl.SDL_RENDERER_ACCELERATED) != 0);
         return rd;
     }
 
