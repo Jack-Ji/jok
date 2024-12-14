@@ -116,13 +116,11 @@ pub fn addSimple(
 }
 
 /// Remove animation
-pub fn remove(self: *Self, name: []const u8) !void {
+pub fn remove(self: *Self, name: []const u8) void {
     if (self.animations.getEntry(name)) |entry| {
         self.allocator.free(entry.value_ptr.name);
         self.allocator.free(entry.value_ptr.frames);
         self.animations.removeByPtr(entry.key_ptr);
-    } else {
-        return error.NameNotExist;
     }
 }
 
