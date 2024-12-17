@@ -18,7 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        host: [macos-latest, windows-latest]
+        #host: [macos-latest, windows-latest]
+        host: [windows-latest]
         target: [x86_64-linux-gnu]
     runs-on: ${{matrix.host}}
     steps:
