@@ -51,6 +51,10 @@ pub fn Signal(comptime types: []const type) type {
             _ = self.connected.remove(fp);
         }
 
+        pub fn clear(self: *@This()) void {
+            self.connected.clearRetainingCapacity();
+        }
+
         pub fn emit(self: @This(), args: ArgsType) void {
             if (self.connected.count() == 0) return;
             var it = self.connected.keyIterator();

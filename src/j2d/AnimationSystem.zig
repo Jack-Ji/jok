@@ -17,6 +17,7 @@ allocator: std.mem.Allocator,
 
 // Animations
 animations: std.StringHashMap(Animation),
+temp_entries: std.ArrayList(std.StringHashMap(Animation).Entry),
 
 // Notify animation is over
 sig: *AnimationSignal,
@@ -26,6 +27,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
     self.* = .{
         .allocator = allocator,
         .animations = std.StringHashMap(Animation).init(allocator),
+        .temp_entries = std.ArrayList(std.StringHashMap(Animation).Entry).init(allocator),
         .sig = try AnimationSignal.create(allocator),
     };
     return self;
@@ -35,6 +37,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
 pub fn destroy(self: *Self) void {
     self.clear();
     self.animations.deinit();
+    self.temp_entries.deinit();
     self.sig.destroy();
     self.allocator.destroy(self);
 }
@@ -136,6 +139,11 @@ pub fn clear(self: *Self) void {
 
 /// Update animations
 pub fn update(self: *Self, delta_tick: f32) void {
+    self.temp_entries.clearRetainingCapacity();
+    defer for (self.temp_entries.items) |e| {
+        self.sig.emit(.{e.key_ptr.*});
+    };
+
     var it = self.animations.iterator();
     while (it.next()) |entry| {
         if (entry.value_ptr.is_over) {
@@ -143,7 +151,7 @@ pub fn update(self: *Self, delta_tick: f32) void {
         }
         entry.value_ptr.update(delta_tick);
         if (entry.value_ptr.is_over) {
-            self.sig.emit(.{entry.key_ptr.*});
+            self.temp_entries.append(entry) catch unreachable;
         }
     }
 }
