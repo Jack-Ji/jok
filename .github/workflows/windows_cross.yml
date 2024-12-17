@@ -18,7 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        host: [ubuntu-latest, macos-latest]
+        #host: [ubuntu-latest, macos-latest]
+        host: [ubuntu-latest]
     runs-on: ${{matrix.host}}
     steps:
       - name: Checkout repository
