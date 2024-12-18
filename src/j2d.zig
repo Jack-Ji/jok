@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const assert = std.debug.assert;
 const math = std.math;
 const unicode = std.unicode;
@@ -1369,7 +1370,7 @@ pub const Path = struct {
 
 pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
     const AllocSet = std.StaticBitSet(pool_size);
-    const mutex_init = if (thread_safe)
+    const mutex_init = if (thread_safe and !builtin.single_threaded)
         std.Thread.Mutex{}
     else
         DummyMutex{};
