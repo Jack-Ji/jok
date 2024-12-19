@@ -926,15 +926,15 @@ inline fn initPropertyTree(element: *const xml.Element, allocator: std.mem.Alloc
             assert(value.len > 0);
             var pv: PropertyValue = undefined;
             if (std.mem.eql(u8, vtype, "string")) {
-                pv = PropertyValue{ .string = "" };
+                pv = PropertyValue{ .string = try allocator.dupe(u8, value) };
             } else if (std.mem.eql(u8, vtype, "int")) {
-                pv = PropertyValue{ .int = 0 };
+                pv = PropertyValue{ .int = try std.fmt.parseInt(i32, value, 0) };
             } else if (std.mem.eql(u8, vtype, "float")) {
-                pv = PropertyValue{ .float = 0 };
+                pv = PropertyValue{ .float = try std.fmt.parseFloat(f32, value) };
             } else if (std.mem.eql(u8, vtype, "bool")) {
-                pv = PropertyValue{ .boolean = false };
+                pv = PropertyValue{ .boolean = if (std.mem.eql(u8, value, "true")) true else false };
             } else if (std.mem.eql(u8, vtype, "color")) {
-                pv = PropertyValue{ .color = jok.Color.none };
+                pv = PropertyValue{ .color = try parseColor(value) };
             } else {
                 return error.UnsupportedPropertyType;
             }
