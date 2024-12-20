@@ -5,7 +5,7 @@ const j2d = jok.j2d;
 const tiled = jok.utils.tiled;
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
-var map: tiled.TiledMap = undefined;
+var map: *tiled.TiledMap = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     // your init code
@@ -30,14 +30,27 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(map.bgcolor);
 
+    const mouse_pos = jok.io.getMouseState().pos;
+
     var b = try batchpool.new(.{});
     defer b.submit();
-    for (map.layers) |l| try l.render(map, b);
+    try map.render(b);
+    for (map.layers) |l| {
+        if (l != .tile_layer) continue;
+        if (l.tile_layer.getTileByPos(mouse_pos)) |t| {
+            try b.rectFilled(
+                t.rect,
+                jok.Color.rgba(0, 255, 255, 200),
+                .{},
+            );
+            break;
+        }
+    }
 }
 
 pub fn quit(ctx: jok.Context) void {
     // your deinit code
     _ = ctx;
-    map.deinit();
+    map.destroy();
     batchpool.deinit();
 }

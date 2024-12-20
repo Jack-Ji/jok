@@ -44,13 +44,25 @@ pub const PropertyValue = union(enum) {
 pub const PropertyTree = std.StringHashMap(PropertyValue);
 
 pub const Tile = struct {
+    tileset: *const Tileset,
     id: u32,
     uv0: jok.Point,
     uv1: jok.Point,
     props: PropertyTree,
+
+    pub fn getSprite(self: Tile) j2d.Sprite {
+        return .{
+            .width = @as(f32, @floatFromInt(self.tileset.map.tile_size.width)),
+            .height = @as(f32, @floatFromInt(self.tileset.map.tile_size.height)),
+            .uv0 = self.uv0,
+            .uv1 = self.uv1,
+            .tex = self.tileset.texture,
+        };
+    }
 };
 
 pub const Tileset = struct {
+    map: *const TiledMap,
     first_gid: u32,
     tile_size: jok.Size,
     spacing: u32,
@@ -96,6 +108,7 @@ const GlobalTileID = struct {
 };
 
 const Chunk = struct {
+    layer: *const TileLayer,
     x: i32,
     y: i32,
     width: u32,
@@ -134,13 +147,7 @@ const Chunk = struct {
                         .y = (it.rect.y + y_in_rect) * @as(f32, @floatFromInt(it.map.tile_size.height)),
                     };
                     return .{
-                        .sprite = .{
-                            .width = @as(f32, @floatFromInt(it.map.tile_size.width)),
-                            .height = @as(f32, @floatFromInt(it.map.tile_size.height)),
-                            .uv0 = tile.uv0,
-                            .uv1 = tile.uv1,
-                            .tex = tileset.texture,
-                        },
+                        .sprite = tile.getSprite(),
                         .pos = pos_in_layer.add(it.layer.offset),
                         .tint_color = it.layer.tint_color,
                         .flip_h = gid.flipH(),
@@ -205,11 +212,11 @@ const Chunk = struct {
         }
     };
 
-    fn getSpriteIterator(c: Chunk, map: *const TiledMap, layer: *const TileLayer) Iterator {
+    fn getSpriteIterator(c: Chunk) Iterator {
         return .{
-            .map = map,
-            .layer = layer,
-            .order = map.order,
+            .map = c.layer.map,
+            .layer = c.layer,
+            .order = c.layer.map.order,
             .gids = c.gids,
             .rect = .{
                 .x = @floatFromInt(c.x),
@@ -217,7 +224,7 @@ const Chunk = struct {
                 .width = @floatFromInt(c.width),
                 .height = @floatFromInt(c.height),
             },
-            .idx = switch (map.order) {
+            .idx = switch (c.layer.map.order) {
                 .right_down => c.width - 1,
                 .right_up => c.gids.len - 1,
                 .left_down => 0,
@@ -228,6 +235,7 @@ const Chunk = struct {
 };
 
 const TileLayer = struct {
+    map: *const TiledMap,
     size: jok.Size,
     offset: jok.Point,
     parallax: jok.Point,
@@ -235,10 +243,10 @@ const TileLayer = struct {
     chunks: []Chunk,
     props: PropertyTree,
 
-    fn render(self: TileLayer, map: TiledMap, b: *j2d.Batch) !void {
-        assert(map.orientation == .orthogonal);
+    pub fn render(self: TileLayer, b: *j2d.Batch) !void {
+        assert(self.map.orientation == .orthogonal);
         for (self.chunks) |c| {
-            var it = c.getSpriteIterator(&map, &self);
+            var it = c.getSpriteIterator();
             while (it.next()) |rs| {
                 try b.sprite(rs.sprite, .{
                     .pos = rs.pos,
@@ -249,17 +257,45 @@ const TileLayer = struct {
             }
         }
     }
+
+    pub fn getTileByPos(self: TileLayer, pos: jok.Point) ?struct {
+        tile: Tile,
+        rect: jok.Rectangle,
+    } {
+        if (pos.x >= self.offset.x and pos.x < self.offset.x + @as(f32, @floatFromInt(self.size.width * self.map.tile_size.width)) and
+            pos.y >= self.offset.y and pos.y < self.offset.y + @as(f32, @floatFromInt(self.size.height * self.map.tile_size.height)))
+        {
+            const tx: i32 = @intFromFloat((pos.x - self.offset.x) / @as(f32, @floatFromInt(self.map.tile_size.width)));
+            const ty: i32 = @intFromFloat((pos.y - self.offset.y) / @as(f32, @floatFromInt(self.map.tile_size.height)));
+            for (self.chunks) |c| {
+                if (tx >= c.x and tx < c.x + @as(i32, @intCast(c.width)) and ty >= c.y and ty < c.y + @as(i32, @intCast(c.height))) {
+                    const gid = c.gids[@as(u32, @intCast(ty - c.y)) * c.width + @as(u32, @intCast(tx - c.x))];
+                    if (gid._id == 0) return null;
+                    return .{
+                        .tile = self.map.getTile(gid),
+                        .rect = .{
+                            .x = @as(f32, @floatFromInt(tx * @as(i32, @intCast(self.map.tile_size.width)))) + self.offset.x,
+                            .y = @as(f32, @floatFromInt(ty * @as(i32, @intCast(self.map.tile_size.height)))) + self.offset.y,
+                            .width = @floatFromInt(self.map.tile_size.width),
+                            .height = @floatFromInt(self.map.tile_size.height),
+                        },
+                    };
+                }
+            }
+        }
+        return null;
+    }
 };
 
 const ObjectGroup = struct {
+    map: *const TiledMap,
     offset: jok.Point,
     parallax: jok.Point,
     tint_color: jok.Color,
     props: PropertyTree,
 
-    fn render(self: ObjectGroup, map: TiledMap, b: *j2d.Batch) !void {
-        assert(map.orientation == .orthogonal);
-        _ = self;
+    pub fn render(self: ObjectGroup, b: *j2d.Batch) !void {
+        assert(self.map.orientation == .orthogonal);
         _ = b;
         // TODO
         return error.UnsupportedLayerType;
@@ -267,14 +303,14 @@ const ObjectGroup = struct {
 };
 
 const ImageLayer = struct {
+    map: *const TiledMap,
     offset: jok.Point,
     parallax: jok.Point,
     tint_color: jok.Color,
     props: PropertyTree,
 
-    fn render(self: ImageLayer, map: TiledMap, b: *j2d.Batch) !void {
-        assert(map.orientation == .orthogonal);
-        _ = self;
+    pub fn render(self: ImageLayer, b: *j2d.Batch) !void {
+        assert(self.map.orientation == .orthogonal);
         _ = b;
         // TODO
         return error.UnsupportedLayerType;
@@ -286,11 +322,11 @@ pub const Layer = union(enum) {
     object_layer: ObjectGroup,
     image_layer: ImageLayer,
 
-    pub fn render(self: Layer, map: TiledMap, b: *j2d.Batch) !void {
+    pub fn render(self: Layer, b: *j2d.Batch) !void {
         switch (self) {
-            .tile_layer => |l| try l.render(map, b),
-            .object_layer => |l| try l.render(map, b),
-            .image_layer => |l| try l.render(map, b),
+            .tile_layer => |l| try l.render(b),
+            .object_layer => |l| try l.render(b),
+            .image_layer => |l| try l.render(b),
         }
     }
 
@@ -312,6 +348,7 @@ pub const Layer = union(enum) {
 };
 
 pub const TiledMap = struct {
+    allocator: std.mem.Allocator,
     arena: std.heap.ArenaAllocator,
     orientation: Orientation,
     order: RenderOrder,
@@ -324,9 +361,14 @@ pub const TiledMap = struct {
     layers: []Layer,
     props: PropertyTree,
 
-    pub fn deinit(self: TiledMap) void {
+    pub fn destroy(self: *TiledMap) void {
         for (self.tilesets) |t| t.deinit();
         self.arena.deinit();
+        self.allocator.destroy(self);
+    }
+
+    pub fn render(self: TiledMap, b: *j2d.Batch) !void {
+        for (self.layers) |l| try l.render(b);
     }
 
     pub fn getTileset(self: TiledMap, gid: GlobalTileID) Tileset {
@@ -338,14 +380,21 @@ pub const TiledMap = struct {
         }
         unreachable;
     }
+
+    pub fn getTile(self: TiledMap, gid: GlobalTileID) Tile {
+        const ts = self.getTileset(gid);
+        return ts.getTile(gid);
+    }
 };
 
 /// Load TMX file
-pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !TiledMap {
+pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !*TiledMap {
     const zpath = std.mem.sliceTo(path, 0);
     assert(std.mem.endsWith(u8, zpath, ".tmx"));
     const allocator = ctx.allocator();
-    var tmap: TiledMap = .{
+    const tmap = try allocator.create(TiledMap);
+    tmap.* = .{
+        .allocator = allocator,
         .arena = std.heap.ArenaAllocator.init(allocator),
         .orientation = .orthogonal,
         .order = .right_down,
@@ -359,7 +408,7 @@ pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !TiledMap {
         .props = undefined,
     };
     tmap.props = PropertyTree.init(tmap.arena.allocator());
-    errdefer tmap.deinit();
+    errdefer tmap.destroy();
 
     var data: []const u8 = undefined;
     var dirname: []const u8 = undefined;
@@ -454,6 +503,7 @@ pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !TiledMap {
         map,
         ctx.cfg().jok_enable_physfs,
         dirname,
+        tmap,
     );
 
     // Load layers
@@ -461,6 +511,7 @@ pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !TiledMap {
         allocator,
         tmap.arena.allocator(),
         map,
+        tmap,
     );
 
     // Init map's properties
@@ -476,6 +527,7 @@ fn loadTilesets(
     map: *const xml.Element,
     use_physfs: bool,
     dirname: []const u8,
+    tmap: *const TiledMap,
 ) ![]Tileset {
     var it1 = map.iterator();
     var tileset_count: usize = 0;
@@ -489,6 +541,7 @@ fn loadTilesets(
     const ts = try arena_allocator.alloc(Tileset, tileset_count);
     for (ts) |*t| {
         t.* = .{
+            .map = tmap,
             .first_gid = 0,
             .tile_size = .{ .width = 0, .height = 0 },
             .spacing = 0,
@@ -609,6 +662,7 @@ fn loadTilesets(
         for (ts[tsidx].tiles, 0..) |*t, idx| {
             const x: f32 = @floatFromInt(idx % ts[tsidx].columns * cell_width);
             const y: f32 = @floatFromInt(idx / ts[tsidx].columns * cell_height);
+            t.tileset = &ts[tsidx];
             t.id = @intCast(idx);
             t.uv0 = .{
                 .x = x / texwidth,
@@ -641,7 +695,12 @@ fn loadTilesets(
     return ts;
 }
 
-fn loadLayers(temp_allocator: std.mem.Allocator, arena_allocator: std.mem.Allocator, map: *const xml.Element) ![]Layer {
+fn loadLayers(
+    temp_allocator: std.mem.Allocator,
+    arena_allocator: std.mem.Allocator,
+    map: *const xml.Element,
+    tmap: *TiledMap,
+) ![]Layer {
     const Grouping = struct {
         const Self = @This();
         const Group = struct {
@@ -762,11 +821,14 @@ fn loadLayers(temp_allocator: std.mem.Allocator, arena_allocator: std.mem.Alloca
     // Recursively get next layer, until there's no layer left.
     // Visibility isn't considered, all layers are considered necessary to rendering.
     while (try grouping.getNextLayer()) |e| {
-        var layer: Layer = undefined;
+        var layer: *Layer = undefined;
         var offset: jok.Point = grouping.offset;
         var parallax: jok.Point = grouping.parallax;
         var tint_color: jok.Color = grouping.tint_color;
         var props: PropertyTree = PropertyTree.init(arena_allocator);
+
+        try ls.append(undefined);
+        layer = &ls.items[ls.items.len - 1];
 
         // Load common stuff
         for (e.attributes) |a| {
@@ -801,6 +863,7 @@ fn loadLayers(temp_allocator: std.mem.Allocator, arena_allocator: std.mem.Alloca
 
         // Load layer-specific stuff
         if (std.mem.eql(u8, e.tag, "layer")) {
+            layer.* = .{ .tile_layer = undefined };
             var size: jok.Size = undefined;
             for (e.attributes) |a| {
                 if (std.mem.eql(u8, a.name, "width")) {
@@ -830,6 +893,7 @@ fn loadLayers(temp_allocator: std.mem.Allocator, arena_allocator: std.mem.Alloca
             if (data.children.len > 0) {
                 if (data.findChildByTag("chunk") == null) {
                     try chunks.append(.{
+                        .layer = &layer.tile_layer,
                         .x = 0,
                         .y = 0,
                         .width = size.width,
@@ -848,6 +912,7 @@ fn loadLayers(temp_allocator: std.mem.Allocator, arena_allocator: std.mem.Alloca
                     var it = data.findChildrenByTag("chunk");
                     while (it.next()) |ce| {
                         var c: Chunk = undefined;
+                        c.layer = &layer.tile_layer;
                         for (ce.attributes) |a| {
                             if (std.mem.eql(u8, a.name, "x")) {
                                 c.x = try std.fmt.parseInt(i32, a.value, 10);
@@ -877,24 +942,24 @@ fn loadLayers(temp_allocator: std.mem.Allocator, arena_allocator: std.mem.Alloca
                     }
                 }
             }
-            layer = Layer{
-                .tile_layer = .{
-                    .size = size,
-                    .offset = offset,
-                    .parallax = parallax,
-                    .tint_color = tint_color,
-                    .chunks = try chunks.toOwnedSlice(),
-                    .props = props,
-                },
+            layer.tile_layer = .{
+                .map = tmap,
+                .size = size,
+                .offset = offset,
+                .parallax = parallax,
+                .tint_color = tint_color,
+                .chunks = try chunks.toOwnedSlice(),
+                .props = props,
             };
         } else if (std.mem.eql(u8, e.tag, "objectgroup")) {
             // TODO
+            layer.* = .{ .object_layer = undefined };
             return error.UnsupportedLayerType;
         } else if (std.mem.eql(u8, e.tag, "imagelayer")) {
             // TODO
+            layer.* = .{ .image_layer = undefined };
             return error.UnsupportedLayerType;
         } else unreachable;
-        try ls.append(layer);
     }
     assert(grouping.size() == 0);
 
