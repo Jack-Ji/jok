@@ -241,9 +241,11 @@ const TileLayer = struct {
     parallax: jok.Point,
     tint_color: jok.Color,
     chunks: []Chunk,
+    visible: bool,
     props: PropertyTree,
 
     pub fn render(self: TileLayer, b: *j2d.Batch) !void {
+        if (!self.visible) return;
         assert(self.map.orientation == .orthogonal);
         for (self.chunks) |c| {
             var it = c.getSpriteIterator();
@@ -268,19 +270,21 @@ const TileLayer = struct {
             const tx: i32 = @intFromFloat((pos.x - self.offset.x) / @as(f32, @floatFromInt(self.map.tile_size.width)));
             const ty: i32 = @intFromFloat((pos.y - self.offset.y) / @as(f32, @floatFromInt(self.map.tile_size.height)));
             for (self.chunks) |c| {
-                if (tx >= c.x and tx < c.x + @as(i32, @intCast(c.width)) and ty >= c.y and ty < c.y + @as(i32, @intCast(c.height))) {
-                    const gid = c.gids[@as(u32, @intCast(ty - c.y)) * c.width + @as(u32, @intCast(tx - c.x))];
-                    if (gid._id == 0) return null;
-                    return .{
-                        .tile = self.map.getTile(gid),
-                        .rect = .{
-                            .x = @as(f32, @floatFromInt(tx * @as(i32, @intCast(self.map.tile_size.width)))) + self.offset.x,
-                            .y = @as(f32, @floatFromInt(ty * @as(i32, @intCast(self.map.tile_size.height)))) + self.offset.y,
-                            .width = @floatFromInt(self.map.tile_size.width),
-                            .height = @floatFromInt(self.map.tile_size.height),
-                        },
-                    };
+                if (tx < c.x or tx >= c.x + @as(i32, @intCast(c.width)) or ty < c.y or ty >= c.y + @as(i32, @intCast(c.height))) {
+                    continue;
                 }
+
+                const gid = c.gids[@as(u32, @intCast(ty - c.y)) * c.width + @as(u32, @intCast(tx - c.x))];
+                if (gid._id == 0) return null;
+                return .{
+                    .tile = self.map.getTile(gid),
+                    .rect = .{
+                        .x = @as(f32, @floatFromInt(tx * @as(i32, @intCast(self.map.tile_size.width)))) + self.offset.x,
+                        .y = @as(f32, @floatFromInt(ty * @as(i32, @intCast(self.map.tile_size.height)))) + self.offset.y,
+                        .width = @floatFromInt(self.map.tile_size.width),
+                        .height = @floatFromInt(self.map.tile_size.height),
+                    },
+                };
             }
         }
         return null;
@@ -292,9 +296,11 @@ const ObjectGroup = struct {
     offset: jok.Point,
     parallax: jok.Point,
     tint_color: jok.Color,
+    visible: bool,
     props: PropertyTree,
 
     pub fn render(self: ObjectGroup, b: *j2d.Batch) !void {
+        if (!self.visible) return;
         assert(self.map.orientation == .orthogonal);
         _ = b;
         // TODO
@@ -307,9 +313,11 @@ const ImageLayer = struct {
     offset: jok.Point,
     parallax: jok.Point,
     tint_color: jok.Color,
+    visible: bool,
     props: PropertyTree,
 
     pub fn render(self: ImageLayer, b: *j2d.Batch) !void {
+        if (!self.visible) return;
         assert(self.map.orientation == .orthogonal);
         _ = b;
         // TODO
@@ -825,6 +833,7 @@ fn loadLayers(
         var offset: jok.Point = grouping.offset;
         var parallax: jok.Point = grouping.parallax;
         var tint_color: jok.Color = grouping.tint_color;
+        var visible = true;
         var props: PropertyTree = PropertyTree.init(arena_allocator);
 
         try ls.append(undefined);
@@ -856,6 +865,10 @@ fn loadLayers(
             }
             if (std.mem.eql(u8, a.name, "tintcolor")) {
                 tint_color = tint_color.mod(try parseColor(a.value));
+                continue;
+            }
+            if (std.mem.eql(u8, a.name, "visible")) {
+                visible = if (try std.fmt.parseInt(u8, a.value, 0) == 1) true else false;
                 continue;
             }
         }
@@ -949,6 +962,7 @@ fn loadLayers(
                 .parallax = parallax,
                 .tint_color = tint_color,
                 .chunks = try chunks.toOwnedSlice(),
+                .visible = visible,
                 .props = props,
             };
         } else if (std.mem.eql(u8, e.tag, "objectgroup")) {
