@@ -19,6 +19,7 @@ pub const Error = error{
     UnsupportedLayerEncoding,
     UnsupportedLayerCompression,
     UnsupportedPropertyType,
+    UnsupportedObjectType,
 };
 
 pub const Orientation = enum {
@@ -291,20 +292,84 @@ const TileLayer = struct {
     }
 };
 
+const Object = struct {
+    layer: *const ObjectGroup,
+    geom: union(enum) {
+        rect: jok.Rectangle,
+        circle: jok.Circle,
+        point: jok.Point,
+        polygon: j2d.ConvexPoly,
+        polyline: j2d.Polyline,
+    },
+    rotate_degree: f32,
+    gid: ?GlobalTileID,
+    visible: bool,
+    props: PropertyTree,
+};
+
 const ObjectGroup = struct {
     map: *const TiledMap,
     offset: jok.Point,
     parallax: jok.Point,
     tint_color: jok.Color,
+    objects: []Object,
     visible: bool,
     props: PropertyTree,
 
     pub fn render(self: ObjectGroup, b: *j2d.Batch) !void {
         if (!self.visible) return;
         assert(self.map.orientation == .orthogonal);
-        _ = b;
-        // TODO
-        return error.UnsupportedLayerType;
+        for (self.objects) |o| {
+            if (!o.visible) continue;
+            switch (o.geom) {
+                .rect => |r| {
+                    if (o.gid) |gid| {
+                        const tile = self.map.getTile(gid);
+                        var sp = tile.getSprite();
+                        sp.width = r.width;
+                        sp.height = r.height;
+                        try b.sprite(sp, .{
+                            .pos = .{ .x = r.x, .y = r.y },
+                            .rotate_degree = o.rotate_degree,
+                            .anchor_point = .{ .x = 0, .y = 1.0 },
+                        });
+                    } else {
+                        try b.pushTransform(j2d.AffineTransform.init().rotateByPoint(
+                            .{ .x = r.x, .y = r.y },
+                            std.math.degreesToRadians(o.rotate_degree),
+                        ));
+                        defer b.popTransform();
+                        try b.rectFilled(r, self.tint_color, .{});
+                    }
+                },
+                .circle => |c| {
+                    try b.circleFilled(c, self.tint_color, .{});
+                },
+                .point => |p| {
+                    try b.rectFilled(
+                        .{ .x = p.x - 5, .y = p.y - 5, .width = 10, .height = 10 },
+                        self.tint_color,
+                        .{},
+                    );
+                },
+                .polygon => |poly| {
+                    try b.pushTransform(j2d.AffineTransform.init().rotateByPoint(
+                        poly.points.items[0].pos,
+                        std.math.degreesToRadians(o.rotate_degree),
+                    ));
+                    defer b.popTransform();
+                    try b.convexPolyFilled(poly, .{});
+                },
+                .polyline => |poly| {
+                    try b.pushTransform(j2d.AffineTransform.init().rotateByPoint(
+                        poly.points.items[0],
+                        std.math.degreesToRadians(o.rotate_degree),
+                    ));
+                    defer b.popTransform();
+                    try b.polyline(poly, self.tint_color, .{ .depth = 2 });
+                },
+            }
+        }
     }
 };
 
@@ -966,9 +1031,115 @@ fn loadLayers(
                 .props = props,
             };
         } else if (std.mem.eql(u8, e.tag, "objectgroup")) {
-            // TODO
             layer.* = .{ .object_layer = undefined };
-            return error.UnsupportedLayerType;
+
+            var objects = try std.ArrayList(Object).initCapacity(arena_allocator, 20);
+            var it = e.findChildrenByTag("object");
+            while (it.next()) |oe| {
+                var o: Object = .{
+                    .layer = &layer.object_layer,
+                    .geom = undefined,
+                    .rotate_degree = 0,
+                    .gid = null,
+                    .visible = true,
+                    .props = PropertyTree.init(arena_allocator),
+                };
+
+                var x: f32 = 0;
+                var y: f32 = 0;
+                var width: f32 = 0;
+                var height: f32 = 0;
+
+                for (oe.attributes) |a| {
+                    if (std.mem.eql(u8, a.name, "x")) {
+                        x = try std.fmt.parseFloat(f32, a.value);
+                        continue;
+                    }
+                    if (std.mem.eql(u8, a.name, "y")) {
+                        y = try std.fmt.parseFloat(f32, a.value);
+                        continue;
+                    }
+                    if (std.mem.eql(u8, a.name, "width")) {
+                        width = try std.fmt.parseFloat(f32, a.value);
+                        continue;
+                    }
+                    if (std.mem.eql(u8, a.name, "height")) {
+                        height = try std.fmt.parseFloat(f32, a.value);
+                        continue;
+                    }
+                    if (std.mem.eql(u8, a.name, "rotation")) {
+                        o.rotate_degree = try std.fmt.parseFloat(f32, a.value);
+                        continue;
+                    }
+                    if (std.mem.eql(u8, a.name, "gid")) {
+                        o.gid = .{
+                            ._id = try std.fmt.parseInt(u32, a.value, 0),
+                        };
+                        continue;
+                    }
+                    if (std.mem.eql(u8, a.name, "visible")) {
+                        o.visible = if (try std.fmt.parseInt(u8, a.value, 0) == 1) true else false;
+                        continue;
+                    }
+                }
+
+                if (oe.findChildByTag("ellipse") != null) {
+                    assert(width == height and width > 0);
+                    o.geom = .{
+                        .circle = .{
+                            .center = .{
+                                .x = x + width / 2,
+                                .y = y + width / 2,
+                            },
+                            .radius = width / 2,
+                        },
+                    };
+                } else if (oe.findChildByTag("point") != null) {
+                    o.geom = .{
+                        .point = .{ .x = x, .y = y },
+                    };
+                } else if (oe.findChildByTag("polygon")) |pe| {
+                    assert(pe.attributes.len == 1);
+                    assert(std.mem.eql(u8, pe.attributes[0].name, "points"));
+                    var convex = j2d.ConvexPoly.begin(arena_allocator, null);
+                    var point_it = std.mem.splitScalar(u8, pe.attributes[0].value, ' ');
+                    while (point_it.next()) |xs| {
+                        const idx = std.mem.indexOfScalar(u8, xs, ',').?;
+                        try convex.point(.{
+                            .pos = .{
+                                .x = x + try std.fmt.parseFloat(f32, xs[0..idx]),
+                                .y = y + try std.fmt.parseFloat(f32, xs[idx + 1 ..]),
+                            },
+                            .color = tint_color,
+                        });
+                    }
+                    convex.end();
+                    o.geom = .{ .polygon = convex };
+                } else if (oe.findChildByTag("polyline") != null) {
+                    return error.UnsupportedObjectType;
+                } else {
+                    o.geom = .{
+                        .rect = .{
+                            .x = x,
+                            .y = y,
+                            .width = width,
+                            .height = height,
+                        },
+                    };
+                }
+
+                try initPropertyTree(oe, arena_allocator, &o.props);
+                try objects.append(o);
+            }
+            layer.object_layer = .{
+                .map = tmap,
+                .offset = offset,
+                .parallax = parallax,
+                .tint_color = tint_color,
+                .objects = try objects.toOwnedSlice(),
+                .visible = visible,
+                .props = props,
+            };
         } else if (std.mem.eql(u8, e.tag, "imagelayer")) {
             // TODO
             layer.* = .{ .image_layer = undefined };

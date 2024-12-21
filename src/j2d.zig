@@ -1182,12 +1182,12 @@ pub const ConvexPoly = struct {
 
     pub fn point(self: *ConvexPoly, p: jok.Vertex) !void {
         assert(!self.finished);
-        try self.cmd.points.append(p);
+        try self.points.append(p);
     }
 
     pub fn npoints(self: *ConvexPoly, ps: []jok.Vertex) !void {
         assert(!self.finished);
-        try self.cmd.points.appendSlice(ps);
+        try self.points.appendSlice(ps);
     }
 };
 

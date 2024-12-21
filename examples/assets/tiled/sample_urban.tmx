@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.8" tiledversion="1.8.2" orientation="orthogonal" renderorder="right-down" width="48" height="32" tilewidth="16" tileheight="16" infinite="1" backgroundcolor="#77767b" nextlayerid="6" nextobjectid="1">
+<map version="1.8" tiledversion="1.8.2" orientation="orthogonal" renderorder="right-down" width="48" height="32" tilewidth="16" tileheight="16" infinite="1" backgroundcolor="#77767b" nextlayerid="7" nextobjectid="9">
  <properties>
   <property name="fancycolor" type="color" value="#ff33d17a"/>
  </properties>
@@ -160,4 +160,23 @@
    </layer>
   </group>
  </group>
+ <objectgroup id="6" name="object layer" opacity="0.5" tintcolor="#00fff5">
+  <object id="1" x="146.95" y="111.135" width="128.842" height="42.0854" rotation="52.089"/>
+  <object id="2" gid="307" x="450.495" y="485.717" width="70.789" height="56.5844" rotation="-30"/>
+  <object id="3" x="280.227" y="321.732">
+   <point/>
+  </object>
+  <object id="4" x="288.057" y="368.62">
+   <point/>
+  </object>
+  <object id="5" x="277.734" y="435.007">
+   <point/>
+  </object>
+  <object id="6" x="126.106" y="70.0431" width="60" height="60">
+   <ellipse/>
+  </object>
+  <object id="7" x="559.894" y="406.747" rotation="45">
+   <polygon points="0,0 92.931,0 45.9434,75.7022 -60.0397,46.9876 -27.1484,14.0963"/>
+  </object>
+ </objectgroup>
 </map>
