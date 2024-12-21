@@ -203,23 +203,26 @@ pub const RenderOption = struct {
 };
 pub fn render(self: Self, batch: *j3d.Batch, object: ?*Object, opt: RenderOption) !void {
     const o = object orelse self.root;
+    try batch.pushTransform();
+    defer batch.popTransform();
+    batch.trs = o.transform;
     switch (o.actor) {
         .position => {},
-        .mesh => |m| try batch.mesh(
-            m.mesh,
-            o.transform,
-            .{
-                .cull_faces = m.cull_faces,
-                .color = m.color,
-                .texture = m.texture,
-                .lighting = if (m.disable_lighting)
-                    null
-                else
-                    opt.lighting,
-            },
-        ),
+        .mesh => |m| {
+            try batch.mesh(
+                m.mesh,
+                .{
+                    .cull_faces = m.cull_faces,
+                    .color = m.color,
+                    .texture = m.texture,
+                    .lighting = if (m.disable_lighting)
+                        null
+                    else
+                        opt.lighting,
+                },
+            );
+        },
         .sprite => |s| try batch.sprite(
-            o.transform,
             s.size,
             s.uv,
             .{

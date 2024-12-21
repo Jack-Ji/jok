@@ -177,13 +177,16 @@ pub fn draw(ctx: jok.Context) !void {
 
             try b.pushTransform();
             defer b.popTransform();
-            b.trs = j2d.AffineTransform.init().scale(.{
-                .x = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
-                .y = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
-            }).rotateByOrigin(ctx.seconds()).translate(.{
-                .x = offset_transformed[0],
-                .y = offset_transformed[1],
-            });
+            b.setIdentity();
+            b.scale(
+                (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
+                (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
+            );
+            b.rotateByOrigin(ctx.seconds());
+            b.translate(
+                offset_transformed[0],
+                offset_transformed[1],
+            );
             try b.rectFilledMultiColor(
                 .{ .x = -10, .y = -10, .width = 20, .height = 20 },
                 jok.Color.white,
@@ -235,38 +238,38 @@ pub fn draw(ctx: jok.Context) !void {
             100,
             @intFromFloat(128 + 127 * std.math.cos(ctx.seconds())),
         );
+
+        b.rotateY(ctx.seconds());
+        try b.pushTransform();
+
+        b.translate(-3, 3, 0);
         try b.shape(
-            zmath.mul(
-                zmath.rotationY(ctx.seconds()),
-                zmath.translation(-3, 3, 0),
-            ),
             shape_icosahedron,
             null,
             .{ .lighting = .{}, .color = color },
         );
+
+        b.popTransform();
+        try b.pushTransform();
+        b.translate(3, 3, 0);
         try b.shape(
-            zmath.mul(
-                zmath.rotationY(ctx.seconds()),
-                zmath.translation(3, 3, 0),
-            ),
             shape_torus,
             null,
             .{ .lighting = .{}, .color = color },
         );
+
+        b.popTransform();
+        try b.pushTransform();
+        b.translate(3, -3, 0);
         try b.shape(
-            zmath.mul(
-                zmath.rotationY(ctx.seconds()),
-                zmath.translation(3, -3, 0),
-            ),
             shape_parametric_sphere,
             null,
             .{ .lighting = .{}, .color = color },
         );
+
+        b.popTransform();
+        b.translate(-3, -3, 0);
         try b.shape(
-            zmath.mul(
-                zmath.rotationY(ctx.seconds()),
-                zmath.translation(-3, -3, 0),
-            ),
             shape_tetrahedron,
             null,
             .{ .lighting = .{}, .color = color },

@@ -151,14 +151,14 @@ pub fn draw(ctx: jok.Context) !void {
 
     var b = try batchpool.new(.{ .camera = camera, .triangle_sort = .simple });
     defer b.submit();
-    try b.shape(
+    b.trs = zmath.mul(
+        zmath.translation(-0.5, -0.5, -0.5),
         zmath.mul(
-            zmath.translation(-0.5, -0.5, -0.5),
-            zmath.mul(
-                zmath.scaling(0.5, 0.5, 0.5),
-                zmath.rotationY(ctx.seconds() * std.math.pi),
-            ),
+            zmath.scaling(0.5, 0.5, 0.5),
+            zmath.rotationY(ctx.seconds() * std.math.pi),
         ),
+    );
+    try b.shape(
         cube,
         null,
         .{ .texture = tex },

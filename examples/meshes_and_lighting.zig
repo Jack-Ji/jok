@@ -226,7 +226,6 @@ pub fn draw(ctx: jok.Context) !void {
     });
     defer b.submit();
     try b.shape(
-        zmath.identity(),
         terran,
         null,
         .{
@@ -235,11 +234,12 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
+
+    b.scale(5, 5, 5);
+    try b.pushTransform();
+
+    b.translate(30, 5, 10);
     try b.shape(
-        zmath.mul(
-            zmath.scaling(5, 5, 5),
-            zmath.translation(30, 5, 10),
-        ),
         cube,
         null,
         .{
@@ -248,11 +248,11 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
+
+    b.popTransform();
+    try b.pushTransform();
+    b.translate(-30, 10, -20);
     try b.shape(
-        zmath.mul(
-            zmath.scaling(5, 5, 5),
-            zmath.translation(-30, 10, -20),
-        ),
         parametric_sphere,
         null,
         .{
@@ -261,11 +261,11 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
+
+    b.popTransform();
+    try b.pushTransform();
+    b.translate(-20, 10, -20);
     try b.shape(
-        zmath.mul(
-            zmath.scaling(5, 5, 5),
-            zmath.translation(-20, 10, -20),
-        ),
         subdivided_sphere,
         null,
         .{
@@ -274,11 +274,11 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
+
+    b.popTransform();
+    try b.pushTransform();
+    b.translate(-15, 5, -10);
     try b.shape(
-        zmath.mul(
-            zmath.scaling(5, 5, 5),
-            zmath.translation(-15, 5, -10),
-        ),
         hemisphere,
         null,
         .{
@@ -287,14 +287,15 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
-    try b.shape(
+
+    b.trs = zmath.mul(
         zmath.mul(
-            zmath.mul(
-                zmath.scaling(5, 5, 20),
-                zmath.rotationX(-math.pi * 0.5),
-            ),
-            zmath.translation(15, 5, -10),
+            zmath.scaling(5, 5, 20),
+            zmath.rotationX(-math.pi * 0.5),
         ),
+        zmath.translation(15, 5, -10),
+    );
+    try b.shape(
         cone,
         null,
         .{
@@ -303,14 +304,15 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
-    try b.shape(
+
+    b.trs = zmath.mul(
         zmath.mul(
-            zmath.mul(
-                zmath.scaling(5, 5, 20),
-                zmath.rotationX(-math.pi * 0.5),
-            ),
-            zmath.translation(15, 5, -25),
+            zmath.scaling(5, 5, 20),
+            zmath.rotationX(-math.pi * 0.5),
         ),
+        zmath.translation(15, 5, -25),
+    );
+    try b.shape(
         cylinder,
         null,
         .{
@@ -320,14 +322,15 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
-    try b.shape(
+
+    b.trs = zmath.mul(
         zmath.mul(
-            zmath.mul(
-                zmath.scaling(5, 5, 1),
-                zmath.rotationX(-math.pi * 0.6),
-            ),
-            zmath.translation(15, 8, 9),
+            zmath.scaling(5, 5, 1),
+            zmath.rotationX(-math.pi * 0.6),
         ),
+        zmath.translation(15, 8, 9),
+    );
+    try b.shape(
         disk,
         null,
         .{
@@ -337,11 +340,12 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
+
+    b.trs = zmath.mul(
+        zmath.scaling(8, 8, 8),
+        zmath.translation(-5, 15, 25),
+    );
     try b.shape(
-        zmath.mul(
-            zmath.scaling(8, 8, 8),
-            zmath.translation(-5, 15, 25),
-        ),
         torus,
         null,
         .{
@@ -350,11 +354,12 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
+
+    b.trs = zmath.mul(
+        zmath.scaling(8, 8, 8),
+        zmath.translation(-30, 15, 35),
+    );
     try b.shape(
-        zmath.mul(
-            zmath.scaling(8, 8, 8),
-            zmath.translation(-30, 15, 35),
-        ),
         icosahedron,
         null,
         .{
@@ -363,11 +368,12 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
+
+    b.trs = zmath.mul(
+        zmath.scaling(8, 8, 8),
+        zmath.translation(-20, 10, 15),
+    );
     try b.shape(
-        zmath.mul(
-            zmath.scaling(8, 8, 8),
-            zmath.translation(-20, 10, 15),
-        ),
         dodecahedron,
         null,
         .{
@@ -376,11 +382,12 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
+
+    b.trs = zmath.mul(
+        zmath.scaling(8, 8, 8),
+        zmath.translation(36, 10, 0),
+    );
     try b.shape(
-        zmath.mul(
-            zmath.scaling(8, 8, 8),
-            zmath.translation(36, 10, 0),
-        ),
         octahedron,
         null,
         .{
@@ -389,11 +396,12 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
+
+    b.trs = zmath.mul(
+        zmath.scaling(12, 12, 12),
+        zmath.translation(14, 5, 28),
+    );
     try b.shape(
-        zmath.mul(
-            zmath.scaling(12, 12, 12),
-            zmath.translation(14, 5, 28),
-        ),
         tetrahedron,
         null,
         .{
@@ -402,11 +410,12 @@ pub fn draw(ctx: jok.Context) !void {
             .shading_method = @enumFromInt(shading_method),
         },
     );
+
+    b.trs = zmath.mul(
+        zmath.scaling(6, 6, 6),
+        zmath.translation(35, 5, 35),
+    );
     try b.shape(
-        zmath.mul(
-            zmath.scaling(6, 6, 6),
-            zmath.translation(35, 5, 35),
-        ),
         rock,
         null,
         .{
@@ -416,8 +425,8 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
     if (lighting) {
+        b.trs = zmath.translation(light_pos1[0], light_pos1[1], light_pos1[2]);
         try b.shape(
-            zmath.translation(light_pos1[0], light_pos1[1], light_pos1[2]),
             subdivided_sphere,
             null,
             .{
@@ -428,8 +437,9 @@ pub fn draw(ctx: jok.Context) !void {
                 ),
             },
         );
+
+        b.trs = zmath.translation(light_pos2[0], light_pos2[1], light_pos2[2]);
         try b.shape(
-            zmath.translation(light_pos2[0], light_pos2[1], light_pos2[2]),
             subdivided_sphere,
             null,
             .{
@@ -440,14 +450,15 @@ pub fn draw(ctx: jok.Context) !void {
                 ),
             },
         );
-        try b.shape(
+
+        b.trs = zmath.mul(
             zmath.mul(
-                zmath.mul(
-                    zmath.scaling(15, 15, 30),
-                    zmath.rotationX(-math.pi * 0.5),
-                ),
-                zmath.translation(light_pos1[0], 0, light_pos1[2]),
+                zmath.scaling(15, 15, 30),
+                zmath.rotationX(-math.pi * 0.5),
             ),
+            zmath.translation(light_pos1[0], 0, light_pos1[2]),
+        );
+        try b.shape(
             cone,
             null,
             .{

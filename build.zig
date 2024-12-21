@@ -164,6 +164,7 @@ fn initJok(
     const zgui = builder.dependency("zgui", .{
         .target = target,
         .optimize = optimize,
+        .with_implot = true,
         .use_wchar32 = true,
         .use_32bit_draw_idx = true,
     });

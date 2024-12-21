@@ -56,6 +56,8 @@ pub const Batch = struct {
     camera: Camera,
     tri_rd: TriangleRenderer,
     skybox_rd: SkyboxRenderer,
+    trs_stack: std.ArrayList(zmath.Mat),
+    trs: zmath.Mat,
     wireframe_color: ?jok.Color,
     triangle_sort: TriangleSort,
     indices: std.ArrayList(u32),
@@ -75,6 +77,8 @@ pub const Batch = struct {
             .camera = undefined,
             .tri_rd = TriangleRenderer.init(allocator),
             .skybox_rd = SkyboxRenderer.init(allocator, .{}),
+            .trs_stack = std.ArrayList(zmath.Mat).init(_ctx.allocator()),
+            .trs = undefined,
             .wireframe_color = null,
             .triangle_sort = .none,
             .indices = std.ArrayList(u32).init(allocator),
@@ -90,6 +94,7 @@ pub const Batch = struct {
     }
 
     fn deinit(self: *Batch) void {
+        self.trs_stack.deinit();
         self.tri_rd.deinit();
         self.skybox_rd.deinit();
         self.indices.deinit();
@@ -114,6 +119,8 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         defer self.is_submitted = false;
 
+        self.trs_stack.clearRetainingCapacity();
+        self.trs = zmath.identity();
         self.wireframe_color = opt.wireframe_color;
         self.triangle_sort = opt.triangle_sort;
         self.draw_list.reset();
@@ -326,6 +333,43 @@ pub const Batch = struct {
         self.reclaimer.reclaim(self);
     }
 
+    pub fn pushTransform(self: *Batch) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try self.trs_stack.append(self.trs);
+    }
+
+    pub fn popTransform(self: *Batch) void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        assert(self.trs_stack.items.len > 0);
+        self.trs = self.trs_stack.pop();
+    }
+
+    pub fn setIdentity(self: *Batch) void {
+        self.trs = zmath.identity();
+    }
+
+    pub fn translate(self: *Batch, x: f32, y: f32, z: f32) void {
+        self.trs = zmath.mul(self.trs, zmath.translation(x, y, z));
+    }
+
+    pub fn rotateX(self: *Batch, radian: f32) void {
+        self.trs = zmath.mul(self.trs, zmath.rotationX(radian));
+    }
+
+    pub fn rotateY(self: *Batch, radian: f32) void {
+        self.trs = zmath.mul(self.trs, zmath.rotationY(radian));
+    }
+
+    pub fn rotateZ(self: *Batch, radian: f32) void {
+        self.trs = zmath.mul(self.trs, zmath.rotationZ(radian));
+    }
+
+    pub fn scale(self: *Batch, x: f32, y: f32, z: f32) void {
+        self.trs = zmath.mul(self.trs, zmath.scaling(x, y, z));
+    }
+
     /// Get current batched data
     pub fn getBatch(self: Batch) !RenderBatch {
         assert(self.id != invalid_batch_id);
@@ -476,7 +520,6 @@ pub const Batch = struct {
     /// Render given sprite
     pub fn sprite(
         self: *Batch,
-        model: zmath.Mat,
         size: jok.Point,
         uv: [2]jok.Point,
         opt: TriangleRenderer.RenderSpriteOption,
@@ -486,7 +529,7 @@ pub const Batch = struct {
         try self.tri_rd.renderSprite(
             self.ctx.getCanvasSize(),
             self,
-            model,
+            self.trs,
             self.camera,
             size,
             uv,
@@ -503,7 +546,6 @@ pub const Batch = struct {
     /// Render given line
     pub fn line(
         self: *Batch,
-        model: zmath.Mat,
         _p0: [3]f32,
         _p1: [3]f32,
         opt: LineOption,
@@ -512,8 +554,8 @@ pub const Batch = struct {
         assert(!self.is_submitted);
         assert(opt.thickness > 0);
         assert(opt.stacks > 0);
-        const v0 = zmath.mul(zmath.f32x4(_p0[0], _p0[1], _p0[2], 1), model);
-        const v1 = zmath.mul(zmath.f32x4(_p1[0], _p1[1], _p1[2], 1), model);
+        const v0 = zmath.mul(zmath.f32x4(_p0[0], _p0[1], _p0[2], 1), self.trs);
+        const v1 = zmath.mul(zmath.f32x4(_p1[0], _p1[1], _p1[2], 1), self.trs);
         const perpv = zmath.normalize3(zmath.cross3(v1 - v0, self.camera.dir));
         const veps = zmath.f32x4s(opt.thickness);
         const unit = (v1 - v0) / zmath.f32x4s(@floatFromInt(opt.stacks));
@@ -555,7 +597,6 @@ pub const Batch = struct {
     /// Render given triangle
     pub fn triangle(
         self: *Batch,
-        model: zmath.Mat,
         pos: [3][3]f32,
         colors: ?[3]jok.Color,
         texcoords: ?[3][2]f32,
@@ -580,7 +621,7 @@ pub const Batch = struct {
             try self.tri_rd.renderMesh(
                 self.ctx.getCanvasSize(),
                 self,
-                model,
+                self.trs,
                 self.camera,
                 &.{ 0, 1, 2 },
                 &pos,
@@ -597,16 +638,15 @@ pub const Batch = struct {
                 },
             );
         } else {
-            try line(model, pos[0], pos[1], .{ .color = opt.rdopt.color });
-            try line(model, pos[1], pos[2], .{ .color = opt.rdopt.color });
-            try line(model, pos[2], pos[0], .{ .color = opt.rdopt.color });
+            try line(self.trs, pos[0], pos[1], .{ .color = opt.rdopt.color });
+            try line(self.trs, pos[1], pos[2], .{ .color = opt.rdopt.color });
+            try line(self.trs, pos[2], pos[0], .{ .color = opt.rdopt.color });
         }
     }
 
     /// Render multiple triangles
     pub fn triangles(
         self: *Batch,
-        model: zmath.Mat,
         indices: []const u32,
         pos: []const [3]f32,
         normals: ?[]const [3]f32,
@@ -622,7 +662,7 @@ pub const Batch = struct {
             try self.tri_rd.renderMesh(
                 self.ctx.getCanvasSize(),
                 self,
-                model,
+                self.trs,
                 self.camera,
                 indices,
                 pos,
@@ -644,9 +684,9 @@ pub const Batch = struct {
                 const idx0 = indices[i - 2];
                 const idx1 = indices[i - 1];
                 const idx2 = indices[i];
-                try line(model, idx0, idx1, .{ .color = opt.rdopt.color });
-                try line(model, idx1, idx2, .{ .color = opt.rdopt.color });
-                try line(model, idx2, idx0, .{ .color = opt.rdopt.color });
+                try line(self.trs, idx0, idx1, .{ .color = opt.rdopt.color });
+                try line(self.trs, idx1, idx2, .{ .color = opt.rdopt.color });
+                try line(self.trs, idx2, idx0, .{ .color = opt.rdopt.color });
             }
         }
     }
@@ -654,7 +694,6 @@ pub const Batch = struct {
     /// Render a prebuilt shape
     pub fn shape(
         self: *Batch,
-        model: zmath.Mat,
         s: zmesh.Shape,
         aabb: ?[6]f32,
         opt: RenderOption,
@@ -664,7 +703,7 @@ pub const Batch = struct {
         try self.tri_rd.renderMesh(
             self.ctx.getCanvasSize(),
             self,
-            model,
+            self.trs,
             self.camera,
             s.indices,
             s.positions,
@@ -686,7 +725,6 @@ pub const Batch = struct {
     pub fn mesh(
         self: *Batch,
         m: *const Mesh,
-        model: zmath.Mat,
         opt: RenderOption,
     ) !void {
         assert(self.id != invalid_batch_id);
@@ -694,7 +732,7 @@ pub const Batch = struct {
         try m.render(
             self.ctx.getCanvasSize(),
             self,
-            model,
+            self.trs,
             self.camera,
             &self.tri_rd,
             .{
@@ -711,7 +749,6 @@ pub const Batch = struct {
     pub fn animation(
         self: *Batch,
         anim: *Animation,
-        model: zmath.Mat,
         opt: Animation.RenderOption,
     ) !void {
         assert(self.id != invalid_batch_id);
@@ -719,7 +756,7 @@ pub const Batch = struct {
         try anim.render(
             self.ctx.getCanvasSize(),
             self,
-            model,
+            self.trs,
             self.camera,
             &self.tri_rd,
             opt,

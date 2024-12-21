@@ -154,14 +154,14 @@ pub fn draw(ctx: jok.Context) !void {
         .triangle_sort = if (sort_by_depth) .simple else .none,
     });
     defer b.submit();
-    try b.shape(
+    b.trs = zmath.mul(
         zmath.mul(
-            zmath.mul(
-                zmath.rotationX(-math.pi * 0.5),
-                zmath.translation(-0.5, -1.1, 0.5),
-            ),
-            zmath.scaling(200, 1, 200),
+            zmath.rotationX(-math.pi * 0.5),
+            zmath.translation(-0.5, -1.1, 0.5),
         ),
+        zmath.scaling(200, 1, 200),
+    );
+    try b.shape(
         plane,
         null,
         .{

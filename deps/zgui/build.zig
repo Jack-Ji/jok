@@ -24,17 +24,17 @@ pub fn build(b: *std.Build) void {
             bool,
             "with_implot",
             "Build with bundled implot source",
-        ) orelse true,
+        ) orelse false,
         .with_gizmo = b.option(
             bool,
             "with_gizmo",
             "Build with bundled ImGuizmo tool",
-        ) orelse true,
+        ) orelse false,
         .with_node_editor = b.option(
             bool,
             "with_node_editor",
             "Build with bundled ImGui node editor",
-        ) orelse true,
+        ) orelse false,
         .with_te = b.option(
             bool,
             "with_te",
@@ -104,12 +104,24 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(imgui);
 
+    const emscripten = target.result.os.tag == .emscripten;
+    if (emscripten) {
+        imgui.defineCMacro("__EMSCRIPTEN__", null);
+        // TODO: read from enviroment or `emcc --version`
+        imgui.defineCMacro("__EMSCRIPTEN_major__", "3");
+        imgui.defineCMacro("__EMSCRIPTEN_minor__", "1");
+        imgui.root_module.stack_protector = false;
+        //imgui.root_module.disable_stack_probing = true;
+    }
+
     imgui.addIncludePath(b.path("libs"));
     imgui.addIncludePath(b.path("libs/imgui"));
 
-    imgui.linkLibC();
-    if (target.result.abi != .msvc)
-        imgui.linkLibCpp();
+    if (!emscripten) {
+        imgui.linkLibC();
+        if (target.result.abi != .msvc)
+            imgui.linkLibCpp();
+    }
 
     imgui.addCSourceFile(.{
         .file = b.path("src/zgui.cpp"),
@@ -254,11 +266,17 @@ pub fn build(b: *std.Build) void {
 
     switch (options.backend) {
         .glfw_wgpu => {
-            if (b.lazyDependency("zglfw", .{})) |zglfw| {
-                imgui.addIncludePath(zglfw.path("libs/glfw/include"));
-            }
-            if (b.lazyDependency("zgpu", .{})) |zgpu| {
-                imgui.addIncludePath(zgpu.path("libs/dawn/include"));
+            if (emscripten) {
+                imgui.addSystemIncludePath(.{
+                    .cwd_relative = b.pathJoin(&.{ b.sysroot.?, "include" }),
+                });
+            } else {
+                if (b.lazyDependency("zglfw", .{})) |zglfw| {
+                    imgui.addIncludePath(zglfw.path("libs/glfw/include"));
+                }
+                if (b.lazyDependency("zgpu", .{})) |zgpu| {
+                    imgui.addIncludePath(zgpu.path("libs/dawn/include"));
+                }
             }
             imgui.addCSourceFiles(.{
                 .files = &.{

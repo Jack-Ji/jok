@@ -170,8 +170,9 @@ pub fn draw(ctx: jok.Context) !void {
     var b = try batchpool.new(.{ .camera = camera, .triangle_sort = .simple });
     defer b.submit();
     try b.scene(scene, .{ .lighting = .{} });
+
+    b.trs = zmath.translation(10, -10, -30);
     try b.sprite(
-        zmath.translation(10, -10, -30),
         .{ .x = 50, .y = 20 },
         .{
             .{ .x = 0, .y = 0 },

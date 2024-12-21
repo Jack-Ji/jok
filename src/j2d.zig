@@ -235,6 +235,26 @@ pub const Batch = struct {
         self.trs = self.trs_stack.pop();
     }
 
+    pub fn setIdentity(self: *Batch) void {
+        self.trs = AffineTransform.init();
+    }
+
+    pub fn translate(self: *Batch, x: f32, y: f32) void {
+        self.trs = self.trs.translate(.{ .x = x, .y = y });
+    }
+
+    pub fn rotateByOrigin(self: *Batch, radian: f32) void {
+        self.trs = self.trs.rotateByOrigin(radian);
+    }
+
+    pub fn rotateByPoint(self: *Batch, p: jok.Point, radian: f32) void {
+        self.trs = self.trs.rotateByPoint(p, radian);
+    }
+
+    pub fn scale(self: *Batch, x: f32, y: f32) void {
+        self.trs = self.trs.scale(.{ .x = x, .y = y });
+    }
+
     pub const ImageOption = struct {
         size: ?jok.Size = null,
         uv0: jok.Point = .{ .x = 0, .y = 0 },
@@ -250,7 +270,7 @@ pub const Batch = struct {
     pub fn image(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.trs.getScale();
+        const scaling = self.trs.getScale();
         const size = opt.size orelse BLK: {
             const info = try texture.query();
             break :BLK jok.Size{
@@ -268,7 +288,7 @@ pub const Batch = struct {
         try s.render(&self.draw_commands, .{
             .pos = self.trs.transformPoint(pos),
             .tint_color = opt.tint_color,
-            .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
+            .scale = .{ .x = scaling.x * opt.scale.x, .y = scaling.y * opt.scale.y },
             .rotate_degree = opt.rotate_degree,
             .anchor_point = opt.anchor_point,
             .flip_h = opt.flip_h,
@@ -292,7 +312,7 @@ pub const Batch = struct {
     pub fn imageRounded(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.trs.getScale();
+        const scaling = self.trs.getScale();
         const size = opt.size orelse BLK: {
             const info = try texture.query();
             break :BLK jok.Size{
@@ -302,8 +322,8 @@ pub const Batch = struct {
         };
         const pmin = self.trs.transformPoint(pos);
         const pmax = jok.Point{
-            .x = pmin.x + @as(f32, @floatFromInt(size.width)) * scale.x,
-            .y = pmin.y + @as(f32, @floatFromInt(size.height)) * scale.y,
+            .x = pmin.x + @as(f32, @floatFromInt(size.width)) * scaling.x,
+            .y = pmin.y + @as(f32, @floatFromInt(size.height)) * scaling.y,
         };
         var uv0 = opt.uv0;
         var uv1 = opt.uv1;
@@ -352,11 +372,11 @@ pub const Batch = struct {
     pub fn sprite(self: *Batch, s: Sprite, opt: SpriteOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.trs.getScale();
+        const scaling = self.trs.getScale();
         try s.render(&self.draw_commands, .{
             .pos = self.trs.transformPoint(opt.pos),
             .tint_color = opt.tint_color,
-            .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
+            .scale = .{ .x = scaling.x * opt.scale.x, .y = scaling.y * opt.scale.y },
             .rotate_degree = opt.rotate_degree,
             .anchor_point = opt.anchor_point,
             .flip_h = opt.flip_h,
@@ -383,9 +403,9 @@ pub const Batch = struct {
         if (txt.len == 0) return;
 
         var pos = self.trs.transformPoint(opt.pos);
-        var scale = self.trs.getScale();
-        scale.x *= opt.scale.x;
-        scale.y *= opt.scale.y;
+        var scaling = self.trs.getScale();
+        scaling.x *= opt.scale.x;
+        scaling.y *= opt.scale.y;
         const angle = std.math.degreesToRadians(opt.rotate_degree);
         const mat = zmath.mul(
             zmath.mul(
@@ -403,7 +423,7 @@ pub const Batch = struct {
                 const v = zmath.mul(
                     zmath.f32x4(
                         cs.vs[0].pos.x,
-                        pos.y + (cs.vs[0].pos.y - pos.y) * scale.y,
+                        pos.y + (cs.vs[0].pos.y - pos.y) * scaling.y,
                         0,
                         1,
                     ),
@@ -420,12 +440,12 @@ pub const Batch = struct {
                 try s.render(&self.draw_commands, .{
                     .pos = draw_pos,
                     .tint_color = opt.tint_color,
-                    .scale = scale,
+                    .scale = scaling,
                     .rotate_degree = opt.rotate_degree,
                     .anchor_point = opt.anchor_point,
                     .depth = opt.depth,
                 });
-                pos.x += (cs.next_x - pos.x) * scale.x;
+                pos.x += (cs.next_x - pos.x) * scaling.x;
             } else if (!opt.ignore_unexist) {
                 log.err("Doesn't support character: {s}({x})", .{ u8letter, cp });
                 return error.UnsupportedCodepoint;
@@ -556,11 +576,11 @@ pub const Batch = struct {
     pub fn rectRounded(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.trs.getScale();
+        const scaling = self.trs.getScale();
         const pmin = self.trs.transformPoint(.{ .x = r.x, .y = r.y });
         const pmax = jok.Point{
-            .x = pmin.x + r.width * scale.x,
-            .y = pmin.y + r.height * scale.y,
+            .x = pmin.x + r.width * scaling.x,
+            .y = pmin.y + r.height * scaling.y,
         };
         try self.draw_commands.append(.{
             .cmd = .{
@@ -584,11 +604,11 @@ pub const Batch = struct {
     pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.trs.getScale();
+        const scaling = self.trs.getScale();
         const pmin = self.trs.transformPoint(.{ .x = r.x, .y = r.y });
         const pmax = jok.Point{
-            .x = pmin.x + r.width * scale.x,
-            .y = pmin.y + r.height * scale.y,
+            .x = pmin.x + r.width * scaling.x,
+            .y = pmin.y + r.height * scaling.y,
         };
         try self.draw_commands.append(.{
             .cmd = .{
@@ -806,12 +826,12 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.trs.getScale();
+        const scaling = self.trs.getScale();
         try self.draw_commands.append(.{
             .cmd = .{
                 .circle = .{
                     .p = self.trs.transformPoint(c.center),
-                    .radius = c.radius * scale.x,
+                    .radius = c.radius * scaling.x,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .num_segments = opt.num_segments,
@@ -833,12 +853,12 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.trs.getScale();
+        const scaling = self.trs.getScale();
         try self.draw_commands.append(.{
             .cmd = .{
                 .circle_fill = .{
                     .p = self.trs.transformPoint(c.center),
-                    .radius = c.radius * scale.x,
+                    .radius = c.radius * scaling.x,
                     .color = color.toInternalColor(),
                     .num_segments = opt.num_segments,
                 },
@@ -861,12 +881,12 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.trs.getScale();
+        const scaling = self.trs.getScale();
         try self.draw_commands.append(.{
             .cmd = .{
                 .ngon = .{
                     .p = self.trs.transformPoint(center),
-                    .radius = radius * scale.x,
+                    .radius = radius * scaling.x,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .num_segments = num_segments,
@@ -889,12 +909,12 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.trs.getScale();
+        const scaling = self.trs.getScale();
         try self.draw_commands.append(.{
             .cmd = .{
                 .ngon_fill = .{
                     .p = self.trs.transformPoint(center),
-                    .radius = radius * scale.x,
+                    .radius = radius * scaling.x,
                     .color = color.toInternalColor(),
                     .num_segments = num_segments,
                 },

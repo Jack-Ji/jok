@@ -235,10 +235,10 @@ pub fn draw(ctx: jok.Context) !void {
         .wireframe_color = if (wireframe) jok.Color.green else null,
     });
     defer b.submit();
+    b.scale(3, 3, 3);
     if (animation1) |a| {
         try b.animation(
             a,
-            zmath.scalingV(zmath.f32x4s(3)),
             .{
                 .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
@@ -248,17 +248,18 @@ pub fn draw(ctx: jok.Context) !void {
     } else {
         try b.mesh(
             mesh1,
-            zmath.scalingV(zmath.f32x4s(3)),
             .{
                 .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
             },
         );
     }
+
+    b.setIdentity();
+    b.translate(-4, 0, 0);
     if (animation2) |a| {
         try b.animation(
             a,
-            zmath.translation(-4, 0, 0),
             .{
                 .color = jok.Color.cyan,
                 .shading_method = @enumFromInt(shading_method),
@@ -269,7 +270,6 @@ pub fn draw(ctx: jok.Context) !void {
     } else {
         try b.mesh(
             mesh2,
-            zmath.translation(-4, 0, 0),
             .{
                 .color = jok.Color.cyan,
                 .shading_method = @enumFromInt(shading_method),
@@ -277,16 +277,17 @@ pub fn draw(ctx: jok.Context) !void {
             },
         );
     }
+
+    b.trs = zmath.mul(
+        zmath.rotationY(-std.math.pi / 6.0),
+        zmath.mul(
+            zmath.scalingV(zmath.f32x4s(0.03)),
+            zmath.translation(4, 0, 0),
+        ),
+    );
     if (animation3) |a| {
         try b.animation(
             a,
-            zmath.mul(
-                zmath.rotationY(-std.math.pi / 6.0),
-                zmath.mul(
-                    zmath.scalingV(zmath.f32x4s(0.03)),
-                    zmath.translation(4, 0, 0),
-                ),
-            ),
             .{
                 .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
@@ -303,13 +304,6 @@ pub fn draw(ctx: jok.Context) !void {
     } else {
         try b.mesh(
             mesh3,
-            zmath.mul(
-                zmath.rotationY(-std.math.pi / 6.0),
-                zmath.mul(
-                    zmath.scalingV(zmath.f32x4s(0.03)),
-                    zmath.translation(4, 0, 0),
-                ),
-            ),
             .{
                 .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,

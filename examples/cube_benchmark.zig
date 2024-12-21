@@ -130,7 +130,7 @@ pub fn draw(ctx: jok.Context) !void {
         });
         defer b.submit();
         for (translations.items, 0..) |tr, i| {
-            const model = zmath.mul(
+            b.trs = zmath.mul(
                 zmath.translation(-0.5, -0.5, -0.5),
                 zmath.mul(
                     zmath.mul(
@@ -144,7 +144,6 @@ pub fn draw(ctx: jok.Context) !void {
                 ),
             );
             try b.shape(
-                model,
                 cube,
                 aabb,
                 .{ .texture = tex },
