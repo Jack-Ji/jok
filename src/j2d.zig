@@ -52,6 +52,7 @@ pub const Batch = struct {
     draw_list: imgui.DrawList,
     draw_commands: std.ArrayList(DrawCmd),
     trs_stack: std.ArrayList(AffineTransform),
+    trs: AffineTransform,
     depth_sort: DepthSortMethod,
     blend_mode: jok.BlendMode,
     offscreen_target: ?jok.Texture,
@@ -67,6 +68,7 @@ pub const Batch = struct {
             .draw_list = _draw_list,
             .draw_commands = _draw_commands,
             .trs_stack = std.ArrayList(AffineTransform).init(_ctx.allocator()),
+            .trs = undefined,
             .depth_sort = .none,
             .blend_mode = .blend,
             .offscreen_target = null,
@@ -124,7 +126,7 @@ pub const Batch = struct {
         self.draw_commands.clearRetainingCapacity();
         self.all_tex.clearRetainingCapacity();
         self.trs_stack.clearRetainingCapacity();
-        self.trs_stack.append(AffineTransform.init()) catch unreachable;
+        self.trs = AffineTransform.init();
         self.depth_sort = opt.depth_sort;
         self.blend_mode = opt.blend_mode;
         self.offscreen_target = opt.offscreen_target;
@@ -220,22 +222,17 @@ pub const Batch = struct {
         self.reclaimer.reclaim(self);
     }
 
-    pub fn pushTransform(self: *Batch, t: AffineTransform) !void {
+    pub fn pushTransform(self: *Batch) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.trs_stack.append(t);
+        try self.trs_stack.append(self.trs);
     }
 
     pub fn popTransform(self: *Batch) void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         assert(self.trs_stack.items.len > 0);
-        _ = self.trs_stack.pop();
-    }
-
-    pub inline fn getCurrentTransform(self: Batch) AffineTransform {
-        assert(self.id != invalid_batch_id);
-        return self.trs_stack.getLast();
+        self.trs = self.trs_stack.pop();
     }
 
     pub const ImageOption = struct {
@@ -253,7 +250,7 @@ pub const Batch = struct {
     pub fn image(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.getCurrentTransform().getScale();
+        const scale = self.trs.getScale();
         const size = opt.size orelse BLK: {
             const info = try texture.query();
             break :BLK jok.Size{
@@ -269,7 +266,7 @@ pub const Batch = struct {
             .tex = texture,
         };
         try s.render(&self.draw_commands, .{
-            .pos = self.getCurrentTransform().transformPoint(pos),
+            .pos = self.trs.transformPoint(pos),
             .tint_color = opt.tint_color,
             .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
             .rotate_degree = opt.rotate_degree,
@@ -295,7 +292,7 @@ pub const Batch = struct {
     pub fn imageRounded(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.getCurrentTransform().getScale();
+        const scale = self.trs.getScale();
         const size = opt.size orelse BLK: {
             const info = try texture.query();
             break :BLK jok.Size{
@@ -303,7 +300,7 @@ pub const Batch = struct {
                 .height = info.height,
             };
         };
-        const pmin = self.getCurrentTransform().transformPoint(pos);
+        const pmin = self.trs.transformPoint(pos);
         const pmax = jok.Point{
             .x = pmin.x + @as(f32, @floatFromInt(size.width)) * scale.x,
             .y = pmin.y + @as(f32, @floatFromInt(size.height)) * scale.y,
@@ -331,14 +328,14 @@ pub const Batch = struct {
     pub fn scene(self: *Batch, s: *const Scene) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try s.render(&self.draw_commands, .{ .transform = self.getCurrentTransform() });
+        try s.render(&self.draw_commands, .{ .transform = self.trs });
     }
 
     pub fn effects(self: *Batch, ps: *const ParticleSystem) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         for (ps.effects.items) |eff| {
-            try eff.render(&self.draw_commands, .{ .transform = self.getCurrentTransform() });
+            try eff.render(&self.draw_commands, .{ .transform = self.trs });
         }
     }
 
@@ -355,9 +352,9 @@ pub const Batch = struct {
     pub fn sprite(self: *Batch, s: Sprite, opt: SpriteOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.getCurrentTransform().getScale();
+        const scale = self.trs.getScale();
         try s.render(&self.draw_commands, .{
-            .pos = self.getCurrentTransform().transformPoint(opt.pos),
+            .pos = self.trs.transformPoint(opt.pos),
             .tint_color = opt.tint_color,
             .scale = .{ .x = scale.x * opt.scale.x, .y = scale.y * opt.scale.y },
             .rotate_degree = opt.rotate_degree,
@@ -385,8 +382,8 @@ pub const Batch = struct {
         const txt = imgui.format(fmt, args);
         if (txt.len == 0) return;
 
-        var pos = self.getCurrentTransform().transformPoint(opt.pos);
-        var scale = self.getCurrentTransform().getScale();
+        var pos = self.trs.transformPoint(opt.pos);
+        var scale = self.trs.getScale();
         scale.x *= opt.scale.x;
         scale.y *= opt.scale.y;
         const angle = std.math.degreesToRadians(opt.rotate_degree);
@@ -447,8 +444,8 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .line = .{
-                    .p1 = self.getCurrentTransform().transformPoint(p1),
-                    .p2 = self.getCurrentTransform().transformPoint(p2),
+                    .p1 = self.trs.transformPoint(p1),
+                    .p2 = self.trs.transformPoint(p2),
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                 },
@@ -471,10 +468,10 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .quad = .{
-                    .p1 = self.getCurrentTransform().transformPoint(p1),
-                    .p2 = self.getCurrentTransform().transformPoint(p2),
-                    .p3 = self.getCurrentTransform().transformPoint(p3),
-                    .p4 = self.getCurrentTransform().transformPoint(p4),
+                    .p1 = self.trs.transformPoint(p1),
+                    .p2 = self.trs.transformPoint(p2),
+                    .p3 = self.trs.transformPoint(p3),
+                    .p4 = self.trs.transformPoint(p4),
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                 },
@@ -497,10 +494,10 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .quad_fill = .{
-                    .p1 = self.getCurrentTransform().transformPoint(p1),
-                    .p2 = self.getCurrentTransform().transformPoint(p2),
-                    .p3 = self.getCurrentTransform().transformPoint(p3),
-                    .p4 = self.getCurrentTransform().transformPoint(p4),
+                    .p1 = self.trs.transformPoint(p1),
+                    .p2 = self.trs.transformPoint(p2),
+                    .p3 = self.trs.transformPoint(p3),
+                    .p4 = self.trs.transformPoint(p4),
                     .color1 = c,
                     .color2 = c,
                     .color3 = c,
@@ -536,10 +533,10 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .quad_fill = .{
-                    .p1 = self.getCurrentTransform().transformPoint(p1),
-                    .p2 = self.getCurrentTransform().transformPoint(p2),
-                    .p3 = self.getCurrentTransform().transformPoint(p3),
-                    .p4 = self.getCurrentTransform().transformPoint(p4),
+                    .p1 = self.trs.transformPoint(p1),
+                    .p2 = self.trs.transformPoint(p2),
+                    .p3 = self.trs.transformPoint(p3),
+                    .p4 = self.trs.transformPoint(p4),
                     .color1 = c1,
                     .color2 = c2,
                     .color3 = c3,
@@ -559,8 +556,8 @@ pub const Batch = struct {
     pub fn rectRounded(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.getCurrentTransform().getScale();
-        const pmin = self.getCurrentTransform().transformPoint(.{ .x = r.x, .y = r.y });
+        const scale = self.trs.getScale();
+        const pmin = self.trs.transformPoint(.{ .x = r.x, .y = r.y });
         const pmax = jok.Point{
             .x = pmin.x + r.width * scale.x,
             .y = pmin.y + r.height * scale.y,
@@ -587,8 +584,8 @@ pub const Batch = struct {
     pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.getCurrentTransform().getScale();
-        const pmin = self.getCurrentTransform().transformPoint(.{ .x = r.x, .y = r.y });
+        const scale = self.trs.getScale();
+        const pmin = self.trs.transformPoint(.{ .x = r.x, .y = r.y });
         const pmax = jok.Point{
             .x = pmin.x + r.width * scale.x,
             .y = pmin.y + r.height * scale.y,
@@ -624,10 +621,10 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .quad = .{
-                    .p1 = self.getCurrentTransform().transformPoint(p1),
-                    .p2 = self.getCurrentTransform().transformPoint(p2),
-                    .p3 = self.getCurrentTransform().transformPoint(p3),
-                    .p4 = self.getCurrentTransform().transformPoint(p4),
+                    .p1 = self.trs.transformPoint(p1),
+                    .p2 = self.trs.transformPoint(p2),
+                    .p3 = self.trs.transformPoint(p3),
+                    .p4 = self.trs.transformPoint(p4),
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                 },
@@ -654,10 +651,10 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .quad_fill = .{
-                    .p1 = self.getCurrentTransform().transformPoint(p1),
-                    .p2 = self.getCurrentTransform().transformPoint(p2),
-                    .p3 = self.getCurrentTransform().transformPoint(p3),
-                    .p4 = self.getCurrentTransform().transformPoint(p4),
+                    .p1 = self.trs.transformPoint(p1),
+                    .p2 = self.trs.transformPoint(p2),
+                    .p3 = self.trs.transformPoint(p3),
+                    .p4 = self.trs.transformPoint(p4),
                     .color1 = c,
                     .color2 = c,
                     .color3 = c,
@@ -692,10 +689,10 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .quad_fill = .{
-                    .p1 = self.getCurrentTransform().transformPoint(p1),
-                    .p2 = self.getCurrentTransform().transformPoint(p2),
-                    .p3 = self.getCurrentTransform().transformPoint(p3),
-                    .p4 = self.getCurrentTransform().transformPoint(p4),
+                    .p1 = self.trs.transformPoint(p1),
+                    .p2 = self.trs.transformPoint(p2),
+                    .p3 = self.trs.transformPoint(p3),
+                    .p4 = self.trs.transformPoint(p4),
                     .color1 = c1,
                     .color2 = c2,
                     .color3 = c3,
@@ -723,9 +720,9 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .triangle = .{
-                    .p1 = self.getCurrentTransform().transformPoint(p1),
-                    .p2 = self.getCurrentTransform().transformPoint(p2),
-                    .p3 = self.getCurrentTransform().transformPoint(p3),
+                    .p1 = self.trs.transformPoint(p1),
+                    .p2 = self.trs.transformPoint(p2),
+                    .p3 = self.trs.transformPoint(p3),
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                 },
@@ -751,9 +748,9 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .triangle_fill = .{
-                    .p1 = self.getCurrentTransform().transformPoint(p1),
-                    .p2 = self.getCurrentTransform().transformPoint(p2),
-                    .p3 = self.getCurrentTransform().transformPoint(p3),
+                    .p1 = self.trs.transformPoint(p1),
+                    .p2 = self.trs.transformPoint(p2),
+                    .p3 = self.trs.transformPoint(p3),
                     .color1 = c,
                     .color2 = c,
                     .color3 = c,
@@ -784,9 +781,9 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .triangle_fill = .{
-                    .p1 = self.getCurrentTransform().transformPoint(p1),
-                    .p2 = self.getCurrentTransform().transformPoint(p2),
-                    .p3 = self.getCurrentTransform().transformPoint(p3),
+                    .p1 = self.trs.transformPoint(p1),
+                    .p2 = self.trs.transformPoint(p2),
+                    .p3 = self.trs.transformPoint(p3),
                     .color1 = c1,
                     .color2 = c2,
                     .color3 = c3,
@@ -809,11 +806,11 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.getCurrentTransform().getScale();
+        const scale = self.trs.getScale();
         try self.draw_commands.append(.{
             .cmd = .{
                 .circle = .{
-                    .p = self.getCurrentTransform().transformPoint(c.center),
+                    .p = self.trs.transformPoint(c.center),
                     .radius = c.radius * scale.x,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
@@ -836,11 +833,11 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.getCurrentTransform().getScale();
+        const scale = self.trs.getScale();
         try self.draw_commands.append(.{
             .cmd = .{
                 .circle_fill = .{
-                    .p = self.getCurrentTransform().transformPoint(c.center),
+                    .p = self.trs.transformPoint(c.center),
                     .radius = c.radius * scale.x,
                     .color = color.toInternalColor(),
                     .num_segments = opt.num_segments,
@@ -864,11 +861,11 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.getCurrentTransform().getScale();
+        const scale = self.trs.getScale();
         try self.draw_commands.append(.{
             .cmd = .{
                 .ngon = .{
-                    .p = self.getCurrentTransform().transformPoint(center),
+                    .p = self.trs.transformPoint(center),
                     .radius = radius * scale.x,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
@@ -892,11 +889,11 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scale = self.getCurrentTransform().getScale();
+        const scale = self.trs.getScale();
         try self.draw_commands.append(.{
             .cmd = .{
                 .ngon_fill = .{
-                    .p = self.getCurrentTransform().transformPoint(center),
+                    .p = self.trs.transformPoint(center),
                     .radius = radius * scale.x,
                     .color = color.toInternalColor(),
                     .num_segments = num_segments,
@@ -925,10 +922,10 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .bezier_cubic = .{
-                    .p1 = self.getCurrentTransform().transformPoint(p1),
-                    .p2 = self.getCurrentTransform().transformPoint(p2),
-                    .p3 = self.getCurrentTransform().transformPoint(p3),
-                    .p4 = self.getCurrentTransform().transformPoint(p4),
+                    .p1 = self.trs.transformPoint(p1),
+                    .p2 = self.trs.transformPoint(p2),
+                    .p3 = self.trs.transformPoint(p3),
+                    .p4 = self.trs.transformPoint(p4),
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .num_segments = opt.num_segments,
@@ -956,9 +953,9 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .bezier_quadratic = .{
-                    .p1 = self.getCurrentTransform().transformPoint(p1),
-                    .p2 = self.getCurrentTransform().transformPoint(p2),
-                    .p3 = self.getCurrentTransform().transformPoint(p3),
+                    .p1 = self.trs.transformPoint(p1),
+                    .p2 = self.trs.transformPoint(p2),
+                    .p3 = self.trs.transformPoint(p3),
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .num_segments = opt.num_segments,
@@ -987,7 +984,7 @@ pub const Batch = struct {
                     .points = poly.points,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
-                    .transform = self.getCurrentTransform(),
+                    .transform = self.trs,
                 },
             },
             .depth = opt.depth,
@@ -1010,7 +1007,7 @@ pub const Batch = struct {
                 .convex_polygon_fill = .{
                     .points = poly.points,
                     .texture = poly.texture,
-                    .transform = self.getCurrentTransform(),
+                    .transform = self.trs,
                 },
             },
             .depth = opt.depth,
@@ -1039,7 +1036,7 @@ pub const Batch = struct {
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .closed = opt.closed,
-                    .transform = self.getCurrentTransform(),
+                    .transform = self.trs,
                 },
             },
             .depth = opt.depth,
@@ -1054,7 +1051,7 @@ pub const Batch = struct {
         assert(!self.is_submitted);
         if (!p.finished) return error.PathNotFinished;
         var rpath = p.path;
-        rpath.transform = self.getCurrentTransform();
+        rpath.transform = self.trs;
         try self.draw_commands.append(.{
             .cmd = .{ .path = rpath },
             .depth = opt.depth,
@@ -1065,88 +1062,88 @@ pub const Batch = struct {
         var dcmd = _dcmd;
         switch (dcmd.cmd) {
             .quad_image => |*cmd| {
-                cmd.p1 = self.getCurrentTransform().transformPoint(cmd.p1);
-                cmd.p2 = self.getCurrentTransform().transformPoint(cmd.p2);
-                cmd.p3 = self.getCurrentTransform().transformPoint(cmd.p3);
-                cmd.p4 = self.getCurrentTransform().transformPoint(cmd.p4);
+                cmd.p1 = self.trs.transformPoint(cmd.p1);
+                cmd.p2 = self.trs.transformPoint(cmd.p2);
+                cmd.p3 = self.trs.transformPoint(cmd.p3);
+                cmd.p4 = self.trs.transformPoint(cmd.p4);
             },
             .image_rounded => |*cmd| {
-                cmd.pmin = self.getCurrentTransform().transformPoint(cmd.pmin);
-                cmd.pmax = self.getCurrentTransform().transformPoint(cmd.pmax);
+                cmd.pmin = self.trs.transformPoint(cmd.pmin);
+                cmd.pmax = self.trs.transformPoint(cmd.pmax);
             },
             .line => |*cmd| {
-                cmd.p1 = self.getCurrentTransform().transformPoint(cmd.p1);
-                cmd.p2 = self.getCurrentTransform().transformPoint(cmd.p2);
+                cmd.p1 = self.trs.transformPoint(cmd.p1);
+                cmd.p2 = self.trs.transformPoint(cmd.p2);
             },
             .rect_rounded => |*cmd| {
-                cmd.pmin = self.getCurrentTransform().transformPoint(cmd.pmin);
-                cmd.pmax = self.getCurrentTransform().transformPoint(cmd.pmax);
+                cmd.pmin = self.trs.transformPoint(cmd.pmin);
+                cmd.pmax = self.trs.transformPoint(cmd.pmax);
             },
             .rect_rounded_fill => |*cmd| {
-                cmd.pmin = self.getCurrentTransform().transformPoint(cmd.pmin);
-                cmd.pmax = self.getCurrentTransform().transformPoint(cmd.pmax);
+                cmd.pmin = self.trs.transformPoint(cmd.pmin);
+                cmd.pmax = self.trs.transformPoint(cmd.pmax);
             },
             .quad => |*cmd| {
-                cmd.p1 = self.getCurrentTransform().transformPoint(cmd.p1);
-                cmd.p2 = self.getCurrentTransform().transformPoint(cmd.p2);
-                cmd.p3 = self.getCurrentTransform().transformPoint(cmd.p3);
-                cmd.p4 = self.getCurrentTransform().transformPoint(cmd.p4);
+                cmd.p1 = self.trs.transformPoint(cmd.p1);
+                cmd.p2 = self.trs.transformPoint(cmd.p2);
+                cmd.p3 = self.trs.transformPoint(cmd.p3);
+                cmd.p4 = self.trs.transformPoint(cmd.p4);
             },
             .quad_fill => |*cmd| {
-                cmd.p1 = self.getCurrentTransform().transformPoint(cmd.p1);
-                cmd.p2 = self.getCurrentTransform().transformPoint(cmd.p2);
-                cmd.p3 = self.getCurrentTransform().transformPoint(cmd.p3);
-                cmd.p4 = self.getCurrentTransform().transformPoint(cmd.p4);
+                cmd.p1 = self.trs.transformPoint(cmd.p1);
+                cmd.p2 = self.trs.transformPoint(cmd.p2);
+                cmd.p3 = self.trs.transformPoint(cmd.p3);
+                cmd.p4 = self.trs.transformPoint(cmd.p4);
             },
             .triangle => |*cmd| {
-                cmd.p1 = self.getCurrentTransform().transformPoint(cmd.p1);
-                cmd.p2 = self.getCurrentTransform().transformPoint(cmd.p2);
-                cmd.p3 = self.getCurrentTransform().transformPoint(cmd.p3);
+                cmd.p1 = self.trs.transformPoint(cmd.p1);
+                cmd.p2 = self.trs.transformPoint(cmd.p2);
+                cmd.p3 = self.trs.transformPoint(cmd.p3);
             },
             .triangle_fill => |*cmd| {
-                cmd.p1 = self.getCurrentTransform().transformPoint(cmd.p1);
-                cmd.p2 = self.getCurrentTransform().transformPoint(cmd.p2);
-                cmd.p3 = self.getCurrentTransform().transformPoint(cmd.p3);
+                cmd.p1 = self.trs.transformPoint(cmd.p1);
+                cmd.p2 = self.trs.transformPoint(cmd.p2);
+                cmd.p3 = self.trs.transformPoint(cmd.p3);
             },
             .circle => |*cmd| {
-                cmd.p = self.getCurrentTransform().transformPoint(cmd.p);
-                cmd.radius *= self.getCurrentTransform().getScale().x;
+                cmd.p = self.trs.transformPoint(cmd.p);
+                cmd.radius *= self.trs.getScale().x;
             },
             .circle_fill => |*cmd| {
-                cmd.p = self.getCurrentTransform().transformPoint(cmd.p);
-                cmd.radius *= self.getCurrentTransform().getScale().x;
+                cmd.p = self.trs.transformPoint(cmd.p);
+                cmd.radius *= self.trs.getScale().x;
             },
             .ngon => |*cmd| {
-                cmd.p = self.getCurrentTransform().transformPoint(cmd.p);
-                cmd.radius *= self.getCurrentTransform().getScale().x;
+                cmd.p = self.trs.transformPoint(cmd.p);
+                cmd.radius *= self.trs.getScale().x;
             },
             .ngon_fill => |*cmd| {
-                cmd.p = self.getCurrentTransform().transformPoint(cmd.p);
-                cmd.radius *= self.getCurrentTransform().getScale().x;
+                cmd.p = self.trs.transformPoint(cmd.p);
+                cmd.radius *= self.trs.getScale().x;
             },
             .convex_polygon => |*cmd| {
-                cmd.transform = self.getCurrentTransform();
+                cmd.transform = self.trs;
             },
             .convex_polygon_fill => |*cmd| {
-                cmd.transform = self.getCurrentTransform();
+                cmd.transform = self.trs;
             },
             .bezier_cubic => |*cmd| {
-                cmd.p1 = self.getCurrentTransform().transformPoint(cmd.p1);
-                cmd.p2 = self.getCurrentTransform().transformPoint(cmd.p2);
-                cmd.p3 = self.getCurrentTransform().transformPoint(cmd.p3);
-                cmd.p4 = self.getCurrentTransform().transformPoint(cmd.p4);
+                cmd.p1 = self.trs.transformPoint(cmd.p1);
+                cmd.p2 = self.trs.transformPoint(cmd.p2);
+                cmd.p3 = self.trs.transformPoint(cmd.p3);
+                cmd.p4 = self.trs.transformPoint(cmd.p4);
             },
             .bezier_quadratic => |*cmd| {
-                cmd.p1 = self.getCurrentTransform().transformPoint(cmd.p1);
-                cmd.p2 = self.getCurrentTransform().transformPoint(cmd.p2);
-                cmd.p3 = self.getCurrentTransform().transformPoint(cmd.p3);
+                cmd.p1 = self.trs.transformPoint(cmd.p1);
+                cmd.p2 = self.trs.transformPoint(cmd.p2);
+                cmd.p3 = self.trs.transformPoint(cmd.p3);
             },
             .polyline => |*cmd| {
                 assert(cmd.transformed.items.len >= cmd.points.items.len);
-                cmd.transform = self.getCurrentTransform();
+                cmd.transform = self.trs;
             },
             .path => |*cmd| {
-                cmd.transform = self.getCurrentTransform();
+                cmd.transform = self.trs;
             },
         }
         try self.draw_commands.append(dcmd);

@@ -63,7 +63,9 @@ pub fn draw(ctx: jok.Context) !void {
         defer b.submit();
 
         for (0..ncircle) |i| {
-            const tr = j2d.AffineTransform.init().translate(.{
+            try b.pushTransform();
+            defer b.popTransform();
+            b.trs = j2d.AffineTransform.init().translate(.{
                 .x = csz.getWidthFloat() / 2,
                 .y = csz.getHeightFloat() / 2,
             }).translateX(jok.utils.math.linearMap(
@@ -76,8 +78,6 @@ pub fn draw(ctx: jok.Context) !void {
                 .{ .x = csz.getWidthFloat() / 2, .y = csz.getHeightFloat() / 2 },
                 std.math.degreesToRadians(rot + 360.0 * @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(ncircle))),
             );
-            try b.pushTransform(tr);
-            defer b.popTransform();
             try b.circleFilled(.{ .center = .{ .x = 0, .y = 0 }, .radius = 10 }, jok.Color.green, .{});
         }
     }

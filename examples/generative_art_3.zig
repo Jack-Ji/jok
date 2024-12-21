@@ -58,48 +58,36 @@ pub fn draw(ctx: jok.Context) !void {
         });
 
         // top-left
-        try b.pushTransform(
-            transform.rotateByOrigin(-angle_step * step)
-                .translate(.{
-                .x = fb_size.getWidthFloat() / 4,
-                .y = fb_size.getHeightFloat() / 4,
-            }),
-        );
+        b.trs = transform.rotateByOrigin(-angle_step * step)
+            .translate(.{
+            .x = fb_size.getWidthFloat() / 4,
+            .y = fb_size.getHeightFloat() / 4,
+        });
         try b.rect(rect, jok.Color.white, .{});
-        b.popTransform();
 
         // top-right
-        try b.pushTransform(
-            transform.rotateByOrigin(angle_step * step)
-                .translate(.{
-                .x = fb_size.getWidthFloat() * 3 / 4,
-                .y = fb_size.getHeightFloat() / 4,
-            }),
-        );
+        b.trs = transform.rotateByOrigin(angle_step * step)
+            .translate(.{
+            .x = fb_size.getWidthFloat() * 3 / 4,
+            .y = fb_size.getHeightFloat() / 4,
+        });
         try b.rect(rect, jok.Color.white, .{});
-        b.popTransform();
 
         // bottom-right
-        try b.pushTransform(
-            transform.rotateByOrigin(-angle_step * step)
-                .translate(.{
-                .x = fb_size.getWidthFloat() * 3 / 4,
-                .y = fb_size.getHeightFloat() * 3 / 4,
-            }),
-        );
+        b.trs = transform.rotateByOrigin(-angle_step * step)
+            .translate(.{
+            .x = fb_size.getWidthFloat() * 3 / 4,
+            .y = fb_size.getHeightFloat() * 3 / 4,
+        });
         try b.rect(rect, jok.Color.white, .{});
-        b.popTransform();
 
         // bottom-left
-        try b.pushTransform(
-            transform.rotateByOrigin(angle_step * step)
-                .translate(.{
-                .x = fb_size.getWidthFloat() / 4,
-                .y = fb_size.getHeightFloat() * 3 / 4,
-            }),
-        );
+        b.trs = transform.rotateByOrigin(angle_step * step)
+            .translate(.{
+            .x = fb_size.getWidthFloat() / 4,
+            .y = fb_size.getHeightFloat() * 3 / 4,
+        });
         try b.rect(rect, jok.Color.white, .{});
-        b.popTransform();
     }
 }
 

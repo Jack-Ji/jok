@@ -58,7 +58,8 @@ pub fn draw(ctx: jok.Context) !void {
 
     var b = try batchpool.new(.{});
     defer b.submit();
-    try b.pushTransform(j2d.AffineTransform.init().translate(.{ .x = offset0.x, .y = offset0.y }));
+    try b.pushTransform();
+    b.trs = j2d.AffineTransform.init().translate(.{ .x = offset0.x, .y = offset0.y });
     try b.triangle(
         .{ .x = p0.x, .y = p0.y },
         .{ .x = p1.x, .y = p1.y },
@@ -68,7 +69,8 @@ pub fn draw(ctx: jok.Context) !void {
     );
     b.popTransform();
 
-    try b.pushTransform(j2d.AffineTransform.init().translate(.{ .x = offset1.x, .y = offset1.y }));
+    try b.pushTransform();
+    b.trs = j2d.AffineTransform.init().translate(.{ .x = offset1.x, .y = offset1.y });
     try b.triangle(
         .{ .x = p3.x, .y = p3.y },
         .{ .x = p4.x, .y = p4.y },

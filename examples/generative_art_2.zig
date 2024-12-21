@@ -51,12 +51,12 @@ pub fn draw(ctx: jok.Context) !void {
 
     var b = try batchpool.new(.{});
     defer b.submit();
-    try b.pushTransform(j2d.AffineTransform.init()
+    b.trs = j2d.AffineTransform.init()
         .scale(.{ .x = scale, .y = scale })
         .translate(.{
         .x = ctx.getCanvasSize().getWidthFloat() / 2,
         .y = ctx.getCanvasSize().getHeightFloat() / 2,
-    }));
+    });
     try b.path(path, .{});
 }
 

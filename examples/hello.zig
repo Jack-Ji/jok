@@ -175,16 +175,15 @@ pub fn draw(ctx: jok.Context) !void {
             const translate_m = zmath.translation(center_x, center_y, 0);
             const offset_transformed = zmath.mul(zmath.mul(offset_origin, rotate_m), translate_m);
 
-            try b.pushTransform(
-                j2d.AffineTransform.init().scale(.{
-                    .x = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
-                    .y = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
-                }).rotateByOrigin(ctx.seconds()).translate(.{
-                    .x = offset_transformed[0],
-                    .y = offset_transformed[1],
-                }),
-            );
+            try b.pushTransform();
             defer b.popTransform();
+            b.trs = j2d.AffineTransform.init().scale(.{
+                .x = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
+                .y = (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
+            }).rotateByOrigin(ctx.seconds()).translate(.{
+                .x = offset_transformed[0],
+                .y = offset_transformed[1],
+            });
             try b.rectFilledMultiColor(
                 .{ .x = -10, .y = -10, .width = 20, .height = 20 },
                 jok.Color.white,

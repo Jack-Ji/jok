@@ -140,8 +140,9 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
     if (!try as.isStopped("player_circle_bg")) {
-        try b.pushTransform(j2d.AffineTransform.init().translate(pos));
+        try b.pushTransform();
         defer b.popTransform();
+        b.trs = j2d.AffineTransform.init().translate(pos);
         try b.pushDrawCommand(((try as.getCurrentFrame("player_circle_bg")).dcmd));
     }
     try b.sprite(
