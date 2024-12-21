@@ -157,16 +157,22 @@ pub fn draw(ctx: jok.Context) !void {
         const x = source % graph_width;
         const y = source / graph_width;
         try b.circleFilled(.{
-            .x = @floatFromInt(cell_size * x + cell_size / 2),
-            .y = @floatFromInt(cell_size * y + cell_size / 2),
-        }, 5, jok.Color.blue, .{});
+            .center = .{
+                .x = @floatFromInt(cell_size * x + cell_size / 2),
+                .y = @floatFromInt(cell_size * y + cell_size / 2),
+            },
+            .radius = 5,
+        }, jok.Color.blue, .{});
     }
     if (path) |p| {
         const dst = p.items[p.items.len - 1];
         try b.circleFilled(.{
-            .x = @floatFromInt(dst % graph_width * cell_size + cell_size / 2),
-            .y = @floatFromInt(dst / graph_width * cell_size + cell_size / 2),
-        }, 5, jok.Color.red, .{});
+            .center = .{
+                .x = @floatFromInt(dst % graph_width * cell_size + cell_size / 2),
+                .y = @floatFromInt(dst / graph_width * cell_size + cell_size / 2),
+            },
+            .radius = 5,
+        }, jok.Color.red, .{});
 
         if (source != dst) {
             source_update_time -= ctx.deltaSeconds();

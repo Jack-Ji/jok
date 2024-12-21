@@ -803,8 +803,7 @@ pub const Batch = struct {
     };
     pub fn circle(
         self: *Batch,
-        center: jok.Point,
-        radius: f32,
+        c: jok.Circle,
         color: jok.Color,
         opt: CircleOption,
     ) !void {
@@ -814,8 +813,8 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .circle = .{
-                    .p = self.getCurrentTransform().transformPoint(center),
-                    .radius = radius * scale.x,
+                    .p = self.getCurrentTransform().transformPoint(c.center),
+                    .radius = c.radius * scale.x,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .num_segments = opt.num_segments,
@@ -831,8 +830,7 @@ pub const Batch = struct {
     };
     pub fn circleFilled(
         self: *Batch,
-        center: jok.Point,
-        radius: f32,
+        c: jok.Circle,
         color: jok.Color,
         opt: FillCircle,
     ) !void {
@@ -842,8 +840,8 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .circle_fill = .{
-                    .p = self.getCurrentTransform().transformPoint(center),
-                    .radius = radius * scale.x,
+                    .p = self.getCurrentTransform().transformPoint(c.center),
+                    .radius = c.radius * scale.x,
                     .color = color.toInternalColor(),
                     .num_segments = opt.num_segments,
                 },

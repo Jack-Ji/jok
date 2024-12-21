@@ -78,7 +78,7 @@ pub fn draw(ctx: jok.Context) !void {
             );
             try b.pushTransform(tr);
             defer b.popTransform();
-            try b.circleFilled(.{ .x = 0, .y = 0 }, 10, jok.Color.green, .{});
+            try b.circleFilled(.{ .center = .{ .x = 0, .y = 0 }, .radius = 10 }, jok.Color.green, .{});
         }
     }
 

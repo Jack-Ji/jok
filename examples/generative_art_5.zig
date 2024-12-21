@@ -106,27 +106,33 @@ pub fn draw(ctx: jok.Context) !void {
             .{},
         );
         try b.circle(
-            .{ .x = @floatFromInt(100 * (i + 1) + 50), .y = 50 },
-            radius1,
+            .{
+                .center = .{ .x = @floatFromInt(100 * (i + 1) + 50), .y = 50 },
+                .radius = radius1,
+            },
             colors[i],
             .{ .thickness = thickness },
         );
         try b.circle(
-            .{ .x = 50, .y = @floatFromInt(100 * (i + 1) + 50) },
-            radius1,
+            .{
+                .center = .{ .x = 50, .y = @floatFromInt(100 * (i + 1) + 50) },
+                .radius = radius1,
+            },
             colors[i],
             .{ .thickness = thickness },
         );
-        try b.circleFilled(points_row[i], radius2, jok.Color.white, .{});
-        try b.circleFilled(points_col[i], radius2, jok.Color.white, .{});
+        try b.circleFilled(.{ .center = points_row[i], .radius = radius2 }, jok.Color.white, .{});
+        try b.circleFilled(.{ .center = points_col[i], .radius = radius2 }, jok.Color.white, .{});
     }
     for (0..7) |j| {
         for (0..7) |i| {
             const idx = j * 7 + i;
             try b.polyline(curves[idx], colors[i], .{ .thickness = thickness });
             try b.circleFilled(
-                .{ .x = points_row[i].x, .y = points_col[j].y },
-                radius3,
+                .{
+                    .center = .{ .x = points_row[i].x, .y = points_col[j].y },
+                    .radius = radius3,
+                },
                 jok.Color.white,
                 .{},
             );

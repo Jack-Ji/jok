@@ -94,8 +94,10 @@ const Point = struct {
 
     fn draw(p: Point, batch: *j2d.Batch) !void {
         try batch.circleFilled(
-            .{ .x = p.x, .y = p.y },
-            3,
+            .{
+                .center = .{ .x = p.x, .y = p.y },
+                .radius = 3,
+            },
             p.color,
             .{},
         );
@@ -558,8 +560,10 @@ fn renderSimulation() !void {
     if (number_b > 0) try drawPoints(blue.?, b);
     if (show_model) {
         try b.circleFilled(
-            .{ .x = xshift, .y = yshift },
-            150,
+            .{
+                .center = .{ .x = xshift, .y = yshift },
+                .radius = 150,
+            },
             jok.Color.black,
             .{},
         );
@@ -714,8 +718,10 @@ fn renderSimulation() !void {
         );
 
         try b.circle(
-            .{ .x = p1x - 20, .y = p1y - 20 },
-            rr + 20,
+            .{
+                .center = .{ .x = p1x - 20, .y = p1y - 20 },
+                .radius = rr + 20,
+            },
             jok.Color.rgb(
                 @intFromFloat(150 - power_gg),
                 @intFromFloat(150 + power_gg),
@@ -726,8 +732,10 @@ fn renderSimulation() !void {
             },
         );
         try b.circle(
-            .{ .x = p2x + 20, .y = p2y - 20 },
-            rr + 20,
+            .{
+                .center = .{ .x = p2x + 20, .y = p2y - 20 },
+                .radius = rr + 20,
+            },
             jok.Color.rgb(
                 @intFromFloat(150 - power_rr),
                 @intFromFloat(150 + power_rr),
@@ -738,8 +746,10 @@ fn renderSimulation() !void {
             },
         );
         try b.circle(
-            .{ .x = p3x + 20, .y = p3y + 20 },
-            rr + 20,
+            .{
+                .center = .{ .x = p3x + 20, .y = p3y + 20 },
+                .radius = rr + 20,
+            },
             jok.Color.rgb(
                 @intFromFloat(150 - power_ww),
                 @intFromFloat(150 + power_ww),
@@ -750,8 +760,10 @@ fn renderSimulation() !void {
             },
         );
         try b.circle(
-            .{ .x = p4x - 20, .y = p4y + 20 },
-            rr + 20,
+            .{
+                .center = .{ .x = p4x - 20, .y = p4y + 20 },
+                .radius = rr + 20,
+            },
             jok.Color.rgb(
                 @intFromFloat(150 - power_bb),
                 @intFromFloat(150 + power_bb),
@@ -763,26 +775,34 @@ fn renderSimulation() !void {
         );
 
         try b.circleFilled(
-            .{ .x = p1x, .y = p1y },
-            rr,
+            .{
+                .center = .{ .x = p1x, .y = p1y },
+                .radius = rr,
+            },
             jok.Color.rgb(100, 250, 10),
             .{},
         );
         try b.circleFilled(
-            .{ .x = p2x, .y = p2y },
-            rr,
+            .{
+                .center = .{ .x = p2x, .y = p2y },
+                .radius = rr,
+            },
             jok.Color.rgb(250, 10, 100),
             .{},
         );
         try b.circleFilled(
-            .{ .x = p3x, .y = p3y },
-            rr,
+            .{
+                .center = .{ .x = p3x, .y = p3y },
+                .radius = rr,
+            },
             jok.Color.rgb(250, 250, 250),
             .{},
         );
         try b.circleFilled(
-            .{ .x = p4x, .y = p4y },
-            rr,
+            .{
+                .center = .{ .x = p4x, .y = p4y },
+                .radius = rr,
+            },
             jok.Color.rgb(100, 100, 250),
             .{},
         );

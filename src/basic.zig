@@ -1,6 +1,7 @@
 const std = @import("std");
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
+const zmath = jok.zmath;
 
 pub const Point = extern struct {
     x: f32,
@@ -112,7 +113,7 @@ pub const Rectangle = extern struct {
         return null;
     }
 
-    pub inline fn intersectRectAndLine(r: Rectangle, p0: *Point, p1: *Point) bool {
+    pub inline fn intersectLine(r: Rectangle, p0: *Point, p1: *Point) bool {
         if (sdl.SDL_IntersectFRectAndLine(@ptrCast(&r), &p0.x, &p0.y, &p1.x, &p1.y) == 1) {
             return true;
         }
@@ -127,6 +128,16 @@ pub const Rectangle = extern struct {
     pub inline fn containsRect(r: Rectangle, b: Rectangle) bool {
         return b.x >= r.x and b.x + b.width < r.x + r.width and
             b.y >= r.y and b.y + b.height < r.y + r.height;
+    }
+};
+
+pub const Circle = extern struct {
+    center: jok.Point,
+    radius: f32,
+
+    pub inline fn containsPoint(c: Circle, p: Point) bool {
+        return (c.center.x - p.x) * (c.center.x - p.x) +
+            (c.center.y - p.y) * (c.center.y - p.y) < c.radius * c.radius;
     }
 };
 
