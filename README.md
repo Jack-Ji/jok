@@ -6,7 +6,7 @@ A minimal 2d/3d game framework for zig.
 
 ## What you need?
 * [Latest nominated zig compiler](https://machengine.org/docs/zig-version/)
-* SDL library
+* SDL2 Library
 * Any code editor you like (consider using [zls](https://github.com/zigtools/zls) for your own favor)
 
 ## Features
@@ -86,7 +86,7 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
 
     * Windows Platform
     
-        Download SDL library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config/sdl.json` in your project directory:
+        Download SDL2 library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config/sdl.json` in your project directory:
         ```json
         {
           "x86_64-windows-gnu": {
