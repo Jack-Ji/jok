@@ -2,6 +2,7 @@ const std = @import("std");
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
 const zmath = jok.zmath;
+const minAndMax = jok.utils.math.minAndMax;
 
 pub const Point = extern struct {
     x: f32,
@@ -86,6 +87,15 @@ pub const Rectangle = extern struct {
     width: f32,
     height: f32,
 
+    pub inline fn translate(r: Rectangle, x: f32, y: f32) Rectangle {
+        return .{
+            .x = r.x + x,
+            .y = r.y + y,
+            .width = r.width,
+            .height = r.height,
+        };
+    }
+
     pub inline fn isSame(r0: Rectangle, r1: Rectangle) bool {
         const tolerance = 0.000001;
         return std.math.approxEqAbs(f32, r0.x, r1.x, tolerance) and
@@ -132,12 +142,117 @@ pub const Rectangle = extern struct {
 };
 
 pub const Circle = extern struct {
-    center: jok.Point,
+    center: Point,
     radius: f32,
 
+    pub inline fn translate(c: Circle, x: f32, y: f32) Circle {
+        return .{
+            .center = c.center.add(.{ .x = x, .y = y }),
+            .radius = c.radius,
+        };
+    }
+
     pub inline fn containsPoint(c: Circle, p: Point) bool {
-        return (c.center.x - p.x) * (c.center.x - p.x) +
-            (c.center.y - p.y) * (c.center.y - p.y) < c.radius * c.radius;
+        const v: @Vector(2, f32) = .{ c.center.x - p.x, c.center.y - p.y };
+        return @reduce(.Add, v * v) < c.radius * c.radius;
+    }
+};
+
+pub const Triangle = extern struct {
+    p0: Point,
+    p1: Point,
+    p2: Point,
+
+    pub inline fn translate(tri: Triangle, x: f32, y: f32) Triangle {
+        return .{
+            .p0 = tri.p0.add(.{ .x = x, .y = y }),
+            .p1 = tri.p1.add(.{ .x = x, .y = y }),
+            .p2 = tri.p2.add(.{ .x = x, .y = y }),
+        };
+    }
+
+    pub inline fn area(tri: Triangle) f32 {
+        const x1 = tri.p0.x;
+        const y1 = tri.p0.y;
+        const x2 = tri.p1.x;
+        const y2 = tri.p1.y;
+        const x3 = tri.p2.x;
+        const y3 = tri.p2.y;
+        return @abs(x1 * y2 + x2 * y3 + x3 * y1 - x2 * y1 - x3 * y2 - x1 * y3) / 2;
+    }
+
+    pub inline fn boundingRect(tri: Triangle) Rectangle {
+        const min_max_x = minAndMax(tri.p0.x, tri.p1.x, tri.p2.x);
+        const min_max_y = minAndMax(tri.p0.y, tri.p1.y, tri.p2.y);
+        return .{
+            .x = min_max_x[0],
+            .y = min_max_y[0],
+            .width = min_max_x[1] - min_max_x[0],
+            .height = min_max_y[1] - min_max_y[0],
+        };
+    }
+
+    /// Calculate Barycentric coordinate, checkout link https://blackpawn.com/texts/pointinpoly
+    pub inline fn barycentricCoord(tri: Triangle, point: Point) [3]f32 {
+        const v0 = zmath.f32x4(tri.p2.x - tri.p0.x, tri.p2.y - tri.p0.y, 0, 0);
+        const v1 = zmath.f32x4(tri.p1.x - tri.p0.x, tri.p1.y - tri.p0.y, 0, 0);
+        const v2 = zmath.f32x4(point.x - tri.p0.x, point.y - tri.p0.y, 0, 0);
+        const dot00 = zmath.dot2(v0, v0)[0];
+        const dot01 = zmath.dot2(v0, v1)[0];
+        const dot02 = zmath.dot2(v0, v2)[0];
+        const dot11 = zmath.dot2(v1, v1)[0];
+        const dot12 = zmath.dot2(v1, v2)[0];
+        const inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01);
+        const u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
+        const v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
+        return .{ u, v, 1 - u - v };
+    }
+
+    /// Test whether a point is in triangle
+    pub inline fn containsPoint(tri: Triangle, point: Point) bool {
+        const p = tri.barycentricCoord(point);
+        return p[0] >= 0 and p[1] >= 0 and p[2] >= 0;
+    }
+
+    pub inline fn containsTriangle(tri0: Triangle, tri1: Triangle) bool {
+        return tri0.containsPoint(tri1.p0) and
+            tri0.containsPoint(tri1.p1) and
+            tri0.containsPoint(tri1.p2);
+    }
+
+    pub inline fn intersectTriangle(tri0: Triangle, tri1: Triangle) bool {
+        const S = struct {
+            const Range = std.meta.Tuple(&[_]type{ f32, f32 });
+
+            inline fn getRange(v: zmath.Vec, tri: Triangle) Range {
+                const tm = zmath.loadMat34(&[_]f32{
+                    tri.p0.x, tri.p1.x, tri.p2.x, 0,
+                    tri.p0.y, tri.p1.y, tri.p2.y, 0,
+                    0,        0,        0,        0,
+                });
+                const xs = zmath.mul(v, tm);
+                return minAndMax(xs[0], xs[1], xs[2]);
+            }
+
+            inline fn areRangesApart(r0: Range, r1: Range) bool {
+                return r0[0] >= r1[1] or r0[1] <= r1[0];
+            }
+        };
+
+        const v0 = zmath.f32x4(tri0.p0.y - tri0.p1.y, tri0.p1.x - tri0.p0.x, 0, 0);
+        const v1 = zmath.f32x4(tri0.p0.y - tri0.p2.y, tri0.p2.x - tri0.p0.x, 0, 0);
+        const v2 = zmath.f32x4(tri0.p2.y - tri0.p1.y, tri0.p1.x - tri0.p2.x, 0, 0);
+        const v3 = zmath.f32x4(tri1.p0.y - tri1.p1.y, tri1.p1.x - tri1.p0.x, 0, 0);
+        const v4 = zmath.f32x4(tri1.p0.y - tri1.p2.y, tri1.p2.x - tri1.p0.x, 0, 0);
+        const v5 = zmath.f32x4(tri1.p2.y - tri1.p1.y, tri1.p1.x - tri1.p2.x, 0, 0);
+        for ([_]zmath.Vec{ v0, v1, v2, v3, v4, v5 }) |v| {
+            const r0 = S.getRange(v, tri0);
+            const r1 = S.getRange(v, tri1);
+            if (S.areRangesApart(r0, r1)) {
+                return false;
+            }
+        }
+        return true;
     }
 };
 

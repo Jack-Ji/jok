@@ -4,9 +4,6 @@ pub const gfx = @import("utils/gfx.zig");
 /// Math utils
 pub const math = @import("utils/math.zig");
 
-/// Algorithms (trigonomy etc)
-pub const algo = @import("utils/algo.zig");
-
 /// Path-finding utils
 pub const pathfind = @import("utils/pathfind.zig");
 

@@ -729,9 +729,7 @@ pub const Batch = struct {
     };
     pub fn triangle(
         self: *Batch,
-        p1: jok.Point,
-        p2: jok.Point,
-        p3: jok.Point,
+        tri: jok.Triangle,
         color: jok.Color,
         opt: TriangleOption,
     ) !void {
@@ -740,9 +738,9 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .triangle = .{
-                    .p1 = self.trs.transformPoint(p1),
-                    .p2 = self.trs.transformPoint(p2),
-                    .p3 = self.trs.transformPoint(p3),
+                    .p1 = self.trs.transformPoint(tri.p0),
+                    .p2 = self.trs.transformPoint(tri.p1),
+                    .p3 = self.trs.transformPoint(tri.p2),
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                 },
@@ -756,9 +754,7 @@ pub const Batch = struct {
     };
     pub fn triangleFilled(
         self: *Batch,
-        p1: jok.Point,
-        p2: jok.Point,
-        p3: jok.Point,
+        tri: jok.Triangle,
         color: jok.Color,
         opt: FillTriangle,
     ) !void {
@@ -768,9 +764,9 @@ pub const Batch = struct {
         try self.draw_commands.append(.{
             .cmd = .{
                 .triangle_fill = .{
-                    .p1 = self.trs.transformPoint(p1),
-                    .p2 = self.trs.transformPoint(p2),
-                    .p3 = self.trs.transformPoint(p3),
+                    .p1 = self.trs.transformPoint(tri.p0),
+                    .p2 = self.trs.transformPoint(tri.p1),
+                    .p3 = self.trs.transformPoint(tri.p2),
                     .color1 = c,
                     .color2 = c,
                     .color3 = c,
@@ -785,25 +781,21 @@ pub const Batch = struct {
     };
     pub fn triangleFilledMultiColor(
         self: *Batch,
-        p1: jok.Point,
-        p2: jok.Point,
-        p3: jok.Point,
-        color1: jok.Color,
-        color2: jok.Color,
-        color3: jok.Color,
+        tri: jok.Triangle,
+        cs: [3]jok.Color,
         opt: FillTriangleMultiColor,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const c1 = color1.toInternalColor();
-        const c2 = color2.toInternalColor();
-        const c3 = color3.toInternalColor();
+        const c1 = cs[0].toInternalColor();
+        const c2 = cs[1].toInternalColor();
+        const c3 = cs[2].toInternalColor();
         try self.draw_commands.append(.{
             .cmd = .{
                 .triangle_fill = .{
-                    .p1 = self.trs.transformPoint(p1),
-                    .p2 = self.trs.transformPoint(p2),
-                    .p3 = self.trs.transformPoint(p3),
+                    .p1 = self.trs.transformPoint(tri.p0),
+                    .p2 = self.trs.transformPoint(tri.p1),
+                    .p3 = self.trs.transformPoint(tri.p2),
                     .color1 = c1,
                     .color2 = c2,
                     .color3 = c3,
