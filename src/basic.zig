@@ -186,6 +186,29 @@ pub const Color = extern struct {
         return sdl.SDL_MapRGBA(@ptrCast(pixel_format), c.r, c.g, c.b, c.a);
     }
 
+    pub inline fn fromHSL(hsl: [4]f32) Color {
+        const _rgba = zmath.hslToRgb(
+            zmath.loadArr4(hsl),
+        );
+        return .{
+            .r = @intFromFloat(_rgba[0] * 255),
+            .g = @intFromFloat(_rgba[1] * 255),
+            .b = @intFromFloat(_rgba[2] * 255),
+            .a = @intFromFloat(_rgba[3] * 255),
+        };
+    }
+    pub inline fn toHSL(c: Color) [4]f32 {
+        const hsl = zmath.rgbToHsl(
+            zmath.f32x4(
+                @as(f32, @floatFromInt(c.r)) / 255,
+                @as(f32, @floatFromInt(c.g)) / 255,
+                @as(f32, @floatFromInt(c.b)) / 255,
+                @as(f32, @floatFromInt(c.a)) / 255,
+            ),
+        );
+        return zmath.vecToArr4(hsl);
+    }
+
     pub inline fn mod(c0: Color, c1: Color) Color {
         return .{
             .r = @intFromFloat(@as(f32, @floatFromInt(c0.r)) * @as(f32, @floatFromInt(c1.r)) / 255.0),
