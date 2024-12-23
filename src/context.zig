@@ -13,7 +13,7 @@ const physfs = jok.physfs;
 const font = jok.font;
 const imgui = jok.imgui;
 const plot = imgui.plot;
-const miniaudio = jok.miniaudio;
+const zaudio = jok.zaudio;
 const zmesh = jok.zmesh;
 const log = std.log.scoped(.jok);
 
@@ -30,7 +30,7 @@ pub const Context = struct {
         window: *const fn (ctx: *anyopaque) jok.Window,
         renderer: *const fn (ctx: *anyopaque) jok.Renderer,
         canvas: *const fn (ctx: *anyopaque) jok.Texture,
-        audioEngine: *const fn (ctx: *anyopaque) *miniaudio.Engine,
+        audioEngine: *const fn (ctx: *anyopaque) *zaudio.Engine,
         kill: *const fn (ctx: *anyopaque) void,
         getCanvasSize: *const fn (ctx: *anyopaque) jok.Size,
         setCanvasSize: *const fn (ctx: *anyopaque, size: ?jok.Size) anyerror!void,
@@ -90,7 +90,7 @@ pub const Context = struct {
     }
 
     /// Get audio engine
-    pub fn audioEngine(self: Context) *miniaudio.Engine {
+    pub fn audioEngine(self: Context) *zaudio.Engine {
         if (bos.no_audio) @panic("Audio is disabled!");
         return self.vtable.audioEngine(self.ctx);
     }
@@ -210,9 +210,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
         // Drawcall supress
         _supress_draw: bool = false,
 
-        // Audio stuff
-        _audio_ctx: *miniaudio.Context = undefined,
-        _audio_engine: *miniaudio.Engine = undefined,
+        // Audio Engine
+        _audio_engine: *zaudio.Engine = undefined,
 
         // Elapsed time of game
         _seconds: f32 = 0,
@@ -266,10 +265,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Init audio engine
             if (!bos.no_audio) {
-                self._audio_ctx = try miniaudio.sdl.init(self._ctx);
-                var audio_config = miniaudio.Engine.Config.init();
+                zaudio.init(self._allocator);
+                var audio_config = zaudio.Engine.Config.init();
                 audio_config.resource_manager_vfs = &physfs.zaudio.vfs;
-                self._audio_engine = try miniaudio.Engine.create(audio_config);
+                self._audio_engine = try zaudio.Engine.create(audio_config);
             }
 
             // Init builtin debug font
@@ -301,7 +300,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Destroy audio engine
             if (!bos.no_audio) {
                 self._audio_engine.destroy();
-                miniaudio.sdl.deinit(self._audio_ctx);
+                zaudio.deinit();
             }
 
             // Destroy zmesh
@@ -597,9 +596,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Initialize SDL
         fn initSDL(self: *@This()) !void {
-            var init_flags = sdl.SDL_INIT_EVERYTHING;
-            if (bos.no_audio) init_flags &= ~sdl.SDL_INIT_AUDIO;
-            if (sdl.SDL_Init(init_flags) < 0) {
+            if (sdl.SDL_Init(sdl.SDL_INIT_EVERYTHING & ~sdl.SDL_INIT_AUDIO) < 0) {
                 log.err("Initialize SDL2 failed: {s}", .{sdl.SDL_GetError()});
                 return sdl.Error.SdlError;
             }
@@ -777,7 +774,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Get audio engine
-        fn audioEngine(ptr: *anyopaque) *miniaudio.Engine {
+        fn audioEngine(ptr: *anyopaque) *zaudio.Engine {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._audio_engine;
         }

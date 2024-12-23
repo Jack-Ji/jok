@@ -3,15 +3,15 @@ const jok = @import("jok");
 const j2d = jok.j2d;
 const physfs = jok.physfs;
 const font = jok.font;
-const miniaudio = jok.miniaudio;
+const zaudio = jok.zaudio;
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var atlas: *font.Atlas = undefined;
-var music: *miniaudio.Sound = undefined;
+var music: *zaudio.Sound = undefined;
 var music_played_length: u32 = undefined;
 var music_total_length: u32 = undefined;
-var sfx1: *miniaudio.Sound = undefined;
-var sfx2: *miniaudio.Sound = undefined;
+var sfx1: *zaudio.Sound = undefined;
+var sfx2: *zaudio.Sound = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});

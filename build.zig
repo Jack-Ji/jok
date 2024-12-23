@@ -271,19 +271,6 @@ fn injectVendorLibraries(
         .flags = &.{"-fno-sanitize=undefined"},
     });
 
-    // miniaudio
-    if (!opt.no_audio) {
-        bin.addCSourceFile(.{
-            .file = b.path("src/vendor/miniaudio/c/miniaudio_impl_sdl2.c"),
-            .flags = &.{
-                "-DMA_ENABLE_CUSTOM",
-                "-std=c99",
-                "-fno-sanitize=undefined",
-                if (target.result.os.tag == .macos) "-DMA_NO_RUNTIME_LINKING" else "",
-            },
-        });
-    }
-
     // stb headers
     bin.addCSourceFile(.{
         .file = b.path("src/vendor/stb/c/stb_wrapper.c"),
