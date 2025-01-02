@@ -25,15 +25,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Read .zig-version
-        id: zigversion
-        uses: juliangruber/read-file-action@v1
-        with:
-          path: ./.zigversion
       - name: Install Zig
         uses: mlugg/setup-zig@v1
-        with:
-          version: ${{ steps.zigversion.outputs.content }}
       - name: Build examples
         run: zig build -Dtarget=${{matrix.target}} -Dskip=particle_life examples
 

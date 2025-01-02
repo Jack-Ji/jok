@@ -1,26 +1,26 @@
 const bos = @import("build_options");
 
-pub const sdl = @import("vendor/sdl/sdl.zig");
-pub const physfs = @import("vendor/physfs/physfs.zig");
+pub const sdl = @import("vendor/sdl/main.zig");
+pub const physfs = @import("vendor/physfs/main.zig");
 pub const zaudio = if (bos.no_audio)
     .{ .Engine = struct {}, .Context = struct {} }
 else
-    @import("zaudio");
-pub const zmath = @import("zmath");
-pub const zmesh = @import("zmesh");
-pub const znoise = @import("znoise");
-pub const imgui = @import("vendor/imgui/imgui.zig");
-pub const stb = @import("vendor/stb/stb.zig");
-pub const svg = @import("vendor/svg/svg.zig");
+    @import("vendor/zaudio/main.zig");
+pub const zmath = @import("vendor/zmath/main.zig");
+pub const zmesh = @import("vendor/zmesh/main.zig");
+pub const znoise = @import("vendor/znoise/main.zig");
+pub const imgui = @import("vendor/imgui/main.zig");
+pub const stb = @import("vendor/stb/main.zig");
+pub const svg = @import("vendor/svg/main.zig");
 pub const cp = if (bos.use_cp)
-    @import("vendor/chipmunk/chipmunk.zig")
+    @import("vendor/chipmunk/main.zig")
 else
     null;
 pub const nfd = if (bos.use_nfd)
-    @import("vendor/nfd/nfd.zig")
+    @import("vendor/nfd/main.zig")
 else
     null;
 pub const ztracy = if (bos.use_ztracy)
-    @import("ztracy")
+    @import("vendor/ztracy/main.zig")
 else
     null;

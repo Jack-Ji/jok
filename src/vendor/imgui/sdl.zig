@@ -1,11 +1,10 @@
 const std = @import("std");
 const jok = @import("../../jok.zig");
 const sdl = jok.sdl;
-const zgui = @import("zgui");
-const imgui = @import("imgui.zig");
+const gui = @import("gui.zig");
 
 pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
-    zgui.init(ctx.allocator());
+    gui.init(ctx.allocator());
 
     const window = ctx.window();
     const renderer = ctx.renderer();
@@ -17,28 +16,28 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
         unreachable;
     }
 
-    zgui.getStyle().scaleAllSizes(ctx.getDpiScale());
+    gui.getStyle().scaleAllSizes(ctx.getDpiScale());
     if (!enable_ini_file) {
-        zgui.io.setIniFilename(null);
+        gui.io.setIniFilename(null);
     }
 
-    const font = zgui.io.addFontFromMemory(
+    const font = gui.io.addFontFromMemory(
         jok.font.DebugFont.font_data,
         16 * ctx.getDpiScale(),
     );
-    zgui.io.setDefaultFont(font);
+    gui.io.setDefaultFont(font);
 
     // Disable automatic mouse state updating
-    zgui.io.setConfigFlags(.{ .no_mouse_cursor_change = true });
+    gui.io.setConfigFlags(.{ .no_mouse_cursor_change = true });
 
-    zgui.plot.init();
+    gui.plot.init();
 }
 
 pub fn deinit() void {
-    zgui.plot.deinit();
+    gui.plot.deinit();
     ImGui_ImplSDLRenderer2_Shutdown();
     ImGui_ImplSDL2_Shutdown();
-    zgui.deinit();
+    gui.deinit();
 }
 
 pub fn newFrame(ctx: jok.Context) void {
@@ -46,26 +45,26 @@ pub fn newFrame(ctx: jok.Context) void {
     ImGui_ImplSDL2_NewFrame();
 
     const fbsize = ctx.renderer().getOutputSize() catch unreachable;
-    imgui.io.setDisplaySize(
+    gui.io.setDisplaySize(
         fbsize.getWidthFloat(),
         fbsize.getHeightFloat(),
     );
-    imgui.io.setDisplayFramebufferScale(1.0, 1.0);
+    gui.io.setDisplayFramebufferScale(1.0, 1.0);
 
-    imgui.newFrame();
+    gui.newFrame();
 }
 
 pub fn draw(ctx: jok.Context) void {
     const renderer = ctx.renderer();
-    imgui.render();
-    ImGui_ImplSDLRenderer2_RenderDrawData(imgui.getDrawData(), renderer.ptr);
+    gui.render();
+    ImGui_ImplSDLRenderer2_RenderDrawData(gui.getDrawData(), renderer.ptr);
 }
 
 pub fn processEvent(event: sdl.SDL_Event) bool {
     return ImGui_ImplSDL2_ProcessEvent(&event);
 }
 
-pub fn renderDrawList(ctx: jok.Context, dl: zgui.DrawList) void {
+pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
     if (dl.getCmdBufferLength() <= 0) return;
 
     const rd = ctx.renderer();
@@ -99,12 +98,12 @@ pub fn renderDrawList(ctx: jok.Context, dl: zgui.DrawList) void {
             tex,
             @ptrCast(vs_ptr + @as(usize, cmd.vtx_offset)),
             @intCast(@as(u32, @intCast(vs_count)) - cmd.vtx_offset),
-            @offsetOf(imgui.DrawVert, "pos"),
-            @sizeOf(imgui.DrawVert),
-            @offsetOf(imgui.DrawVert, "color"),
-            @sizeOf(imgui.DrawVert),
-            @offsetOf(imgui.DrawVert, "uv"),
-            @sizeOf(imgui.DrawVert),
+            @offsetOf(gui.DrawVert, "pos"),
+            @sizeOf(gui.DrawVert),
+            @offsetOf(gui.DrawVert, "color"),
+            @sizeOf(gui.DrawVert),
+            @offsetOf(gui.DrawVert, "uv"),
+            @sizeOf(gui.DrawVert),
             indices,
         ) catch unreachable;
     }

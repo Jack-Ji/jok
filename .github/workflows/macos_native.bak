@@ -19,15 +19,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Read .zig-version
-        id: zigversion
-        uses: juliangruber/read-file-action@v1
-        with:
-          path: ./.zigversion
       - name: Install Zig
         uses: mlugg/setup-zig@v1
-        with:
-          version: ${{ steps.zigversion.outputs.content }}
       - name: Install sdl2
         run: brew install sdl2
       - name: Build and run tests

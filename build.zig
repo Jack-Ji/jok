@@ -102,7 +102,6 @@ pub const BuildOptions = struct {
     use_cp: bool = false,
     use_nfd: bool = false,
     use_ztracy: bool = false,
-    enable_ztracy: bool = false,
 };
 
 /// Create desktop application (windows/linux/macos)
@@ -153,57 +152,19 @@ fn initJok(
     module: *Build.Module,
     lib: *Build.Step.Compile,
 } {
-    const builder = getJokBuilder(b, opt);
-
     // Create module
+    const builder = getJokBuilder(b, opt);
     const bos = builder.addOptions();
     bos.addOption(bool, "no_audio", opt.no_audio);
     bos.addOption(bool, "use_cp", opt.use_cp);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
     bos.addOption(bool, "use_ztracy", opt.use_ztracy);
-    const zgui = builder.dependency("zgui", .{
-        .target = target,
-        .optimize = optimize,
-        .with_implot = true,
-        .use_wchar32 = true,
-        .use_32bit_draw_idx = true,
-    });
-    const zaudio = builder.dependency("zaudio", .{
-        .target = target,
-        .optimize = optimize,
-    });
-    const zmath = builder.dependency("zmath", .{
-        .target = target,
-        .optimize = optimize,
-    });
-    const zmesh = builder.dependency("zmesh", .{
-        .target = target,
-        .optimize = optimize,
-    });
-    const znoise = builder.dependency("znoise", .{
-        .target = target,
-        .optimize = optimize,
-    });
-    const ztracy = builder.dependency("ztracy", .{
-        .target = target,
-        .optimize = optimize,
-    });
     const module = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
         .imports = &.{
             .{ .name = "build_options", .module = bos.createModule() },
-            .{ .name = "zgui", .module = zgui.module("root") },
-            .{ .name = "zmath", .module = zmath.module("root") },
-            .{ .name = "zmesh", .module = zmesh.module("root") },
-            .{ .name = "znoise", .module = znoise.module("root") },
         },
     });
-    if (!opt.no_audio) {
-        module.addImport("zaudio", zaudio.module("root"));
-    }
-    if (opt.use_ztracy) {
-        module.addImport("ztracy", ztracy.module("root"));
-    }
 
     // Create library
     const lib = builder.addStaticLibrary(.{
@@ -212,15 +173,6 @@ fn initJok(
         .target = target,
         .optimize = optimize,
     });
-    lib.linkLibrary(zgui.artifact("imgui"));
-    lib.linkLibrary(zmesh.artifact("zmesh"));
-    lib.linkLibrary(znoise.artifact("FastNoiseLite"));
-    if (!opt.no_audio) {
-        lib.linkLibrary(zaudio.artifact("miniaudio"));
-    }
-    if (opt.use_ztracy) {
-        lib.linkLibrary(ztracy.artifact("tracy"));
-    }
     injectVendorLibraries(builder, lib, target, optimize, opt);
 
     return .{ .module = module, .lib = lib };
@@ -234,203 +186,26 @@ fn injectVendorLibraries(
     optimize: std.builtin.Mode,
     opt: BuildOptions,
 ) void {
-    // Setup path to common libraries
-    const system_sdk = b.dependency("system_sdk", .{});
-    switch (target.result.os.tag) {
-        .windows => {
-            bin.addIncludePath(b.path("src/vendor/sdl/c/windows"));
-        },
-        .macos => {
-            bin.addFrameworkPath(system_sdk.path("macos12/System/Library/Frameworks"));
-            bin.addSystemIncludePath(system_sdk.path("macos12/usr/include"));
-            bin.addLibraryPath(system_sdk.path("macos12/usr/lib"));
-            bin.addIncludePath(b.path("src/vendor/sdl/c/macos"));
-        },
-        .linux => {
-            bin.addSystemIncludePath(system_sdk.path("linux/include"));
-            bin.addSystemIncludePath(system_sdk.path("linux/include/wayland"));
-            if (target.result.cpu.arch.isX86()) {
-                bin.addLibraryPath(system_sdk.path("linux/lib/x86_64-linux-gnu"));
-            } else {
-                bin.addLibraryPath(system_sdk.path("linux/lib/aarch64-linux-gnu"));
-            }
-            bin.addIncludePath(b.path("src/vendor/sdl/c/linux"));
-        },
-        else => {},
+    @import("src/vendor/system_sdk/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/system_sdk"));
+    @import("src/vendor/imgui/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/imgui"));
+    @import("src/vendor/physfs/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/physfs"));
+    @import("src/vendor/sdl/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/sdl"));
+    @import("src/vendor/stb/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/stb"));
+    @import("src/vendor/svg/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/svg"));
+    @import("src/vendor/zmath/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/zmath"));
+    @import("src/vendor/zmesh/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/zmesh"));
+    @import("src/vendor/znoise/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/znoise"));
+    if (!opt.no_audio) {
+        @import("src/vendor/zaudio/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/zaudio"));
     }
-
-    // libc is always required
-    bin.linkLibC();
-
-    // dear-imgui backend
-    bin.addCSourceFiles(.{
-        .files = &.{
-            "src/vendor/imgui/c/imgui_impl_sdl2.cpp",
-            "src/vendor/imgui/c/imgui_impl_sdlrenderer2.cpp",
-        },
-        .flags = &.{"-fno-sanitize=undefined"},
-    });
-
-    // stb headers
-    bin.addCSourceFile(.{
-        .file = b.path("src/vendor/stb/c/stb_wrapper.c"),
-        .flags = &.{
-            "-Wno-return-type-c-linkage",
-            "-fno-sanitize=undefined",
-        },
-    });
-
-    // nanosvg
-    bin.addCSourceFile(.{
-        .file = b.path("src/vendor/svg/c/wrapper.c"),
-        .flags = &.{
-            "-Wno-return-type-c-linkage",
-            "-fno-sanitize=undefined",
-        },
-    });
-
-    // physfs
-    bin.addCSourceFiles(.{
-        .files = &.{
-            "src/vendor/physfs/c/physfs.c",
-            "src/vendor/physfs/c/physfs_byteorder.c",
-            "src/vendor/physfs/c/physfs_unicode.c",
-            "src/vendor/physfs/c/physfs_platform_posix.c",
-            "src/vendor/physfs/c/physfs_platform_unix.c",
-            "src/vendor/physfs/c/physfs_platform_windows.c",
-            "src/vendor/physfs/c/physfs_platform_ogc.c",
-            "src/vendor/physfs/c/physfs_platform_os2.c",
-            "src/vendor/physfs/c/physfs_platform_qnx.c",
-            "src/vendor/physfs/c/physfs_platform_android.c",
-            "src/vendor/physfs/c/physfs_platform_playdate.c",
-            "src/vendor/physfs/c/physfs_archiver_dir.c",
-            "src/vendor/physfs/c/physfs_archiver_unpacked.c",
-            "src/vendor/physfs/c/physfs_archiver_grp.c",
-            "src/vendor/physfs/c/physfs_archiver_hog.c",
-            "src/vendor/physfs/c/physfs_archiver_7z.c",
-            "src/vendor/physfs/c/physfs_archiver_mvl.c",
-            "src/vendor/physfs/c/physfs_archiver_qpak.c",
-            "src/vendor/physfs/c/physfs_archiver_wad.c",
-            "src/vendor/physfs/c/physfs_archiver_csm.c",
-            "src/vendor/physfs/c/physfs_archiver_zip.c",
-            "src/vendor/physfs/c/physfs_archiver_slb.c",
-            "src/vendor/physfs/c/physfs_archiver_iso9660.c",
-            "src/vendor/physfs/c/physfs_archiver_vdf.c",
-            "src/vendor/physfs/c/physfs_archiver_lec3d.c",
-        },
-        .flags = &.{
-            "-Wno-return-type-c-linkage",
-            "-fno-sanitize=undefined",
-        },
-    });
-    if (target.result.os.tag == .windows) {
-        bin.linkSystemLibrary("advapi32");
-        bin.linkSystemLibrary("shell32");
-    } else if (target.result.os.tag == .macos) {
-        bin.addCSourceFiles(.{
-            .files = &.{
-                "src/vendor/physfs/c/physfs_platform_apple.m",
-            },
-            .flags = &.{
-                "-Wno-return-type-c-linkage",
-                "-fno-sanitize=undefined",
-            },
-        });
-        bin.linkSystemLibrary("objc");
-        bin.linkFramework("IOKit");
-        bin.linkFramework("Foundation");
-    } else if (target.result.os.tag == .linux) {
-        bin.linkSystemLibrary("pthread");
-    } else unreachable;
-
-    // chipmunk
     if (opt.use_cp) {
-        bin.addIncludePath(b.path("src/vendor/chipmunk/c/include"));
-        bin.addCSourceFiles(.{
-            .files = &.{
-                "src/vendor/chipmunk/c/src/chipmunk.c",
-                "src/vendor/chipmunk/c/src/cpArbiter.c",
-                "src/vendor/chipmunk/c/src/cpArray.c",
-                "src/vendor/chipmunk/c/src/cpBBTree.c",
-                "src/vendor/chipmunk/c/src/cpBody.c",
-                "src/vendor/chipmunk/c/src/cpCollision.c",
-                "src/vendor/chipmunk/c/src/cpConstraint.c",
-                "src/vendor/chipmunk/c/src/cpDampedRotarySpring.c",
-                "src/vendor/chipmunk/c/src/cpDampedSpring.c",
-                "src/vendor/chipmunk/c/src/cpGearJoint.c",
-                "src/vendor/chipmunk/c/src/cpGrooveJoint.c",
-                "src/vendor/chipmunk/c/src/cpHashSet.c",
-                "src/vendor/chipmunk/c/src/cpHastySpace.c",
-                "src/vendor/chipmunk/c/src/cpMarch.c",
-                "src/vendor/chipmunk/c/src/cpPinJoint.c",
-                "src/vendor/chipmunk/c/src/cpPivotJoint.c",
-                "src/vendor/chipmunk/c/src/cpPolyline.c",
-                "src/vendor/chipmunk/c/src/cpPolyShape.c",
-                "src/vendor/chipmunk/c/src/cpRatchetJoint.c",
-                "src/vendor/chipmunk/c/src/cpRobust.c",
-                "src/vendor/chipmunk/c/src/cpRotaryLimitJoint.c",
-                "src/vendor/chipmunk/c/src/cpShape.c",
-                "src/vendor/chipmunk/c/src/cpSimpleMotor.c",
-                "src/vendor/chipmunk/c/src/cpSlideJoint.c",
-                "src/vendor/chipmunk/c/src/cpSpace.c",
-                "src/vendor/chipmunk/c/src/cpSpaceComponent.c",
-                "src/vendor/chipmunk/c/src/cpSpaceDebug.c",
-                "src/vendor/chipmunk/c/src/cpSpaceHash.c",
-                "src/vendor/chipmunk/c/src/cpSpaceQuery.c",
-                "src/vendor/chipmunk/c/src/cpSpaceStep.c",
-                "src/vendor/chipmunk/c/src/cpSpatialIndex.c",
-                "src/vendor/chipmunk/c/src/cpSweep1D.c",
-            },
-            .flags = &.{
-                if (optimize == .Debug) "" else "-DNDEBUG",
-                "-DCP_USE_DOUBLES=0",
-                "-Wno-return-type-c-linkage",
-                "-fno-sanitize=undefined",
-            },
-        });
+        @import("src/vendor/chipmunk/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/chipmunk"));
     }
-
-    // native file dialog
     if (opt.use_nfd) {
-        var flags = std.ArrayList([]const u8).init(b.allocator);
-        defer flags.deinit();
-        flags.append("-Wno-return-type-c-linkage") catch unreachable;
-        flags.append("-fno-sanitize=undefined") catch unreachable;
-        if (bin.rootModuleTarget().os.tag == .windows) {
-            bin.linkSystemLibrary("shell32");
-            bin.linkSystemLibrary("ole32");
-            bin.linkSystemLibrary("uuid"); // needed by MinGW
-        } else if (target.result.os.tag == .macos) {
-            bin.linkFramework("AppKit");
-        } else if (bin.rootModuleTarget().os.tag == .linux) {
-            bin.linkSystemLibrary("atk-1.0");
-            bin.linkSystemLibrary("gdk-3");
-            bin.linkSystemLibrary("gtk-3");
-            bin.linkSystemLibrary("glib-2.0");
-            bin.linkSystemLibrary("gobject-2.0");
-        } else unreachable;
-        bin.addIncludePath(b.path("src/vendor/nfd/c/include"));
-        bin.addCSourceFile(.{
-            .file = b.path("src/vendor/nfd/c/nfd_common.c"),
-            .flags = flags.items,
-        });
-
-        if (target.result.os.tag == .windows) {
-            bin.addCSourceFile(.{
-                .file = b.path("src/vendor/nfd/c/nfd_win.cpp"),
-                .flags = flags.items,
-            });
-        } else if (target.result.os.tag == .macos) {
-            bin.addCSourceFile(.{
-                .file = b.path("src/vendor/nfd/c/nfd_cocoa.m"),
-                .flags = flags.items,
-            });
-        } else if (target.result.os.tag == .linux) {
-            bin.addCSourceFile(.{
-                .file = b.path("src/vendor/nfd/c/nfd_gtk.c"),
-                .flags = flags.items,
-            });
-        } else unreachable;
+        @import("src/vendor/nfd/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/nfd"));
+    }
+    if (opt.use_ztracy) {
+        @import("src/vendor/ztracy/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/ztracy"));
     }
 }
 

@@ -1,22 +1,13 @@
 .{
     .name = "jok",
-    .version = "0.29.0",
+    .version = "0.30.0",
     .paths = .{
         "README.md",
         "build.zig",
         "build.zig.zon",
         "src",
-        "deps",
         "stubs",
         "examples",
     },
-    .dependencies = .{
-        .system_sdk = .{ .path = "deps/system_sdk" },
-        .zaudio = .{ .path = "deps/zaudio" },
-        .zgui = .{ .path = "deps/zgui" },
-        .zmath = .{ .path = "deps/zmath" },
-        .zmesh = .{ .path = "deps/zmesh" },
-        .znoise = .{ .path = "deps/znoise" },
-        .ztracy = .{ .path = "deps/ztracy" },
-    },
+    .dependencies = .{},
 }
