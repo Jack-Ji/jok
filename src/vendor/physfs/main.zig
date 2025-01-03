@@ -258,7 +258,7 @@ pub fn getRealDir(filename: [*:0]const u8) ?[*:0]const u8 {
 }
 
 /// Get a file listing of a search path's directory, using given memory allocator.
-pub fn listAlloc(allocator: std.mem.Allocator, dir: [*:0]const u8) Error!struct {
+pub const ListedFiles = struct {
     allocator: std.mem.Allocator,
     cfiles: [*]?[*:0]const u8,
     files: [][*:0]const u8,
@@ -267,14 +267,15 @@ pub fn listAlloc(allocator: std.mem.Allocator, dir: [*:0]const u8) Error!struct 
         PHYSFS_freeList(@ptrCast(self.cfiles));
         self.allocator.free(self.files);
     }
-} {
+};
+pub fn listAlloc(allocator: std.mem.Allocator, dir: [*:0]const u8) Error!ListedFiles {
     if (PHYSFS_enumerateFiles(dir)) |cfiles| {
         var file_count: usize = 0;
         while (cfiles[file_count] != null) {
             file_count += 1;
         }
 
-        const result = .{
+        const result = ListedFiles{
             .allocator = allocator,
             .cfiles = cfiles,
             .files = try allocator.alloc([*:0]const u8, file_count),
@@ -289,7 +290,7 @@ pub fn listAlloc(allocator: std.mem.Allocator, dir: [*:0]const u8) Error!struct 
 }
 
 /// Get iterator for directory's files.
-pub fn getListIterator(dir: [*:0]const u8) Error!struct {
+pub const ListIterator = struct {
     cfiles: [*]?[*:0]const u8,
     idx: usize,
 
@@ -302,7 +303,8 @@ pub fn getListIterator(dir: [*:0]const u8) Error!struct {
         if (p != null) it.idx += 1;
         return p;
     }
-} {
+};
+pub fn getListIterator(dir: [*:0]const u8) Error!ListIterator {
     if (PHYSFS_enumerateFiles(dir)) |cfiles| {
         return .{
             .cfiles = cfiles,

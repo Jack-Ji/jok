@@ -15,10 +15,6 @@ concurrency:
 
 jobs:
   build-windows:
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [x86_64-windows-gnu, x86_64-windows-msvc]
     runs-on: windows-latest
     steps:
       - name: Checkout repository
@@ -27,24 +23,10 @@ jobs:
         uses: mlugg/setup-zig@v1
         with:
           version: master
-      - name: Install VisualStudio (x64)
-        if: ${{ matrix.target == 'x86_64-windows-msvc' }}
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          uwp: false
-          arch: x64
       - name: Download SDL2 (MinGW)
         uses: carlosperate/download-file-action@v1.0.3
-        if: ${{ matrix.target == 'x86_64-windows-gnu' }}
         with:
           file-url: https://www.libsdl.org/release/SDL2-devel-2.30.9-mingw.tar.gz
-          file-name: SDL2.tar.gz
-          location: .
-      - name: Download SDL2 (Visual Studio)
-        uses: carlosperate/download-file-action@v1.0.3
-        if: ${{ matrix.target == 'x86_64-windows-msvc' }}
-        with:
-          file-url: https://www.libsdl.org/release/SDL2-devel-2.30.9-VC.zip
           file-name: SDL2.tar.gz
           location: .
       - name: Extract SDL2
@@ -61,16 +43,11 @@ jobs:
                 "include": "SDL2-2.30.9/x86_64-w64-mingw32/include",
                 "libs": "SDL2-2.30.9/x86_64-w64-mingw32/lib",
                 "bin": "SDL2-2.30.9/x86_64-w64-mingw32/bin"
-              },
-              "x86_64-windows-msvc": {
-                "include": "SDL2-2.30.9/include",
-                "libs": "SDL2-2.30.9/lib/x64",
-                "bin": "SDL2-2.30.9/lib/x64"
               }
             }
           write-mode: overwrite
       - name: Build and run tests
         run: zig build test
       - name: Build examples
-        run: zig build -Dtarget=${{matrix.target}} examples
+        run: zig build examples
 
