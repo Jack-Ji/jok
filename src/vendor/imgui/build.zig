@@ -20,8 +20,8 @@ pub fn inject(
         bin.root_module.addCMacro("__EMSCRIPTEN_minor__", "1");
         bin.root_module.stack_protector = false;
     } else {
-        if (target.result.abi != .msvc)
-            bin.linkLibCpp();
+        bin.linkLibC();
+        if (target.result.abi != .msvc) bin.linkLibCpp();
     }
 
     bin.addIncludePath(dir.path(b, "c/imgui"));
