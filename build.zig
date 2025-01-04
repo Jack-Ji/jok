@@ -101,7 +101,6 @@ pub const BuildOptions = struct {
     no_audio: bool = false,
     use_cp: bool = false,
     use_nfd: bool = false,
-    use_ztracy: bool = false,
 };
 
 /// Create desktop application (windows/linux/macos)
@@ -158,7 +157,6 @@ fn initJok(
     bos.addOption(bool, "no_audio", opt.no_audio);
     bos.addOption(bool, "use_cp", opt.use_cp);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
-    bos.addOption(bool, "use_ztracy", opt.use_ztracy);
     const module = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
         .imports = &.{
@@ -203,9 +201,6 @@ fn injectVendorLibraries(
     }
     if (opt.use_nfd) {
         @import("src/vendor/nfd/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/nfd"));
-    }
-    if (opt.use_ztracy) {
-        @import("src/vendor/ztracy/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/ztracy"));
     }
 }
 

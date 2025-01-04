@@ -12,15 +12,5 @@ pub const znoise = @import("vendor/znoise/main.zig");
 pub const imgui = @import("vendor/imgui/main.zig");
 pub const stb = @import("vendor/stb/main.zig");
 pub const svg = @import("vendor/svg/main.zig");
-pub const cp = if (bos.use_cp)
-    @import("vendor/chipmunk/main.zig")
-else
-    null;
-pub const nfd = if (bos.use_nfd)
-    @import("vendor/nfd/main.zig")
-else
-    null;
-pub const ztracy = if (bos.use_ztracy)
-    @import("vendor/ztracy/main.zig")
-else
-    null;
+pub const cp = if (bos.use_cp) @import("vendor/chipmunk/main.zig") else null;
+pub const nfd = if (bos.use_nfd) @import("vendor/nfd/main.zig") else null;
