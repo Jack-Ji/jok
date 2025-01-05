@@ -1,15 +1,9 @@
 const std = @import("std");
 
-pub fn inject(
-    b: *std.Build,
-    bin: *std.Build.Step.Compile,
-    _: std.Build.ResolvedTarget,
-    _: std.builtin.Mode,
-    dir: std.Build.LazyPath,
-) void {
-    bin.addIncludePath(dir.path(b, "c/par_shapes"));
-    bin.addCSourceFile(.{
-        .file = dir.path(b, "c/par_shapes/par_shapes.c"),
+pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
+    mod.addIncludePath(dir.path(mod.owner, "c/par_shapes"));
+    mod.addCSourceFile(.{
+        .file = dir.path(mod.owner, "c/par_shapes/par_shapes.c"),
         .flags = &.{
             "-std=c99",
             "-fno-sanitize=undefined",
@@ -17,7 +11,7 @@ pub fn inject(
         },
     });
 
-    bin.addCSourceFiles(.{
+    mod.addCSourceFiles(.{
         .root = dir,
         .files = &.{
             "c/meshoptimizer/clusterizer.cpp",
@@ -34,9 +28,9 @@ pub fn inject(
         .flags = &.{""},
     });
 
-    bin.addIncludePath(dir.path(b, "c/cgltf"));
-    bin.addCSourceFile(.{
-        .file = dir.path(b, "c/cgltf/cgltf.c"),
+    mod.addIncludePath(dir.path(mod.owner, "c/cgltf"));
+    mod.addCSourceFile(.{
+        .file = dir.path(mod.owner, "c/cgltf/cgltf.c"),
         .flags = &.{"-std=c99"},
     });
 }

@@ -107,101 +107,76 @@ pub const BuildOptions = struct {
 pub fn createDesktopApp(
     b: *Build,
     name: []const u8,
-    root_file: []const u8,
+    game_root: []const u8,
     target: ResolvedTarget,
     optimize: std.builtin.Mode,
     opt: BuildOptions,
 ) *Build.Step.Compile {
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
-
-    // Initialize jok
-    const jok = initJok(b, target, optimize, opt);
-
-    // Initialize sdl2 sdk
+    const jokmod = getJokModule(b, target, optimize, opt);
     const sdk = CrossSDL.init(b);
 
-    // Create executable
+    // Create root module
     const builder = getJokBuilder(b, opt);
-    const exe = builder.addExecutable(.{
-        .name = name,
+    const root = b.createModule(.{
         .root_source_file = builder.path("src/entrypoints/app.zig"),
         .target = target,
         .optimize = optimize,
     });
-    exe.root_module.addImport("jok", jok.module);
-    exe.root_module.addImport("game", builder.createModule(.{
-        .root_source_file = b.path(root_file),
+    const game = builder.createModule(.{
+        .root_source_file = b.path(game_root),
         .imports = &.{
-            .{ .name = "jok", .module = jok.module },
+            .{ .name = "jok", .module = jokmod },
         },
-    }));
-    exe.linkLibrary(jok.lib);
+    });
+    root.addImport("jok", jokmod);
+    root.addImport("game", game);
+
+    // Create executable
+    const exe = builder.addExecutable(.{
+        .name = name,
+        .root_module = root,
+    });
     sdk.link(exe, .dynamic);
 
     return exe;
 }
 
-// Create jok module and library
-fn initJok(
+// Create jok Module
+fn getJokModule(
     b: *Build,
     target: ResolvedTarget,
     optimize: std.builtin.Mode,
     opt: BuildOptions,
-) struct {
-    module: *Build.Module,
-    lib: *Build.Step.Compile,
-} {
-    // Create module
+) *Build.Module {
     const builder = getJokBuilder(b, opt);
     const bos = builder.addOptions();
     bos.addOption(bool, "no_audio", opt.no_audio);
     bos.addOption(bool, "use_cp", opt.use_cp);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
-    const module = builder.createModule(.{
+    const mod = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
+        .target = target,
+        .optimize = optimize,
         .imports = &.{
             .{ .name = "build_options", .module = bos.createModule() },
         },
     });
 
-    // Create library
-    const lib = builder.addStaticLibrary(.{
-        .name = "jok",
-        .root_source_file = builder.path("src/jok.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    injectVendorLibraries(builder, lib, target, optimize, opt);
+    @import("src/vendor/system_sdk/build.zig").inject(mod, builder.path("src/vendor/system_sdk"));
+    @import("src/vendor/imgui/build.zig").inject(mod, builder.path("src/vendor/imgui"));
+    @import("src/vendor/physfs/build.zig").inject(mod, builder.path("src/vendor/physfs"));
+    @import("src/vendor/sdl/build.zig").inject(mod, builder.path("src/vendor/sdl"));
+    @import("src/vendor/stb/build.zig").inject(mod, builder.path("src/vendor/stb"));
+    @import("src/vendor/svg/build.zig").inject(mod, builder.path("src/vendor/svg"));
+    @import("src/vendor/zmath/build.zig").inject(mod, builder.path("src/vendor/zmath"));
+    @import("src/vendor/zmesh/build.zig").inject(mod, builder.path("src/vendor/zmesh"));
+    @import("src/vendor/znoise/build.zig").inject(mod, builder.path("src/vendor/znoise"));
+    if (!opt.no_audio) @import("src/vendor/zaudio/build.zig").inject(mod, builder.path("src/vendor/zaudio"));
+    if (opt.use_cp) @import("src/vendor/chipmunk/build.zig").inject(mod, builder.path("src/vendor/chipmunk"));
+    if (opt.use_nfd) @import("src/vendor/nfd/build.zig").inject(mod, builder.path("src/vendor/nfd"));
 
-    return .{ .module = module, .lib = lib };
-}
-
-// Compile vendor libraries into artifact
-fn injectVendorLibraries(
-    b: *Build,
-    bin: *Build.Step.Compile,
-    target: ResolvedTarget,
-    optimize: std.builtin.Mode,
-    opt: BuildOptions,
-) void {
-    @import("src/vendor/system_sdk/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/system_sdk"));
-    @import("src/vendor/imgui/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/imgui"));
-    @import("src/vendor/physfs/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/physfs"));
-    @import("src/vendor/sdl/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/sdl"));
-    @import("src/vendor/stb/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/stb"));
-    @import("src/vendor/svg/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/svg"));
-    @import("src/vendor/zmath/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/zmath"));
-    @import("src/vendor/zmesh/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/zmesh"));
-    @import("src/vendor/znoise/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/znoise"));
-    if (!opt.no_audio) {
-        @import("src/vendor/zaudio/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/zaudio"));
-    }
-    if (opt.use_cp) {
-        @import("src/vendor/chipmunk/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/chipmunk"));
-    }
-    if (opt.use_nfd) {
-        @import("src/vendor/nfd/build.zig").inject(b, bin, target, optimize, b.path("src/vendor/nfd"));
-    }
+    return mod;
 }
 
 // Get jok's own builder from project's

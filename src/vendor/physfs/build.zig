@@ -1,18 +1,12 @@
 const std = @import("std");
 
-pub fn inject(
-    _: *std.Build,
-    bin: *std.Build.Step.Compile,
-    target: std.Build.ResolvedTarget,
-    _: std.builtin.Mode,
-    dir: std.Build.LazyPath,
-) void {
+pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
     const cflags = &.{
         "-Wno-return-type-c-linkage",
         "-fno-sanitize=undefined",
     };
 
-    bin.addCSourceFiles(.{
+    mod.addCSourceFiles(.{
         .root = dir,
         .files = &.{
             "c/physfs.c",
@@ -43,21 +37,21 @@ pub fn inject(
         },
         .flags = cflags,
     });
-    if (target.result.os.tag == .windows) {
-        bin.linkSystemLibrary("advapi32");
-        bin.linkSystemLibrary("shell32");
-    } else if (target.result.os.tag == .macos) {
-        bin.addCSourceFiles(.{
+    if (mod.resolved_target.?.result.os.tag == .windows) {
+        mod.linkSystemLibrary("advapi32", .{});
+        mod.linkSystemLibrary("shell32", .{});
+    } else if (mod.resolved_target.?.result.os.tag == .macos) {
+        mod.addCSourceFiles(.{
             .root = dir,
             .files = &.{
                 "c/physfs_platform_apple.m",
             },
             .flags = cflags,
         });
-        bin.linkSystemLibrary("objc");
-        bin.linkFramework("IOKit");
-        bin.linkFramework("Foundation");
-    } else if (target.result.os.tag == .linux) {
-        bin.linkSystemLibrary("pthread");
+        mod.linkSystemLibrary("objc", .{});
+        mod.linkFramework("IOKit", .{});
+        mod.linkFramework("Foundation", .{});
+    } else if (mod.resolved_target.?.result.os.tag == .linux) {
+        mod.linkSystemLibrary("pthread", .{});
     } else unreachable;
 }

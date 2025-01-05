@@ -1,21 +1,15 @@
 const std = @import("std");
 
-pub fn inject(
-    b: *std.Build,
-    bin: *std.Build.Step.Compile,
-    target: std.Build.ResolvedTarget,
-    _: std.builtin.Mode,
-    dir: std.Build.LazyPath,
-) void {
-    switch (target.result.os.tag) {
+pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
+    switch (mod.resolved_target.?.result.os.tag) {
         .windows => {
-            bin.addIncludePath(dir.path(b, "c/windows"));
+            mod.addIncludePath(dir.path(mod.owner, "c/windows"));
         },
         .macos => {
-            bin.addIncludePath(dir.path(b, "c/macos"));
+            mod.addIncludePath(dir.path(mod.owner, "c/macos"));
         },
         .linux => {
-            bin.addIncludePath(dir.path(b, "c/linux"));
+            mod.addIncludePath(dir.path(mod.owner, "c/linux"));
         },
         else => unreachable,
     }

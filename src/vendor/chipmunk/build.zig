@@ -1,14 +1,8 @@
 const std = @import("std");
 
-pub fn inject(
-    b: *std.Build,
-    bin: *std.Build.Step.Compile,
-    _: std.Build.ResolvedTarget,
-    optimize: std.builtin.Mode,
-    dir: std.Build.LazyPath,
-) void {
-    bin.addIncludePath(dir.path(b, "c/include"));
-    bin.addCSourceFiles(.{
+pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
+    mod.addIncludePath(dir.path(mod.owner, "c/include"));
+    mod.addCSourceFiles(.{
         .root = dir,
         .files = &.{
             "c/src/chipmunk.c",
@@ -45,7 +39,7 @@ pub fn inject(
             "c/src/cpSweep1D.c",
         },
         .flags = &.{
-            if (optimize == .Debug) "" else "-DNDEBUG",
+            if (mod.optimize.? == .Debug) "" else "-DNDEBUG",
             "-DCP_USE_DOUBLES=0",
             "-Wno-return-type-c-linkage",
             "-fno-sanitize=undefined",

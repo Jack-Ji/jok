@@ -1,30 +1,24 @@
 const std = @import("std");
 
-pub fn inject(
-    b: *std.Build,
-    bin: *std.Build.Step.Compile,
-    target: std.Build.ResolvedTarget,
-    _: std.builtin.Mode,
-    dir: std.Build.LazyPath,
-) void {
-    bin.addIncludePath(dir.path(b, "c/miniaudio"));
-    if (target.result.os.tag == .macos) {
-        bin.linkFramework("CoreAudio");
-        bin.linkFramework("CoreFoundation");
-        bin.linkFramework("AudioUnit");
-        bin.linkFramework("AudioToolbox");
-    } else if (target.result.os.tag == .linux) {
-        bin.linkSystemLibrary("pthread");
-        bin.linkSystemLibrary("m");
-        bin.linkSystemLibrary("dl");
+pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
+    mod.addIncludePath(dir.path(mod.owner, "c/miniaudio"));
+    if (mod.resolved_target.?.result.os.tag == .macos) {
+        mod.linkFramework("CoreAudio", .{});
+        mod.linkFramework("CoreFoundation", .{});
+        mod.linkFramework("AudioUnit", .{});
+        mod.linkFramework("AudioToolbox", .{});
+    } else if (mod.resolved_target.?.result.os.tag == .linux) {
+        mod.linkSystemLibrary("pthread", .{});
+        mod.linkSystemLibrary("m", .{});
+        mod.linkSystemLibrary("dl", .{});
     }
 
-    bin.addCSourceFile(.{
-        .file = dir.path(b, "c/zaudio.c"),
+    mod.addCSourceFile(.{
+        .file = dir.path(mod.owner, "c/zaudio.c"),
         .flags = &.{"-std=c99"},
     });
-    bin.addCSourceFile(.{
-        .file = dir.path(b, "c/miniaudio/miniaudio.c"),
+    mod.addCSourceFile(.{
+        .file = dir.path(mod.owner, "c/miniaudio/miniaudio.c"),
         .flags = &.{
             "-DMA_NO_WEBAUDIO",
             "-DMA_NO_ENCODING",
@@ -34,7 +28,7 @@ pub fn inject(
             "-DMA_NO_WINMM",
             "-std=c99",
             "-fno-sanitize=undefined",
-            if (target.result.os.tag == .macos) "-DMA_NO_RUNTIME_LINKING" else "",
+            if (mod.resolved_target.?.result.os.tag == .macos) "-DMA_NO_RUNTIME_LINKING" else "",
         },
     });
 }
