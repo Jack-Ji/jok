@@ -8,9 +8,10 @@ pub const Window = struct {
     ptr: *sdl.SDL_Window,
 
     pub fn init(cfg: jok.config.Config, dpi_scale: f32) !Window {
-        var flags: u32 = 0;
-        flags |= sdl.SDL_WINDOW_MOUSE_CAPTURE;
-        flags |= sdl.SDL_WINDOW_MOUSE_FOCUS;
+        var flags: u32 = sdl.SDL_WINDOW_MOUSE_CAPTURE | sdl.SDL_WINDOW_MOUSE_FOCUS;
+        if (cfg.jok_headless) {
+            flags |= sdl.SDL_WINDOW_HIDDEN;
+        }
         if (cfg.jok_window_highdpi) {
             flags |= sdl.SDL_WINDOW_ALLOW_HIGHDPI;
         }

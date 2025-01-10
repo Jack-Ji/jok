@@ -596,6 +596,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Initialize SDL
         fn initSDL(self: *@This()) !void {
+            if (cfg.jok_headless) {
+                _ = sdl.SDL_SetHint(sdl.SDL_HINT_VIDEODRIVER, "offscreen");
+            }
+
             if (sdl.SDL_Init(sdl.SDL_INIT_EVERYTHING & ~sdl.SDL_INIT_AUDIO) < 0) {
                 log.err("Initialize SDL2 failed: {s}", .{sdl.SDL_GetError()});
                 return sdl.Error.SdlError;
@@ -643,7 +647,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
             self.updateCanvasTargetArea();
 
-            if (cfg.jok_exit_on_recv_esc) {
+            if (!cfg.jok_headless and cfg.jok_exit_on_recv_esc) {
                 log.info("Press ESC to exit game", .{});
             }
         }

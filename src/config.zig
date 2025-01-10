@@ -22,6 +22,9 @@ pub const Config = struct {
     /// Whether enable post-processing
     jok_enable_post_processing: bool = false,
 
+    /// Headless mode
+    jok_headless: bool = false,
+
     /// Window attributes
     jok_window_title: [:0]const u8 = "mygame",
     jok_window_size: WindowSize = .{ .custom = .{ .width = 800, .height = 600 } },
@@ -99,6 +102,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_enable_physfs", .desc = "whether use physfs to access game assets" },
         .{ .name = "jok_canvas_size", .desc = "size of canvas" },
         .{ .name = "jok_enable_post_processing", .desc = "whether enable post-processing facility" },
+        .{ .name = "jok_headless", .desc = "headless mode" },
         .{ .name = "jok_window_title", .desc = "title of window" },
         .{ .name = "jok_window_size", .desc = "size of window" },
         .{ .name = "jok_window_min_size", .desc = "minimum size of window" },
