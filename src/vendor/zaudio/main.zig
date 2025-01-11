@@ -2313,15 +2313,22 @@ pub const Sound = opaque {
     }
     extern fn ma_sound_get_length_in_seconds(sound: *const Sound, length: *f32) Result;
 
-    pub const Flags = packed struct(u32) {
+    pub const Flags = packed struct(c_int) {
+        // Resource manager flags
         stream: bool = false,
         decode: bool = false,
         async_load: bool = false,
         wait_init: bool = false,
+        unknown_length: bool = false,
+
+        _padding0: u7 = 0,
+
+        // ma_sound specific flags
         no_default_attachment: bool = false,
         no_pitch: bool = false,
         no_spatialization: bool = false,
-        _padding: u25 = 0,
+
+        _padding1: u17 = 0,
     };
 
     pub const Config = extern struct {

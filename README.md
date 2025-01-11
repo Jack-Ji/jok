@@ -1,4 +1,4 @@
-[![build](/../../actions/workflows/windows_native.yml/badge.svg)](/../../actions/workflows/windows_native.yml) [![build](/../../actions/workflows/linux_native.yml/badge.svg)](/../../actions/workflows/linux_native.yml) [![build](/../../actions/workflows/windows_cross.yml/badge.svg)](/../../actions/workflows/windows_cross.yml) [![build](/../../actions/workflows/linux_cross.yml/badge.svg)](/../../actions/workflows/linux_cross.yml)
+[![build](/../../actions/workflows/windows_native.yml/badge.svg)](/../../actions/workflows/windows_native.yml) [![build](/../../actions/workflows/linux_native.yml/badge.svg)](/../../actions/workflows/linux_native.yml) [![build](/../../actions/workflows/macos_native.yml/badge.svg)](/../../actions/workflows/macos_native.yml) [![build](/../../actions/workflows/windows_cross.yml/badge.svg)](/../../actions/workflows/windows_cross.yml) [![build](/../../actions/workflows/linux_cross.yml/badge.svg)](/../../actions/workflows/linux_cross.yml)
 
 
 # jok
