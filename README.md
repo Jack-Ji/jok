@@ -156,9 +156,7 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     You can customize some setup settings (window width/height, fps, debug level etc), by 
     defining some public constants using predefined names (they're all prefixed with`jok_`).
     Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig).
-
-    NOTE: most settings're still customizable through SDL2's api in runtime. Remember, you can always
-    resort to `SDL` directly if you're not totally happy with `jok`'s working style.
+    Most of which are still modifiable at runtime.
     
     Now, compile and run your game using command `zig build run`, have fun!
     Please let me know if you have any issue or developed something interesting with this little framework.
