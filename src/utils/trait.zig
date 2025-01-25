@@ -214,7 +214,7 @@ test "isSignedInt" {
 
 pub fn isSingleItemPtr(comptime T: type) bool {
     if (comptime is(.pointer)(T)) {
-        return @typeInfo(T).pointer.size == .One;
+        return @typeInfo(T).pointer.size == .one;
     }
     return false;
 }
@@ -230,7 +230,7 @@ test "isSingleItemPtr" {
 
 pub fn isManyItemPtr(comptime T: type) bool {
     if (comptime is(.pointer)(T)) {
-        return @typeInfo(T).pointer.size == .Many;
+        return @typeInfo(T).pointer.size == .many;
     }
     return false;
 }
@@ -245,7 +245,7 @@ test "isManyItemPtr" {
 
 pub fn isSlice(comptime T: type) bool {
     if (comptime is(.pointer)(T)) {
-        return @typeInfo(T).pointer.size == .Slice;
+        return @typeInfo(T).pointer.size == .slice;
     }
     return false;
 }
@@ -261,7 +261,7 @@ test "isSlice" {
 
 pub fn isIndexable(comptime T: type) bool {
     if (comptime is(.pointer)(T)) {
-        if (@typeInfo(T).pointer.size == .One) {
+        if (@typeInfo(T).pointer.size == .one) {
             return (comptime is(.array)(meta.Child(T)));
         }
         return true;
@@ -412,12 +412,12 @@ pub fn isZigString(comptime T: type) bool {
         if (ptr.is_volatile or ptr.is_allowzero) break :blk false;
 
         // If it's already a slice, simple check.
-        if (ptr.size == .Slice) {
+        if (ptr.size == .slice) {
             break :blk ptr.child == u8;
         }
 
         // Otherwise check if it's an array type that coerces to slice.
-        if (ptr.size == .One) {
+        if (ptr.size == .one) {
             const child = @typeInfo(ptr.child);
             if (child == .array) {
                 const arr = &child.array;
@@ -558,7 +558,7 @@ pub fn hasUniqueRepresentation(comptime T: type) bool {
 
         .int => |info| return @sizeOf(T) * 8 == info.bits,
 
-        .pointer => |info| return info.size != .Slice,
+        .pointer => |info| return info.size != .slice,
 
         .array => |info| return comptime hasUniqueRepresentation(info.child),
 
