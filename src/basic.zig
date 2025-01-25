@@ -130,6 +130,10 @@ pub const Rectangle = extern struct {
         return false;
     }
 
+    pub inline fn intersectCircle(r: Rectangle, c: Circle) bool {
+        return c.intersectRect(r);
+    }
+
     pub inline fn containsPoint(r: Rectangle, p: Point) bool {
         return p.x >= r.x and p.x < r.x + r.width and
             p.y >= r.y and p.y < r.y + r.height;
@@ -155,6 +159,29 @@ pub const Circle = extern struct {
     pub inline fn containsPoint(c: Circle, p: Point) bool {
         const v: @Vector(2, f32) = .{ c.center.x - p.x, c.center.y - p.y };
         return @reduce(.Add, v * v) < c.radius * c.radius;
+    }
+
+    pub inline fn intersectCircle(c0: Circle, c1: Circle) bool {
+        const r = c0.radius + c1.radius;
+        return c0.center.distance2(c1.center) < r * r;
+    }
+
+    pub inline fn intersectRect(c: Circle, r: Rectangle) bool {
+        if (c.containsPoint(.{ .x = r.x, .y = r.y }) or
+            c.containsPoint(.{ .x = r.x + r.width, .y = r.y }) or
+            c.containsPoint(.{ .x = r.x + r.width, .y = r.y + r.height }) or
+            c.containsPoint(.{ .x = r.x, .y = r.y + r.height }))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    pub inline fn intersectTriangle(c: Circle, t: Triangle) bool {
+        if (c.containsPoint(t.p0) or c.containsPoint(t.p1) or c.containsPoint(t.p2)) {
+            return true;
+        }
+        return false;
     }
 };
 
