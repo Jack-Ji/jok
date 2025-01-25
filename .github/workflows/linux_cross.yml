@@ -1,34 +1,87 @@
-name: Cross Build (linux)
+name: Cross-Compilation Validation
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
+    paths:
+      - '**.zig'
+      - '**/build.zig'
+      - '**/build.zig.zon'
+      - '.github/workflows/cross-build.yml'
   push:
-    branches:
-      - main
+    branches: [main]
+    paths: 
+      - '**.zig'
+      - '**/build.zig'
+      - '**/build.zig.zon'
 
 concurrency:
-  # Cancels pending runs when a PR gets updated.
-  group: ${{ github.head_ref || github.run_id }}-${{ github.actor }}
+  group: ${{ github.ref_name || github.run_id }}-${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:
-  build-cross-linux:
+  cross-compile:
+    name: Cross-compile for ${{ matrix.target }} on ${{ matrix.host }}
+    runs-on: ${{ matrix.host }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
     strategy:
       fail-fast: false
       matrix:
-        #host: [macos-latest, windows-latest]
-        host: [windows-latest]
-        target: [x86_64-linux-gnu]
-    runs-on: ${{matrix.host}}
+        host: [ubuntu-latest, windows-latest, macos-latest]
+        target: 
+          - x86_64-linux-gnu
+          - aarch64-linux-gnu
+          - x86_64-windows-msvc
+        include:
+          - target: x86_64-linux-gnu
+            zig_target: x86_64-linux-gnu
+          - target: aarch64-linux-gnu
+            zig_target: aarch64-linux-musl
+          - target: x86_64-windows-msvc
+            zig_target: x86_64-windows-msvc
+
+    env:
+      ZIG_GLOBAL_CACHE_DIR: ${{ github.workspace }}/.zig-cache
+      ZIG_LOCAL_CACHE_DIR: ${{ github.workspace }}/.zig
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Install Zig
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Zig dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.ZIG_GLOBAL_CACHE_DIR }}
+            ${{ env.ZIG_LOCAL_CACHE_DIR }}
+          key: zig-${{ runner.os }}-${{ matrix.zig_target }}-${{ hashFiles('build.zig', 'build.zig.zon') }}
+          restore-keys: |
+            zig-${{ runner.os }}-${{ matrix.zig_target }}-
+
+      - name: Install Zig (Latest Stable)
         uses: mlugg/setup-zig@v1
         with:
-          version: master
-      - name: Build examples
-        run: zig build -Dtarget=${{matrix.target}} -Dskip=particle_life examples
+          version: 0.11.0
 
+      - name: Build with Cross-Compilation
+        shell: bash -leo pipefail {0}
+        run: |
+          zig build -Dtarget=${{ matrix.zig_target }} \
+                   -Dskip=particle_life \
+                   --summary all \
+                   --color on \
+                   --verbose \
+                   examples
+
+      - name: Upload Build Artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries-${{ matrix.host }}-${{ matrix.zig_target }}
+          path: zig-out/bin/**
+          retention-days: 3
