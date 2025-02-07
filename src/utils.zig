@@ -22,9 +22,6 @@ pub const asynctool = @import("utils/async.zig");
 /// Tile map support
 pub const tiled = @import("utils/tiled.zig");
 
-/// GIF support
-pub const gif = @import("utils/gif.zig");
-
 /// Generic ring data structure
 pub const ring = @import("utils/ring.zig");
 
