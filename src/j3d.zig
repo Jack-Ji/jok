@@ -343,7 +343,7 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         assert(self.trs_stack.items.len > 0);
-        self.trs = self.trs_stack.pop();
+        self.trs = self.trs_stack.pop().?;
     }
 
     pub fn setIdentity(self: *Batch) void {
