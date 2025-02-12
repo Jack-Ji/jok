@@ -154,17 +154,17 @@ pub const FontConfig = extern struct {
     font_data: ?*anyopaque,
     font_data_size: c_int,
     font_data_owned_by_atlas: bool,
+    merge_mode: bool,
+    pixel_snap_h: bool,
     font_no: c_int,
-    size_pixels: f32,
     oversample_h: c_int,
     oversample_v: c_int,
-    pixel_snap_h: bool,
+    size_pixels: f32,
     glyph_extra_spacing: [2]f32,
     glyph_offset: [2]f32,
     glyph_ranges: [*c]u16,
     glyph_min_advance_x: f32,
     glyph_max_advance_x: f32,
-    merge_mode: bool,
     font_builder_flags: FontBuilderFlags,
     rasterizer_multiply: f32,
     rasterizer_density: f32,
@@ -646,6 +646,11 @@ extern fn zguiShowMetricsWindow(popen: ?*bool) void;
 //
 // Windows
 //
+//--------------------------------------------------------------------------------------------------
+pub fn setNextWindowViewport(viewport_id: Ident) void {
+    zguiSetNextWindowViewport(viewport_id);
+}
+extern fn zguiSetNextWindowViewport(viewport_id: Ident) void;
 //--------------------------------------------------------------------------------------------------
 const SetNextWindowPos = struct {
     x: f32,
@@ -3616,6 +3621,11 @@ extern fn zguiSetTabItemClosed(tab_or_docked_window_label: [*:0]const u8) void;
 //
 //--------------------------------------------------------------------------------------------------
 pub const Viewport = *opaque {
+    pub fn getId(viewport: Viewport) Ident {
+        return zguiViewport_GetId(viewport);
+    }
+    extern fn zguiViewport_GetId(viewport: Viewport) Ident;
+
     pub fn getPos(viewport: Viewport) [2]f32 {
         var pos: [2]f32 = undefined;
         zguiViewport_GetPos(viewport, &pos);
@@ -3822,6 +3832,8 @@ pub const DrawCmd = extern struct {
     elem_count: c_uint,
     user_callback: ?DrawCallback,
     user_callback_data: ?*anyopaque,
+    user_callback_data_size: c_int,
+    user_callback_data_offset: c_int,
 };
 
 pub const DrawCallback = *const fn (*const anyopaque, *const DrawCmd) callconv(.C) void;
