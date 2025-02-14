@@ -96,8 +96,14 @@ pub fn build(b: *Build) void {
     }
 }
 
+pub const GameDependency = struct {
+    name: []const u8,
+    mod: *Build.Module,
+};
+
 pub const BuildOptions = struct {
     dep_name: ?[]const u8 = "jok",
+    game_deps: []const GameDependency = &.{},
     no_audio: bool = false,
     use_cp: bool = false,
     use_nfd: bool = false,
@@ -129,6 +135,9 @@ pub fn createDesktopApp(
             .{ .name = "jok", .module = jokmod },
         },
     });
+    for (opt.game_deps) |d| {
+        game.addImport(d.name, d.mod);
+    }
     root.addImport("jok", jokmod);
     root.addImport("game", game);
 
