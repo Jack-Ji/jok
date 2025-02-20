@@ -336,7 +336,7 @@ const CrossSDL = struct {
             linkWindows(sdk, exe, linkage, paths) catch |err| {
                 panic("Failed to link SDL2 for Windows: {s}", .{@errorName(err)});
             };
-        } else if (target.result.isDarwin()) {
+        } else if (target.result.os.tag.isDarwin()) {
             if (!host_system.os.tag.isDarwin()) {
                 panic("Cross-compilation not supported for SDL2 on macOS", .{});
             }
