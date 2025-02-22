@@ -109,7 +109,8 @@ const GlobalTileID = struct {
 };
 
 const Chunk = struct {
-    layer: *const TileLayer,
+    map: *const TiledMap,
+    layer_id: u32,
     x: i32,
     y: i32,
     width: u32,
@@ -215,9 +216,9 @@ const Chunk = struct {
 
     fn getSpriteIterator(c: Chunk) Iterator {
         return .{
-            .map = c.layer.map,
-            .layer = c.layer,
-            .order = c.layer.map.order,
+            .map = c.map,
+            .layer = &c.map.layers[c.layer_id].tile_layer,
+            .order = c.map.order,
             .gids = c.gids,
             .rect = .{
                 .x = @floatFromInt(c.x),
@@ -225,7 +226,7 @@ const Chunk = struct {
                 .width = @floatFromInt(c.width),
                 .height = @floatFromInt(c.height),
             },
-            .idx = switch (c.layer.map.order) {
+            .idx = switch (c.map.order) {
                 .right_down => c.width - 1,
                 .right_up => c.gids.len - 1,
                 .left_down => 0,
@@ -293,7 +294,8 @@ const TileLayer = struct {
 };
 
 const Object = struct {
-    layer: *const ObjectGroup,
+    map: *const TiledMap,
+    layer_id: u32,
     geom: union(enum) {
         rect: jok.Rectangle,
         circle: jok.Circle,
@@ -897,15 +899,12 @@ fn loadLayers(
     // Recursively get next layer, until there's no layer left.
     // Visibility isn't considered, all layers are considered necessary to rendering.
     while (try grouping.getNextLayer()) |e| {
-        var layer: *Layer = undefined;
+        var layer: Layer = undefined;
         var offset: jok.Point = grouping.offset;
         var parallax: jok.Point = grouping.parallax;
         var tint_color: jok.Color = grouping.tint_color;
         var visible = true;
         var props: PropertyTree = PropertyTree.init(arena_allocator);
-
-        try ls.append(undefined);
-        layer = &ls.items[ls.items.len - 1];
 
         // Load common stuff
         for (e.attributes) |a| {
@@ -944,7 +943,7 @@ fn loadLayers(
 
         // Load layer-specific stuff
         if (std.mem.eql(u8, e.tag, "layer")) {
-            layer.* = .{ .tile_layer = undefined };
+            layer = .{ .tile_layer = undefined };
             var size: jok.Size = undefined;
             for (e.attributes) |a| {
                 if (std.mem.eql(u8, a.name, "width")) {
@@ -974,7 +973,8 @@ fn loadLayers(
             if (data.children.len > 0) {
                 if (data.findChildByTag("chunk") == null) {
                     try chunks.append(.{
-                        .layer = &layer.tile_layer,
+                        .map = tmap,
+                        .layer_id = @intCast(ls.items.len),
                         .x = 0,
                         .y = 0,
                         .width = size.width,
@@ -993,7 +993,8 @@ fn loadLayers(
                     var it = data.findChildrenByTag("chunk");
                     while (it.next()) |ce| {
                         var c: Chunk = undefined;
-                        c.layer = &layer.tile_layer;
+                        c.map = tmap;
+                        c.layer_id = @intCast(ls.items.len);
                         for (ce.attributes) |a| {
                             if (std.mem.eql(u8, a.name, "x")) {
                                 c.x = try std.fmt.parseInt(i32, a.value, 10);
@@ -1034,13 +1035,14 @@ fn loadLayers(
                 .props = props,
             };
         } else if (std.mem.eql(u8, e.tag, "objectgroup")) {
-            layer.* = .{ .object_layer = undefined };
+            layer = .{ .object_layer = undefined };
 
             var objects = try std.ArrayList(Object).initCapacity(arena_allocator, 20);
             var it = e.findChildrenByTag("object");
             while (it.next()) |oe| {
                 var o: Object = .{
-                    .layer = &layer.object_layer,
+                    .map = tmap,
+                    .layer_id = @intCast(ls.items.len),
                     .geom = undefined,
                     .rotate_degree = 0,
                     .gid = null,
@@ -1145,9 +1147,11 @@ fn loadLayers(
             };
         } else if (std.mem.eql(u8, e.tag, "imagelayer")) {
             // TODO
-            layer.* = .{ .image_layer = undefined };
+            layer = .{ .image_layer = undefined };
             return error.UnsupportedLayerType;
         } else unreachable;
+
+        try ls.append(layer);
     }
     assert(grouping.size() == 0);
 
