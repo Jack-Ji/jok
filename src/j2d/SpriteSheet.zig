@@ -487,7 +487,7 @@ pub fn save(
 
 /// Load sprite-sheet from jpng
 pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Self {
-    const loaded = try jok.utils.gfx.jpng.load(ctx, path, .static);
+    const loaded = try jok.utils.gfx.jpng.loadTexture(ctx, path, .static, false);
     defer ctx.allocator().free(loaded.data);
     errdefer loaded.tex.destroy();
     if (loaded.data.len <= magic_sheet_header.len and

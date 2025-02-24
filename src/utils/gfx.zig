@@ -22,20 +22,22 @@ pub const FilePixels = struct {
     }
 };
 pub fn loadPixelsFromFile(ctx: jok.Context, path: [*:0]const u8, flip: bool) !FilePixels {
+    const allocator = ctx.allocator();
+
     var filedata: []const u8 = undefined;
     if (ctx.cfg().jok_enable_physfs) {
         const handle = try physfs.open(path, .read);
         defer handle.close();
 
-        filedata = try handle.readAllAlloc(ctx.allocator());
+        filedata = try handle.readAllAlloc(allocator);
     } else {
         filedata = try std.fs.cwd().readFileAlloc(
-            ctx.allocator(),
+            allocator,
             std.mem.sliceTo(path, 0),
             1 << 30,
         );
     }
-    defer ctx.allocator().free(filedata);
+    defer allocator.free(filedata);
 
     var width: c_int = undefined;
     var height: c_int = undefined;
@@ -57,10 +59,10 @@ pub fn loadPixelsFromFile(ctx: jok.Context, path: [*:0]const u8, flip: bool) !Fi
     defer stb.image.stbi_image_free(image_data);
 
     const size = @as(u32, @intCast(width * height * 4));
-    const pixels = try ctx.allocator().alloc(u8, size);
+    const pixels = try allocator.alloc(u8, size);
     @memcpy(pixels, image_data[0..size]);
     return .{
-        .allocator = ctx.allocator(),
+        .allocator = allocator,
         .pixels = pixels,
         .size = .{
             .width = @intCast(width),
@@ -284,11 +286,19 @@ pub const jpng = struct {
         }
     }
 
-    /// Read jpng with custom data
-    pub fn load(ctx: jok.Context, path: [*:0]const u8, access: jok.Texture.Access) !struct {
-        tex: jok.Texture,
-        data: []const u8,
-    } {
+    /// Read pixels and custom data (always RGBA format)
+    pub const PixelData = struct {
+        allocator: std.mem.Allocator,
+        pixels: []const u8, // RGBA data
+        size: jok.Size,
+        data: []const u8, // custom data
+
+        pub fn destroy(self: PixelData) void {
+            self.allocator.free(self.pixels);
+            self.allocator.free(self.data);
+        }
+    };
+    pub fn loadPixels(ctx: jok.Context, path: [*:0]const u8, flip: bool) !PixelData {
         const allocator = ctx.allocator();
 
         var data: []const u8 = undefined;
@@ -313,9 +323,31 @@ pub const jpng = struct {
         const custom_data_size = std.mem.readVarInt(u32, data[data.len - 12 .. data.len - 8], .big);
         assert(custom_data_size <= max_custom_size);
         const png_data = data[0 .. data.len - 16 - custom_data_size];
-        const tex = try ctx.renderer().createTextureFromFileData(png_data, access, false);
-        errdefer tex.destroy();
 
+        // Decode image data
+        var width: c_int = undefined;
+        var height: c_int = undefined;
+        var channels: c_int = undefined;
+        stb.image.stbi_set_flip_vertically_on_load(@intFromBool(flip));
+        const image_data = stb.image.stbi_load_from_memory(
+            png_data.ptr,
+            @intCast(png_data.len),
+            &width,
+            &height,
+            &channels,
+            4,
+        );
+        if (image_data == null) {
+            return error.LoadImageError;
+        }
+        assert(channels >= 3);
+        defer stb.image.stbi_image_free(image_data);
+        const size = @as(u32, @intCast(width * height * 4));
+        const pixels = try allocator.alloc(u8, size);
+        errdefer allocator.free(pixels);
+        @memcpy(pixels, image_data[0..size]);
+
+        // Check CRC of custom data
         const checksum = std.mem.readVarInt(u32, data[data.len - 16 .. data.len - 12], .big);
         const custom_data = data[data.len - 16 - custom_data_size .. data.len - 16];
         if (std.hash.Crc32.hash(custom_data) != checksum) {
@@ -328,17 +360,47 @@ pub const jpng = struct {
             defer write_stream.deinit();
             try std.compress.gzip.decompress(read_stream.reader(), write_stream.writer());
             return .{
-                .tex = tex,
+                .allocator = allocator,
+                .pixels = pixels,
+                .size = .{
+                    .width = @intCast(width),
+                    .height = @intCast(height),
+                },
                 .data = try write_stream.toOwnedSlice(),
             };
         } else {
             const cloned_custom = try allocator.alloc(u8, custom_data.len);
             @memcpy(cloned_custom, custom_data);
             return .{
-                .tex = tex,
+                .allocator = allocator,
+                .pixels = pixels,
+                .size = .{
+                    .width = @intCast(width),
+                    .height = @intCast(height),
+                },
                 .data = cloned_custom,
             };
         }
+    }
+
+    /// Load texture and custom data
+    pub const TextureData = struct {
+        tex: jok.Texture,
+        data: []const u8, // custom data, **SHOULD BE FREED BY CALLER**
+    };
+    pub fn loadTexture(ctx: jok.Context, path: [*:0]const u8, access: jok.Texture.Access, flip: bool) !TextureData {
+        const pixeldata = try loadPixels(ctx, path, flip);
+        errdefer pixeldata.destroy();
+        const tex = try ctx.renderer().createTexture(
+            pixeldata.size,
+            pixeldata.pixels,
+            .{ .access = access },
+        );
+        ctx.allocator().free(pixeldata.pixels);
+        return .{
+            .tex = tex,
+            .data = pixeldata.data,
+        };
     }
 
     inline fn writeData(ctx: jok.Context, writer: anytype, data: []const u8, opt: SaveOption) !void {
