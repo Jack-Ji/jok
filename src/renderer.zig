@@ -270,7 +270,7 @@ pub const Renderer = struct {
         var channels: c_int = undefined;
 
         stb.image.stbi_set_flip_vertically_on_load(@intFromBool(flip));
-        var image_data = stb.image.stbi_load_from_memory(
+        const image_data = stb.image.stbi_load_from_memory(
             file_data.ptr,
             @intCast(file_data.len),
             &width,

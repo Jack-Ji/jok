@@ -11,6 +11,64 @@ pub const Error = error{
     CustomDataTooBig,
 };
 
+/// Decode image file's pixels into memory (always RGBA format)
+pub const FilePixels = struct {
+    allocator: std.mem.Allocator,
+    pixels: []const u8, // RGBA data
+    size: jok.Size,
+
+    pub fn destroy(self: FilePixels) void {
+        self.allocator.free(self.pixels);
+    }
+};
+pub fn loadPixelsFromFile(ctx: jok.Context, path: [*:0]const u8, flip: bool) !FilePixels {
+    var filedata: []const u8 = undefined;
+    if (ctx.cfg().jok_enable_physfs) {
+        const handle = try physfs.open(path, .read);
+        defer handle.close();
+
+        filedata = try handle.readAllAlloc(ctx.allocator());
+    } else {
+        filedata = try std.fs.cwd().readFileAlloc(
+            ctx.allocator(),
+            std.mem.sliceTo(path, 0),
+            1 << 30,
+        );
+    }
+    defer ctx.allocator().free(filedata);
+
+    var width: c_int = undefined;
+    var height: c_int = undefined;
+    var channels: c_int = undefined;
+
+    stb.image.stbi_set_flip_vertically_on_load(@intFromBool(flip));
+    const image_data = stb.image.stbi_load_from_memory(
+        filedata.ptr,
+        @intCast(filedata.len),
+        &width,
+        &height,
+        &channels,
+        4,
+    );
+    if (image_data == null) {
+        return error.LoadImageError;
+    }
+    assert(channels >= 3);
+    defer stb.image.stbi_image_free(image_data);
+
+    const size = @as(u32, @intCast(width * height * 4));
+    const pixels = try ctx.allocator().alloc(u8, size);
+    @memcpy(pixels, image_data[0..size]);
+    return .{
+        .allocator = ctx.allocator(),
+        .pixels = pixels,
+        .size = .{
+            .width = @intCast(width),
+            .height = @intCast(height),
+        },
+    };
+}
+
 /// Save texture into encoded format (png/bmp/tga/jpg) on disk
 pub const EncodingOption = struct {
     format: enum { png, bmp, tga, jpg } = .png,
