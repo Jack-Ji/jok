@@ -328,6 +328,7 @@ pub const Color = extern struct {
         return sdl.SDL_MapRGBA(@ptrCast(pixel_format), c.r, c.g, c.b, c.a);
     }
 
+    /// Convert from HSL
     pub inline fn fromHSL(hsl: [4]f32) Color {
         const _rgba = zmath.hslToRgb(
             zmath.loadArr4(hsl),
@@ -339,6 +340,8 @@ pub const Color = extern struct {
             .a = @intFromFloat(_rgba[3] * 255),
         };
     }
+
+    /// Convert to HSL
     pub inline fn toHSL(c: Color) [4]f32 {
         const hsl = zmath.rgbToHsl(
             zmath.f32x4(
@@ -351,6 +354,24 @@ pub const Color = extern struct {
         return zmath.vecToArr4(hsl);
     }
 
+    /// Convert from ImGui's color type
+    pub inline fn fromInternalColor(c: u32) Color {
+        return .{
+            .r = @as(u8, c & 0xff),
+            .g = @as(u8, (c >> 8) & 0xff),
+            .b = @as(u8, (c >> 16) & 0xff),
+            .a = @as(u8, (c >> 24) & 0xff),
+        };
+    }
+
+    /// Convert to ImGui's color type
+    pub inline fn toInternalColor(c: Color) u32 {
+        return @as(u32, c.r) |
+            (@as(u32, c.g) << 8) |
+            (@as(u32, c.b) << 16) |
+            (@as(u32, c.a) << 24);
+    }
+
     pub inline fn mod(c0: Color, c1: Color) Color {
         return .{
             .r = @intFromFloat(@as(f32, @floatFromInt(c0.r)) * @as(f32, @floatFromInt(c1.r)) / 255.0),
@@ -358,14 +379,6 @@ pub const Color = extern struct {
             .b = @intFromFloat(@as(f32, @floatFromInt(c0.b)) * @as(f32, @floatFromInt(c1.b)) / 255.0),
             .a = @intFromFloat(@as(f32, @floatFromInt(c0.a)) * @as(f32, @floatFromInt(c1.a)) / 255.0),
         };
-    }
-
-    /// Used by ImGui's draw comand
-    pub inline fn toInternalColor(c: Color) u32 {
-        return @as(u32, c.r) |
-            (@as(u32, c.g) << 8) |
-            (@as(u32, c.b) << 16) |
-            (@as(u32, c.a) << 24);
     }
 
     /// parses a hex string color literal.
