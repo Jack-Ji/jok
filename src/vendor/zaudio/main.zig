@@ -1331,7 +1331,8 @@ pub const NodeGraph = opaque {
 
     pub const Config = extern struct {
         channels: u32,
-        node_cache_cap_in_frames: u16,
+        processing_size_in_frames: u32,
+        premix_stack_size_in_bytes: usize,
 
         pub fn init(channels: u32) Config {
             var config: Config = undefined;
@@ -1654,6 +1655,7 @@ pub const Device = opaque {
         pulse: extern struct {
             stream_name_playback: [*:0]const u8,
             stream_name_capture: [*:0]const u8,
+            channel_map: i32,
         },
         coreaudio: extern struct {
             allow_nominal_sample_rate_change: Bool32,
@@ -1670,6 +1672,7 @@ pub const Device = opaque {
             allowed_capture_policy: AaudioAllowedCapturePolicy,
             no_auto_start_after_reroute: Bool32,
             enable_compatibility_workarounds: Bool32,
+            allow_set_buffer_capacity: Bool32,
         },
 
         pub fn init(device_type: Type) Config {
@@ -1739,6 +1742,7 @@ pub const Engine = opaque {
         gain_smooth_time_in_frames: u32,
         gain_smooth_time_in_milliseconds: u32,
         default_volume_smooth_time_in_pcm_frames: u32,
+        premix_stack_size_in_bytes: u32,
         allocation_callbacks: AllocationCallbacks,
         no_auto_start: Bool32,
         no_device: Bool32,
@@ -2260,6 +2264,11 @@ pub const Sound = opaque {
     }
     extern fn ma_sound_seek_to_pcm_frame(sound: *Sound, frame_index: u64) Result;
 
+    pub fn seekToSecond(sound: *Sound, seek_point_in_second: f32) Error!void {
+        try maybeError(ma_sound_seek_to_second(sound, seek_point_in_second));
+    }
+    extern fn ma_sound_seek_to_second(sound: *Sound, seek_point_in_second: f64) Result;
+
     pub fn getDataFormat(
         sound: *const Sound,
         format: ?*Format,
@@ -2320,8 +2329,9 @@ pub const Sound = opaque {
         async_load: bool = false,
         wait_init: bool = false,
         unknown_length: bool = false,
+        looping: bool = false,
 
-        _padding0: u7 = 0,
+        _padding0: u6 = 0,
 
         // ma_sound specific flags
         no_default_attachment: bool = false,
@@ -2347,11 +2357,11 @@ pub const Sound = opaque {
         range_end_in_pcm_Frames: u64,
         loop_point_beg_in_pcm_frames: u64,
         loop_point_end_in_pcm_frames: u64,
-        is_looping: Bool32,
         end_callback: ?EndProc,
         user_data: ?*anyopaque,
         init_notifications: ResourceManager.PipelineNotifications,
         done_fence: ?*Fence,
+        is_looping: Bool32,
 
         pub fn init() Config {
             var config: Config = undefined;
