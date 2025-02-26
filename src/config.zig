@@ -8,10 +8,8 @@ pub const Config = struct {
     /// FPS limiting
     jok_fps_limit: FpsLimit = .{ .manual = 60 },
 
-    /// Memory facility
+    /// Custom memory allocator
     jok_mem_allocator: ?std.mem.Allocator = null,
-    jok_mem_leak_checks: bool = true,
-    jok_mem_detail_logs: bool = false,
 
     /// Assets accessing method
     jok_enable_physfs: bool = true,
@@ -97,8 +95,6 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_log_level", .desc = "logging level" },
         .{ .name = "jok_fps_limit", .desc = "fps limit setting" },
         .{ .name = "jok_mem_allocator", .desc = "default memory allocator" },
-        .{ .name = "jok_mem_leak_checks", .desc = "whether default memory allocator check memleak when exiting" },
-        .{ .name = "jok_mem_detail_logs", .desc = "whether default memory allocator print detailed memory alloc/free logs" },
         .{ .name = "jok_enable_physfs", .desc = "whether use physfs to access game assets" },
         .{ .name = "jok_canvas_size", .desc = "size of canvas" },
         .{ .name = "jok_enable_post_processing", .desc = "whether enable post-processing facility" },

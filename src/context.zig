@@ -165,14 +165,13 @@ pub const DisplayStats = struct {
 
 /// Context generator
 pub fn JokContext(comptime cfg: config.Config) type {
-    const AllocatorType = std.heap.GeneralPurposeAllocator(.{
-        .safety = cfg.jok_mem_leak_checks,
-        .verbose_log = cfg.jok_mem_detail_logs,
+    const DebugAllocatorType = std.heap.DebugAllocator(.{
+        .safety = true,
         .enable_memory_limit = true,
     });
 
     return struct {
-        var gpa: AllocatorType = .{};
+        var debug_allocator = DebugAllocatorType.init;
         const max_costs_num = 300;
         const CostDataType = jok.utils.ring.Ring(f32);
 
@@ -242,7 +241,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _recent_total_costs: CostDataType = undefined,
 
         pub fn create() !*@This() {
-            var _allocator = cfg.jok_mem_allocator orelse gpa.allocator();
+            var _allocator = cfg.jok_mem_allocator orelse
+                if (builtin.mode == .Debug) debug_allocator.allocator() else std.heap.smp_allocator;
             var self = try _allocator.create(@This());
             self.* = .{};
             self._allocator = _allocator;
@@ -318,10 +318,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Destory self
             self._allocator.destroy(self);
 
-            // Destory memory allocator
-            if (gpa.deinit() == .leak) {
-                @panic("jok: memory leaks happened!");
-            }
+            // Check memory leak if possible
+            if (builtin.mode == .Debug) _ = debug_allocator.deinit();
         }
 
         /// Ticking of application
@@ -904,7 +902,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     imgui.text("FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
                     imgui.text("CPU: {d:.1}ms", .{1000.0 / self._fps});
                 }
-                imgui.text("Memory: {:.3}", .{std.fmt.fmtIntSizeBin(gpa.total_requested_bytes)});
+                if (builtin.mode == .Debug) {
+                    imgui.text("Memory: {:.3}", .{std.fmt.fmtIntSizeBin(debug_allocator.total_requested_bytes)});
+                }
                 imgui.text("Draw Calls: {d}", .{self._drawcall_count});
                 imgui.text("Triangles: {d}", .{self._triangle_count});
 
