@@ -99,6 +99,13 @@ pub const Renderer = struct {
         sdl.SDL_RenderPresent(self.ptr);
     }
 
+    pub fn setVsync(self: Renderer, vsync: bool) !void {
+        if (sdl.SDL_RenderSetVSync(self.ptr, @intCast(@intFromBool(vsync))) != 0) {
+            log.err("set vsync failed: {s}", .{sdl.SDL_GetError()});
+            return sdl.Error.SdlError;
+        }
+    }
+
     pub fn getClipRegion(self: Renderer) ?jok.Region {
         var rect: sdl.SDL_Rect = undefined;
         sdl.SDL_RenderGetClipRect(self.ptr, &rect);

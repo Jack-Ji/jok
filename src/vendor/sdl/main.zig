@@ -1453,6 +1453,7 @@ pub extern fn SDL_RenderGetClipRect(renderer: ?*SDL_Renderer, rect: [*c]SDL_Rect
 pub extern fn SDL_RenderIsClipEnabled(renderer: ?*SDL_Renderer) SDL_bool;
 pub extern fn SDL_RenderSetScale(renderer: ?*SDL_Renderer, scaleX: f32, scaleY: f32) c_int;
 pub extern fn SDL_RenderGetScale(renderer: ?*SDL_Renderer, scaleX: [*c]f32, scaleY: [*c]f32) void;
+pub extern fn SDL_RenderSetVSync(renderer: ?*SDL_Renderer, vsync: c_int) c_int;
 pub extern fn SDL_SetRenderDrawColor(renderer: ?*SDL_Renderer, r: u8, g: u8, b: u8, a: u8) c_int;
 pub extern fn SDL_GetRenderDrawColor(renderer: ?*SDL_Renderer, r: [*c]u8, g: [*c]u8, b: [*c]u8, a: [*c]u8) c_int;
 pub extern fn SDL_SetRenderDrawBlendMode(renderer: ?*SDL_Renderer, blendMode: SDL_BlendMode) c_int;

@@ -14,6 +14,7 @@ const Camera = j3d.Camera;
 pub const jok_window_resizable = true;
 
 var batchpool: j3d.BatchPool(64, false) = undefined;
+var vsync: bool = false;
 var lighting: bool = true;
 var wireframe: bool = false;
 var shading_method: i32 = 0;
@@ -183,6 +184,9 @@ pub fn draw(ctx: jok.Context) !void {
         });
         _ = imgui.checkbox("lighting", .{ .v = &lighting });
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
+        if (imgui.checkbox("vsync", .{ .v = &vsync })) {
+            try ctx.renderer().setVsync(vsync);
+        }
     }
     imgui.end();
 
