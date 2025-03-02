@@ -241,8 +241,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _recent_total_costs: CostDataType = undefined,
 
         pub fn create() !*@This() {
-            var _allocator = cfg.jok_mem_allocator orelse
-                if (builtin.mode == .Debug) debug_allocator.allocator() else std.heap.smp_allocator;
+            var _allocator = if (builtin.mode == .Debug) debug_allocator.allocator() else std.heap.smp_allocator;
             var self = try _allocator.create(@This());
             self.* = .{};
             self._allocator = _allocator;

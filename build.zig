@@ -122,15 +122,11 @@ pub fn createDesktopApp(
     const jokmod = getJokModule(b, target, optimize, opt);
     const sdk = CrossSDL.init(b);
 
-    // Create root module
-    const builder = getJokBuilder(b, opt);
-    const root = b.createModule(.{
-        .root_source_file = builder.path("src/entrypoints/app.zig"),
+    // Create game module
+    const game = b.createModule(.{
+        .root_source_file = b.path(game_root),
         .target = target,
         .optimize = optimize,
-    });
-    const game = builder.createModule(.{
-        .root_source_file = b.path(game_root),
         .imports = &.{
             .{ .name = "jok", .module = jokmod },
         },
@@ -138,8 +134,18 @@ pub fn createDesktopApp(
     for (opt.game_deps) |d| {
         game.addImport(d.name, d.mod);
     }
-    root.addImport("jok", jokmod);
-    root.addImport("game", game);
+
+    // Create root module
+    const builder = getJokBuilder(b, opt);
+    const root = b.createModule(.{
+        .root_source_file = builder.path("src/entrypoints/app.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "jok", .module = jokmod },
+            .{ .name = "game", .module = game },
+        },
+    });
 
     // Create executable
     const exe = builder.addExecutable(.{
