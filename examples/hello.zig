@@ -311,36 +311,11 @@ pub fn draw(ctx: jok.Context) !void {
         }
     }
 
-    font.debugDraw(
-        ctx,
-        .{ .x = 0, .y = 0 },
-        "Press F1 to toggle fullscreen",
-        .{},
-    );
-    font.debugDraw(
-        ctx,
-        .{ .x = 0, .y = 17 * ctx.getDpiScale() },
-        "Press F2 to take screenshot",
-        .{},
-    );
-    font.debugDraw(
-        ctx,
-        .{ .x = 0, .y = 34 * ctx.getDpiScale() },
-        "Press F3 to toggle frame statistics",
-        .{},
-    );
-    font.debugDraw(
-        ctx,
-        .{ .x = 0, .y = 51 * ctx.getDpiScale() },
-        "Press F4 to center the window",
-        .{},
-    );
-    font.debugDraw(
-        ctx,
-        .{ .x = 0, .y = 68 * ctx.getDpiScale() },
-        "Press F5 to suppress rendering",
-        .{},
-    );
+    ctx.debugPrint("Press F1 to toggle fullscreen", .{});
+    ctx.debugPrint("Press F2 to take screenshot", .{ .pos = .{ .x = 0, .y = 17 } });
+    ctx.debugPrint("Press F3 to toggle frame statistics", .{ .pos = .{ .x = 0, .y = 34 } });
+    ctx.debugPrint("Press F4 to center the window", .{ .pos = .{ .x = 0, .y = 51 } });
+    ctx.debugPrint("Press F5 to suppress rendering", .{ .pos = .{ .x = 0, .y = 68 } });
 }
 
 pub fn quit(ctx: jok.Context) void {

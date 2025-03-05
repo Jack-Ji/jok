@@ -155,11 +155,9 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
 
-    jok.font.debugDraw(
-        ctx,
-        .{ .x = 300, .y = 0 },
+    ctx.debugPrint(
         "Press up/down/left/right to move character around",
-        .{},
+        .{ .pos = .{ .x = 300, .y = 0 } },
     );
 }
 

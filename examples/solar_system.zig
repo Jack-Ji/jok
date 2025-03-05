@@ -3,6 +3,7 @@ const jok = @import("jok");
 const font = jok.font;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
+const imgui = jok.imgui;
 const j3d = jok.j3d;
 const Camera = j3d.Camera;
 const Scene = j3d.Scene;
@@ -128,21 +129,20 @@ pub fn draw(ctx: jok.Context) !void {
     defer b.submit();
     try b.scene(scene, .{ .lighting = lighting_opt });
 
-    font.debugDraw(
-        ctx,
-        .{ .x = 20, .y = 10 },
+    ctx.debugPrint(
         "Press WSAD and up/down/left/right to move camera around the view",
-        .{},
+        .{ .pos = .{ .x = 20, .y = 10 } },
     );
-    font.debugDraw(
-        ctx,
-        .{ .x = 20, .y = 28 },
-        "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
-        .{
-            // zig fmt: off
+    ctx.debugPrint(
+        imgui.format(
+            "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
+            .{
+                // zig fmt: off
             camera.position[0],camera.position[1],camera.position[2],
             camera.dir[0],camera.dir[1],camera.dir[2],
         },
+        ),
+        .{.pos=.{ .x = 20, .y = 28 }},
     );
 }
 

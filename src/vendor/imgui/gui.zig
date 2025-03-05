@@ -31,14 +31,10 @@ pub fn init(allocator: std.mem.Allocator) void {
         zguiSetAllocatorFunctions(zguiMemAlloc, zguiMemFree);
 
         _ = zguiCreateContext(null);
-
-        temp_buffer = std.ArrayList(u8).init(allocator);
-        temp_buffer.?.resize(3 * 1024 + 1) catch unreachable;
     }
 }
 pub fn deinit() void {
     if (zguiGetCurrentContext() != null) {
-        temp_buffer.?.deinit();
         zguiDestroyContext(null);
 
         if (mem_allocations.?.count() > 0) {
@@ -59,17 +55,6 @@ pub fn deinit() void {
         mem_allocations.?.deinit();
         mem_allocations = null;
         mem_allocator = null;
-    }
-}
-pub fn initNoContext(allocator: std.mem.Allocator) void {
-    if (temp_buffer == null) {
-        temp_buffer = std.ArrayList(u8).init(allocator);
-        temp_buffer.?.resize(3 * 1024 + 1) catch unreachable;
-    }
-}
-pub fn deinitNoContext() void {
-    if (temp_buffer) |buf| {
-        buf.deinit();
     }
 }
 extern fn zguiCreateContext(shared_font_atlas: ?*const anyopaque) Context;
@@ -1778,10 +1763,10 @@ pub fn comboFromEnum(
 
     var item: i32 =
         switch (@typeInfo(EnumType)) {
-        .optional => if (current_item.*) |tag| field_name_to_index.get(@tagName(tag)) orelse -1 else -1,
-        .@"enum" => field_name_to_index.get(@tagName(current_item.*)) orelse -1,
-        else => unreachable,
-    };
+            .optional => if (current_item.*) |tag| field_name_to_index.get(@tagName(tag)) orelse -1 else -1,
+            .@"enum" => field_name_to_index.get(@tagName(current_item.*)) orelse -1,
+            else => unreachable,
+        };
 
     const result = combo(label, .{
         .items_separated_by_zeros = item_names,
@@ -3420,22 +3405,17 @@ pub fn isKeyDown(key: Key) bool {
 }
 
 extern fn zguiIsKeyDown(key: Key) bool;
-//--------------------------------------------------------------------------------------------------
-//
-// Helpers
-//
-//--------------------------------------------------------------------------------------------------
-var temp_buffer: ?std.ArrayList(u8) = null;
+var temp_buffer = std.ArrayList(u8).init(std.heap.c_allocator);
 
 pub fn format(comptime fmt: []const u8, args: anytype) []const u8 {
     const len = std.fmt.count(fmt, args);
-    if (len > temp_buffer.?.items.len) temp_buffer.?.resize(@intCast(len + 64)) catch unreachable;
-    return std.fmt.bufPrint(temp_buffer.?.items, fmt, args) catch unreachable;
+    if (len > temp_buffer.items.len) temp_buffer.resize(@intCast(len + 64)) catch unreachable;
+    return std.fmt.bufPrint(temp_buffer.items, fmt, args) catch unreachable;
 }
 pub fn formatZ(comptime fmt: []const u8, args: anytype) [:0]const u8 {
     const len = std.fmt.count(fmt ++ "\x00", args);
-    if (len > temp_buffer.?.items.len) temp_buffer.?.resize(@intCast(len + 64)) catch unreachable;
-    return std.fmt.bufPrintZ(temp_buffer.?.items, fmt, args) catch unreachable;
+    if (len > temp_buffer.items.len) temp_buffer.resize(@intCast(len + 64)) catch unreachable;
+    return std.fmt.bufPrintZ(temp_buffer.items, fmt, args) catch unreachable;
 }
 //--------------------------------------------------------------------------------------------------
 pub fn typeToDataTypeEnum(comptime T: type) DataType {

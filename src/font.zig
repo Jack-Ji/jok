@@ -1,8 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const unicode = std.unicode;
 const jok = @import("jok.zig");
-const imgui = jok.imgui;
 
 /// Wrapper of truetype font
 pub const Font = @import("font/Font.zig");
@@ -54,38 +52,5 @@ pub const DebugFont = struct {
         };
     }
 };
-
-/// Draw debug text using builtin font
-/// NOTE: This function render immediately, if you want to batch drawcalls or need more control,
-/// consider using j2d.text.
-pub fn debugDraw(ctx: jok.Context, pos: jok.Point, comptime fmt: []const u8, args: anytype) void {
-    const S = struct {
-        var vertices: ?std.ArrayList(jok.Vertex) = null;
-        var indices: std.ArrayList(u32) = undefined;
-    };
-    if (S.vertices) |*vs| {
-        vs.clearRetainingCapacity();
-        S.indices.clearRetainingCapacity();
-    } else {
-        S.vertices = std.ArrayList(jok.Vertex).init(DebugFont.arena.allocator());
-        S.indices = std.ArrayList(u32).init(DebugFont.arena.allocator());
-    }
-
-    const atlas = DebugFont.getAtlas(
-        ctx,
-        @intFromFloat(@as(f32, @floatFromInt(DebugFont.debug_Size)) * ctx.getDpiScale()),
-    ) catch unreachable;
-    const txt = imgui.format(fmt, args);
-    _ = atlas.appendDrawDataFromUTF8String(
-        txt,
-        pos,
-        .top,
-        .aligned,
-        jok.Color.white,
-        &S.vertices.?,
-        &S.indices,
-    ) catch unreachable;
-    ctx.renderer().drawTriangles(atlas.tex, S.vertices.?.items, S.indices.items) catch unreachable;
-}
 
 test "font" {}

@@ -5,6 +5,7 @@ const physfs = jok.physfs;
 const font = jok.font;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
+const imgui = jok.imgui;
 const j2d = jok.j2d;
 const j3d = jok.j3d;
 const Camera = j3d.Camera;
@@ -186,27 +187,24 @@ pub fn draw(ctx: jok.Context) !void {
     );
 
     const ogre_pos = camera.calcScreenPosition(ctx, sprites[13].transform, null);
-    font.debugDraw(
-        ctx,
-        .{ .x = ogre_pos.x + 50, .y = ogre_pos.y },
+    ctx.debugPrint(
         "I have fixed size!",
-        .{},
+        .{ .pos = .{ .x = ogre_pos.x + 50, .y = ogre_pos.y } },
     );
-    font.debugDraw(
-        ctx,
-        .{ .x = 20, .y = 10 },
+    ctx.debugPrint(
         "Press WSAD and up/down/left/right to move camera around the view",
-        .{},
+        .{ .pos = .{ .x = 20, .y = 10 } },
     );
-    font.debugDraw(
-        ctx,
-        .{ .x = 20, .y = 28 },
-        "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
-        .{
-            // zig fmt: off
+    ctx.debugPrint(
+        imgui.format(
+            "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
+            .{
+                // zig fmt: off
             camera.position[0],camera.position[1],camera.position[2],
             camera.dir[0],camera.dir[1],camera.dir[2],
         },
+        ),
+        .{.pos=.{ .x = 20, .y = 28 }},
     );
 }
 

@@ -85,28 +85,77 @@ pub fn build(b: *Build) void {
         run_cmd.step.dependOn(&install_cmd.step);
         run_cmd.step.dependOn(&assets_install.step);
         run_cmd.cwd = b.path("zig-out/bin");
-        const run_step = b.step(
-            demo.name,
-            "compile & run example " ++ demo.name,
-        );
-        run_step.dependOn(&run_cmd.step);
+        if (target.query.isNative())
+            b.step(
+                demo.name,
+                "compile & run example " ++ demo.name,
+            ).dependOn(&run_cmd.step)
+        else
+            b.step(
+                demo.name,
+                "compile example " ++ demo.name,
+            ).dependOn(&install_cmd.step);
         if (skiped_examples.get(demo.name) == null) {
             build_examples.dependOn(&install_cmd.step);
         }
     }
+
+    // Hot-reload example
+    const exe = createDesktopApp(
+        b,
+        "hotreload",
+        "examples/hotreload.zig",
+        target,
+        optimize,
+        .{ .dep_name = null, .use_plugins = true },
+    );
+    const plugin_hot = createPlugin(
+        b,
+        "plugin_hot",
+        "examples/plugin_hot.zig",
+        target,
+        optimize,
+        .{ .dep_name = null, .use_plugins = true },
+    );
+    const plugin = createPlugin(
+        b,
+        "plugin",
+        "examples/plugin.zig",
+        target,
+        optimize,
+        .{ .dep_name = null, .use_plugins = true },
+    );
+    const install_plugin_hot = b.addInstallArtifact(
+        plugin_hot,
+        .{ .dest_dir = .{ .override = .{ .bin = {} } } },
+    );
+    const install_plugin = b.addInstallArtifact(
+        plugin,
+        .{ .dest_dir = .{ .override = .{ .bin = {} } } },
+    );
+    const install_exe = b.addInstallArtifact(exe, .{});
+    install_exe.step.dependOn(&install_plugin_hot.step);
+    install_exe.step.dependOn(&install_plugin.step);
+    const run_cmd = b.addRunArtifact(exe);
+    run_cmd.step.dependOn(&install_exe.step);
+    run_cmd.cwd = b.path("zig-out/bin");
+    b.step("hotreload", "compile & run example hotreload").dependOn(&run_cmd.step);
+    b.step("plugin_hot", "recompile plugin_hot").dependOn(&install_plugin_hot.step);
+    b.step("plugin", "recompile plugin").dependOn(&install_plugin.step);
 }
 
-pub const GameDependency = struct {
+pub const Dependency = struct {
     name: []const u8,
     mod: *Build.Module,
 };
 
 pub const BuildOptions = struct {
     dep_name: ?[]const u8 = "jok",
-    game_deps: []const GameDependency = &.{},
+    additional_deps: []const Dependency = &.{},
     no_audio: bool = false,
     use_cp: bool = false,
     use_nfd: bool = false,
+    use_plugins: bool = false,
 };
 
 /// Create desktop application (windows/linux/macos)
@@ -119,8 +168,8 @@ pub fn createDesktopApp(
     opt: BuildOptions,
 ) *Build.Step.Compile {
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
-    const jokmod = getJokModule(b, target, optimize, opt);
     const sdk = CrossSDL.init(b);
+    const jok = getJokLibrary(b, target, optimize, opt);
 
     // Create game module
     const game = b.createModule(.{
@@ -128,10 +177,10 @@ pub fn createDesktopApp(
         .target = target,
         .optimize = optimize,
         .imports = &.{
-            .{ .name = "jok", .module = jokmod },
+            .{ .name = "jok", .module = jok.module },
         },
     });
-    for (opt.game_deps) |d| {
+    for (opt.additional_deps) |d| {
         game.addImport(d.name, d.mod);
     }
 
@@ -142,7 +191,7 @@ pub fn createDesktopApp(
         .target = target,
         .optimize = optimize,
         .imports = &.{
-            .{ .name = "jok", .module = jokmod },
+            .{ .name = "jok", .module = jok.module },
             .{ .name = "game", .module = game },
         },
     });
@@ -153,23 +202,59 @@ pub fn createDesktopApp(
         .root_module = root,
     });
     sdk.link(exe, .dynamic);
+    exe.linkLibrary(jok.artifact);
 
     return exe;
 }
 
-// Create jok Module
-fn getJokModule(
+/// Create plugin
+pub fn createPlugin(
     b: *Build,
+    name: []const u8,
+    plugin_root: []const u8,
     target: ResolvedTarget,
     optimize: std.builtin.Mode,
     opt: BuildOptions,
-) *Build.Module {
+) *Build.Step.Compile {
+    assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
+    assert(opt.use_plugins);
+    const jok = getJokLibrary(b, target, optimize, opt);
+
+    // Create plugin module
+    const plugin = b.createModule(.{
+        .root_source_file = b.path(plugin_root),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "jok", .module = jok.module },
+        },
+    });
+    for (opt.additional_deps) |d| {
+        plugin.addImport(d.name, d.mod);
+    }
+
+    // Create shared library
+    const lib = b.addSharedLibrary(.{
+        .name = name,
+        .root_module = plugin,
+    });
+    lib.linkLibrary(jok.artifact);
+
+    return lib;
+}
+
+// Create jok library
+fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Mode, opt: BuildOptions) struct {
+    module: *Build.Module,
+    artifact: *Build.Step.Compile,
+} {
     const builder = getJokBuilder(b, opt);
     const bos = builder.addOptions();
     bos.addOption(bool, "no_audio", opt.no_audio);
     bos.addOption(bool, "use_cp", opt.use_cp);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
-    const mod = builder.createModule(.{
+    bos.addOption(bool, "use_plugins", opt.use_plugins);
+    const jokmod = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
         .target = target,
         .optimize = optimize,
@@ -178,20 +263,29 @@ fn getJokModule(
         },
     });
 
-    @import("src/vendor/system_sdk/build.zig").inject(mod, builder.path("src/vendor/system_sdk"));
-    @import("src/vendor/imgui/build.zig").inject(mod, builder.path("src/vendor/imgui"));
-    @import("src/vendor/physfs/build.zig").inject(mod, builder.path("src/vendor/physfs"));
-    @import("src/vendor/sdl/build.zig").inject(mod, builder.path("src/vendor/sdl"));
-    @import("src/vendor/stb/build.zig").inject(mod, builder.path("src/vendor/stb"));
-    @import("src/vendor/svg/build.zig").inject(mod, builder.path("src/vendor/svg"));
-    @import("src/vendor/zmath/build.zig").inject(mod, builder.path("src/vendor/zmath"));
-    @import("src/vendor/zmesh/build.zig").inject(mod, builder.path("src/vendor/zmesh"));
-    @import("src/vendor/znoise/build.zig").inject(mod, builder.path("src/vendor/znoise"));
-    if (!opt.no_audio) @import("src/vendor/zaudio/build.zig").inject(mod, builder.path("src/vendor/zaudio"));
-    if (opt.use_cp) @import("src/vendor/chipmunk/build.zig").inject(mod, builder.path("src/vendor/chipmunk"));
-    if (opt.use_nfd) @import("src/vendor/nfd/build.zig").inject(mod, builder.path("src/vendor/nfd"));
+    const libmod = builder.createModule(.{
+        .target = target,
+        .optimize = optimize,
+    });
+    @import("src/vendor/system_sdk/build.zig").inject(libmod, builder.path("src/vendor/system_sdk"));
+    @import("src/vendor/imgui/build.zig").inject(libmod, builder.path("src/vendor/imgui"));
+    @import("src/vendor/physfs/build.zig").inject(libmod, builder.path("src/vendor/physfs"));
+    @import("src/vendor/sdl/build.zig").inject(libmod, builder.path("src/vendor/sdl"));
+    @import("src/vendor/stb/build.zig").inject(libmod, builder.path("src/vendor/stb"));
+    @import("src/vendor/svg/build.zig").inject(libmod, builder.path("src/vendor/svg"));
+    @import("src/vendor/zmath/build.zig").inject(libmod, builder.path("src/vendor/zmath"));
+    @import("src/vendor/zmesh/build.zig").inject(libmod, builder.path("src/vendor/zmesh"));
+    @import("src/vendor/znoise/build.zig").inject(libmod, builder.path("src/vendor/znoise"));
+    if (!opt.no_audio) @import("src/vendor/zaudio/build.zig").inject(libmod, builder.path("src/vendor/zaudio"));
+    if (opt.use_cp) @import("src/vendor/chipmunk/build.zig").inject(libmod, builder.path("src/vendor/chipmunk"));
+    if (opt.use_nfd) @import("src/vendor/nfd/build.zig").inject(libmod, builder.path("src/vendor/nfd"));
+    const lib = if (opt.use_plugins)
+        builder.addSharedLibrary(.{ .name = "jok", .root_module = libmod })
+    else
+        builder.addStaticLibrary(.{ .name = "jok", .root_module = libmod });
+    CrossSDL.init(b).link(lib, .dynamic);
 
-    return mod;
+    return .{ .module = jokmod, .artifact = lib };
 }
 
 // Get jok's own builder from project's
@@ -219,7 +313,7 @@ const CrossSDL = struct {
 
     /// Creates a instance of the Sdk and initializes internal steps.
     pub fn init(b: *Build) *Sdk {
-        const sdk = b.allocator.create(Sdk) catch @panic("out of memory");
+        const sdk = b.allocator.create(Sdk) catch @panic("Out of memory");
 
         const env_sdl_path: ?[]u8 = std.process.getEnvVarOwned(b.allocator, sdl2_config_env) catch null;
         const sdl_config_path = env_sdl_path orelse std.fs.path.join(
@@ -464,9 +558,9 @@ const CrossSDL = struct {
             const node = entry.value_ptr.*.object;
 
             return Paths{
-                .include = sdk.builder.allocator.dupe(u8, node.get("include").?.string) catch @panic("out of memory"),
-                .libs = sdk.builder.allocator.dupe(u8, node.get("libs").?.string) catch @panic("out of memory"),
-                .bin = sdk.builder.allocator.dupe(u8, node.get("bin").?.string) catch @panic("out of memory"),
+                .include = sdk.builder.allocator.dupe(u8, node.get("include").?.string) catch @panic("OOM"),
+                .libs = sdk.builder.allocator.dupe(u8, node.get("libs").?.string) catch @panic("OOM"),
+                .bin = sdk.builder.allocator.dupe(u8, node.get("bin").?.string) catch @panic("OOM"),
             };
         }
 
@@ -485,7 +579,7 @@ const CrossSDL = struct {
         assembly_source: GeneratedFile,
 
         pub fn create(sdk: *Sdk) *PrepareStubSourceStep {
-            const psss = sdk.builder.allocator.create(Self) catch @panic("out of memory");
+            const psss = sdk.builder.allocator.create(Self) catch @panic("OOM");
 
             psss.* = .{
                 .step = Step.init(

@@ -36,6 +36,7 @@ A minimal 2d/3d game framework for zig.
 * SVG loading/rendering
 * Sound/Music playing/mixing
 * Tiled editor support (tmx/tsx loading/rendering)
+* Plugin System (register/unregister/hot-reloading)
 * Misc little utils, such as easing/timer/signal system
 
 ## Supported platforms

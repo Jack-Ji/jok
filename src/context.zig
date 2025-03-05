@@ -6,6 +6,7 @@ const w32 = @import("w32.zig");
 const config = @import("config.zig");
 const dcstats = @import("renderer.zig").dcstats;
 const pp = @import("post_processing.zig");
+const PluginSystem = @import("PluginSystem.zig");
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
 const io = jok.io;
@@ -42,6 +43,10 @@ pub const Context = struct {
         supressDraw: *const fn (ctx: *anyopaque) void,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
+        debugPrint: *const fn (ctx: *anyopaque, text: []const u8, opt: DebugPrint) void,
+        registerPlugin: *const fn (ctx: *anyopaque, name: []const u8, path: []const u8, hotreload: bool) anyerror!void,
+        unregisterPlugin: *const fn (ctx: *anyopaque, name: []const u8) anyerror!void,
+        forceReloadPlugin: *const fn (ctx: *anyopaque, name: []const u8) anyerror!void,
     },
 
     /// Get setup configuration
@@ -154,6 +159,26 @@ pub const Context = struct {
     pub fn displayStats(self: Context, opt: DisplayStats) void {
         return self.vtable.displayStats(self.ctx, opt);
     }
+
+    /// Display text
+    pub fn debugPrint(self: Context, text: []const u8, opt: DebugPrint) void {
+        return self.vtable.debugPrint(self.ctx, text, opt);
+    }
+
+    /// Register new plugin
+    pub fn registerPlugin(self: Context, name: []const u8, path: []const u8, hotreload: bool) !void {
+        try self.vtable.registerPlugin(self.ctx, name, path, hotreload);
+    }
+
+    /// Unregister plugin
+    pub fn unregisterPlugin(self: Context, name: []const u8) !void {
+        try self.vtable.unregisterPlugin(self.ctx, name);
+    }
+
+    ///  Force reload plugin
+    pub fn forceReloadPlugin(self: Context, name: []const u8) !void {
+        try self.vtable.forceReloadPlugin(self.ctx, name);
+    }
 };
 
 pub const DisplayStats = struct {
@@ -161,6 +186,11 @@ pub const DisplayStats = struct {
     collapsible: bool = false,
     width: f32 = 250,
     duration: u32 = 15,
+};
+
+pub const DebugPrint = struct {
+    pos: jok.Point = .{ .x = 0, .y = 0 },
+    color: jok.Color = jok.Color.white,
 };
 
 /// Context generator
@@ -211,6 +241,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         // Audio Engine
         _audio_engine: *zaudio.Engine = undefined,
+
+        // Debug printing
+        _debug_font_size: u32 = undefined,
+        _debug_print_vertices: std.ArrayList(jok.Vertex) = undefined,
+        _debug_print_indices: std.ArrayList(u32) = undefined,
+
+        // Plugin System
+        _plugin_system: *PluginSystem = undefined,
 
         // Elapsed time of game
         _seconds: f32 = 0,
@@ -270,12 +308,17 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._audio_engine = try zaudio.Engine.create(audio_config);
             }
 
+            // Init plugin system
+            if (bos.use_plugins) {
+                self._plugin_system = try PluginSystem.create(self._allocator);
+            }
+
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
-            _ = try font.DebugFont.getAtlas(
-                self._ctx,
-                @intFromFloat(@as(f32, @floatFromInt(cfg.jok_prebuild_atlas)) * getDpiScale(self)),
-            );
+            self._debug_font_size = @intFromFloat(@as(f32, @floatFromInt(cfg.jok_prebuild_atlas)) * getDpiScale(self));
+            self._debug_print_vertices = std.ArrayList(jok.Vertex).init(self._allocator);
+            self._debug_print_indices = std.ArrayList(u32).init(self._allocator);
+            _ = try font.DebugFont.getAtlas(self._ctx, self._debug_font_size);
 
             // Misc.
             self._pc_freq = sdl.SDL_GetPerformanceFrequency();
@@ -294,7 +337,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._recent_total_costs.deinit(self._allocator);
 
             // Destroy builtin font data
+            self._debug_print_vertices.deinit();
+            self._debug_print_indices.deinit();
             font.DebugFont.deinit();
+
+            // Destroy plugin system
+            if (bos.use_plugins) {
+                self._plugin_system.destroy(self._ctx);
+            }
 
             // Destroy audio engine
             if (!bos.no_audio) {
@@ -435,6 +485,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         return;
                     }
                 };
+                if (bos.use_plugins) {
+                    self._plugin_system.draw(self._ctx);
+                }
             }
 
             self._updateFrameStats();
@@ -502,6 +555,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                             return;
                         }
                     };
+                    if (bos.use_plugins) {
+                        self._plugin_system.event(self._ctx, we);
+                    }
                 }
             }
 
@@ -513,6 +569,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     return;
                 }
             };
+            if (bos.use_plugins) {
+                self._plugin_system.update(self._ctx);
+            }
         }
 
         /// Update frame stats once per second
@@ -687,6 +746,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .supressDraw = supressDraw,
                     .isRunningSlow = isRunningSlow,
                     .displayStats = displayStats,
+                    .debugPrint = debugPrint,
+                    .registerPlugin = registerPlugin,
+                    .unregisterPlugin = unregisterPlugin,
+                    .forceReloadPlugin = forceReloadPlugin,
                 },
             };
         }
@@ -980,6 +1043,60 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 }
             }
             imgui.end();
+        }
+
+        /// Display text
+        pub fn debugPrint(ptr: *anyopaque, text: []const u8, opt: DebugPrint) void {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            const atlas = font.DebugFont.getAtlas(self._ctx, self._debug_font_size) catch unreachable;
+            self._debug_print_vertices.clearRetainingCapacity();
+            self._debug_print_indices.clearRetainingCapacity();
+            _ = atlas.appendDrawDataFromUTF8String(
+                text,
+                opt.pos,
+                .top,
+                .aligned,
+                opt.color,
+                &self._debug_print_vertices,
+                &self._debug_print_indices,
+            ) catch unreachable;
+            self._renderer.drawTriangles(
+                atlas.tex,
+                self._debug_print_vertices.items,
+                self._debug_print_indices.items,
+            ) catch unreachable;
+        }
+
+        /// Register new plugin
+        pub fn registerPlugin(ptr: *anyopaque, name: []const u8, path: []const u8, hotreload: bool) !void {
+            if (!bos.use_plugins) {
+                @panic("plugin system isn't enabled!");
+            }
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            try self._plugin_system.register(
+                self.context(),
+                name,
+                path,
+                hotreload,
+            );
+        }
+
+        /// Unregister plugin
+        pub fn unregisterPlugin(ptr: *anyopaque, name: []const u8) !void {
+            if (!bos.use_plugins) {
+                @panic("plugin system isn't enabled!");
+            }
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            try self._plugin_system.unregister(self.context(), name);
+        }
+
+        ///  Force reload plugin
+        pub fn forceReloadPlugin(ptr: *anyopaque, name: []const u8) !void {
+            if (!bos.use_plugins) {
+                @panic("plugin system isn't enabled!");
+            }
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            try self._plugin_system.forceReload(name);
         }
     };
 }
