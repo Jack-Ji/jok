@@ -434,7 +434,7 @@ pub const TiledMap = struct {
     tile_size: jok.Size,
     infinite: bool,
     parallax_origin: jok.Point,
-    bgcolor: jok.Color = jok.Color.none,
+    bgcolor: jok.Color = .none,
     tilesets: []Tileset,
     layers: []Layer,
     props: PropertyTree,
@@ -480,7 +480,7 @@ pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !*TiledMap {
         .tile_size = undefined,
         .infinite = false,
         .parallax_origin = .{ .x = 0, .y = 0 },
-        .bgcolor = jok.Color.none,
+        .bgcolor = .none,
         .tilesets = &.{},
         .layers = &.{},
         .props = undefined,
@@ -785,7 +785,7 @@ fn loadLayers(
             it: xml.Element.ChildElementIterator,
             offset: jok.Point = .{ .x = 0, .y = 0 },
             parallax: jok.Point = .{ .x = 1, .y = 1 },
-            tint_color: jok.Color = jok.Color.white,
+            tint_color: jok.Color = .white,
         };
         groups: std.ArrayList(Group),
         offset: jok.Point,
@@ -797,7 +797,7 @@ fn loadLayers(
                 .groups = std.ArrayList(Group).init(allocator),
                 .offset = .{ .x = 0, .y = 0 },
                 .parallax = .{ .x = 1, .y = 1 },
-                .tint_color = jok.Color.white,
+                .tint_color = .white,
             };
         }
 
@@ -808,7 +808,7 @@ fn loadLayers(
         inline fn onResize(self: *Self) void {
             self.offset = .{ .x = 0, .y = 0 };
             self.parallax = .{ .x = 1, .y = 1 };
-            self.tint_color = jok.Color.white;
+            self.tint_color = .white;
             for (self.groups.items) |g| {
                 self.offset = self.offset.add(g.offset);
                 self.parallax = self.parallax.mul(g.parallax);
@@ -840,7 +840,7 @@ fn loadLayers(
                         .it = e.elements(),
                         .offset = .{ .x = 0, .y = 0 },
                         .parallax = .{ .x = 1, .y = 1 },
-                        .tint_color = jok.Color.white,
+                        .tint_color = .white,
                     };
                     for (e.attributes) |a| {
                         if (std.mem.eql(u8, a.name, "offsetx")) {
@@ -891,7 +891,7 @@ fn loadLayers(
         .it = map.elements(),
         .offset = .{ .x = 0, .y = 0 },
         .parallax = .{ .x = 1, .y = 1 },
-        .tint_color = jok.Color.white,
+        .tint_color = .white,
     });
 
     var ls = std.ArrayList(Layer).init(arena_allocator);

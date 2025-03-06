@@ -39,7 +39,7 @@ pub const RenderMeshOption = struct {
     front_face: FrontFace = .cw,
 
     /// Uniform material color
-    color: jok.Color = jok.Color.white,
+    color: jok.Color = .white,
 
     /// Shading style
     shading_method: ShadingMethod = .gouraud,
@@ -59,7 +59,7 @@ pub const RenderSpriteOption = struct {
     texture: ?jok.Texture = null,
 
     /// Tint color
-    tint_color: jok.Color = jok.Color.white,
+    tint_color: jok.Color = .white,
 
     /// Shading style
     shading_method: ShadingMethod = .gouraud,

@@ -21,7 +21,7 @@ pub const Vector = @import("j3d/Vector.zig");
 
 pub const RenderOption = struct {
     cull_faces: bool = true,
-    color: jok.Color = jok.Color.white,
+    color: jok.Color = .white,
     shading_method: ShadingMethod = .gouraud,
     texture: ?jok.Texture = null,
     lighting: ?LightingOption = null,
@@ -538,7 +538,7 @@ pub const Batch = struct {
     }
 
     pub const LineOption = struct {
-        color: jok.Color = jok.Color.white,
+        color: jok.Color = .white,
         thickness: f32 = 0.1,
         stacks: u32 = 10,
     };

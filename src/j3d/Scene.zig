@@ -20,7 +20,7 @@ pub const MeshObj = struct {
     transform: zmath.Mat,
     mesh: *Mesh,
     cull_faces: bool = true,
-    color: jok.Color = jok.Color.white,
+    color: jok.Color = .white,
     texture: ?jok.Texture = null,
     disable_lighting: bool = false,
 };
@@ -31,7 +31,7 @@ pub const SpriteObj = struct {
     size: jok.Point,
     uv: [2]jok.Point,
     texture: ?jok.Texture = null,
-    tint_color: jok.Color = jok.Color.white,
+    tint_color: jok.Color = .white,
     scale: jok.Point = .{ .x = 1.0, .y = 1.0 },
     rotate_degree: f32 = 0,
     anchor_point: jok.Point = .{ .x = 0, .y = 0 },

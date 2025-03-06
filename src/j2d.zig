@@ -259,7 +259,7 @@ pub const Batch = struct {
         size: ?jok.Size = null,
         uv0: jok.Point = .{ .x = 0, .y = 0 },
         uv1: jok.Point = .{ .x = 1, .y = 1 },
-        tint_color: jok.Color = jok.Color.white,
+        tint_color: jok.Color = .white,
         scale: jok.Point = .{ .x = 1, .y = 1 },
         rotate_degree: f32 = 0,
         anchor_point: jok.Point = .{ .x = 0, .y = 0 },
@@ -302,7 +302,7 @@ pub const Batch = struct {
         size: ?jok.Size = null,
         uv0: jok.Point = .{ .x = 0, .y = 0 },
         uv1: jok.Point = .{ .x = 1, .y = 1 },
-        tint_color: jok.Color = jok.Color.white,
+        tint_color: jok.Color = .white,
         scale: jok.Point = .{ .x = 1, .y = 1 },
         flip_h: bool = false,
         flip_v: bool = false,
@@ -361,7 +361,7 @@ pub const Batch = struct {
 
     pub const SpriteOption = struct {
         pos: jok.Point,
-        tint_color: jok.Color = jok.Color.white,
+        tint_color: jok.Color = .white,
         scale: jok.Point = .{ .x = 1, .y = 1 },
         rotate_degree: f32 = 0,
         anchor_point: jok.Point = .{ .x = 0, .y = 0 },
@@ -390,7 +390,7 @@ pub const Batch = struct {
         pos: jok.Point,
         ignore_unexist: bool = true,
         ypos_type: jok.font.Atlas.YPosType = .top,
-        tint_color: jok.Color = jok.Color.white,
+        tint_color: jok.Color = .white,
         scale: jok.Point = .{ .x = 1, .y = 1 },
         rotate_degree: f32 = 0,
         anchor_point: jok.Point = .{ .x = 0, .y = 0 },
@@ -419,7 +419,7 @@ pub const Batch = struct {
             const size = try unicode.utf8ByteSequenceLength(txt[i]);
             const u8letter = txt[i .. i + size];
             const cp = @as(u32, @intCast(try unicode.utf8Decode(u8letter)));
-            if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, jok.Color.white, cp)) |cs| {
+            if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, .white, cp)) |cs| {
                 const v = zmath.mul(
                     zmath.f32x4(
                         cs.vs[0].pos.x,
@@ -1258,7 +1258,7 @@ pub const Path = struct {
 
     /// End definition of path
     pub const PathEnd = struct {
-        color: jok.Color = jok.Color.white,
+        color: jok.Color = .white,
         thickness: f32 = 1.0,
         closed: bool = false,
     };

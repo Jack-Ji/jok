@@ -285,8 +285,8 @@ pub const Particle = struct {
 
     /// Color changing
     color: jok.Color = undefined,
-    color_initial: jok.Color = jok.Color.white,
-    color_final: jok.Color = jok.Color.white,
+    color_initial: jok.Color = .white,
+    color_final: jok.Color = .white,
     color_fade_age: f32 = 0,
 
     fn updatePos(self: *Particle, delta_time: f32) void {

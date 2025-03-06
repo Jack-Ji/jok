@@ -21,7 +21,7 @@ pub const Error = error{
 
 pub const RenderOption = struct {
     texture: ?jok.Texture = null,
-    color: jok.Color = jok.Color.white,
+    color: jok.Color = .white,
     shading_method: ShadingMethod = .gouraud,
     cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,

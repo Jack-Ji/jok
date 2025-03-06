@@ -49,7 +49,7 @@ pub const RenderOption = struct {
     pos: jok.Point,
 
     /// Tint color
-    tint_color: jok.Color = jok.Color.white,
+    tint_color: jok.Color = .white,
 
     /// Scale of width/height
     scale: jok.Point = .{ .x = 1, .y = 1 },

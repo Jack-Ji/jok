@@ -63,7 +63,7 @@ pub const PostProcessingEffect = struct {
                 .x = canvas_area.x + pos_unit_w * @as(f32, @floatFromInt(col)),
                 .y = canvas_area.y + pos_unit_h * @as(f32, @floatFromInt(row)),
             };
-            self.vs[i].color = jok.Color.white;
+            self.vs[i].color = .white;
             self.vs[i].texcoord = .{
                 .x = texcoord_unit_w * @as(f32, @floatFromInt(col)),
                 .y = texcoord_unit_h * @as(f32, @floatFromInt(row)),
@@ -72,7 +72,7 @@ pub const PostProcessingEffect = struct {
                 .x = canvas_area.x + pos_unit_w * @as(f32, @floatFromInt(col + 1)),
                 .y = canvas_area.y + pos_unit_h * @as(f32, @floatFromInt(row)),
             };
-            self.vs[i + 1].color = jok.Color.white;
+            self.vs[i + 1].color = .white;
             self.vs[i + 1].texcoord = .{
                 .x = texcoord_unit_w * @as(f32, @floatFromInt(col + 1)),
                 .y = texcoord_unit_h * @as(f32, @floatFromInt(row)),
@@ -81,7 +81,7 @@ pub const PostProcessingEffect = struct {
                 .x = canvas_area.x + pos_unit_w * @as(f32, @floatFromInt(col + 1)),
                 .y = canvas_area.y + pos_unit_h * @as(f32, @floatFromInt(row + 1)),
             };
-            self.vs[i + 2].color = jok.Color.white;
+            self.vs[i + 2].color = .white;
             self.vs[i + 2].texcoord = .{
                 .x = texcoord_unit_w * @as(f32, @floatFromInt(col + 1)),
                 .y = texcoord_unit_h * @as(f32, @floatFromInt(row + 1)),
@@ -92,7 +92,7 @@ pub const PostProcessingEffect = struct {
                 .x = canvas_area.x + pos_unit_w * @as(f32, @floatFromInt(col)),
                 .y = canvas_area.y + pos_unit_h * @as(f32, @floatFromInt(row + 1)),
             };
-            self.vs[i + 5].color = jok.Color.white;
+            self.vs[i + 5].color = .white;
             self.vs[i + 5].texcoord = .{
                 .x = texcoord_unit_w * @as(f32, @floatFromInt(col)),
                 .y = texcoord_unit_h * @as(f32, @floatFromInt(row + 1)),

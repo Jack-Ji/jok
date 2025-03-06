@@ -271,7 +271,7 @@ pub fn getBoundingBox(
     while (i < text.len) {
         const size = try unicode.utf8ByteSequenceLength(text[i]);
         const codepoint = @as(u32, @intCast(try unicode.utf8Decode(text[i .. i + size])));
-        if (self.getVerticesOfCodePoint(pos, ypos_type, jok.Color.white, codepoint)) |cs| {
+        if (self.getVerticesOfCodePoint(pos, ypos_type, .white, codepoint)) |cs| {
             switch (box_type) {
                 .aligned => {
                     rect.width = cs.next_x - rect.x;
@@ -427,7 +427,7 @@ pub fn getSpriteOfCodePoint(self: *Atlas, codepoint: u32) ?Sprite {
     if (self.getVerticesOfCodePoint(
         .{ .x = 0, .y = 0 },
         .top,
-        jok.Color.white,
+        .white,
         codepoint,
     )) |cs| {
         return Sprite{

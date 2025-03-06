@@ -170,17 +170,17 @@ pub fn render(
                 &[_]jok.Vertex{
                     .{
                         .pos = .{ .x = positions_screen[0][0], .y = positions_screen[0][1] },
-                        .color = color orelse jok.Color.white,
+                        .color = color orelse .white,
                         .texcoord = t0,
                     },
                     .{
                         .pos = .{ .x = positions_screen[1][0], .y = positions_screen[1][1] },
-                        .color = color orelse jok.Color.white,
+                        .color = color orelse .white,
                         .texcoord = t1,
                     },
                     .{
                         .pos = .{ .x = positions_screen[2][0], .y = positions_screen[2][1] },
-                        .color = color orelse jok.Color.white,
+                        .color = color orelse .white,
                         .texcoord = t2,
                     },
                 },

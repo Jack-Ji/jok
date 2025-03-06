@@ -44,6 +44,7 @@ pub const BlendMode = enum {
     pd_lighter,
     pd_clear,
 
+    var _init: bool = false;
     var _pd_src: c_uint = undefined;
     var _pd_src_atop: c_uint = undefined;
     var _pd_src_over: c_uint = undefined;
@@ -58,7 +59,7 @@ pub const BlendMode = enum {
     var _pd_lighter: c_uint = undefined;
     var _pd_clear: c_uint = undefined;
 
-    pub fn init() void {
+    inline fn init() void {
         _pd_src = sdl.SDL_ComposeCustomBlendMode(
             sdl.SDL_BLENDFACTOR_ONE,
             sdl.SDL_BLENDFACTOR_ZERO,
@@ -166,6 +167,10 @@ pub const BlendMode = enum {
     }
 
     pub fn fromNative(mode: sdl.SDL_BlendMode) @This() {
+        if (!_init) {
+            init();
+            _init = true;
+        }
         switch (mode) {
             sdl.SDL_BLENDMODE_NONE => return .none,
             sdl.SDL_BLENDMODE_BLEND => return .blend,
@@ -192,6 +197,10 @@ pub const BlendMode = enum {
     }
 
     pub fn toNative(self: @This()) c_uint {
+        if (!_init) {
+            init();
+            _init = true;
+        }
         return switch (self) {
             .none => sdl.SDL_BLENDMODE_NONE,
             .blend => sdl.SDL_BLENDMODE_BLEND,

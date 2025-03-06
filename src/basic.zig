@@ -299,16 +299,11 @@ pub const Color = extern struct {
     pub const cyan = rgb(0x00, 0xFF, 0xFF);
     pub const yellow = rgb(0xFF, 0xFF, 0x00);
     pub const purple = rgb(255, 128, 255);
-    var pixel_format: *sdl.SDL_PixelFormat = undefined;
 
     r: u8,
     g: u8,
     b: u8,
     a: u8 = 255,
-
-    pub fn init() void {
-        pixel_format = @ptrCast(sdl.SDL_AllocFormat(sdl.SDL_PIXELFORMAT_RGBA32));
-    }
 
     pub inline fn rgb(r: u8, g: u8, b: u8) Color {
         return Color{ .r = r, .g = g, .b = b };
@@ -318,14 +313,24 @@ pub const Color = extern struct {
         return Color{ .r = r, .g = g, .b = b, .a = a };
     }
 
+    inline fn getPixelFormat() [*c]sdl.SDL_PixelFormat {
+        const S = struct {
+            var pixel_format: ?[*c]sdl.SDL_PixelFormat = null;
+        };
+        if (S.pixel_format == null) {
+            S.pixel_format = sdl.SDL_AllocFormat(sdl.SDL_PIXELFORMAT_RGBA32);
+        }
+        return S.pixel_format.?;
+    }
+
     pub inline fn fromRGBA32(i: u32) Color {
         var c: Color = undefined;
-        sdl.SDL_GetRGBA(i, @ptrCast(pixel_format), &c.r, &c.g, &c.b, &c.a);
+        sdl.SDL_GetRGBA(i, getPixelFormat(), &c.r, &c.g, &c.b, &c.a);
         return c;
     }
 
     pub inline fn toRGBA32(c: Color) u32 {
-        return sdl.SDL_MapRGBA(@ptrCast(pixel_format), c.r, c.g, c.b, c.a);
+        return sdl.SDL_MapRGBA(getPixelFormat(), c.r, c.g, c.b, c.a);
     }
 
     /// Convert from HSL

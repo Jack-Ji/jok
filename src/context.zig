@@ -190,7 +190,7 @@ pub const DisplayStats = struct {
 
 pub const DebugPrint = struct {
     pos: jok.Point = .{ .x = 0, .y = 0 },
-    color: jok.Color = jok.Color.white,
+    color: jok.Color = .white,
 };
 
 /// Context generator
@@ -458,7 +458,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 imgui.sdl.newFrame(self.context());
                 defer imgui.sdl.draw(self.context());
 
-                self._renderer.clear(jok.Color.black) catch unreachable;
+                self._renderer.clear(.black) catch unreachable;
                 self._renderer.setTarget(self._canvas_texture) catch unreachable;
                 defer {
                     self._renderer.setTarget(null) catch unreachable;
@@ -688,10 +688,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Check and print system info
             try self.checkSys();
-
-            // Misc stuff
-            jok.Color.init();
-            jok.BlendMode.init();
 
             // Init drawing target
             self._canvas_texture = try self._renderer.createTarget(.{ .size = self._canvas_size });
