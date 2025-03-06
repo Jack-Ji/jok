@@ -309,7 +309,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
 
             // Init plugin system
-            if (bos.use_plugins) {
+            if (bos.link_dynamic) {
                 self._plugin_system = try PluginSystem.create(self._allocator);
             }
 
@@ -342,7 +342,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             font.DebugFont.deinit();
 
             // Destroy plugin system
-            if (bos.use_plugins) {
+            if (bos.link_dynamic) {
                 self._plugin_system.destroy(self._ctx);
             }
 
@@ -485,7 +485,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         return;
                     }
                 };
-                if (bos.use_plugins) {
+                if (bos.link_dynamic) {
                     self._plugin_system.draw(self._ctx);
                 }
             }
@@ -555,7 +555,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                             return;
                         }
                     };
-                    if (bos.use_plugins) {
+                    if (bos.link_dynamic) {
                         self._plugin_system.event(self._ctx, we);
                     }
                 }
@@ -569,7 +569,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     return;
                 }
             };
-            if (bos.use_plugins) {
+            if (bos.link_dynamic) {
                 self._plugin_system.update(self._ctx);
             }
         }
@@ -1065,7 +1065,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Register new plugin
         pub fn registerPlugin(ptr: *anyopaque, name: []const u8, path: []const u8, hotreload: bool) !void {
-            if (!bos.use_plugins) {
+            if (!bos.link_dynamic) {
                 @panic("plugin system isn't enabled!");
             }
             const self: *@This() = @ptrCast(@alignCast(ptr));
@@ -1079,7 +1079,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Unregister plugin
         pub fn unregisterPlugin(ptr: *anyopaque, name: []const u8) !void {
-            if (!bos.use_plugins) {
+            if (!bos.link_dynamic) {
                 @panic("plugin system isn't enabled!");
             }
             const self: *@This() = @ptrCast(@alignCast(ptr));
@@ -1088,7 +1088,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         ///  Force reload plugin
         pub fn forceReloadPlugin(ptr: *anyopaque, name: []const u8) !void {
-            if (!bos.use_plugins) {
+            if (!bos.link_dynamic) {
                 @panic("plugin system isn't enabled!");
             }
             const self: *@This() = @ptrCast(@alignCast(ptr));

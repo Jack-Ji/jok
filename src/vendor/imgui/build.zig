@@ -7,6 +7,12 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
         "-Wno-error=date-time",
     };
 
+    if (mod.resolved_target.?.result.os.tag == .windows) {
+        mod.addCMacro("IMGUI_API", "__declspec(dllexport)");
+        mod.addCMacro("IMPLOT_API", "__declspec(dllexport)");
+        mod.addCMacro("ZGUI_API", "__declspec(dllexport)");
+    }
+
     const emscripten = mod.resolved_target.?.result.os.tag == .emscripten;
     if (emscripten) {
         mod.addCMacro("__EMSCRIPTEN__", "1");

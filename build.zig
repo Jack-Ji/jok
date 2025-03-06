@@ -107,7 +107,7 @@ pub fn build(b: *Build) void {
         "examples/hotreload.zig",
         target,
         optimize,
-        .{ .dep_name = null, .use_plugins = true },
+        .{ .dep_name = null, .link_dynamic = true },
     );
     const plugin_hot = createPlugin(
         b,
@@ -115,7 +115,7 @@ pub fn build(b: *Build) void {
         "examples/plugin_hot.zig",
         target,
         optimize,
-        .{ .dep_name = null, .use_plugins = true },
+        .{ .dep_name = null, .link_dynamic = true },
     );
     const plugin = createPlugin(
         b,
@@ -123,7 +123,7 @@ pub fn build(b: *Build) void {
         "examples/plugin.zig",
         target,
         optimize,
-        .{ .dep_name = null, .use_plugins = true },
+        .{ .dep_name = null, .link_dynamic = true },
     );
     const install_plugin_hot = b.addInstallArtifact(
         plugin_hot,
@@ -139,9 +139,12 @@ pub fn build(b: *Build) void {
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(&install_exe.step);
     run_cmd.cwd = b.path("zig-out/bin");
-    b.step("hotreload", "compile & run example hotreload").dependOn(&run_cmd.step);
     b.step("plugin_hot", "recompile plugin_hot").dependOn(&install_plugin_hot.step);
     b.step("plugin", "recompile plugin").dependOn(&install_plugin.step);
+    if (target.query.isNative())
+        b.step("hotreload", "compile & run example hotreload").dependOn(&run_cmd.step)
+    else
+        b.step("hotreload", "compile example hotreload").dependOn(&install_exe.step);
 }
 
 pub const Dependency = struct {
@@ -155,7 +158,7 @@ pub const BuildOptions = struct {
     no_audio: bool = false,
     use_cp: bool = false,
     use_nfd: bool = false,
-    use_plugins: bool = false,
+    link_dynamic: bool = false,
 };
 
 /// Create desktop application (windows/linux/macos)
@@ -204,6 +207,12 @@ pub fn createDesktopApp(
     sdk.link(exe, .dynamic);
     exe.linkLibrary(jok.artifact);
 
+    // Install jok library
+    if (opt.link_dynamic) {
+        const install_jok = b.addInstallArtifact(jok.artifact, .{ .dest_dir = .{ .override = .{ .bin = {} } } });
+        exe.step.dependOn(&install_jok.step);
+    }
+
     return exe;
 }
 
@@ -217,7 +226,8 @@ pub fn createPlugin(
     opt: BuildOptions,
 ) *Build.Step.Compile {
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
-    assert(opt.use_plugins);
+    assert(opt.link_dynamic);
+    const sdk = CrossSDL.init(b);
     const jok = getJokLibrary(b, target, optimize, opt);
 
     // Create plugin module
@@ -238,7 +248,12 @@ pub fn createPlugin(
         .name = name,
         .root_module = plugin,
     });
+    sdk.link(lib, .dynamic);
     lib.linkLibrary(jok.artifact);
+
+    // Install jok library
+    const install_jok = b.addInstallArtifact(jok.artifact, .{ .dest_dir = .{ .override = .{ .bin = {} } } });
+    lib.step.dependOn(&install_jok.step);
 
     return lib;
 }
@@ -253,7 +268,7 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Mode, 
     bos.addOption(bool, "no_audio", opt.no_audio);
     bos.addOption(bool, "use_cp", opt.use_cp);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
-    bos.addOption(bool, "use_plugins", opt.use_plugins);
+    bos.addOption(bool, "link_dynamic", opt.link_dynamic);
     const jokmod = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
         .target = target,
@@ -279,7 +294,7 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Mode, 
     if (!opt.no_audio) @import("src/vendor/zaudio/build.zig").inject(libmod, builder.path("src/vendor/zaudio"));
     if (opt.use_cp) @import("src/vendor/chipmunk/build.zig").inject(libmod, builder.path("src/vendor/chipmunk"));
     if (opt.use_nfd) @import("src/vendor/nfd/build.zig").inject(libmod, builder.path("src/vendor/nfd"));
-    const lib = if (opt.use_plugins)
+    const lib = if (opt.link_dynamic)
         builder.addSharedLibrary(.{ .name = "jok", .root_module = libmod })
     else
         builder.addStaticLibrary(.{ .name = "jok", .root_module = libmod });

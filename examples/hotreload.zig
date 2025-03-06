@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const jok = @import("jok");
 const imgui = jok.imgui;
 
@@ -6,8 +7,16 @@ pub const jok_window_always_on_top = true;
 
 pub fn init(ctx: jok.Context) !void {
     try jok.physfs.mount("assets", "/", true);
-    try ctx.registerPlugin("plugin_hot", "./libplugin_hot.so", true);
-    try ctx.registerPlugin("plugin", "./libplugin.so", false);
+    if (builtin.target.os.tag == .windows) {
+        try ctx.registerPlugin("plugin_hot", "./plugin_hot.dll", true);
+        try ctx.registerPlugin("plugin", "./plugin.dll", false);
+    } else if (builtin.target.os.tag == .macos) {
+        try ctx.registerPlugin("plugin_hot", "./libplugin_hot.dylib", true);
+        try ctx.registerPlugin("plugin", "./libplugin.dylib", false);
+    } else {
+        try ctx.registerPlugin("plugin_hot", "./libplugin_hot.so", true);
+        try ctx.registerPlugin("plugin", "./libplugin.so", false);
+    }
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {

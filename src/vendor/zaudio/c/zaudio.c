@@ -1,14 +1,19 @@
 #include "miniaudio.h"
 #include <stdlib.h>
 #include <assert.h>
+
+#ifndef ZAUDIO_API
+#define ZAUDIO_API
+#endif
+
 //--------------------------------------------------------------------------------------------------
-void* (*zaudioMallocPtr)(size_t size, void* user_data) = NULL;
-void* (*zaudioReallocPtr)(void* ptr, size_t size, void* user_data) = NULL;
-void (*zaudioFreePtr)(void* ptr, void* user_data) = NULL;
+ZAUDIO_API void* (*zaudioMallocPtr)(size_t size, void* user_data) = NULL;
+ZAUDIO_API void* (*zaudioReallocPtr)(void* ptr, size_t size, void* user_data) = NULL;
+ZAUDIO_API void (*zaudioFreePtr)(void* ptr, void* user_data) = NULL;
 
 static ma_allocation_callbacks s_mem;
 
-void zaudioMemInit(void) {
+ZAUDIO_API void zaudioMemInit(void) {
     assert(zaudioMallocPtr && zaudioReallocPtr && zaudioFreePtr);
     s_mem.pUserData = NULL;
     s_mem.onMalloc = zaudioMallocPtr;
@@ -16,7 +21,7 @@ void zaudioMemInit(void) {
     s_mem.onFree = zaudioFreePtr;
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioNoiseConfigInit(
+ZAUDIO_API void zaudioNoiseConfigInit(
     ma_format format,
     ma_uint32 channels,
     ma_noise_type type,
@@ -28,7 +33,7 @@ void zaudioNoiseConfigInit(
     *out_config = ma_noise_config_init(format, channels, type, seed, amplitude);
 }
 
-ma_result zaudioNoiseCreate(const ma_noise_config* config, ma_noise** out_handle) {
+ZAUDIO_API ma_result zaudioNoiseCreate(const ma_noise_config* config, ma_noise** out_handle) {
     assert(config != NULL && out_handle != NULL);
     *out_handle = s_mem.onMalloc(sizeof(ma_noise), s_mem.pUserData);
     ma_result res = ma_noise_init(config, &s_mem, *out_handle);
@@ -39,34 +44,34 @@ ma_result zaudioNoiseCreate(const ma_noise_config* config, ma_noise** out_handle
     return res;
 }
 
-void zaudioNoiseDestroy(ma_noise* handle) {
+ZAUDIO_API void zaudioNoiseDestroy(ma_noise* handle) {
     assert(handle != NULL);
     ma_noise_uninit(handle, &s_mem);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioNodeConfigInit(ma_node_config* out_config) {
+ZAUDIO_API void zaudioNodeConfigInit(ma_node_config* out_config) {
     assert(out_config != NULL);
     *out_config = ma_node_config_init();
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioDataSourceConfigInit(ma_data_source_config* out_config) {
+ZAUDIO_API void zaudioDataSourceConfigInit(ma_data_source_config* out_config) {
     assert(out_config != NULL);
     *out_config = ma_data_source_config_init();
 }
 
-ma_result zaudioDataSourceCreate(const ma_data_source_config* config, ma_data_source_base* ptr_to_data_source_base) {
+ZAUDIO_API ma_result zaudioDataSourceCreate(const ma_data_source_config* config, ma_data_source_base* ptr_to_data_source_base) {
     assert(config != NULL);
     return ma_data_source_init(config, ptr_to_data_source_base);
 }
 
-void zaudioDataSourceDestroy(ma_data_source* handle) {
+ZAUDIO_API void zaudioDataSourceDestroy(ma_data_source* handle) {
     assert(handle != NULL);
     ma_data_source_uninit(handle);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioWaveformConfigInit(
+ZAUDIO_API void zaudioWaveformConfigInit(
     ma_format format,
     ma_uint32 channels,
     ma_uint32 sampleRate,
@@ -79,7 +84,7 @@ void zaudioWaveformConfigInit(
     *out_config = ma_waveform_config_init(format, channels, sampleRate, type, amplitude, frequency);
 }
 
-ma_result zaudioWaveformCreate(const ma_waveform_config* config, ma_waveform** out_handle) {
+ZAUDIO_API ma_result zaudioWaveformCreate(const ma_waveform_config* config, ma_waveform** out_handle) {
     assert(config != NULL && out_handle != NULL);
     *out_handle = s_mem.onMalloc(sizeof(ma_waveform), s_mem.pUserData);
     ma_result res = ma_waveform_init(config, *out_handle);
@@ -90,18 +95,18 @@ ma_result zaudioWaveformCreate(const ma_waveform_config* config, ma_waveform** o
     return res;
 }
 
-void zaudioWaveformDestroy(ma_waveform* handle) {
+ZAUDIO_API void zaudioWaveformDestroy(ma_waveform* handle) {
     assert(handle != NULL);
     ma_waveform_uninit(handle);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioDataSourceNodeConfigInit(ma_data_source* ds, ma_data_source_node_config* out_config) {
+ZAUDIO_API void zaudioDataSourceNodeConfigInit(ma_data_source* ds, ma_data_source_node_config* out_config) {
     assert(out_config != NULL);
     *out_config = ma_data_source_node_config_init(ds);
 }
 
-ma_result zaudioDataSourceNodeCreate(
+ZAUDIO_API ma_result zaudioDataSourceNodeCreate(
     ma_node_graph* node_graph,
     const ma_data_source_node_config* config,
     ma_data_source** out_handle
@@ -116,18 +121,18 @@ ma_result zaudioDataSourceNodeCreate(
     return res;
 }
 
-void zaudioDataSourceNodeDestroy(ma_data_source_node* handle) {
+ZAUDIO_API void zaudioDataSourceNodeDestroy(ma_data_source_node* handle) {
     assert(handle != NULL);
     ma_data_source_node_uninit(handle, &s_mem);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioSplitterNodeConfigInit(ma_uint32 channels, ma_splitter_node_config* out_config) {
+ZAUDIO_API void zaudioSplitterNodeConfigInit(ma_uint32 channels, ma_splitter_node_config* out_config) {
     assert(out_config != NULL);
     *out_config = ma_splitter_node_config_init(channels);
 }
 
-ma_result zaudioSplitterNodeCreate(
+ZAUDIO_API ma_result zaudioSplitterNodeCreate(
     ma_node_graph* node_graph,
     const ma_splitter_node_config* config,
     ma_splitter_node** out_handle
@@ -142,13 +147,13 @@ ma_result zaudioSplitterNodeCreate(
     return res;
 }
 
-void zaudioSplitterNodeDestroy(ma_splitter_node* handle) {
+ZAUDIO_API void zaudioSplitterNodeDestroy(ma_splitter_node* handle) {
     assert(handle != NULL);
     ma_splitter_node_uninit(handle, &s_mem);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioBiquadNodeConfigInit(
+ZAUDIO_API void zaudioBiquadNodeConfigInit(
     ma_uint32 channels,
     float b0,
     float b1,
@@ -162,7 +167,7 @@ void zaudioBiquadNodeConfigInit(
     *out_config = ma_biquad_node_config_init(channels, b0, b1, b2, a0, a1, a2);
 }
 
-ma_result zaudioBiquadNodeCreate(
+ZAUDIO_API ma_result zaudioBiquadNodeCreate(
     ma_node_graph* node_graph,
     const ma_biquad_node_config* config,
     ma_biquad_node** out_handle
@@ -177,13 +182,13 @@ ma_result zaudioBiquadNodeCreate(
     return res;
 }
 
-void zaudioBiquadNodeDestroy(ma_biquad_node* handle) {
+ZAUDIO_API void zaudioBiquadNodeDestroy(ma_biquad_node* handle) {
     assert(handle != NULL);
     ma_biquad_node_uninit(handle, &s_mem);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioLpfNodeConfigInit(
+ZAUDIO_API void zaudioLpfNodeConfigInit(
     ma_uint32 channels,
     ma_uint32 sample_rate,
     double cutoff_frequency,
@@ -194,7 +199,7 @@ void zaudioLpfNodeConfigInit(
     *out_config = ma_lpf_node_config_init(channels, sample_rate, cutoff_frequency, order);
 }
 
-ma_result zaudioLpfNodeCreate(
+ZAUDIO_API ma_result zaudioLpfNodeCreate(
     ma_node_graph* node_graph,
     const ma_lpf_node_config* config,
     ma_lpf_node** out_handle
@@ -209,13 +214,13 @@ ma_result zaudioLpfNodeCreate(
     return res;
 }
 
-void zaudioLpfNodeDestroy(ma_lpf_node* handle) {
+ZAUDIO_API void zaudioLpfNodeDestroy(ma_lpf_node* handle) {
     assert(handle != NULL);
     ma_lpf_node_uninit(handle, &s_mem);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioHpfNodeConfigInit(
+ZAUDIO_API void zaudioHpfNodeConfigInit(
     ma_uint32 channels,
     ma_uint32 sample_rate,
     double cutoff_frequency,
@@ -226,7 +231,7 @@ void zaudioHpfNodeConfigInit(
     *out_config = ma_hpf_node_config_init(channels, sample_rate, cutoff_frequency, order);
 }
 
-ma_result zaudioHpfNodeCreate(
+ZAUDIO_API ma_result zaudioHpfNodeCreate(
     ma_node_graph* node_graph,
     const ma_hpf_node_config* config,
     ma_hpf_node** out_handle
@@ -241,13 +246,13 @@ ma_result zaudioHpfNodeCreate(
     return res;
 }
 
-void zaudioHpfNodeDestroy(ma_hpf_node* handle) {
+ZAUDIO_API void zaudioHpfNodeDestroy(ma_hpf_node* handle) {
     assert(handle != NULL);
     ma_hpf_node_uninit(handle, &s_mem);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioNotchNodeConfigInit(
+ZAUDIO_API void zaudioNotchNodeConfigInit(
     ma_uint32 channels,
     ma_uint32 sample_rate,
     double q,
@@ -258,7 +263,7 @@ void zaudioNotchNodeConfigInit(
     *out_config = ma_notch_node_config_init(channels, sample_rate, q, frequency);
 }
 
-ma_result zaudioNotchNodeCreate(
+ZAUDIO_API ma_result zaudioNotchNodeCreate(
     ma_node_graph* node_graph,
     const ma_notch_node_config* config,
     ma_notch_node** out_handle
@@ -273,13 +278,13 @@ ma_result zaudioNotchNodeCreate(
     return res;
 }
 
-void zaudioNotchNodeDestroy(ma_notch_node* handle) {
+ZAUDIO_API void zaudioNotchNodeDestroy(ma_notch_node* handle) {
     assert(handle != NULL);
     ma_notch_node_uninit(handle, &s_mem);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioPeakNodeConfigInit(
+ZAUDIO_API void zaudioPeakNodeConfigInit(
     ma_uint32 channels,
     ma_uint32 sample_rate,
     double gain_db,
@@ -291,7 +296,7 @@ void zaudioPeakNodeConfigInit(
     *out_config = ma_peak_node_config_init(channels, sample_rate, gain_db, q, frequency);
 }
 
-ma_result zaudioPeakNodeCreate(
+ZAUDIO_API ma_result zaudioPeakNodeCreate(
     ma_node_graph* node_graph,
     const ma_peak_node_config* config,
     ma_peak_node** out_handle
@@ -306,13 +311,13 @@ ma_result zaudioPeakNodeCreate(
     return res;
 }
 
-void zaudioPeakNodeDestroy(ma_peak_node* handle) {
+ZAUDIO_API void zaudioPeakNodeDestroy(ma_peak_node* handle) {
     assert(handle != NULL);
     ma_peak_node_uninit(handle, &s_mem);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioLoshelfNodeConfigInit(
+ZAUDIO_API void zaudioLoshelfNodeConfigInit(
     ma_uint32 channels,
     ma_uint32 sample_rate,
     double gain_db,
@@ -324,7 +329,7 @@ void zaudioLoshelfNodeConfigInit(
     *out_config = ma_loshelf_node_config_init(channels, sample_rate, gain_db, shelf_slope, frequency);
 }
 
-ma_result zaudioLoshelfNodeCreate(
+ZAUDIO_API ma_result zaudioLoshelfNodeCreate(
     ma_node_graph* node_graph,
     const ma_loshelf_node_config* config,
     ma_loshelf_node** out_handle
@@ -339,13 +344,13 @@ ma_result zaudioLoshelfNodeCreate(
     return res;
 }
 
-void zaudioLoshelfNodeDestroy(ma_loshelf_node* handle) {
+ZAUDIO_API void zaudioLoshelfNodeDestroy(ma_loshelf_node* handle) {
     assert(handle != NULL);
     ma_loshelf_node_uninit(handle, &s_mem);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioHishelfNodeConfigInit(
+ZAUDIO_API void zaudioHishelfNodeConfigInit(
     ma_uint32 channels,
     ma_uint32 sample_rate,
     double gain_db,
@@ -357,7 +362,7 @@ void zaudioHishelfNodeConfigInit(
     *out_config = ma_hishelf_node_config_init(channels, sample_rate, gain_db, shelf_slope, frequency);
 }
 
-ma_result zaudioHishelfNodeCreate(
+ZAUDIO_API ma_result zaudioHishelfNodeCreate(
     ma_node_graph* node_graph,
     const ma_hishelf_node_config* config,
     ma_hishelf_node** out_handle
@@ -372,13 +377,13 @@ ma_result zaudioHishelfNodeCreate(
     return res;
 }
 
-void zaudioHishelfNodeDestroy(ma_hishelf_node* handle) {
+ZAUDIO_API void zaudioHishelfNodeDestroy(ma_hishelf_node* handle) {
     assert(handle != NULL);
     ma_hishelf_node_uninit(handle, &s_mem);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioDelayNodeConfigInit(
+ZAUDIO_API void zaudioDelayNodeConfigInit(
     ma_uint32 channels,
     ma_uint32 sample_rate,
     ma_uint32 delay_in_frames,
@@ -389,7 +394,7 @@ void zaudioDelayNodeConfigInit(
     *out_config = ma_delay_node_config_init(channels, sample_rate, delay_in_frames, decay);
 }
 
-ma_result zaudioDelayNodeCreate(
+ZAUDIO_API ma_result zaudioDelayNodeCreate(
     ma_node_graph* node_graph,
     const ma_delay_node_config* config,
     ma_delay_node** out_handle
@@ -404,18 +409,18 @@ ma_result zaudioDelayNodeCreate(
     return res;
 }
 
-void zaudioDelayNodeDestroy(ma_delay_node* handle) {
+ZAUDIO_API void zaudioDelayNodeDestroy(ma_delay_node* handle) {
     assert(handle != NULL);
     ma_delay_node_uninit(handle, &s_mem);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioNodeGraphConfigInit(ma_uint32 channels, ma_node_graph_config* out_config) {
+ZAUDIO_API void zaudioNodeGraphConfigInit(ma_uint32 channels, ma_node_graph_config* out_config) {
     assert(out_config != NULL);
     *out_config = ma_node_graph_config_init(channels);
 }
 
-ma_result zaudioNodeGraphCreate(const ma_node_graph_config* config, ma_node_graph** out_handle) {
+ZAUDIO_API ma_result zaudioNodeGraphCreate(const ma_node_graph_config* config, ma_node_graph** out_handle) {
     assert(config != NULL && out_handle != NULL);
     *out_handle = s_mem.onMalloc(sizeof(ma_node_graph), s_mem.pUserData);
     ma_result res = ma_node_graph_init(config, &s_mem, *out_handle);
@@ -426,18 +431,18 @@ ma_result zaudioNodeGraphCreate(const ma_node_graph_config* config, ma_node_grap
     return res;
 }
 
-void zaudioNodeGraphDestroy(ma_node_graph* handle) {
+ZAUDIO_API void zaudioNodeGraphDestroy(ma_node_graph* handle) {
     assert(handle != NULL);
     ma_node_graph_uninit(handle, &s_mem);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioDeviceConfigInit(ma_device_type device_type, ma_device_config* out_config) {
+ZAUDIO_API void zaudioDeviceConfigInit(ma_device_type device_type, ma_device_config* out_config) {
     assert(out_config != NULL);
     *out_config = ma_device_config_init(device_type);
 }
 
-ma_result zaudioDeviceCreate(ma_context* context, const ma_device_config* config, ma_device** out_handle) {
+ZAUDIO_API ma_result zaudioDeviceCreate(ma_context* context, const ma_device_config* config, ma_device** out_handle) {
     assert(config != NULL && out_handle != NULL);
     *out_handle = s_mem.onMalloc(sizeof(ma_device), s_mem.pUserData);
     ma_result res = ma_device_init(context, config, *out_handle);
@@ -448,7 +453,7 @@ ma_result zaudioDeviceCreate(ma_context* context, const ma_device_config* config
     return res;
 }
 
-void zaudioDeviceDestroy(ma_device* handle) {
+ZAUDIO_API void zaudioDeviceDestroy(ma_device* handle) {
     assert(handle != NULL);
     ma_device_uninit(handle);
     s_mem.onFree(handle, s_mem.pUserData);
@@ -459,13 +464,13 @@ void* zaudioDeviceGetUserData(ma_device* handle) {
     return handle->pUserData;
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioEngineConfigInit(ma_engine_config* out_config) {
+ZAUDIO_API void zaudioEngineConfigInit(ma_engine_config* out_config) {
     assert(out_config != NULL);
     *out_config = ma_engine_config_init();
     out_config->allocationCallbacks = s_mem;
 }
 
-ma_result zaudioEngineCreate(const ma_engine_config* config, ma_engine** out_handle) {
+ZAUDIO_API ma_result zaudioEngineCreate(const ma_engine_config* config, ma_engine** out_handle) {
     assert(out_handle != NULL);
     *out_handle = s_mem.onMalloc(sizeof(ma_engine), s_mem.pUserData);
     ma_result res = ma_engine_init(config, *out_handle);
@@ -476,18 +481,18 @@ ma_result zaudioEngineCreate(const ma_engine_config* config, ma_engine** out_han
     return res;
 }
 
-void zaudioEngineDestroy(ma_engine* handle) {
+ZAUDIO_API void zaudioEngineDestroy(ma_engine* handle) {
     assert(handle != NULL);
     ma_engine_uninit(handle);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioSoundConfigInit(ma_sound_config* out_config) {
+ZAUDIO_API void zaudioSoundConfigInit(ma_sound_config* out_config) {
     assert(out_config != NULL);
     *out_config = ma_sound_config_init();
 }
 
-ma_result zaudioSoundCreate(ma_engine* engine, const ma_sound_config* config, ma_sound** out_handle) {
+ZAUDIO_API ma_result zaudioSoundCreate(ma_engine* engine, const ma_sound_config* config, ma_sound** out_handle) {
     assert(out_handle != NULL);
     *out_handle = s_mem.onMalloc(sizeof(ma_sound), s_mem.pUserData);
     ma_result res = ma_sound_init_ex(engine, config, *out_handle);
@@ -498,7 +503,7 @@ ma_result zaudioSoundCreate(ma_engine* engine, const ma_sound_config* config, ma
     return res;
 }
 
-ma_result zaudioSoundCreateFromFile(
+ZAUDIO_API ma_result zaudioSoundCreateFromFile(
     ma_engine* engine,
     const char* file_path,
     ma_uint32 flags,
@@ -516,7 +521,7 @@ ma_result zaudioSoundCreateFromFile(
     return res;
 }
 
-ma_result zaudioSoundCreateFromDataSource(
+ZAUDIO_API ma_result zaudioSoundCreateFromDataSource(
     ma_engine* engine,
     ma_data_source* data_source,
     ma_uint32 flags,
@@ -533,7 +538,7 @@ ma_result zaudioSoundCreateFromDataSource(
     return res;
 }
 
-ma_result zaudioSoundCreateCopy(
+ZAUDIO_API ma_result zaudioSoundCreateCopy(
     ma_engine* engine,
     ma_sound* existing_sound,
     ma_uint32 flags,
@@ -550,13 +555,13 @@ ma_result zaudioSoundCreateCopy(
     return res;
 }
 
-void zaudioSoundDestroy(ma_sound* handle) {
+ZAUDIO_API void zaudioSoundDestroy(ma_sound* handle) {
     assert(handle != NULL);
     ma_sound_uninit(handle);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-ma_result zaudioSoundGroupCreate(
+ZAUDIO_API ma_result zaudioSoundGroupCreate(
     ma_engine* engine,
     ma_uint32 flags,
     ma_sound_group* parent,
@@ -572,13 +577,13 @@ ma_result zaudioSoundGroupCreate(
     return res;
 }
 
-void zaudioSoundGroupDestroy(ma_sound_group* handle) {
+ZAUDIO_API void zaudioSoundGroupDestroy(ma_sound_group* handle) {
     assert(handle != NULL);
     ma_sound_group_uninit(handle);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-ma_result zaudioFenceCreate(ma_fence** out_handle) {
+ZAUDIO_API ma_result zaudioFenceCreate(ma_fence** out_handle) {
     assert(out_handle != NULL);
     *out_handle = s_mem.onMalloc(sizeof(ma_fence), s_mem.pUserData);
     ma_result res = ma_fence_init(*out_handle);
@@ -589,13 +594,13 @@ ma_result zaudioFenceCreate(ma_fence** out_handle) {
     return res;
 }
 
-void zaudioFenceDestroy(ma_fence* handle) {
+ZAUDIO_API void zaudioFenceDestroy(ma_fence* handle) {
     assert(handle != NULL);
     ma_fence_uninit(handle);
     s_mem.onFree(handle, s_mem.pUserData);
 }
 //--------------------------------------------------------------------------------------------------
-void zaudioAudioBufferConfigInit(
+ZAUDIO_API void zaudioAudioBufferConfigInit(
     ma_format format,
     ma_uint32 channels,
     ma_int64 size_in_frames,
@@ -606,7 +611,7 @@ void zaudioAudioBufferConfigInit(
     *out_config = ma_audio_buffer_config_init(format, channels, size_in_frames, data, &s_mem);
 }
 
-ma_result zaudioAudioBufferCreate(const ma_audio_buffer_config* config, ma_audio_buffer** out_handle) {
+ZAUDIO_API ma_result zaudioAudioBufferCreate(const ma_audio_buffer_config* config, ma_audio_buffer** out_handle) {
     assert(config && out_handle != NULL);
     ma_result res = ma_audio_buffer_alloc_and_init(config, out_handle);
     if (res != MA_SUCCESS) {
@@ -615,7 +620,7 @@ ma_result zaudioAudioBufferCreate(const ma_audio_buffer_config* config, ma_audio
     return res;
 }
 
-void zaudioAudioBufferDestroy(ma_audio_buffer* handle) {
+ZAUDIO_API void zaudioAudioBufferDestroy(ma_audio_buffer* handle) {
     assert(handle != NULL);
     ma_audio_buffer_uninit_and_free(handle);
 }
@@ -625,53 +630,53 @@ void zaudioAudioBufferDestroy(ma_audio_buffer* handle) {
 //
 //--------------------------------------------------------------------------------------------------
 // ma_engine
-void WA_ma_engine_listener_get_position(const ma_engine* engine, ma_uint32 index, ma_vec3f* vout) {
+ZAUDIO_API void WA_ma_engine_listener_get_position(const ma_engine* engine, ma_uint32 index, ma_vec3f* vout) {
     *vout = ma_engine_listener_get_position(engine, index);
 }
 
-void WA_ma_engine_listener_get_direction(const ma_engine* engine, ma_uint32 index, ma_vec3f* vout) {
+ZAUDIO_API void WA_ma_engine_listener_get_direction(const ma_engine* engine, ma_uint32 index, ma_vec3f* vout) {
     *vout = ma_engine_listener_get_direction(engine, index);
 }
 
-void WA_ma_engine_listener_get_velocity(const ma_engine* engine, ma_uint32 index, ma_vec3f* vout) {
+ZAUDIO_API void WA_ma_engine_listener_get_velocity(const ma_engine* engine, ma_uint32 index, ma_vec3f* vout) {
     *vout = ma_engine_listener_get_velocity(engine, index);
 }
 
-void WA_ma_engine_listener_get_world_up(const ma_engine* engine, ma_uint32 index, ma_vec3f* vout) {
+ZAUDIO_API void WA_ma_engine_listener_get_world_up(const ma_engine* engine, ma_uint32 index, ma_vec3f* vout) {
     *vout = ma_engine_listener_get_world_up(engine, index);
 }
 
 // ma_sound_group
-void WA_ma_sound_group_get_direction_to_listener(const ma_sound_group* sgroup, ma_vec3f* vout) {
+ZAUDIO_API void WA_ma_sound_group_get_direction_to_listener(const ma_sound_group* sgroup, ma_vec3f* vout) {
     *vout = ma_sound_group_get_direction_to_listener(sgroup);
 }
 
-void WA_ma_sound_group_get_position(const ma_sound_group* sgroup, ma_vec3f* vout) {
+ZAUDIO_API void WA_ma_sound_group_get_position(const ma_sound_group* sgroup, ma_vec3f* vout) {
     *vout = ma_sound_group_get_position(sgroup);
 }
 
-void WA_ma_sound_group_get_direction(const ma_sound_group* sgroup, ma_vec3f* vout) {
+ZAUDIO_API void WA_ma_sound_group_get_direction(const ma_sound_group* sgroup, ma_vec3f* vout) {
     *vout = ma_sound_group_get_direction(sgroup);
 }
 
-void WA_ma_sound_group_get_velocity(const ma_sound_group* sgroup, ma_vec3f* vout) {
+ZAUDIO_API void WA_ma_sound_group_get_velocity(const ma_sound_group* sgroup, ma_vec3f* vout) {
     *vout = ma_sound_group_get_velocity(sgroup);
 }
 
 // ma_sound
-void WA_ma_sound_get_direction_to_listener(const ma_sound* sound, ma_vec3f* vout) {
+ZAUDIO_API void WA_ma_sound_get_direction_to_listener(const ma_sound* sound, ma_vec3f* vout) {
     *vout = ma_sound_get_direction_to_listener(sound);
 }
 
-void WA_ma_sound_get_position(const ma_sound* sound, ma_vec3f* vout) {
+ZAUDIO_API void WA_ma_sound_get_position(const ma_sound* sound, ma_vec3f* vout) {
     *vout = ma_sound_get_position(sound);
 }
 
-void WA_ma_sound_get_direction(const ma_sound* sound, ma_vec3f* vout) {
+ZAUDIO_API void WA_ma_sound_get_direction(const ma_sound* sound, ma_vec3f* vout) {
     *vout = ma_sound_get_direction(sound);
 }
 
-void WA_ma_sound_get_velocity(const ma_sound* sound, ma_vec3f* vout) {
+ZAUDIO_API void WA_ma_sound_get_velocity(const ma_sound* sound, ma_vec3f* vout) {
     *vout = ma_sound_get_velocity(sound);
 }
 //--------------------------------------------------------------------------------------------------
