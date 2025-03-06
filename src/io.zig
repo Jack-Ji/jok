@@ -593,7 +593,7 @@ pub const Event = union(enum) {
             sdl.SDL_SENSORUPDATE => Event{ .sensor_update = raw.sensor },
             sdl.SDL_RENDER_TARGETS_RESET => Event{ .render_targets_reset = raw.common },
             sdl.SDL_RENDER_DEVICE_RESET => Event{ .render_device_reset = raw.common },
-            else => |t| if (t >= sdl.SDL_USEREVENT and t <= last_user_event_type)
+            else => |t| if (t >= sdl.SDL_USEREVENT)
                 Event{ .user = UserEvent.from(raw.user) }
             else
                 @panic("Unsupported event type detected!"),
@@ -603,11 +603,9 @@ pub const Event = union(enum) {
 
 /// register `num` user events and return the corresponding type
 /// to be used when generating those.
-var last_user_event_type: u32 = undefined;
 pub fn registerEvents(num: u32) !u32 {
     const res = sdl.SDL_RegisterEvents(@intCast(num));
     if (res == std.math.maxInt(u32)) return error.CannotRegisterUserEvent;
-    last_user_event_type = res + num - 1;
     return res;
 }
 
