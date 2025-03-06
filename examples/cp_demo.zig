@@ -178,7 +178,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
     ctx.displayStats(.{});
     try world.debugDraw(ctx.renderer());
 }

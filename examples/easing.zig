@@ -23,7 +23,7 @@ const EasingBlock = struct {
             .y = self.pos.y,
             .width = 20,
             .height = 20,
-        }, jok.Color.white, .{});
+        }, .white, .{});
     }
 
     fn startEasing(self: *@This(), es: *PointEase) !void {
@@ -83,7 +83,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
 
     var b = try batchpool.new(.{});
     defer b.submit();
@@ -95,7 +95,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .width = 550,
                 .height = 25,
             },
-            jok.Color.rgb(
+            .rgb(
                 @as(u8, @intCast(i)) * 4,
                 @as(u8, @intCast(i)) * 4,
                 @as(u8, @intCast(i)) * 4,
@@ -114,7 +114,7 @@ pub fn draw(ctx: jok.Context) !void {
         try b.line(
             .{ .x = 0, .y = @as(f32, @floatFromInt(i)) * 25 + 20 },
             .{ .x = 750, .y = @as(f32, @floatFromInt(i)) * 25 + 20 },
-            jok.Color.white,
+            .white,
             .{},
         );
     }

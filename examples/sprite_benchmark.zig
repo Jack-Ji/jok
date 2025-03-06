@@ -91,7 +91,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
     var b = try batchpool.new(.{});

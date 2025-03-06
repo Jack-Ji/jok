@@ -70,7 +70,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
 
     const size = ctx.getCanvasSize();
     const rect_color = jok.Color.rgba(0, 128, 0, 120);
@@ -85,7 +85,7 @@ pub fn draw(ctx: jok.Context) !void {
             .atlas = atlas,
             .pos = .{ .x = 0, .y = 0 },
             .ypos_type = .top,
-            .tint_color = jok.Color.cyan,
+            .tint_color = .cyan,
         },
     );
     var area = try atlas.getBoundingBox(
@@ -123,7 +123,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .x = area.x + area.width,
                 .y = size.getHeightFloat() / 2,
             },
-            .tint_color = jok.Color.rgb(
+            .tint_color = .rgb(
                 @intFromFloat(128 + @sin(ctx.seconds()) * 127),
                 @intFromFloat(128 + @cos(ctx.seconds()) * 127),
                 @intFromFloat(128 + @sin(ctx.seconds()) * 127),
@@ -144,7 +144,7 @@ pub fn draw(ctx: jok.Context) !void {
             .atlas = saved_atlas,
             .pos = .{ .x = 0, .y = size.getHeightFloat() },
             .ypos_type = .bottom,
-            .tint_color = jok.Color.red,
+            .tint_color = .red,
         },
     );
     area = try saved_atlas.getBoundingBox(
@@ -166,32 +166,32 @@ pub fn draw(ctx: jok.Context) !void {
     };
     try b.rectFilled(
         metrics.getSpace(q_pos, .baseline),
-        jok.Color.rgba(255, 0, 0, 128),
+        .rgba(255, 0, 0, 128),
         .{},
     );
     try b.rectFilled(
         metrics.getBBox(q_pos, .baseline),
-        jok.Color.rgba(0, 255, 0, 200),
+        .rgba(0, 255, 0, 200),
         .{},
     );
     try b.rectFilled(
         metrics.getSpace(q_pos.add(.{ .x = metrics.advance_width, .y = 0 }), .top),
-        jok.Color.rgba(255, 0, 0, 128),
+        .rgba(255, 0, 0, 128),
         .{},
     );
     try b.rectFilled(
         metrics.getBBox(q_pos.add(.{ .x = metrics.advance_width, .y = 0 }), .top),
-        jok.Color.rgba(0, 255, 0, 200),
+        .rgba(0, 255, 0, 200),
         .{},
     );
     try b.rectFilled(
         metrics.getSpace(q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }), .bottom),
-        jok.Color.rgba(255, 0, 0, 128),
+        .rgba(255, 0, 0, 128),
         .{},
     );
     try b.rectFilled(
         metrics.getBBox(q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }), .bottom),
-        jok.Color.rgba(0, 255, 0, 200),
+        .rgba(0, 255, 0, 200),
         .{},
     );
     try b.text(

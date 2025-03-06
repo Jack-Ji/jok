@@ -16,7 +16,7 @@ var camera: Camera = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var scene: *Scene = undefined;
 var sprites: [14]*Scene.Object = undefined;
-var sphere_mesh: jok.zmesh.Shape = undefined;
+var sphere_mesh: zmesh.Shape = undefined;
 var sphere_obj: *Scene.Object = undefined;
 
 pub fn init(ctx: jok.Context) !void {
@@ -104,7 +104,7 @@ pub fn init(ctx: jok.Context) !void {
         try scene.root.addChild(sprites[13]);
     }
 
-    sphere_mesh = jok.zmesh.Shape.initSubdividedSphere(1);
+    sphere_mesh = zmesh.Shape.initSubdividedSphere(1);
     sphere_obj = try Scene.Object.create(ctx.allocator(), .{
         .mesh = .{
             .transform = zmath.identity(),
@@ -113,7 +113,7 @@ pub fn init(ctx: jok.Context) !void {
                 sphere_mesh,
                 .{},
             ),
-            .color = jok.Color.white,
+            .color = .white,
         },
     });
     try scene.root.addChild(sphere_obj);
@@ -157,7 +157,7 @@ pub fn update(ctx: jok.Context) !void {
         zmath.rotationX(ctx.seconds()),
         zmath.rotationY(ctx.seconds()),
     ));
-    sprites[12].actor.sprite.tint_color = jok.Color.rgb(
+    sprites[12].actor.sprite.tint_color = .rgb(
         @intFromFloat(127 * (1 + @sin(ctx.seconds()))),
         @intFromFloat(127 * (1 + @cos(ctx.seconds()))),
         100,
@@ -166,7 +166,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(jok.Color.rgb(80, 80, 80));
+    try ctx.renderer().clear(.rgb(80, 80, 80));
 
     var b = try batchpool.new(.{ .camera = camera, .triangle_sort = .simple });
     defer b.submit();

@@ -16,13 +16,13 @@ const radius2: f32 = 5;
 const radius3: f32 = 3;
 const thickness: f32 = 2;
 const colors = [7]jok.Color{
-    jok.Color.red,
-    jok.Color.green,
-    jok.Color.blue,
-    jok.Color.magenta,
-    jok.Color.cyan,
-    jok.Color.yellow,
-    jok.Color.purple,
+    .red,
+    .green,
+    .blue,
+    .magenta,
+    .cyan,
+    .yellow,
+    .purple,
 };
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var points_angular_velocity: [7]f32 = undefined;
@@ -87,7 +87,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(jok.Color.rgb(50, 50, 50));
+    try ctx.renderer().clear(.rgb(50, 50, 50));
     ctx.displayStats(.{});
 
     var b = try batchpool.new(.{});
@@ -96,13 +96,13 @@ pub fn draw(ctx: jok.Context) !void {
         try b.line(
             points_row[i].add(.{ .x = 0, .y = -800 }),
             points_row[i].add(.{ .x = 0, .y = 800 }),
-            jok.Color.rgba(30, 30, 30, 128),
+            .rgba(30, 30, 30, 128),
             .{},
         );
         try b.line(
             points_col[i].add(.{ .x = -800, .y = 0 }),
             points_col[i].add(.{ .x = 800, .y = 0 }),
-            jok.Color.rgba(30, 30, 30, 128),
+            .rgba(30, 30, 30, 128),
             .{},
         );
         try b.circle(
@@ -121,8 +121,8 @@ pub fn draw(ctx: jok.Context) !void {
             colors[i],
             .{ .thickness = thickness },
         );
-        try b.circleFilled(.{ .center = points_row[i], .radius = radius2 }, jok.Color.white, .{});
-        try b.circleFilled(.{ .center = points_col[i], .radius = radius2 }, jok.Color.white, .{});
+        try b.circleFilled(.{ .center = points_row[i], .radius = radius2 }, .white, .{});
+        try b.circleFilled(.{ .center = points_col[i], .radius = radius2 }, .white, .{});
     }
     for (0..7) |j| {
         for (0..7) |i| {
@@ -133,7 +133,7 @@ pub fn draw(ctx: jok.Context) !void {
                     .center = .{ .x = points_row[i].x, .y = points_col[j].y },
                     .radius = radius3,
                 },
-                jok.Color.white,
+                .white,
                 .{},
             );
         }

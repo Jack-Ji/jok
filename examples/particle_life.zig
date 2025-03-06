@@ -90,7 +90,7 @@ const Point = struct {
     vy: f32 = 0,
 
     // color,
-    color: jok.Color = jok.Color.black,
+    color: jok.Color = .black,
 
     fn draw(p: Point, batch: *j2d.Batch) !void {
         try batch.circleFilled(
@@ -131,7 +131,7 @@ fn createPoints(allocator: std.mem.Allocator, n: i32, r: u8, g: u8, b: u8) !std.
         ps.appendAssumeCapacity(.{
             .x = randomRange(f32, 200, 1000),
             .y = randomRange(f32, 50, 750),
-            .color = jok.Color.rgb(r, g, b),
+            .color = .rgb(r, g, b),
         });
     }
     return ps;
@@ -564,14 +564,14 @@ fn renderSimulation() !void {
                 .center = .{ .x = xshift, .y = yshift },
                 .radius = 150,
             },
-            jok.Color.black,
+            .black,
             .{},
         );
 
         try b.line(
             .{ .x = p1x, .y = p1y - 10 },
             .{ .x = p2x, .y = p2y - 10 },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_gr),
                 @intFromFloat(150 + power_gr),
                 150,
@@ -583,7 +583,7 @@ fn renderSimulation() !void {
         try b.line(
             .{ .x = p1x, .y = p1y + 10 },
             .{ .x = p2x, .y = p2y + 10 },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_rg),
                 @intFromFloat(150 + power_rg),
                 150,
@@ -595,7 +595,7 @@ fn renderSimulation() !void {
         try b.line(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p1x, .y = p1y - 10 },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_gw),
                 @intFromFloat(150 + power_gw),
                 150,
@@ -607,7 +607,7 @@ fn renderSimulation() !void {
         try b.line(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p1x, .y = p1y + 10 },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_wg),
                 @intFromFloat(150 + power_wg),
                 150,
@@ -620,7 +620,7 @@ fn renderSimulation() !void {
         try b.line(
             .{ .x = p4x - 10, .y = p4y },
             .{ .x = p1x - 10, .y = p1y },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_gb),
                 @intFromFloat(150 + power_gb),
                 150,
@@ -632,7 +632,7 @@ fn renderSimulation() !void {
         try b.line(
             .{ .x = p4x + 10, .y = p4y },
             .{ .x = p1x + 10, .y = p1y },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_bg),
                 @intFromFloat(150 + power_bg),
                 150,
@@ -645,7 +645,7 @@ fn renderSimulation() !void {
         try b.line(
             .{ .x = p2x - 10, .y = p2y },
             .{ .x = p3x - 10, .y = p3y },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_rw),
                 @intFromFloat(150 + power_rw),
                 150,
@@ -657,7 +657,7 @@ fn renderSimulation() !void {
         try b.line(
             .{ .x = p2x + 10, .y = p2y },
             .{ .x = p3x + 10, .y = p3y },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_wr),
                 @intFromFloat(150 + power_wr),
                 150,
@@ -670,7 +670,7 @@ fn renderSimulation() !void {
         try b.line(
             .{ .x = p2x, .y = p2y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_rb),
                 @intFromFloat(150 + power_rb),
                 150,
@@ -682,7 +682,7 @@ fn renderSimulation() !void {
         try b.line(
             .{ .x = p2x, .y = p2y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_br),
                 @intFromFloat(150 + power_br),
                 150,
@@ -695,7 +695,7 @@ fn renderSimulation() !void {
         try b.line(
             .{ .x = p3x, .y = p3y - 10 },
             .{ .x = p4x, .y = p4y - 10 },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_wb),
                 @intFromFloat(150 + power_wb),
                 150,
@@ -707,7 +707,7 @@ fn renderSimulation() !void {
         try b.line(
             .{ .x = p3x, .y = p3y + 10 },
             .{ .x = p4x, .y = p4y + 10 },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_bw),
                 @intFromFloat(150 + power_bw),
                 150,
@@ -722,7 +722,7 @@ fn renderSimulation() !void {
                 .center = .{ .x = p1x - 20, .y = p1y - 20 },
                 .radius = rr + 20,
             },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_gg),
                 @intFromFloat(150 + power_gg),
                 150,
@@ -736,7 +736,7 @@ fn renderSimulation() !void {
                 .center = .{ .x = p2x + 20, .y = p2y - 20 },
                 .radius = rr + 20,
             },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_rr),
                 @intFromFloat(150 + power_rr),
                 150,
@@ -750,7 +750,7 @@ fn renderSimulation() !void {
                 .center = .{ .x = p3x + 20, .y = p3y + 20 },
                 .radius = rr + 20,
             },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_ww),
                 @intFromFloat(150 + power_ww),
                 150,
@@ -764,7 +764,7 @@ fn renderSimulation() !void {
                 .center = .{ .x = p4x - 20, .y = p4y + 20 },
                 .radius = rr + 20,
             },
-            jok.Color.rgb(
+            .rgb(
                 @intFromFloat(150 - power_bb),
                 @intFromFloat(150 + power_bb),
                 150,
@@ -779,7 +779,7 @@ fn renderSimulation() !void {
                 .center = .{ .x = p1x, .y = p1y },
                 .radius = rr,
             },
-            jok.Color.rgb(100, 250, 10),
+            .rgb(100, 250, 10),
             .{},
         );
         try b.circleFilled(
@@ -787,7 +787,7 @@ fn renderSimulation() !void {
                 .center = .{ .x = p2x, .y = p2y },
                 .radius = rr,
             },
-            jok.Color.rgb(250, 10, 100),
+            .rgb(250, 10, 100),
             .{},
         );
         try b.circleFilled(
@@ -795,7 +795,7 @@ fn renderSimulation() !void {
                 .center = .{ .x = p3x, .y = p3y },
                 .radius = rr,
             },
-            jok.Color.rgb(250, 250, 250),
+            .rgb(250, 250, 250),
             .{},
         );
         try b.circleFilled(
@@ -803,7 +803,7 @@ fn renderSimulation() !void {
                 .center = .{ .x = p4x, .y = p4y },
                 .radius = rr,
             },
-            jok.Color.rgb(100, 100, 250),
+            .rgb(100, 100, 250),
             .{},
         );
     }
@@ -831,7 +831,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
     ctx.displayStats(.{});
 
     if (number_w > 0) {

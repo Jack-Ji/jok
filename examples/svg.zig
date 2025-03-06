@@ -34,7 +34,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(jok.Color.rgb(100, 100, 100));
+    try ctx.renderer().clear(.rgb(100, 100, 100));
 
     var b = try batchpool.new(.{});
     defer b.submit();

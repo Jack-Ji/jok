@@ -127,7 +127,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(.rgb(77, 77, 77));
 
     var b = try batchpool.new(.{});
     defer b.submit();
@@ -135,7 +135,7 @@ pub fn draw(ctx: jok.Context) !void {
         sheet.getSpriteByName("player").?,
         .{
             .pos = .{ .x = 0, .y = 50 },
-            .tint_color = jok.Color.rgb(100, 100, 100),
+            .tint_color = .rgb(100, 100, 100),
             .scale = .{ .x = 4, .y = 4 },
         },
     );

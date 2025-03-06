@@ -85,10 +85,10 @@ pub const Renderer = struct {
         };
     }
 
-    pub fn clear(self: Renderer, color: ?jok.Color) !void {
+    pub fn clear(self: Renderer, color: jok.Color) !void {
         const old_color = try self.getColor();
-        if (color) |c| try self.setColor(c);
-        defer if (color != null) self.setColor(old_color) catch unreachable;
+        try self.setColor(color);
+        defer self.setColor(old_color) catch unreachable;
         if (sdl.SDL_RenderClear(self.ptr) < 0) {
             log.err("clear renderer failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;

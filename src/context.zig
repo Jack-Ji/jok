@@ -201,7 +201,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
     });
 
     return struct {
-        var debug_allocator = DebugAllocatorType.init;
+        var debug_allocator: DebugAllocatorType = .init;
         const max_costs_num = 300;
         const CostDataType = jok.utils.ring.Ring(f32);
 

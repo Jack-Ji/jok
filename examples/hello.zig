@@ -121,7 +121,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                     easing.easeColor,
                     1,
                     .{ .r = 0, .g = 0, .b = 0, .a = 0 },
-                    jok.Color.white,
+                    .white,
                     .{},
                 );
             } else if (k.scancode == .f3) {
@@ -143,7 +143,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
     if (show_stats) ctx.displayStats(.{});
 
     imgui.setNextWindowPos(.{ .x = 50, .y = 200 });
@@ -189,10 +189,10 @@ pub fn draw(ctx: jok.Context) !void {
             );
             try b.rectFilledMultiColor(
                 .{ .x = -10, .y = -10, .width = 20, .height = 20 },
-                jok.Color.white,
-                jok.Color.red,
-                jok.Color.green,
-                jok.Color.blue,
+                .white,
+                .red,
+                .green,
+                .blue,
                 .{},
             );
         }
@@ -206,7 +206,7 @@ pub fn draw(ctx: jok.Context) !void {
             .{
                 .atlas = atlas,
                 .pos = .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
-                .tint_color = jok.Color.red,
+                .tint_color = .red,
             },
         );
         const area = try atlas.getBoundingBox(
@@ -288,7 +288,7 @@ pub fn draw(ctx: jok.Context) !void {
                     .width = screenshot_size.x,
                     .height = screenshot_size.y,
                 },
-                jok.Color.rgba(255, 255, 255, 200),
+                .rgba(255, 255, 255, 200),
                 .{},
             );
             try b.imageRounded(

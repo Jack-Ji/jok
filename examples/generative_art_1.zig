@@ -16,7 +16,7 @@ const ntex = 50;
 const render_interval = 2.0 / @as(f32, ntex);
 var targets = std.DoublyLinkedList(jok.Texture){};
 var render_time: f32 = render_interval;
-var clear_color: ?jok.Color = jok.Color.rgba(0, 0, 0, 0);
+var clear_color: jok.Color = .none;
 
 pub fn init(ctx: jok.Context) !void {
     batchpool = try @TypeOf(batchpool).init(ctx);
@@ -44,9 +44,9 @@ pub fn draw(ctx: jok.Context) !void {
     if (render_time < 0) {
         render_time = render_interval;
         targets.append(targets.popFirst().?);
-        clear_color = jok.Color.rgba(0, 0, 0, 0);
+        clear_color = .rgba(0, 0, 0, 0);
     } else {
-        clear_color = null;
+        clear_color = .none;
     }
 
     // Render to last texture
@@ -77,7 +77,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .{ .x = csz.getWidthFloat() / 2, .y = csz.getHeightFloat() / 2 },
                 std.math.degreesToRadians(rot + 360.0 * @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(ncircle))),
             );
-            try b.circleFilled(.{ .center = .{ .x = 0, .y = 0 }, .radius = 10 }, jok.Color.green, .{});
+            try b.circleFilled(.{ .center = .{ .x = 0, .y = 0 }, .radius = 10 }, .green, .{});
         }
     }
 
@@ -91,7 +91,7 @@ pub fn draw(ctx: jok.Context) !void {
             jok.utils.math.linearMap(@floatFromInt(idx), 0, ntex, 0, 255),
         ));
         try b.image(n.data, .{ .x = 0, .y = 0 }, .{
-            .tint_color = jok.Color.rgba(255, 255, 255, c),
+            .tint_color = .rgba(255, 255, 255, c),
         });
         idx += 1;
         node = n.next;

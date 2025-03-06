@@ -94,7 +94,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
 
     var b = try batchpool.new(.{});
     defer b.submit();
@@ -119,7 +119,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .atlas = atlas,
             .pos = .{ .x = 10, .y = 100 },
-            .tint_color = if (sfx1.isPlaying()) jok.Color.red else jok.Color.white,
+            .tint_color = if (sfx1.isPlaying()) .red else .white,
         },
     );
     try b.text(
@@ -128,7 +128,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .atlas = atlas,
             .pos = .{ .x = 200, .y = 150 },
-            .tint_color = if (sfx2.isPlaying()) jok.Color.magenta else jok.Color.white,
+            .tint_color = if (sfx2.isPlaying()) .magenta else .white,
         },
     );
 }

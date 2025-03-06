@@ -167,7 +167,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
     if (imgui.begin("Control Panel", .{})) {
@@ -226,7 +226,7 @@ pub fn draw(ctx: jok.Context) !void {
     var b = try batchpool.new(.{
         .camera = camera,
         .triangle_sort = .simple,
-        .wireframe_color = if (wireframe) jok.Color.green else null,
+        .wireframe_color = if (wireframe) .green else null,
     });
     defer b.submit();
     try b.shape(
@@ -234,7 +234,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = jok.Color.rgb(130, 160, 190),
+            .color = .rgb(130, 160, 190),
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -248,7 +248,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = jok.Color.red,
+            .color = .red,
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -261,7 +261,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = jok.Color.green,
+            .color = .green,
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -274,7 +274,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = jok.Color.green,
+            .color = .green,
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -287,7 +287,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = jok.Color.green,
+            .color = .green,
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -304,7 +304,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = jok.Color.blue,
+            .color = .blue,
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -322,7 +322,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .cull_faces = false,
             .lighting = lighting_opt,
-            .color = jok.Color.magenta,
+            .color = .magenta,
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -340,7 +340,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{
             .cull_faces = false,
             .lighting = lighting_opt,
-            .color = jok.Color.yellow,
+            .color = .yellow,
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -354,7 +354,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = jok.Color.white,
+            .color = .white,
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -368,7 +368,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = jok.Color.rgb(150, 160, 190),
+            .color = .rgb(150, 160, 190),
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -382,7 +382,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = jok.Color.rgb(180, 170, 190),
+            .color = .rgb(180, 170, 190),
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -396,7 +396,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = jok.Color.rgb(180, 70, 90),
+            .color = .rgb(180, 70, 90),
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -410,7 +410,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = jok.Color.rgb(230, 230, 50),
+            .color = .rgb(230, 230, 50),
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -424,7 +424,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = jok.Color.yellow,
+            .color = .yellow,
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -434,7 +434,7 @@ pub fn draw(ctx: jok.Context) !void {
             subdivided_sphere,
             null,
             .{
-                .color = jok.Color.rgb(
+                .color = .rgb(
                     @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[0] * 255),
                     @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[1] * 255),
                     @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[2] * 255),
@@ -447,7 +447,7 @@ pub fn draw(ctx: jok.Context) !void {
             subdivided_sphere,
             null,
             .{
-                .color = jok.Color.rgb(
+                .color = .rgb(
                     @intFromFloat(lighting_opt.?.lights[1].point.diffuse[0] * 255),
                     @intFromFloat(lighting_opt.?.lights[1].point.diffuse[1] * 255),
                     @intFromFloat(lighting_opt.?.lights[1].point.diffuse[2] * 255),
@@ -466,7 +466,7 @@ pub fn draw(ctx: jok.Context) !void {
             cone,
             null,
             .{
-                .color = jok.Color.rgba(
+                .color = .rgba(
                     @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[0] * 255),
                     @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[1] * 255),
                     @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[2] * 255),
@@ -484,12 +484,11 @@ pub fn draw(ctx: jok.Context) !void {
         imgui.format(
             "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
             .{
-                // zig fmt: off
-            camera.position[0],camera.position[1],camera.position[2],
-            camera.dir[0],camera.dir[1],camera.dir[2],
-        },
+                camera.position[0], camera.position[1], camera.position[2],
+                camera.dir[0],      camera.dir[1],      camera.dir[2],
+            },
         ),
-        .{.pos=.{ .x = 20, .y = 28 }},
+        .{ .pos = .{ .x = 20, .y = 28 } },
     );
 }
 

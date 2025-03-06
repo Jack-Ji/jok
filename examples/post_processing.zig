@@ -134,7 +134,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(jok.Color.white);
+    try ctx.renderer().clear(.white);
 
     var b = try batchpool.new(.{ .camera = camera });
     defer b.submit();

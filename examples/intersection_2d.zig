@@ -33,12 +33,12 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
 
     var tri_color = jok.Color.white;
     var tri_thickness = @as(f32, 2);
     if (tri0.translate(offset0.x, offset0.y).intersectTriangle(tri1.translate(offset1.x, offset1.y))) {
-        tri_color = jok.Color.red;
+        tri_color = .red;
         tri_thickness = 5;
     }
     var rect_color = jok.Color.white;
@@ -46,7 +46,7 @@ pub fn draw(ctx: jok.Context) !void {
     const rect0 = tri0.translate(offset0.x, offset0.y).boundingRect();
     const rect1 = tri1.translate(offset1.x, offset1.y).boundingRect();
     if (rect0.hasIntersection(rect1)) {
-        rect_color = jok.Color.red;
+        rect_color = .red;
         rect_thickness = 3;
     }
 

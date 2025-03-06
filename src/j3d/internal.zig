@@ -272,7 +272,7 @@ pub inline fn clipTriangle(
                 zmath.normalize3(zmath.lerp(n1, n2, lerp))
             else
                 null;
-            var lerp_color: ?jok.Color = if (tri_colors) |_| jok.Color.rgba(
+            var lerp_color: ?jok.Color = if (tri_colors) |_| .rgba(
                 @intFromFloat(@as(f32, @floatFromInt(c1.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c1.r))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c1.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c1.g))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c1.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c1.b))) * lerp),
@@ -307,7 +307,7 @@ pub inline fn clipTriangle(
                 zmath.normalize3(zmath.lerp(n0, n2, lerp))
             else
                 null;
-            lerp_color = if (tri_colors != null) jok.Color.rgba(
+            lerp_color = if (tri_colors != null) .rgba(
                 @intFromFloat(@as(f32, @floatFromInt(c0.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c0.r))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c0.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c0.g))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c0.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c0.b))) * lerp),
@@ -332,7 +332,7 @@ pub inline fn clipTriangle(
             zmath.normalize3(zmath.lerp(n0, n1, lerp))
         else
             null;
-        var lerp_color: ?jok.Color = if (tri_colors != null) jok.Color.rgba(
+        var lerp_color: ?jok.Color = if (tri_colors != null) .rgba(
             @intFromFloat(@as(f32, @floatFromInt(c0.r)) + (@as(f32, @floatFromInt(c1.r)) - @as(f32, @floatFromInt(c0.r))) * lerp),
             @intFromFloat(@as(f32, @floatFromInt(c0.g)) + (@as(f32, @floatFromInt(c1.g)) - @as(f32, @floatFromInt(c0.g))) * lerp),
             @intFromFloat(@as(f32, @floatFromInt(c0.b)) + (@as(f32, @floatFromInt(c1.b)) - @as(f32, @floatFromInt(c0.b))) * lerp),
@@ -358,7 +358,7 @@ pub inline fn clipTriangle(
                 zmath.normalize3(zmath.lerp(n1, n2, lerp))
             else
                 null;
-            lerp_color = if (tri_colors != null) jok.Color.rgba(
+            lerp_color = if (tri_colors != null) .rgba(
                 @intFromFloat(@as(f32, @floatFromInt(c1.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c1.r))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c1.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c1.g))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c1.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c1.b))) * lerp),
@@ -399,7 +399,7 @@ pub inline fn clipTriangle(
                 zmath.normalize3(zmath.lerp(n0, n2, lerp))
             else
                 null;
-            lerp_color = if (tri_colors != null) jok.Color.rgba(
+            lerp_color = if (tri_colors != null) .rgba(
                 @intFromFloat(@as(f32, @floatFromInt(c0.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c0.r))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c0.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c0.g))) * lerp),
                 @intFromFloat(@as(f32, @floatFromInt(c0.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c0.b))) * lerp),

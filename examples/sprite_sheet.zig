@@ -52,7 +52,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(.rgb(77, 77, 77));
 
     const sprite = sheet2.getSpriteByName("ogre").?;
     var b = try batchpool.new(.{ .depth_sort = .back_to_forth });
@@ -71,7 +71,7 @@ pub fn draw(ctx: jok.Context) !void {
     });
     try b.sprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
-        .tint_color = jok.Color.rgb(255, 0, 0),
+        .tint_color = .rgb(255, 0, 0),
         .scale = .{
             .x = 4 + 2 * @cos(ctx.seconds()),
             .y = 4 + 2 * @sin(ctx.seconds()),

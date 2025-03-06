@@ -22,7 +22,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
 
     if (imgui.begin("Main Control", .{ .flags = .{ .always_auto_resize = true } })) {
         if (imgui.button("Reload Hot Plugin", .{})) {

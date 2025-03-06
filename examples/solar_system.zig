@@ -46,7 +46,7 @@ pub fn init(ctx: jok.Context) !void {
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.6)),
             .mesh = try Mesh.fromShape(ctx.allocator(), sphere, .{}),
-            .color = jok.Color.rgb(255, 255, 0),
+            .color = .rgb(255, 255, 0),
             .disable_lighting = true,
         },
     });
@@ -54,14 +54,14 @@ pub fn init(ctx: jok.Context) !void {
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.2)),
             .mesh = try Mesh.fromShape(ctx.allocator(), sphere, .{}),
-            .color = jok.Color.rgb(0, 0, 255),
+            .color = .rgb(0, 0, 255),
         },
     });
     moon = try Scene.Object.create(ctx.allocator(), .{
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.06)),
             .mesh = try Mesh.fromShape(ctx.allocator(), sphere, .{}),
-            .color = jok.Color.rgb(192, 192, 192),
+            .color = .rgb(192, 192, 192),
         },
     });
     try scene.root.addChild(sun);
@@ -114,7 +114,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(jok.Color.rgb(80, 80, 80));
+    try ctx.renderer().clear(.rgb(80, 80, 80));
 
     var lighting_opt = j3d.lighting.LightingOption{};
     lighting_opt.lights[0] = j3d.lighting.Light{

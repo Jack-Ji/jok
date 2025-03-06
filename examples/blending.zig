@@ -59,12 +59,12 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(jok.Color.rgb(170, 170, 170));
+    try ctx.renderer().clear(.rgb(170, 170, 170));
 
     // draw dest
     var batch = try batchpool.new(.{
         .offscreen_target = target,
-        .offscreen_clear_color = jok.Color.none,
+        .offscreen_clear_color = .none,
     });
     for (blends) |b| {
         try batch.image(dst, b.pos, .{});
@@ -95,14 +95,14 @@ pub fn draw(ctx: jok.Context) !void {
                 .{
                     .atlas = try font.DebugFont.getAtlas(ctx, 16),
                     .pos = .{ .x = b.pos.x, .y = b.pos.y + 112 },
-                    .tint_color = jok.Color.white,
+                    .tint_color = .white,
                 },
             );
         }
 
         try batch.rectRounded(
             .{ .x = 20, .y = 20, .width = 760, .height = 160 },
-            jok.Color.red,
+            .red,
             .{},
         );
 
@@ -112,13 +112,13 @@ pub fn draw(ctx: jok.Context) !void {
             .{
                 .atlas = try font.DebugFont.getAtlas(ctx, 20),
                 .pos = .{ .x = 520, .y = 155 },
-                .tint_color = jok.Color.red,
+                .tint_color = .red,
             },
         );
 
         try batch.rectRounded(
             .{ .x = 100, .y = 190, .width = 600, .height = 530 },
-            jok.Color.red,
+            .red,
             .{},
         );
 
@@ -128,7 +128,7 @@ pub fn draw(ctx: jok.Context) !void {
             .{
                 .atlas = try font.DebugFont.getAtlas(ctx, 20),
                 .pos = .{ .x = 370, .y = 690 },
-                .tint_color = jok.Color.red,
+                .tint_color = .red,
             },
         );
     }

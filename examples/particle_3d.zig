@@ -22,16 +22,16 @@ const emitter1 = j3d.ParticleSystem.Effect.FireEmitter(
     20,
     50,
     3,
-    jok.Color.red,
-    jok.Color.yellow,
+    .red,
+    .yellow,
     1.75,
 );
 const emitter2 = j3d.ParticleSystem.Effect.FireEmitter(
     20,
     50,
     3,
-    jok.Color.black,
-    jok.Color.white,
+    .black,
+    .white,
     2.75,
 );
 
@@ -141,7 +141,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
     ctx.displayStats(.{});
 
     if (imgui.begin("Control", .{})) {
@@ -165,7 +165,7 @@ pub fn draw(ctx: jok.Context) !void {
         plane,
         null,
         .{
-            .color = jok.Color.rgba(100, 100, 100, 200),
+            .color = .rgba(100, 100, 100, 200),
             .lighting = .{},
         },
     );

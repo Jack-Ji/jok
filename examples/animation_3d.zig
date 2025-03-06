@@ -133,7 +133,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(jok.Color.rgb(77, 77, 77));
+    try ctx.renderer().clear(.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
     if (imgui.begin("Control Panel", .{})) {
@@ -232,7 +232,7 @@ pub fn draw(ctx: jok.Context) !void {
     var b = try batchpool.new(.{
         .camera = camera,
         .triangle_sort = .simple,
-        .wireframe_color = if (wireframe) jok.Color.green else null,
+        .wireframe_color = if (wireframe) .green else null,
     });
     defer b.submit();
     b.scale(3, 3, 3);
@@ -261,7 +261,7 @@ pub fn draw(ctx: jok.Context) !void {
         try b.animation(
             a,
             .{
-                .color = jok.Color.cyan,
+                .color = .cyan,
                 .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
                 .playtime = animation_playtime2,
@@ -271,7 +271,7 @@ pub fn draw(ctx: jok.Context) !void {
         try b.mesh(
             mesh2,
             .{
-                .color = jok.Color.cyan,
+                .color = .cyan,
                 .shading_method = @enumFromInt(shading_method),
                 .lighting = if (lighting) .{} else null,
             },

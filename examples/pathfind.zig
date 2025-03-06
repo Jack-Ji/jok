@@ -124,7 +124,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
 
     var b = try batchpool.new(.{});
     defer b.submit();
@@ -136,7 +136,7 @@ pub fn draw(ctx: jok.Context) !void {
                     .y = @floatFromInt(cell_size * i),
                     .width = cell_size,
                     .height = cell_size,
-                }, jok.Color.white, .{});
+                }, .white, .{});
             }
         }
     }
@@ -150,7 +150,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .y = @floatFromInt(cell_size * y),
                 .width = cell_size,
                 .height = cell_size,
-            }, jok.Color.rgb(200, 255, 200), .{});
+            }, .rgb(200, 255, 200), .{});
         }
     }
     {
@@ -162,7 +162,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .y = @floatFromInt(cell_size * y + cell_size / 2),
             },
             .radius = 5,
-        }, jok.Color.blue, .{});
+        }, .blue, .{});
     }
     if (path) |p| {
         const dst = p.items[p.items.len - 1];
@@ -172,7 +172,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .y = @floatFromInt(dst / graph_width * cell_size + cell_size / 2),
             },
             .radius = 5,
-        }, jok.Color.red, .{});
+        }, .red, .{});
 
         if (source != dst) {
             source_update_time -= ctx.deltaSeconds();
@@ -195,7 +195,7 @@ pub fn draw(ctx: jok.Context) !void {
                         .x = @floatFromInt(cell_size * x + cell_size / 2),
                         .y = @floatFromInt(cell_size * y + cell_size / 2),
                     },
-                    jok.Color.magenta,
+                    .magenta,
                     .{},
                 );
                 last_x = x;

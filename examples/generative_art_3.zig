@@ -28,7 +28,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
 
     const fb_size = ctx.getCanvasSize();
     const rect = jok.Rectangle{
@@ -63,7 +63,7 @@ pub fn draw(ctx: jok.Context) !void {
             .x = fb_size.getWidthFloat() / 4,
             .y = fb_size.getHeightFloat() / 4,
         });
-        try b.rect(rect, jok.Color.white, .{});
+        try b.rect(rect, .white, .{});
 
         // top-right
         b.trs = transform.rotateByOrigin(angle_step * step)
@@ -71,7 +71,7 @@ pub fn draw(ctx: jok.Context) !void {
             .x = fb_size.getWidthFloat() * 3 / 4,
             .y = fb_size.getHeightFloat() / 4,
         });
-        try b.rect(rect, jok.Color.white, .{});
+        try b.rect(rect, .white, .{});
 
         // bottom-right
         b.trs = transform.rotateByOrigin(-angle_step * step)
@@ -79,7 +79,7 @@ pub fn draw(ctx: jok.Context) !void {
             .x = fb_size.getWidthFloat() * 3 / 4,
             .y = fb_size.getHeightFloat() * 3 / 4,
         });
-        try b.rect(rect, jok.Color.white, .{});
+        try b.rect(rect, .white, .{});
 
         // bottom-left
         b.trs = transform.rotateByOrigin(angle_step * step)
@@ -87,7 +87,7 @@ pub fn draw(ctx: jok.Context) !void {
             .x = fb_size.getWidthFloat() / 4,
             .y = fb_size.getHeightFloat() * 3 / 4,
         });
-        try b.rect(rect, jok.Color.white, .{});
+        try b.rect(rect, .white, .{});
     }
 }
 

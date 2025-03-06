@@ -60,7 +60,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
 
     const mouse = jok.io.getMouseState();
     const mouse_pos_in_iso_space = iso_transform.transformToIso(mouse.pos);
@@ -77,7 +77,7 @@ pub fn draw(ctx: jok.Context) !void {
             if (selected_x == @as(isize, @intCast(x)) and
                 selected_y == @as(isize, @intCast(y)))
             {
-                tint_color = jok.Color.rgb(120, 99, 50);
+                tint_color = .rgb(120, 99, 50);
             }
 
             const tile = map[y][x];

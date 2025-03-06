@@ -75,7 +75,7 @@ fn scene2d(ctx: jok.Context) !void {
 
 fn scene3d(ctx: jok.Context) !void {
     var b = try state.batchpool_3d.new(.{
-        .wireframe_color = jok.Color.green,
+        .wireframe_color = .green,
     });
     defer b.submit();
 

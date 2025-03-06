@@ -75,7 +75,7 @@ pub fn update(ctx: jok.Context) !void {
 
 pub fn draw(ctx: jok.Context) !void {
     // No need at all
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
 
     imgui.setNextWindowPos(.{ .x = 20.0, .y = 20.0, .cond = .first_use_ever });
     imgui.setNextWindowSize(.{ .w = -1.0, .h = -1.0, .cond = .first_use_ever });

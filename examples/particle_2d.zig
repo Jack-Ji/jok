@@ -15,16 +15,16 @@ const emitter1 = j2d.ParticleSystem.Effect.FireEmitter(
     50,
     200,
     3,
-    jok.Color.red,
-    jok.Color.yellow,
+    .red,
+    .yellow,
     2.75,
 );
 const emitter2 = j2d.ParticleSystem.Effect.FireEmitter(
     50,
     200,
     3,
-    jok.Color.red,
-    jok.Color.green,
+    .red,
+    .green,
     2.75,
 );
 
@@ -95,7 +95,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
     ctx.displayStats(.{});
 
     var b = try batchpool.new(.{ .blend_mode = .additive });

@@ -40,7 +40,7 @@ pub fn draw(ctx: jok.Context) !void {
         if (l.tile_layer.getTileByPos(mouse_pos)) |t| {
             try b.rectFilled(
                 t.rect,
-                jok.Color.rgba(0, 255, 255, 200),
+                .rgba(0, 255, 255, 200),
                 .{},
             );
             break;

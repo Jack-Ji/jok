@@ -27,7 +27,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
 
     const statechange = math.sin(ctx.seconds()) * 0.2;
     const scale = ctx.getCanvasSize().getHeightFloat() / 4;

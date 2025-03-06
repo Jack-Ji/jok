@@ -1223,14 +1223,14 @@ inline fn getExternalFileContent(
 inline fn parseColor(s: []const u8) !jok.Color {
     return switch (s.len) {
         // #RRGGBB
-        7 => jok.Color.rgb(
+        7 => .rgb(
             try std.fmt.parseInt(u8, s[1..3], 16),
             try std.fmt.parseInt(u8, s[3..5], 16),
             try std.fmt.parseInt(u8, s[5..7], 16),
         ),
 
         // #AARRGGBB
-        9 => jok.Color.rgba(
+        9 => .rgba(
             try std.fmt.parseInt(u8, s[3..5], 16),
             try std.fmt.parseInt(u8, s[5..7], 16),
             try std.fmt.parseInt(u8, s[7..9], 16),

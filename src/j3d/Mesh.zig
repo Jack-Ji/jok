@@ -727,14 +727,14 @@ fn loadNodeTree(
                         assert(accessor.component_type == .r_32f);
                         if (accessor.type == .vec3) {
                             const slice = @as([*]const [3]f32, @ptrFromInt(data_addr))[0..num_vertices];
-                            for (slice) |c| try sm.colors.append(jok.Color.rgb(
+                            for (slice) |c| try sm.colors.append(.rgb(
                                 @intFromFloat(255 * c[0]),
                                 @intFromFloat(255 * c[1]),
                                 @intFromFloat(255 * c[2]),
                             ));
                         } else if (accessor.type == .vec4) {
                             const slice = @as([*]const [4]f32, @ptrFromInt(data_addr))[0..num_vertices];
-                            for (slice) |c| try sm.colors.append(jok.Color.rgba(
+                            for (slice) |c| try sm.colors.append(.rgba(
                                 @intFromFloat(255 * c[0]),
                                 @intFromFloat(255 * c[1]),
                                 @intFromFloat(255 * c[2]),

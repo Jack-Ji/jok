@@ -34,7 +34,7 @@ pub fn init(ctx: jok.Context) !void {
                     .height = @floatFromInt(cell_size),
                 },
                 .alive = alive,
-                .color = if (alive) jok.Color.white else jok.Color.black,
+                .color = if (alive) .white else .black,
             };
         }
     }
@@ -76,7 +76,7 @@ pub fn update(ctx: jok.Context) !void {
                 switch (alive_neighbour) {
                     0, 1, 4, 5, 6, 7, 8 => {
                         next[_y][_x].alive = false;
-                        next[_y][_x].color = jok.Color.black;
+                        next[_y][_x].color = .black;
                     },
                     2 => {
                         // nothing to do here
@@ -84,7 +84,7 @@ pub fn update(ctx: jok.Context) !void {
                     3 => {
                         if (!c.alive) {
                             next[_y][_x].alive = true;
-                            next[_y][_x].color = jok.Color.white;
+                            next[_y][_x].color = .white;
                         }
                     },
                     else => unreachable,
@@ -96,7 +96,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(null);
+    try ctx.renderer().clear(.none);
 
     var b = try batchpool.new(.{});
     defer b.submit();
