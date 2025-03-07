@@ -347,10 +347,13 @@ const CrossSDL = struct {
     }
 
     fn linkLinuxCross(sdk: *Sdk, exe: *Compile) !void {
-        const build_linux_sdl_stub = sdk.builder.addSharedLibrary(.{
-            .name = "SDL2",
+        const mod = sdk.builder.createModule(.{
             .target = exe.root_module.resolved_target.?,
             .optimize = exe.root_module.optimize.?,
+        });
+        const build_linux_sdl_stub = sdk.builder.addSharedLibrary(.{
+            .name = "SDL2",
+            .root_module = mod,
         });
         build_linux_sdl_stub.addAssemblyFile(sdk.prepare_sources.getStubFile());
         exe.linkLibrary(build_linux_sdl_stub);
