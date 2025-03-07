@@ -91,7 +91,7 @@ export fn draw(ctx: *const jok.Context) void {
     imgui.setNextWindowPos(.{ .x = 500, .y = 400, .cond = .once });
     imgui.setNextWindowSize(.{ .w = 200, .h = 100 });
     if (imgui.begin("I'm Hot Plugin", .{})) {
-        imgui.text("Seconds: {d}", .{ctx.seconds()});
+        imgui.text("Seconds: {d:.2}", .{ctx.seconds()});
         imgui.separator();
     }
     imgui.end();

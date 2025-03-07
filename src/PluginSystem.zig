@@ -62,7 +62,7 @@ pub fn register(self: *Self, ctx: jok.Context, name: []const u8, path: []const u
     if (self.plugins.contains(name)) return error.NameCollision;
 
     const stat = try std.fs.cwd().statFile(path);
-    const loaded = try loadLibrary(path, hot_reload);
+    const loaded = try loadLibrary(path);
 
     loaded.init_fn(&ctx);
     errdefer loaded.deinit_fn(&ctx);
@@ -117,7 +117,7 @@ pub fn update(self: *Self, ctx: jok.Context) void {
             const mem = kv.value_ptr.get_mem_fn();
             kv.value_ptr.lib.close();
 
-            const loaded = loadLibrary(kv.value_ptr.path, kv.value_ptr.hot_reloading) catch |e| {
+            const loaded = loadLibrary(kv.value_ptr.path) catch |e| {
                 log.err("Load library {s} failed: {}", .{ kv.value_ptr.path, e });
                 continue;
             };
@@ -149,11 +149,11 @@ pub fn draw(self: *Self, ctx: jok.Context) void {
 
 pub fn forceReload(self: *Self, name: []const u8) !void {
     if (self.plugins.getPtr(name)) |v| {
-        const mem = if (v.hot_reloading) v.get_mem_fn() else null;
+        const mem = v.get_mem_fn();
         v.lib.close();
 
-        const loaded = try loadLibrary(v.path, v.hot_reloading);
-        if (v.hot_reloading) loaded.reload_fn(mem);
+        const loaded = try loadLibrary(v.path);
+        loaded.reload_fn(mem);
         v.lib = loaded.lib;
         v.init_fn = loaded.init_fn;
         v.deinit_fn = loaded.deinit_fn;
@@ -169,7 +169,7 @@ pub fn forceReload(self: *Self, name: []const u8) !void {
     return error.NameNotExist;
 }
 
-fn loadLibrary(path: []const u8, hot_reload: bool) !struct {
+fn loadLibrary(path: []const u8) !struct {
     lib: DynLib,
 
     init_fn: InitFn,
@@ -196,7 +196,7 @@ fn loadLibrary(path: []const u8, hot_reload: bool) !struct {
         .event_fn = event_fn,
         .update_fn = update_fn,
         .draw_fn = draw_fn,
-        .get_mem_fn = if (hot_reload) get_mem_fn else undefined,
-        .reload_fn = if (hot_reload) reload_fn else undefined,
+        .get_mem_fn = get_mem_fn,
+        .reload_fn = reload_fn,
     };
 }
