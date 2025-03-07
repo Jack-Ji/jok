@@ -30,8 +30,8 @@ pub const Plugin = struct {
     event_fn: EventFn,
     update_fn: UpdateFn,
     draw_fn: DrawFn,
-    get_mem_fn: GetMemoryFn,
-    reload_fn: ReloadMemoryFn,
+    get_memory_fn: GetMemoryFn,
+    reload_memory_fn: ReloadMemoryFn,
 };
 
 allocator: std.mem.Allocator,
@@ -78,8 +78,8 @@ pub fn register(self: *Self, ctx: jok.Context, name: []const u8, path: []const u
         .event_fn = loaded.event_fn,
         .update_fn = loaded.update_fn,
         .draw_fn = loaded.draw_fn,
-        .get_mem_fn = loaded.get_mem_fn,
-        .reload_fn = loaded.reload_fn,
+        .get_memory_fn = loaded.get_memory_fn,
+        .reload_memory_fn = loaded.reload_memory_fn,
     });
 
     log.info(
@@ -114,14 +114,14 @@ pub fn update(self: *Self, ctx: jok.Context) void {
         // Do hot-reload checking
         const stat = std.fs.cwd().statFile(kv.value_ptr.path) catch continue;
         if (stat.mtime != kv.value_ptr.last_modify_time) {
-            const mem = kv.value_ptr.get_mem_fn();
+            const mem = kv.value_ptr.get_memory_fn();
             kv.value_ptr.lib.close();
 
             const loaded = loadLibrary(kv.value_ptr.path) catch |e| {
                 log.err("Load library {s} failed: {}", .{ kv.value_ptr.path, e });
-                continue;
+                @panic("unreachable");
             };
-            loaded.reload_fn(mem);
+            loaded.reload_memory_fn(mem);
             kv.value_ptr.lib = loaded.lib;
             kv.value_ptr.last_modify_time = stat.mtime;
             kv.value_ptr.init_fn = loaded.init_fn;
@@ -129,8 +129,8 @@ pub fn update(self: *Self, ctx: jok.Context) void {
             kv.value_ptr.event_fn = loaded.event_fn;
             kv.value_ptr.update_fn = loaded.update_fn;
             kv.value_ptr.draw_fn = loaded.draw_fn;
-            kv.value_ptr.get_mem_fn = loaded.get_mem_fn;
-            kv.value_ptr.reload_fn = loaded.reload_fn;
+            kv.value_ptr.get_memory_fn = loaded.get_memory_fn;
+            kv.value_ptr.reload_memory_fn = loaded.reload_memory_fn;
             kv.value_ptr.version += 1;
             log.info(
                 "Successfully reloaded library {s}, version {d}",
@@ -149,19 +149,22 @@ pub fn draw(self: *Self, ctx: jok.Context) void {
 
 pub fn forceReload(self: *Self, name: []const u8) !void {
     if (self.plugins.getPtr(name)) |v| {
-        const mem = v.get_mem_fn();
+        const mem = v.get_memory_fn();
         v.lib.close();
 
-        const loaded = try loadLibrary(v.path);
-        loaded.reload_fn(mem);
+        const loaded = loadLibrary(v.path) catch |e| {
+            log.err("Load library {s} failed: {}", .{ v.path, e });
+            @panic("unreachable");
+        };
+        loaded.reload_memory_fn(mem);
         v.lib = loaded.lib;
         v.init_fn = loaded.init_fn;
         v.deinit_fn = loaded.deinit_fn;
         v.event_fn = loaded.event_fn;
         v.update_fn = loaded.update_fn;
         v.draw_fn = loaded.draw_fn;
-        v.get_mem_fn = loaded.get_mem_fn;
-        v.reload_fn = loaded.reload_fn;
+        v.get_memory_fn = loaded.get_memory_fn;
+        v.reload_memory_fn = loaded.reload_memory_fn;
         v.version += 1;
         log.info("Successfully reloaded library {s}, version {d}", .{ v.path, v.version });
         return;
@@ -177,8 +180,8 @@ fn loadLibrary(path: []const u8) !struct {
     event_fn: EventFn,
     update_fn: UpdateFn,
     draw_fn: DrawFn,
-    get_mem_fn: GetMemoryFn,
-    reload_fn: ReloadMemoryFn,
+    get_memory_fn: GetMemoryFn,
+    reload_memory_fn: ReloadMemoryFn,
 } {
     var lib = try DynLib.open(path);
     const init_fn = lib.lookup(InitFn, "init").?;
@@ -186,8 +189,8 @@ fn loadLibrary(path: []const u8) !struct {
     const event_fn = lib.lookup(EventFn, "event").?;
     const update_fn = lib.lookup(UpdateFn, "update").?;
     const draw_fn = lib.lookup(DrawFn, "draw").?;
-    const get_mem_fn = lib.lookup(GetMemoryFn, "get_memory").?;
-    const reload_fn = lib.lookup(ReloadMemoryFn, "reload_memory").?;
+    const get_memory_fn = lib.lookup(GetMemoryFn, "get_memory").?;
+    const reload_memory_fn = lib.lookup(ReloadMemoryFn, "reload_memory").?;
 
     return .{
         .lib = lib,
@@ -196,7 +199,7 @@ fn loadLibrary(path: []const u8) !struct {
         .event_fn = event_fn,
         .update_fn = update_fn,
         .draw_fn = draw_fn,
-        .get_mem_fn = get_mem_fn,
-        .reload_fn = reload_fn,
+        .get_memory_fn = get_memory_fn,
+        .reload_memory_fn = reload_memory_fn,
     };
 }
