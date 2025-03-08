@@ -138,6 +138,7 @@ pub fn build(b: *Build) void {
     install_exe.step.dependOn(&install_plugin.step);
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(&install_exe.step);
+    run_cmd.step.dependOn(&assets_install.step);
     run_cmd.cwd = b.path("zig-out/bin");
     b.step("plugin_hot", "recompile plugin_hot").dependOn(&install_plugin_hot.step);
     b.step("plugin", "recompile plugin").dependOn(&install_plugin.step);
@@ -145,6 +146,9 @@ pub fn build(b: *Build) void {
         b.step("hotreload", "compile & run example hotreload").dependOn(&run_cmd.step)
     else
         b.step("hotreload", "compile example hotreload").dependOn(&install_exe.step);
+    if (skiped_examples.get("hotreload") == null) {
+        build_examples.dependOn(&install_exe.step);
+    }
 }
 
 pub const Dependency = struct {

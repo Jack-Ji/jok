@@ -62,7 +62,7 @@ pub fn register(self: *Self, ctx: jok.Context, name: []const u8, path: []const u
     if (self.plugins.contains(name)) return error.NameCollision;
 
     const stat = try std.fs.cwd().statFile(path);
-    const loaded = try loadLibrary(path);
+    const loaded = try self.loadLibrary(path);
 
     loaded.init_fn(&ctx);
     errdefer loaded.deinit_fn(&ctx);
@@ -117,7 +117,7 @@ pub fn update(self: *Self, ctx: jok.Context) void {
             const mem = kv.value_ptr.get_memory_fn();
             kv.value_ptr.lib.close();
 
-            const loaded = loadLibrary(kv.value_ptr.path) catch |e| {
+            const loaded = self.loadLibrary(kv.value_ptr.path) catch |e| {
                 log.err("Load library {s} failed: {}", .{ kv.value_ptr.path, e });
                 @panic("unreachable");
             };
@@ -152,7 +152,7 @@ pub fn forceReload(self: *Self, name: []const u8) !void {
         const mem = v.get_memory_fn();
         v.lib.close();
 
-        const loaded = loadLibrary(v.path) catch |e| {
+        const loaded = self.loadLibrary(v.path) catch |e| {
             log.err("Load library {s} failed: {}", .{ v.path, e });
             @panic("unreachable");
         };
@@ -172,9 +172,8 @@ pub fn forceReload(self: *Self, name: []const u8) !void {
     return error.NameNotExist;
 }
 
-fn loadLibrary(path: []const u8) !struct {
+fn loadLibrary(self: *Self, path: []const u8) !struct {
     lib: DynLib,
-
     init_fn: InitFn,
     deinit_fn: DeinitFn,
     event_fn: EventFn,
@@ -183,7 +182,17 @@ fn loadLibrary(path: []const u8) !struct {
     get_memory_fn: GetMemoryFn,
     reload_memory_fn: ReloadMemoryFn,
 } {
-    var lib = try DynLib.open(path);
+    const lib_path = try std.fmt.allocPrint(self.allocator, "./jok.{s}", .{std.fs.path.basename(path)});
+    defer self.allocator.free(lib_path);
+
+    // Create temp library files
+    std.fs.cwd().deleteFile(lib_path) catch |e| {
+        if (e != error.FileNotFound) return e;
+    };
+    try std.fs.cwd().copyFile(path, std.fs.cwd(), lib_path, .{});
+
+    // Load library and lookup api
+    var lib = try DynLib.open(lib_path);
     const init_fn = lib.lookup(InitFn, "init").?;
     const deinit_fn = lib.lookup(DeinitFn, "deinit").?;
     const event_fn = lib.lookup(EventFn, "event").?;
