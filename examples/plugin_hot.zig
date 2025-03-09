@@ -57,8 +57,6 @@ export fn update(ctx: *const jok.Context) void {
 }
 
 fn scene2d(ctx: jok.Context) !void {
-    _ = ctx;
-
     var b = try state.batchpool_2d.new(.{});
     defer b.submit();
 
@@ -70,6 +68,8 @@ fn scene2d(ctx: jok.Context) !void {
     try b.sprite(state.sheet.getSpriteByName("ogre").?, .{
         .pos = .{ .x = 400, .y = 300 },
         .scale = .{ .x = 2, .y = 2 },
+        .anchor_point = .{ .x = 0.5, .y = 0.5 },
+        .rotate_degree = ctx.seconds() * 100,
     });
 }
 

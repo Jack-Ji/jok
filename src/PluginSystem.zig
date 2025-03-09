@@ -21,7 +21,7 @@ const ReloadMemoryFn = *const fn (mem: ?*const anyopaque) callconv(.C) void;
 
 pub const Plugin = struct {
     lib: DynLib,
-    path: []const u8,
+    origin_path: []const u8,
     last_modify_time: i128,
     version: u32,
     hot_reloading: bool,
@@ -34,10 +34,14 @@ pub const Plugin = struct {
     reload_memory_fn: ReloadMemoryFn,
 };
 
+const plugin_path = "./loaded_plugins";
+
 allocator: std.mem.Allocator,
 plugins: std.StringArrayHashMap(Plugin),
 
 pub fn create(allocator: std.mem.Allocator) !*Self {
+    try std.fs.cwd().deleteTree(plugin_path);
+    try std.fs.cwd().makeDir(plugin_path);
     const ps = try allocator.create(Self);
     ps.* = .{
         .allocator = allocator,
@@ -52,7 +56,7 @@ pub fn destroy(self: *Self, ctx: jok.Context) void {
         kv.value_ptr.deinit_fn(&ctx);
         kv.value_ptr.lib.close();
         self.allocator.free(kv.key_ptr.*);
-        self.allocator.free(kv.value_ptr.path);
+        self.allocator.free(kv.value_ptr.origin_path);
     }
     self.plugins.deinit();
     self.allocator.destroy(self);
@@ -61,16 +65,14 @@ pub fn destroy(self: *Self, ctx: jok.Context) void {
 pub fn register(self: *Self, ctx: jok.Context, name: []const u8, path: []const u8, hot_reload: bool) !void {
     if (self.plugins.contains(name)) return error.NameCollision;
 
-    const stat = try std.fs.cwd().statFile(path);
-    const loaded = try self.loadLibrary(path);
-
+    const loaded = try self.loadLibrary(path, 1);
     loaded.init_fn(&ctx);
     errdefer loaded.deinit_fn(&ctx);
 
     try self.plugins.put(try self.allocator.dupe(u8, name), .{
         .lib = loaded.lib,
-        .path = try self.allocator.dupe(u8, path),
-        .last_modify_time = stat.mtime,
+        .origin_path = try self.allocator.dupe(u8, path),
+        .last_modify_time = loaded.last_modify_time,
         .version = 1,
         .hot_reloading = hot_reload,
         .init_fn = loaded.init_fn,
@@ -94,7 +96,7 @@ pub fn unregister(self: *Self, ctx: jok.Context, name: []const u8) !void {
     kv.value.deinit_fn(&ctx);
     kv.value.lib.close();
     self.allocator.free(kv.key);
-    self.allocator.free(kv.value.path);
+    self.allocator.free(kv.value.origin_path);
 }
 
 pub fn event(self: Self, ctx: jok.Context, e: jok.Event) void {
@@ -112,30 +114,9 @@ pub fn update(self: *Self, ctx: jok.Context) void {
         if (!kv.value_ptr.hot_reloading) continue;
 
         // Do hot-reload checking
-        const stat = std.fs.cwd().statFile(kv.value_ptr.path) catch continue;
+        const stat = std.fs.cwd().statFile(kv.value_ptr.origin_path) catch continue;
         if (stat.mtime != kv.value_ptr.last_modify_time) {
-            const mem = kv.value_ptr.get_memory_fn();
-            kv.value_ptr.lib.close();
-
-            const loaded = self.loadLibrary(kv.value_ptr.path) catch |e| {
-                log.err("Load library {s} failed: {}", .{ kv.value_ptr.path, e });
-                @panic("unreachable");
-            };
-            loaded.reload_memory_fn(mem);
-            kv.value_ptr.lib = loaded.lib;
-            kv.value_ptr.last_modify_time = stat.mtime;
-            kv.value_ptr.init_fn = loaded.init_fn;
-            kv.value_ptr.deinit_fn = loaded.deinit_fn;
-            kv.value_ptr.event_fn = loaded.event_fn;
-            kv.value_ptr.update_fn = loaded.update_fn;
-            kv.value_ptr.draw_fn = loaded.draw_fn;
-            kv.value_ptr.get_memory_fn = loaded.get_memory_fn;
-            kv.value_ptr.reload_memory_fn = loaded.reload_memory_fn;
-            kv.value_ptr.version += 1;
-            log.info(
-                "Successfully reloaded library {s}, version {d}",
-                .{ kv.value_ptr.path, kv.value_ptr.version },
-            );
+            self.forceReload(kv.key_ptr.*) catch continue;
         }
     }
 }
@@ -149,15 +130,19 @@ pub fn draw(self: *Self, ctx: jok.Context) void {
 
 pub fn forceReload(self: *Self, name: []const u8) !void {
     if (self.plugins.getPtr(name)) |v| {
-        const mem = v.get_memory_fn();
-        v.lib.close();
-
-        const loaded = self.loadLibrary(v.path) catch |e| {
-            log.err("Load library {s} failed: {}", .{ v.path, e });
-            @panic("unreachable");
+        const loaded = self.loadLibrary(v.origin_path, v.version + 1) catch |e| {
+            log.err("Reload library {s} failed: {}", .{ v.origin_path, e });
+            return e;
         };
+
+        // Restore plugin's internal state
+        const mem = v.get_memory_fn();
         loaded.reload_memory_fn(mem);
+
+        // Update plugin info
+        v.lib.close();
         v.lib = loaded.lib;
+        v.last_modify_time = loaded.last_modify_time;
         v.init_fn = loaded.init_fn;
         v.deinit_fn = loaded.deinit_fn;
         v.event_fn = loaded.event_fn;
@@ -166,14 +151,15 @@ pub fn forceReload(self: *Self, name: []const u8) !void {
         v.get_memory_fn = loaded.get_memory_fn;
         v.reload_memory_fn = loaded.reload_memory_fn;
         v.version += 1;
-        log.info("Successfully reloaded library {s}, version {d}", .{ v.path, v.version });
+        log.info("Successfully reloaded library {s}, version {d}", .{ v.origin_path, v.version });
         return;
     }
     return error.NameNotExist;
 }
 
-fn loadLibrary(self: *Self, path: []const u8) !struct {
+fn loadLibrary(self: *Self, path: []const u8, version: u32) !struct {
     lib: DynLib,
+    last_modify_time: i128,
     init_fn: InitFn,
     deinit_fn: DeinitFn,
     event_fn: EventFn,
@@ -182,27 +168,30 @@ fn loadLibrary(self: *Self, path: []const u8) !struct {
     get_memory_fn: GetMemoryFn,
     reload_memory_fn: ReloadMemoryFn,
 } {
-    const lib_path = try std.fmt.allocPrint(self.allocator, "./jok.{s}", .{std.fs.path.basename(path)});
-    defer self.allocator.free(lib_path);
+    const stat = try std.fs.cwd().statFile(path);
+    const load_path = try std.fmt.allocPrint(
+        self.allocator,
+        "{s}/{s}.{d}",
+        .{ plugin_path, std.fs.path.basename(path), version },
+    );
+    defer self.allocator.free(load_path);
 
-    // Create temp library files
-    std.fs.cwd().deleteFile(lib_path) catch |e| {
-        if (e != error.FileNotFound) return e;
-    };
-    try std.fs.cwd().copyFile(path, std.fs.cwd(), lib_path, .{});
+    // Copy library to loading path
+    try std.fs.cwd().copyFile(path, std.fs.cwd(), load_path, .{});
 
     // Load library and lookup api
-    var lib = try DynLib.open(lib_path);
-    const init_fn = lib.lookup(InitFn, "init").?;
-    const deinit_fn = lib.lookup(DeinitFn, "deinit").?;
-    const event_fn = lib.lookup(EventFn, "event").?;
-    const update_fn = lib.lookup(UpdateFn, "update").?;
-    const draw_fn = lib.lookup(DrawFn, "draw").?;
-    const get_memory_fn = lib.lookup(GetMemoryFn, "get_memory").?;
-    const reload_memory_fn = lib.lookup(ReloadMemoryFn, "reload_memory").?;
+    var lib = try DynLib.open(load_path);
+    const init_fn = lib.lookup(InitFn, "init") orelse return error.LookupApiFailed;
+    const deinit_fn = lib.lookup(DeinitFn, "deinit") orelse return error.LookupApiFailed;
+    const event_fn = lib.lookup(EventFn, "event") orelse return error.LookupApiFailed;
+    const update_fn = lib.lookup(UpdateFn, "update") orelse return error.LookupApiFailed;
+    const draw_fn = lib.lookup(DrawFn, "draw") orelse return error.LookupApiFailed;
+    const get_memory_fn = lib.lookup(GetMemoryFn, "get_memory") orelse return error.LookupApiFailed;
+    const reload_memory_fn = lib.lookup(ReloadMemoryFn, "reload_memory") orelse return error.LookupApiFailed;
 
     return .{
         .lib = lib,
+        .last_modify_time = stat.mtime,
         .init_fn = init_fn,
         .deinit_fn = deinit_fn,
         .event_fn = event_fn,
