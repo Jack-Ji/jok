@@ -39,8 +39,9 @@ const GameState = struct {
 
 var state: *GameState = undefined;
 
-export fn init(ctx: *const jok.Context) void {
-    state = GameState.create(ctx.*) catch unreachable;
+export fn init(ctx: *const jok.Context) bool {
+    state = GameState.create(ctx.*) catch return false;
+    return true;
 }
 
 export fn deinit(ctx: *const jok.Context) void {
@@ -75,7 +76,7 @@ fn scene2d(ctx: jok.Context) !void {
 
 fn scene3d(ctx: jok.Context) !void {
     var b = try state.batchpool_3d.new(.{
-        .wireframe_color = .green,
+        .wireframe_color = .purple,
     });
     defer b.submit();
 

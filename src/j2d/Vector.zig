@@ -2,9 +2,8 @@ const std = @import("std");
 const math = std.math;
 const expectEqual = std.testing.expectEqual;
 const jok = @import("../jok.zig");
-const Self = @This();
-
 const Vec = @Vector(2, f32);
+const Self = @This();
 
 data: Vec,
 

@@ -2,8 +2,9 @@ const std = @import("std");
 const jok = @import("jok");
 const imgui = jok.imgui;
 
-export fn init(ctx: *const jok.Context) void {
+export fn init(ctx: *const jok.Context) bool {
     _ = ctx;
+    return true;
 }
 
 export fn deinit(ctx: *const jok.Context) void {

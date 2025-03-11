@@ -7,11 +7,20 @@ const Self = @This();
 const Error = error{
     NameCollision,
     NameNotExist,
+    InitFailed,
     LookupApiFailed,
     CallInitFailed,
 };
 
-const InitFn = *const fn (ctx: *const jok.Context) callconv(.C) void;
+/// Standard API for plugins
+/// init: Initialize the plugin, return true if success, false if failed
+/// deinit: Deinitialize the plugin
+/// event: Handle events
+/// update: Update the plugin
+/// draw: Draw the plugin
+/// get_memory: Get the memory of the plugin
+/// reload_memory: Reload the memory of the plugin
+const InitFn = *const fn (ctx: *const jok.Context) callconv(.C) bool;
 const DeinitFn = *const fn (ctx: *const jok.Context) callconv(.C) void;
 const EventFn = *const fn (ctx: *const jok.Context, e: *const jok.Event) callconv(.C) void;
 const UpdateFn = *const fn (ctx: *const jok.Context) callconv(.C) void;
@@ -65,8 +74,11 @@ pub fn destroy(self: *Self, ctx: jok.Context) void {
 pub fn register(self: *Self, ctx: jok.Context, name: []const u8, path: []const u8, hot_reload: bool) !void {
     if (self.plugins.contains(name)) return error.NameCollision;
 
-    const loaded = try self.loadLibrary(path, 1);
-    loaded.init_fn(&ctx);
+    var loaded = try self.loadLibrary(path, 1);
+    errdefer loaded.lib.close();
+    if (!loaded.init_fn(&ctx)) {
+        return error.InitFailed;
+    }
     errdefer loaded.deinit_fn(&ctx);
 
     try self.plugins.put(try self.allocator.dupe(u8, name), .{

@@ -242,13 +242,12 @@ pub fn createTest(
             .{ .name = "jok", .module = jok.module },
         },
     });
-
     for (opt.additional_deps) |d| {
         module.addImport(d.name, d.mod);
     }
 
-    const builder = getJokBuilder(b, opt);
     // Create test executable
+    const builder = getJokBuilder(b, opt);
     const test_exe = builder.addTest(.{
         .name = name,
         .root_module = module,
