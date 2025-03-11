@@ -220,6 +220,51 @@ pub fn createDesktopApp(
     return exe;
 }
 
+/// Create test executable (windows/linux/macos)
+pub fn createTest(
+    b: *Build,
+    name: []const u8,
+    root_source_file: []const u8,
+    target: ResolvedTarget,
+    optimize: std.builtin.Mode,
+    opt: BuildOptions,
+) *Build.Step.Compile {
+    assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
+    const sdk = CrossSDL.init(b);
+    const jok = getJokLibrary(b, target, optimize, opt);
+
+    // Create module to be used for testing
+    const module = b.createModule(.{
+        .root_source_file = b.path(root_source_file),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "jok", .module = jok.module },
+        },
+    });
+
+    for (opt.additional_deps) |d| {
+        module.addImport(d.name, d.mod);
+    }
+
+    const builder = getJokBuilder(b, opt);
+    // Create test executable
+    const test_exe = builder.addTest(.{
+        .name = name,
+        .root_module = module,
+    });
+    sdk.link(test_exe, .dynamic);
+    test_exe.linkLibrary(jok.artifact);
+
+    // Install jok library
+    if (opt.link_dynamic) {
+        const install_jok = b.addInstallArtifact(jok.artifact, .{ .dest_dir = .{ .override = .{ .bin = {} } } });
+        test_exe.step.dependOn(&install_jok.step);
+    }
+
+    return test_exe;
+}
+
 /// Create plugin
 pub fn createPlugin(
     b: *Build,
