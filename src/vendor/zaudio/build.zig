@@ -20,7 +20,10 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
 
     mod.addCSourceFile(.{
         .file = dir.path(mod.owner, "c/zaudio.c"),
-        .flags = &.{"-std=c99"},
+        .flags = &.{
+            "-std=c99",
+            "-fno-sanitize=undefined",
+        },
     });
     mod.addCSourceFile(.{
         .file = dir.path(mod.owner, "c/miniaudio/miniaudio.c"),

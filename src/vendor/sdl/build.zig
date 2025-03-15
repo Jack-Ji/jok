@@ -8,7 +8,7 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
         .macos => {
             mod.addIncludePath(dir.path(mod.owner, "c/macos"));
         },
-        .linux => {
+        .linux, .emscripten => {
             mod.addIncludePath(dir.path(mod.owner, "c/linux"));
         },
         else => unreachable,

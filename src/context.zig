@@ -279,7 +279,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _recent_total_costs: CostDataType = undefined,
 
         pub fn create() !*@This() {
-            var _allocator = if (builtin.mode == .Debug) debug_allocator.allocator() else std.heap.smp_allocator;
+            var _allocator = if (builtin.cpu.arch.isWasm())
+                std.heap.c_allocator
+            else if (builtin.mode == .Debug)
+                debug_allocator.allocator()
+            else
+                std.heap.smp_allocator;
             var self = try _allocator.create(@This());
             self.* = .{};
             self._allocator = _allocator;
@@ -656,7 +661,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 _ = sdl.SDL_SetHint(sdl.SDL_HINT_VIDEODRIVER, "offscreen");
             }
 
-            if (sdl.SDL_Init(sdl.SDL_INIT_EVERYTHING & ~sdl.SDL_INIT_AUDIO) < 0) {
+            var excluded = sdl.SDL_INIT_AUDIO;
+            if (builtin.cpu.arch.isWasm()) {
+                excluded |= sdl.SDL_INIT_HAPTIC;
+            }
+            if (sdl.SDL_Init(sdl.SDL_INIT_EVERYTHING & ~excluded) < 0) {
                 log.err("Initialize SDL2 failed: {s}", .{sdl.SDL_GetError()});
                 return sdl.Error.SdlError;
             }

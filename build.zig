@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const panic = std.debug.panic;
 const Build = std.Build;
 const ResolvedTarget = Build.ResolvedTarget;
+const OptimizeMode = std.builtin.OptimizeMode;
 const builtin = @import("builtin");
 
 pub fn build(b: *Build) void {
@@ -11,19 +12,20 @@ pub fn build(b: *Build) void {
     }
 
     // Get skipped examples' names
-    var skiped_examples = std.StringHashMap(bool).init(b.allocator);
+    var skipped_examples = std.StringHashMap(bool).init(b.allocator);
     if (b.option(
         []const u8,
         "skip",
         "skip given demos when building `examples`. e.g. \"particle_life,intersection_2d\"",
     )) |s| {
         var it = std.mem.splitScalar(u8, s, ',');
-        while (it.next()) |name| skiped_examples.put(name, true) catch unreachable;
+        while (it.next()) |name| skipped_examples.put(name, true) catch unreachable;
     }
 
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    // Add test suits
     const tests = b.addTest(.{
         .name = "all",
         .root_source_file = b.path("src/jok.zig"),
@@ -31,123 +33,130 @@ pub fn build(b: *Build) void {
     const test_step = b.step("test", "run tests");
     test_step.dependOn(&b.addRunArtifact(tests).step);
 
-    const assets_install = b.addInstallDirectory(.{
-        .source_dir = b.path("examples/assets"),
-        .install_dir = .bin,
-        .install_subdir = "assets",
-    });
-    const examples = [_]struct { name: []const u8, opt: BuildOptions }{
-        .{ .name = "hello", .opt = .{ .dep_name = null } },
-        .{ .name = "imgui_demo", .opt = .{ .dep_name = null } },
-        .{ .name = "sprite_benchmark", .opt = .{ .dep_name = null } },
-        .{ .name = "cube_benchmark", .opt = .{ .dep_name = null } },
-        .{ .name = "sprite_sheet", .opt = .{ .dep_name = null } },
-        .{ .name = "sprite_scene_2d", .opt = .{ .dep_name = null } },
-        .{ .name = "sprite_scene_3d", .opt = .{ .dep_name = null } },
-        .{ .name = "particle_2d", .opt = .{ .dep_name = null } },
-        .{ .name = "particle_3d", .opt = .{ .dep_name = null } },
-        .{ .name = "animation_2d", .opt = .{ .dep_name = null } },
-        .{ .name = "animation_3d", .opt = .{ .dep_name = null } },
-        .{ .name = "meshes_and_lighting", .opt = .{ .dep_name = null } },
-        .{ .name = "intersection_2d", .opt = .{ .dep_name = null } },
-        .{ .name = "solar_system", .opt = .{ .dep_name = null } },
-        .{ .name = "font_demo", .opt = .{ .dep_name = null } },
-        .{ .name = "skybox", .opt = .{ .dep_name = null } },
-        .{ .name = "particle_life", .opt = .{ .dep_name = null, .use_nfd = true } },
-        .{ .name = "audio_demo", .opt = .{ .dep_name = null } },
-        .{ .name = "easing", .opt = .{ .dep_name = null } },
-        .{ .name = "svg", .opt = .{ .dep_name = null } },
-        .{ .name = "cp_demo", .opt = .{ .dep_name = null, .use_cp = true } },
-        .{ .name = "blending", .opt = .{ .dep_name = null } },
-        .{ .name = "pathfind", .opt = .{ .dep_name = null } },
-        .{ .name = "post_processing", .opt = .{ .dep_name = null } },
-        .{ .name = "isometric", .opt = .{ .dep_name = null } },
-        .{ .name = "conway_life", .opt = .{ .dep_name = null } },
-        .{ .name = "tiled", .opt = .{ .dep_name = null } },
-        .{ .name = "generative_art_1", .opt = .{ .dep_name = null } },
-        .{ .name = "generative_art_2", .opt = .{ .dep_name = null } },
-        .{ .name = "generative_art_3", .opt = .{ .dep_name = null } },
-        .{ .name = "generative_art_4", .opt = .{ .dep_name = null } },
-        .{ .name = "generative_art_5", .opt = .{ .dep_name = null } },
+    // Add examples
+    const examples = [_]struct { name: []const u8, opt: ExampleOptions }{
+        .{ .name = "hello", .opt = .{} },
+        .{ .name = "imgui_demo", .opt = .{} },
+        .{ .name = "sprite_benchmark", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "cube_benchmark", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "sprite_sheet", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "sprite_scene_2d", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "sprite_scene_3d", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "particle_2d", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "particle_3d", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "animation_2d", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "animation_3d", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "meshes_and_lighting", .opt = .{} },
+        .{ .name = "intersection_2d", .opt = .{} },
+        .{ .name = "solar_system", .opt = .{} },
+        .{ .name = "font_demo", .opt = .{} },
+        .{ .name = "skybox", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "particle_life", .opt = .{ .use_nfd = true, .support_web = false } },
+        .{ .name = "audio_demo", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "easing", .opt = .{} },
+        .{ .name = "svg", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "cp_demo", .opt = .{ .use_cp = true } },
+        .{ .name = "blending", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "pathfind", .opt = .{} },
+        .{ .name = "post_processing", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "isometric", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "conway_life", .opt = .{} },
+        .{ .name = "tiled", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "generative_art_1", .opt = .{} },
+        .{ .name = "generative_art_2", .opt = .{} },
+        .{ .name = "generative_art_3", .opt = .{} },
+        .{ .name = "generative_art_4", .opt = .{} },
+        .{ .name = "generative_art_5", .opt = .{} },
+        .{ .name = "hotreload", .opt = .{ .plugins = &.{ "plugin_hot", "plugin" }, .support_web = false } },
     };
     const build_examples = b.step("examples", "compile and install all examples");
-    inline for (examples) |demo| {
+    for (examples) |ex| addExample(b, ex.name, target, optimize, skipped_examples, build_examples, ex.opt);
+}
+
+const ExampleOptions = struct {
+    plugins: []const []const u8 = &.{},
+    use_cp: bool = false,
+    use_nfd: bool = false,
+    support_web: bool = true,
+    preload_path: ?[]const u8 = null,
+};
+
+/// Helper for creating examples
+fn addExample(
+    b: *Build,
+    name: []const u8,
+    target: ResolvedTarget,
+    optimize: std.builtin.Mode,
+    skipped: std.StringHashMap(bool),
+    examples: *Build.Step,
+    opt: ExampleOptions,
+) void {
+    if (!target.result.cpu.arch.isWasm()) {
+        const assets_install = b.addInstallDirectory(.{
+            .source_dir = b.path("examples/assets"),
+            .install_dir = .bin,
+            .install_subdir = "assets",
+        });
+
         const exe = createDesktopApp(
             b,
-            demo.name,
-            "examples/" ++ demo.name ++ ".zig",
+            name,
+            b.fmt("examples/{s}.zig", .{name}),
             target,
             optimize,
-            demo.opt,
+            .{
+                .dep_name = null,
+                .use_cp = opt.use_cp,
+                .use_nfd = opt.use_nfd,
+                .link_dynamic = opt.plugins.len != 0,
+            },
         );
-        const install_cmd = b.addInstallArtifact(exe, .{});
-        const run_cmd = b.addRunArtifact(exe);
-        run_cmd.step.dependOn(&install_cmd.step);
-        run_cmd.step.dependOn(&assets_install.step);
-        run_cmd.cwd = b.path("zig-out/bin");
-        if (target.query.isNative())
-            b.step(
-                demo.name,
-                "compile & run example " ++ demo.name,
-            ).dependOn(&run_cmd.step)
-        else
-            b.step(
-                demo.name,
-                "compile example " ++ demo.name,
-            ).dependOn(&install_cmd.step);
-        if (skiped_examples.get(demo.name) == null) {
-            build_examples.dependOn(&install_cmd.step);
-        }
-    }
 
-    // Hot-reload example
-    const exe = createDesktopApp(
-        b,
-        "hotreload",
-        "examples/hotreload.zig",
-        target,
-        optimize,
-        .{ .dep_name = null, .link_dynamic = true },
-    );
-    const plugin_hot = createPlugin(
-        b,
-        "plugin_hot",
-        "examples/plugin_hot.zig",
-        target,
-        optimize,
-        .{ .dep_name = null, .link_dynamic = true },
-    );
-    const plugin = createPlugin(
-        b,
-        "plugin",
-        "examples/plugin.zig",
-        target,
-        optimize,
-        .{ .dep_name = null, .link_dynamic = true },
-    );
-    const install_plugin_hot = b.addInstallArtifact(
-        plugin_hot,
-        .{ .dest_dir = .{ .override = .{ .bin = {} } } },
-    );
-    const install_plugin = b.addInstallArtifact(
-        plugin,
-        .{ .dest_dir = .{ .override = .{ .bin = {} } } },
-    );
-    const install_exe = b.addInstallArtifact(exe, .{});
-    install_exe.step.dependOn(&install_plugin_hot.step);
-    install_exe.step.dependOn(&install_plugin.step);
-    const run_cmd = b.addRunArtifact(exe);
-    run_cmd.step.dependOn(&install_exe.step);
-    run_cmd.step.dependOn(&assets_install.step);
-    run_cmd.cwd = b.path("zig-out/bin");
-    b.step("plugin_hot", "recompile plugin_hot").dependOn(&install_plugin_hot.step);
-    b.step("plugin", "recompile plugin").dependOn(&install_plugin.step);
-    if (target.query.isNative())
-        b.step("hotreload", "compile & run example hotreload").dependOn(&run_cmd.step)
-    else
-        b.step("hotreload", "compile example hotreload").dependOn(&install_exe.step);
-    if (skiped_examples.get("hotreload") == null) {
-        build_examples.dependOn(&install_exe.step);
+        const install_cmd = b.addInstallArtifact(exe, .{});
+        b.step(name, b.fmt("compile {s}", .{name})).dependOn(&install_cmd.step);
+
+        // Create plugins
+        for (opt.plugins) |pname| {
+            const plugin = createPlugin(
+                b,
+                pname,
+                b.fmt("examples/{s}.zig", .{pname}),
+                target,
+                optimize,
+                .{ .dep_name = null, .link_dynamic = true },
+            );
+            const install_plugin = b.addInstallArtifact(
+                plugin,
+                .{ .dest_dir = .{ .override = .{ .bin = {} } } },
+            );
+            install_cmd.step.dependOn(&install_plugin.step);
+        }
+
+        // Capable of running
+        if (target.query.isNative()) {
+            const run_cmd = b.addRunArtifact(exe);
+            run_cmd.step.dependOn(&install_cmd.step);
+            run_cmd.step.dependOn(&assets_install.step);
+            run_cmd.cwd = b.path("zig-out/bin");
+            b.step(b.fmt("run-{s}", .{name}), b.fmt("run {s}", .{name})).dependOn(&run_cmd.step);
+        }
+        if (skipped.get(name) == null) examples.dependOn(&install_cmd.step);
+    } else if (opt.support_web) {
+        const webapp = createWeb(
+            b,
+            name,
+            b.fmt("examples/{s}.zig", .{name}),
+            target,
+            optimize,
+            .{
+                .dep_name = null,
+                .preload_path = opt.preload_path,
+                .use_cp = opt.use_cp,
+            },
+        );
+        b.step(name, b.fmt("compile {s}", .{name})).dependOn(&webapp.emlink.step);
+        b.step(b.fmt("run-{s}", .{name}), b.fmt("run {s}", .{name})).dependOn(&webapp.emrun.step);
+        if (skipped.get("hotreload") == null) examples.dependOn(&webapp.emlink.step);
     }
 }
 
@@ -156,7 +165,7 @@ pub const Dependency = struct {
     mod: *Build.Module,
 };
 
-pub const BuildOptions = struct {
+pub const AppOptions = struct {
     dep_name: ?[]const u8 = "jok",
     additional_deps: []const Dependency = &.{},
     no_audio: bool = false,
@@ -172,11 +181,17 @@ pub fn createDesktopApp(
     game_root: []const u8,
     target: ResolvedTarget,
     optimize: std.builtin.Mode,
-    opt: BuildOptions,
+    opt: AppOptions,
 ) *Build.Step.Compile {
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
     const sdk = CrossSDL.init(b);
-    const jok = getJokLibrary(b, target, optimize, opt);
+    const jok = getJokLibrary(b, target, optimize, .{
+        .dep_name = opt.dep_name,
+        .no_audio = opt.no_audio,
+        .use_cp = opt.use_cp,
+        .use_nfd = opt.use_nfd,
+        .link_dynamic = opt.link_dynamic,
+    });
 
     // Create game module
     const game = b.createModule(.{
@@ -192,7 +207,7 @@ pub fn createDesktopApp(
     }
 
     // Create root module
-    const builder = getJokBuilder(b, opt);
+    const builder = getJokBuilder(b, opt.dep_name);
     const root = b.createModule(.{
         .root_source_file = builder.path("src/entrypoints/app.zig"),
         .target = target,
@@ -227,7 +242,7 @@ pub fn createTest(
     root_source_file: []const u8,
     target: ResolvedTarget,
     optimize: std.builtin.Mode,
-    opt: BuildOptions,
+    opt: AppOptions,
 ) *Build.Step.Compile {
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
     const sdk = CrossSDL.init(b);
@@ -247,7 +262,7 @@ pub fn createTest(
     }
 
     // Create test executable
-    const builder = getJokBuilder(b, opt);
+    const builder = getJokBuilder(b, opt.dep_name);
     const test_exe = builder.addTest(.{
         .name = name,
         .root_module = module,
@@ -271,12 +286,18 @@ pub fn createPlugin(
     plugin_root: []const u8,
     target: ResolvedTarget,
     optimize: std.builtin.Mode,
-    opt: BuildOptions,
+    opt: AppOptions,
 ) *Build.Step.Compile {
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
     assert(opt.link_dynamic);
     const sdk = CrossSDL.init(b);
-    const jok = getJokLibrary(b, target, optimize, opt);
+    const jok = getJokLibrary(b, target, optimize, .{
+        .dep_name = opt.dep_name,
+        .no_audio = opt.no_audio,
+        .use_cp = opt.use_cp,
+        .use_nfd = opt.use_nfd,
+        .link_dynamic = opt.link_dynamic,
+    });
 
     // Create plugin module
     const plugin = b.createModule(.{
@@ -306,12 +327,100 @@ pub fn createPlugin(
     return lib;
 }
 
+pub const WebOptions = struct {
+    dep_name: ?[]const u8 = "jok",
+    additional_deps: []const Dependency = &.{},
+    shell_file_path: ?[]const u8 = null,
+    preload_path: ?[]const u8 = null,
+    no_audio: bool = false,
+    use_cp: bool = false,
+};
+
+/// Create web application (windows/linux/macos)
+pub fn createWeb(
+    b: *Build,
+    name: []const u8,
+    game_root: []const u8,
+    target: ResolvedTarget,
+    optimize: std.builtin.Mode,
+    opt: WebOptions,
+) struct {
+    emlink: *Build.Step.InstallDir,
+    emrun: *Build.Step.Run,
+} {
+    assert(target.result.cpu.arch.isWasm() and target.result.os.tag == .emscripten);
+    const jok = getJokLibrary(b, target, optimize, .{
+        .dep_name = opt.dep_name,
+        .no_audio = opt.no_audio,
+        .use_cp = opt.use_cp,
+    });
+
+    // Create game module
+    const game = b.createModule(.{
+        .root_source_file = b.path(game_root),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "jok", .module = jok.module },
+        },
+    });
+    for (opt.additional_deps) |d| {
+        game.addImport(d.name, d.mod);
+    }
+
+    // Create root module
+    const builder = getJokBuilder(b, opt.dep_name);
+    const root = b.createModule(.{
+        .root_source_file = builder.path("src/entrypoints/web.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "jok", .module = jok.module },
+            .{ .name = "game", .module = game },
+        },
+    });
+
+    // Create wasm object file
+    const lib = builder.addStaticLibrary(.{
+        .name = name,
+        .root_module = root,
+    });
+    lib.linkLibrary(jok.artifact);
+
+    // Link using emcc
+    const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
+    const link_step = em.link(.{
+        .lib_main = lib,
+        .target = target,
+        .optimize = optimize,
+        .shell_file_path = if (opt.shell_file_path) |p|
+            b.path(p)
+        else
+            builder.path("src/entrypoints/web/shell.html"),
+        .preload_path = opt.preload_path,
+        .extra_args = &.{"-sSTACK_SIZE=512KB"},
+    });
+
+    // Special run step to run the build result via emrun
+    const run = em.run(name);
+    run.step.dependOn(&link_step.step);
+
+    return .{ .emlink = link_step, .emrun = run };
+}
+
 // Create jok library
-fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Mode, opt: BuildOptions) struct {
+pub const JokOptions = struct {
+    dep_name: ?[]const u8 = "jok",
+    no_audio: bool = false,
+    use_cp: bool = false,
+    use_nfd: bool = false,
+    link_dynamic: bool = false,
+};
+fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Mode, opt: JokOptions) struct {
     module: *Build.Module,
     artifact: *Build.Step.Compile,
 } {
-    const builder = getJokBuilder(b, opt);
+    const builder = getJokBuilder(b, opt.dep_name);
     const bos = builder.addOptions();
     bos.addOption(bool, "no_audio", opt.no_audio);
     bos.addOption(bool, "use_cp", opt.use_cp);
@@ -342,21 +451,31 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Mode, 
     if (!opt.no_audio) @import("src/vendor/zaudio/build.zig").inject(libmod, builder.path("src/vendor/zaudio"));
     if (opt.use_cp) @import("src/vendor/chipmunk/build.zig").inject(libmod, builder.path("src/vendor/chipmunk"));
     if (opt.use_nfd) @import("src/vendor/nfd/build.zig").inject(libmod, builder.path("src/vendor/nfd"));
-    const lib = if (opt.link_dynamic)
-        builder.addSharedLibrary(.{ .name = "jok", .root_module = libmod })
-    else
-        builder.addStaticLibrary(.{ .name = "jok", .root_module = libmod });
-    CrossSDL.init(b).link(lib, .dynamic);
+
+    var lib: *Build.Step.Compile = undefined;
+    if (target.result.cpu.arch.isWasm()) {
+        lib = builder.addStaticLibrary(.{ .name = "jok", .root_module = libmod });
+
+        // Setup emscripten when necessary
+        const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
+        em.possibleSetup(lib);
+
+        // Add the Emscripten system include seach path
+        lib.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
+    } else {
+        lib = if (opt.link_dynamic)
+            builder.addSharedLibrary(.{ .name = "jok", .root_module = libmod })
+        else
+            builder.addStaticLibrary(.{ .name = "jok", .root_module = libmod });
+        CrossSDL.init(b).link(lib, .dynamic);
+    }
 
     return .{ .module = jokmod, .artifact = lib };
 }
 
 // Get jok's own builder from project's
-fn getJokBuilder(b: *Build, opt: BuildOptions) *Build {
-    return if (opt.dep_name) |dep|
-        b.dependency(dep, .{ .skipbuild = true }).builder
-    else
-        b;
+fn getJokBuilder(b: *Build, dep_name: ?[]const u8) *Build {
+    return if (dep_name) |dep| b.dependency(dep, .{ .skipbuild = true }).builder else b;
 }
 
 // Sdk for cross-compile-link SDL2
@@ -375,8 +494,8 @@ const CrossSDL = struct {
     prepare_sources: *PrepareStubSourceStep,
 
     /// Creates a instance of the Sdk and initializes internal steps.
-    pub fn init(b: *Build) *Sdk {
-        const sdk = b.allocator.create(Sdk) catch @panic("Out of memory");
+    fn init(b: *Build) *Sdk {
+        const sdk = b.allocator.create(Sdk) catch @panic("OOM");
 
         const env_sdl_path: ?[]u8 = std.process.getEnvVarOwned(b.allocator, sdl2_config_env) catch null;
         const sdl_config_path = env_sdl_path orelse std.fs.path.join(
@@ -477,7 +596,7 @@ const CrossSDL = struct {
 
     /// Links SDL2 to the given exe and adds required installs if necessary.
     /// **Important:** The target of the `exe` must already be set, otherwise the Sdk will do the wrong thing!
-    pub fn link(
+    fn link(
         sdk: *Sdk,
         exe: *Compile,
         linkage: std.builtin.LinkMode,
@@ -644,7 +763,7 @@ const CrossSDL = struct {
 
         assembly_source: GeneratedFile,
 
-        pub fn create(sdk: *Sdk) *PrepareStubSourceStep {
+        fn create(sdk: *Sdk) *PrepareStubSourceStep {
             const psss = sdk.builder.allocator.create(Self) catch @panic("OOM");
 
             psss.* = .{
@@ -663,7 +782,7 @@ const CrossSDL = struct {
             return psss;
         }
 
-        pub fn getStubFile(self: *Self) LazyPath {
+        fn getStubFile(self: *Self) LazyPath {
             return .{ .generated = .{ .file = &self.assembly_source } };
         }
 
@@ -717,7 +836,7 @@ const CrossSDL = struct {
         hasher: std.crypto.hash.Sha1,
         subdir: ?[]const u8,
 
-        pub fn init(builder: *Build, subdir: ?[]const u8) Self {
+        fn init(builder: *Build, subdir: ?[]const u8) Self {
             return Self{
                 .builder = builder,
                 .hasher = std.crypto.hash.Sha1.init(.{}),
@@ -728,11 +847,11 @@ const CrossSDL = struct {
             };
         }
 
-        pub fn addBytes(self: *Self, bytes: []const u8) void {
+        fn addBytes(self: *Self, bytes: []const u8) void {
             self.hasher.update(bytes);
         }
 
-        pub fn addFile(self: *Self, file: LazyPath) !void {
+        fn addFile(self: *Self, file: LazyPath) !void {
             const path = file.getPath(self.builder);
 
             const data = try std.fs.cwd().readFileAlloc(self.builder.allocator, path, 1 << 32); // 4 GB
@@ -768,11 +887,11 @@ const CrossSDL = struct {
             return path;
         }
 
-        pub const DirAndPath = struct {
+        const DirAndPath = struct {
             dir: std.fs.Dir,
             path: []const u8,
         };
-        pub fn createAndGetDir(self: *Self) !DirAndPath {
+        fn createAndGetDir(self: *Self) !DirAndPath {
             const path = try self.createPath();
             return DirAndPath{
                 .path = path,
@@ -780,10 +899,138 @@ const CrossSDL = struct {
             };
         }
 
-        pub fn createAndGetPath(self: *Self) ![]const u8 {
+        fn createAndGetPath(self: *Self) ![]const u8 {
             const path = try self.createPath();
             try std.fs.cwd().makePath(path);
             return path;
         }
     };
+};
+
+// Sdk for compile and link using emscripten
+const Emscripten = struct {
+    const Sdk = @This();
+
+    builder: *Build,
+    emsdk: *Build.Dependency,
+
+    fn init(b: *Build, emsdk: *Build.Dependency) *Sdk {
+        const sdk = b.allocator.create(Sdk) catch @panic("OOM");
+        sdk.* = .{ .builder = b, .emsdk = emsdk };
+        return sdk;
+    }
+
+    // One-time setup of the Emscripten SDK (runs 'emsdk install + activate'). If the
+    // SDK had to be setup, a run step will be returned which should be added
+    // as dependency to the sokol library (since this needs the emsdk in place),
+    // if the emsdk was already setup, null will be returned.
+    // NOTE: ideally this would go into a separate emsdk-zig package
+    // NOTE 2: the file exists check is a bit hacky, it would be cleaner
+    // to build an on-the-fly helper tool which takes care of the SDK
+    // setup and just does nothing if it already happened
+    // NOTE 3: this code works just fine when the SDK version is updated in build.zig.zon
+    // since this will be cloned into a new zig cache directory which doesn't have
+    // an .emscripten file yet until the one-time setup.
+    fn possibleSetup(sdk: *Sdk, lib: *Build.Step.Compile) void {
+        const dot_emsc_path = sdk.path(&.{".emscripten"}).getPath(sdk.builder);
+        const dot_emsc_exists = !std.meta.isError(std.fs.accessAbsolute(dot_emsc_path, .{}));
+        if (!dot_emsc_exists) {
+            const emsdk_install = sdk.createEmsdkStep();
+            emsdk_install.addArgs(&.{ "install", "latest" });
+            const emsdk_activate = sdk.createEmsdkStep();
+            emsdk_activate.addArgs(&.{ "activate", "latest" });
+            emsdk_activate.step.dependOn(&emsdk_install.step);
+            lib.step.dependOn(&emsdk_activate.step);
+        }
+    }
+
+    // for wasm32-emscripten, need to run the Emscripten linker from the Emscripten SDK
+    // NOTE: ideally this would go into a separate emsdk-zig package
+    const EmLinkOptions = struct {
+        lib_main: *Build.Step.Compile, // the actual Zig code must be compiled to a static link library
+        target: Build.ResolvedTarget,
+        optimize: OptimizeMode,
+        shell_file_path: ?Build.LazyPath = null,
+        preload_path: ?[]const u8 = null,
+        release_use_closure: bool = true,
+        release_use_lto: bool = true,
+        use_emmalloc: bool = false,
+        use_offset_converter: bool = true, // needed for @returnAddress builtin used by Zig allocators
+        extra_args: []const []const u8 = &.{},
+    };
+    fn link(sdk: *Sdk, opt: EmLinkOptions) *Build.Step.InstallDir {
+        const emcc_path = sdk.path(&.{ "upstream", "emscripten", "emcc" }).getPath(sdk.builder);
+        const emcc = sdk.builder.addSystemCommand(&.{emcc_path});
+        emcc.setName("emcc"); // hide emcc path
+        if (opt.optimize == .Debug) {
+            emcc.addArg("-sASSERTIONS");
+            emcc.addArgs(&.{ "-Og", "-sSAFE_HEAP=1", "-sSTACK_OVERFLOW_CHECK=1" });
+        } else {
+            emcc.addArg("-sASSERTIONS=0");
+            if (opt.optimize == .ReleaseSmall) {
+                emcc.addArg("-Oz");
+            } else {
+                emcc.addArg("-O3");
+            }
+            if (opt.release_use_lto) emcc.addArg("-flto");
+            if (opt.release_use_closure) emcc.addArgs(&.{ "--closure", "1" });
+        }
+        emcc.addArg("-sUSE_SDL=2");
+        emcc.addArg("-sALLOW_MEMORY_GROWTH=1");
+        emcc.addArg("-sMAXIMUM_MEMORY=1gb");
+        if (opt.shell_file_path) |p| emcc.addPrefixedFileArg("--shell-file=", p);
+        if (opt.preload_path) |p| {
+            emcc.addArg("--preload-file");
+            emcc.addArg(sdk.builder.pathFromRoot(p));
+        } else {
+            emcc.addArg("-sNO_FILESYSTEM=1");
+        }
+        if (opt.use_emmalloc) emcc.addArg("-sMALLOC='emmalloc'");
+        if (opt.use_offset_converter) emcc.addArg("-sUSE_OFFSET_CONVERTER");
+        for (opt.extra_args) |arg| emcc.addArg(arg);
+
+        // add the main lib, and then scan for library dependencies and add those too
+        emcc.addArtifactArg(opt.lib_main);
+
+        for (opt.lib_main.getCompileDependencies(false)) |item| {
+            if (item.kind == .lib) {
+                emcc.addArtifactArg(item);
+            }
+        }
+        emcc.addArg("-o");
+        const out_file = emcc.addOutputFileArg(sdk.builder.fmt("{s}.html", .{opt.lib_main.name}));
+
+        // the emcc linker creates 3 output files (.html, .wasm and .js)
+        const install = sdk.builder.addInstallDirectory(.{
+            .source_dir = out_file.dirname(),
+            .install_dir = .prefix,
+            .install_subdir = "web",
+        });
+        install.step.dependOn(&emcc.step);
+
+        return install;
+    }
+
+    // build a run step which uses the emsdk emrun command to run a build target in the browser
+    // NOTE: ideally this would go into a separate emsdk-zig package
+    fn run(sdk: *Sdk, name: []const u8) *Build.Step.Run {
+        const emrun_path = sdk.builder.findProgram(&.{"emrun"}, &.{}) catch
+            sdk.path(&.{ "upstream", "emscripten", "emrun" }).getPath(sdk.builder);
+        return sdk.builder.addSystemCommand(&.{ emrun_path, sdk.builder.fmt("{s}/web/{s}.html", .{ sdk.builder.install_path, name }) });
+    }
+
+    fn createEmsdkStep(sdk: *Sdk) *Build.Step.Run {
+        if (builtin.os.tag == .windows) {
+            return sdk.builder.addSystemCommand(&.{sdk.path(&.{"emsdk.bat"}).getPath(sdk.builder)});
+        } else {
+            const step = sdk.builder.addSystemCommand(&.{"bash"});
+            step.addArg(sdk.path(&.{"emsdk"}).getPath(sdk.builder));
+            return step;
+        }
+    }
+
+    // helper function to build a LazyPath from the emsdk root and provided path components
+    fn path(sdk: *Sdk, subPaths: []const []const u8) Build.LazyPath {
+        return sdk.emsdk.path(sdk.builder.pathJoin(subPaths));
+    }
 };

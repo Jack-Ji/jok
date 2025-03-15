@@ -13,12 +13,13 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
         mod.addCMacro("ZGUI_API", "__declspec(dllexport)");
     }
 
-    const emscripten = mod.resolved_target.?.result.os.tag == .emscripten;
-    if (emscripten) {
+    if (mod.resolved_target.?.result.os.tag == .emscripten) {
         mod.addCMacro("__EMSCRIPTEN__", "1");
-        mod.addCMacro("__EMSCRIPTEN_major__", "3");
-        mod.addCMacro("__EMSCRIPTEN_minor__", "1");
+        mod.addCMacro("__EMSCRIPTEN_major__", "4");
+        mod.addCMacro("__EMSCRIPTEN_minor__", "0");
+        mod.addCMacro("ImTextureID", "unsigned long");
         mod.stack_protector = false;
+        mod.link_libcpp = true;
     } else {
         mod.link_libc = true;
         if (mod.resolved_target.?.result.abi != .msvc) mod.link_libcpp = true;

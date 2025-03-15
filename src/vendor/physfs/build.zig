@@ -53,5 +53,5 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
         mod.linkFramework("Foundation", .{});
     } else if (mod.resolved_target.?.result.os.tag == .linux) {
         mod.linkSystemLibrary("pthread", .{});
-    } else unreachable;
+    }
 }

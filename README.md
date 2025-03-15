@@ -43,6 +43,7 @@ A minimal 2d/3d game framework for zig.
 * Windows
 * Linux
 * MacOS (?)
+* WebAssembly (WIP)
 
 TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem` with `.Windows` in your build script.
 
