@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const jok = @import("../../jok.zig");
 const io = std.io;
 const assert = std.debug.assert;
@@ -54,15 +55,18 @@ pub fn getLastErrorCode() ErrorCode {
 pub fn init(allocator: std.mem.Allocator) void {
     assert(mem_allocator == null);
     mem_allocator = allocator;
-    physfs_allocator = .{
-        .init_fn = memInit,
-        .deinit_fn = memDeinit,
-        .malloc_fn = memAlloc,
-        .realloc_fn = memRealloc,
-        .free_fn = memFree,
-    };
-    if (PHYSFS_setAllocator(&physfs_allocator) == 0) {
-        @panic(getLastErrorCode().toDesc());
+
+    if (!builtin.cpu.arch.isWasm()) {
+        physfs_allocator = .{
+            .init_fn = memInit,
+            .deinit_fn = memDeinit,
+            .malloc_fn = memAlloc,
+            .realloc_fn = memRealloc,
+            .free_fn = memFree,
+        };
+        if (PHYSFS_setAllocator(&physfs_allocator) == 0) {
+            @panic(getLastErrorCode().toDesc());
+        }
     }
 
     if (PHYSFS_init(std.os.argv[0]) == 0) {

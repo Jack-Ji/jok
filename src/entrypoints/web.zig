@@ -21,23 +21,18 @@ extern fn emscripten_set_main_loop_arg(fp: LoopFn, args: ?*anyopaque, fps: c_int
 extern fn emscripten_cancel_main_loop() void;
 
 fn mainLoop(args: ?*anyopaque) callconv(.C) void {
-    log.debug("'m running!!!", .{});
-    _ = args;
-    return;
-    //var jok_ctx: *Context = @alignCast(@ptrCast(args.?));
-    //if (jok_ctx._running) {
-    //    jok_ctx.tick(game.event, game.update, game.draw);
-    //} else {
-    //    game.quit(jok_ctx.context());
-    //    jok_ctx.destroy();
-    //    emscripten_cancel_main_loop();
-    //}
+    var jok_ctx: *Context = @alignCast(@ptrCast(args.?));
+    if (jok_ctx._running) {
+        jok_ctx.tick(game.event, game.update, game.draw);
+    } else {
+        game.quit(jok_ctx.context());
+        jok_ctx.destroy();
+        emscripten_cancel_main_loop();
+    }
 }
 
 pub fn main() !void {
-    _ = try Context.create();
-    //var jok_ctx = try Context.create();
-    //try game.init(jok_ctx.context());
-    //emscripten_set_main_loop_arg(mainLoop, jok_ctx, 0, true);
-    emscripten_set_main_loop_arg(mainLoop, null, 0, true);
+    var jok_ctx = try Context.create();
+    try game.init(jok_ctx.context());
+    emscripten_set_main_loop_arg(mainLoop, jok_ctx, 0, true);
 }

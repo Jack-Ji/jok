@@ -976,14 +976,13 @@ const Emscripten = struct {
             if (opt.release_use_closure) emcc.addArgs(&.{ "--closure", "1" });
         }
         emcc.addArg("-sUSE_SDL=2");
+        emcc.addArg("-sINITIAL_MEMORY=128mb");
         emcc.addArg("-sALLOW_MEMORY_GROWTH=1");
         emcc.addArg("-sMAXIMUM_MEMORY=1gb");
-        if (opt.shell_file_path) |p| emcc.addPrefixedFileArg("--shell-file=", p);
+        //if (opt.shell_file_path) |p| emcc.addPrefixedFileArg("--shell-file=", p);
         if (opt.preload_path) |p| {
             emcc.addArg("--preload-file");
             emcc.addArg(sdk.builder.pathFromRoot(p));
-        } else {
-            emcc.addArg("-sNO_FILESYSTEM=1");
         }
         if (opt.use_emmalloc) emcc.addArg("-sMALLOC='emmalloc'");
         if (opt.use_offset_converter) emcc.addArg("-sUSE_OFFSET_CONVERTER");
