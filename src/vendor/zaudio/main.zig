@@ -81,6 +81,8 @@ pub const Error = error{
     Cancelled,
     MemoryAlreadyMapped,
 
+    CrcNotMatch,
+
     FormatNotSupported,
     DeviceTypeNotSupported,
     ShareModeNotSupported,
@@ -89,6 +91,7 @@ pub const Error = error{
     ApiNotFound,
     InvalidDeviceConfig,
     Loop,
+    BackendNotEnabled,
 
     DeviceNotInitialized,
     DeviceAlreadyInitialized,
@@ -156,24 +159,27 @@ pub const Result = enum(i32) {
     cancelled = -51,
     memory_already_mapped = -52,
 
-    format_not_supported = -100,
-    device_type_not_supported = -101,
-    share_mode_not_supported = -102,
-    no_backend = -103,
-    no_device = -104,
-    api_not_found = -105,
-    invalid_device_config = -106,
-    loop = -107,
+    crc_not_match = -100,
 
-    device_not_initialized = -200,
-    device_already_initialized = -201,
-    device_not_started = -202,
-    device_not_stopped = -203,
+    format_not_supported = -200,
+    device_type_not_supported = -201,
+    share_mode_not_supported = -202,
+    no_backend = -203,
+    no_device = -204,
+    api_not_found = -205,
+    invalid_device_config = -206,
+    loop = -207,
+    backend_not_enabled = -208,
 
-    failed_to_init_backend = -300,
-    failed_to_open_backend_device = -301,
-    failed_to_start_backend_device = -302,
-    failed_to_stop_backend_device = -303,
+    device_not_initialized = -300,
+    device_already_initialized = -301,
+    device_not_started = -302,
+    device_not_stopped = -303,
+
+    failed_to_init_backend = -400,
+    failed_to_open_backend_device = -401,
+    failed_to_start_backend_device = -402,
+    failed_to_stop_backend_device = -403,
 };
 
 pub fn maybeError(result: Result) Error!void {
@@ -232,6 +238,8 @@ pub fn maybeError(result: Result) Error!void {
         .cancelled => error.Cancelled,
         .memory_already_mapped => error.MemoryAlreadyMapped,
 
+        .crc_not_match => error.CrcNotMatch,
+
         .format_not_supported => error.FormatNotSupported,
         .device_type_not_supported => error.DeviceTypeNotSupported,
         .share_mode_not_supported => error.ShareModeNotSupported,
@@ -240,6 +248,7 @@ pub fn maybeError(result: Result) Error!void {
         .api_not_found => error.ApiNotFound,
         .invalid_device_config => error.InvalidDeviceConfig,
         .loop => error.Loop,
+        .backend_not_enabled => error.BackendNotEnabled,
 
         .device_not_initialized => error.DeviceNotInitialized,
         .device_already_initialized => error.DeviceAlreadyInitialized,
