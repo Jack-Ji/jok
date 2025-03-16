@@ -28,13 +28,12 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
     mod.addCSourceFile(.{
         .file = dir.path(mod.owner, "c/miniaudio/miniaudio.c"),
         .flags = &.{
-            "-DMA_NO_WEBAUDIO",
             "-DMA_NO_ENCODING",
             "-DMA_NO_NULL",
             "-DMA_NO_JACK",
             "-DMA_NO_DSOUND",
             "-DMA_NO_WINMM",
-            "-std=c99",
+            "-std=gnu99",
             "-fno-sanitize=undefined",
             if (mod.resolved_target.?.result.os.tag == .macos) "-DMA_NO_RUNTIME_LINKING" else "",
         },
