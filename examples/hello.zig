@@ -146,7 +146,7 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.none);
     if (show_stats) ctx.displayStats(.{});
 
-    imgui.setNextWindowPos(.{ .x = 50, .y = 200 });
+    imgui.setNextWindowPos(.{ .x = 50, .y = 200, .cond = .once });
     if (imgui.begin("canvas", .{})) {
         imgui.image(ctx.canvas().ptr, .{
             .w = ctx.getAspectRatio() * 100,
