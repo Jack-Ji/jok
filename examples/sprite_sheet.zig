@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const jok = @import("jok");
 const physfs = jok.physfs;
 const j2d = jok.j2d;
@@ -11,7 +12,9 @@ var sheet3: *j2d.SpriteSheet = undefined;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    try physfs.mount("assets", "", true);
+    if (!builtin.cpu.arch.isWasm()) {
+        try physfs.mount("assets", "", true);
+    }
     try physfs.mount(physfs.getBaseDir(), "", true);
     try physfs.setWriteDir(physfs.getBaseDir());
 

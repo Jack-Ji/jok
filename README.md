@@ -1,4 +1,4 @@
-[![build](/../../actions/workflows/windows_native.yml/badge.svg)](/../../actions/workflows/windows_native.yml) [![build](/../../actions/workflows/linux_native.yml/badge.svg)](/../../actions/workflows/linux_native.yml) [![build](/../../actions/workflows/macos_native.yml/badge.svg)](/../../actions/workflows/macos_native.yml) [![build](/../../actions/workflows/windows_cross.yml/badge.svg)](/../../actions/workflows/windows_cross.yml) [![build](/../../actions/workflows/linux_cross.yml/badge.svg)](/../../actions/workflows/linux_cross.yml)
+[![build](/../../actions/workflows/windows_native.yml/badge.svg)](/../../actions/workflows/windows_native.yml) [![build](/../../actions/workflows/linux_native.yml/badge.svg)](/../../actions/workflows/linux_native.yml) [![build](/../../actions/workflows/macos_native.yml/badge.svg)](/../../actions/workflows/macos_native.yml) [![build](/../../actions/workflows/webassembly.yml/badge.svg)](/../../actions/workflows/webassembly.yml) [![build](/../../actions/workflows/windows_cross.yml/badge.svg)](/../../actions/workflows/windows_cross.yml) [![build](/../../actions/workflows/linux_cross.yml/badge.svg)](/../../actions/workflows/linux_cross.yml)
 
 
 # jok
@@ -42,8 +42,8 @@ A minimal 2d/3d game framework for zig.
 ## Supported platforms
 * Windows
 * Linux
-* MacOS (?)
-* WebAssembly (WIP)
+* MacOS
+* WebAssembly
 
 TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem` with `.Windows` in your build script.
 
@@ -75,12 +75,59 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
             .{},
         );
         const install_cmd = b.addInstallArtifact(exe, .{});
+        b.getInstallStep().dependOn(&install_cmd.step);
     
         const run_cmd = b.addRunArtifact(exe);
         run_cmd.step.dependOn(&install_cmd.step);
     
         const run_step = b.step("run", "Run game");
         run_step.dependOn(&run_cmd.step);
+    }
+    ```
+
+    If you want to add emscripten support for your project, the build script needs more care:
+    ```zig
+    const std = @import("std");
+    const jok = @import("jok");
+    
+    pub fn build(b: *std.Build) void {
+        const target = b.standardTargetOptions(.{});
+        const optimize = b.standardOptimizeOption(.{});
+
+        if (!target.result.cpu.arch.isWasm()) {
+            const exe = jok.createDesktopApp(
+                    b,
+                    "mygame",
+                    "src/main.zig",
+                    target,
+                    optimize,
+                    .{},
+            );
+            const install_cmd = b.addInstallArtifact(exe, .{});
+            b.getInstallStep().dependOn(&install_cmd.step);
+
+            const run_cmd = b.addRunArtifact(exe);
+            run_cmd.step.dependOn(&install_cmd.step);
+
+            const run_step = b.step("run", "Run game");
+            run_step.dependOn(&run_cmd.step);
+        } else {
+            const webapp = createWeb(
+                    b,
+                    "mygame",
+                    "src/main.zig",
+                    target,
+                    optimize,
+                    .{
+                        .preload_path = "optional/relative/path/to/your/assets",
+                        .shell_file_path = "optional/relative/path/to/your/shell",
+                    },
+            );
+            b.getInstallStep().dependOn(&webapp.emlink.step);
+
+            const run_step = b.step("run", "Run game");
+            run_step.dependOn(&webapp.emrun.step);
+        }
     }
     ```
 

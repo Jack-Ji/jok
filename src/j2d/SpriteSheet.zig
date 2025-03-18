@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const assert = std.debug.assert;
 const json = std.json;
 const Sprite = @import("Sprite.zig");
@@ -12,6 +13,7 @@ pub const Error = error{
     TextureNotLargeEnough,
     InvalidFormat,
     NoPixelData,
+    Unimplemented,
 };
 
 const max_sheet_data_size = 1 << 23;
@@ -329,7 +331,7 @@ pub fn fromPicturesInDir(
             .gap = opt.gap,
             .keep_packed_pixels = opt.keep_packed_pixels,
         });
-    } else {
+    } else if (!builtin.cpu.arch.isWasm()) {
         var dir = try std.fs.cwd().openDir(std.mem.sliceTo(dir_path, 0), .{ .iterate = true });
         defer dir.close();
 
@@ -365,6 +367,7 @@ pub fn fromPicturesInDir(
             .keep_packed_pixels = opt.keep_packed_pixels,
         });
     }
+    return error.Unimplemented;
 }
 
 /// Create a very raw sheet with a single picture, initialize name tree if possible

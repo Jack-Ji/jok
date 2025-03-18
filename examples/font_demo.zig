@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const jok = @import("jok");
 const physfs = jok.physfs;
 const font = jok.font;
@@ -10,7 +11,9 @@ var saved_atlas: *font.Atlas = undefined;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    try physfs.mount(physfs.getBaseDir(), "", true);
+    if (!builtin.cpu.arch.isWasm()) {
+        try physfs.mount(physfs.getBaseDir(), "", true);
+    }
     try physfs.setWriteDir(physfs.getBaseDir());
 
     batchpool = try @TypeOf(batchpool).init(ctx);

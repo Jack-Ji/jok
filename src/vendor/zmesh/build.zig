@@ -32,12 +32,15 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
             "c/meshoptimizer/simplifier.cpp",
             "c/meshoptimizer/allocator.cpp",
         },
-        .flags = &.{""},
+        .flags = &.{},
     });
 
     mod.addIncludePath(dir.path(mod.owner, "c/cgltf"));
     mod.addCSourceFile(.{
         .file = dir.path(mod.owner, "c/cgltf/cgltf.c"),
-        .flags = &.{"-std=c99"},
+        .flags = &.{
+            "-std=c99",
+            "-fno-sanitize=undefined",
+        },
     });
 }

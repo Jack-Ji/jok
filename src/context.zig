@@ -295,6 +295,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Init PhysicsFS
             physfs.init(self._allocator);
+            if (builtin.cpu.arch.isWasm()) {
+                try physfs.mount("/", "", true);
+            }
 
             // Init SDL window and renderer
             try self.initSDL();
@@ -706,7 +709,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
             self.updateCanvasTargetArea();
 
-            if (!cfg.jok_headless and cfg.jok_exit_on_recv_esc) {
+            if (!builtin.cpu.arch.isWasm() and !cfg.jok_headless and cfg.jok_exit_on_recv_esc) {
                 log.info("Press ESC to exit game", .{});
             }
         }

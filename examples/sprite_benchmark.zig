@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const jok = @import("jok");
 const physfs = jok.physfs;
 const j2d = jok.j2d;
@@ -28,7 +29,9 @@ var delta_tick: f32 = 0;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    try physfs.mount("assets", "/", true);
+    if (!builtin.cpu.arch.isWasm()) {
+        try physfs.mount("assets", "/", true);
+    }
 
     batchpool = try @TypeOf(batchpool).init(ctx);
 

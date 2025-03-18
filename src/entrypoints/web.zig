@@ -33,6 +33,12 @@ fn mainLoop(args: ?*anyopaque) callconv(.C) void {
 
 pub fn main() !void {
     var jok_ctx = try Context.create();
-    try game.init(jok_ctx.context());
+    game.init(jok_ctx.context()) catch |err| {
+        log.err("Init game failed: {}", .{err});
+        if (@errorReturnTrace()) |trace| {
+            std.debug.dumpStackTrace(trace.*);
+            return;
+        }
+    };
     emscripten_set_main_loop_arg(mainLoop, jok_ctx, 0, true);
 }

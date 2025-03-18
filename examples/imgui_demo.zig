@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const jok = @import("jok");
 const physfs = jok.physfs;
 const imgui = jok.imgui;
@@ -25,8 +26,6 @@ const NonExhaustiveEnum = enum(i32) {
     _,
 };
 
-var tex: jok.Texture = undefined;
-
 var alloced_input_text_buf: [:0]u8 = undefined;
 var alloced_input_text_multiline_buf: [:0]u8 = undefined;
 var alloced_input_text_with_hint_buf: [:0]u8 = undefined;
@@ -34,14 +33,9 @@ var alloced_input_text_with_hint_buf: [:0]u8 = undefined;
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    try physfs.mount("assets", "", true);
-
-    tex = try ctx.renderer().createTextureFromFile(
-        ctx.allocator(),
-        "images/image9.jpg",
-        .static,
-        false,
-    );
+    if (!builtin.cpu.arch.isWasm()) {
+        try physfs.mount("assets", "", true);
+    }
 
     const style = imgui.getStyle();
     style.window_min_size = .{ 320.0, 240.0 };

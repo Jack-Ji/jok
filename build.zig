@@ -396,9 +396,9 @@ pub fn createWeb(
         .shell_file_path = if (opt.shell_file_path) |p|
             b.path(p)
         else
-            builder.path("src/entrypoints/web/shell.html"),
+            builder.path("src/entrypoints/shell.html"),
         .preload_path = opt.preload_path,
-        .extra_args = &.{"-sSTACK_SIZE=512KB"},
+        .extra_args = &.{"-sSTACK_SIZE=4MB"},
     });
 
     // Special run step to run the build result via emrun
@@ -952,7 +952,7 @@ const Emscripten = struct {
         optimize: OptimizeMode,
         shell_file_path: ?Build.LazyPath = null,
         preload_path: ?[]const u8 = null,
-        release_use_closure: bool = true,
+        release_use_closure: bool = false,
         release_use_lto: bool = true,
         use_emmalloc: bool = false,
         use_offset_converter: bool = true, // needed for @returnAddress builtin used by Zig allocators
@@ -979,10 +979,10 @@ const Emscripten = struct {
         emcc.addArg("-sINITIAL_MEMORY=128mb");
         emcc.addArg("-sALLOW_MEMORY_GROWTH=1");
         emcc.addArg("-sMAXIMUM_MEMORY=1gb");
-        //if (opt.shell_file_path) |p| emcc.addPrefixedFileArg("--shell-file=", p);
+        if (opt.shell_file_path) |p| emcc.addPrefixedFileArg("--shell-file=", p);
         if (opt.preload_path) |p| {
             emcc.addArg("--preload-file");
-            emcc.addArg(sdk.builder.pathFromRoot(p));
+            emcc.addArg(sdk.builder.fmt("{s}@/", .{sdk.builder.pathFromRoot(p)}));
         }
         if (opt.use_emmalloc) emcc.addArg("-sMALLOC='emmalloc'");
         if (opt.use_offset_converter) emcc.addArg("-sUSE_OFFSET_CONVERTER");
