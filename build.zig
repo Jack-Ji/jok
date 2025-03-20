@@ -246,7 +246,13 @@ pub fn createTest(
 ) *Build.Step.Compile {
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
     const sdk = CrossSDL.init(b);
-    const jok = getJokLibrary(b, target, optimize, opt);
+    const jok = getJokLibrary(b, target, optimize, .{
+        .dep_name = opt.dep_name,
+        .no_audio = opt.no_audio,
+        .use_cp = opt.use_cp,
+        .use_nfd = opt.use_nfd,
+        .link_dynamic = opt.link_dynamic,
+    });
 
     // Create module to be used for testing
     const module = b.createModule(.{
