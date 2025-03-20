@@ -19,6 +19,7 @@ const Context = jok.JokContext(jok_config);
 const LoopFn = *const fn (args: ?*anyopaque) callconv(.C) void;
 extern fn emscripten_set_main_loop_arg(fp: LoopFn, args: ?*anyopaque, fps: c_int, simulate_infinite_loop: bool) void;
 extern fn emscripten_cancel_main_loop() void;
+extern fn emscripten_run_script(s: [*:0]const u8) void;
 
 fn mainLoop(args: ?*anyopaque) callconv(.C) void {
     var jok_ctx: *Context = @alignCast(@ptrCast(args.?));
@@ -32,6 +33,8 @@ fn mainLoop(args: ?*anyopaque) callconv(.C) void {
 }
 
 pub fn main() !void {
+    emscripten_run_script("document.title = \"" ++ jok_config.jok_window_title ++ "\"");
+
     var jok_ctx = try Context.create();
     game.init(jok_ctx.context()) catch |err| {
         log.err("Init game failed: {}", .{err});
