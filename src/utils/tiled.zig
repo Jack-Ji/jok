@@ -982,7 +982,7 @@ fn loadLayers(
                         .gids = &.{},
                     });
                     var gids = try std.ArrayList(GlobalTileID).initCapacity(arena_allocator, 20);
-                    var gid_it = std.mem.splitAny(u8, data.children[0].char_data, ",\n");
+                    var gid_it = std.mem.splitAny(u8, data.children[0].char_data, ",\r\n");
                     while (gid_it.next()) |s| {
                         if (s.len == 0) continue;
                         try gids.append(.{ ._id = try std.fmt.parseInt(u32, s, 10) });
