@@ -639,6 +639,8 @@ fn loadTilesets(
 
         // Load attributes
         var tileset = e1;
+        // The directory that this tileset exists in
+        var tileset_dir: []const u8 = "";
         PARSE_TILESET: while (true) {
             for (tileset.attributes) |a| {
                 if (std.mem.eql(u8, a.name, "firstgid")) {
@@ -647,11 +649,30 @@ fn loadTilesets(
                     continue;
                 }
                 if (std.mem.eql(u8, a.name, "source")) {
+                    // If the tileset is in a different directory, slice it and save it
+                    tileset_dir = if (std.mem.lastIndexOfScalar(u8, a.value, '/')) |idx|
+                        a.value[0..idx]
+                    else
+                        "";
+
+                    // Resolve our directory & source into a path. If we're using physfs, default to POSIX so as to use '/'
+                    const full_path = if (use_physfs)
+                        try std.fs.path.resolvePosix(temp_allocator, &.{ dirname, a.value })
+                    else
+                        try std.fs.path.resolve(temp_allocator, &.{ dirname, a.value });
+                    defer temp_allocator.free(full_path);
+
+                    // Slice our path into a directory and a file name
+                    const full_dirname, const file_name = if (std.mem.lastIndexOfScalar(u8, full_path, '/')) |idx|
+                        .{ full_path[0..idx], full_path[idx..] }
+                    else
+                        return error.FailedPathResolution;
+
                     const tsx_content = try getExternalFileContent(
                         temp_allocator,
                         use_physfs,
-                        dirname,
-                        a.value,
+                        full_dirname,
+                        file_name,
                     );
                     defer temp_allocator.free(tsx_content);
 
@@ -710,11 +731,25 @@ fn loadTilesets(
             if (img.findChildByTag("data") != null) return error.UnsupportedImageData;
             for (img.attributes) |a| {
                 if (std.mem.eql(u8, a.name, "source")) {
+                    // Fetch the source relative to our tilemap by joining the current directory with our tileset directory
+                    // Like above, we will resolve to POSIX if we're using physfs. Otherwise, we'll default back to the system
+                    const full_path = if (use_physfs)
+                        try std.fs.path.resolvePosix(temp_allocator, &.{ dirname, tileset_dir, a.value })
+                    else
+                        try std.fs.path.resolve(temp_allocator, &.{ dirname, tileset_dir, a.value });
+                    defer temp_allocator.free(full_path);
+
+                    // Similarly to our tileset directory resolution, we split this into its directory name and file name
+                    const full_dirname, const file_name = if (std.mem.lastIndexOfScalar(u8, full_path, '/')) |idx|
+                        .{ full_path[0..idx], full_path[idx..] }
+                    else
+                        return error.FailedPathResolution;
+
                     const image_content = try getExternalFileContent(
                         temp_allocator,
                         use_physfs,
-                        dirname,
-                        a.value,
+                        full_dirname,
+                        file_name,
                     );
                     defer temp_allocator.free(image_content);
                     ts[tsidx].texture = try rd.createTextureFromFileData(image_content, .static, false);
