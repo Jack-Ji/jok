@@ -15,6 +15,7 @@ A minimal 2d/3d game framework for zig.
 * Excellent rendering performance (thanks to SDL2's [geometry rendering](https://wiki.libsdl.org/SDL2/SDL_RenderGeometryRaw))
 * Fully integrated Dear-ImGui
 * Asset system (via [physfs](https://github.com/icculus/physfs), supports fs/zip/7zip/iso etc)
+* Plugin System (register/unregister/hot-reloading)
 * 2D batch system
 * 2D vector graphics (line/rectangle/quad/triangle/circle/bezier-curve/convex-polygon/polyline/custom-path)
 * 2D sprite rendering (scale/rotate/blending/flipping/depth)
@@ -36,7 +37,6 @@ A minimal 2d/3d game framework for zig.
 * SVG loading/rendering
 * Sound/Music playing/mixing
 * Tiled editor support (tmx/tsx loading/rendering)
-* Plugin System (register/unregister/hot-reloading)
 * Misc little utils, such as easing/timer/signal system
 
 ## Supported platforms

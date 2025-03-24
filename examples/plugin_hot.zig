@@ -39,21 +39,16 @@ const GameState = struct {
 
 var state: *GameState = undefined;
 
-export fn init(ctx: *const jok.Context) bool {
-    state = GameState.create(ctx.*) catch return false;
-    return true;
+pub fn init(ctx: jok.Context) !void {
+    state = try GameState.create(ctx);
 }
 
-export fn deinit(ctx: *const jok.Context) void {
-    state.destroy(ctx.*);
-}
-
-export fn event(ctx: *const jok.Context, e: *const jok.Event) void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
     _ = e;
 }
 
-export fn update(ctx: *const jok.Context) void {
+pub fn update(ctx: jok.Context) !void {
     _ = ctx;
 }
 
@@ -88,7 +83,7 @@ fn scene3d(ctx: jok.Context) !void {
     });
 }
 
-export fn draw(ctx: *const jok.Context) void {
+pub fn draw(ctx: jok.Context) !void {
     imgui.setNextWindowPos(.{ .x = 500, .y = 400, .cond = .once });
     imgui.setNextWindowSize(.{ .w = 200, .h = 100 });
     if (imgui.begin("I'm Hot Plugin", .{})) {
@@ -97,14 +92,18 @@ export fn draw(ctx: *const jok.Context) void {
     }
     imgui.end();
 
-    scene2d(ctx.*) catch unreachable;
-    scene3d(ctx.*) catch unreachable;
+    try scene2d(ctx);
+    try scene3d(ctx);
 }
 
-export fn get_memory() ?*const anyopaque {
+pub fn quit(ctx: jok.Context) void {
+    state.destroy(ctx);
+}
+
+pub fn getMemory() ?*const anyopaque {
     return state;
 }
 
-export fn reload_memory(mem: ?*const anyopaque) void {
+pub fn reloadMemory(mem: ?*const anyopaque) void {
     state = @constCast(@alignCast(@ptrCast(mem.?)));
 }

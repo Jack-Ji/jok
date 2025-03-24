@@ -7,7 +7,7 @@ const log = std.log.scoped(.jok);
 
 // Validate game object
 comptime {
-    compcheck.doCheck(game);
+    compcheck.doAppCheck(game);
 }
 
 /// Jok configuration

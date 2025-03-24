@@ -12,7 +12,7 @@ const Error = error{
     CallInitFailed,
 };
 
-/// Standard API for plugins
+/// C API for plugins
 /// init: Initialize the plugin, return true if success, false if failed
 /// deinit: Deinitialize the plugin
 /// event: Handle events
@@ -20,16 +20,17 @@ const Error = error{
 /// draw: Draw the plugin
 /// get_memory: Get the memory of the plugin
 /// reload_memory: Reload the memory of the plugin
-const InitFn = *const fn (ctx: *const jok.Context) callconv(.C) bool;
-const DeinitFn = *const fn (ctx: *const jok.Context) callconv(.C) void;
-const EventFn = *const fn (ctx: *const jok.Context, e: *const jok.Event) callconv(.C) void;
-const UpdateFn = *const fn (ctx: *const jok.Context) callconv(.C) void;
-const DrawFn = *const fn (ctx: *const jok.Context) callconv(.C) void;
+const InitFn = *const fn (ctx: *const jok.Context, name: [*:0]const u8) callconv(.C) bool;
+const DeinitFn = *const fn (ctx: *const jok.Context, name: [*:0]const u8) callconv(.C) void;
+const EventFn = *const fn (ctx: *const jok.Context, e: *const jok.Event, name: [*:0]const u8) callconv(.C) void;
+const UpdateFn = *const fn (ctx: *const jok.Context, name: [*:0]const u8) callconv(.C) void;
+const DrawFn = *const fn (ctx: *const jok.Context, name: [*:0]const u8) callconv(.C) void;
 const GetMemoryFn = *const fn () callconv(.C) ?*const anyopaque;
-const ReloadMemoryFn = *const fn (mem: ?*const anyopaque) callconv(.C) void;
+const ReloadMemoryFn = *const fn (mem: ?*const anyopaque, name: [*:0]const u8) callconv(.C) void;
 
 pub const Plugin = struct {
     lib: DynLib,
+    name: [:0]const u8,
     origin_path: []const u8,
     last_modify_time: i128,
     version: u32,
@@ -62,9 +63,10 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
 pub fn destroy(self: *Self, ctx: jok.Context) void {
     var it = self.plugins.iterator();
     while (it.next()) |kv| {
-        kv.value_ptr.deinit_fn(&ctx);
+        kv.value_ptr.deinit_fn(&ctx, kv.value_ptr.name);
         kv.value_ptr.lib.close();
         self.allocator.free(kv.key_ptr.*);
+        self.allocator.free(kv.value_ptr.name);
         self.allocator.free(kv.value_ptr.origin_path);
     }
     self.plugins.deinit();
@@ -76,13 +78,16 @@ pub fn register(self: *Self, ctx: jok.Context, name: []const u8, path: []const u
 
     var loaded = try self.loadLibrary(path, 1);
     errdefer loaded.lib.close();
-    if (!loaded.init_fn(&ctx)) {
+    const pname = try self.allocator.dupeZ(u8, name);
+    errdefer self.allocator.free(pname);
+    if (!loaded.init_fn(&ctx, pname)) {
         return error.InitFailed;
     }
-    errdefer loaded.deinit_fn(&ctx);
+    errdefer loaded.deinit_fn(&ctx, pname);
 
     try self.plugins.put(try self.allocator.dupe(u8, name), .{
         .lib = loaded.lib,
+        .name = pname,
         .origin_path = try self.allocator.dupe(u8, path),
         .last_modify_time = loaded.last_modify_time,
         .version = 1,
@@ -105,23 +110,24 @@ pub fn register(self: *Self, ctx: jok.Context, name: []const u8, path: []const u
 pub fn unregister(self: *Self, ctx: jok.Context, name: []const u8) !void {
     if (self.plugins.contains(name)) return error.NameNotExist;
     var kv = self.plugins.fetchSwapRemove(name).?;
-    kv.value.deinit_fn(&ctx);
+    kv.value.deinit_fn(&ctx, kv.value.name);
     kv.value.lib.close();
     self.allocator.free(kv.key);
+    self.allocator.free(kv.value.name);
     self.allocator.free(kv.value.origin_path);
 }
 
 pub fn event(self: Self, ctx: jok.Context, e: jok.Event) void {
     var it = self.plugins.iterator();
     while (it.next()) |kv| {
-        kv.value_ptr.event_fn(&ctx, &e);
+        kv.value_ptr.event_fn(&ctx, &e, kv.value_ptr.name);
     }
 }
 
 pub fn update(self: *Self, ctx: jok.Context) void {
     var it = self.plugins.iterator();
     while (it.next()) |kv| {
-        kv.value_ptr.update_fn(&ctx);
+        kv.value_ptr.update_fn(&ctx, kv.value_ptr.name);
 
         if (!kv.value_ptr.hot_reloading) continue;
 
@@ -136,7 +142,7 @@ pub fn update(self: *Self, ctx: jok.Context) void {
 pub fn draw(self: *Self, ctx: jok.Context) void {
     var it = self.plugins.iterator();
     while (it.next()) |kv| {
-        kv.value_ptr.draw_fn(&ctx);
+        kv.value_ptr.draw_fn(&ctx, kv.value_ptr.name);
     }
 }
 
@@ -149,7 +155,7 @@ pub fn forceReload(self: *Self, name: []const u8) !void {
 
         // Restore plugin's internal state
         const mem = v.get_memory_fn();
-        loaded.reload_memory_fn(mem);
+        loaded.reload_memory_fn(mem, v.name);
 
         // Update plugin info
         v.lib.close();

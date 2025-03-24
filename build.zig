@@ -129,6 +129,7 @@ fn addExample(
                 plugin,
                 .{ .dest_dir = .{ .override = .{ .bin = {} } } },
             );
+            b.step(pname, b.fmt("compile plugin {s}", .{pname})).dependOn(&install_plugin.step);
             install_cmd.step.dependOn(&install_plugin.step);
         }
 
@@ -318,10 +319,22 @@ pub fn createPlugin(
         plugin.addImport(d.name, d.mod);
     }
 
+    // Create root module
+    const builder = getJokBuilder(b, opt.dep_name);
+    const root = b.createModule(.{
+        .root_source_file = builder.path("src/entrypoints/plugin.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "jok", .module = jok.module },
+            .{ .name = "plugin", .module = plugin },
+        },
+    });
+
     // Create shared library
     const lib = b.addSharedLibrary(.{
         .name = name,
-        .root_module = plugin,
+        .root_module = root,
     });
     sdk.link(lib, .dynamic);
     lib.linkLibrary(jok.artifact);
