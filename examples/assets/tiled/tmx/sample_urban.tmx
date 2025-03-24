@@ -3,7 +3,7 @@
  <properties>
   <property name="fancycolor" type="color" value="#ff33d17a"/>
  </properties>
- <tileset firstgid="1" source="tileset_colored.tsx"/>
+ <tileset firstgid="1" source="../tsx/tileset_colored.tsx"/>
  <group id="3" name="group1">
   <layer id="5" name="Layer 2" width="48" height="32" tintcolor="#f6d32d" offsetx="16" offsety="16">
    <data encoding="csv">

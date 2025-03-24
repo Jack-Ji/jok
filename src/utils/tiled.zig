@@ -639,8 +639,10 @@ fn loadTilesets(
 
         // Load attributes
         var tileset = e1;
+
         // The directory that this tileset exists in
         var tileset_dir: []const u8 = "";
+
         PARSE_TILESET: while (true) {
             for (tileset.attributes) |a| {
                 if (std.mem.eql(u8, a.name, "firstgid")) {
@@ -655,25 +657,11 @@ fn loadTilesets(
                     else
                         "";
 
-                    // Resolve our directory & source into a path. If we're using physfs, default to POSIX so as to use '/'
-                    const full_path = if (use_physfs)
-                        try std.fs.path.resolvePosix(temp_allocator, &.{ dirname, a.value })
-                    else
-                        try std.fs.path.resolve(temp_allocator, &.{ dirname, a.value });
+                    // Resolve our directory & source into a path.
+                    const full_path = try std.fs.path.resolvePosix(temp_allocator, &.{ dirname, a.value });
                     defer temp_allocator.free(full_path);
 
-                    // Slice our path into a directory and a file name
-                    const full_dirname, const file_name = if (std.mem.lastIndexOfScalar(u8, full_path, '/')) |idx|
-                        .{ full_path[0..idx], full_path[idx..] }
-                    else
-                        return error.FailedPathResolution;
-
-                    const tsx_content = try getExternalFileContent(
-                        temp_allocator,
-                        use_physfs,
-                        full_dirname,
-                        file_name,
-                    );
+                    const tsx_content = try getExternalFileContent(temp_allocator, use_physfs, full_path);
                     defer temp_allocator.free(tsx_content);
 
                     external_doc = try xml.parse(temp_allocator, tsx_content);
@@ -732,26 +720,12 @@ fn loadTilesets(
             for (img.attributes) |a| {
                 if (std.mem.eql(u8, a.name, "source")) {
                     // Fetch the source relative to our tilemap by joining the current directory with our tileset directory
-                    // Like above, we will resolve to POSIX if we're using physfs. Otherwise, we'll default back to the system
-                    const full_path = if (use_physfs)
-                        try std.fs.path.resolvePosix(temp_allocator, &.{ dirname, tileset_dir, a.value })
-                    else
-                        try std.fs.path.resolve(temp_allocator, &.{ dirname, tileset_dir, a.value });
+                    const full_path = try std.fs.path.resolvePosix(temp_allocator, &.{ dirname, tileset_dir, a.value });
                     defer temp_allocator.free(full_path);
 
-                    // Similarly to our tileset directory resolution, we split this into its directory name and file name
-                    const full_dirname, const file_name = if (std.mem.lastIndexOfScalar(u8, full_path, '/')) |idx|
-                        .{ full_path[0..idx], full_path[idx..] }
-                    else
-                        return error.FailedPathResolution;
-
-                    const image_content = try getExternalFileContent(
-                        temp_allocator,
-                        use_physfs,
-                        full_dirname,
-                        file_name,
-                    );
+                    const image_content = try getExternalFileContent(temp_allocator, use_physfs, full_path);
                     defer temp_allocator.free(image_content);
+
                     ts[tsidx].texture = try rd.createTextureFromFileData(image_content, .static, false);
                     break;
                 }
@@ -1235,21 +1209,15 @@ inline fn initPropertyTree(element: *const xml.Element, allocator: std.mem.Alloc
     }
 }
 
-inline fn getExternalFileContent(
-    allocator: std.mem.Allocator,
-    use_physfs: bool,
-    dirname: []const u8,
-    filename: []const u8,
-) ![]const u8 {
-    const sep = if (use_physfs) "/" else std.fs.path.sep_str;
-    const path = try std.fmt.allocPrintZ(allocator, "{s}{s}{s}", .{ dirname, sep, filename });
-    defer allocator.free(path);
+inline fn getExternalFileContent(allocator: std.mem.Allocator, use_physfs: bool, path: []const u8) ![]const u8 {
+    const zpath = try std.fmt.allocPrintZ(allocator, "{s}", .{path});
+    defer allocator.free(zpath);
     if (use_physfs) {
-        const handle = try physfs.open(path, .read);
+        const handle = try physfs.open(zpath, .read);
         defer handle.close();
         return try handle.readAllAlloc(allocator);
     } else {
-        const file = try std.fs.cwd().openFileZ(path, .{ .mode = .read_only });
+        const file = try std.fs.cwd().openFileZ(zpath, .{ .mode = .read_only });
         defer file.close();
         return file.readToEndAlloc(allocator, 1 << 30);
     }
