@@ -627,6 +627,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 \\    App Dir     : {s} 
                 \\    
                 \\Renderer info:
+                \\    Driver           : {s}
                 \\    Vertical Sync    : {}
                 \\    Max Texture Size : {d}*{d}
                 \\
@@ -644,6 +645,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     @tagName(target.os.tag),
                     ram_size,
                     physfs.getBaseDir(),
+                    info.name,
                     info.flags & sdl.SDL_RENDERER_PRESENTVSYNC != 0,
                     info.max_texture_width,
                     info.max_texture_height,

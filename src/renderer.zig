@@ -55,6 +55,7 @@ pub const Renderer = struct {
     }
 
     pub const Info = struct {
+        name: [:0]const u8,
         flags: u32,
         max_texture_width: u32,
         max_texture_height: u32,
@@ -66,6 +67,7 @@ pub const Renderer = struct {
             return sdl.Error.SdlError;
         }
         return .{
+            .name = std.mem.sliceTo(result.name, 0),
             .flags = result.flags,
             .max_texture_width = @intCast(result.max_texture_width),
             .max_texture_height = @intCast(result.max_texture_height),
