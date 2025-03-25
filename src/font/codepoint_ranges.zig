@@ -131,6 +131,7 @@ pub const korean = [_][2]u32{
     .{ 0x3131, 0x3163 }, // Korean alphabets
     .{ 0xAC00, 0xD7A3 }, // Korean characters
     .{ 0xFFFD, 0xFFFD }, // Invalid
+    .{ 0, 0 },
 };
 
 pub const cp437 = genRanges2(
@@ -172,6 +173,7 @@ pub const cp437 = genRanges2(
 
 pub const braille = [_][2]u32{
     .{ 0x2800, 0x28FF },
+    .{ 0, 0 },
 };
 
 pub fn genRanges(
