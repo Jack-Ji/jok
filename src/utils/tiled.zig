@@ -238,6 +238,8 @@ const Chunk = struct {
 
 const TileLayer = struct {
     map: *const TiledMap,
+    name: []const u8,
+    class: []const u8,
     size: jok.Size,
     offset: jok.Point,
     parallax: jok.Point,
@@ -311,6 +313,8 @@ const Object = struct {
 
 const ObjectGroup = struct {
     map: *const TiledMap,
+    name: []const u8,
+    class: []const u8,
     offset: jok.Point,
     parallax: jok.Point,
     tint_color: jok.Color,
@@ -380,18 +384,23 @@ const ObjectGroup = struct {
 
 const ImageLayer = struct {
     map: *const TiledMap,
+    name: []const u8,
+    class: []const u8,
     offset: jok.Point,
     parallax: jok.Point,
     tint_color: jok.Color,
+    texture: jok.Texture,
     visible: bool,
     props: PropertyTree,
 
     pub fn render(self: ImageLayer, b: *j2d.Batch) !void {
         if (!self.visible) return;
         assert(self.map.orientation == .orthogonal);
-        _ = b;
-        // TODO
-        return error.UnsupportedLayerType;
+        try b.image(
+            self.texture,
+            self.offset,
+            .{ .tint_color = self.tint_color },
+        );
     }
 };
 
@@ -408,6 +417,22 @@ pub const Layer = union(enum) {
         }
     }
 
+    pub fn getName(self: Layer) []const u8 {
+        return switch (self) {
+            .tile_layer => |l| l.name,
+            .object_layer => |l| l.name,
+            .image_layer => |l| l.name,
+        };
+    }
+
+    pub fn getClass(self: Layer) []const u8 {
+        return switch (self) {
+            .tile_layer => |l| l.class,
+            .object_layer => |l| l.class,
+            .image_layer => |l| l.class,
+        };
+    }
+
     pub fn getParallax(self: Layer) jok.Point {
         return switch (self) {
             .tile_layer => |l| l.parallax,
@@ -418,9 +443,9 @@ pub const Layer = union(enum) {
 
     pub fn getProperty(self: Layer, name: []const u8) ?PropertyValue {
         return switch (self) {
-            .tile_layer => |l| try l.props.get(name),
-            .object_layer => |l| try l.props.get(name),
-            .image_layer => |l| try l.props.get(name),
+            .tile_layer => |l| l.props.get(name),
+            .object_layer => |l| l.props.get(name),
+            .image_layer => |l| l.props.get(name),
         };
     }
 };
@@ -586,9 +611,12 @@ pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !*TiledMap {
 
     // Load layers
     tmap.layers = try loadLayers(
+        ctx.renderer(),
         allocator,
         tmap.arena.allocator(),
         map,
+        ctx.cfg().jok_enable_physfs,
+        dirname,
         tmap,
     );
 
@@ -783,9 +811,12 @@ fn loadTilesets(
 }
 
 fn loadLayers(
+    rd: jok.Renderer,
     temp_allocator: std.mem.Allocator,
     arena_allocator: std.mem.Allocator,
     map: *const xml.Element,
+    use_physfs: bool,
+    dirname: []const u8,
     tmap: *TiledMap,
 ) ![]Layer {
     const Grouping = struct {
@@ -909,6 +940,8 @@ fn loadLayers(
     // Visibility isn't considered, all layers are considered necessary to rendering.
     while (try grouping.getNextLayer()) |e| {
         var layer: Layer = undefined;
+        var name: []const u8 = "";
+        var class: []const u8 = "";
         var offset: jok.Point = grouping.offset;
         var parallax: jok.Point = grouping.parallax;
         var tint_color: jok.Color = grouping.tint_color;
@@ -917,6 +950,14 @@ fn loadLayers(
 
         // Load common stuff
         for (e.attributes) |a| {
+            if (std.mem.eql(u8, a.name, "name")) {
+                name = try arena_allocator.dupe(u8, a.value);
+                continue;
+            }
+            if (std.mem.eql(u8, a.name, "class")) {
+                class = try arena_allocator.dupe(u8, a.value);
+                continue;
+            }
             if (std.mem.eql(u8, a.name, "offsetx")) {
                 offset.x = try std.fmt.parseFloat(f32, a.value);
                 continue;
@@ -1035,6 +1076,8 @@ fn loadLayers(
             }
             layer.tile_layer = .{
                 .map = tmap,
+                .name = name,
+                .class = class,
                 .size = size,
                 .offset = offset,
                 .parallax = parallax,
@@ -1147,6 +1190,8 @@ fn loadLayers(
             }
             layer.object_layer = .{
                 .map = tmap,
+                .name = name,
+                .class = class,
                 .offset = offset,
                 .parallax = parallax,
                 .tint_color = tint_color,
@@ -1155,10 +1200,40 @@ fn loadLayers(
                 .props = props,
             };
         } else if (std.mem.eql(u8, e.tag, "imagelayer")) {
-            // TODO
-            layer = .{ .image_layer = undefined };
+            layer = .{
+                .image_layer = .{
+                    .map = tmap,
+                    .name = name,
+                    .class = class,
+                    .offset = offset,
+                    .parallax = parallax,
+                    .tint_color = tint_color,
+                    .texture = undefined,
+                    .visible = visible,
+                    .props = props,
+                },
+            };
+
+            const img = e.findChildByTag("image").?;
+            if (img.findChildByTag("data") != null) return error.UnsupportedImageData;
+            for (img.attributes) |a| {
+                if (std.mem.eql(u8, a.name, "source")) {
+                    // Fetch the source relative to our tilemap
+                    const full_path = try std.fs.path.resolvePosix(temp_allocator, &.{ dirname, a.value });
+                    defer temp_allocator.free(full_path);
+
+                    const image_content = try getExternalFileContent(temp_allocator, use_physfs, full_path);
+                    defer temp_allocator.free(image_content);
+
+                    layer.image_layer.texture = try rd.createTextureFromFileData(image_content, .static, false);
+                    break;
+                }
+            } else {
+                return error.FailedToGetImageData;
+            }
+        } else {
             return error.UnsupportedLayerType;
-        } else unreachable;
+        }
 
         try ls.append(layer);
     }

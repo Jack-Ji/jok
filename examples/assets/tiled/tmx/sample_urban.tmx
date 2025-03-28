@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.8" tiledversion="1.8.2" orientation="orthogonal" renderorder="right-down" width="48" height="32" tilewidth="16" tileheight="16" infinite="1" backgroundcolor="#77767b" nextlayerid="7" nextobjectid="9">
+<map version="1.8" tiledversion="1.8.2" orientation="orthogonal" renderorder="right-down" width="48" height="32" tilewidth="16" tileheight="16" infinite="1" backgroundcolor="#77767b" nextlayerid="8" nextobjectid="9">
  <properties>
   <property name="fancycolor" type="color" value="#ff33d17a"/>
  </properties>
@@ -179,4 +179,7 @@
    <polygon points="0,0 92.931,0 45.9434,75.7022 -60.0397,46.9876 -27.1484,14.0963"/>
   </object>
  </objectgroup>
+ <imagelayer id="7" name="image layer" offsetx="116.213" offsety="424.843">
+  <image source="../../images/image5.jpg" width="150" height="100"/>
+ </imagelayer>
 </map>
