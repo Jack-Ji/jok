@@ -18,16 +18,11 @@ pub const DebugFont = struct {
 
     var arena: std.heap.ArenaAllocator = undefined;
     var atlases: std.AutoHashMap(u32, *Atlas) = undefined;
-    var vattrib: std.ArrayList(jok.Vertex) = undefined;
-    var vindices: std.ArrayList(u32) = undefined;
-    var debug_Size: u32 = undefined;
 
     pub fn init(allocator: std.mem.Allocator) !void {
         arena = std.heap.ArenaAllocator.init(allocator);
         font = try Font.fromTrueTypeData(arena.allocator(), font_data);
         atlases = std.AutoHashMap(u32, *Atlas).init(arena.allocator());
-        vattrib = try std.ArrayList(jok.Vertex).initCapacity(arena.allocator(), 100);
-        vindices = try std.ArrayList(u32).initCapacity(arena.allocator(), 100);
     }
 
     pub fn deinit() void {
@@ -46,7 +41,6 @@ pub const DebugFont = struct {
                 &[_][2]u32{.{ 0x0020, 0x00FF }},
                 .{},
             );
-            if (atlases.count() == 0) debug_Size = font_size;
             try atlases.put(font_size, a);
             break :BLK a;
         };
