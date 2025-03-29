@@ -212,8 +212,7 @@ pub fn draw(ctx: jok.Context) !void {
         const area = try atlas.getBoundingBox(
             "Hello Jok!",
             .{ .x = text_draw_pos.x, .y = text_draw_pos.y },
-            .top,
-            .aligned,
+            .{},
         );
         if (area.x < 0) {
             text_speed.x = @abs(text_speed.x);

@@ -232,21 +232,25 @@ pub fn getVPosOfNextLine(self: Atlas, current_ypos: f32) f32 {
     return current_ypos + @round(self.vmetric_ascent - self.vmetric_descent + self.vmetric_line_gap);
 }
 
-/// Position type of y axis (determine where text will be aligned to vertically)
+/// Position type of y axis (determine where text will be aligned vertically)
 pub const YPosType = enum { baseline, top, bottom };
+
+/// Type of text's horizontal alignment
+pub const AlignType = enum { left, middle, right };
 
 /// Type of text's bounding rectangle
 pub const BoxType = enum { aligned, drawed };
 
+/// BBox parameters
+pub const BBox = struct {
+    ypos_type: YPosType = .top,
+    align_type: AlignType = .left,
+    box_type: BoxType = .aligned,
+};
+
 /// Get bounding box of text
-pub fn getBoundingBox(
-    self: *Atlas,
-    text: []const u8,
-    _pos: jok.Point,
-    ypos_type: YPosType,
-    box_type: BoxType,
-) !jok.Rectangle {
-    const yoffset = switch (ypos_type) {
+pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox) !jok.Rectangle {
+    const yoffset = switch (opt.ypos_type) {
         .baseline => -self.vmetric_ascent,
         .top => 0,
         .bottom => self.vmetric_descent - self.vmetric_ascent,
@@ -254,12 +258,12 @@ pub fn getBoundingBox(
     var pos = _pos;
     var rect = jok.Rectangle{
         .x = pos.x,
-        .y = switch (box_type) {
+        .y = switch (opt.box_type) {
             .aligned => pos.y + yoffset,
             .drawed => std.math.floatMax(f32),
         },
         .width = 0,
-        .height = switch (box_type) {
+        .height = switch (opt.box_type) {
             .aligned => @round(self.vmetric_ascent - self.vmetric_descent),
             .drawed => 0,
         },
@@ -267,12 +271,13 @@ pub fn getBoundingBox(
 
     if (text.len == 0) return rect;
 
+    var aligned_width: f32 = 0;
     var i: u32 = 0;
     while (i < text.len) {
         const size = try unicode.utf8ByteSequenceLength(text[i]);
         const codepoint = @as(u32, @intCast(try unicode.utf8Decode(text[i .. i + size])));
-        if (self.getVerticesOfCodePoint(pos, ypos_type, .white, codepoint)) |cs| {
-            switch (box_type) {
+        if (self.getVerticesOfCodePoint(pos, opt.ypos_type, .white, codepoint)) |cs| {
+            switch (opt.box_type) {
                 .aligned => {
                     rect.width = cs.next_x - rect.x;
                 },
@@ -283,8 +288,15 @@ pub fn getBoundingBox(
                 },
             }
             pos.x = cs.next_x;
+            aligned_width = cs.next_x - rect.x;
         }
         i += size;
+    }
+
+    if (opt.align_type == .middle) {
+        rect.x -= aligned_width / 2;
+    } else if (opt.align_type == .right) {
+        rect.x -= aligned_width;
     }
 
     return rect;

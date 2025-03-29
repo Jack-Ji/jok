@@ -46,7 +46,7 @@ pub fn init(ctx: jok.Context) !void {
 
     var atlas = try font.DebugFont.font.createAtlas(
         ctx,
-        80,
+        40,
         &font.codepoint_ranges.chinese_full,
         .{ .keep_pixels = true },
     );
@@ -82,7 +82,7 @@ pub fn draw(ctx: jok.Context) !void {
     defer b.submit();
     var atlas = try font.DebugFont.getAtlas(ctx, 20);
     try b.text(
-        "ABCDEFGHIJKL abcdefghijkl",
+        "Left Aligned: ABCDEFGHIJKL abcdefghijkl",
         .{},
         .{
             .atlas = atlas,
@@ -92,28 +92,33 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
     var area = try atlas.getBoundingBox(
-        "ABCDEFGHIJKL abcdefghijkl",
+        "Left Aligned: ABCDEFGHIJKL abcdefghijkl",
         .{ .x = 0, .y = 0 },
-        .top,
-        .aligned,
+        .{
+            .ypos_type = .top,
+            .align_type = .left,
+        },
     );
     try b.rectFilled(area, rect_color, .{});
 
     try b.text(
-        "Hello,",
+        "Right Aligned: Hello,",
         .{},
         .{
             .atlas = saved_atlas,
-            .pos = .{ .x = 0, .y = size.getHeightFloat() / 2 },
+            .pos = .{ .x = size.getWidthFloat(), .y = size.getHeightFloat() / 2 },
             .ypos_type = .bottom,
+            .align_type = .right,
             .ignore_unexist = false,
         },
     );
     area = try saved_atlas.getBoundingBox(
-        "Hello,",
-        .{ .x = 0, .y = size.getHeightFloat() / 2 },
-        .bottom,
-        .aligned,
+        "Right Aligned: Hello,",
+        .{ .x = size.getWidthFloat(), .y = size.getHeightFloat() / 2 },
+        .{
+            .ypos_type = .bottom,
+            .align_type = .right,
+        },
     );
     try b.rectFilled(area, rect_color, .{});
 
@@ -126,35 +131,38 @@ pub fn draw(ctx: jok.Context) !void {
                 .x = area.x + area.width,
                 .y = size.getHeightFloat() / 2,
             },
+            .align_type = .right,
             .tint_color = .rgb(
                 @intFromFloat(128 + @sin(ctx.seconds()) * 127),
                 @intFromFloat(128 + @cos(ctx.seconds()) * 127),
                 @intFromFloat(128 + @sin(ctx.seconds()) * 127),
             ),
             .scale = .{
-                .x = 4 + 3 * @sin(ctx.seconds()),
-                .y = 4 + 3 * @cos(ctx.seconds()),
+                .x = 3 + 2 * @sin(ctx.seconds()),
+                .y = 3 + 2 * @cos(ctx.seconds()),
             },
-            .rotate_degree = ctx.seconds() * 30,
             .depth = 0,
         },
     );
 
     try b.text(
-        "ABCDE abcde",
+        "Middle Aligned: ABCDE abcde",
         .{},
         .{
             .atlas = saved_atlas,
-            .pos = .{ .x = 0, .y = size.getHeightFloat() },
+            .pos = .{ .x = size.getWidthFloat() / 2, .y = size.getHeightFloat() },
             .ypos_type = .bottom,
+            .align_type = .middle,
             .tint_color = .red,
         },
     );
     area = try saved_atlas.getBoundingBox(
-        "ABCDE abcde",
-        .{ .x = 0, .y = size.getHeightFloat() },
-        .bottom,
-        .aligned,
+        "Middle Aligned: ABCDE abcde",
+        .{ .x = size.getWidthFloat() / 2, .y = size.getHeightFloat() },
+        .{
+            .ypos_type = .bottom,
+            .align_type = .middle,
+        },
     );
     try b.rectFilled(area, rect_color, .{});
 
@@ -164,7 +172,7 @@ pub fn draw(ctx: jok.Context) !void {
         128,
     );
     const q_pos = jok.Point{
-        .x = (size.getWidthFloat() - 128) / 2,
+        .x = 100,
         .y = (size.getHeightFloat() - 128) / 2,
     };
     try b.rectFilled(

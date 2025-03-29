@@ -390,10 +390,10 @@ pub const Batch = struct {
         pos: jok.Point,
         ignore_unexist: bool = true,
         ypos_type: jok.font.Atlas.YPosType = .top,
+        align_type: jok.font.Atlas.AlignType = .left,
         tint_color: jok.Color = .white,
         scale: jok.Point = .{ .x = 1, .y = 1 },
         rotate_degree: f32 = 0,
-        anchor_point: jok.Point = .{ .x = 0, .y = 0 },
         depth: f32 = 0.5,
     };
     pub fn text(self: *Batch, comptime fmt: []const u8, args: anytype, opt: TextOption) !void {
@@ -414,6 +414,22 @@ pub const Batch = struct {
             ),
             zmath.translation(pos.x, pos.y, 0),
         );
+        if (opt.align_type != .left) {
+            const unscaled_bbox = try opt.atlas.getBoundingBox(
+                txt,
+                pos,
+                .{
+                    .ypos_type = opt.ypos_type,
+                    .align_type = opt.align_type,
+                },
+            );
+            const final_bbox_width = unscaled_bbox.width * scaling.x;
+            if (opt.align_type == .middle) {
+                pos.x -= final_bbox_width / 2;
+            } else if (opt.align_type == .right) {
+                pos.x -= final_bbox_width;
+            }
+        }
         var i: u32 = 0;
         while (i < txt.len) {
             const size = try unicode.utf8ByteSequenceLength(txt[i]);
@@ -442,7 +458,6 @@ pub const Batch = struct {
                     .tint_color = opt.tint_color,
                     .scale = scaling,
                     .rotate_degree = opt.rotate_degree,
-                    .anchor_point = opt.anchor_point,
                     .depth = opt.depth,
                 });
                 pos.x += (cs.next_x - pos.x) * scaling.x;
