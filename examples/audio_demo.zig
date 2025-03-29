@@ -13,6 +13,7 @@ var music_played_length: u32 = undefined;
 var music_total_length: u32 = undefined;
 var sfx1: *zaudio.Sound = undefined;
 var sfx2: *zaudio.Sound = undefined;
+var activated: bool = false;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -71,6 +72,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
             }
         },
         .mouse_button_up => |me| {
+            activated = true;
             if (me.clicks < 2) return;
             if (me.button == .left) {
                 try sfx1.seekToPcmFrame(0);
@@ -134,6 +136,26 @@ pub fn draw(ctx: jok.Context) !void {
             .tint_color = if (sfx2.isPlaying()) .magenta else .white,
         },
     );
+
+    if (builtin.cpu.arch.isWasm() and !activated) {
+        try b.rectFilled(
+            .{
+                .x = 0,
+                .y = 0,
+                .width = ctx.getCanvasSize().getWidthFloat(),
+                .height = ctx.getCanvasSize().getHeightFloat(),
+            },
+            .rgba(100, 0, 0, 200),
+            .{},
+        );
+        try b.text("Audio will start after click!", .{}, .{
+            .pos = .{
+                .x = 200,
+                .y = ctx.getCanvasSize().getWidthFloat() / 2,
+            },
+            .atlas = try font.DebugFont.getAtlas(ctx, 32),
+        });
+    }
 }
 
 pub fn quit(ctx: jok.Context) void {
