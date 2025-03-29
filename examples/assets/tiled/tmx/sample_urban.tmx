@@ -160,7 +160,7 @@
    </layer>
   </group>
  </group>
- <objectgroup id="6" name="object layer" opacity="0.5" tintcolor="#00fff5">
+ <objectgroup id="6" name="object layer" opacity="0.5" tintcolor="#00fff5" offsetx="100" offsety="0">
   <object id="1" x="146.95" y="111.135" width="128.842" height="42.0854" rotation="52.089"/>
   <object id="2" gid="307" x="450.495" y="485.717" width="70.789" height="56.5844" rotation="-30"/>
   <object id="3" x="280.227" y="321.732">

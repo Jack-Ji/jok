@@ -325,6 +325,11 @@ const ObjectGroup = struct {
     pub fn render(self: ObjectGroup, b: *j2d.Batch) !void {
         if (!self.visible) return;
         assert(self.map.orientation == .orthogonal);
+
+        try b.pushTransform();
+        defer b.popTransform();
+        b.trs = b.trs.translate(self.offset);
+
         for (self.objects) |o| {
             if (!o.visible) continue;
             switch (o.geom) {
@@ -342,10 +347,11 @@ const ObjectGroup = struct {
                     } else {
                         try b.pushTransform();
                         defer b.popTransform();
+                        b.trs.setToIdentity();
                         b.trs = b.trs.rotateByPoint(
                             .{ .x = r.x, .y = r.y },
                             std.math.degreesToRadians(o.rotate_degree),
-                        );
+                        ).translate(self.offset);
                         try b.rectFilled(r, self.tint_color, .{});
                     }
                 },
@@ -362,19 +368,21 @@ const ObjectGroup = struct {
                 .polygon => |poly| {
                     try b.pushTransform();
                     defer b.popTransform();
+                    b.trs.setToIdentity();
                     b.trs = b.trs.rotateByPoint(
                         poly.points.items[0].pos,
                         std.math.degreesToRadians(o.rotate_degree),
-                    );
+                    ).translate(self.offset);
                     try b.convexPolyFilled(poly, .{});
                 },
                 .polyline => |poly| {
                     try b.pushTransform();
                     defer b.popTransform();
+                    b.trs.setToIdentity();
                     b.trs = b.trs.rotateByPoint(
                         poly.points.items[0],
                         std.math.degreesToRadians(o.rotate_degree),
-                    );
+                    ).translate(self.offset);
                     try b.polyline(poly, self.tint_color, .{ .depth = 2 });
                 },
             }
