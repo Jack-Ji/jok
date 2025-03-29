@@ -191,6 +191,14 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     pub fn quit(ctx: jok.Context) void {
         // your deinit code
     }
+
+    pub fn getMemory() ?*const anyopaque {
+        // OPTIONAL: return memory of your game
+    }
+    
+    pub fn reloadMemory(mem: ?*const anyopaque) void {
+        // OPTIONAL: restore memory of your game
+    }
     ```
     
     Noticed yet? That's right, you don't need to write main function, `jok` got your back.
@@ -201,11 +209,17 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     * update - logic update between frames
     * draw - render your screen here (60 fps by default)
     * quit - do something before game is closed
-    
+
     You can customize some setup settings (window width/height, fps, debug level etc), by 
     defining some public constants using predefined names (they're all prefixed with`jok_`).
     Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig).
     Most of which are still modifiable at runtime.
+    
+    The other 2 optional public functions are only needed when you'are writing a plugin:
+    * getMemory - get memory of you plugin, called when plugin is updated
+    * reloadMemory - reload memory of your plugin, called when plugin is updated
+
+    For more detail of plugin's usage, check example `hotreload`.
     
     Now, compile and run your game using command `zig build run`, have fun!
     Please let me know if you have any issue or developed something interesting with this little framework.
