@@ -347,11 +347,11 @@ const ObjectGroup = struct {
                     } else {
                         try b.pushTransform();
                         defer b.popTransform();
-                        b.trs.setToIdentity();
+                        const anchor = b.trs.transformPoint(.{ .x = r.x, .y = r.y });
                         b.trs = b.trs.rotateByPoint(
-                            .{ .x = r.x, .y = r.y },
+                            anchor,
                             std.math.degreesToRadians(o.rotate_degree),
-                        ).translate(self.offset);
+                        );
                         try b.rectFilled(r, self.tint_color, .{});
                     }
                 },
@@ -368,21 +368,21 @@ const ObjectGroup = struct {
                 .polygon => |poly| {
                     try b.pushTransform();
                     defer b.popTransform();
-                    b.trs.setToIdentity();
+                    const anchor = b.trs.transformPoint(poly.points.items[0].pos);
                     b.trs = b.trs.rotateByPoint(
-                        poly.points.items[0].pos,
+                        anchor,
                         std.math.degreesToRadians(o.rotate_degree),
-                    ).translate(self.offset);
+                    );
                     try b.convexPolyFilled(poly, .{});
                 },
                 .polyline => |poly| {
                     try b.pushTransform();
                     defer b.popTransform();
-                    b.trs.setToIdentity();
+                    const anchor = b.trs.transformPoint(poly.points.items[0]);
                     b.trs = b.trs.rotateByPoint(
-                        poly.points.items[0],
+                        anchor,
                         std.math.degreesToRadians(o.rotate_degree),
-                    ).translate(self.offset);
+                    );
                     try b.polyline(poly, self.tint_color, .{ .depth = 2 });
                 },
             }
