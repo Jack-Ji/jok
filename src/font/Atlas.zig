@@ -233,7 +233,7 @@ pub fn getVPosOfNextLine(self: Atlas, current_ypos: f32) f32 {
 }
 
 /// Position type of y axis (determine where text will be aligned vertically)
-pub const YPosType = enum { baseline, top, bottom };
+pub const YPosType = enum { baseline, top, bottom, middle };
 
 /// Type of text's horizontal alignment
 pub const AlignType = enum { left, middle, right };
@@ -254,6 +254,7 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
         .baseline => -self.vmetric_ascent,
         .top => 0,
         .bottom => self.vmetric_descent - self.vmetric_ascent,
+        .middle => (self.vmetric_descent - self.vmetric_ascent) / 2,
     };
     var pos = _pos;
     var rect = jok.Rectangle{
@@ -317,6 +318,7 @@ pub fn appendDrawDataFromUTF8String(
         .baseline => -self.vmetric_ascent,
         .top => 0,
         .bottom => self.vmetric_descent - self.vmetric_ascent,
+        .middle => (self.vmetric_descent - self.vmetric_ascent) / 2,
     };
     var pos = _pos;
     var rect = jok.Rectangle{
@@ -406,6 +408,7 @@ pub inline fn getVerticesOfCodePoint(
         .baseline => 0,
         .top => self.vmetric_ascent,
         .bottom => self.vmetric_descent,
+        .middle => (self.vmetric_ascent + self.vmetric_descent) / 2,
     };
     return .{
         .vs = [_]jok.Vertex{

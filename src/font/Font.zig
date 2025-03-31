@@ -279,6 +279,12 @@ pub const GlyphMetrics = struct {
                 .width = metrics.advance_width,
                 .height = height,
             },
+            .middle => .{
+                .x = pos.x,
+                .y = pos.y - (metrics.ascent - metrics.descent) / 2,
+                .width = metrics.advance_width,
+                .height = height,
+            },
         };
     }
 
@@ -302,6 +308,12 @@ pub const GlyphMetrics = struct {
             .bottom => .{
                 .x = pos.x + metrics.leftside_bearing,
                 .y = pos.y + metrics.descent - metrics.top_right.y,
+                .width = width,
+                .height = height,
+            },
+            .middle => .{
+                .x = pos.x + metrics.leftside_bearing,
+                .y = pos.y - (metrics.ascent - metrics.descent) / 2 + metrics.ascent - metrics.top_right.y,
                 .width = width,
                 .height = height,
             },
