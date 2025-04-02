@@ -154,8 +154,6 @@ pub const Batch = struct {
 
         defer self.is_submitted = true;
 
-        if (self.draw_commands.items.len == 0) return;
-
         if (!self.is_submitted) {
             switch (self.depth_sort) {
                 .none => {},
@@ -312,7 +310,6 @@ pub const Batch = struct {
     pub fn imageRounded(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scaling = self.trs.getScale();
         const size = opt.size orelse BLK: {
             const info = try texture.query();
             break :BLK jok.Size{
@@ -320,21 +317,19 @@ pub const Batch = struct {
                 .height = info.height,
             };
         };
-        const pmin = self.trs.transformPoint(pos);
-        const pmax = jok.Point{
-            .x = pmin.x + @as(f32, @floatFromInt(size.width)) * scaling.x,
-            .y = pmin.y + @as(f32, @floatFromInt(size.height)) * scaling.y,
-        };
         var uv0 = opt.uv0;
         var uv1 = opt.uv1;
         if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
         if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .image_rounded = .{
                     .texture = texture,
-                    .pmin = pmin,
-                    .pmax = pmax,
+                    .pmin = pos,
+                    .pmax = pos.add(.{
+                        .x = size.getWidthFloat(),
+                        .y = size.getHeightFloat(),
+                    }),
                     .uv0 = uv0,
                     .uv1 = uv1,
                     .rounding = opt.rounding,
@@ -476,11 +471,11 @@ pub const Batch = struct {
     pub fn line(self: *Batch, p1: jok.Point, p2: jok.Point, color: jok.Color, opt: LineOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .line = .{
-                    .p1 = self.trs.transformPoint(p1),
-                    .p2 = self.trs.transformPoint(p2),
+                    .p1 = p1,
+                    .p2 = p2,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                 },
@@ -500,13 +495,13 @@ pub const Batch = struct {
         const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
         const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
         const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .quad = .{
-                    .p1 = self.trs.transformPoint(p1),
-                    .p2 = self.trs.transformPoint(p2),
-                    .p3 = self.trs.transformPoint(p3),
-                    .p4 = self.trs.transformPoint(p4),
+                    .p1 = p1,
+                    .p2 = p2,
+                    .p3 = p3,
+                    .p4 = p4,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                 },
@@ -526,13 +521,13 @@ pub const Batch = struct {
         const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
         const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
         const c = color.toInternalColor();
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .quad_fill = .{
-                    .p1 = self.trs.transformPoint(p1),
-                    .p2 = self.trs.transformPoint(p2),
-                    .p3 = self.trs.transformPoint(p3),
-                    .p4 = self.trs.transformPoint(p4),
+                    .p1 = p1,
+                    .p2 = p2,
+                    .p3 = p3,
+                    .p4 = p4,
                     .color1 = c,
                     .color2 = c,
                     .color3 = c,
@@ -565,13 +560,13 @@ pub const Batch = struct {
         const c2 = color_top_right.toInternalColor();
         const c3 = color_bottom_right.toInternalColor();
         const c4 = color_bottom_left.toInternalColor();
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .quad_fill = .{
-                    .p1 = self.trs.transformPoint(p1),
-                    .p2 = self.trs.transformPoint(p2),
-                    .p3 = self.trs.transformPoint(p3),
-                    .p4 = self.trs.transformPoint(p4),
+                    .p1 = p1,
+                    .p2 = p2,
+                    .p3 = p3,
+                    .p4 = p4,
                     .color1 = c1,
                     .color2 = c2,
                     .color3 = c3,
@@ -591,13 +586,12 @@ pub const Batch = struct {
     pub fn rectRounded(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scaling = self.trs.getScale();
         const pmin = self.trs.transformPoint(.{ .x = r.x, .y = r.y });
         const pmax = jok.Point{
-            .x = pmin.x + r.width * scaling.x,
-            .y = pmin.y + r.height * scaling.y,
+            .x = pmin.x + r.width,
+            .y = pmin.y + r.height,
         };
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .rect_rounded = .{
                     .pmin = pmin,
@@ -619,13 +613,12 @@ pub const Batch = struct {
     pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scaling = self.trs.getScale();
         const pmin = self.trs.transformPoint(.{ .x = r.x, .y = r.y });
         const pmax = jok.Point{
-            .x = pmin.x + r.width * scaling.x,
-            .y = pmin.y + r.height * scaling.y,
+            .x = pmin.x + r.width,
+            .y = pmin.y + r.height,
         };
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .rect_rounded_fill = .{
                     .pmin = pmin,
@@ -653,13 +646,13 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .quad = .{
-                    .p1 = self.trs.transformPoint(p1),
-                    .p2 = self.trs.transformPoint(p2),
-                    .p3 = self.trs.transformPoint(p3),
-                    .p4 = self.trs.transformPoint(p4),
+                    .p1 = p1,
+                    .p2 = p2,
+                    .p3 = p3,
+                    .p4 = p4,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                 },
@@ -683,13 +676,13 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const c = color.toInternalColor();
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .quad_fill = .{
-                    .p1 = self.trs.transformPoint(p1),
-                    .p2 = self.trs.transformPoint(p2),
-                    .p3 = self.trs.transformPoint(p3),
-                    .p4 = self.trs.transformPoint(p4),
+                    .p1 = p1,
+                    .p2 = p2,
+                    .p3 = p3,
+                    .p4 = p4,
                     .color1 = c,
                     .color2 = c,
                     .color3 = c,
@@ -721,13 +714,13 @@ pub const Batch = struct {
         const c2 = color2.toInternalColor();
         const c3 = color3.toInternalColor();
         const c4 = color4.toInternalColor();
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .quad_fill = .{
-                    .p1 = self.trs.transformPoint(p1),
-                    .p2 = self.trs.transformPoint(p2),
-                    .p3 = self.trs.transformPoint(p3),
-                    .p4 = self.trs.transformPoint(p4),
+                    .p1 = p1,
+                    .p2 = p2,
+                    .p3 = p3,
+                    .p4 = p4,
                     .color1 = c1,
                     .color2 = c2,
                     .color3 = c3,
@@ -750,12 +743,12 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .triangle = .{
-                    .p1 = self.trs.transformPoint(tri.p0),
-                    .p2 = self.trs.transformPoint(tri.p1),
-                    .p3 = self.trs.transformPoint(tri.p2),
+                    .p1 = tri.p0,
+                    .p2 = tri.p1,
+                    .p3 = tri.p2,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                 },
@@ -776,12 +769,12 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const c = color.toInternalColor();
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .triangle_fill = .{
-                    .p1 = self.trs.transformPoint(tri.p0),
-                    .p2 = self.trs.transformPoint(tri.p1),
-                    .p3 = self.trs.transformPoint(tri.p2),
+                    .p1 = tri.p0,
+                    .p2 = tri.p1,
+                    .p3 = tri.p2,
                     .color1 = c,
                     .color2 = c,
                     .color3 = c,
@@ -805,12 +798,12 @@ pub const Batch = struct {
         const c1 = cs[0].toInternalColor();
         const c2 = cs[1].toInternalColor();
         const c3 = cs[2].toInternalColor();
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .triangle_fill = .{
-                    .p1 = self.trs.transformPoint(tri.p0),
-                    .p2 = self.trs.transformPoint(tri.p1),
-                    .p3 = self.trs.transformPoint(tri.p2),
+                    .p1 = tri.p0,
+                    .p2 = tri.p1,
+                    .p3 = tri.p2,
                     .color1 = c1,
                     .color2 = c2,
                     .color3 = c3,
@@ -833,12 +826,11 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scaling = self.trs.getScale();
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .circle = .{
-                    .p = self.trs.transformPoint(c.center),
-                    .radius = c.radius * scaling.x,
+                    .p = c.center,
+                    .radius = c.radius,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .num_segments = opt.num_segments,
@@ -860,12 +852,11 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scaling = self.trs.getScale();
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .circle_fill = .{
-                    .p = self.trs.transformPoint(c.center),
-                    .radius = c.radius * scaling.x,
+                    .p = c.center,
+                    .radius = c.radius,
                     .color = color.toInternalColor(),
                     .num_segments = opt.num_segments,
                 },
@@ -888,12 +879,11 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scaling = self.trs.getScale();
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .ngon = .{
-                    .p = self.trs.transformPoint(center),
-                    .radius = radius * scaling.x,
+                    .p = center,
+                    .radius = radius,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .num_segments = num_segments,
@@ -916,12 +906,11 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const scaling = self.trs.getScale();
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .ngon_fill = .{
-                    .p = self.trs.transformPoint(center),
-                    .radius = radius * scaling.x,
+                    .p = center,
+                    .radius = radius,
                     .color = color.toInternalColor(),
                     .num_segments = num_segments,
                 },
@@ -946,13 +935,13 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .bezier_cubic = .{
-                    .p1 = self.trs.transformPoint(p1),
-                    .p2 = self.trs.transformPoint(p2),
-                    .p3 = self.trs.transformPoint(p3),
-                    .p4 = self.trs.transformPoint(p4),
+                    .p1 = p1,
+                    .p2 = p2,
+                    .p3 = p3,
+                    .p4 = p4,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .num_segments = opt.num_segments,
@@ -977,12 +966,12 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .bezier_quadratic = .{
-                    .p1 = self.trs.transformPoint(p1),
-                    .p2 = self.trs.transformPoint(p2),
-                    .p3 = self.trs.transformPoint(p3),
+                    .p1 = p1,
+                    .p2 = p2,
+                    .p3 = p3,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .num_segments = opt.num_segments,
@@ -1005,13 +994,12 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         if (!poly.finished) return error.PathNotFinished;
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .convex_polygon = .{
                     .points = poly.points,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
-                    .transform = self.trs,
                 },
             },
             .depth = opt.depth,
@@ -1029,12 +1017,11 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         if (!poly.finished) return error.PathNotFinished;
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .convex_polygon_fill = .{
                     .points = poly.points,
                     .texture = poly.texture,
-                    .transform = self.trs,
                 },
             },
             .depth = opt.depth,
@@ -1055,7 +1042,7 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         if (!pl.finished) return error.PathNotFinished;
-        try self.draw_commands.append(.{
+        try self.pushDrawCommand(.{
             .cmd = .{
                 .polyline = .{
                     .points = pl.points,
@@ -1063,7 +1050,6 @@ pub const Batch = struct {
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .closed = opt.closed,
-                    .transform = self.trs,
                 },
             },
             .depth = opt.depth,
@@ -1077,15 +1063,13 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         if (!p.finished) return error.PathNotFinished;
-        var rpath = p.path;
-        rpath.transform = self.trs;
-        try self.draw_commands.append(.{
-            .cmd = .{ .path = rpath },
+        try self.pushDrawCommand(.{
+            .cmd = .{ .path = p.path },
             .depth = opt.depth,
         });
     }
 
-    pub fn pushDrawCommand(self: *Batch, _dcmd: DrawCmd) !void {
+    pub inline fn pushDrawCommand(self: *Batch, _dcmd: DrawCmd) !void {
         var dcmd = _dcmd;
         switch (dcmd.cmd) {
             .quad_image => |*cmd| {
