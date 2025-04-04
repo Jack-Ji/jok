@@ -47,7 +47,7 @@ pub fn draw(ctx: jok.Context) !void {
         }
         try path.lineTo(point);
     }
-    path.end(.stroke, .{ .closed = true });
+    path.end();
 
     var b = try batchpool.new(.{});
     defer b.submit();
@@ -57,7 +57,7 @@ pub fn draw(ctx: jok.Context) !void {
         .x = ctx.getCanvasSize().getWidthFloat() / 2,
         .y = ctx.getCanvasSize().getHeightFloat() / 2,
     });
-    try b.path(path, .{});
+    try b.path(path, .white, .{ .closed = true });
 }
 
 pub fn quit(ctx: jok.Context) void {

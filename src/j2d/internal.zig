@@ -242,32 +242,17 @@ pub const PathCmd = struct {
         rect_rounded: RectRounded,
     };
     pub const DrawMethod = enum {
-        fill,
+        fill_convex,
+        fill_concave,
         stroke,
     };
 
     cmds: std.ArrayList(Cmd),
-    draw_method: DrawMethod,
-    color: u32,
-    thickness: f32,
-    closed: bool,
-    transform: AffineTransform,
-
-    pub fn init(allocator: std.mem.Allocator) @This() {
-        return .{
-            .cmds = std.ArrayList(Cmd).init(allocator),
-            .draw_method = .fill,
-            .color = 0xff_ff_ff_ff,
-            .thickness = 1,
-            .closed = false,
-            .transform = AffineTransform.init(),
-        };
-    }
-
-    pub fn deinit(self: *@This()) void {
-        self.cmds.deinit();
-        self.* = undefined;
-    }
+    draw_method: DrawMethod = .stroke,
+    color: u32 = 0xff_ff_ff_ff,
+    thickness: f32 = 1,
+    closed: bool = false,
+    transform: AffineTransform = AffineTransform.init(),
 };
 
 pub const DrawCmd = struct {
@@ -613,7 +598,8 @@ pub const DrawCmd = struct {
                     }
                 }
                 switch (c.draw_method) {
-                    .fill => dl.pathFillConvex(c.color),
+                    .fill_convex => dl.pathFillConvex(c.color),
+                    .fill_concave => dl.pathFillConcave(c.color),
                     .stroke => dl.pathStroke(.{
                         .col = c.color,
                         .flags = .{ .closed = c.closed },

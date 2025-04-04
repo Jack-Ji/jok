@@ -330,10 +330,7 @@ pub const Batch = struct {
                 .image_rounded = .{
                     .texture = texture,
                     .pmin = pos,
-                    .pmax = pos.add(.{
-                        .x = size.getWidthFloat(),
-                        .y = size.getHeightFloat(),
-                    }),
+                    .pmax = pos.add(.{ .x = size.getWidthFloat(), .y = size.getHeightFloat() }),
                     .uv0 = uv0,
                     .uv1 = uv1,
                     .tint_color = opt.tint_color.toInternalColor(),
@@ -598,16 +595,11 @@ pub const Batch = struct {
     pub fn rectRounded(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const pmin = self.trs.transformPoint(.{ .x = r.x, .y = r.y });
-        const pmax = jok.Point{
-            .x = pmin.x + r.width,
-            .y = pmin.y + r.height,
-        };
         try self.pushDrawCommand(.{
             .cmd = .{
                 .rect_rounded = .{
-                    .pmin = pmin,
-                    .pmax = pmax,
+                    .pmin = .{ .x = r.x, .y = r.y },
+                    .pmax = .{ .x = r.x + r.width, .y = r.y + r.height },
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .rounding = opt.rounding,
@@ -633,16 +625,11 @@ pub const Batch = struct {
     pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const pmin = self.trs.transformPoint(.{ .x = r.x, .y = r.y });
-        const pmax = jok.Point{
-            .x = pmin.x + r.width,
-            .y = pmin.y + r.height,
-        };
         try self.pushDrawCommand(.{
             .cmd = .{
                 .rect_rounded_fill = .{
-                    .pmin = pmin,
-                    .pmax = pmax,
+                    .pmin = .{ .x = r.x, .y = r.y },
+                    .pmax = .{ .x = r.x + r.width, .y = r.y + r.height },
                     .color = color.toInternalColor(),
                     .rounding = opt.rounding,
                     .corner_top_left = opt.corner_top_left,
@@ -1159,14 +1146,25 @@ pub const Batch = struct {
     }
 
     pub const PathOption = struct {
+        method: internal.PathCmd.DrawMethod = .stroke,
+        thickness: f32 = 1.0,
+        closed: bool = false,
         depth: f32 = 0.5,
     };
-    pub fn path(self: *Batch, p: Path, opt: PathOption) !void {
+    pub fn path(self: *Batch, p: Path, color: jok.Color, opt: PathOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         if (!p.finished) return error.PathNotFinished;
         try self.pushDrawCommand(.{
-            .cmd = .{ .path = p.path },
+            .cmd = .{
+                .path = .{
+                    .cmds = p.cmds,
+                    .draw_method = opt.method,
+                    .color = color.toInternalColor(),
+                    .thickness = opt.thickness,
+                    .closed = opt.closed,
+                },
+            },
             .depth = opt.depth,
         });
     }
@@ -1361,49 +1359,36 @@ pub const Polyline = struct {
 pub const ConcavePoly = Polyline;
 
 pub const Path = struct {
-    path: internal.PathCmd,
+    cmds: std.ArrayList(internal.PathCmd.Cmd),
     finished: bool = false,
 
     /// Begin definition of path
     pub fn begin(allocator: std.mem.Allocator) Path {
         return .{
-            .path = internal.PathCmd.init(allocator),
+            .cmds = std.ArrayList(internal.PathCmd.Cmd).init(allocator),
         };
     }
 
     /// End definition of path
-    pub const PathEnd = struct {
-        color: jok.Color = .white,
-        thickness: f32 = 1.0,
-        closed: bool = false,
-    };
-    pub fn end(
-        self: *Path,
-        method: internal.PathCmd.DrawMethod,
-        opt: PathEnd,
-    ) void {
-        self.path.draw_method = method;
-        self.path.color = opt.color.toInternalColor();
-        self.path.thickness = opt.thickness;
-        self.path.closed = opt.closed;
+    pub fn end(self: *Path) void {
         self.finished = true;
     }
 
     pub fn deinit(self: *Path) void {
-        self.path.deinit();
+        self.cmds.deinit();
         self.* = undefined;
     }
 
     pub fn reset(self: *Path, cleardata: bool) void {
         if (cleardata) {
-            self.path.cmds.clearRetainingCapacity();
+            self.cmds.clearRetainingCapacity();
         }
         self.finished = false;
     }
 
     pub fn lineTo(self: *Path, pos: jok.Point) !void {
         assert(!self.finished);
-        try self.path.cmds.append(.{ .line_to = .{ .p = pos } });
+        try self.cmds.append(.{ .line_to = .{ .p = pos } });
     }
 
     pub const ArcTo = struct {
@@ -1418,7 +1403,7 @@ pub const Path = struct {
         opt: ArcTo,
     ) !void {
         assert(!self.finished);
-        try self.path.cmds.append(.{
+        try self.cmds.append(.{
             .arc_to = .{
                 .p = pos,
                 .radius = radius,
@@ -1442,7 +1427,7 @@ pub const Path = struct {
         opt: ArcTo,
     ) !void {
         assert(!self.finished);
-        try self.path.cmds.append(.{
+        try self.cmds.append(.{
             .elliptical_arc_to = .{
                 .p = pos,
                 .radius = radius,
@@ -1465,7 +1450,7 @@ pub const Path = struct {
         opt: BezierCurveTo,
     ) !void {
         assert(!self.finished);
-        try self.path.cmds.append(.{
+        try self.cmds.append(.{
             .bezier_cubic_to = .{
                 .p2 = p2,
                 .p3 = p3,
@@ -1481,7 +1466,7 @@ pub const Path = struct {
         opt: BezierCurveTo,
     ) !void {
         assert(!self.finished);
-        try self.path.cmds.append(.{
+        try self.cmds.append(.{
             .bezier_quadratic_to = .{
                 .p2 = p2,
                 .p3 = p3,
@@ -1509,7 +1494,7 @@ pub const Path = struct {
             .x = pmin.x + r.width,
             .y = pmin.y + r.height,
         };
-        try self.path.cmds.append(.{
+        try self.cmds.append(.{
             .rect_rounded = .{
                 .pmin = pmin,
                 .pmax = pmax,

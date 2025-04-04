@@ -4523,6 +4523,11 @@ pub const DrawList = *opaque {
     }
     extern fn zguiDrawList_PathFillConvex(draw_list: DrawList, col: c_uint) void;
     //----------------------------------------------------------------------------------------------
+    pub fn pathFillConcave(draw_list: DrawList, col: u32) void {
+        return zguiDrawList_PathFillConcave(draw_list, col);
+    }
+    extern fn zguiDrawList_PathFillConcave(draw_list: DrawList, col: c_uint) void;
+    //----------------------------------------------------------------------------------------------
     pub fn pathStroke(draw_list: DrawList, args: struct {
         col: u32,
         flags: DrawFlags = .{},

@@ -2431,6 +2431,11 @@ extern "C"
         draw_list->PathFillConvex(col);
     }
 
+    ZGUI_API void zguiDrawList_PathFillConcave(ImDrawList *draw_list, ImU32 col)
+    {
+        draw_list->PathFillConcave(col);
+    }
+
     ZGUI_API void zguiDrawList_PathStroke(ImDrawList *draw_list, ImU32 col, ImDrawFlags flags, float thickness)
     {
         draw_list->PathStroke(col, flags, thickness);
