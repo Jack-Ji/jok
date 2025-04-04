@@ -1429,6 +1429,31 @@ pub const Path = struct {
         });
     }
 
+    pub const EllipticalArcTo = struct {
+        rotate_degree: f32 = 0,
+        num_segments: u32 = 0,
+    };
+    pub fn ellipticalArcTo(
+        self: *Path,
+        pos: jok.Point,
+        radius: jok.Point,
+        degree_begin: f32,
+        degree_end: f32,
+        opt: ArcTo,
+    ) !void {
+        assert(!self.finished);
+        try self.path.cmds.append(.{
+            .elliptical_arc_to = .{
+                .p = pos,
+                .radius = radius,
+                .rot = std.math.degreesToRadians(opt.rotate_degree),
+                .amin = std.math.degreesToRadians(degree_begin),
+                .amax = std.math.degreesToRadians(degree_end),
+                .num_segments = opt.num_segments,
+            },
+        });
+    }
+
     pub const BezierCurveTo = struct {
         num_segments: u32 = 0,
     };

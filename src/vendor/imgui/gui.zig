@@ -4573,6 +4573,34 @@ pub const DrawList = *opaque {
         a_max_of_12: c_int,
     ) void;
     //----------------------------------------------------------------------------------------------
+    pub fn pathEllipticalArcTo(draw_list: DrawList, args: struct {
+        p: [2]f32,
+        r: [2]f32,
+        rot: f32,
+        amin: f32,
+        amax: f32,
+        num_segments: u16 = 0,
+    }) void {
+        zguiDrawList_PathEllipticalArcTo(
+            draw_list,
+            &args.p,
+            &args.r,
+            args.rot,
+            args.amin,
+            args.amax,
+            args.num_segments,
+        );
+    }
+    extern fn zguiDrawList_PathEllipticalArcTo(
+        draw_list: DrawList,
+        center: *const [2]f32,
+        radius: *const [2]f32,
+        rot: f32,
+        amin: f32,
+        amax: f32,
+        num_segments: c_int,
+    ) void;
+    //----------------------------------------------------------------------------------------------
     pub fn pathBezierCubicCurveTo(draw_list: DrawList, args: struct {
         p2: [2]f32,
         p3: [2]f32,

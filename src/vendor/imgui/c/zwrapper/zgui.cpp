@@ -2457,6 +2457,18 @@ extern "C"
         draw_list->PathArcToFast({center[0], center[1]}, radius, a_min_of_12, a_max_of_12);
     }
 
+    ZGUI_API void zguiDrawList_PathEllipticalArcTo(
+        ImDrawList *draw_list,
+        const float center[2],
+        const float radius[2],
+		float rot,
+        int a_min,
+        int a_max,
+        int num_segments)
+    {
+        draw_list->PathEllipticalArcTo({center[0], center[1]}, {radius[0], radius[1]}, rot, a_min, a_max, num_segments);
+    }
+
     ZGUI_API void zguiDrawList_PathBezierCubicCurveTo(
         ImDrawList *draw_list,
         const float p2[2],

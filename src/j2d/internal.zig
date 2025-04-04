@@ -205,6 +205,14 @@ pub const PathCmd = struct {
         amax: f32,
         num_segments: u32,
     };
+    pub const EllipticalArcTo = struct {
+        p: jok.Point,
+        radius: jok.Point,
+        rot: f32,
+        amin: f32,
+        amax: f32,
+        num_segments: u32,
+    };
     pub const BezierCubicTo = struct {
         p2: jok.Point,
         p3: jok.Point,
@@ -228,6 +236,7 @@ pub const PathCmd = struct {
     pub const Cmd = union(enum) {
         line_to: LineTo,
         arc_to: ArcTo,
+        elliptical_arc_to: EllipticalArcTo,
         bezier_cubic_to: BezierCubicTo,
         bezier_quadratic_to: BezierQuadraticTo,
         rect_rounded: RectRounded,
@@ -547,6 +556,18 @@ pub const DrawCmd = struct {
                             dl.pathArcTo(.{
                                 .p = .{ p.x, p.y },
                                 .r = pc.radius * c.transform.getScaleX(),
+                                .amin = pc.amin,
+                                .amax = pc.amax,
+                                .num_segments = @intCast(pc.num_segments),
+                            });
+                        },
+                        .elliptical_arc_to => |pc| {
+                            const p = c.transform.transformPoint(pc.p);
+                            const radius = pc.radius.mul(c.transform.getScale());
+                            dl.pathEllipticalArcTo(.{
+                                .p = .{ p.x, p.y },
+                                .r = .{ radius.x, radius.y },
+                                .rot = pc.rot,
                                 .amin = pc.amin,
                                 .amax = pc.amax,
                                 .num_segments = @intCast(pc.num_segments),
