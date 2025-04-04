@@ -114,6 +114,23 @@ pub const CircleFillCmd = struct {
     num_segments: u32,
 };
 
+pub const EllipseCmd = struct {
+    p: jok.Point,
+    radius: jok.Point,
+    color: u32,
+    rotation: f32,
+    thickness: f32,
+    num_segments: u32,
+};
+
+pub const EllipseFillCmd = struct {
+    p: jok.Point,
+    radius: jok.Point,
+    color: u32,
+    rotation: f32,
+    num_segments: u32,
+};
+
 pub const NgonCmd = struct {
     p: jok.Point,
     radius: f32,
@@ -129,7 +146,7 @@ pub const NgonFillCmd = struct {
     num_segments: u32,
 };
 
-pub const ConvexPolyCmd = struct {
+pub const PolygonCmd = struct {
     points: std.ArrayList(jok.Vertex),
     color: u32,
     thickness: f32,
@@ -139,6 +156,13 @@ pub const ConvexPolyCmd = struct {
 pub const ConvexPolyFillCmd = struct {
     points: std.ArrayList(jok.Vertex),
     texture: ?jok.Texture,
+    transform: AffineTransform = AffineTransform.init(),
+};
+
+pub const ConcavePolyFillCmd = struct {
+    points: std.ArrayList(jok.Point),
+    transformed: std.ArrayList(jok.Point),
+    color: u32,
     transform: AffineTransform = AffineTransform.init(),
 };
 
@@ -250,10 +274,13 @@ pub const DrawCmd = struct {
         triangle_fill: TriangleFillCmd,
         circle: CircleCmd,
         circle_fill: CircleFillCmd,
+        ellipse: EllipseCmd,
+        ellipse_fill: EllipseFillCmd,
         ngon: NgonCmd,
         ngon_fill: NgonFillCmd,
-        convex_polygon: ConvexPolyCmd,
+        polygon: PolygonCmd,
         convex_polygon_fill: ConvexPolyFillCmd,
+        concave_polygon_fill: ConcavePolyFillCmd,
         bezier_cubic: BezierCubicCmd,
         bezier_quadratic: BezierQuadraticCmd,
         polyline: PolylineCmd,
@@ -398,6 +425,21 @@ pub const DrawCmd = struct {
                 .col = c.color,
                 .num_segments = @intCast(c.num_segments),
             }),
+            .ellipse => |c| dl.addEllipse(.{
+                .p = .{ c.p.x, c.p.y },
+                .r = .{ c.radius.x, c.radius.y },
+                .col = c.color,
+                .rot = c.rotation,
+                .thickness = c.thickness,
+                .num_segments = @intCast(c.num_segments),
+            }),
+            .ellipse_fill => |c| dl.addEllipseFilled(.{
+                .p = .{ c.p.x, c.p.y },
+                .r = .{ c.radius.x, c.radius.y },
+                .col = c.color,
+                .rot = c.rotation,
+                .num_segments = @intCast(c.num_segments),
+            }),
             .ngon => |c| dl.addNgon(.{
                 .p = .{ c.p.x, c.p.y },
                 .r = c.radius,
@@ -411,7 +453,7 @@ pub const DrawCmd = struct {
                 .col = c.color,
                 .num_segments = @intCast(c.num_segments),
             }),
-            .convex_polygon => |c| {
+            .polygon => |c| {
                 dl.pathClear();
                 for (c.points.items) |_p| {
                     const p = c.transform.transformPoint(_p.pos);
@@ -450,6 +492,16 @@ pub const DrawCmd = struct {
                     dl.primWriteIdx(cur_idx + @as(u32, @intCast(i)) - 1);
                     dl.primWriteIdx(cur_idx + @as(u32, @intCast(i)));
                 }
+            },
+            .concave_polygon_fill => |c| {
+                assert(c.transformed.items.len >= c.points.items.len);
+                for (c.points.items, 0..) |p, i| {
+                    c.transformed.items[i] = c.transform.transformPoint(p);
+                }
+                var pts: []const [2]f32 = undefined;
+                pts.len = c.transformed.items.len;
+                pts.ptr = @ptrCast(c.transformed.items.ptr);
+                dl.addConcavePolyFilled(pts, c.color);
             },
             .bezier_cubic => |c| dl.addBezierCubic(.{
                 .p1 = .{ c.p1.x, c.p1.y },

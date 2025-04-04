@@ -889,6 +889,62 @@ pub const Batch = struct {
         });
     }
 
+    pub const EllipseOption = struct {
+        rotate_degree: f32 = 0,
+        thickness: f32 = 1.0,
+        num_segments: u32 = 0,
+        depth: f32 = 0.5,
+    };
+    pub fn ellipse(
+        self: *Batch,
+        c: jok.Ellipse,
+        color: jok.Color,
+        opt: EllipseOption,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try self.pushDrawCommand(.{
+            .cmd = .{
+                .ellipse = .{
+                    .p = c.center,
+                    .radius = c.radius,
+                    .color = color.toInternalColor(),
+                    .rotation = std.math.degreesToRadians(opt.rotate_degree),
+                    .thickness = opt.thickness,
+                    .num_segments = opt.num_segments,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
+    pub const FillEllipse = struct {
+        rotate_degree: f32 = 0,
+        num_segments: u32 = 0,
+        depth: f32 = 0.5,
+    };
+    pub fn ellipseFilled(
+        self: *Batch,
+        e: jok.Ellipse,
+        color: jok.Color,
+        opt: FillEllipse,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        try self.pushDrawCommand(.{
+            .cmd = .{
+                .ellipse_fill = .{
+                    .p = e.center,
+                    .radius = e.radius,
+                    .color = color.toInternalColor(),
+                    .rotation = std.math.degreesToRadians(opt.rotate_degree),
+                    .num_segments = opt.num_segments,
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
     pub const NgonOption = struct {
         thickness: f32 = 1.0,
         depth: f32 = 0.5,
@@ -1052,6 +1108,28 @@ pub const Batch = struct {
         });
     }
 
+    /// Probably not fast enough O(n^2), use it at your discretion
+    pub fn concavePolyFilled(
+        self: *Batch,
+        poly: ConcavePoly,
+        color: jok.Color,
+        opt: FillPoly,
+    ) !void {
+        assert(self.id != invalid_batch_id);
+        assert(!self.is_submitted);
+        if (!poly.finished) return error.PathNotFinished;
+        try self.pushDrawCommand(.{
+            .cmd = .{
+                .concave_polygon_fill = .{
+                    .points = poly.points,
+                    .transformed = poly.transformed,
+                    .color = color.toInternalColor(),
+                },
+            },
+            .depth = opt.depth,
+        });
+    }
+
     pub const PolylineOption = struct {
         thickness: f32 = 1.0,
         closed: bool = false,
@@ -1148,6 +1226,14 @@ pub const Batch = struct {
                 cmd.p = self.trs.transformPoint(cmd.p);
                 cmd.radius *= self.trs.getScale().x;
             },
+            .ellipse => |*cmd| {
+                cmd.p = self.trs.transformPoint(cmd.p);
+                cmd.radius = cmd.radius.mul(self.trs.getScale());
+            },
+            .ellipse_fill => |*cmd| {
+                cmd.p = self.trs.transformPoint(cmd.p);
+                cmd.radius = cmd.radius.mul(self.trs.getScale());
+            },
             .ngon => |*cmd| {
                 cmd.p = self.trs.transformPoint(cmd.p);
                 cmd.radius *= self.trs.getScale().x;
@@ -1156,10 +1242,14 @@ pub const Batch = struct {
                 cmd.p = self.trs.transformPoint(cmd.p);
                 cmd.radius *= self.trs.getScale().x;
             },
-            .convex_polygon => |*cmd| {
+            .polygon => |*cmd| {
                 cmd.transform = self.trs;
             },
             .convex_polygon_fill => |*cmd| {
+                cmd.transform = self.trs;
+            },
+            .concave_polygon_fill => |*cmd| {
+                assert(cmd.transformed.items.len >= cmd.points.items.len);
                 cmd.transform = self.trs;
             },
             .bezier_cubic => |*cmd| {
@@ -1267,6 +1357,8 @@ pub const Polyline = struct {
         try self.points.appendSlice(ps);
     }
 };
+
+pub const ConcavePoly = Polyline;
 
 pub const Path = struct {
     path: internal.PathCmd,

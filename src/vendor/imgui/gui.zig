@@ -4177,6 +4177,59 @@ pub const DrawList = *opaque {
         num_segments: c_int,
     ) void;
     //----------------------------------------------------------------------------------------------
+    pub fn addEllipse(draw_list: DrawList, args: struct {
+        p: [2]f32,
+        r: [2]f32,
+        col: u32,
+        rot: f32 = 0,
+        num_segments: i32 = 0,
+        thickness: f32 = 1.0,
+    }) void {
+        zguiDrawList_AddEllipse(
+            draw_list,
+            &args.p,
+            &args.r,
+            args.col,
+            args.rot,
+            args.num_segments,
+            args.thickness,
+        );
+    }
+    extern fn zguiDrawList_AddEllipse(
+        draw_list: DrawList,
+        center: *const [2]f32,
+        radius: *const [2]f32,
+        col: u32,
+        rot: f32,
+        num_segments: c_int,
+        thickness: f32,
+    ) void;
+    //----------------------------------------------------------------------------------------------
+    pub fn addEllipseFilled(draw_list: DrawList, args: struct {
+        p: [2]f32,
+        r: [2]f32,
+        col: u32,
+        rot: f32 = 0,
+        num_segments: u16 = 0,
+    }) void {
+        zguiDrawList_AddEllipseFilled(
+            draw_list,
+            &args.p,
+            &args.r,
+            args.col,
+            args.rot,
+            args.num_segments,
+        );
+    }
+    extern fn zguiDrawList_AddEllipseFilled(
+        draw_list: DrawList,
+        center: *const [2]f32,
+        radius: *const [2]f32,
+        col: u32,
+        rot: f32,
+        num_segments: c_int,
+    ) void;
+    //----------------------------------------------------------------------------------------------
     pub fn addNgon(draw_list: DrawList, args: struct {
         p: [2]f32,
         r: f32,
@@ -4269,6 +4322,25 @@ pub const DrawList = *opaque {
         );
     }
     extern fn zguiDrawList_AddConvexPolyFilled(
+        draw_list: DrawList,
+        points: [*]const [2]f32,
+        num_points: c_int,
+        col: u32,
+    ) void;
+    //----------------------------------------------------------------------------------------------
+    pub fn addConcavePolyFilled(
+        draw_list: DrawList,
+        points: []const [2]f32,
+        col: u32,
+    ) void {
+        zguiDrawList_AddConcavePolyFilled(
+            draw_list,
+            points.ptr,
+            @intCast(points.len),
+            col,
+        );
+    }
+    extern fn zguiDrawList_AddConcavePolyFilled(
         draw_list: DrawList,
         points: [*]const [2]f32,
         num_points: c_int,

@@ -12,6 +12,7 @@ pub const Size = basic.Size;
 pub const Region = basic.Region;
 pub const Rectangle = basic.Rectangle;
 pub const Circle = basic.Circle;
+pub const Ellipse = basic.Ellipse;
 pub const Triangle = basic.Triangle;
 pub const Color = basic.Color;
 pub const Vertex = basic.Vertex;

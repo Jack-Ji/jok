@@ -185,6 +185,64 @@ pub const Circle = extern struct {
     }
 };
 
+pub const Ellipse = struct {
+    center: Point,
+    radius: Point,
+
+    pub inline fn translate(e: Ellipse, x: f32, y: f32) Circle {
+        return .{
+            .center = e.center.add(.{ .x = x, .y = y }),
+            .radius = e.radius,
+        };
+    }
+
+    pub inline fn getFocalRadius2(e: Ellipse) f32 {
+        return if (e.radius.x > e.radius.y)
+            e.radius.x * e.radius.x - e.radius.y * e.radius.y
+        else
+            e.radius.y * e.radius.y - e.radius.x * e.radius.x;
+    }
+
+    pub inline fn getFocalRadius(e: Ellipse) f32 {
+        return @sqrt(e.getFocalRadius2());
+    }
+
+    pub inline fn containsPoint(e: Ellipse, p: Point) bool {
+        const fr = e.getFocalRadius();
+        var d1: f32 = undefined;
+        var d2: f32 = undefined;
+        var a: f32 = undefined;
+        if (e.radius.x > e.radius.y) {
+            d1 = @sqrt((p.x - fr) * (p.x - fr) + p.y * p.y);
+            d2 = @sqrt((p.x + fr) * (p.x + fr) + p.y * p.y);
+            a = e.radius.x;
+        } else {
+            d1 = @sqrt((p.y - fr) * (p.y - fr) + p.x * p.x);
+            d2 = @sqrt((p.y + fr) * (p.y + fr) + p.x * p.x);
+            a = e.radius.y;
+        }
+        return d1 + d2 <= 2 * a;
+    }
+
+    pub inline fn intersectRect(e: Ellipse, r: Rectangle) bool {
+        if (e.containsPoint(.{ .x = r.x, .y = r.y }) or
+            e.containsPoint(.{ .x = r.x + r.width, .y = r.y }) or
+            e.containsPoint(.{ .x = r.x + r.width, .y = r.y + r.height }) or
+            e.containsPoint(.{ .x = r.x, .y = r.y + r.height }))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    pub inline fn intersectTriangle(e: Ellipse, t: Triangle) bool {
+        if (e.containsPoint(t.p0) or e.containsPoint(t.p1) or e.containsPoint(t.p2)) {
+            return true;
+        }
+        return false;
+    }
+};
+
 pub const Triangle = extern struct {
     p0: Point,
     p1: Point,
