@@ -305,6 +305,10 @@ pub const Batch = struct {
         flip_h: bool = false,
         flip_v: bool = false,
         rounding: f32 = 4,
+        corner_top_left: bool = true,
+        corner_top_right: bool = true,
+        corner_bottom_left: bool = true,
+        corner_bottom_right: bool = true,
         depth: f32 = 0.5,
     };
     pub fn imageRounded(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageRoundedOption) !void {
@@ -332,8 +336,12 @@ pub const Batch = struct {
                     }),
                     .uv0 = uv0,
                     .uv1 = uv1,
-                    .rounding = opt.rounding,
                     .tint_color = opt.tint_color.toInternalColor(),
+                    .rounding = opt.rounding,
+                    .corner_top_left = opt.corner_top_left,
+                    .corner_top_right = opt.corner_top_right,
+                    .corner_bottom_left = opt.corner_bottom_left,
+                    .corner_bottom_right = opt.corner_bottom_right,
                 },
             },
             .depth = opt.depth,
@@ -581,6 +589,10 @@ pub const Batch = struct {
     pub const RectRoundedOption = struct {
         thickness: f32 = 1.0,
         rounding: f32 = 4,
+        corner_top_left: bool = true,
+        corner_top_right: bool = true,
+        corner_bottom_left: bool = true,
+        corner_bottom_right: bool = true,
         depth: f32 = 0.5,
     };
     pub fn rectRounded(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
@@ -599,6 +611,10 @@ pub const Batch = struct {
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .rounding = opt.rounding,
+                    .corner_top_left = opt.corner_top_left,
+                    .corner_top_right = opt.corner_top_right,
+                    .corner_bottom_left = opt.corner_bottom_left,
+                    .corner_bottom_right = opt.corner_bottom_right,
                 },
             },
             .depth = opt.depth,
@@ -608,6 +624,10 @@ pub const Batch = struct {
     /// NOTE: Rounded rectangle is always axis-aligned
     pub const FillRectRounded = struct {
         rounding: f32 = 4,
+        corner_top_left: bool = true,
+        corner_top_right: bool = true,
+        corner_bottom_left: bool = true,
+        corner_bottom_right: bool = true,
         depth: f32 = 0.5,
     };
     pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
@@ -625,6 +645,10 @@ pub const Batch = struct {
                     .pmax = pmax,
                     .color = color.toInternalColor(),
                     .rounding = opt.rounding,
+                    .corner_top_left = opt.corner_top_left,
+                    .corner_top_right = opt.corner_top_right,
+                    .corner_bottom_left = opt.corner_bottom_left,
+                    .corner_bottom_right = opt.corner_bottom_right,
                 },
             },
             .depth = opt.depth,
@@ -1352,6 +1376,10 @@ pub const Path = struct {
     /// NOTE: Rounded rectangle is always axis-aligned
     pub const Rect = struct {
         rounding: f32 = 4,
+        corner_top_left: bool = true,
+        corner_top_right: bool = true,
+        corner_bottom_left: bool = true,
+        corner_bottom_right: bool = true,
     };
     pub fn rect(
         self: *Path,
@@ -1369,6 +1397,10 @@ pub const Path = struct {
                 .pmin = pmin,
                 .pmax = pmax,
                 .rounding = opt.rounding,
+                .corner_top_left = opt.corner_top_left,
+                .corner_top_right = opt.corner_top_right,
+                .corner_bottom_left = opt.corner_bottom_left,
+                .corner_bottom_right = opt.corner_bottom_right,
             },
         });
     }

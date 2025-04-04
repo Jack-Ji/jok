@@ -26,6 +26,10 @@ pub const ImageRoundedCmd = struct {
     uv1: jok.Point,
     tint_color: u32,
     rounding: f32,
+    corner_top_left: bool,
+    corner_top_right: bool,
+    corner_bottom_left: bool,
+    corner_bottom_right: bool,
 };
 
 pub const LineCmd = struct {
@@ -41,6 +45,10 @@ pub const RectRoundedCmd = struct {
     color: u32,
     thickness: f32,
     rounding: f32,
+    corner_top_left: bool,
+    corner_top_right: bool,
+    corner_bottom_left: bool,
+    corner_bottom_right: bool,
 };
 
 pub const RectFillRoundedCmd = struct {
@@ -48,6 +56,10 @@ pub const RectFillRoundedCmd = struct {
     pmax: jok.Point,
     color: u32,
     rounding: f32,
+    corner_top_left: bool,
+    corner_top_right: bool,
+    corner_bottom_left: bool,
+    corner_bottom_right: bool,
 };
 
 pub const QuadCmd = struct {
@@ -184,6 +196,10 @@ pub const PathCmd = struct {
         pmin: jok.Point,
         pmax: jok.Point,
         rounding: f32,
+        corner_top_left: bool,
+        corner_top_right: bool,
+        corner_bottom_left: bool,
+        corner_bottom_right: bool,
     };
     pub const Cmd = union(enum) {
         line_to: LineTo,
@@ -290,6 +306,12 @@ pub const DrawCmd = struct {
                 .uvmax = .{ c.uv1.x, c.uv1.y },
                 .col = c.tint_color,
                 .rounding = c.rounding,
+                .flags = .{
+                    .round_corners_top_left = c.corner_top_left,
+                    .round_corners_top_right = c.corner_top_right,
+                    .round_corners_bottom_left = c.corner_bottom_left,
+                    .round_corners_bottom_right = c.corner_bottom_right,
+                },
             }),
             .line => |c| dl.addLine(.{
                 .p1 = .{ c.p1.x, c.p1.y },
@@ -303,12 +325,24 @@ pub const DrawCmd = struct {
                 .col = c.color,
                 .rounding = c.rounding,
                 .thickness = c.thickness,
+                .flags = .{
+                    .round_corners_top_left = c.corner_top_left,
+                    .round_corners_top_right = c.corner_top_right,
+                    .round_corners_bottom_left = c.corner_bottom_left,
+                    .round_corners_bottom_right = c.corner_bottom_right,
+                },
             }),
             .rect_rounded_fill => |c| dl.addRectFilled(.{
                 .pmin = .{ c.pmin.x, c.pmin.y },
                 .pmax = .{ c.pmax.x, c.pmax.y },
                 .col = c.color,
                 .rounding = c.rounding,
+                .flags = .{
+                    .round_corners_top_left = c.corner_top_left,
+                    .round_corners_top_right = c.corner_top_right,
+                    .round_corners_bottom_left = c.corner_bottom_left,
+                    .round_corners_bottom_right = c.corner_bottom_right,
+                },
             }),
             .quad => |c| dl.addQuad(.{
                 .p1 = .{ c.p1.x, c.p1.y },
@@ -495,6 +529,12 @@ pub const DrawCmd = struct {
                                 .bmin = .{ vmin.x, vmin.y },
                                 .bmax = .{ vmin.x + width, vmin.y + height },
                                 .rounding = pc.rounding,
+                                .flags = .{
+                                    .round_corners_top_left = pc.corner_top_left,
+                                    .round_corners_top_right = pc.corner_top_right,
+                                    .round_corners_bottom_left = pc.corner_bottom_left,
+                                    .round_corners_bottom_right = pc.corner_bottom_right,
+                                },
                             });
                         },
                     }
