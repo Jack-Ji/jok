@@ -68,7 +68,7 @@ pub const RenderSpriteOption = struct {
     scale: jok.Point = .{ .x = 1, .y = 1 },
 
     /// Rotation around anchor-point
-    rotate_degree: f32 = 0,
+    rotate_angle: f32 = 0,
 
     /// Anchor-point of sprite, around which rotation and translation is calculated
     anchor_point: jok.Point = .{ .x = 0, .y = 0 },
@@ -480,7 +480,7 @@ pub fn renderSprite(
         const m_translate = zmath.translation(opt.anchor_point.x, opt.anchor_point.y, 0.0);
         const m_scale = zmath.scaling(size.x * opt.scale.x, size.y * opt.scale.y, 1.0);
         const m_rotate2 = zmath.mul(
-            zmath.rotationZ(std.math.degreesToRadians(opt.rotate_degree)),
+            zmath.rotationZ(opt.rotate_angle),
             zmath.mul(zmath.rotationX(pitch), zmath.rotationY(yaw)),
         );
         const transform = zmath.mul(zmath.mul(
@@ -545,7 +545,7 @@ pub fn renderSprite(
             const size_x = size.x / csz_w * 2;
             const size_y = size.y / csz_h * 2;
             const m_scale = zmath.scaling(size_x * opt.scale.x, size_y * opt.scale.y, 1);
-            const m_rotate = zmath.rotationZ(std.math.degreesToRadians(-opt.rotate_degree));
+            const m_rotate = zmath.rotationZ(-opt.rotate_angle);
             const m_translate = zmath.translation(ndc_center[0], ndc_center[1], 0);
             const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
             const ndc_coords = zmath.mul(basic_coords, m_transform);
@@ -569,7 +569,7 @@ pub fn renderSprite(
             }
 
             const m_scale = zmath.scaling(size.x * opt.scale.x, size.y * opt.scale.y, 1);
-            const m_rotate = zmath.rotationZ(std.math.degreesToRadians(-opt.rotate_degree));
+            const m_rotate = zmath.rotationZ(-opt.rotate_angle);
             const m_translate = zmath.translation(
                 pos_in_camera_space[0],
                 pos_in_camera_space[1],

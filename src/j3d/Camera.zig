@@ -85,7 +85,7 @@ pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: [3]f32, target: [3]f32
     return camera;
 }
 
-/// Create a 3d camera using position and euler angle (in degrees)
+/// Create a 3d camera using position and euler angle (in radian)
 pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: [3]f32, pitch: f32, yaw: f32) Self {
     var camera: Self = .{};
     camera.frustrum = frustrum;

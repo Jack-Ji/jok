@@ -17,7 +17,7 @@ A minimal 2d/3d game framework for zig.
 * Asset system (via [physfs](https://github.com/icculus/physfs), supports fs/zip/7zip/iso etc)
 * Plugin System (register/unregister/hot-reloading)
 * 2D batch system
-* 2D primitives (line/rectangle/quad/triangle/circle/ellipse/bezier-curve/convex-polygon/concave-polygon/polyline/custom-path)
+* 2D primitives (line/rectangle/quad/triangle/circle/ellipse/bezier-curve/convex-polygon/concave-polygon/polyline)
 * 2D sprite rendering (scale/rotate/blending/flipping/depth)
 * 2D sprite sheet generation/save/load
 * 2D animation system

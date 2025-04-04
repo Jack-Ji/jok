@@ -48,7 +48,7 @@ pub fn draw(ctx: jok.Context) !void {
             .y = ctx.getCanvasSize().getHeightFloat() / 2,
         },
         .{
-            .rotate_degree = ctx.seconds() * 60,
+            .rotate_angle = ctx.seconds(),
             .scale = .{
                 .x = 0.8 + @cos(ctx.seconds()) * 0.5,
                 .y = 0.8 + @cos(ctx.seconds()) * 0.5,

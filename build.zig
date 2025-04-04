@@ -46,6 +46,7 @@ pub fn build(b: *Build) void {
         .{ .name = "particle_3d", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "animation_2d", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "animation_3d", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "primitive_2d", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "meshes_and_lighting", .opt = .{} },
         .{ .name = "intersection_2d", .opt = .{} },
         .{ .name = "solar_system", .opt = .{} },

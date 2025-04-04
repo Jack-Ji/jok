@@ -70,7 +70,6 @@ pub fn draw(ctx: jok.Context) !void {
         .scale = .{ .x = 2, .y = 2 },
         .flip_h = true,
         .flip_v = true,
-        //.rotate_degree = ctx.seconds() * 30,
     });
     try b.sprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
@@ -79,7 +78,7 @@ pub fn draw(ctx: jok.Context) !void {
             .x = 4 + 2 * @cos(ctx.seconds()),
             .y = 4 + 2 * @sin(ctx.seconds()),
         },
-        .rotate_degree = ctx.seconds() * 30,
+        .rotate_angle = ctx.seconds() / 2,
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
         .depth = 0.6,
     });

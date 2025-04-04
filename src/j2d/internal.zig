@@ -146,13 +146,6 @@ pub const NgonFillCmd = struct {
     num_segments: u32,
 };
 
-pub const PolygonCmd = struct {
-    points: std.ArrayList(jok.Vertex),
-    color: u32,
-    thickness: f32,
-    transform: AffineTransform = AffineTransform.init(),
-};
-
 pub const ConvexPolyFillCmd = struct {
     points: std.ArrayList(jok.Vertex),
     texture: ?jok.Texture,
@@ -194,67 +187,6 @@ pub const PolylineCmd = struct {
     transform: AffineTransform = AffineTransform.init(),
 };
 
-pub const PathCmd = struct {
-    pub const LineTo = struct {
-        p: jok.Point,
-    };
-    pub const ArcTo = struct {
-        p: jok.Point,
-        radius: f32,
-        amin: f32,
-        amax: f32,
-        num_segments: u32,
-    };
-    pub const EllipticalArcTo = struct {
-        p: jok.Point,
-        radius: jok.Point,
-        rot: f32,
-        amin: f32,
-        amax: f32,
-        num_segments: u32,
-    };
-    pub const BezierCubicTo = struct {
-        p2: jok.Point,
-        p3: jok.Point,
-        p4: jok.Point,
-        num_segments: u32,
-    };
-    pub const BezierQuadraticTo = struct {
-        p2: jok.Point,
-        p3: jok.Point,
-        num_segments: u32,
-    };
-    pub const RectRounded = struct {
-        pmin: jok.Point,
-        pmax: jok.Point,
-        rounding: f32,
-        corner_top_left: bool,
-        corner_top_right: bool,
-        corner_bottom_left: bool,
-        corner_bottom_right: bool,
-    };
-    pub const Cmd = union(enum) {
-        line_to: LineTo,
-        arc_to: ArcTo,
-        elliptical_arc_to: EllipticalArcTo,
-        bezier_cubic_to: BezierCubicTo,
-        bezier_quadratic_to: BezierQuadraticTo,
-        rect_rounded: RectRounded,
-    };
-    pub const DrawMethod = enum {
-        fill_convex,
-        fill_concave,
-        stroke,
-    };
-
-    cmds: std.ArrayList(Cmd),
-    draw_method: DrawMethod = .stroke,
-    color: u32 = 0xff_ff_ff_ff,
-    thickness: f32 = 1,
-    closed: bool = false,
-    transform: AffineTransform = AffineTransform.init(),
-};
-
 pub const DrawCmd = struct {
     cmd: union(enum) {
         quad_image: QuadImageCmd,
@@ -272,13 +204,11 @@ pub const DrawCmd = struct {
         ellipse_fill: EllipseFillCmd,
         ngon: NgonCmd,
         ngon_fill: NgonFillCmd,
-        polygon: PolygonCmd,
         convex_polygon_fill: ConvexPolyFillCmd,
         concave_polygon_fill: ConcavePolyFillCmd,
         bezier_cubic: BezierCubicCmd,
         bezier_quadratic: BezierQuadraticCmd,
         polyline: PolylineCmd,
-        path: PathCmd,
     },
     depth: f32,
 
@@ -447,18 +377,6 @@ pub const DrawCmd = struct {
                 .col = c.color,
                 .num_segments = @intCast(c.num_segments),
             }),
-            .polygon => |c| {
-                dl.pathClear();
-                for (c.points.items) |_p| {
-                    const p = c.transform.transformPoint(_p.pos);
-                    dl.pathLineTo(.{ p.x, p.y });
-                }
-                dl.pathStroke(.{
-                    .col = c.color,
-                    .flags = .{ .closed = true },
-                    .thickness = c.thickness,
-                });
-            },
             .convex_polygon_fill => |c| {
                 if (c.texture) |tex| dl.pushTextureId(tex.ptr);
                 defer if (c.texture != null) dl.popTextureId();
@@ -527,85 +445,6 @@ pub const DrawCmd = struct {
                     .flags = .{ .closed = c.closed },
                     .thickness = c.thickness,
                 });
-            },
-            .path => |c| {
-                dl.pathClear();
-                for (c.cmds.items) |_pc| {
-                    switch (_pc) {
-                        .line_to => |pc| {
-                            const p = c.transform.transformPoint(pc.p);
-                            dl.pathLineTo(.{ p.x, p.y });
-                        },
-                        .arc_to => |pc| {
-                            const p = c.transform.transformPoint(pc.p);
-                            dl.pathArcTo(.{
-                                .p = .{ p.x, p.y },
-                                .r = pc.radius * c.transform.getScaleX(),
-                                .amin = pc.amin,
-                                .amax = pc.amax,
-                                .num_segments = @intCast(pc.num_segments),
-                            });
-                        },
-                        .elliptical_arc_to => |pc| {
-                            const p = c.transform.transformPoint(pc.p);
-                            const radius = pc.radius.mul(c.transform.getScale());
-                            dl.pathEllipticalArcTo(.{
-                                .p = .{ p.x, p.y },
-                                .r = .{ radius.x, radius.y },
-                                .rot = pc.rot,
-                                .amin = pc.amin,
-                                .amax = pc.amax,
-                                .num_segments = @intCast(pc.num_segments),
-                            });
-                        },
-                        .bezier_cubic_to => |pc| {
-                            const p2 = c.transform.transformPoint(pc.p2);
-                            const p3 = c.transform.transformPoint(pc.p3);
-                            const p4 = c.transform.transformPoint(pc.p4);
-                            dl.pathBezierCubicCurveTo(.{
-                                .p2 = .{ p2.x, p2.y },
-                                .p3 = .{ p3.x, p3.y },
-                                .p4 = .{ p4.x, p4.y },
-                                .num_segments = @intCast(pc.num_segments),
-                            });
-                        },
-                        .bezier_quadratic_to => |pc| {
-                            const p2 = c.transform.transformPoint(pc.p2);
-                            const p3 = c.transform.transformPoint(pc.p3);
-                            dl.pathBezierQuadraticCurveTo(.{
-                                .p2 = .{ p2.x, p2.y },
-                                .p3 = .{ p3.x, p3.y },
-                                .num_segments = @intCast(pc.num_segments),
-                            });
-                        },
-                        .rect_rounded => |pc| {
-                            const vmin = c.transform.transformPoint(pc.pmin);
-                            const scale = c.transform.getScale();
-                            const width = (pc.pmax.x - pc.pmin.x) * scale.x;
-                            const height = (pc.pmax.y - pc.pmin.y) * scale.y;
-                            dl.pathRect(.{
-                                .bmin = .{ vmin.x, vmin.y },
-                                .bmax = .{ vmin.x + width, vmin.y + height },
-                                .rounding = pc.rounding,
-                                .flags = .{
-                                    .round_corners_top_left = pc.corner_top_left,
-                                    .round_corners_top_right = pc.corner_top_right,
-                                    .round_corners_bottom_left = pc.corner_bottom_left,
-                                    .round_corners_bottom_right = pc.corner_bottom_right,
-                                },
-                            });
-                        },
-                    }
-                }
-                switch (c.draw_method) {
-                    .fill_convex => dl.pathFillConvex(c.color),
-                    .fill_concave => dl.pathFillConcave(c.color),
-                    .stroke => dl.pathStroke(.{
-                        .col = c.color,
-                        .flags = .{ .closed = c.closed },
-                        .thickness = c.thickness,
-                    }),
-                }
             },
         }
     }

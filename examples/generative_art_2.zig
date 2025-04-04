@@ -8,13 +8,13 @@ pub const jok_window_size = jok.config.WindowSize{
 };
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
-var path: j2d.Path = undefined;
+var polyline: j2d.Polyline = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     batchpool = try @TypeOf(batchpool).init(ctx);
-    path = j2d.Path.begin(ctx.allocator());
+    polyline = j2d.Polyline.begin(ctx.allocator());
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
@@ -32,7 +32,7 @@ pub fn draw(ctx: jok.Context) !void {
     const statechange = math.sin(ctx.seconds()) * 0.2;
     const scale = ctx.getCanvasSize().getHeightFloat() / 4;
 
-    path.reset(true);
+    polyline.reset(true);
     var i: usize = 0;
     while (i < 360 * 4 + 1) : (i += 1) {
         var point = jok.Point{ .x = 0, .y = 0 };
@@ -45,9 +45,9 @@ pub fn draw(ctx: jok.Context) !void {
             point.x += math.cos(angle) * off;
             point.y += math.sin(angle) * off;
         }
-        try path.lineTo(point);
+        try polyline.point(point);
     }
-    path.end();
+    polyline.end();
 
     var b = try batchpool.new(.{});
     defer b.submit();
@@ -57,13 +57,13 @@ pub fn draw(ctx: jok.Context) !void {
         .x = ctx.getCanvasSize().getWidthFloat() / 2,
         .y = ctx.getCanvasSize().getHeightFloat() / 2,
     });
-    try b.path(path, .white, .{ .closed = true });
+    try b.polyline(polyline, .white, .{ .closed = true });
 }
 
 pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
 
-    path.deinit();
+    polyline.deinit();
     batchpool.deinit();
 }

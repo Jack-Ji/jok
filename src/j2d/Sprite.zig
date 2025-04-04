@@ -55,7 +55,7 @@ pub const RenderOption = struct {
     scale: jok.Point = .{ .x = 1, .y = 1 },
 
     /// Rotation around anchor-point
-    rotate_degree: f32 = 0,
+    rotate_angle: f32 = 0,
 
     /// Anchor-point of sprite, around which rotation and translation is calculated
     anchor_point: jok.Point = .{ .x = 0, .y = 0 },
@@ -81,7 +81,7 @@ pub fn render(
     if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
     if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
     const m_scale = zmath.scaling(self.width * opt.scale.x, self.height * opt.scale.y, 1);
-    const m_rotate = zmath.rotationZ(std.math.degreesToRadians(opt.rotate_degree));
+    const m_rotate = zmath.rotationZ(opt.rotate_angle);
     const m_translate = zmath.translation(opt.pos.x, opt.pos.y, 0);
     const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
     const basic_coords = zmath.loadMat(&[_]f32{

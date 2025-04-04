@@ -165,7 +165,7 @@ pub fn update(ctx: jok.Context) !void {
         @intFromFloat(127 * (1 + @cos(ctx.seconds()))),
         100,
     );
-    sprites[13].actor.sprite.rotate_degree = ctx.seconds() * 180;
+    sprites[13].actor.sprite.rotate_angle = ctx.seconds() * 2;
 }
 
 pub fn draw(ctx: jok.Context) !void {

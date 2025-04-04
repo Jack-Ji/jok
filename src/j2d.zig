@@ -259,7 +259,7 @@ pub const Batch = struct {
         uv1: jok.Point = .{ .x = 1, .y = 1 },
         tint_color: jok.Color = .white,
         scale: jok.Point = .{ .x = 1, .y = 1 },
-        rotate_degree: f32 = 0,
+        rotate_angle: f32 = 0,
         anchor_point: jok.Point = .{ .x = 0, .y = 0 },
         flip_h: bool = false,
         flip_v: bool = false,
@@ -287,7 +287,7 @@ pub const Batch = struct {
             .pos = self.trs.transformPoint(pos),
             .tint_color = opt.tint_color,
             .scale = .{ .x = scaling.x * opt.scale.x, .y = scaling.y * opt.scale.y },
-            .rotate_degree = opt.rotate_degree,
+            .rotate_angle = opt.rotate_angle,
             .anchor_point = opt.anchor_point,
             .flip_h = opt.flip_h,
             .flip_v = opt.flip_v,
@@ -300,8 +300,8 @@ pub const Batch = struct {
         size: ?jok.Size = null,
         uv0: jok.Point = .{ .x = 0, .y = 0 },
         uv1: jok.Point = .{ .x = 1, .y = 1 },
+        anchor_point: jok.Point = .{ .x = 0, .y = 0 },
         tint_color: jok.Color = .white,
-        scale: jok.Point = .{ .x = 1, .y = 1 },
         flip_h: bool = false,
         flip_v: bool = false,
         rounding: f32 = 4,
@@ -314,23 +314,30 @@ pub const Batch = struct {
     pub fn imageRounded(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const size = opt.size orelse BLK: {
-            const info = try texture.query();
-            break :BLK jok.Size{
-                .width = info.width,
-                .height = info.height,
-            };
-        };
+        assert(opt.anchor_point.x >= 0 and opt.anchor_point.x <= 1);
+        assert(opt.anchor_point.y >= 0 and opt.anchor_point.y <= 1);
         var uv0 = opt.uv0;
         var uv1 = opt.uv1;
         if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
         if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
+        const _size: jok.Point = if (opt.size) |sz|
+            .{ .x = sz.getWidthFloat(), .y = sz.getHeightFloat() }
+        else BLK: {
+            const info = try texture.query();
+            break :BLK .{
+                .x = @floatFromInt(info.width),
+                .y = @floatFromInt(info.height),
+            };
+        };
+        const size = _size.mul(self.trs.getScale());
+        const pmin = pos.add(self.trs.getTranslation()).sub(size.mul(opt.anchor_point));
+        const pmax = pmin.add(size);
         try self.pushDrawCommand(.{
             .cmd = .{
                 .image_rounded = .{
                     .texture = texture,
-                    .pmin = pos,
-                    .pmax = pos.add(.{ .x = size.getWidthFloat(), .y = size.getHeightFloat() }),
+                    .pmin = pmin,
+                    .pmax = pmax,
                     .uv0 = uv0,
                     .uv1 = uv1,
                     .tint_color = opt.tint_color.toInternalColor(),
@@ -363,7 +370,7 @@ pub const Batch = struct {
         pos: jok.Point,
         tint_color: jok.Color = .white,
         scale: jok.Point = .{ .x = 1, .y = 1 },
-        rotate_degree: f32 = 0,
+        rotate_angle: f32 = 0,
         anchor_point: jok.Point = .{ .x = 0, .y = 0 },
         flip_h: bool = false,
         flip_v: bool = false,
@@ -377,7 +384,7 @@ pub const Batch = struct {
             .pos = self.trs.transformPoint(opt.pos),
             .tint_color = opt.tint_color,
             .scale = .{ .x = scaling.x * opt.scale.x, .y = scaling.y * opt.scale.y },
-            .rotate_degree = opt.rotate_degree,
+            .rotate_angle = opt.rotate_angle,
             .anchor_point = opt.anchor_point,
             .flip_h = opt.flip_h,
             .flip_v = opt.flip_v,
@@ -393,7 +400,7 @@ pub const Batch = struct {
         align_type: jok.font.Atlas.AlignType = .left,
         tint_color: jok.Color = .white,
         scale: jok.Point = .{ .x = 1, .y = 1 },
-        rotate_degree: f32 = 0,
+        rotate_angle: f32 = 0,
         depth: f32 = 0.5,
     };
     pub fn text(self: *Batch, comptime fmt: []const u8, args: anytype, opt: TextOption) !void {
@@ -406,11 +413,10 @@ pub const Batch = struct {
         var scaling = self.trs.getScale();
         scaling.x *= opt.scale.x;
         scaling.y *= opt.scale.y;
-        const angle = std.math.degreesToRadians(opt.rotate_degree);
         const mat = zmath.mul(
             zmath.mul(
                 zmath.translation(-pos.x, -pos.y, 0),
-                zmath.rotationZ(angle),
+                zmath.rotationZ(opt.rotate_angle),
             ),
             zmath.translation(pos.x, pos.y, 0),
         );
@@ -457,7 +463,7 @@ pub const Batch = struct {
                     .pos = draw_pos,
                     .tint_color = opt.tint_color,
                     .scale = scaling,
-                    .rotate_degree = opt.rotate_degree,
+                    .rotate_angle = opt.rotate_angle,
                     .depth = opt.depth,
                 });
                 pos.x += (cs.next_x - pos.x) * scaling.x;
@@ -584,6 +590,7 @@ pub const Batch = struct {
 
     /// NOTE: Rounded rectangle is always axis-aligned
     pub const RectRoundedOption = struct {
+        anchor_point: jok.Point = .{ .x = 0, .y = 0 },
         thickness: f32 = 1.0,
         rounding: f32 = 4,
         corner_top_left: bool = true,
@@ -595,11 +602,15 @@ pub const Batch = struct {
     pub fn rectRounded(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
+        const pos = jok.Point{ .x = r.x, .y = r.y };
+        const size = (jok.Point{ .x = r.width, .y = r.height }).mul(self.trs.getScale());
+        const pmin = pos.add(self.trs.getTranslation()).sub(size.mul(opt.anchor_point));
+        const pmax = pmin.add(size);
         try self.pushDrawCommand(.{
             .cmd = .{
                 .rect_rounded = .{
-                    .pmin = .{ .x = r.x, .y = r.y },
-                    .pmax = .{ .x = r.x + r.width, .y = r.y + r.height },
+                    .pmin = pmin,
+                    .pmax = pmax,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                     .rounding = opt.rounding,
@@ -615,6 +626,7 @@ pub const Batch = struct {
 
     /// NOTE: Rounded rectangle is always axis-aligned
     pub const FillRectRounded = struct {
+        anchor_point: jok.Point = .{ .x = 0, .y = 0 },
         rounding: f32 = 4,
         corner_top_left: bool = true,
         corner_top_right: bool = true,
@@ -625,11 +637,15 @@ pub const Batch = struct {
     pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
+        const pos = jok.Point{ .x = r.x, .y = r.y };
+        const size = (jok.Point{ .x = r.width, .y = r.height }).mul(self.trs.getScale());
+        const pmin = pos.add(self.trs.getTranslation()).sub(size.mul(opt.anchor_point));
+        const pmax = pmin.add(size);
         try self.pushDrawCommand(.{
             .cmd = .{
                 .rect_rounded_fill = .{
-                    .pmin = .{ .x = r.x, .y = r.y },
-                    .pmax = .{ .x = r.x + r.width, .y = r.y + r.height },
+                    .pmin = pmin,
+                    .pmax = pmax,
                     .color = color.toInternalColor(),
                     .rounding = opt.rounding,
                     .corner_top_left = opt.corner_top_left,
@@ -877,7 +893,7 @@ pub const Batch = struct {
     }
 
     pub const EllipseOption = struct {
-        rotate_degree: f32 = 0,
+        rotate_angle: f32 = 0,
         thickness: f32 = 1.0,
         num_segments: u32 = 0,
         depth: f32 = 0.5,
@@ -896,7 +912,7 @@ pub const Batch = struct {
                     .p = c.center,
                     .radius = c.radius,
                     .color = color.toInternalColor(),
-                    .rotation = std.math.degreesToRadians(opt.rotate_degree),
+                    .rotation = opt.rotate_angle,
                     .thickness = opt.thickness,
                     .num_segments = opt.num_segments,
                 },
@@ -906,7 +922,7 @@ pub const Batch = struct {
     }
 
     pub const FillEllipse = struct {
-        rotate_degree: f32 = 0,
+        rotate_angle: f32 = 0,
         num_segments: u32 = 0,
         depth: f32 = 0.5,
     };
@@ -924,7 +940,7 @@ pub const Batch = struct {
                     .p = e.center,
                     .radius = e.radius,
                     .color = color.toInternalColor(),
-                    .rotation = std.math.degreesToRadians(opt.rotate_degree),
+                    .rotation = opt.rotate_angle,
                     .num_segments = opt.num_segments,
                 },
             },
@@ -1048,31 +1064,6 @@ pub const Batch = struct {
         });
     }
 
-    pub const PolyOption = struct {
-        thickness: f32 = 1.0,
-        depth: f32 = 0.5,
-    };
-    pub fn convexPoly(
-        self: *Batch,
-        poly: ConvexPoly,
-        color: jok.Color,
-        opt: PolyOption,
-    ) !void {
-        assert(self.id != invalid_batch_id);
-        assert(!self.is_submitted);
-        if (!poly.finished) return error.PathNotFinished;
-        try self.pushDrawCommand(.{
-            .cmd = .{
-                .convex_polygon = .{
-                    .points = poly.points,
-                    .color = color.toInternalColor(),
-                    .thickness = opt.thickness,
-                },
-            },
-            .depth = opt.depth,
-        });
-    }
-
     pub const FillPoly = struct {
         depth: f32 = 0.5,
     };
@@ -1145,30 +1136,6 @@ pub const Batch = struct {
         });
     }
 
-    pub const PathOption = struct {
-        method: internal.PathCmd.DrawMethod = .stroke,
-        thickness: f32 = 1.0,
-        closed: bool = false,
-        depth: f32 = 0.5,
-    };
-    pub fn path(self: *Batch, p: Path, color: jok.Color, opt: PathOption) !void {
-        assert(self.id != invalid_batch_id);
-        assert(!self.is_submitted);
-        if (!p.finished) return error.PathNotFinished;
-        try self.pushDrawCommand(.{
-            .cmd = .{
-                .path = .{
-                    .cmds = p.cmds,
-                    .draw_method = opt.method,
-                    .color = color.toInternalColor(),
-                    .thickness = opt.thickness,
-                    .closed = opt.closed,
-                },
-            },
-            .depth = opt.depth,
-        });
-    }
-
     pub inline fn pushDrawCommand(self: *Batch, _dcmd: DrawCmd) !void {
         var dcmd = _dcmd;
         switch (dcmd.cmd) {
@@ -1178,21 +1145,18 @@ pub const Batch = struct {
                 cmd.p3 = self.trs.transformPoint(cmd.p3);
                 cmd.p4 = self.trs.transformPoint(cmd.p4);
             },
-            .image_rounded => |*cmd| {
-                cmd.pmin = self.trs.transformPoint(cmd.pmin);
-                cmd.pmax = self.trs.transformPoint(cmd.pmax);
+            .image_rounded => {
+                // Nothing to do
             },
             .line => |*cmd| {
                 cmd.p1 = self.trs.transformPoint(cmd.p1);
                 cmd.p2 = self.trs.transformPoint(cmd.p2);
             },
-            .rect_rounded => |*cmd| {
-                cmd.pmin = self.trs.transformPoint(cmd.pmin);
-                cmd.pmax = self.trs.transformPoint(cmd.pmax);
+            .rect_rounded => {
+                // Nothing to do
             },
-            .rect_rounded_fill => |*cmd| {
-                cmd.pmin = self.trs.transformPoint(cmd.pmin);
-                cmd.pmax = self.trs.transformPoint(cmd.pmax);
+            .rect_rounded_fill => {
+                // Nothing to do
             },
             .quad => |*cmd| {
                 cmd.p1 = self.trs.transformPoint(cmd.p1);
@@ -1240,9 +1204,6 @@ pub const Batch = struct {
                 cmd.p = self.trs.transformPoint(cmd.p);
                 cmd.radius *= self.trs.getScale().x;
             },
-            .polygon => |*cmd| {
-                cmd.transform = self.trs;
-            },
             .convex_polygon_fill => |*cmd| {
                 cmd.transform = self.trs;
             },
@@ -1263,9 +1224,6 @@ pub const Batch = struct {
             },
             .polyline => |*cmd| {
                 assert(cmd.transformed.items.len >= cmd.points.items.len);
-                cmd.transform = self.trs;
-            },
-            .path => |*cmd| {
                 cmd.transform = self.trs;
             },
         }
@@ -1311,6 +1269,8 @@ pub const ConvexPoly = struct {
     }
 };
 
+pub const ConcavePoly = Polyline;
+
 pub const Polyline = struct {
     points: std.ArrayList(jok.Point),
     transformed: std.ArrayList(jok.Point),
@@ -1353,158 +1313,6 @@ pub const Polyline = struct {
     pub fn npoints(self: *Polyline, ps: []jok.Point) !void {
         assert(!self.finished);
         try self.points.appendSlice(ps);
-    }
-};
-
-pub const ConcavePoly = Polyline;
-
-pub const Path = struct {
-    cmds: std.ArrayList(internal.PathCmd.Cmd),
-    finished: bool = false,
-
-    /// Begin definition of path
-    pub fn begin(allocator: std.mem.Allocator) Path {
-        return .{
-            .cmds = std.ArrayList(internal.PathCmd.Cmd).init(allocator),
-        };
-    }
-
-    /// End definition of path
-    pub fn end(self: *Path) void {
-        self.finished = true;
-    }
-
-    pub fn deinit(self: *Path) void {
-        self.cmds.deinit();
-        self.* = undefined;
-    }
-
-    pub fn reset(self: *Path, cleardata: bool) void {
-        if (cleardata) {
-            self.cmds.clearRetainingCapacity();
-        }
-        self.finished = false;
-    }
-
-    pub fn lineTo(self: *Path, pos: jok.Point) !void {
-        assert(!self.finished);
-        try self.cmds.append(.{ .line_to = .{ .p = pos } });
-    }
-
-    pub const ArcTo = struct {
-        num_segments: u32 = 0,
-    };
-    pub fn arcTo(
-        self: *Path,
-        pos: jok.Point,
-        radius: f32,
-        degree_begin: f32,
-        degree_end: f32,
-        opt: ArcTo,
-    ) !void {
-        assert(!self.finished);
-        try self.cmds.append(.{
-            .arc_to = .{
-                .p = pos,
-                .radius = radius,
-                .amin = std.math.degreesToRadians(degree_begin),
-                .amax = std.math.degreesToRadians(degree_end),
-                .num_segments = opt.num_segments,
-            },
-        });
-    }
-
-    pub const EllipticalArcTo = struct {
-        rotate_degree: f32 = 0,
-        num_segments: u32 = 0,
-    };
-    pub fn ellipticalArcTo(
-        self: *Path,
-        pos: jok.Point,
-        radius: jok.Point,
-        degree_begin: f32,
-        degree_end: f32,
-        opt: ArcTo,
-    ) !void {
-        assert(!self.finished);
-        try self.cmds.append(.{
-            .elliptical_arc_to = .{
-                .p = pos,
-                .radius = radius,
-                .rot = std.math.degreesToRadians(opt.rotate_degree),
-                .amin = std.math.degreesToRadians(degree_begin),
-                .amax = std.math.degreesToRadians(degree_end),
-                .num_segments = opt.num_segments,
-            },
-        });
-    }
-
-    pub const BezierCurveTo = struct {
-        num_segments: u32 = 0,
-    };
-    pub fn bezierCubicCurveTo(
-        self: *Path,
-        p2: jok.Point,
-        p3: jok.Point,
-        p4: jok.Point,
-        opt: BezierCurveTo,
-    ) !void {
-        assert(!self.finished);
-        try self.cmds.append(.{
-            .bezier_cubic_to = .{
-                .p2 = p2,
-                .p3 = p3,
-                .p4 = p4,
-                .num_segments = opt.num_segments,
-            },
-        });
-    }
-    pub fn bezierQuadraticCurveTo(
-        self: *Path,
-        p2: jok.Point,
-        p3: jok.Point,
-        opt: BezierCurveTo,
-    ) !void {
-        assert(!self.finished);
-        try self.cmds.append(.{
-            .bezier_quadratic_to = .{
-                .p2 = p2,
-                .p3 = p3,
-                .num_segments = opt.num_segments,
-            },
-        });
-    }
-
-    /// NOTE: Rounded rectangle is always axis-aligned
-    pub const Rect = struct {
-        rounding: f32 = 4,
-        corner_top_left: bool = true,
-        corner_top_right: bool = true,
-        corner_bottom_left: bool = true,
-        corner_bottom_right: bool = true,
-    };
-    pub fn rect(
-        self: *Path,
-        r: jok.Rectangle,
-        opt: Rect,
-    ) !void {
-        assert(!self.finished);
-        const pmin = jok.Point{ .x = r.x, .y = r.y };
-        const pmax = jok.Point{
-            .x = pmin.x + r.width,
-            .y = pmin.y + r.height,
-        };
-        try self.cmds.append(.{
-            .rect_rounded = .{
-                .pmin = pmin,
-                .pmax = pmax,
-                .rounding = opt.rounding,
-                .corner_top_left = opt.corner_top_left,
-                .corner_top_right = opt.corner_top_right,
-                .corner_bottom_left = opt.corner_bottom_left,
-                .corner_bottom_right = opt.corner_bottom_right,
-            },
-        });
     }
 };
 

@@ -65,7 +65,7 @@ fn scene2d(ctx: jok.Context) !void {
         .pos = .{ .x = 400, .y = 300 },
         .scale = .{ .x = 2, .y = 2 },
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
-        .rotate_degree = ctx.seconds() * 100,
+        .rotate_angle = ctx.seconds(),
     });
 }
 

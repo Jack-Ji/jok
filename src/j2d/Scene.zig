@@ -24,7 +24,7 @@ pub const Actor = struct {
                 .x = parent_opt.scale.x * actor.render_opt.scale.x,
                 .y = parent_opt.scale.y * actor.render_opt.scale.y,
             },
-            .rotate_degree = parent_opt.rotate_degree + actor.render_opt.rotate_degree,
+            .rotate_angle = parent_opt.rotate_angle + actor.render_opt.rotate_angle,
             .anchor_point = actor.render_opt.anchor_point,
             .flip_h = if (parent_opt.flip_h) !actor.render_opt.flip_h else actor.render_opt.flip_h,
             .flip_v = if (parent_opt.flip_v) !actor.render_opt.flip_v else actor.render_opt.flip_v,

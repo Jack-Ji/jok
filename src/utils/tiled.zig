@@ -341,7 +341,7 @@ const ObjectGroup = struct {
                         sp.height = r.height;
                         try b.sprite(sp, .{
                             .pos = .{ .x = r.x, .y = r.y },
-                            .rotate_degree = o.rotate_degree,
+                            .rotate_angle = std.math.degreesToRadians(o.rotate_degree),
                             .anchor_point = .{ .x = 0, .y = 1.0 },
                         });
                     } else {

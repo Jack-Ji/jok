@@ -357,7 +357,7 @@ pub const Particle = struct {
                 .pos = transform.transformPoint(.{ .x = self.pos.x(), .y = self.pos.y() }),
                 .tint_color = self.color,
                 .scale = .{ .x = self.scale, .y = self.scale },
-                .rotate_degree = self.angle,
+                .rotate_angle = self.angle,
                 .anchor_point = .{ .x = 0.5, .y = 0.5 },
                 .depth = depth,
             },
