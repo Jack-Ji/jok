@@ -87,6 +87,14 @@ pub const Rectangle = extern struct {
     width: f32,
     height: f32,
 
+    pub inline fn getPos(r: Rectangle) jok.Point {
+        return .{ .x = r.x, .y = r.y };
+    }
+
+    pub inline fn getSize(r: Rectangle) jok.Point {
+        return .{ .x = r.width, .y = r.height };
+    }
+
     pub inline fn translate(r: Rectangle, x: f32, y: f32) Rectangle {
         return .{
             .x = r.x + x,

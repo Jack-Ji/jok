@@ -16,17 +16,6 @@ pub fn init() Self {
     };
 }
 
-pub fn transformPoint(self: Self, p: jok.Point) jok.Point {
-    const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.mat);
-    return .{ .x = v[0], .y = v[1] };
-}
-
-pub fn inverseTransformPoint(self: Self, p: jok.Point) jok.Point {
-    const mat = zmath.inverse(self.mat);
-    const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), mat);
-    return .{ .x = v[0], .y = v[1] };
-}
-
 pub fn invert(self: Self) Self {
     return .{ .mat = zmath.inverse(self.mat) };
 }
@@ -193,4 +182,41 @@ pub fn getScaleX(self: Self) f32 {
 pub fn getScaleY(self: Self) f32 {
     const v = zmath.util.getScaleVec(self.mat);
     return v[1];
+}
+
+pub fn transformPoint(self: Self, p: jok.Point) jok.Point {
+    const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.mat);
+    return .{ .x = v[0], .y = v[1] };
+}
+
+pub fn inverseTransformPoint(self: Self, p: jok.Point) jok.Point {
+    const mat = zmath.inverse(self.mat);
+    const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), mat);
+    return .{ .x = v[0], .y = v[1] };
+}
+
+pub fn transformRectangle(self: Self, r: jok.Rectangle) jok.Rectangle {
+    const pos = self.transformPoint(r.getPos());
+    const size = r.getSize().mul(self.getScale());
+    return .{ .x = pos.x, .y = pos.y, .width = size.x, .height = size.y };
+}
+
+pub fn transformCircle(self: Self, c: jok.Circle) jok.Circle {
+    const pos = self.transformPoint(c.center);
+    const radius = c.radius * self.getScaleX();
+    return .{ .center = pos, .radius = radius };
+}
+
+pub fn transformEllipse(self: Self, e: jok.Ellipse) jok.Ellipse {
+    const pos = self.transformPoint(e.center);
+    const radius = e.radius.mul(self.getScale());
+    return .{ .center = pos, .radius = radius };
+}
+
+pub fn transformTriangle(self: Self, t: jok.Triangle) jok.Triangle {
+    return .{
+        self.transformPoint(t.p0),
+        self.transformPoint(t.p1),
+        self.transformPoint(t.p2),
+    };
 }

@@ -331,7 +331,7 @@ pub const Batch = struct {
         };
         const size = _size.mul(self.trs.getScale());
         const pmin = pos.add(self.trs.getTranslation()).sub(size.mul(opt.anchor_point));
-        const pmax = pmin.add(size);
+        const pmax = pmin.add(_size.mul(self.trs.getScale()));
         try self.pushDrawCommand(.{
             .cmd = .{
                 .image_rounded = .{
@@ -602,9 +602,8 @@ pub const Batch = struct {
     pub fn rectRounded(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const pos = jok.Point{ .x = r.x, .y = r.y };
-        const size = (jok.Point{ .x = r.width, .y = r.height }).mul(self.trs.getScale());
-        const pmin = pos.add(self.trs.getTranslation()).sub(size.mul(opt.anchor_point));
+        const size = r.getSize().mul(self.trs.getScale());
+        const pmin = r.getPos().add(self.trs.getTranslation()).sub(size.mul(opt.anchor_point));
         const pmax = pmin.add(size);
         try self.pushDrawCommand(.{
             .cmd = .{
@@ -637,9 +636,8 @@ pub const Batch = struct {
     pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const pos = jok.Point{ .x = r.x, .y = r.y };
-        const size = (jok.Point{ .x = r.width, .y = r.height }).mul(self.trs.getScale());
-        const pmin = pos.add(self.trs.getTranslation()).sub(size.mul(opt.anchor_point));
+        const size = r.getSize().mul(self.trs.getScale());
+        const pmin = r.getPos().add(self.trs.getTranslation()).sub(size.mul(opt.anchor_point));
         const pmax = pmin.add(size);
         try self.pushDrawCommand(.{
             .cmd = .{
