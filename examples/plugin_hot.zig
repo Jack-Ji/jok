@@ -56,11 +56,7 @@ fn scene2d(ctx: jok.Context) !void {
     var b = try state.batchpool_2d.new(.{});
     defer b.submit();
 
-    try b.image(
-        state.sheet.tex,
-        .{ .x = 0, .y = 0 },
-        .{ .depth = 1 },
-    );
+    try b.image(state.sheet.tex, .origin, .{ .depth = 1 });
     try b.sprite(state.sheet.getSpriteByName("ogre").?, .{
         .pos = .{ .x = 400, .y = 300 },
         .scale = .{ .x = 2, .y = 2 },

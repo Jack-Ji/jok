@@ -189,7 +189,7 @@ pub const DisplayStats = struct {
 };
 
 pub const DebugPrint = struct {
-    pos: jok.Point = .{ .x = 0, .y = 0 },
+    pos: jok.Point = .origin,
     color: jok.Color = .white,
 };
 

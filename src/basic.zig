@@ -5,6 +5,9 @@ const zmath = jok.zmath;
 const minAndMax = jok.utils.math.minAndMax;
 
 pub const Point = extern struct {
+    pub const origin = Point{ .x = 0, .y = 0 };
+    pub const unit = Point{ .x = 1, .y = 1 };
+
     x: f32,
     y: f32,
 
@@ -29,6 +32,13 @@ pub const Point = extern struct {
         };
     }
 
+    pub inline fn mulf(p0: Point, s: f32) Point {
+        return .{
+            .x = p0.x * s,
+            .y = p0.y * s,
+        };
+    }
+
     pub inline fn isSame(p0: Point, p1: Point) bool {
         const tolerance = 0.000001;
         return std.math.approxEqAbs(f32, p0.x, p1.x, tolerance) and
@@ -47,6 +57,10 @@ pub const Point = extern struct {
 pub const Size = extern struct {
     width: u32,
     height: u32,
+
+    pub inline fn toPoint(s: Size) Point {
+        return .{ .x = @floatFromInt(s.width), .y = @floatFromInt(s.height) };
+    }
 
     pub inline fn getWidthFloat(s: Size) f32 {
         return @as(f32, @floatFromInt(s.width));
@@ -154,8 +168,8 @@ pub const Rectangle = extern struct {
 };
 
 pub const Circle = extern struct {
-    center: Point,
-    radius: f32,
+    center: Point = .origin,
+    radius: f32 = 1,
 
     pub inline fn translate(c: Circle, x: f32, y: f32) Circle {
         return .{
@@ -194,8 +208,8 @@ pub const Circle = extern struct {
 };
 
 pub const Ellipse = struct {
-    center: Point,
-    radius: Point,
+    center: Point = .origin,
+    radius: Point = .unit,
 
     pub inline fn translate(e: Ellipse, x: f32, y: f32) Circle {
         return .{

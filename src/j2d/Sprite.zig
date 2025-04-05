@@ -52,13 +52,13 @@ pub const RenderOption = struct {
     tint_color: jok.Color = .white,
 
     /// Scale of width/height
-    scale: jok.Point = .{ .x = 1, .y = 1 },
+    scale: jok.Point = .unit,
 
     /// Rotation around anchor-point
     rotate_angle: f32 = 0,
 
     /// Anchor-point of sprite, around which rotation and translation is calculated
-    anchor_point: jok.Point = .{ .x = 0, .y = 0 },
+    anchor_point: jok.Point = .origin,
 
     /// Horizontal/vertial flipping
     flip_h: bool = false,

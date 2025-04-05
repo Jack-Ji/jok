@@ -141,7 +141,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
     errdefer allocator.destroy(self);
     self.allocator = allocator;
     self.root = try Object.create(self.allocator, .{
-        .render_opt = .{ .pos = .{ .x = 0, .y = 0 } },
+        .render_opt = .{ .pos = .origin },
     }, null);
     errdefer self.root.destroy(false);
     return self;

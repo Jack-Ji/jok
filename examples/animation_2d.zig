@@ -74,7 +74,7 @@ pub fn init(ctx: jok.Context) !void {
             .dcmd = .{
                 .cmd = .{
                     .circle = .{
-                        .p = .{ .x = 0, .y = 0 },
+                        .p = .origin,
                         .radius = @floatFromInt(@abs(100 - @as(i32, @intCast(i)) * 10)),
                         .color = jok.Color.rgb(@intCast(i * 50 % 255), @intCast(i * 50 % 255), 0).toInternalColor(),
                         .num_segments = 20,

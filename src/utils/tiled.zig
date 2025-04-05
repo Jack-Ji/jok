@@ -512,7 +512,7 @@ pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !*TiledMap {
         .map_size = undefined,
         .tile_size = undefined,
         .infinite = false,
-        .parallax_origin = .{ .x = 0, .y = 0 },
+        .parallax_origin = .origin,
         .bgcolor = .none,
         .tilesets = &.{},
         .layers = &.{},
@@ -831,8 +831,8 @@ fn loadLayers(
         const Self = @This();
         const Group = struct {
             it: xml.Element.ChildElementIterator,
-            offset: jok.Point = .{ .x = 0, .y = 0 },
-            parallax: jok.Point = .{ .x = 1, .y = 1 },
+            offset: jok.Point = .origin,
+            parallax: jok.Point = .unit,
             tint_color: jok.Color = .white,
         };
         groups: std.ArrayList(Group),
@@ -843,8 +843,8 @@ fn loadLayers(
         fn init(allocator: std.mem.Allocator) Self {
             return .{
                 .groups = std.ArrayList(Group).init(allocator),
-                .offset = .{ .x = 0, .y = 0 },
-                .parallax = .{ .x = 1, .y = 1 },
+                .offset = .origin,
+                .parallax = .unit,
                 .tint_color = .white,
             };
         }
@@ -854,8 +854,8 @@ fn loadLayers(
         }
 
         inline fn onResize(self: *Self) void {
-            self.offset = .{ .x = 0, .y = 0 };
-            self.parallax = .{ .x = 1, .y = 1 };
+            self.offset = .origin;
+            self.parallax = .unit;
             self.tint_color = .white;
             for (self.groups.items) |g| {
                 self.offset = self.offset.add(g.offset);
@@ -886,8 +886,8 @@ fn loadLayers(
                 if (std.mem.eql(u8, e.tag, "group")) {
                     var g: Group = .{
                         .it = e.elements(),
-                        .offset = .{ .x = 0, .y = 0 },
-                        .parallax = .{ .x = 1, .y = 1 },
+                        .offset = .origin,
+                        .parallax = .unit,
                         .tint_color = .white,
                     };
                     for (e.attributes) |a| {
@@ -937,8 +937,8 @@ fn loadLayers(
     defer grouping.deinit();
     try grouping.push(.{
         .it = map.elements(),
-        .offset = .{ .x = 0, .y = 0 },
-        .parallax = .{ .x = 1, .y = 1 },
+        .offset = .origin,
+        .parallax = .unit,
         .tint_color = .white,
     });
 

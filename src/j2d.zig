@@ -255,12 +255,12 @@ pub const Batch = struct {
 
     pub const ImageOption = struct {
         size: ?jok.Size = null,
-        uv0: jok.Point = .{ .x = 0, .y = 0 },
-        uv1: jok.Point = .{ .x = 1, .y = 1 },
+        uv0: jok.Point = .origin,
+        uv1: jok.Point = .unit,
         tint_color: jok.Color = .white,
-        scale: jok.Point = .{ .x = 1, .y = 1 },
+        scale: jok.Point = .unit,
         rotate_angle: f32 = 0,
-        anchor_point: jok.Point = .{ .x = 0, .y = 0 },
+        anchor_point: jok.Point = .origin,
         flip_h: bool = false,
         flip_v: bool = false,
         depth: f32 = 0.5,
@@ -298,9 +298,9 @@ pub const Batch = struct {
     /// NOTE: Rounded image is always axis-aligned
     pub const ImageRoundedOption = struct {
         size: ?jok.Size = null,
-        uv0: jok.Point = .{ .x = 0, .y = 0 },
-        uv1: jok.Point = .{ .x = 1, .y = 1 },
-        anchor_point: jok.Point = .{ .x = 0, .y = 0 },
+        uv0: jok.Point = .origin,
+        uv1: jok.Point = .unit,
+        anchor_point: jok.Point = .origin,
         tint_color: jok.Color = .white,
         flip_h: bool = false,
         flip_v: bool = false,
@@ -321,7 +321,7 @@ pub const Batch = struct {
         if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
         if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
         const _size: jok.Point = if (opt.size) |sz|
-            .{ .x = sz.getWidthFloat(), .y = sz.getHeightFloat() }
+            sz.toPoint()
         else BLK: {
             const info = try texture.query();
             break :BLK .{
@@ -367,11 +367,11 @@ pub const Batch = struct {
     }
 
     pub const SpriteOption = struct {
-        pos: jok.Point,
+        pos: jok.Point = .origin,
         tint_color: jok.Color = .white,
-        scale: jok.Point = .{ .x = 1, .y = 1 },
+        scale: jok.Point = .unit,
         rotate_angle: f32 = 0,
-        anchor_point: jok.Point = .{ .x = 0, .y = 0 },
+        anchor_point: jok.Point = .origin,
         flip_h: bool = false,
         flip_v: bool = false,
         depth: f32 = 0.5,
@@ -394,12 +394,12 @@ pub const Batch = struct {
 
     pub const TextOption = struct {
         atlas: *jok.font.Atlas,
-        pos: jok.Point,
+        pos: jok.Point = .origin,
         ignore_unexist: bool = true,
         ypos_type: jok.font.Atlas.YPosType = .top,
         align_type: jok.font.Atlas.AlignType = .left,
         tint_color: jok.Color = .white,
-        scale: jok.Point = .{ .x = 1, .y = 1 },
+        scale: jok.Point = .unit,
         rotate_angle: f32 = 0,
         depth: f32 = 0.5,
     };
@@ -590,7 +590,7 @@ pub const Batch = struct {
 
     /// NOTE: Rounded rectangle is always axis-aligned
     pub const RectRoundedOption = struct {
-        anchor_point: jok.Point = .{ .x = 0, .y = 0 },
+        anchor_point: jok.Point = .origin,
         thickness: f32 = 1.0,
         rounding: f32 = 4,
         corner_top_left: bool = true,
@@ -625,7 +625,7 @@ pub const Batch = struct {
 
     /// NOTE: Rounded rectangle is always axis-aligned
     pub const FillRectRounded = struct {
-        anchor_point: jok.Point = .{ .x = 0, .y = 0 },
+        anchor_point: jok.Point = .origin,
         rounding: f32 = 4,
         corner_top_left: bool = true,
         corner_top_right: bool = true,
@@ -1282,10 +1282,7 @@ pub const Polyline = struct {
     }
 
     pub fn end(self: *Polyline) void {
-        self.transformed.appendNTimes(
-            .{ .x = 0, .y = 0 },
-            self.points.items.len,
-        ) catch unreachable;
+        self.transformed.appendNTimes(.origin, self.points.items.len) catch unreachable;
         self.finished = true;
     }
 

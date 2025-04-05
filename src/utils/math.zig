@@ -59,7 +59,7 @@ pub const IsometricTransform = struct {
     screen_to_iso: zmath.Mat,
 
     pub const IsometricOption = struct {
-        xy_offset: jok.Point = .{ .x = 0, .y = 0 },
+        xy_offset: jok.Point = .origin,
         scale: f32 = 1.0,
     };
     pub fn init(tile_size: jok.Size, opt: IsometricOption) @This() {

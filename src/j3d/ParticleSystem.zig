@@ -264,7 +264,7 @@ pub const DrawData = union(enum) {
     },
     sprite: struct {
         size: jok.Point,
-        uv: [2]jok.Point = .{ .{ .x = 0, .y = 0 }, .{ .x = 1, .y = 1 } },
+        uv: [2]jok.Point = .{ .origin, .unit },
         texture: ?jok.Texture = null,
     },
 

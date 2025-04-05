@@ -439,12 +439,7 @@ pub inline fn getVerticesOfCodePoint(
 
 /// Get sprite of codepoint
 pub fn getSpriteOfCodePoint(self: *Atlas, codepoint: u32) ?Sprite {
-    if (self.getVerticesOfCodePoint(
-        .{ .x = 0, .y = 0 },
-        .top,
-        .white,
-        codepoint,
-    )) |cs| {
+    if (self.getVerticesOfCodePoint(.origin, .top, .white, codepoint)) |cs| {
         return Sprite{
             .width = cs.vs[1].pos.x - cs.vs[0].pos.x,
             .height = cs.vs[3].pos.y - cs.vs[0].pos.y,

@@ -35,7 +35,7 @@ pub fn draw(ctx: jok.Context) !void {
     polyline.reset(true);
     var i: usize = 0;
     while (i < 360 * 4 + 1) : (i += 1) {
-        var point = jok.Point{ .x = 0, .y = 0 };
+        var point = jok.Point.origin;
         var j: usize = 0;
         while (j < 5) : (j += 1) {
             const angle = std.math.degreesToRadians(

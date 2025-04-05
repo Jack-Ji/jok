@@ -38,7 +38,7 @@ pub fn init(ctx: jok.Context) !void {
     ogre2 = try j2d.Scene.Object.create(ctx.allocator(), .{
         .sprite = sheet.getSpriteByName("ogre").?,
         .render_opt = .{
-            .pos = .{ .x = 0, .y = 0 },
+            .pos = .origin,
             .scale = .{ .x = 0.5, .y = 0.5 },
         },
     }, null);
@@ -60,7 +60,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     ogre1.setRenderOptions(.{
         .pos = .{ .x = 400, .y = 300 },
-        .tint_color = .rgb(255, 0, 0),
+        .tint_color = .red,
         .scale = .{
             .x = 4 + 2 * @cos(ctx.seconds()),
             .y = 4 + 2 * @sin(ctx.seconds()),
@@ -71,11 +71,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     var b = try batchpool.new(.{ .depth_sort = .back_to_forth });
     defer b.submit();
-    try b.image(
-        sheet.tex,
-        .{ .x = 0, .y = 0 },
-        .{},
-    );
+    try b.image(sheet.tex, .origin, .{});
     try b.scene(scene);
 }
 

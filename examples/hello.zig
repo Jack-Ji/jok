@@ -61,14 +61,8 @@ pub fn init(ctx: jok.Context) !void {
     shape_parametric_sphere.computeNormals();
     shape_tetrahedron = zmesh.Shape.initTetrahedron();
     shape_tetrahedron.computeNormals();
-    text_draw_pos = .{
-        .x = csz.getWidthFloat() / 2,
-        .y = csz.getHeightFloat() / 2,
-    };
-    text_speed = .{
-        .x = 100,
-        .y = 100,
-    };
+    text_draw_pos = csz.toPoint().mulf(0.5);
+    text_speed = .{ .x = 100, .y = 100 };
     point_easing_system = try easing.EasingSystem(jok.Point).create(ctx.allocator());
     color_easing_system = try easing.EasingSystem(jok.Color).create(ctx.allocator());
 }
@@ -102,7 +96,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                     .in_out_circ,
                     easing.easePoint,
                     1,
-                    .{ .x = 0, .y = 0 },
+                    .origin,
                     .{ .x = csz.getWidthFloat() * 0.75, .y = 0 },
                     .{},
                 );
@@ -111,8 +105,8 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                     .out_bounce,
                     easing.easePoint,
                     1,
-                    .{ .x = csz.getWidthFloat(), .y = csz.getHeightFloat() },
-                    .{ .x = csz.getWidthFloat() / 5, .y = csz.getHeightFloat() / 5 },
+                    csz.toPoint(),
+                    csz.toPoint().mulf(0.2),
                     .{},
                 );
                 try color_easing_system.add(
@@ -120,7 +114,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                     .in_out_quad,
                     easing.easeColor,
                     1,
-                    .{ .r = 0, .g = 0, .b = 0, .a = 0 },
+                    .none,
                     .white,
                     .{},
                 );

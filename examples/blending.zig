@@ -89,7 +89,7 @@ pub fn draw(ctx: jok.Context) !void {
         batch = try batchpool.new(.{});
         defer batch.submit();
 
-        try batch.image(target, .{ .x = 0, .y = 0 }, .{});
+        try batch.image(target, .origin, .{});
 
         for (blends) |b| {
             try batch.text(

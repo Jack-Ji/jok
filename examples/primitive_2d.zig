@@ -2,7 +2,6 @@ const std = @import("std");
 const jok = @import("jok");
 const imgui = jok.imgui;
 const j2d = jok.j2d;
-
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1280, .height = 720 },
 };
@@ -10,7 +9,7 @@ pub const jok_window_size = jok.config.WindowSize{
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var scale: f32 = 1.0;
 var rotate: f32 = 0.0;
-var translate: jok.Point = .{ .x = 0, .y = 0 };
+var translate: jok.Point = .origin;
 var convex_poly: j2d.ConvexPoly = undefined;
 var concave_poly: j2d.ConcavePoly = undefined;
 var polyline: j2d.Polyline = undefined;
@@ -263,10 +262,7 @@ pub fn draw(ctx: jok.Context) !void {
         defer b.popTransform();
         b.translate(550, 400);
         try b.circle(
-            .{
-                .center = .{ .x = 0, .y = 0 },
-                .radius = 50,
-            },
+            .{ .center = .origin, .radius = 50 },
             .white,
             .{},
         );
@@ -276,10 +272,7 @@ pub fn draw(ctx: jok.Context) !void {
         defer b.popTransform();
         b.translate(700, 400);
         try b.circleFilled(
-            .{
-                .center = .{ .x = 0, .y = 0 },
-                .radius = 50,
-            },
+            .{ .center = .origin, .radius = 50 },
             .white,
             .{},
         );
@@ -290,7 +283,7 @@ pub fn draw(ctx: jok.Context) !void {
         b.translate(850, 400);
         try b.ellipse(
             .{
-                .center = .{ .x = 0, .y = 0 },
+                .center = .origin,
                 .radius = .{ .x = 50, .y = 30 },
             },
             .white,
@@ -303,7 +296,7 @@ pub fn draw(ctx: jok.Context) !void {
         b.translate(1000, 400);
         try b.ellipseFilled(
             .{
-                .center = .{ .x = 0, .y = 0 },
+                .center = .origin,
                 .radius = .{ .x = 50, .y = 30 },
             },
             .white,
@@ -314,25 +307,13 @@ pub fn draw(ctx: jok.Context) !void {
         try b.pushTransform();
         defer b.popTransform();
         b.translate(1150, 400);
-        try b.ngon(
-            .{ .x = 0, .y = 0 },
-            50,
-            .white,
-            6,
-            .{},
-        );
+        try b.ngon(.origin, 50, .white, 6, .{});
     }
     {
         try b.pushTransform();
         defer b.popTransform();
         b.translate(100, 600);
-        try b.ngonFilled(
-            .{ .x = 0, .y = 0 },
-            50,
-            .white,
-            6,
-            .{},
-        );
+        try b.ngonFilled(.origin, 50, .white, 6, .{});
     }
     {
         try b.pushTransform();
