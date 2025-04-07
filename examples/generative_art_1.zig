@@ -8,22 +8,29 @@ pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 2 * radius, .height = 2 * radius },
 };
 
+const Target = struct {
+    node: std.DoublyLinkedList.Node = .{},
+    tex: jok.Texture,
+};
+
 const radius = 400;
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var rot: f32 = 0.3;
 const ntex = 50;
 const render_interval = 2.0 / @as(f32, ntex);
-var targets = std.DoublyLinkedList(jok.Texture){};
+var targets = std.DoublyLinkedList{};
 var render_time: f32 = render_interval;
 var clear_color: jok.Color = .none;
 
 pub fn init(ctx: jok.Context) !void {
     batchpool = try @TypeOf(batchpool).init(ctx);
     for (0..ntex) |_| {
-        var node = try ctx.allocator().create(std.DoublyLinkedList(jok.Texture).Node);
-        node.data = try ctx.renderer().createTarget(.{});
-        targets.append(node);
+        var t = try ctx.allocator().create(Target);
+        t.* = .{
+            .tex = try ctx.renderer().createTarget(.{}),
+        };
+        targets.append(&t.node);
     }
 }
 
@@ -57,7 +64,7 @@ pub fn draw(ctx: jok.Context) !void {
         if (rot > 360.0) rot = 0.3;
 
         var b = try batchpool.new(.{
-            .offscreen_target = targets.last.?.data,
+            .offscreen_target = @as(*Target, @fieldParentPtr("node", targets.last.?)).tex,
             .offscreen_clear_color = clear_color,
         });
         defer b.submit();
@@ -87,10 +94,11 @@ pub fn draw(ctx: jok.Context) !void {
     var node = targets.first;
     var idx: u32 = 0;
     while (node) |n| {
+        const t: *Target = @fieldParentPtr("node", n);
         const c = @as(u8, @intFromFloat(
             jok.utils.math.linearMap(@floatFromInt(idx), 0, ntex, 0, 255),
         ));
-        try b.image(n.data, .{ .x = 0, .y = 0 }, .{
+        try b.image(t.tex, .{ .x = 0, .y = 0 }, .{
             .tint_color = .rgba(255, 255, 255, c),
         });
         idx += 1;
@@ -100,7 +108,8 @@ pub fn draw(ctx: jok.Context) !void {
 
 pub fn quit(ctx: jok.Context) void {
     while (targets.pop()) |n| {
-        ctx.allocator().destroy(n);
+        const t: *Target = @fieldParentPtr("node", n);
+        ctx.allocator().destroy(t);
     }
     batchpool.deinit();
 }

@@ -49,6 +49,7 @@ const DummyMutex = struct {
 pub fn EasingSystem(comptime T: type) type {
     return struct {
         pub const EasingValue = struct {
+            node: std.DoublyLinkedList.Node = .{},
             state: VarState,
             easing_type: EasingType,
             easing_fn: EasingFn,
@@ -73,14 +74,13 @@ pub fn EasingSystem(comptime T: type) type {
             easing,
             deleted,
         };
-        const EasingList = std.DoublyLinkedList(EasingValue);
-        const EasingPool = std.heap.MemoryPool(EasingList.Node);
-        const EasingSearchMap = std.AutoHashMap(*const T, *EasingList.Node);
+        const EasingPool = std.heap.MemoryPool(EasingValue);
+        const EasingSearchMap = std.AutoHashMap(*const T, *EasingValue);
         const Self = @This();
 
         allocator: std.mem.Allocator,
         pool: EasingPool,
-        vars: EasingList,
+        vars: std.DoublyLinkedList,
         search_tree: EasingSearchMap,
         sig: *EasingSignal, // Notify finished easing job
 
@@ -104,31 +104,31 @@ pub fn EasingSystem(comptime T: type) type {
         }
 
         pub fn update(self: *Self, _delta_time: f32) void {
-            if (self.vars.len == 0) return;
+            if (self.vars.len() == 0) return;
 
             // Change newly added nodes' state to easing, and remove deleted node
             var node = self.vars.first;
             while (node) |n| {
+                var ev: *EasingValue = @fieldParentPtr("node", node.?);
                 node = n.next;
-                if (n.data.state == .new) {
-                    n.data.state = .easing;
+                if (ev.state == .new) {
+                    ev.state = .easing;
                     continue;
                 }
-                if (n.data.state == .deleted) {
-                    self.vars.remove(n);
-                    self.pool.destroy(n);
+                if (ev.state == .deleted) {
+                    self.vars.remove(&ev.node);
+                    self.pool.destroy(ev);
                     continue;
                 }
             }
 
             // Apply easing to vars
             node = self.vars.first;
-            while (self.vars.len != 0 and node != null) {
-                const n = node.?;
-                var ev = &n.data;
+            while (self.vars.len() != 0 and node != null) {
+                var ev: *EasingValue = @fieldParentPtr("node", node.?);
                 node = node.?.next;
-                if (n.data.state == .new) break;
-                if (n.data.state != .easing) continue;
+                if (ev.state == .new) break;
+                if (ev.state != .easing) continue;
 
                 // Check if wait enough
                 var delta_time = _delta_time;
@@ -151,9 +151,9 @@ pub fn EasingSystem(comptime T: type) type {
                 if (ev.life_passed >= ev.life_total) {
                     // Remove node from var list
                     // Release memory until subscribers are done
-                    self.vars.remove(n);
+                    self.vars.remove(&ev.node);
                     _ = self.search_tree.remove(ev.v);
-                    defer self.pool.destroy(n);
+                    defer self.pool.destroy(ev);
 
                     // Notify subscribers
                     if (ev.finish) |fs| {
@@ -184,26 +184,24 @@ pub fn EasingSystem(comptime T: type) type {
             // Remove old easing if exists
             self.remove(v);
 
-            const node = try self.pool.create();
-            node.* = .{
-                .data = .{
-                    .state = .new,
-                    .easing_type = easing_type,
-                    .easing_fn = getEasingFn(easing_type),
-                    .easing_apply_fn = easing_apply_fn,
-                    .wait_total = opt.wait_time,
-                    .waited = 0,
-                    .life_total = life,
-                    .life_passed = 0,
-                    .v = v,
-                    .from = from orelse v.*,
-                    .to = to,
-                    .finish = opt.finish,
-                },
+            const ev = try self.pool.create();
+            ev.* = .{
+                .state = .new,
+                .easing_type = easing_type,
+                .easing_fn = getEasingFn(easing_type),
+                .easing_apply_fn = easing_apply_fn,
+                .wait_total = opt.wait_time,
+                .waited = 0,
+                .life_total = life,
+                .life_passed = 0,
+                .v = v,
+                .from = from orelse v.*,
+                .to = to,
+                .finish = opt.finish,
             };
-            errdefer self.pool.destroy(node);
-            try self.search_tree.put(v, node);
-            self.vars.append(node);
+            errdefer self.pool.destroy(ev);
+            try self.search_tree.put(v, ev);
+            self.vars.append(&ev.node);
         }
 
         pub fn has(self: *Self, v: *const T) bool {
@@ -216,7 +214,7 @@ pub fn EasingSystem(comptime T: type) type {
                 // A: If we do, it would be impossible to correctly iterate
                 // through vars in `update`. Cause user might call `remove`
                 // function though callback/signal.
-                kv.value.data.state = .deleted;
+                kv.value.state = .deleted;
             }
         }
 

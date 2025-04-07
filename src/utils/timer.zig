@@ -23,7 +23,7 @@ pub fn GenericTimer(comptime fun: anytype) type {
         args: ArgsType,
         timer_id: ?sdl.SDL_TimerID = null,
         controller: ?*TimerController = null,
-        node: ?*TimerController.TimerList.Node = null,
+        td: ?*TimerController.TimerData = null,
 
         pub fn create(
             allocator: std.mem.Allocator,
@@ -40,7 +40,7 @@ pub fn GenericTimer(comptime fun: anytype) type {
             errdefer allocator.destroy(self);
             if (controller) |c| {
                 self.controller = c;
-                self.node = try c.addTimer(self.timer());
+                self.td = try c.addTimer(self.timer());
             } else if (!builtin.is_test) {
                 self.timer_id = sdl.SDL_AddTimer(
                     self.args[0],
@@ -54,8 +54,8 @@ pub fn GenericTimer(comptime fun: anytype) type {
 
         pub fn destroy(self: *@This()) void {
             if (self.controller) |c| {
-                assert(self.node != null);
-                c.removeNode(self.node.?);
+                assert(self.td != null);
+                c.removeNode(self.td.?);
             } else if (!builtin.is_test) {
                 assert(self.timer_id != null);
                 _ = sdl.SDL_RemoveTimer(self.timer_id.?);
@@ -107,13 +107,13 @@ pub fn GenericTimer(comptime fun: anytype) type {
 /// Use it when you want to invoke timers' callbacks in particular thread (e.g. main-thread)
 pub const TimerController = struct {
     const TimerData = struct {
+        node: std.DoublyLinkedList.Node = .{},
         ms: u32,
         timer: Timer,
     };
-    const TimerList = std.DoublyLinkedList(TimerData);
 
     allocator: std.mem.Allocator,
-    tlist: TimerList,
+    tlist: std.DoublyLinkedList,
 
     pub fn create(allocator: std.mem.Allocator) !*TimerController {
         const c = try allocator.create(TimerController);
@@ -126,7 +126,8 @@ pub const TimerController = struct {
 
     pub fn destroy(c: *TimerController) void {
         while (c.tlist.first) |n| {
-            n.data.timer.destroy();
+            const data: *TimerData = @fieldParentPtr("node", n);
+            data.timer.destroy();
         }
         c.allocator.destroy(c);
     }
@@ -137,71 +138,76 @@ pub const TimerController = struct {
         // Update timers' state
         var node = c.tlist.first;
         while (node) |n| {
-            if (n.data.ms >= delta_ms) {
-                n.data.ms -= delta_ms;
+            var data: *TimerData = @fieldParentPtr("node", n);
+            if (data.ms >= delta_ms) {
+                data.ms -= delta_ms;
                 break;
             } else {
-                n.data.ms = 0;
-                delta_ms -= n.data.ms;
+                data.ms = 0;
+                delta_ms -= data.ms;
             }
             node = n.next;
         }
 
         // Call expired timers' callbacks
         while (c.tlist.first) |n| {
-            if (n.data.ms != 0) break;
-            const ms = n.data.timer.doCallback();
+            var data: *TimerData = @fieldParentPtr("node", n);
+            if (data.ms != 0) break;
+            const ms = data.timer.doCallback();
             if (ms == 0) {
-                n.data.timer.destroy();
+                data.timer.destroy();
             } else {
                 c.tlist.remove(n);
-                n.data.ms = ms;
-                c.addNode(n);
+                data.ms = ms;
+                c.addNode(data);
             }
             node = n.next;
         }
     }
 
-    fn addTimer(c: *TimerController, timer: Timer) !*TimerList.Node {
-        const new_node = try c.allocator.create(TimerList.Node);
-        new_node.data = .{
+    fn addTimer(c: *TimerController, timer: Timer) !*TimerData {
+        const td = try c.allocator.create(TimerData);
+        td.* = .{
             .ms = timer.getInterval(),
             .timer = timer,
         };
-        c.addNode(new_node);
-        return new_node;
+        c.addNode(td);
+        return td;
     }
 
-    fn addNode(c: *TimerController, new_node: *TimerList.Node) void {
+    fn addNode(c: *TimerController, td: *TimerData) void {
         // Find suitable insert position
         var accu_ms: u32 = 0;
         var node = c.tlist.first;
         while (node) |n| {
-            accu_ms += n.data.ms;
-            if (accu_ms >= new_node.data.ms) break;
+            const data: *TimerData = @fieldParentPtr("node", n);
+            accu_ms += data.ms;
+            if (accu_ms >= td.ms) break;
             node = n.next;
         }
 
         // Insert new node
         if (node) |n| {
-            assert(new_node.data.ms <= accu_ms);
-            accu_ms -= n.data.ms;
-            new_node.data.ms -= accu_ms;
-            n.data.ms -= new_node.data.ms;
-            c.tlist.insertBefore(n, new_node);
+            assert(td.ms <= accu_ms);
+            var data: *TimerData = @fieldParentPtr("node", n);
+            accu_ms -= data.ms;
+            td.ms -= accu_ms;
+            data.ms -= td.ms;
+            c.tlist.insertBefore(n, &td.node);
         } else {
-            assert(new_node.data.ms >= accu_ms);
-            new_node.data.ms -= accu_ms;
-            c.tlist.append(new_node);
+            assert(td.ms >= accu_ms);
+            td.ms -= accu_ms;
+            c.tlist.append(&td.node);
         }
     }
 
-    fn removeNode(c: *TimerController, node: *TimerList.Node) void {
-        if (node.next) |n| {
-            n.data.ms += node.data.ms;
+    fn removeNode(c: *TimerController, td: *TimerData) void {
+        if (td.node.next) |n| {
+            var data: *TimerData = @fieldParentPtr("node", n);
+            data.ms += td.ms;
         }
-        c.tlist.remove(node);
-        c.allocator.destroy(node);
+        c.tlist.remove(&td.node);
+        c.allocator.destroy(td);
     }
 };
 
