@@ -2423,13 +2423,14 @@ pub const InputTextFlags = packed struct(c_int) {
     display_empty_ref_val: bool = false,
     no_horizontal_scroll: bool = false,
     no_undo_redo: bool = false,
+    elide_left: bool = false,
     callback_completion: bool = false,
     callback_history: bool = false,
     callback_always: bool = false,
     callback_char_filter: bool = false,
     callback_resize: bool = false,
     callback_edit: bool = false,
-    _padding: u9 = 0,
+    _padding: u8 = 0,
 };
 //--------------------------------------------------------------------------------------------------
 pub const InputTextCallbackData = extern struct {
@@ -2484,10 +2485,10 @@ pub const InputTextCallbackData = extern struct {
     }
 };
 
-pub const InputTextCallback = *const fn (data: *InputTextCallbackData) i32;
+pub const InputTextCallback = *const fn (data: *InputTextCallbackData) callconv(.C) i32;
 //--------------------------------------------------------------------------------------------------
 pub fn inputText(label: [:0]const u8, args: struct {
-    buf: [:0]u8,
+    buf: []u8,
     flags: InputTextFlags = .{},
     callback: ?InputTextCallback = null,
     user_data: ?*anyopaque = null,
@@ -2495,7 +2496,7 @@ pub fn inputText(label: [:0]const u8, args: struct {
     return zguiInputText(
         label,
         args.buf.ptr,
-        args.buf.len + 1, // + 1 for sentinel
+        args.buf.len,
         args.flags,
         if (args.callback) |cb| cb else null,
         args.user_data,
@@ -3417,6 +3418,38 @@ pub fn formatZ(comptime fmt: []const u8, args: anytype) [:0]const u8 {
     if (len > temp_buffer.items.len) temp_buffer.resize(@intCast(len + 64)) catch unreachable;
     return std.fmt.bufPrintZ(temp_buffer.items, fmt, args) catch unreachable;
 }
+//--------------------------------------------------------------------------------------------------
+//
+// Logging/Capture
+//
+//--------------------------------------------------------------------------------------------------
+pub const LogOption = struct {
+    auto_open_depth: c_int = -1,
+};
+pub fn logToTTY(opt: LogOption) void {
+    zguiLogToTTY(opt.auto_open_depth);
+}
+pub fn logToFile(filename: [*:0]const u8, opt: LogOption) void {
+    zguiLogToFile(opt.auto_open_depth, filename);
+}
+pub fn logToClipboard(opt: LogOption) void {
+    zguiLogToClipboard(opt.auto_open_depth);
+}
+pub fn logFinish() void {
+    zguiLogFinish();
+}
+pub fn logButtons() void {
+    zguiLogButtons();
+}
+pub fn logText(fmt: []const u8, args: anytype) void {
+    zguiLogText("%s", formatZ(fmt, args).ptr);
+}
+extern fn zguiLogToTTY(auto_open_depth: c_int) void;
+extern fn zguiLogToFile(auto_open_depth: c_int, filename: [*:0]const u8) void;
+extern fn zguiLogToClipboard(auto_open_depth: c_int) void;
+extern fn zguiLogFinish() void;
+extern fn zguiLogButtons() void;
+extern fn zguiLogText(fmt: [*:0]const u8, ...) void;
 //--------------------------------------------------------------------------------------------------
 pub fn typeToDataTypeEnum(comptime T: type) DataType {
     return switch (T) {

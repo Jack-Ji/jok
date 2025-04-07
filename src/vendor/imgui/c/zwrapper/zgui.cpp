@@ -1990,6 +1990,43 @@ extern "C"
     }
     //--------------------------------------------------------------------------------------------------
     //
+    // Logging/Capture
+    //
+    //--------------------------------------------------------------------------------------------------
+    ZGUI_API void zguiLogToTTY(int auto_open_depth)
+    {
+		ImGui::LogToTTY(auto_open_depth);
+    }
+
+    ZGUI_API void zguiLogToFile(int auto_open_depth, const char *filename)
+	{
+		ImGui::LogToFile(auto_open_depth, filename);
+	}
+
+    ZGUI_API void zguiLogToClipboard(int auto_open_depth)
+	{
+		ImGui::LogToClipboard(auto_open_depth);
+	}
+
+    ZGUI_API void zguiLogFinish()
+	{
+		ImGui::LogFinish();
+	}
+
+    ZGUI_API void zguiLogButtons()
+	{
+		ImGui::LogButtons();
+	}
+
+    ZGUI_API void zguiLogText(const char* fmt, ...)
+	{
+        va_list args;
+        va_start(args, fmt);
+		ImGui::LogTextV(fmt, args);
+        va_end(args);
+	}
+    //--------------------------------------------------------------------------------------------------
+    //
     // DrawList
     //
     //--------------------------------------------------------------------------------------------------

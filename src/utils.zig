@@ -22,6 +22,9 @@ pub const asynctool = @import("utils/async.zig");
 /// Tile map support
 pub const tiled = @import("utils/tiled.zig");
 
+/// Console editor
+pub const console = @import("utils/console.zig");
+
 /// Generic ring data structure
 pub const ring = @import("utils/ring.zig");
 
