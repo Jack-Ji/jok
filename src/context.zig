@@ -1064,11 +1064,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
             _ = atlas.appendDrawDataFromUTF8String(
                 text,
                 opt.pos,
-                .top,
-                .aligned,
                 opt.color,
                 &self._debug_print_vertices,
                 &self._debug_print_indices,
+                .{},
             ) catch unreachable;
             self._renderer.drawTriangles(
                 atlas.tex,

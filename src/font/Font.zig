@@ -181,6 +181,13 @@ pub fn createAtlas(
     return atlas;
 }
 
+pub fn getKerningInPixels(self: Font, font_size: f32, cp1: u32, cp2: u32) f32 {
+    const kern_scale = truetype.stbtt_ScaleForPixelHeight(&self.font_info, font_size);
+    return @as(f32, @floatFromInt(
+        truetype.stbtt_GetCodepointKernAdvance(&self.font_info, @intCast(cp1), @intCast(cp2)),
+    )) * kern_scale;
+}
+
 pub fn getVMetrics(self: Font, font_size: u32) struct {
     ascent: f32,
     descent: f32,

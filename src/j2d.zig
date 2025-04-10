@@ -398,6 +398,8 @@ pub const Batch = struct {
         ignore_unexist: bool = true,
         ypos_type: jok.font.Atlas.YPosType = .top,
         align_type: jok.font.Atlas.AlignType = .left,
+        kerning: bool = false,
+        font: ?*jok.font.Font = null,
         tint_color: jok.Color = .white,
         scale: jok.Point = .unit,
         rotate_angle: f32 = 0,
@@ -406,6 +408,7 @@ pub const Batch = struct {
     pub fn text(self: *Batch, comptime fmt: []const u8, args: anytype, opt: TextOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
+        assert(!opt.kerning or opt.font != null);
         const txt = imgui.format(fmt, args);
         if (txt.len == 0) return;
 
@@ -436,11 +439,17 @@ pub const Batch = struct {
                 pos.x -= final_bbox_width;
             }
         }
+
+        var last_codepoint: u32 = 0;
         var i: u32 = 0;
         while (i < txt.len) {
             const size = try unicode.utf8ByteSequenceLength(txt[i]);
             const u8letter = txt[i .. i + size];
             const cp = @as(u32, @intCast(try unicode.utf8Decode(u8letter)));
+            pos.x += if (opt.kerning and last_codepoint > 0)
+                scaling.x * opt.font.?.getKerningInPixels(opt.atlas.getFontSizeInPixels(), last_codepoint, cp)
+            else
+                0;
             if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, .white, cp)) |cs| {
                 const v = zmath.mul(
                     zmath.f32x4(
@@ -472,6 +481,7 @@ pub const Batch = struct {
                 return error.UnsupportedCodepoint;
             }
             i += size;
+            last_codepoint = cp;
         }
     }
 

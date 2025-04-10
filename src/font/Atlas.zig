@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const unicode = std.unicode;
 const json = std.json;
+const Font = @import("Font.zig");
 const jok = @import("../jok.zig");
 const truetype = jok.stb.truetype;
 const Sprite = jok.j2d.Sprite;
@@ -227,9 +228,14 @@ pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Atlas {
     return atlas;
 }
 
+/// Get font size used to bake the atlas
+pub inline fn getFontSizeInPixels(self: Atlas) f32 {
+    return self.vmetric_ascent - self.vmetric_descent;
+}
+
 /// Calculate next line's y coordinate
-pub fn getVPosOfNextLine(self: Atlas, current_ypos: f32) f32 {
-    return current_ypos + @round(self.vmetric_ascent - self.vmetric_descent + self.vmetric_line_gap);
+pub inline fn getVPosOfNextLine(self: Atlas, current_ypos: f32) f32 {
+    return current_ypos + @round(self.getFontSizeInPixels() + self.vmetric_line_gap);
 }
 
 /// Position type of y axis (determine where text will be aligned vertically)
@@ -246,15 +252,18 @@ pub const BBox = struct {
     ypos_type: YPosType = .top,
     align_type: AlignType = .left,
     box_type: BoxType = .aligned,
+    kerning: bool = false,
+    font: ?*Font = null,
 };
 
 /// Get bounding box of text
 pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox) !jok.Rectangle {
+    assert(!opt.kerning or opt.font != null);
     const yoffset = switch (opt.ypos_type) {
         .baseline => -self.vmetric_ascent,
         .top => 0,
-        .bottom => self.vmetric_descent - self.vmetric_ascent,
-        .middle => (self.vmetric_descent - self.vmetric_ascent) / 2,
+        .bottom => -self.getFontSizeInPixels(),
+        .middle => -self.getFontSizeInPixels() * 0.5,
     };
     var pos = _pos;
     var rect = jok.Rectangle{
@@ -265,18 +274,23 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
         },
         .width = 0,
         .height = switch (opt.box_type) {
-            .aligned => @round(self.vmetric_ascent - self.vmetric_descent),
+            .aligned => self.getFontSizeInPixels(),
             .drawed => 0,
         },
     };
 
     if (text.len == 0) return rect;
 
+    var last_codepoint: u32 = 0;
     var aligned_width: f32 = 0;
     var i: u32 = 0;
     while (i < text.len) {
         const size = try unicode.utf8ByteSequenceLength(text[i]);
-        const codepoint = @as(u32, @intCast(try unicode.utf8Decode(text[i .. i + size])));
+        const codepoint: u32 = @intCast(try unicode.utf8Decode(text[i .. i + size]));
+        pos.x += if (opt.kerning and last_codepoint > 0)
+            opt.font.?.getKerningInPixels(self.getFontSizeInPixels(), last_codepoint, codepoint)
+        else
+            0;
         if (self.getVerticesOfCodePoint(pos, opt.ypos_type, .white, codepoint)) |cs| {
             switch (opt.box_type) {
                 .aligned => {
@@ -292,6 +306,7 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
             aligned_width = cs.next_x - rect.x;
         }
         i += size;
+        last_codepoint = codepoint;
     }
 
     if (opt.align_type == .middle) {
@@ -303,44 +318,56 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
     return rect;
 }
 
+pub const AppendOption = struct {
+    ypos_type: YPosType = .top,
+    box_type: BoxType = .aligned,
+    kerning: bool = false,
+    font: ?*Font = null,
+};
+
 /// Append draw data for rendering utf8 string, return bounding box
 pub fn appendDrawDataFromUTF8String(
     self: *Atlas,
     text: []const u8,
     _pos: jok.Point,
-    ypos_type: YPosType,
-    box_type: BoxType,
     color: jok.Color,
     vattrib: *std.ArrayList(jok.Vertex),
     vindices: *std.ArrayList(u32),
+    opt: AppendOption,
 ) !jok.Rectangle {
-    const yoffset = switch (ypos_type) {
+    assert(!opt.kerning or opt.font != null);
+    const yoffset = switch (opt.ypos_type) {
         .baseline => -self.vmetric_ascent,
         .top => 0,
-        .bottom => self.vmetric_descent - self.vmetric_ascent,
-        .middle => (self.vmetric_descent - self.vmetric_ascent) / 2,
+        .bottom => self.getFontSizeInPixels(),
+        .middle => self.getFontSizeInPixels() * 0.5,
     };
     var pos = _pos;
     var rect = jok.Rectangle{
         .x = pos.x,
-        .y = switch (box_type) {
+        .y = switch (opt.box_type) {
             .aligned => pos.y + yoffset,
             .drawed => std.math.floatMax(f32),
         },
         .width = 0,
-        .height = switch (box_type) {
-            .aligned => @round(self.vmetric_ascent - self.vmetric_descent),
+        .height = switch (opt.box_type) {
+            .aligned => self.getFontSizeInPixels(),
             .drawed => 0,
         },
     };
 
     if (text.len == 0) return rect;
 
+    var last_codepoint: u32 = 0;
     var i: u32 = 0;
     while (i < text.len) {
         const size = try unicode.utf8ByteSequenceLength(text[i]);
         const codepoint = @as(u32, @intCast(try unicode.utf8Decode(text[i .. i + size])));
-        if (self.getVerticesOfCodePoint(pos, ypos_type, color, codepoint)) |cs| {
+        pos.x += if (opt.kerning and last_codepoint > 0)
+            opt.font.?.getKerningInPixels(self.getFontSizeInPixels(), last_codepoint, codepoint)
+        else
+            0;
+        if (self.getVerticesOfCodePoint(pos, opt.ypos_type, color, codepoint)) |cs| {
             const base_index = @as(u32, @intCast(vattrib.items.len));
             try vattrib.appendSlice(&cs.vs);
             try vindices.appendSlice(&[_]u32{
@@ -351,7 +378,7 @@ pub fn appendDrawDataFromUTF8String(
                 base_index + 2,
                 base_index + 3,
             });
-            switch (box_type) {
+            switch (opt.box_type) {
                 .aligned => {
                     rect.width = cs.next_x - rect.x;
                 },
@@ -364,6 +391,7 @@ pub fn appendDrawDataFromUTF8String(
             pos.x = cs.next_x;
         }
         i += size;
+        last_codepoint = codepoint;
     }
 
     return rect;
