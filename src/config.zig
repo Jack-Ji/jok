@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const jok = @import("jok.zig");
 
 pub const Config = struct {
@@ -35,6 +36,9 @@ pub const Config = struct {
     /// Exit event processing
     jok_exit_on_recv_esc: bool = true,
     jok_exit_on_recv_quit: bool = true,
+
+    /// Whether detect memory-leak on shutdown
+    jok_check_memory_leak: bool = builtin.mode == .Debug,
 
     /// Whether let imgui load/save ini file
     jok_imgui_ini_file: bool = false,
@@ -107,6 +111,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_window_highdpi", .desc = "whether enable high dpi support" },
         .{ .name = "jok_exit_on_recv_esc", .desc = "whether exit game when esc is pressed" },
         .{ .name = "jok_exit_on_recv_quit", .desc = "whether exit game when getting quit event" },
+        .{ .name = "jok_check_memory_leak", .desc = "whether detect memory-leak on shutdown" },
         .{ .name = "jok_imgui_ini_file", .desc = "whether let imgui load/save ini file" },
         .{ .name = "jok_prebuild_atlas", .desc = "whether prebuild atlas for debug font" },
         .{ .name = "jok_detailed_frame_stats", .desc = "whether enable detailed frame statistics" },

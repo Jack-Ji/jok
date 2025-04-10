@@ -281,7 +281,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         pub fn create() !*@This() {
             var _allocator = if (builtin.cpu.arch.isWasm())
                 std.heap.c_allocator
-            else if (builtin.mode == .Debug)
+            else if (cfg.jok_check_memory_leak)
                 debug_allocator.allocator()
             else
                 std.heap.smp_allocator;
@@ -376,7 +376,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._allocator.destroy(self);
 
             // Check memory leak if possible
-            if (builtin.mode == .Debug) _ = debug_allocator.deinit();
+            if (cfg.jok_check_memory_leak) {
+                _ = debug_allocator.deinit();
+            }
         }
 
         /// Ticking of application
