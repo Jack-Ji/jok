@@ -434,6 +434,8 @@ pub const Batch = struct {
                     .ypos_type = opt.ypos_type,
                     .align_type = opt.align_type,
                     .align_width = opt.align_width,
+                    .kerning = opt.kerning,
+                    .font = opt.font,
                 },
             );
             const final_bbox_width = unscaled_bbox.width * scaling.x;
@@ -474,6 +476,8 @@ pub const Batch = struct {
                             .ypos_type = opt.ypos_type,
                             .align_type = opt.align_type,
                             .align_width = opt.align_width,
+                            .kerning = opt.kerning,
+                            .font = opt.font,
                         },
                     );
                     const final_bbox_width = unscaled_bbox.width * scaling.x;
