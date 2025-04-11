@@ -66,7 +66,7 @@ pub fn draw(ctx: jok.Context) !void {
             .y = 4 + 2 * @sin(ctx.seconds()),
         },
         .rotate_angle = ctx.seconds() / 2,
-        .anchor_point = .{ .x = 0.5, .y = 0.5 },
+        .anchor_point = .anchor_center,
     });
 
     var b = try batchpool.new(.{ .depth_sort = .back_to_forth });

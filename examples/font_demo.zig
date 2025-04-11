@@ -46,7 +46,7 @@ pub fn init(ctx: jok.Context) !void {
 
     var atlas = try font.DebugFont.font.createAtlas(
         ctx,
-        40,
+        30,
         &font.codepoint_ranges.chinese_full,
         .{ .keep_pixels = true },
     );
@@ -80,89 +80,148 @@ pub fn draw(ctx: jok.Context) !void {
 
     var b = try batchpool.new(.{});
     defer b.submit();
+
+    // Left-Aligned text
     var atlas = try font.DebugFont.getAtlas(ctx, 20);
-    var pos = jok.Point{ .x = 50, .y = 50 };
+    var pos = jok.Point{ .x = 20, .y = 20 };
     var area = try atlas.getBoundingBox(
-        "Left Aligned: ABCDEFGHIJKL abcdefghijkl",
+        "Left Aligned Text",
         pos,
         .{
-            .ypos_type = .top,
             .align_type = .left,
         },
     );
     try b.rectFilled(area, rect_color, .{});
-    try b.line(pos.sub(.{ .x = 0, .y = 30 }), pos.add(.{ .x = 0, .y = 60 }), .purple, .{});
     try b.text(
-        "Left Aligned: ABCDEFGHIJKL abcdefghijkl",
+        "Left Aligned Text",
         .{},
         .{
             .atlas = atlas,
             .pos = pos,
-            .ypos_type = .top,
+            .align_type = .left,
         },
     );
-
-    pos = .{ .x = size.getWidthFloat() - 50, .y = 150 };
-    area = try saved_atlas.getBoundingBox(
-        "Right Aligned: Hello,",
+    pos.y = atlas.getVPosOfNextLine(pos.y) + 10;
+    area = try atlas.getBoundingBox(
+        "Left Aligned Text with width",
         pos,
         .{
-            .ypos_type = .bottom,
+            .align_type = .left,
+            .align_width = 120,
+        },
+    );
+    try b.rectFilled(area, rect_color, .{});
+    try b.text(
+        "Left Aligned Text with width",
+        .{},
+        .{
+            .atlas = atlas,
+            .pos = pos,
+            .align_type = .left,
+            .align_width = 120,
+        },
+    );
+    try b.line(
+        pos.sub(.{ .x = 0, .y = 40 }),
+        pos.add(.{ .x = 0, .y = 70 }),
+        .purple,
+        .{},
+    );
+
+    // Right-Aligned text
+    pos = .{ .x = size.getWidthFloat() - 50, .y = 30 };
+    area = try saved_atlas.getBoundingBox(
+        "Right Aligned Text",
+        pos,
+        .{
             .align_type = .right,
         },
     );
     try b.rectFilled(area, rect_color, .{});
-    try b.line(pos.sub(.{ .x = 0, .y = 60 }), pos.add(.{ .x = 0, .y = 30 }), .purple, .{});
     try b.text(
-        "Right Aligned: Hello,",
+        "Right Aligned Text",
         .{},
         .{
             .atlas = saved_atlas,
             .pos = pos,
-            .ypos_type = .bottom,
             .align_type = .right,
             .ignore_unexist = false,
         },
     );
-
+    pos.y = saved_atlas.getVPosOfNextLine(pos.y) + 10;
+    area = try saved_atlas.getBoundingBox(
+        "Right Aligned Text with width",
+        pos,
+        .{
+            .align_type = .right,
+            .align_width = 150,
+        },
+    );
+    try b.rectFilled(area, rect_color, .{});
     try b.text(
-        "jok!",
+        "Right Aligned Text with width",
         .{},
         .{
             .atlas = saved_atlas,
-            .pos = .{ .x = area.x + area.width, .y = area.y + area.height },
+            .pos = pos,
             .align_type = .right,
-            .tint_color = .rgb(
-                @intFromFloat(128 + @sin(ctx.seconds()) * 127),
-                @intFromFloat(128 + @cos(ctx.seconds()) * 127),
-                @intFromFloat(128 + @sin(ctx.seconds()) * 127),
-            ),
-            .scale = .{
-                .x = 3 + 2 * @sin(ctx.seconds()),
-                .y = 3 + 2 * @cos(ctx.seconds()),
-            },
+            .align_width = 150,
         },
     );
+    try b.line(
+        pos.sub(.{ .x = 0, .y = 50 }),
+        pos.add(.{ .x = 0, .y = 100 }),
+        .purple,
+        .{},
+    );
 
-    pos = .{ .x = size.getWidthFloat() / 2, .y = 200 };
+    // Middle-Aligned text
+    pos = .{ .x = 380, .y = 150 };
     area = try saved_atlas.getBoundingBox(
-        "Middle Aligned: ABCDE abcde",
+        "Middle Aligned Text",
         pos,
-        .{ .align_type = .middle },
+        .{
+            .align_type = .middle,
+        },
     );
     try b.rectFilled(area, rect_color, .{});
-    try b.line(pos.sub(.{ .x = 0, .y = 30 }), pos.add(.{ .x = 0, .y = 60 }), .purple, .{});
     try b.text(
-        "Middle Aligned: ABCDE abcde",
+        "Middle Aligned Text",
         .{},
         .{
             .atlas = saved_atlas,
             .pos = pos,
             .align_type = .middle,
-            .tint_color = .red,
         },
     );
+    pos.y = saved_atlas.getVPosOfNextLine(pos.y) + 10;
+    area = try saved_atlas.getBoundingBox(
+        "Middle Aligned Text with width",
+        pos,
+        .{
+            .align_type = .middle,
+            .align_width = 150,
+        },
+    );
+    try b.rectFilled(area, rect_color, .{});
+    try b.text(
+        "Middle Aligned Text with width",
+        .{},
+        .{
+            .atlas = saved_atlas,
+            .pos = pos,
+            .align_type = .middle,
+            .align_width = 150,
+        },
+    );
+    try b.line(
+        pos.sub(.{ .x = 0, .y = 50 }),
+        pos.add(.{ .x = 0, .y = 100 }),
+        .purple,
+        .{},
+    );
 
+    // Y-Position showcasing
     atlas = try font.DebugFont.getAtlas(ctx, 128);
     const metrics = font.DebugFont.font.getGlyphMetrics(
         font.DebugFont.font.findGlyphIndex('Q').?,

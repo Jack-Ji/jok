@@ -53,7 +53,7 @@ pub fn draw(ctx: jok.Context) !void {
                 .x = 0.8 + @cos(ctx.seconds()) * 0.5,
                 .y = 0.8 + @cos(ctx.seconds()) * 0.5,
             },
-            .anchor_point = .{ .x = 0.5, .y = 0.5 },
+            .anchor_point = .anchor_center,
         },
     );
 }

@@ -154,7 +154,7 @@ pub fn draw(ctx: jok.Context) !void {
             .pos = pos,
             .flip_h = flip_h,
             .scale = .{ .x = 5, .y = 5 },
-            .anchor_point = .{ .x = 0.5, .y = 0.5 },
+            .anchor_point = .anchor_center,
         },
     );
 

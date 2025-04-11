@@ -67,7 +67,7 @@ pub fn init(ctx: jok.Context) !void {
                 .size = .{ .x = 2, .y = 2 },
                 .uv = .{ sp.uv0, sp.uv1 },
                 .texture = sheet.tex,
-                .anchor_point = .{ .x = 0.5, .y = 0.5 },
+                .anchor_point = .anchor_center,
             },
         });
         try scene.root.addChild(sprites[i]);
@@ -83,7 +83,7 @@ pub fn init(ctx: jok.Context) !void {
                 .size = .{ .x = 5, .y = 5 },
                 .uv = .{ sp.uv0, sp.uv1 },
                 .texture = sheet.tex,
-                .anchor_point = .{ .x = 0.5, .y = 0.5 },
+                .anchor_point = .anchor_center,
                 .facing_dir = .{ 0, 0, 1 },
             },
         });
@@ -100,7 +100,7 @@ pub fn init(ctx: jok.Context) !void {
                 .size = .{ .x = 60, .y = 60 },
                 .uv = .{ sp.uv0, sp.uv1 },
                 .texture = sheet.tex,
-                .anchor_point = .{ .x = 0.5, .y = 0.5 },
+                .anchor_point = .anchor_center,
                 .fixed_size = true,
             },
         });

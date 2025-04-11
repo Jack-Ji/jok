@@ -102,7 +102,7 @@ pub fn draw(ctx: jok.Context) !void {
     for (characters.items) |c| {
         try b.sprite(c.sprite, .{
             .pos = c.pos,
-            .anchor_point = .{ .x = 0.5, .y = 0.5 },
+            .anchor_point = .anchor_center,
         });
     }
     try b.text(

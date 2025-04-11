@@ -260,7 +260,7 @@ pub const Batch = struct {
         tint_color: jok.Color = .white,
         scale: jok.Point = .unit,
         rotate_angle: f32 = 0,
-        anchor_point: jok.Point = .origin,
+        anchor_point: jok.Point = .anchor_top_left,
         flip_h: bool = false,
         flip_v: bool = false,
         depth: f32 = 0.5,
@@ -300,7 +300,7 @@ pub const Batch = struct {
         size: ?jok.Size = null,
         uv0: jok.Point = .origin,
         uv1: jok.Point = .unit,
-        anchor_point: jok.Point = .origin,
+        anchor_point: jok.Point = .anchor_top_left,
         tint_color: jok.Color = .white,
         flip_h: bool = false,
         flip_v: bool = false,
@@ -371,7 +371,7 @@ pub const Batch = struct {
         tint_color: jok.Color = .white,
         scale: jok.Point = .unit,
         rotate_angle: f32 = 0,
-        anchor_point: jok.Point = .origin,
+        anchor_point: jok.Point = .anchor_top_left,
         flip_h: bool = false,
         flip_v: bool = false,
         depth: f32 = 0.5,
@@ -398,6 +398,7 @@ pub const Batch = struct {
         ignore_unexist: bool = true,
         ypos_type: jok.font.Atlas.YPosType = .top,
         align_type: jok.font.Atlas.AlignType = .left,
+        align_width: ?u32 = null,
         kerning: bool = false,
         font: ?*jok.font.Font = null,
         tint_color: jok.Color = .white,
@@ -413,6 +414,7 @@ pub const Batch = struct {
         if (txt.len == 0) return;
 
         var pos = self.trs.transformPoint(opt.pos);
+        const begin_x = pos.x;
         var scaling = self.trs.getScale();
         scaling.x *= opt.scale.x;
         scaling.y *= opt.scale.y;
@@ -423,6 +425,7 @@ pub const Batch = struct {
             ),
             zmath.translation(pos.x, pos.y, 0),
         );
+
         if (opt.align_type != .left) {
             const unscaled_bbox = try opt.atlas.getBoundingBox(
                 txt,
@@ -430,6 +433,7 @@ pub const Batch = struct {
                 .{
                     .ypos_type = opt.ypos_type,
                     .align_type = opt.align_type,
+                    .align_width = opt.align_width,
                 },
             );
             const final_bbox_width = unscaled_bbox.width * scaling.x;
@@ -440,6 +444,12 @@ pub const Batch = struct {
             }
         }
 
+        var align_width: f32 = math.inf(f32);
+        if (opt.align_width) |w| {
+            align_width = @as(f32, @floatFromInt(w)) * scaling.x;
+        }
+
+        var line_x = pos.x;
         var last_codepoint: u32 = 0;
         var i: u32 = 0;
         while (i < txt.len) {
@@ -450,6 +460,31 @@ pub const Batch = struct {
                 scaling.x * opt.font.?.getKerningInPixels(opt.atlas.getFontSizeInPixels(), last_codepoint, cp)
             else
                 0;
+            if (pos.x - line_x > align_width) {
+                // Change to next line
+                pos = .{
+                    .x = begin_x,
+                    .y = pos.y + (opt.atlas.getVPosOfNextLine(pos.y) - pos.y) * scaling.y,
+                };
+                if (opt.align_type != .left) {
+                    const unscaled_bbox = try opt.atlas.getBoundingBox(
+                        txt[i..],
+                        pos,
+                        .{
+                            .ypos_type = opt.ypos_type,
+                            .align_type = opt.align_type,
+                            .align_width = opt.align_width,
+                        },
+                    );
+                    const final_bbox_width = unscaled_bbox.width * scaling.x;
+                    if (opt.align_type == .middle) {
+                        pos.x -= final_bbox_width * 0.5;
+                    } else if (opt.align_type == .right) {
+                        pos.x -= final_bbox_width;
+                    }
+                }
+                line_x = pos.x;
+            }
             if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, .white, cp)) |cs| {
                 const v = zmath.mul(
                     zmath.f32x4(
@@ -600,7 +635,7 @@ pub const Batch = struct {
 
     /// NOTE: Rounded rectangle is always axis-aligned
     pub const RectRoundedOption = struct {
-        anchor_point: jok.Point = .origin,
+        anchor_point: jok.Point = .anchor_top_left,
         thickness: f32 = 1.0,
         rounding: f32 = 4,
         corner_top_left: bool = true,
@@ -635,7 +670,7 @@ pub const Batch = struct {
 
     /// NOTE: Rounded rectangle is always axis-aligned
     pub const FillRectRounded = struct {
-        anchor_point: jok.Point = .origin,
+        anchor_point: jok.Point = .anchor_top_left,
         rounding: f32 = 4,
         corner_top_left: bool = true,
         corner_top_right: bool = true,

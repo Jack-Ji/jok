@@ -7,6 +7,11 @@ const minAndMax = jok.utils.math.minAndMax;
 pub const Point = extern struct {
     pub const origin = Point{ .x = 0, .y = 0 };
     pub const unit = Point{ .x = 1, .y = 1 };
+    pub const anchor_top_left = Point{ .x = 0, .y = 0 };
+    pub const anchor_top_right = Point{ .x = 1, .y = 0 };
+    pub const anchor_bottom_left = Point{ .x = 0, .y = 1 };
+    pub const anchor_bottom_right = Point{ .x = 1, .y = 1 };
+    pub const anchor_center = Point{ .x = 0.5, .y = 0.5 };
 
     x: f32,
     y: f32,
@@ -115,6 +120,15 @@ pub const Rectangle = extern struct {
             .y = r.y + y,
             .width = r.width,
             .height = r.height,
+        };
+    }
+
+    pub inline fn scale(r: Rectangle, x: f32, y: f32) Rectangle {
+        return .{
+            .x = r.x,
+            .y = r.y,
+            .width = r.width * x,
+            .height = r.height * y,
         };
     }
 

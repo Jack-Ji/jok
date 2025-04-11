@@ -147,7 +147,7 @@ pub fn draw(ctx: jok.Context) !void {
             .white,
             .{
                 .rounding = 10,
-                .anchor_point = .{ .x = 0.5, .y = 0.5 },
+                .anchor_point = .anchor_center,
             },
         );
     }
@@ -165,7 +165,7 @@ pub fn draw(ctx: jok.Context) !void {
             .white,
             .{
                 .rounding = 10,
-                .anchor_point = .{ .x = 0.5, .y = 0.5 },
+                .anchor_point = .anchor_center,
             },
         );
     }

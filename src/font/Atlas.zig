@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const unicode = std.unicode;
 const json = std.json;
+const math = std.math;
 const Font = @import("Font.zig");
 const jok = @import("../jok.zig");
 const truetype = jok.stb.truetype;
@@ -251,6 +252,7 @@ pub const BoxType = enum { aligned, drawed };
 pub const BBox = struct {
     ypos_type: YPosType = .top,
     align_type: AlignType = .left,
+    align_width: ?u32 = null,
     box_type: BoxType = .aligned,
     kerning: bool = false,
     font: ?*Font = null,
@@ -265,6 +267,7 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
         .bottom => -self.getFontSizeInPixels(),
         .middle => -self.getFontSizeInPixels() * 0.5,
     };
+    const align_width = if (opt.align_width) |w| @as(f32, @floatFromInt(w)) else math.inf(f32);
     var pos = _pos;
     var rect = jok.Rectangle{
         .x = pos.x,
@@ -281,8 +284,9 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
 
     if (text.len == 0) return rect;
 
+    var line_count: u32 = 1;
     var last_codepoint: u32 = 0;
-    var aligned_width: f32 = 0;
+    var total_width: f32 = 0;
     var i: u32 = 0;
     while (i < text.len) {
         const size = try unicode.utf8ByteSequenceLength(text[i]);
@@ -291,28 +295,33 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
             opt.font.?.getKerningInPixels(self.getFontSizeInPixels(), last_codepoint, codepoint)
         else
             0;
+        if (pos.x - rect.x > align_width) {
+            pos = .{ .x = rect.x, .y = self.getVPosOfNextLine(pos.y) };
+            line_count += 1;
+            rect.height += @round(self.getFontSizeInPixels() + self.vmetric_line_gap);
+        }
         if (self.getVerticesOfCodePoint(pos, opt.ypos_type, .white, codepoint)) |cs| {
             switch (opt.box_type) {
                 .aligned => {
-                    rect.width = cs.next_x - rect.x;
+                    rect.width = @max(cs.next_x - rect.x, rect.width);
                 },
                 .drawed => {
-                    if (cs.vs[0].pos.y < rect.y) rect.y = cs.vs[0].pos.y;
+                    if (line_count == 1 and cs.vs[0].pos.y < rect.y) rect.y = cs.vs[0].pos.y;
                     if (cs.vs[3].pos.y - rect.y > rect.height) rect.height = cs.vs[3].pos.y - rect.y;
-                    rect.width = cs.vs[1].pos.x - rect.x;
+                    rect.width = @max(cs.vs[1].pos.x - rect.x, rect.width);
                 },
             }
             pos.x = cs.next_x;
-            aligned_width = cs.next_x - rect.x;
+            total_width = @max(cs.next_x - rect.x, rect.width);
         }
         i += size;
         last_codepoint = codepoint;
     }
 
     if (opt.align_type == .middle) {
-        rect.x -= aligned_width / 2;
+        rect.x -= total_width / 2;
     } else if (opt.align_type == .right) {
-        rect.x -= aligned_width;
+        rect.x -= total_width;
     }
 
     return rect;
