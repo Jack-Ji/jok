@@ -427,7 +427,7 @@ pub const Batch = struct {
         );
 
         if (opt.align_type != .left) {
-            const unscaled_bbox = try opt.atlas.getBoundingBox(
+            const bbox = try opt.atlas.getBoundingBox(
                 txt,
                 pos,
                 .{
@@ -436,13 +436,13 @@ pub const Batch = struct {
                     .align_width = opt.align_width,
                     .kerning = opt.kerning,
                     .font = opt.font,
+                    .scale = scaling,
                 },
             );
-            const final_bbox_width = unscaled_bbox.width * scaling.x;
             if (opt.align_type == .middle) {
-                pos.x -= final_bbox_width / 2;
+                pos.x -= bbox.width / 2;
             } else if (opt.align_type == .right) {
-                pos.x -= final_bbox_width;
+                pos.x -= bbox.width;
             }
         }
 
@@ -469,7 +469,7 @@ pub const Batch = struct {
                     .y = pos.y + (opt.atlas.getVPosOfNextLine(pos.y) - pos.y) * scaling.y,
                 };
                 if (opt.align_type != .left) {
-                    const unscaled_bbox = try opt.atlas.getBoundingBox(
+                    const bbox = try opt.atlas.getBoundingBox(
                         txt[i..],
                         pos,
                         .{
@@ -478,13 +478,13 @@ pub const Batch = struct {
                             .align_width = opt.align_width,
                             .kerning = opt.kerning,
                             .font = opt.font,
+                            .scale = scaling,
                         },
                     );
-                    const final_bbox_width = unscaled_bbox.width * scaling.x;
                     if (opt.align_type == .middle) {
-                        pos.x -= final_bbox_width * 0.5;
+                        pos.x -= bbox.width * 0.5;
                     } else if (opt.align_type == .right) {
-                        pos.x -= final_bbox_width;
+                        pos.x -= bbox.width;
                     }
                 }
                 line_x = pos.x;

@@ -256,6 +256,7 @@ pub const BBox = struct {
     box_type: BoxType = .aligned,
     kerning: bool = false,
     font: ?*Font = null,
+    scale: jok.Point = .unit,
 };
 
 /// Get bounding box of text
@@ -318,13 +319,15 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
         last_codepoint = codepoint;
     }
 
+    var scaled_rect = rect.scale(opt.scale.x, opt.scale.y);
+    const scaled_total_width = total_width * opt.scale.x;
     if (opt.align_type == .middle) {
-        rect.x -= total_width / 2;
+        scaled_rect.x -= scaled_total_width / 2;
     } else if (opt.align_type == .right) {
-        rect.x -= total_width;
+        scaled_rect.x -= scaled_total_width;
     }
 
-    return rect;
+    return scaled_rect;
 }
 
 pub const AppendOption = struct {
