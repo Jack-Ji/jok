@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const assert = std.debug.assert;
 const math = std.math;
+const ascii = std.ascii;
 const unicode = std.unicode;
 const jok = @import("jok.zig");
 const imgui = jok.imgui;
@@ -399,6 +400,7 @@ pub const Batch = struct {
         ypos_type: jok.font.Atlas.YPosType = .top,
         align_type: jok.font.Atlas.AlignType = .left,
         align_width: ?u32 = null,
+        auto_hyphen: bool = true,
         kerning: bool = false,
         font: ?*jok.font.Font = null,
         tint_color: jok.Color = .white,
@@ -451,19 +453,25 @@ pub const Batch = struct {
             align_width = @as(f32, @floatFromInt(w)) * scaling.x;
         }
 
+        var replaced_with_hyphen = false;
         var line_x = pos.x;
+        var last_size: u32 = 0;
         var last_codepoint: u32 = 0;
         var i: u32 = 0;
         while (i < txt.len) {
             const size = try unicode.utf8ByteSequenceLength(txt[i]);
             const u8letter = txt[i .. i + size];
-            const cp = @as(u32, @intCast(try unicode.utf8Decode(u8letter)));
+            var codepoint = @as(u32, @intCast(try unicode.utf8Decode(u8letter)));
+
+            // Kerning adjustment
             pos.x += if (opt.kerning and last_codepoint > 0)
-                scaling.x * opt.font.?.getKerningInPixels(opt.atlas.getFontSizeInPixels(), last_codepoint, cp)
+                scaling.x * opt.font.?.getKerningInPixels(opt.atlas.getFontSizeInPixels(), last_codepoint, codepoint)
             else
                 0;
-            if (pos.x - line_x > align_width) {
-                // Change to next line
+
+            if (replaced_with_hyphen or pos.x - line_x >= align_width) {
+                // Wrapping text
+                replaced_with_hyphen = false;
                 pos = .{
                     .x = begin_x,
                     .y = pos.y + (opt.atlas.getVPosOfNextLine(pos.y) - pos.y) * scaling.y,
@@ -488,8 +496,25 @@ pub const Batch = struct {
                     }
                 }
                 line_x = pos.x;
+            } else if (opt.align_width != null) {
+                // Add hyphen at the end of line when possible
+                if (opt.auto_hyphen and last_size == 1 and size == 1 and
+                    ascii.isAlphabetic(@intCast(last_codepoint)) and ascii.isAlphabetic(@intCast(codepoint)))
+                {
+                    // Check if this is last character of the line
+                    const new_x = pos.x + (opt.atlas.getVerticesOfCodePoint(
+                        pos,
+                        opt.ypos_type,
+                        .white,
+                        codepoint,
+                    ).?.next_x - pos.x) * scaling.x;
+                    if (new_x - line_x >= align_width) {
+                        replaced_with_hyphen = true;
+                        codepoint = '-'; // Replace next letter with hyphen
+                    }
+                }
             }
-            if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, .white, cp)) |cs| {
+            if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, .white, codepoint)) |cs| {
                 const v = zmath.mul(
                     zmath.f32x4(
                         cs.vs[0].pos.x,
@@ -516,11 +541,15 @@ pub const Batch = struct {
                 });
                 pos.x += (cs.next_x - pos.x) * scaling.x;
             } else if (!opt.ignore_unexist) {
-                log.err("Doesn't support character: {s}({x})", .{ u8letter, cp });
+                log.err("Doesn't support character: {s}({x})", .{ u8letter, codepoint });
                 return error.UnsupportedCodepoint;
             }
-            i += size;
-            last_codepoint = cp;
+
+            if (!replaced_with_hyphen) {
+                i += size;
+                last_codepoint = codepoint;
+                last_size = size;
+            }
         }
     }
 

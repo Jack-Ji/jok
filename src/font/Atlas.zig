@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const unicode = std.unicode;
 const json = std.json;
 const math = std.math;
+const ascii = std.ascii;
 const Font = @import("Font.zig");
 const jok = @import("../jok.zig");
 const truetype = jok.stb.truetype;
@@ -253,6 +254,7 @@ pub const BBox = struct {
     ypos_type: YPosType = .top,
     align_type: AlignType = .left,
     align_width: ?u32 = null,
+    auto_hyphen: bool = true,
     box_type: BoxType = .aligned,
     kerning: bool = false,
     font: ?*Font = null,
@@ -285,21 +287,45 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
 
     if (text.len == 0) return rect;
 
+    var replaced_with_hyphen = false;
     var line_count: u32 = 1;
     var last_codepoint: u32 = 0;
+    var last_size: u32 = 0;
     var total_width: f32 = 0;
     var i: u32 = 0;
     while (i < text.len) {
         const size = try unicode.utf8ByteSequenceLength(text[i]);
-        const codepoint: u32 = @intCast(try unicode.utf8Decode(text[i .. i + size]));
+        var codepoint: u32 = @intCast(try unicode.utf8Decode(text[i .. i + size]));
+
+        // Kerning adjustment
         pos.x += if (opt.kerning and last_codepoint > 0)
             opt.font.?.getKerningInPixels(self.getFontSizeInPixels(), last_codepoint, codepoint)
         else
             0;
-        if (pos.x - rect.x > align_width) {
+
+        if (replaced_with_hyphen or pos.x - rect.x >= align_width) {
+            // Wrapping text
+            replaced_with_hyphen = false;
             pos = .{ .x = rect.x, .y = self.getVPosOfNextLine(pos.y) };
             line_count += 1;
             rect.height += @round(self.getFontSizeInPixels() + self.vmetric_line_gap);
+        } else if (opt.align_width != null) {
+            // Add hyphen at the end of line when possible
+            if (opt.auto_hyphen and last_size == 1 and size == 1 and
+                ascii.isAlphabetic(@intCast(last_codepoint)) and ascii.isAlphabetic(@intCast(codepoint)))
+            {
+                // Check if this is last character of the line
+                const new_x = pos.x + (self.getVerticesOfCodePoint(
+                    pos,
+                    opt.ypos_type,
+                    .white,
+                    codepoint,
+                ).?.next_x - pos.x);
+                if (new_x - rect.x >= align_width) {
+                    replaced_with_hyphen = true;
+                    codepoint = '-'; // Replace next letter with hyphen
+                }
+            }
         }
         if (self.getVerticesOfCodePoint(pos, opt.ypos_type, .white, codepoint)) |cs| {
             switch (opt.box_type) {
@@ -315,8 +341,12 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
             pos.x = cs.next_x;
             total_width = @max(cs.next_x - rect.x, rect.width);
         }
-        i += size;
-        last_codepoint = codepoint;
+
+        if (!replaced_with_hyphen) {
+            i += size;
+            last_codepoint = codepoint;
+            last_size = size;
+        }
     }
 
     var scaled_rect = rect.scale(opt.scale.x, opt.scale.y);

@@ -170,7 +170,7 @@ pub fn draw(ctx: jok.Context) !void {
     );
     try b.line(
         pos.sub(.{ .x = 0, .y = 50 }),
-        pos.add(.{ .x = 0, .y = 100 }),
+        pos.add(.{ .x = 0, .y = 130 }),
         .purple,
         .{},
     );
@@ -216,7 +216,7 @@ pub fn draw(ctx: jok.Context) !void {
     );
     try b.line(
         pos.sub(.{ .x = 0, .y = 50 }),
-        pos.add(.{ .x = 0, .y = 100 }),
+        pos.add(.{ .x = 0, .y = 130 }),
         .purple,
         .{},
     );
