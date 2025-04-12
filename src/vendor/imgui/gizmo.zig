@@ -1,4 +1,4 @@
-const gui = @import("gui.zig");
+const gui = @import("main.zig");
 const DrawList = gui.DrawList;
 
 pub const Matrix = [16]f32;

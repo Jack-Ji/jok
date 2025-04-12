@@ -461,45 +461,11 @@ pub inline fn HIWORD(dword: DWORD) WORD {
 }
 
 pub const IID_IUnknown = GUID.parse("{00000000-0000-0000-C000-000000000046}");
-pub const IUnknown = extern struct {
-    __v: *const VTable,
-
-    pub usingnamespace Methods(@This());
-
-    pub fn Methods(comptime T: type) type {
-        return extern struct {
-            pub inline fn QueryInterface(self: *T, guid: *const GUID, outobj: ?*?*anyopaque) HRESULT {
-                return @as(*const IUnknown.VTable, @ptrCast(self.__v))
-                    .QueryInterface(@as(*IUnknown, @ptrCast(self)), guid, outobj);
-            }
-            pub inline fn AddRef(self: *T) ULONG {
-                return @as(*const IUnknown.VTable, @ptrCast(self.__v)).AddRef(@as(*IUnknown, @ptrCast(self)));
-            }
-            pub inline fn Release(self: *T) ULONG {
-                return @as(*const IUnknown.VTable, @ptrCast(self.__v)).Release(@as(*IUnknown, @ptrCast(self)));
-            }
-        };
-    }
-
-    pub const VTable = extern struct {
-        QueryInterface: *const fn (*IUnknown, *const GUID, ?*?*anyopaque) callconv(WINAPI) HRESULT,
-        AddRef: *const fn (*IUnknown) callconv(WINAPI) ULONG,
-        Release: *const fn (*IUnknown) callconv(WINAPI) ULONG,
-    };
-};
 
 pub extern "kernel32" fn ExitThread(DWORD) callconv(WINAPI) void;
 pub extern "kernel32" fn TerminateThread(HANDLE, DWORD) callconv(WINAPI) BOOL;
 
 pub const CLSCTX_INPROC_SERVER = 0x1;
-
-pub extern "ole32" fn CoCreateInstance(
-    rclsid: *const GUID,
-    pUnkOuter: ?*IUnknown,
-    dwClsContext: DWORD,
-    riid: *const GUID,
-    ppv: *?*anyopaque,
-) callconv(WINAPI) HRESULT;
 
 pub const VK_LBUTTON = 0x01;
 pub const VK_RBUTTON = 0x02;

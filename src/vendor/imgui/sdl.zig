@@ -1,7 +1,7 @@
 const std = @import("std");
 const jok = @import("../../jok.zig");
 const sdl = jok.sdl;
-const gui = @import("gui.zig");
+const gui = @import("main.zig");
 
 pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     gui.init(ctx.allocator());

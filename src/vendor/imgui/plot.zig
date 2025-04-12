@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 const assert = @import("std").debug.assert;
-const gui = @import("gui.zig");
+const gui = @import("main.zig");
 //--------------------------------------------------------------------------------------------------
 pub fn init() void {
     if (zguiPlot_GetCurrentContext() == null) {

@@ -474,23 +474,8 @@ pub const DataSourceBase = extern struct {
 };
 
 pub const DataSource = opaque {
-    pub usingnamespace Methods(@This());
-
     pub const destroy = zaudioDataSourceDestroy;
     extern fn zaudioDataSourceDestroy(handle: *DataSource) void;
-
-    fn Methods(comptime T: type) type {
-        return struct {
-            pub fn asDataSource(handle: *const T) *const DataSource {
-                return @as(*const DataSource, @ptrCast(handle));
-            }
-            pub fn asDataSourceMut(handle: *T) *DataSource {
-                return @as(*DataSource, @ptrCast(handle));
-            }
-
-            // TODO: Add missing methods.
-        };
-    }
 
     pub const Config = extern struct {
         vtable: *const VTable,
@@ -548,10 +533,15 @@ pub const DataSource = opaque {
 //
 //--------------------------------------------------------------------------------------------------
 pub const Waveform = opaque {
-    pub usingnamespace DataSource.Methods(@This());
-
     pub const destroy = zaudioWaveformDestroy;
     extern fn zaudioWaveformDestroy(waveform: *Waveform) void;
+
+    pub fn asDataSource(handle: *const Waveform) *const DataSource {
+        return @as(*const DataSource, @ptrCast(handle));
+    }
+    pub fn asDataSourceMut(handle: *Waveform) *DataSource {
+        return @as(*DataSource, @ptrCast(handle));
+    }
 
     pub fn setAmplitude(waveform: *Waveform, amplitude: f64) Error!void {
         try maybeError(ma_waveform_set_amplitude(waveform, amplitude));
@@ -632,10 +622,15 @@ pub const Waveform = opaque {
 //
 //--------------------------------------------------------------------------------------------------
 pub const Noise = opaque {
-    pub usingnamespace DataSource.Methods(@This());
-
     pub const destroy = zaudioNoiseDestroy;
     extern fn zaudioNoiseDestroy(handle: *Noise) void;
+
+    pub fn asDataSource(handle: *Noise) *const DataSource {
+        return @as(*const DataSource, @ptrCast(handle));
+    }
+    pub fn asDataSourceMut(handle: *Noise) *DataSource {
+        return @as(*DataSource, @ptrCast(handle));
+    }
 
     pub fn setAmplitude(noise: *Noise, amplitude: f64) Error!void {
         try maybeError(ma_noise_set_amplitude(noise, amplitude));
@@ -747,8 +742,6 @@ pub const AudioBuffer = opaque {
 //
 //--------------------------------------------------------------------------------------------------
 pub const Node = opaque {
-    pub usingnamespace Methods(@This());
-
     pub const State = enum(u32) {
         started,
         stopped,
@@ -799,104 +792,93 @@ pub const Node = opaque {
         extern fn zaudioNodeConfigInit(out_config: *Config) void;
     };
 
-    fn Methods(comptime T: type) type {
-        return struct {
-            pub fn asNode(node: *const T) *const Node {
-                return @as(*const Node, @ptrCast(node));
-            }
-            pub fn asNodeMut(node: *T) *Node {
-                return @as(*Node, @ptrCast(node));
-            }
-
-            pub fn getNodeGraph(node: *const T) *const NodeGraph {
-                return ma_node_get_node_graph(@as(*Node, @ptrFromInt(@intFromPtr(node.asNode()))));
-            }
-            pub fn getNodeGraphMut(node: *T) *NodeGraph {
-                return ma_node_get_node_graph(node.asNodeMut());
-            }
-            extern fn ma_node_get_node_graph(node: *Node) *NodeGraph;
-
-            pub fn getInputBusCount(node: *const T) u32 {
-                return ma_node_get_input_bus_count(node.asNode());
-            }
-            extern fn ma_node_get_input_bus_count(node: *const Node) u32;
-
-            pub fn getOutputBusCount(node: *const T) u32 {
-                return ma_node_get_output_bus_count(node.asNode());
-            }
-            extern fn ma_node_get_output_bus_count(node: *const Node) u32;
-
-            pub fn getInputChannels(node: *const T, bus_index: u32) u32 {
-                return ma_node_get_input_channels(node.asNode(), bus_index);
-            }
-            extern fn ma_node_get_input_channels(node: *const Node, bus_index: u32) u32;
-
-            pub fn getOutputChannels(node: *const T, bus_index: u32) u32 {
-                return ma_node_get_output_channels(node.asNode(), bus_index);
-            }
-            extern fn ma_node_get_output_channels(node: *const Node, bus_index: u32) u32;
-
-            pub fn attachOutputBus(
-                node: *T,
-                output_bus_index: u32,
-                other_node: *Node,
-                other_node_input_bus_index: u32,
-            ) Error!void {
-                try maybeError(ma_node_attach_output_bus(
-                    node.asNodeMut(),
-                    output_bus_index,
-                    other_node.asNodeMut(),
-                    other_node_input_bus_index,
-                ));
-            }
-            extern fn ma_node_attach_output_bus(
-                node: *Node,
-                output_bus_index: u32,
-                other_node: *Node,
-                other_node_input_bus_index: u32,
-            ) Result;
-
-            pub fn dettachOutputBus(node: *T, output_bus_index: u32) Error!void {
-                try maybeError(ma_node_detach_output_bus(node.asNodeMut(), output_bus_index));
-            }
-            extern fn ma_node_detach_output_bus(node: *Node, output_bus_index: u32) Result;
-
-            pub fn dettachAllOutputBuses(node: *T) Error!void {
-                try maybeError(ma_node_detach_all_output_buses(node.asNodeMut()));
-            }
-            extern fn ma_node_detach_all_output_buses(node: *Node) Result;
-
-            pub fn setOutputBusVolume(node: *T, output_bus_index: u32, volume: f32) Error!void {
-                try maybeError(ma_node_set_output_bus_volume(node.asNodeMut(), output_bus_index, volume));
-            }
-            extern fn ma_node_set_output_bus_volume(node: *Node, output_bus_index: u32, volume: f32) Result;
-
-            pub fn getOutputBusVolume(node: *const T, output_bus_index: u32) f32 {
-                return ma_node_get_output_bus_volume(node.asNode(), output_bus_index);
-            }
-            extern fn ma_node_get_output_bus_volume(node: *const Node, output_bus_index: u32) f32;
-
-            pub fn setState(node: *T, state: State) Error!void {
-                try maybeError(ma_node_set_state(node.asNodeMut(), state));
-            }
-            extern fn ma_node_set_state(node: *Node, state: State) Result;
-
-            pub fn getState(node: *const T) State {
-                return ma_node_get_state(node.asNode());
-            }
-            extern fn ma_node_get_state(node: *const Node) State;
-
-            pub fn setTime(node: *T, local_time: u64) Error!void {
-                try maybeError(ma_node_set_time(node.asNodeMut(), local_time));
-            }
-            extern fn ma_node_set_time(node: *Node, local_time: u64) Result;
-
-            pub fn getTime(node: *const T) u64 {
-                return ma_node_get_time(node.asNode());
-            }
-            extern fn ma_node_get_time(node: *const Node) u64;
-        };
+    pub fn getNodeGraph(node: *const Node) *const NodeGraph {
+        return ma_node_get_node_graph(@as(*Node, @ptrFromInt(@intFromPtr(node))));
     }
+    pub fn getNodeGraphMut(node: *Node) *NodeGraph {
+        return ma_node_get_node_graph(node);
+    }
+    extern fn ma_node_get_node_graph(node: *Node) *NodeGraph;
+
+    pub fn getInputBusCount(node: *const Node) u32 {
+        return ma_node_get_input_bus_count(node);
+    }
+    extern fn ma_node_get_input_bus_count(node: *const Node) u32;
+
+    pub fn getOutputBusCount(node: *const Node) u32 {
+        return ma_node_get_output_bus_count(node);
+    }
+    extern fn ma_node_get_output_bus_count(node: *const Node) u32;
+
+    pub fn getInputChannels(node: *const Node, bus_index: u32) u32 {
+        return ma_node_get_input_channels(node, bus_index);
+    }
+    extern fn ma_node_get_input_channels(node: *const Node, bus_index: u32) u32;
+
+    pub fn getOutputChannels(node: *const Node, bus_index: u32) u32 {
+        return ma_node_get_output_channels(node, bus_index);
+    }
+    extern fn ma_node_get_output_channels(node: *const Node, bus_index: u32) u32;
+
+    pub fn attachOutputBus(
+        node: *Node,
+        output_bus_index: u32,
+        other_node: *Node,
+        other_node_input_bus_index: u32,
+    ) Error!void {
+        try maybeError(ma_node_attach_output_bus(
+            node,
+            output_bus_index,
+            other_node,
+            other_node_input_bus_index,
+        ));
+    }
+    extern fn ma_node_attach_output_bus(
+        node: *Node,
+        output_bus_index: u32,
+        other_node: *Node,
+        other_node_input_bus_index: u32,
+    ) Result;
+
+    pub fn dettachOutputBus(node: *Node, output_bus_index: u32) Error!void {
+        try maybeError(ma_node_detach_output_bus(node, output_bus_index));
+    }
+    extern fn ma_node_detach_output_bus(node: *Node, output_bus_index: u32) Result;
+
+    pub fn dettachAllOutputBuses(node: *Node) Error!void {
+        try maybeError(ma_node_detach_all_output_buses(node));
+    }
+    extern fn ma_node_detach_all_output_buses(node: *Node) Result;
+
+    pub fn setOutputBusVolume(node: *Node, output_bus_index: u32, volume: f32) Error!void {
+        try maybeError(ma_node_set_output_bus_volume(node, output_bus_index, volume));
+    }
+    extern fn ma_node_set_output_bus_volume(node: *Node, output_bus_index: u32, volume: f32) Result;
+
+    pub fn getOutputBusVolume(node: *const Node, output_bus_index: u32) f32 {
+        return ma_node_get_output_bus_volume(node, output_bus_index);
+    }
+    extern fn ma_node_get_output_bus_volume(node: *const Node, output_bus_index: u32) f32;
+
+    pub fn setState(node: *Node, state: State) Error!void {
+        try maybeError(ma_node_set_state(node, state));
+    }
+    extern fn ma_node_set_state(node: *Node, state: State) Result;
+
+    pub fn getState(node: *const Node) State {
+        return ma_node_get_state(node);
+    }
+    extern fn ma_node_get_state(node: *const Node) State;
+
+    pub fn setTime(node: *Node, local_time: u64) Error!void {
+        try maybeError(ma_node_set_time(node, local_time));
+    }
+    extern fn ma_node_set_time(node: *Node, local_time: u64) Result;
+
+    pub fn getTime(node: *const Node) u64 {
+        return ma_node_get_time(node);
+    }
+    extern fn ma_node_get_time(node: *const Node) u64;
 };
 //--------------------------------------------------------------------------------------------------
 //
@@ -904,10 +886,15 @@ pub const Node = opaque {
 //
 //--------------------------------------------------------------------------------------------------
 pub const DataSourceNode = opaque {
-    pub usingnamespace Node.Methods(@This());
-
     pub const destroy = zaudioDataSourceNodeDestroy;
     extern fn zaudioDataSourceNodeDestroy(handle: *DataSourceNode) void;
+
+    pub fn asNode(node: *const DataSourceNode) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *DataSourceNode) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
 
     pub fn setLooping(handle: *DataSourceNode, is_looping: bool) !void {
         try maybeError(ma_data_source_node_set_looping(handle, if (is_looping) .true32 else .false32));
@@ -937,10 +924,15 @@ pub const DataSourceNode = opaque {
 //
 //--------------------------------------------------------------------------------------------------
 pub const SplitterNode = opaque {
-    pub usingnamespace Node.Methods(@This());
-
     pub const destroy = zaudioSplitterNodeDestroy;
     extern fn zaudioSplitterNodeDestroy(handle: *SplitterNode) void;
+
+    pub fn asNode(node: *const SplitterNode) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *SplitterNode) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
 
     pub const Config = extern struct {
         node_config: Node.Config,
@@ -972,10 +964,15 @@ pub const BiquadConfig = extern struct {
 };
 
 pub const BiquadNode = opaque {
-    pub usingnamespace Node.Methods(@This());
-
     pub const destroy = zaudioBiquadNodeDestroy;
     extern fn zaudioBiquadNodeDestroy(handle: *BiquadNode) void;
+
+    pub fn asNode(node: *const BiquadNode) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *BiquadNode) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
 
     pub fn reconfigure(handle: *BiquadNode, config: BiquadConfig) Error!void {
         try maybeError(ma_biquad_node_reinit(&config, handle));
@@ -1017,10 +1014,15 @@ pub const LpfConfig = extern struct {
 };
 
 pub const LpfNode = opaque {
-    pub usingnamespace Node.Methods(@This());
-
     pub const destroy = zaudioLpfNodeDestroy;
     extern fn zaudioLpfNodeDestroy(handle: *LpfNode) void;
+
+    pub fn asNode(node: *const LpfNode) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *LpfNode) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
 
     pub fn reconfigure(handle: *LpfNode, config: LpfConfig) Error!void {
         try maybeError(ma_lpf_node_reinit(&config, handle));
@@ -1059,10 +1061,15 @@ pub const HpfConfig = extern struct {
 };
 
 pub const HpfNode = opaque {
-    pub usingnamespace Node.Methods(@This());
-
     pub const destroy = zaudioHpfNodeDestroy;
     extern fn zaudioHpfNodeDestroy(handle: *HpfNode) void;
+
+    pub fn asNode(node: *const HpfNode) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *HpfNode) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
 
     pub fn reconfigure(handle: *HpfNode, config: HpfConfig) Error!void {
         try maybeError(ma_hpf_node_reinit(&config, handle));
@@ -1101,10 +1108,15 @@ pub const NotchConfig = extern struct {
 };
 
 pub const NotchNode = opaque {
-    pub usingnamespace Node.Methods(@This());
-
     pub const destroy = zaudioNotchNodeDestroy;
     extern fn zaudioNotchNodeDestroy(handle: *NotchNode) void;
+
+    pub fn asNode(node: *const NotchNode) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *NotchNode) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
 
     pub fn reconfigure(handle: *NotchNode, config: NotchConfig) Error!void {
         try maybeError(ma_notch_node_reinit(&config, handle));
@@ -1144,10 +1156,15 @@ pub const PeakConfig = extern struct {
 };
 
 pub const PeakNode = opaque {
-    pub usingnamespace Node.Methods(@This());
-
     pub const destroy = zaudioPeakNodeDestroy;
     extern fn zaudioPeakNodeDestroy(handle: *PeakNode) void;
+
+    pub fn asNode(node: *const PeakNode) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *PeakNode) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
 
     pub fn reconfigure(handle: *PeakNode, config: PeakConfig) Error!void {
         try maybeError(ma_peak_node_reinit(&config, handle));
@@ -1188,10 +1205,15 @@ pub const LoshelfConfig = extern struct {
 };
 
 pub const LoshelfNode = opaque {
-    pub usingnamespace Node.Methods(@This());
-
     pub const destroy = zaudioLoshelfNodeDestroy;
     extern fn zaudioLoshelfNodeDestroy(handle: *LoshelfNode) void;
+
+    pub fn asNode(node: *const LoshelfNode) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *LoshelfNode) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
 
     pub fn reconfigure(handle: *LoshelfNode, config: LoshelfConfig) Error!void {
         try maybeError(ma_loshelf_node_reinit(&config, handle));
@@ -1238,10 +1260,15 @@ pub const HishelfConfig = extern struct {
 };
 
 pub const HishelfNode = opaque {
-    pub usingnamespace Node.Methods(@This());
-
     pub const destroy = zaudioHishelfNodeDestroy;
     extern fn zaudioHishelfNodeDestroy(handle: *HishelfNode) void;
+
+    pub fn asNode(node: *const HishelfNode) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *HishelfNode) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
 
     pub fn reconfigure(handle: *HishelfNode, config: HishelfConfig) Error!void {
         try maybeError(ma_hishelf_node_reinit(&config, handle));
@@ -1289,10 +1316,15 @@ pub const DelayConfig = extern struct {
 };
 
 pub const DelayNode = opaque {
-    pub usingnamespace Node.Methods(@This());
-
     pub const destroy = zaudioDelayNodeDestroy;
     extern fn zaudioDelayNodeDestroy(handle: *DelayNode) void;
+
+    pub fn asNode(node: *const DelayNode) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *DelayNode) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
 
     pub const setWet = ma_delay_node_set_wet;
     extern fn ma_delay_node_set_wet(handle: *DelayNode, value: f32) void;
@@ -1336,8 +1368,6 @@ pub const DelayNode = opaque {
 //
 //--------------------------------------------------------------------------------------------------
 pub const NodeGraph = opaque {
-    pub usingnamespace Methods(@This());
-
     pub const Config = extern struct {
         channels: u32,
         processing_size_in_frames: u32,
@@ -1361,161 +1391,148 @@ pub const NodeGraph = opaque {
     pub const destroy = zaudioNodeGraphDestroy;
     extern fn zaudioNodeGraphDestroy(handle: *NodeGraph) void;
 
-    fn Methods(comptime T: type) type {
-        return struct {
-            pub usingnamespace Node.Methods(T);
-
-            pub fn asNodeGraph(handle: *const T) *const NodeGraph {
-                return @as(*const NodeGraph, @ptrCast(handle));
-            }
-            pub fn asNodeGraphMut(handle: *T) *NodeGraph {
-                return @as(*NodeGraph, @ptrCast(handle));
-            }
-
-            pub fn createDataSourceNode(node_graph: *T, config: DataSourceNode.Config) Error!*DataSourceNode {
-                var handle: ?*DataSourceNode = null;
-                try maybeError(zaudioDataSourceNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
-                return handle.?;
-            }
-            extern fn zaudioDataSourceNodeCreate(
-                node_graph: *NodeGraph,
-                config: *const DataSourceNode.Config,
-                out_handle: ?*?*DataSourceNode,
-            ) Result;
-
-            pub fn createBiquadNode(node_graph: *T, config: BiquadNode.Config) Error!*BiquadNode {
-                var handle: ?*BiquadNode = null;
-                try maybeError(zaudioBiquadNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
-                return handle.?;
-            }
-            extern fn zaudioBiquadNodeCreate(
-                node_graph: *NodeGraph,
-                config: *const BiquadNode.Config,
-                out_handle: ?*?*BiquadNode,
-            ) Result;
-
-            pub fn createLpfNode(node_graph: *T, config: LpfNode.Config) Error!*LpfNode {
-                var handle: ?*LpfNode = null;
-                try maybeError(zaudioLpfNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
-                return handle.?;
-            }
-            extern fn zaudioLpfNodeCreate(
-                node_graph: *NodeGraph,
-                config: *const LpfNode.Config,
-                out_handle: ?*?*LpfNode,
-            ) Result;
-
-            pub fn createHpfNode(node_graph: *T, config: HpfNode.Config) Error!*HpfNode {
-                var handle: ?*HpfNode = null;
-                try maybeError(zaudioHpfNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
-                return handle.?;
-            }
-            extern fn zaudioHpfNodeCreate(
-                node_graph: *NodeGraph,
-                config: *const HpfNode.Config,
-                out_handle: ?*?*HpfNode,
-            ) Result;
-
-            pub fn createSplitterNode(node_graph: *T, config: SplitterNode.Config) Error!*SplitterNode {
-                var handle: ?*SplitterNode = null;
-                try maybeError(zaudioSplitterNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
-                return handle.?;
-            }
-            extern fn zaudioSplitterNodeCreate(
-                node_graph: *NodeGraph,
-                config: *const SplitterNode.Config,
-                out_handle: ?*?*SplitterNode,
-            ) Result;
-
-            pub fn createNotchNode(node_graph: *T, config: NotchNode.Config) Error!*NotchNode {
-                var handle: ?*NotchNode = null;
-                try maybeError(zaudioNotchNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
-                return handle.?;
-            }
-            extern fn zaudioNotchNodeCreate(
-                node_graph: *NodeGraph,
-                config: *const NotchNode.Config,
-                out_handle: ?*?*NotchNode,
-            ) Result;
-
-            pub fn createPeakNode(node_graph: *T, config: PeakNode.Config) Error!*PeakNode {
-                var handle: ?*PeakNode = null;
-                try maybeError(zaudioPeakNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
-                return handle.?;
-            }
-            extern fn zaudioPeakNodeCreate(
-                node_graph: *NodeGraph,
-                config: *const PeakNode.Config,
-                out_handle: ?*?*PeakNode,
-            ) Result;
-
-            pub fn createLoshelfNode(node_graph: *T, config: LoshelfNode.Config) Error!*LoshelfNode {
-                var handle: ?*LoshelfNode = null;
-                try maybeError(zaudioLoshelfNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
-                return handle.?;
-            }
-            extern fn zaudioLoshelfNodeCreate(
-                node_graph: *NodeGraph,
-                config: *const LoshelfNode.Config,
-                out_handle: ?*?*LoshelfNode,
-            ) Result;
-
-            pub fn createHishelfNode(node_graph: *T, config: HishelfNode.Config) Error!*HishelfNode {
-                var handle: ?*HishelfNode = null;
-                try maybeError(zaudioHishelfNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
-                return handle.?;
-            }
-            extern fn zaudioHishelfNodeCreate(
-                node_graph: *NodeGraph,
-                config: *const HishelfNode.Config,
-                out_handle: ?*?*HishelfNode,
-            ) Result;
-
-            pub fn createDelayNode(node_graph: *T, config: DelayNode.Config) Error!*DelayNode {
-                var handle: ?*DelayNode = null;
-                try maybeError(zaudioDelayNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
-                return handle.?;
-            }
-            extern fn zaudioDelayNodeCreate(
-                node_graph: *NodeGraph,
-                config: *const DelayNode.Config,
-                out_handle: ?*?*DelayNode,
-            ) Result;
-
-            pub fn getEndpoint(handle: *const T) *const Node {
-                return ma_node_graph_get_endpoint(@as(*NodeGraph, @ptrFromInt(@intFromPtr(handle.asNodeGraph()))));
-            }
-            pub fn getEndpointMut(handle: *T) *Node {
-                return ma_node_graph_get_endpoint(handle.asNodeGraphMut());
-            }
-            extern fn ma_node_graph_get_endpoint(handle: *NodeGraph) *Node;
-
-            pub fn getChannels(handle: *const T) u32 {
-                return ma_node_graph_get_channels(handle.asNodeGraph());
-            }
-            extern fn ma_node_graph_get_channels(handle: *const NodeGraph) u32;
-
-            pub fn readPcmFrames(
-                node_graph: *T,
-                frames_out: *anyopaque,
-                frame_count: u64,
-                frames_read: ?*u64,
-            ) Error!void {
-                try maybeError(ma_node_graph_read_pcm_frames(
-                    node_graph.asNodeGraphMut(),
-                    frames_out,
-                    frame_count,
-                    frames_read,
-                ));
-            }
-            extern fn ma_node_graph_read_pcm_frames(
-                handle: *NodeGraph,
-                frames_out: *anyopaque,
-                frame_count: u64,
-                frames_read: ?*u64,
-            ) Result;
-        };
+    pub fn createDataSourceNode(node_graph: *NodeGraph, config: DataSourceNode.Config) Error!*DataSourceNode {
+        var handle: ?*DataSourceNode = null;
+        try maybeError(zaudioDataSourceNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        return handle.?;
     }
+    extern fn zaudioDataSourceNodeCreate(
+        node_graph: *NodeGraph,
+        config: *const DataSourceNode.Config,
+        out_handle: ?*?*DataSourceNode,
+    ) Result;
+
+    pub fn createBiquadNode(node_graph: *NodeGraph, config: BiquadNode.Config) Error!*BiquadNode {
+        var handle: ?*BiquadNode = null;
+        try maybeError(zaudioBiquadNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        return handle.?;
+    }
+    extern fn zaudioBiquadNodeCreate(
+        node_graph: *NodeGraph,
+        config: *const BiquadNode.Config,
+        out_handle: ?*?*BiquadNode,
+    ) Result;
+
+    pub fn createLpfNode(node_graph: *NodeGraph, config: LpfNode.Config) Error!*LpfNode {
+        var handle: ?*LpfNode = null;
+        try maybeError(zaudioLpfNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        return handle.?;
+    }
+    extern fn zaudioLpfNodeCreate(
+        node_graph: *NodeGraph,
+        config: *const LpfNode.Config,
+        out_handle: ?*?*LpfNode,
+    ) Result;
+
+    pub fn createHpfNode(node_graph: *NodeGraph, config: HpfNode.Config) Error!*HpfNode {
+        var handle: ?*HpfNode = null;
+        try maybeError(zaudioHpfNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        return handle.?;
+    }
+    extern fn zaudioHpfNodeCreate(
+        node_graph: *NodeGraph,
+        config: *const HpfNode.Config,
+        out_handle: ?*?*HpfNode,
+    ) Result;
+
+    pub fn createSplitterNode(node_graph: *NodeGraph, config: SplitterNode.Config) Error!*SplitterNode {
+        var handle: ?*SplitterNode = null;
+        try maybeError(zaudioSplitterNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        return handle.?;
+    }
+    extern fn zaudioSplitterNodeCreate(
+        node_graph: *NodeGraph,
+        config: *const SplitterNode.Config,
+        out_handle: ?*?*SplitterNode,
+    ) Result;
+
+    pub fn createNotchNode(node_graph: *NodeGraph, config: NotchNode.Config) Error!*NotchNode {
+        var handle: ?*NotchNode = null;
+        try maybeError(zaudioNotchNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        return handle.?;
+    }
+    extern fn zaudioNotchNodeCreate(
+        node_graph: *NodeGraph,
+        config: *const NotchNode.Config,
+        out_handle: ?*?*NotchNode,
+    ) Result;
+
+    pub fn createPeakNode(node_graph: *NodeGraph, config: PeakNode.Config) Error!*PeakNode {
+        var handle: ?*PeakNode = null;
+        try maybeError(zaudioPeakNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        return handle.?;
+    }
+    extern fn zaudioPeakNodeCreate(
+        node_graph: *NodeGraph,
+        config: *const PeakNode.Config,
+        out_handle: ?*?*PeakNode,
+    ) Result;
+
+    pub fn createLoshelfNode(node_graph: *NodeGraph, config: LoshelfNode.Config) Error!*LoshelfNode {
+        var handle: ?*LoshelfNode = null;
+        try maybeError(zaudioLoshelfNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        return handle.?;
+    }
+    extern fn zaudioLoshelfNodeCreate(
+        node_graph: *NodeGraph,
+        config: *const LoshelfNode.Config,
+        out_handle: ?*?*LoshelfNode,
+    ) Result;
+
+    pub fn createHishelfNode(node_graph: *NodeGraph, config: HishelfNode.Config) Error!*HishelfNode {
+        var handle: ?*HishelfNode = null;
+        try maybeError(zaudioHishelfNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        return handle.?;
+    }
+    extern fn zaudioHishelfNodeCreate(
+        node_graph: *NodeGraph,
+        config: *const HishelfNode.Config,
+        out_handle: ?*?*HishelfNode,
+    ) Result;
+
+    pub fn createDelayNode(node_graph: *NodeGraph, config: DelayNode.Config) Error!*DelayNode {
+        var handle: ?*DelayNode = null;
+        try maybeError(zaudioDelayNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        return handle.?;
+    }
+    extern fn zaudioDelayNodeCreate(
+        node_graph: *NodeGraph,
+        config: *const DelayNode.Config,
+        out_handle: ?*?*DelayNode,
+    ) Result;
+
+    pub fn getEndpoint(handle: *const NodeGraph) *const Node {
+        return ma_node_graph_get_endpoint(@as(*NodeGraph, @ptrFromInt(@intFromPtr(handle))));
+    }
+    pub fn getEndpointMut(handle: *NodeGraph) *Node {
+        return ma_node_graph_get_endpoint(handle.asNodeGraphMut());
+    }
+    extern fn ma_node_graph_get_endpoint(handle: *NodeGraph) *Node;
+
+    pub fn getChannels(handle: *const NodeGraph) u32 {
+        return ma_node_graph_get_channels(handle);
+    }
+    extern fn ma_node_graph_get_channels(handle: *const NodeGraph) u32;
+
+    pub fn readPcmFrames(
+        node_graph: *NodeGraph,
+        frames_out: *anyopaque,
+        frame_count: u64,
+        frames_read: ?*u64,
+    ) Error!void {
+        try maybeError(ma_node_graph_read_pcm_frames(
+            node_graph.asNodeGraphMut(),
+            frames_out,
+            frame_count,
+            frames_read,
+        ));
+    }
+    extern fn ma_node_graph_read_pcm_frames(
+        handle: *NodeGraph,
+        frames_out: *anyopaque,
+        frame_count: u64,
+        frames_read: ?*u64,
+    ) Result;
 };
 //--------------------------------------------------------------------------------------------------
 //
@@ -1733,8 +1750,6 @@ pub const Device = opaque {
 //
 //--------------------------------------------------------------------------------------------------
 pub const Engine = opaque {
-    pub usingnamespace NodeGraph.Methods(@This());
-
     pub const Config = extern struct {
         resource_manager: ?*ResourceManager,
         context: ?*Context,
@@ -1783,6 +1798,19 @@ pub const Engine = opaque {
 
     pub const destroy = zaudioEngineDestroy;
     extern fn zaudioEngineDestroy(handle: *Engine) void;
+
+    pub fn asNode(node: *const Engine) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *Engine) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
+    pub fn asNodeGraph(handle: *const Engine) *const NodeGraph {
+        return @as(*const NodeGraph, @ptrCast(handle));
+    }
+    pub fn asNodeGraphMut(handle: *Engine) *NodeGraph {
+        return @as(*NodeGraph, @ptrCast(handle));
+    }
 
     pub fn createSoundFromFile(
         engine: *Engine,
@@ -1984,8 +2012,6 @@ pub const Engine = opaque {
 //
 //--------------------------------------------------------------------------------------------------
 pub const Sound = opaque {
-    pub usingnamespace Node.Methods(@This());
-
     fn createFromFile(
         engine: *Engine,
         file_path: [:0]const u8,
@@ -2046,6 +2072,13 @@ pub const Sound = opaque {
 
     pub const destroy = zaudioSoundDestroy;
     extern fn zaudioSoundDestroy(sound: *Sound) void;
+
+    pub fn asNode(node: *const Sound) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *Sound) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
 
     pub const getDataSource = ma_sound_get_data_source;
     extern fn ma_sound_get_data_source(sound: *const Sound) ?*DataSource;
@@ -2391,8 +2424,6 @@ pub const Sound = opaque {
 //
 //--------------------------------------------------------------------------------------------------
 pub const SoundGroup = opaque {
-    pub usingnamespace Node.Methods(@This());
-
     pub const Config = Sound.Config;
 
     fn create(engine: *Engine, flags: Sound.Flags, parent: ?*SoundGroup) Error!*SoundGroup {
@@ -2409,6 +2440,19 @@ pub const SoundGroup = opaque {
 
     pub const destroy = zaudioSoundGroupDestroy;
     extern fn zaudioSoundGroupDestroy(handle: *SoundGroup) void;
+
+    pub fn asNode(node: *const SoundGroup) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *SoundGroup) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
+    pub fn asNodeGraph(handle: *const SoundGroup) *const NodeGraph {
+        return @as(*const NodeGraph, @ptrCast(handle));
+    }
+    pub fn asNodeGraphMut(handle: *SoundGroup) *NodeGraph {
+        return @as(*NodeGraph, @ptrCast(handle));
+    }
 
     pub const getEngine = ma_sound_group_get_engine;
     extern fn ma_sound_group_get_engine(sound: *const SoundGroup) *Engine;

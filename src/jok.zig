@@ -45,8 +45,19 @@ pub const font = @import("font.zig");
 /// Misc utils
 pub const utils = @import("utils.zig");
 
-/// Expose vendor libraries
-pub usingnamespace @import("vendor.zig");
+/// Vendor libraries
+const vendor = @import("vendor.zig");
+pub const sdl = vendor.sdl;
+pub const physfs = vendor.physfs;
+pub const zaudio = vendor.zaudio;
+pub const zmath = vendor.zmath;
+pub const zmesh = vendor.zmesh;
+pub const znoise = vendor.znoise;
+pub const imgui = vendor.imgui;
+pub const stb = vendor.stb;
+pub const svg = vendor.svg;
+pub const cp = vendor.cp;
+pub const nfd = vendor.nfd;
 
 // All tests
 test "all" {

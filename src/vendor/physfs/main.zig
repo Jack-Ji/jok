@@ -669,9 +669,9 @@ pub const zaudio = struct {
 };
 
 pub const zmesh = struct {
-    const ZmeshFileOptions = jok.zmesh.io.zcgltf.FileOptions;
-    const ZmeshMemoryOptions = jok.zmesh.io.zcgltf.MemoryOptions;
-    const ZmeshResult = jok.zmesh.io.zcgltf.Result;
+    const ZmeshFileOptions = jok.zmesh.io.zcgltf.bindings.FileOptions;
+    const ZmeshMemoryOptions = jok.zmesh.io.zcgltf.bindings.MemoryOptions;
+    const ZmeshResult = jok.zmesh.io.zcgltf.bindings.Result;
 
     fn read(
         mem_opts: *const ZmeshMemoryOptions,

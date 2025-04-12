@@ -19,7 +19,7 @@
 //
 // ==============================================================================
 
-const zm = @import("zmath.zig");
+const zm = @import("main.zig");
 const std = @import("std");
 const math = std.math;
 const expect = std.testing.expect;
