@@ -793,7 +793,7 @@ pub const Node = opaque {
     };
 
     pub fn getNodeGraph(node: *const Node) *const NodeGraph {
-        return ma_node_get_node_graph(@as(*Node, @ptrFromInt(@intFromPtr(node))));
+        return ma_node_get_node_graph(@constCast(node));
     }
     pub fn getNodeGraphMut(node: *Node) *NodeGraph {
         return ma_node_get_node_graph(node);
@@ -1391,9 +1391,16 @@ pub const NodeGraph = opaque {
     pub const destroy = zaudioNodeGraphDestroy;
     extern fn zaudioNodeGraphDestroy(handle: *NodeGraph) void;
 
+    pub fn asNode(node: *const NodeGraph) *const Node {
+        return @as(*const Node, @ptrCast(node));
+    }
+    pub fn asNodeMut(node: *NodeGraph) *Node {
+        return @as(*Node, @ptrCast(node));
+    }
+
     pub fn createDataSourceNode(node_graph: *NodeGraph, config: DataSourceNode.Config) Error!*DataSourceNode {
         var handle: ?*DataSourceNode = null;
-        try maybeError(zaudioDataSourceNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        try maybeError(zaudioDataSourceNodeCreate(node_graph, &config, &handle));
         return handle.?;
     }
     extern fn zaudioDataSourceNodeCreate(
@@ -1404,7 +1411,7 @@ pub const NodeGraph = opaque {
 
     pub fn createBiquadNode(node_graph: *NodeGraph, config: BiquadNode.Config) Error!*BiquadNode {
         var handle: ?*BiquadNode = null;
-        try maybeError(zaudioBiquadNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        try maybeError(zaudioBiquadNodeCreate(node_graph, &config, &handle));
         return handle.?;
     }
     extern fn zaudioBiquadNodeCreate(
@@ -1415,7 +1422,7 @@ pub const NodeGraph = opaque {
 
     pub fn createLpfNode(node_graph: *NodeGraph, config: LpfNode.Config) Error!*LpfNode {
         var handle: ?*LpfNode = null;
-        try maybeError(zaudioLpfNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        try maybeError(zaudioLpfNodeCreate(node_graph, &config, &handle));
         return handle.?;
     }
     extern fn zaudioLpfNodeCreate(
@@ -1426,7 +1433,7 @@ pub const NodeGraph = opaque {
 
     pub fn createHpfNode(node_graph: *NodeGraph, config: HpfNode.Config) Error!*HpfNode {
         var handle: ?*HpfNode = null;
-        try maybeError(zaudioHpfNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        try maybeError(zaudioHpfNodeCreate(node_graph, &config, &handle));
         return handle.?;
     }
     extern fn zaudioHpfNodeCreate(
@@ -1437,7 +1444,7 @@ pub const NodeGraph = opaque {
 
     pub fn createSplitterNode(node_graph: *NodeGraph, config: SplitterNode.Config) Error!*SplitterNode {
         var handle: ?*SplitterNode = null;
-        try maybeError(zaudioSplitterNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        try maybeError(zaudioSplitterNodeCreate(node_graph, &config, &handle));
         return handle.?;
     }
     extern fn zaudioSplitterNodeCreate(
@@ -1448,7 +1455,7 @@ pub const NodeGraph = opaque {
 
     pub fn createNotchNode(node_graph: *NodeGraph, config: NotchNode.Config) Error!*NotchNode {
         var handle: ?*NotchNode = null;
-        try maybeError(zaudioNotchNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        try maybeError(zaudioNotchNodeCreate(node_graph, &config, &handle));
         return handle.?;
     }
     extern fn zaudioNotchNodeCreate(
@@ -1459,7 +1466,7 @@ pub const NodeGraph = opaque {
 
     pub fn createPeakNode(node_graph: *NodeGraph, config: PeakNode.Config) Error!*PeakNode {
         var handle: ?*PeakNode = null;
-        try maybeError(zaudioPeakNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        try maybeError(zaudioPeakNodeCreate(node_graph, &config, &handle));
         return handle.?;
     }
     extern fn zaudioPeakNodeCreate(
@@ -1470,7 +1477,7 @@ pub const NodeGraph = opaque {
 
     pub fn createLoshelfNode(node_graph: *NodeGraph, config: LoshelfNode.Config) Error!*LoshelfNode {
         var handle: ?*LoshelfNode = null;
-        try maybeError(zaudioLoshelfNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        try maybeError(zaudioLoshelfNodeCreate(node_graph, &config, &handle));
         return handle.?;
     }
     extern fn zaudioLoshelfNodeCreate(
@@ -1481,7 +1488,7 @@ pub const NodeGraph = opaque {
 
     pub fn createHishelfNode(node_graph: *NodeGraph, config: HishelfNode.Config) Error!*HishelfNode {
         var handle: ?*HishelfNode = null;
-        try maybeError(zaudioHishelfNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        try maybeError(zaudioHishelfNodeCreate(node_graph, &config, &handle));
         return handle.?;
     }
     extern fn zaudioHishelfNodeCreate(
@@ -1492,7 +1499,7 @@ pub const NodeGraph = opaque {
 
     pub fn createDelayNode(node_graph: *NodeGraph, config: DelayNode.Config) Error!*DelayNode {
         var handle: ?*DelayNode = null;
-        try maybeError(zaudioDelayNodeCreate(node_graph.asNodeGraphMut(), &config, &handle));
+        try maybeError(zaudioDelayNodeCreate(node_graph, &config, &handle));
         return handle.?;
     }
     extern fn zaudioDelayNodeCreate(
@@ -1502,10 +1509,10 @@ pub const NodeGraph = opaque {
     ) Result;
 
     pub fn getEndpoint(handle: *const NodeGraph) *const Node {
-        return ma_node_graph_get_endpoint(@as(*NodeGraph, @ptrFromInt(@intFromPtr(handle))));
+        return ma_node_graph_get_endpoint(@constCast(handle));
     }
     pub fn getEndpointMut(handle: *NodeGraph) *Node {
-        return ma_node_graph_get_endpoint(handle.asNodeGraphMut());
+        return ma_node_graph_get_endpoint(handle);
     }
     extern fn ma_node_graph_get_endpoint(handle: *NodeGraph) *Node;
 
@@ -1521,7 +1528,7 @@ pub const NodeGraph = opaque {
         frames_read: ?*u64,
     ) Error!void {
         try maybeError(ma_node_graph_read_pcm_frames(
-            node_graph.asNodeGraphMut(),
+            node_graph,
             frames_out,
             frame_count,
             frames_read,
@@ -1558,7 +1565,7 @@ pub const Device = opaque {
     extern fn zaudioDeviceGetUserData(device: *const Device) ?*anyopaque;
 
     pub fn getContext(device: *const Device) *const Context {
-        return ma_device_get_context(@as(*Device, @ptrFromInt(@intFromPtr(device))));
+        return ma_device_get_context(@constCast(device));
     }
     pub fn getContextMut(device: *Device) *Context {
         return ma_device_get_context(device);
@@ -1566,7 +1573,7 @@ pub const Device = opaque {
     extern fn ma_device_get_context(device: *Device) *Context;
 
     pub fn getLog(device: *const Device) ?*const Log {
-        return ma_device_get_log(@as(*Device, @ptrFromInt(@intFromPtr(device))));
+        return ma_device_get_log(@constCast(device));
     }
     pub fn getLogMut(device: *Device) ?*Log {
         return ma_device_get_log(device);
@@ -1851,7 +1858,7 @@ pub const Engine = opaque {
     }
 
     pub fn getResourceManager(engine: *const Engine) *const ResourceManager {
-        return ma_engine_get_resource_manager(@as(*Engine, @ptrFromInt(@intFromPtr(engine))));
+        return ma_engine_get_resource_manager(@constCast(engine));
     }
     pub fn getResourceManagerMut(engine: *Engine) *ResourceManager {
         return ma_engine_get_resource_manager(engine);
@@ -1859,7 +1866,7 @@ pub const Engine = opaque {
     extern fn ma_engine_get_resource_manager(engine: *Engine) *ResourceManager;
 
     pub fn getDevice(engine: *const Engine) ?*const Device {
-        return ma_engine_get_device(@as(*Engine, @ptrFromInt(@intFromPtr(engine))));
+        return ma_engine_get_device(@constCast(engine));
     }
     pub fn getDeviceMut(engine: *Engine) ?*Device {
         return ma_engine_get_device(engine);
@@ -1867,7 +1874,7 @@ pub const Engine = opaque {
     extern fn ma_engine_get_device(engine: *Engine) ?*Device;
 
     pub fn getLog(engine: *const Engine) ?*const Log {
-        return ma_engine_get_log(@as(*Engine, @ptrFromInt(@intFromPtr(engine))));
+        return ma_engine_get_log(@constCast(engine));
     }
     pub fn getLogMut(engine: *Engine) ?*Log {
         return ma_engine_get_log(engine);
@@ -2775,9 +2782,9 @@ test "zaudio.engine.basic" {
     const engine = try Engine.create(engine_config);
     defer engine.destroy();
 
-    try engine.setTime(engine.getTime());
+    try engine.asNodeMut().setTime(engine.asNode().getTime());
 
-    _ = engine.getChannels();
+    _ = engine.asNodeGraph().getChannels();
     _ = engine.getSampleRate();
     _ = engine.getListenerCount();
     _ = engine.findClosestListener(.{ 0.0, 0.0, 0.0 });
@@ -2797,16 +2804,16 @@ test "zaudio.engine.basic" {
     _ = engine.getResourceManager();
     _ = engine.getResourceManagerMut();
     _ = engine.getLog();
-    _ = engine.getEndpoint();
+    _ = engine.asNodeGraph().getEndpoint();
 
-    const hpf_node = try engine.createHpfNode(HpfNode.Config.init(
-        engine.getChannels(),
+    const hpf_node = try engine.asNodeGraphMut().createHpfNode(HpfNode.Config.init(
+        engine.asNodeGraph().getChannels(),
         engine.getSampleRate(),
         1000.0,
         2,
     ));
     defer hpf_node.destroy();
-    try hpf_node.attachOutputBus(0, engine.getEndpointMut(), 0);
+    try hpf_node.asNodeMut().attachOutputBus(0, engine.asNodeGraphMut().getEndpointMut(), 0);
 }
 
 test "zaudio.soundgroup.basic" {
@@ -2830,10 +2837,10 @@ test "zaudio.soundgroup.basic" {
     try sgroup.stop();
     try sgroup.start();
 
-    _ = sgroup.getInputChannels(0);
-    _ = sgroup.getOutputChannels(0);
-    _ = sgroup.getInputBusCount();
-    _ = sgroup.getOutputBusCount();
+    _ = sgroup.asNode().getInputChannels(0);
+    _ = sgroup.asNode().getOutputChannels(0);
+    _ = sgroup.asNode().getInputBusCount();
+    _ = sgroup.asNode().getOutputBusCount();
 
     sgroup.setVolume(0.5);
     try expect(sgroup.getVolume() == 0.5);
@@ -2885,10 +2892,10 @@ test "zaudio.sound.basic" {
     const sound = try engine.createSound(config);
     defer sound.destroy();
 
-    _ = sound.getInputChannels(0);
-    _ = sound.getOutputChannels(0);
-    _ = sound.getInputBusCount();
-    _ = sound.getOutputBusCount();
+    _ = sound.asNode().getInputChannels(0);
+    _ = sound.asNode().getOutputChannels(0);
+    _ = sound.asNode().getInputBusCount();
+    _ = sound.asNode().getOutputBusCount();
 
     // Cloning only works for data buffers (not streams) that are loaded from the resource manager.
     _ = engine.createSoundCopy(sound, .{}, null) catch |err| try expect(err == Error.InvalidOperation);
@@ -2905,7 +2912,7 @@ test "zaudio.sound.basic" {
     sound.setPitch(0.5);
     try expect(sound.getPitch() == 0.5);
 
-    try expect(sound.getNodeGraph() == engine.asNodeGraph());
+    try expect(sound.asNode().getNodeGraph() == engine.asNodeGraph());
 
     var format: Format = .unknown;
     var num_channels: u32 = 0;
@@ -2948,7 +2955,7 @@ test "zaudio.node_graph.basic" {
     const config = NodeGraph.Config.init(2);
     const node_graph = try NodeGraph.create(config);
     defer node_graph.destroy();
-    _ = node_graph.getTime();
+    _ = node_graph.asNode().getTime();
 }
 
 test "zaudio.audio_buffer" {
