@@ -1356,7 +1356,7 @@ inline fn mapPositionToCanvas(pos: jok.Point) jok.Point {
     const canvas_area = ctx.getCanvasArea();
     const canvas_scale = @as(f32, @floatFromInt(canvas_size.width)) / canvas_area.width;
     return .{
-        .x = (pos.x - canvas_area.x) * canvas_scale,
-        .y = (pos.y - canvas_area.y) * canvas_scale,
+        .x = @round((pos.x - canvas_area.x) * canvas_scale),
+        .y = @round((pos.y - canvas_area.y) * canvas_scale),
     };
 }

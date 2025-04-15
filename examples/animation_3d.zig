@@ -8,6 +8,10 @@ const zmath = jok.zmath;
 const zmesh = jok.zmesh;
 const j3d = jok.j3d;
 
+pub const jok_window_size = jok.config.WindowSize{
+    .custom = .{ .width = 1280, .height = 720 },
+};
+
 var batchpool: j3d.BatchPool(64, false) = undefined;
 var lighting: bool = true;
 var wireframe: bool = false;
@@ -63,23 +67,46 @@ pub fn init(ctx: jok.Context) !void {
 }
 
 pub fn event(_: jok.Context, e: jok.Event) !void {
+    const S = struct {
+        var is_viewing: bool = false;
+        const mouse_speed: f32 = 0.0025;
+    };
+
     if (imgui.io.getWantCaptureMouse()) return;
 
     switch (e) {
         .mouse_motion => |me| {
-            const mouse_state = jok.io.getMouseState();
-            if (!mouse_state.buttons.isPressed(.left)) {
+            if (S.is_viewing) {
+                camera.rotateBy(
+                    S.mouse_speed * me.delta.y,
+                    S.mouse_speed * me.delta.x,
+                );
                 return;
             }
 
-            camera.rotateAroundBy(
-                null,
-                me.delta.x * 0.01,
-                me.delta.y * 0.01,
-            );
+            if (me.button_state.isPressed(.left)) {
+                camera.rotateAroundBy(
+                    null,
+                    me.delta.x * 0.01,
+                    me.delta.y * 0.01,
+                );
+                return;
+            }
         },
         .mouse_wheel => |me| {
             camera.zoomBy(@as(f32, @floatFromInt(me.delta_y)) * -0.1);
+        },
+        .mouse_button_down => |me| {
+            if (me.button == .right) {
+                _ = jok.sdl.SDL_SetRelativeMouseMode(1);
+                S.is_viewing = true;
+            }
+        },
+        .mouse_button_up => |me| {
+            if (me.button == .right) {
+                _ = jok.sdl.SDL_SetRelativeMouseMode(0);
+                S.is_viewing = false;
+            }
         },
         else => {},
     }
@@ -100,18 +127,6 @@ pub fn update(ctx: jok.Context) !void {
     }
     if (kbd.isPressed(.d)) {
         camera.moveBy(.right, distance);
-    }
-    if (kbd.isPressed(.left)) {
-        camera.rotateBy(0, -std.math.pi / 180.0);
-    }
-    if (kbd.isPressed(.right)) {
-        camera.rotateBy(0, std.math.pi / 180.0);
-    }
-    if (kbd.isPressed(.up)) {
-        camera.rotateBy(std.math.pi / 180.0, 0);
-    }
-    if (kbd.isPressed(.down)) {
-        camera.rotateBy(-std.math.pi / 180.0, 0);
     }
 
     if (animation1) |a| {
@@ -315,8 +330,12 @@ pub fn draw(ctx: jok.Context) !void {
     }
 
     ctx.debugPrint(
-        "Press WSAD and up/down/left/right to move camera around the view",
-        .{ .pos = .{ .x = 200, .y = 10 } },
+        "Press WSAD to move around, drag mouse while pressing right-button to rotate the view",
+        .{ .pos = .{ .x = 20, .y = 10 } },
+    );
+    ctx.debugPrint(
+        "Drag mouse while pressing left-button to rotate around the models",
+        .{ .pos = .{ .x = 20, .y = 30 } },
     );
     ctx.debugPrint(
         imgui.format(
@@ -327,7 +346,7 @@ pub fn draw(ctx: jok.Context) !void {
             camera.dir[0],camera.dir[1],camera.dir[2],
         },
         ),
-        .{.pos=.{ .x = 200, .y = 28 }},
+        .{.pos=.{ .x = 20, .y = 50 }},
     );
 }
 

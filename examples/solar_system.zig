@@ -32,7 +32,7 @@ pub fn init(ctx: jok.Context) !void {
                 .far = 100,
             },
         },
-        [_]f32{ 0, 6, -6 },
+        [_]f32{ 4.5, 2, 2 },
         [_]f32{ 0, 0, 0 },
     );
     sphere = zmesh.Shape.initSubdividedSphere(2);
@@ -73,7 +73,35 @@ pub fn init(ctx: jok.Context) !void {
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
     _ = ctx;
-    _ = e;
+
+    const S = struct {
+        var is_viewing: bool = false;
+        const mouse_speed: f32 = 0.0025;
+    };
+
+    switch (e) {
+        .mouse_button_down => |me| {
+            if (me.button == .right) {
+                _ = jok.sdl.SDL_SetRelativeMouseMode(1);
+                S.is_viewing = true;
+            }
+        },
+        .mouse_button_up => |me| {
+            if (me.button == .right) {
+                _ = jok.sdl.SDL_SetRelativeMouseMode(0);
+                S.is_viewing = false;
+            }
+        },
+        .mouse_motion => |me| {
+            if (S.is_viewing) {
+                camera.rotateBy(
+                    S.mouse_speed * me.delta.y,
+                    S.mouse_speed * me.delta.x,
+                );
+            }
+        },
+        else => {},
+    }
 }
 
 pub fn update(ctx: jok.Context) !void {
@@ -91,18 +119,6 @@ pub fn update(ctx: jok.Context) !void {
     }
     if (kbd.isPressed(.d)) {
         camera.moveBy(.right, distance);
-    }
-    if (kbd.isPressed(.left)) {
-        camera.rotateBy(0, -std.math.pi / 180.0);
-    }
-    if (kbd.isPressed(.right)) {
-        camera.rotateBy(0, std.math.pi / 180.0);
-    }
-    if (kbd.isPressed(.up)) {
-        camera.rotateBy(std.math.pi / 180.0, 0);
-    }
-    if (kbd.isPressed(.down)) {
-        camera.rotateBy(-std.math.pi / 180.0, 0);
     }
 
     earth_orbit.setTransform(
@@ -126,11 +142,11 @@ pub fn draw(ctx: jok.Context) !void {
     };
 
     var b = try batchpool.new(.{ .camera = camera, .triangle_sort = .simple });
-    defer b.submit();
     try b.scene(scene, .{ .lighting = lighting_opt });
+    b.submit();
 
     ctx.debugPrint(
-        "Press WSAD and up/down/left/right to move camera around the view",
+        "Press WSAD to move around, drag mouse while pressing right-button to rotate the view",
         .{ .pos = .{ .x = 20, .y = 10 } },
     );
     ctx.debugPrint(
