@@ -500,7 +500,7 @@ var physfs_allocator: MemAllocator = undefined;
 var mem_allocator: ?std.mem.Allocator = null;
 var mem_allocations: std.AutoHashMap(usize, usize) = undefined;
 var mem_mutex: std.Thread.Mutex = .{};
-const mem_alignment = 16;
+const mem_alignment: std.mem.Alignment = .@"16";
 
 fn memInit() callconv(.C) c_int {
     assert(mem_allocator != null);
@@ -538,7 +538,7 @@ fn memRealloc(ptr: ?*anyopaque, size: usize) callconv(.C) ?*anyopaque {
     var mem: []u8 = undefined;
     if (mem_allocations.fetchRemove(@intFromPtr(ptr))) |kv| {
         const old_size = kv.value;
-        const old_mem = @as([*]align(mem_alignment) u8, @ptrCast(@alignCast(ptr)))[0..old_size];
+        const old_mem = @as([*]align(mem_alignment.toByteUnits()) u8, @ptrCast(@alignCast(ptr)))[0..old_size];
         mem = mem_allocator.?.realloc(old_mem, size) catch @panic("OOM");
     } else {
         mem = mem_allocator.?.alignedAlloc(
@@ -559,7 +559,7 @@ fn memFree(ptr: ?*anyopaque) callconv(.C) void {
     defer mem_mutex.unlock();
 
     const size = mem_allocations.fetchRemove(@intFromPtr(ptr)).?.value;
-    const mem = @as([*]align(mem_alignment) u8, @ptrCast(@alignCast(ptr)))[0..size];
+    const mem = @as([*]align(mem_alignment.toByteUnits()) u8, @ptrCast(@alignCast(ptr)))[0..size];
     mem_allocator.?.free(mem);
 }
 
