@@ -7,6 +7,10 @@ const minAndMax = jok.utils.math.minAndMax;
 pub const Point = extern struct {
     pub const origin = Point{ .x = 0, .y = 0 };
     pub const unit = Point{ .x = 1, .y = 1 };
+    pub const up = Point{ .x = 0, .y = -1 };
+    pub const down = Point{ .x = 0, .y = 1 };
+    pub const left = Point{ .x = -1, .y = 0 };
+    pub const right = Point{ .x = 1, .y = 0 };
     pub const anchor_top_left = Point{ .x = 0, .y = 0 };
     pub const anchor_top_right = Point{ .x = 1, .y = 0 };
     pub const anchor_bottom_left = Point{ .x = 0, .y = 1 };
@@ -112,6 +116,26 @@ pub const Rectangle = extern struct {
 
     pub inline fn getSize(r: Rectangle) jok.Point {
         return .{ .x = r.width, .y = r.height };
+    }
+
+    pub inline fn getTopLeft(r: Rectangle) jok.Point {
+        return .{ .x = r.x, .y = r.y };
+    }
+
+    pub inline fn getTopRight(r: Rectangle) jok.Point {
+        return .{ .x = r.x + r.width - 1, .y = r.y };
+    }
+
+    pub inline fn getBottomLeft(r: Rectangle) jok.Point {
+        return .{ .x = r.x, .y = r.y + r.height - 1 };
+    }
+
+    pub inline fn getBottomRight(r: Rectangle) jok.Point {
+        return .{ .x = r.x + r.width - 1, .y = r.y + r.height - 1 };
+    }
+
+    pub inline fn getCenter(r: Rectangle) jok.Point {
+        return .{ .x = @floor(r.x + r.width * 0.5), .y = @floor(r.y + r.height * 0.5) };
     }
 
     pub inline fn translate(r: Rectangle, x: f32, y: f32) Rectangle {
