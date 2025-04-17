@@ -5,6 +5,7 @@ const math = std.math;
 const ascii = std.ascii;
 const unicode = std.unicode;
 const jok = @import("jok.zig");
+const font = jok.font;
 const imgui = jok.imgui;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
@@ -394,8 +395,8 @@ pub const Batch = struct {
     }
 
     pub const TextOption = struct {
-        atlas: *jok.font.Atlas,
         pos: jok.Point = .origin,
+        atlas: ?*jok.font.Atlas = null,
         ignore_unexist: bool = true,
         ypos_type: jok.font.Atlas.YPosType = .top,
         align_type: jok.font.Atlas.AlignType = .left,
@@ -415,6 +416,7 @@ pub const Batch = struct {
         const txt = imgui.format(fmt, args);
         if (txt.len == 0) return;
 
+        const atlas = opt.atlas orelse self.ctx.getDebugAtlas(16);
         var pos = self.trs.transformPoint(opt.pos);
         const begin_x = pos.x;
         var scaling = self.trs.getScale();
@@ -429,7 +431,7 @@ pub const Batch = struct {
         );
 
         if (opt.align_type != .left) {
-            const bbox = try opt.atlas.getBoundingBox(
+            const bbox = try atlas.getBoundingBox(
                 txt,
                 pos,
                 .{
@@ -465,7 +467,7 @@ pub const Batch = struct {
 
             // Kerning adjustment
             pos.x += if (opt.kerning and last_codepoint > 0)
-                scaling.x * opt.font.?.getKerningInPixels(opt.atlas.getFontSizeInPixels(), last_codepoint, codepoint)
+                scaling.x * opt.font.?.getKerningInPixels(atlas.getFontSizeInPixels(), last_codepoint, codepoint)
             else
                 0;
 
@@ -474,10 +476,10 @@ pub const Batch = struct {
                 replaced_with_hyphen = false;
                 pos = .{
                     .x = begin_x,
-                    .y = pos.y + (opt.atlas.getVPosOfNextLine(pos.y) - pos.y) * scaling.y,
+                    .y = pos.y + (atlas.getVPosOfNextLine(pos.y) - pos.y) * scaling.y,
                 };
                 if (opt.align_type != .left) {
-                    const bbox = try opt.atlas.getBoundingBox(
+                    const bbox = try atlas.getBoundingBox(
                         txt[i..],
                         pos,
                         .{
@@ -502,7 +504,7 @@ pub const Batch = struct {
                     ascii.isAlphabetic(@intCast(last_codepoint)) and ascii.isAlphabetic(@intCast(codepoint)))
                 {
                     // Check if this is last character of the line
-                    const new_x = pos.x + (opt.atlas.getVerticesOfCodePoint(
+                    const new_x = pos.x + (atlas.getVerticesOfCodePoint(
                         pos,
                         opt.ypos_type,
                         .white,
@@ -514,7 +516,7 @@ pub const Batch = struct {
                     }
                 }
             }
-            if (opt.atlas.getVerticesOfCodePoint(pos, opt.ypos_type, .white, codepoint)) |cs| {
+            if (atlas.getVerticesOfCodePoint(pos, opt.ypos_type, .white, codepoint)) |cs| {
                 const v = zmath.mul(
                     zmath.f32x4(
                         cs.vs[0].pos.x,
@@ -530,7 +532,7 @@ pub const Batch = struct {
                     .height = cs.vs[3].pos.y - cs.vs[0].pos.y,
                     .uv0 = cs.vs[0].texcoord,
                     .uv1 = cs.vs[2].texcoord,
-                    .tex = opt.atlas.tex,
+                    .tex = atlas.tex,
                 };
                 try s.render(&self.draw_commands, .{
                     .pos = draw_pos,

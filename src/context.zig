@@ -44,6 +44,7 @@ pub const Context = struct {
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
         debugPrint: *const fn (ctx: *anyopaque, text: []const u8, opt: DebugPrint) void,
+        getDebugAtlas: *const fn (ctx: *anyopaque, size: u32) *font.Atlas,
         registerPlugin: *const fn (ctx: *anyopaque, name: []const u8, path: []const u8, hotreload: bool) anyerror!void,
         unregisterPlugin: *const fn (ctx: *anyopaque, name: []const u8) anyerror!void,
         forceReloadPlugin: *const fn (ctx: *anyopaque, name: []const u8) anyerror!void,
@@ -163,6 +164,11 @@ pub const Context = struct {
     /// Display text
     pub fn debugPrint(self: Context, text: []const u8, opt: DebugPrint) void {
         return self.vtable.debugPrint(self.ctx, text, opt);
+    }
+
+    /// Get atlas of debug font
+    pub fn getDebugAtlas(self: Context, size: u32) *font.Atlas {
+        return self.vtable.getDebugAtlas(self.ctx, size);
     }
 
     /// Register new plugin
@@ -757,6 +763,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .isRunningSlow = isRunningSlow,
                     .displayStats = displayStats,
                     .debugPrint = debugPrint,
+                    .getDebugAtlas = getDebugAtlas,
                     .registerPlugin = registerPlugin,
                     .unregisterPlugin = unregisterPlugin,
                     .forceReloadPlugin = forceReloadPlugin,
@@ -1074,6 +1081,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._debug_print_vertices.items,
                 self._debug_print_indices.items,
             ) catch unreachable;
+        }
+
+        /// Get atlas of debug font
+        pub fn getDebugAtlas(ptr: *anyopaque, size: u32) *font.Atlas {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            return font.DebugFont.getAtlas(self._ctx, size) catch unreachable;
         }
 
         /// Register new plugin
