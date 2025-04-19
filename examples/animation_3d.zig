@@ -253,7 +253,7 @@ pub fn draw(ctx: jok.Context) !void {
         .wireframe_color = if (wireframe) .green else null,
     });
     defer b.submit();
-    b.scale(3, 3, 3);
+    b.scale(.{ 3, 3, 3 });
     if (animation1) |a| {
         try b.animation(
             a,
@@ -274,7 +274,7 @@ pub fn draw(ctx: jok.Context) !void {
     }
 
     b.setIdentity();
-    b.translate(-4, 0, 0);
+    b.translate(.{ -4, 0, 0 });
     if (animation2) |a| {
         try b.animation(
             a,

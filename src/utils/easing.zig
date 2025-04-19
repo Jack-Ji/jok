@@ -297,6 +297,13 @@ pub fn easeColor(x: f32, _from: jok.Color, _to: jok.Color) jok.Color {
     return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
 }
 
+pub fn easeArray(x: f32, comptime n: usize, _from: [n]f32, _to: [n]f32) [n]f32 {
+    const es = EaseVector(n, f32);
+    const from: @Vector(4, f32) = _from;
+    const to: @Vector(4, f32) = _to;
+    return es.ease(x, from, to);
+}
+
 ///////////////////////////////////////////////////////////////////////
 ///
 /// Different kinds of easing functions (x goes from 0 to 1)
@@ -341,11 +348,11 @@ fn getEasingFn(t: EasingType) EasingFn {
     };
 }
 
-fn linear(x: f32) f32 {
+pub fn linear(x: f32) f32 {
     return x;
 }
 
-const sin = struct {
+pub const sin = struct {
     fn in(x: f32) f32 {
         return 1 - math.cos((x * math.pi) / 2);
     }
@@ -359,7 +366,7 @@ const sin = struct {
     }
 };
 
-const quad = struct {
+pub const quad = struct {
     fn in(x: f32) f32 {
         return x * x;
     }
@@ -376,7 +383,7 @@ const quad = struct {
     }
 };
 
-const cubic = struct {
+pub const cubic = struct {
     fn in(x: f32) f32 {
         return x * x * x;
     }
@@ -393,7 +400,7 @@ const cubic = struct {
     }
 };
 
-const quart = struct {
+pub const quart = struct {
     fn in(x: f32) f32 {
         return x * x * x * x;
     }
@@ -410,7 +417,7 @@ const quart = struct {
     }
 };
 
-const quint = struct {
+pub const quint = struct {
     fn in(x: f32) f32 {
         return x * x * x * x * x;
     }
@@ -427,7 +434,7 @@ const quint = struct {
     }
 };
 
-const expo = struct {
+pub const expo = struct {
     fn in(x: f32) f32 {
         return if (math.approxEqAbs(f32, x, 0, math.floatEps(f32)))
             0
@@ -454,7 +461,7 @@ const expo = struct {
     }
 };
 
-const circ = struct {
+pub const circ = struct {
     fn in(x: f32) f32 {
         return 1.0 - math.sqrt(1.0 - math.pow(f32, x, 2));
     }
@@ -471,7 +478,7 @@ const circ = struct {
     }
 };
 
-const back = struct {
+pub const back = struct {
     fn in(x: f32) f32 {
         const c1 = 1.70158;
         const c3 = c1 + 1;
@@ -494,7 +501,7 @@ const back = struct {
     }
 };
 
-const elastic = struct {
+pub const elastic = struct {
     fn in(x: f32) f32 {
         const c4 = (2.0 * math.pi) / 3.0;
         return if (math.approxEqAbs(f32, x, 0, math.floatEps(f32)))
@@ -528,7 +535,7 @@ const elastic = struct {
     }
 };
 
-const bounce = struct {
+pub const bounce = struct {
     fn in(x: f32) f32 {
         return 1 - out(1 - x);
     }

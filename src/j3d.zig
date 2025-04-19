@@ -350,8 +350,8 @@ pub const Batch = struct {
         self.trs = zmath.identity();
     }
 
-    pub fn translate(self: *Batch, x: f32, y: f32, z: f32) void {
-        self.trs = zmath.mul(self.trs, zmath.translation(x, y, z));
+    pub fn translate(self: *Batch, v: [3]f32) void {
+        self.trs = zmath.mul(self.trs, zmath.translation(v[0], v[1], v[2]));
     }
 
     pub fn rotateX(self: *Batch, radian: f32) void {
@@ -366,8 +366,8 @@ pub const Batch = struct {
         self.trs = zmath.mul(self.trs, zmath.rotationZ(radian));
     }
 
-    pub fn scale(self: *Batch, x: f32, y: f32, z: f32) void {
-        self.trs = zmath.mul(self.trs, zmath.scaling(x, y, z));
+    pub fn scale(self: *Batch, v: [3]f32) void {
+        self.trs = zmath.mul(self.trs, zmath.scaling(v[0], v[1], v[2]));
     }
 
     /// Get current batched data

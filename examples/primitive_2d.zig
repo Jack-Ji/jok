@@ -9,7 +9,7 @@ pub const jok_window_size = jok.config.WindowSize{
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var scale: f32 = 1.0;
 var rotate: f32 = 0.0;
-var translate: jok.Point = .origin;
+var translate: [2]f32 = .{ 0, 0 };
 var convex_poly: j2d.ConvexPoly = undefined;
 var concave_poly: j2d.ConcavePoly = undefined;
 var polyline: j2d.Polyline = undefined;
@@ -71,21 +71,21 @@ pub fn draw(ctx: jok.Context) !void {
         imgui.sameLine(.{ .spacing = 50 });
         _ = imgui.sliderFloat("rotate", .{ .v = &rotate, .min = 0, .max = std.math.pi * 2 });
         imgui.sameLine(.{ .spacing = 50 });
-        _ = imgui.sliderFloat2("translate", .{ .v = @ptrCast(&translate), .min = 0, .max = 400 });
+        _ = imgui.sliderFloat2("translate", .{ .v = &translate, .min = 0, .max = 400 });
     }
     imgui.end();
 
     var b = try batchpool.new(.{});
     defer b.submit();
 
-    b.scale(scale, scale);
+    b.scale(.{ scale, scale });
     b.rotateByOrigin(rotate);
-    b.translate(translate.x, translate.y);
+    b.translate(translate);
 
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(100, 200);
+        b.translate(.{ 100, 200 });
         try b.line(
             .{ .x = -50, .y = 0 },
             .{ .x = 50, .y = 0 },
@@ -96,7 +96,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(250, 200);
+        b.translate(.{ 250, 200 });
         try b.rect(.{
             .x = -50,
             .y = -50,
@@ -107,7 +107,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(400, 200);
+        b.translate(.{ 400, 200 });
         try b.rectFilled(.{
             .x = -50,
             .y = -50,
@@ -118,7 +118,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(550, 200);
+        b.translate(.{ 550, 200 });
         try b.rectFilledMultiColor(
             .{
                 .x = -50,
@@ -136,7 +136,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(700, 200);
+        b.translate(.{ 700, 200 });
         try b.rectRounded(
             .{
                 .x = 0,
@@ -154,7 +154,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(850, 200);
+        b.translate(.{ 850, 200 });
         try b.rectRoundedFilled(
             .{
                 .x = 0,
@@ -172,7 +172,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(1000, 200);
+        b.translate(.{ 1000, 200 });
         try b.quad(
             .{ .x = -30, .y = -30 },
             .{ .x = 30, .y = -30 },
@@ -185,7 +185,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(1150, 200);
+        b.translate(.{ 1150, 200 });
         try b.quadFilled(
             .{ .x = -30, .y = -30 },
             .{ .x = 30, .y = -30 },
@@ -198,7 +198,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(100, 400);
+        b.translate(.{ 100, 400 });
         try b.quadFilledMultiColor(
             .{ .x = -30, .y = -30 },
             .{ .x = 30, .y = -30 },
@@ -214,7 +214,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(250, 400);
+        b.translate(.{ 250, 400 });
         try b.triangle(
             .{
                 .p0 = .{ .x = 0, .y = -50 },
@@ -228,7 +228,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(400, 400);
+        b.translate(.{ 400, 400 });
         try b.triangleFilled(
             .{
                 .p0 = .{ .x = 0, .y = -50 },
@@ -242,7 +242,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(400, 400);
+        b.translate(.{ 400, 400 });
         try b.triangleFilledMultiColor(
             .{
                 .p0 = .{ .x = 0, .y = -50 },
@@ -260,7 +260,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(550, 400);
+        b.translate(.{ 550, 400 });
         try b.circle(
             .{ .center = .origin, .radius = 50 },
             .white,
@@ -270,7 +270,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(700, 400);
+        b.translate(.{ 700, 400 });
         try b.circleFilled(
             .{ .center = .origin, .radius = 50 },
             .white,
@@ -280,7 +280,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(850, 400);
+        b.translate(.{ 850, 400 });
         try b.ellipse(
             .{
                 .center = .origin,
@@ -293,7 +293,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(1000, 400);
+        b.translate(.{ 1000, 400 });
         try b.ellipseFilled(
             .{
                 .center = .origin,
@@ -306,19 +306,19 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(1150, 400);
+        b.translate(.{ 1150, 400 });
         try b.ngon(.origin, 50, .white, 6, .{});
     }
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(100, 600);
+        b.translate(.{ 100, 600 });
         try b.ngonFilled(.origin, 50, .white, 6, .{});
     }
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(250, 600);
+        b.translate(.{ 250, 600 });
         try b.bezierCubic(
             .{ .x = -50, .y = -50 },
             .{ .x = -10, .y = -50 },
@@ -331,7 +331,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(400, 600);
+        b.translate(.{ 400, 600 });
         try b.bezierQuadratic(
             .{ .x = -50, .y = -50 },
             .{ .x = 0, .y = 50 },
@@ -343,19 +343,19 @@ pub fn draw(ctx: jok.Context) !void {
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(550, 600);
+        b.translate(.{ 550, 600 });
         try b.convexPolyFilled(convex_poly, .{});
     }
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(700, 600);
+        b.translate(.{ 700, 600 });
         try b.concavePolyFilled(concave_poly, .white, .{});
     }
     {
         try b.pushTransform();
         defer b.popTransform();
-        b.translate(850, 600);
+        b.translate(.{ 850, 600 });
         try b.polyline(polyline, .white, .{});
     }
 }

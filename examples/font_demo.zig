@@ -122,8 +122,8 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
     try b.line(
-        pos.sub(.{ .x = 0, .y = 40 }),
-        pos.add(.{ .x = 0, .y = 70 }),
+        pos.sub(.{ 0, 40 }),
+        pos.add(.{ 0, 70 }),
         .purple,
         .{},
     );
@@ -169,8 +169,8 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
     try b.line(
-        pos.sub(.{ .x = 0, .y = 50 }),
-        pos.add(.{ .x = 0, .y = 130 }),
+        pos.sub(.{ 0, 50 }),
+        pos.add(.{ 0, 130 }),
         .purple,
         .{},
     );
@@ -215,8 +215,8 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
     try b.line(
-        pos.sub(.{ .x = 0, .y = 50 }),
-        pos.add(.{ .x = 0, .y = 130 }),
+        pos.sub(.{ 0, 50 }),
+        pos.add(.{ 0, 130 }),
         .purple,
         .{},
     );
@@ -239,32 +239,32 @@ pub fn draw(ctx: jok.Context) !void {
         .{},
     );
     try b.rectFilled(
-        metrics.getSpace(q_pos.add(.{ .x = metrics.advance_width, .y = 0 }), .top),
+        metrics.getSpace(q_pos.add(.{ metrics.advance_width, 0 }), .top),
         .rgba(200, 0, 0, 128),
         .{},
     );
     try b.rectFilled(
-        metrics.getBBox(q_pos.add(.{ .x = metrics.advance_width, .y = 0 }), .top),
+        metrics.getBBox(q_pos.add(.{ metrics.advance_width, 0 }), .top),
         .rgba(0, 200, 0, 200),
         .{},
     );
     try b.rectFilled(
-        metrics.getSpace(q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }), .bottom),
+        metrics.getSpace(q_pos.add(.{ metrics.advance_width * 2, 0 }), .bottom),
         .rgba(200, 0, 0, 128),
         .{},
     );
     try b.rectFilled(
-        metrics.getBBox(q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }), .bottom),
+        metrics.getBBox(q_pos.add(.{ metrics.advance_width * 2, 0 }), .bottom),
         .rgba(0, 200, 0, 200),
         .{},
     );
     try b.rectFilled(
-        metrics.getSpace(q_pos.add(.{ .x = metrics.advance_width * 3, .y = 0 }), .middle),
+        metrics.getSpace(q_pos.add(.{ metrics.advance_width * 3, 0 }), .middle),
         .rgba(200, 0, 0, 128),
         .{},
     );
     try b.rectFilled(
-        metrics.getBBox(q_pos.add(.{ .x = metrics.advance_width * 3, .y = 0 }), .middle),
+        metrics.getBBox(q_pos.add(.{ metrics.advance_width * 3, 0 }), .middle),
         .rgba(0, 200, 0, 200),
         .{},
     );
@@ -278,7 +278,7 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
     try b.text("baseline", .{}, .{
-        .pos = q_pos.add(.{ .x = metrics.advance_width / 2, .y = -105 }),
+        .pos = q_pos.add(.{ metrics.advance_width / 2, -105 }),
         .atlas = try font.DebugFont.getAtlas(ctx, 16),
         .tint_color = .purple,
         .ypos_type = .bottom,
@@ -289,12 +289,12 @@ pub fn draw(ctx: jok.Context) !void {
         .{},
         .{
             .atlas = atlas,
-            .pos = q_pos.add(.{ .x = metrics.advance_width, .y = 0 }),
+            .pos = q_pos.add(.{ metrics.advance_width, 0 }),
             .ypos_type = .top,
         },
     );
     try b.text("top", .{}, .{
-        .pos = q_pos.add(.{ .x = metrics.advance_width * 1.5, .y = -5 }),
+        .pos = q_pos.add(.{ metrics.advance_width * 1.5, -5 }),
         .atlas = try font.DebugFont.getAtlas(ctx, 16),
         .tint_color = .purple,
         .ypos_type = .bottom,
@@ -305,12 +305,12 @@ pub fn draw(ctx: jok.Context) !void {
         .{},
         .{
             .atlas = atlas,
-            .pos = q_pos.add(.{ .x = metrics.advance_width * 2, .y = 0 }),
+            .pos = q_pos.add(.{ metrics.advance_width * 2, 0 }),
             .ypos_type = .bottom,
         },
     );
     try b.text("bottom", .{}, .{
-        .pos = q_pos.add(.{ .x = metrics.advance_width * 2.5, .y = -130 }),
+        .pos = q_pos.add(.{ metrics.advance_width * 2.5, -130 }),
         .atlas = try font.DebugFont.getAtlas(ctx, 16),
         .tint_color = .purple,
         .ypos_type = .bottom,
@@ -321,25 +321,25 @@ pub fn draw(ctx: jok.Context) !void {
         .{},
         .{
             .atlas = atlas,
-            .pos = q_pos.add(.{ .x = metrics.advance_width * 3, .y = 0 }),
+            .pos = q_pos.add(.{ metrics.advance_width * 3, 0 }),
             .ypos_type = .middle,
         },
     );
     try b.text("middle", .{}, .{
-        .pos = q_pos.add(.{ .x = metrics.advance_width * 3.5, .y = -65 }),
+        .pos = q_pos.add(.{ metrics.advance_width * 3.5, -65 }),
         .atlas = try font.DebugFont.getAtlas(ctx, 16),
         .tint_color = .purple,
         .ypos_type = .bottom,
         .align_type = .middle,
     });
     try b.line(
-        q_pos.sub(.{ .x = metrics.advance_width, .y = 0 }),
-        q_pos.add(.{ .x = metrics.advance_width * 5, .y = 0 }),
+        q_pos.sub(.{ metrics.advance_width, 0 }),
+        q_pos.add(.{ metrics.advance_width * 5, 0 }),
         .purple,
         .{ .thickness = 2.0 },
     );
     try b.text("Y-POSITION", .{}, .{
-        .pos = q_pos.add(.{ .x = metrics.advance_width * 5, .y = -5 }),
+        .pos = q_pos.add(.{ metrics.advance_width * 5, -5 }),
         .atlas = try font.DebugFont.getAtlas(ctx, 16),
         .tint_color = .purple,
         .ypos_type = .bottom,

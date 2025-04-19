@@ -7,6 +7,13 @@ const Self = @This();
 
 data: Vec,
 
+pub const zero = set(0);
+pub const one = set(1);
+pub const up = new(0, -1);
+pub const down = new(0, 1);
+pub const left = new(-1, 0);
+pub const right = new(1, 0);
+
 /// Construct new vector.
 pub fn new(vx: f32, vy: f32) Self {
     return .{ .data = [2]f32{ vx, vy } };
@@ -26,36 +33,6 @@ pub fn set(val: f32) Self {
     return .{ .data = result };
 }
 
-/// Shorthand for (0..).
-pub fn zero() Self {
-    return set(0);
-}
-
-/// Shorthand for (1..).
-pub fn one() Self {
-    return set(1);
-}
-
-/// Shorthand for (0, -1).
-pub fn up() Self {
-    return Self.new(0, -1);
-}
-
-/// Shorthand for (0, 1).
-pub fn down() Self {
-    return Self.new(0, 1);
-}
-
-/// Shorthand for (1, 0).
-pub fn right() Self {
-    return Self.new(1, 0);
-}
-
-/// Shorthand for (-1, 0).
-pub fn left() Self {
-    return Self.new(-1, 0);
-}
-
 /// Negate the given vector.
 pub fn negate(self: Self) Self {
     return self.scale(-1);
@@ -73,9 +50,14 @@ pub fn toArray(self: Self) [2]f32 {
 }
 
 /// Return the angle (in degrees) between two vectors.
-pub fn getAngle(first_vector: Self, second_vector: Self) f32 {
+pub fn getAngleDegreeBetween(first_vector: Self, second_vector: Self) f32 {
+    return std.math.radiansToDegrees(first_vector.getAngleBetween(second_vector));
+}
+
+/// Return the angle between two vectors.
+pub fn getAngleBetween(first_vector: Self, second_vector: Self) f32 {
     const dot_product = dot(norm(first_vector), norm(second_vector));
-    return std.math.radiansToDegrees(math.acos(dot_product));
+    return math.acos(dot_product);
 }
 
 /// Return the length (magnitude) of given vector.
@@ -172,9 +154,7 @@ test "Vectors.set" {
 }
 
 test "Vectors.add" {
-    const a = Self.one();
-    const b = Self.one();
-    try expectEqual(a.add(b), Self.set(2));
+    try expectEqual(one.add(one), Self.set(2));
 }
 
 test "Vectors.negate" {
@@ -183,20 +163,15 @@ test "Vectors.negate" {
     try expectEqual(a.negate(), a_negated);
 }
 
-test "Vectors.getAngle" {
-    const a = Self.right();
-    const b = Self.up();
-    const c = Self.left();
-    const d = Self.one();
-
-    try expectEqual(math.approxEqAbs(f32, a.getAngle(a), 0, 0.0001), true);
-    try expectEqual(math.approxEqAbs(f32, a.getAngle(b), 90, 0.0001), true);
-    try expectEqual(math.approxEqAbs(f32, a.getAngle(c), 180, 0.0001), true);
-    try expectEqual(math.approxEqAbs(f32, a.getAngle(d), 45, 0.0001), true);
+test "Vectors.getAngleDegreeBetween" {
+    try expectEqual(math.approxEqAbs(f32, right.getAngleDegreeBetween(right), 0, 0.0001), true);
+    try expectEqual(math.approxEqAbs(f32, right.getAngleDegreeBetween(up), 90, 0.0001), true);
+    try expectEqual(math.approxEqAbs(f32, right.getAngleDegreeBetween(left), 180, 0.0001), true);
+    try expectEqual(math.approxEqAbs(f32, right.getAngleDegreeBetween(one), 45, 0.0001), true);
 }
 
 test "Vectors.toArray" {
-    const a = Self.up().toArray();
+    const a = up.toArray();
     const b = [_]f32{ 0, -1 };
 
     try std.testing.expectEqualSlices(f32, &a, &b);
@@ -208,12 +183,10 @@ test "Vectors.length" {
 }
 
 test "Vectors.distance" {
-    const a = Self.zero();
-    const b = Self.left();
     const c = Self.new(0, 5);
 
-    try expectEqual(a.distance(b), 1);
-    try expectEqual(a.distance(c), 5);
+    try expectEqual(zero.distance(left), 1);
+    try expectEqual(zero.distance(c), 5);
 }
 
 test "Vectors.normalize" {

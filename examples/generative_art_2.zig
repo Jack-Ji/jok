@@ -52,11 +52,8 @@ pub fn draw(ctx: jok.Context) !void {
     var b = try batchpool.new(.{});
     defer b.submit();
     b.trs = j2d.AffineTransform.init()
-        .scale(.{ .x = scale, .y = scale })
-        .translate(.{
-        .x = ctx.getCanvasSize().getWidthFloat() / 2,
-        .y = ctx.getCanvasSize().getHeightFloat() / 2,
-    });
+        .scale(.{ scale, scale })
+        .translate(.{ ctx.getCanvasSize().getWidthFloat() / 2, ctx.getCanvasSize().getHeightFloat() / 2 });
     try b.polyline(polyline, .white, .{ .closed = true });
 }
 

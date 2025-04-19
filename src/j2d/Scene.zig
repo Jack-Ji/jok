@@ -163,11 +163,9 @@ pub fn render(
 ) !void {
     const o = opt.object orelse self.root;
     if (o.actor.sprite) |s| {
-        const scale = opt.transform.getScale();
         var rdopt = o.render_opt;
         rdopt.pos = opt.transform.transformPoint(rdopt.pos);
-        rdopt.scale.x *= scale.x;
-        rdopt.scale.y *= scale.y;
+        rdopt.scale = rdopt.scale.mul(opt.transform.getScale());
         try s.render(draw_commands, rdopt);
     }
 

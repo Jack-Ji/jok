@@ -73,7 +73,7 @@ fn scene3d(ctx: jok.Context) !void {
 
     b.rotateX(0.1);
     b.rotateY(ctx.seconds());
-    b.translate(0, -0.2, 0);
+    b.translate(.{ 0, -0.2, 0 });
     try b.shape(state.shape_tetrahedron, null, .{
         .cull_faces = false,
     });

@@ -239,8 +239,8 @@ pub const Batch = struct {
         self.trs = AffineTransform.init();
     }
 
-    pub fn translate(self: *Batch, x: f32, y: f32) void {
-        self.trs = self.trs.translate(.{ .x = x, .y = y });
+    pub fn translate(self: *Batch, v: [2]f32) void {
+        self.trs = self.trs.translate(v);
     }
 
     pub fn rotateByOrigin(self: *Batch, radian: f32) void {
@@ -251,8 +251,8 @@ pub const Batch = struct {
         self.trs = self.trs.rotateByPoint(p, radian);
     }
 
-    pub fn scale(self: *Batch, x: f32, y: f32) void {
-        self.trs = self.trs.scale(.{ .x = x, .y = y });
+    pub fn scale(self: *Batch, v: [2]f32) void {
+        self.trs = self.trs.scale(v);
     }
 
     pub const ImageOption = struct {
@@ -288,7 +288,7 @@ pub const Batch = struct {
         try s.render(&self.draw_commands, .{
             .pos = self.trs.transformPoint(pos),
             .tint_color = opt.tint_color,
-            .scale = .{ .x = scaling.x * opt.scale.x, .y = scaling.y * opt.scale.y },
+            .scale = .{ .x = scaling[0] * opt.scale.x, .y = scaling[1] * opt.scale.y },
             .rotate_angle = opt.rotate_angle,
             .anchor_point = opt.anchor_point,
             .flip_h = opt.flip_h,
@@ -331,9 +331,9 @@ pub const Batch = struct {
                 .y = @floatFromInt(info.height),
             };
         };
-        const size = _size.mul(self.trs.getScale());
-        const pmin = pos.add(self.trs.getTranslation()).sub(size.mul(opt.anchor_point));
-        const pmax = pmin.add(_size.mul(self.trs.getScale()));
+        const size: @Vector(2, f32) = _size.mul(self.trs.getScale()).toArray();
+        const pmin = pos.add(self.trs.getTranslation()).sub(size * opt.anchor_point.toArray());
+        const pmax = pmin.add(size);
         try self.pushDrawCommand(.{
             .cmd = .{
                 .image_rounded = .{
@@ -385,7 +385,7 @@ pub const Batch = struct {
         try s.render(&self.draw_commands, .{
             .pos = self.trs.transformPoint(opt.pos),
             .tint_color = opt.tint_color,
-            .scale = .{ .x = scaling.x * opt.scale.x, .y = scaling.y * opt.scale.y },
+            .scale = .{ .x = scaling[0] * opt.scale.x, .y = scaling[1] * opt.scale.y },
             .rotate_angle = opt.rotate_angle,
             .anchor_point = opt.anchor_point,
             .flip_h = opt.flip_h,
@@ -419,9 +419,7 @@ pub const Batch = struct {
         const atlas = opt.atlas orelse self.ctx.getDebugAtlas(16);
         var pos = self.trs.transformPoint(opt.pos);
         const begin_x = pos.x;
-        var scaling = self.trs.getScale();
-        scaling.x *= opt.scale.x;
-        scaling.y *= opt.scale.y;
+        const scaling = opt.scale.mul(self.trs.getScale());
         const mat = zmath.mul(
             zmath.mul(
                 zmath.translation(-pos.x, -pos.y, 0),
@@ -682,8 +680,8 @@ pub const Batch = struct {
     pub fn rectRounded(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const size = r.getSize().mul(self.trs.getScale());
-        const pmin = r.getPos().add(self.trs.getTranslation()).sub(size.mul(opt.anchor_point));
+        const size: @Vector(2, f32) = r.getSize().mul(self.trs.getScale()).toArray();
+        const pmin = r.getPos().add(self.trs.getTranslation()).sub(size * opt.anchor_point.toArray());
         const pmax = pmin.add(size);
         try self.pushDrawCommand(.{
             .cmd = .{
@@ -716,8 +714,8 @@ pub const Batch = struct {
     pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const size = r.getSize().mul(self.trs.getScale());
-        const pmin = r.getPos().add(self.trs.getTranslation()).sub(size.mul(opt.anchor_point));
+        const size: @Vector(2, f32) = r.getSize().mul(self.trs.getScale()).toArray();
+        const pmin = r.getPos().add(self.trs.getTranslation()).sub(size * opt.anchor_point.toArray());
         const pmax = pmin.add(size);
         try self.pushDrawCommand(.{
             .cmd = .{
@@ -1260,11 +1258,11 @@ pub const Batch = struct {
             },
             .circle => |*cmd| {
                 cmd.p = self.trs.transformPoint(cmd.p);
-                cmd.radius *= self.trs.getScale().x;
+                cmd.radius *= self.trs.getScaleX();
             },
             .circle_fill => |*cmd| {
                 cmd.p = self.trs.transformPoint(cmd.p);
-                cmd.radius *= self.trs.getScale().x;
+                cmd.radius *= self.trs.getScaleX();
             },
             .ellipse => |*cmd| {
                 cmd.p = self.trs.transformPoint(cmd.p);
@@ -1276,11 +1274,11 @@ pub const Batch = struct {
             },
             .ngon => |*cmd| {
                 cmd.p = self.trs.transformPoint(cmd.p);
-                cmd.radius *= self.trs.getScale().x;
+                cmd.radius *= self.trs.getScaleX();
             },
             .ngon_fill => |*cmd| {
                 cmd.p = self.trs.transformPoint(cmd.p);
-                cmd.radius *= self.trs.getScale().x;
+                cmd.radius *= self.trs.getScaleX();
             },
             .convex_polygon_fill => |*cmd| {
                 cmd.transform = self.trs;

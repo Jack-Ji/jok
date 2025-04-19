@@ -543,7 +543,6 @@ const CrossSDL = struct {
             .root_module = mod,
         });
         build_linux_sdl_stub.addAssemblyFile(sdk.prepare_sources.getStubFile());
-        build_linux_sdl_stub.step.dependOn(&sdk.prepare_sources.step);
         exe.linkLibrary(build_linux_sdl_stub);
     }
 

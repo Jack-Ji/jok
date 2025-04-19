@@ -349,7 +349,7 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
         }
     }
 
-    var scaled_rect = rect.scale(opt.scale.x, opt.scale.y);
+    var scaled_rect = rect.scale(opt.scale.toArray());
     const scaled_total_width = total_width * opt.scale.x;
     if (opt.align_type == .middle) {
         scaled_rect.x -= scaled_total_width / 2;

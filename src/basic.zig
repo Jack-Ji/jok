@@ -1,4 +1,5 @@
 const std = @import("std");
+const math = std.math;
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
 const zmath = jok.zmath;
@@ -20,28 +21,47 @@ pub const Point = extern struct {
     x: f32,
     y: f32,
 
-    pub inline fn add(p0: Point, p1: Point) Point {
+    pub inline fn toArray(p: Point) [2]f32 {
+        return .{ p.x, p.y };
+    }
+
+    pub inline fn toSize(p: Point) Size {
         return .{
-            .x = p0.x + p1.x,
-            .y = p0.y + p1.y,
+            .width = @intCast(@round(p.x)),
+            .height = @intCast(@round(p.y)),
         };
     }
 
-    pub inline fn sub(p0: Point, p1: Point) Point {
+    pub inline fn angle(p: Point) f32 {
+        return math.atan2(p.y, p.x);
+    }
+
+    pub inline fn angleDegree(p: Point) f32 {
+        return math.radiansToDegrees(math.atan2(p.y, p.x));
+    }
+
+    pub inline fn add(p0: Point, v: [2]f32) Point {
         return .{
-            .x = p0.x - p1.x,
-            .y = p0.y - p1.y,
+            .x = p0.x + v[0],
+            .y = p0.y + v[1],
         };
     }
 
-    pub inline fn mul(p0: Point, p1: Point) Point {
+    pub inline fn sub(p0: Point, v: [2]f32) Point {
         return .{
-            .x = p0.x * p1.x,
-            .y = p0.y * p1.y,
+            .x = p0.x - v[0],
+            .y = p0.y - v[1],
         };
     }
 
-    pub inline fn mulf(p0: Point, s: f32) Point {
+    pub inline fn mul(p0: Point, v: [2]f32) Point {
+        return .{
+            .x = p0.x * v[0],
+            .y = p0.y * v[1],
+        };
+    }
+
+    pub inline fn scale(p0: Point, s: f32) Point {
         return .{
             .x = p0.x * s,
             .y = p0.y * s,
@@ -94,12 +114,21 @@ pub const Region = extern struct {
     width: u32,
     height: u32,
 
+    pub inline fn toRect(r: Region) Rectangle {
+        return .{
+            .x = @floatFromInt(r.x),
+            .y = @floatFromInt(r.y),
+            .width = @floatFromInt(r.width),
+            .height = @floatFromInt(r.height),
+        };
+    }
+
     pub inline fn isSame(r0: Region, r1: Region) bool {
         return r0.x == r1.x and r0.y == r1.y and
             r0.width == r1.width and r0.height == r1.height;
     }
 
-    pub inline fn area(r: Region) f32 {
+    pub inline fn area(r: Region) u32 {
         return r.width * r.height;
     }
 };
@@ -109,6 +138,15 @@ pub const Rectangle = extern struct {
     y: f32,
     width: f32,
     height: f32,
+
+    pub inline fn toRegion(r: Rectangle) Region {
+        return .{
+            .x = @intCast(@round(r.x)),
+            .y = @intCast(@round(r.y)),
+            .width = @intCast(@round(r.width)),
+            .height = @intCast(@round(r.height)),
+        };
+    }
 
     pub inline fn getPos(r: Rectangle) jok.Point {
         return .{ .x = r.x, .y = r.y };
@@ -138,21 +176,21 @@ pub const Rectangle = extern struct {
         return .{ .x = @floor(r.x + r.width * 0.5), .y = @floor(r.y + r.height * 0.5) };
     }
 
-    pub inline fn translate(r: Rectangle, x: f32, y: f32) Rectangle {
+    pub inline fn translate(r: Rectangle, v: [2]f32) Rectangle {
         return .{
-            .x = r.x + x,
-            .y = r.y + y,
+            .x = r.x + v[0],
+            .y = r.y + v[1],
             .width = r.width,
             .height = r.height,
         };
     }
 
-    pub inline fn scale(r: Rectangle, x: f32, y: f32) Rectangle {
+    pub inline fn scale(r: Rectangle, v: [2]f32) Rectangle {
         return .{
             .x = r.x,
             .y = r.y,
-            .width = r.width * x,
-            .height = r.height * y,
+            .width = r.width * v[0],
+            .height = r.height * v[1],
         };
     }
 
@@ -209,9 +247,9 @@ pub const Circle = extern struct {
     center: Point = .origin,
     radius: f32 = 1,
 
-    pub inline fn translate(c: Circle, x: f32, y: f32) Circle {
+    pub inline fn translate(c: Circle, v: [2]f32) Circle {
         return .{
-            .center = c.center.add(.{ .x = x, .y = y }),
+            .center = c.center.add(v),
             .radius = c.radius,
         };
     }
@@ -249,9 +287,9 @@ pub const Ellipse = struct {
     center: Point = .origin,
     radius: Point = .unit,
 
-    pub inline fn translate(e: Ellipse, x: f32, y: f32) Circle {
+    pub inline fn translate(e: Ellipse, v: [2]f32) Circle {
         return .{
-            .center = e.center.add(.{ .x = x, .y = y }),
+            .center = e.center.add(v),
             .radius = e.radius,
         };
     }
@@ -308,11 +346,11 @@ pub const Triangle = extern struct {
     p1: Point,
     p2: Point,
 
-    pub inline fn translate(tri: Triangle, x: f32, y: f32) Triangle {
+    pub inline fn translate(tri: Triangle, v: [2]f32) Triangle {
         return .{
-            .p0 = tri.p0.add(.{ .x = x, .y = y }),
-            .p1 = tri.p1.add(.{ .x = x, .y = y }),
-            .p2 = tri.p2.add(.{ .x = x, .y = y }),
+            .p0 = tri.p0.add(v),
+            .p1 = tri.p1.add(v),
+            .p2 = tri.p2.add(v),
         };
     }
 

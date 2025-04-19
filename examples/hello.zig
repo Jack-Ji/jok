@@ -61,7 +61,7 @@ pub fn init(ctx: jok.Context) !void {
     shape_parametric_sphere.computeNormals();
     shape_tetrahedron = zmesh.Shape.initTetrahedron();
     shape_tetrahedron.computeNormals();
-    text_draw_pos = csz.toPoint().mulf(0.5);
+    text_draw_pos = csz.toPoint().scale(0.5);
     text_speed = .{ .x = 100, .y = 100 };
     point_easing_system = try easing.EasingSystem(jok.Point).create(ctx.allocator());
     color_easing_system = try easing.EasingSystem(jok.Color).create(ctx.allocator());
@@ -106,7 +106,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                     easing.easePoint,
                     1,
                     csz.toPoint(),
-                    csz.toPoint().mulf(0.2),
+                    csz.toPoint().scale(0.2),
                     .{},
                 );
                 try color_easing_system.add(
@@ -172,15 +172,15 @@ pub fn draw(ctx: jok.Context) !void {
             try b.pushTransform();
             defer b.popTransform();
             b.setIdentity();
-            b.scale(
+            b.scale(.{
                 (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
                 (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
-            );
+            });
             b.rotateByOrigin(ctx.seconds());
-            b.translate(
+            b.translate(.{
                 offset_transformed[0],
                 offset_transformed[1],
-            );
+            });
             try b.rectFilledMultiColor(
                 .{ .x = -10, .y = -10, .width = 20, .height = 20 },
                 .white,
@@ -235,7 +235,7 @@ pub fn draw(ctx: jok.Context) !void {
         b.rotateY(ctx.seconds());
         try b.pushTransform();
 
-        b.translate(-3, 3, 0);
+        b.translate(.{ -3, 3, 0 });
         try b.shape(
             shape_icosahedron,
             null,
@@ -244,7 +244,7 @@ pub fn draw(ctx: jok.Context) !void {
 
         b.popTransform();
         try b.pushTransform();
-        b.translate(3, 3, 0);
+        b.translate(.{ 3, 3, 0 });
         try b.shape(
             shape_torus,
             null,
@@ -253,7 +253,7 @@ pub fn draw(ctx: jok.Context) !void {
 
         b.popTransform();
         try b.pushTransform();
-        b.translate(3, -3, 0);
+        b.translate(.{ 3, -3, 0 });
         try b.shape(
             shape_parametric_sphere,
             null,
@@ -261,7 +261,7 @@ pub fn draw(ctx: jok.Context) !void {
         );
 
         b.popTransform();
-        b.translate(-3, -3, 0);
+        b.translate(.{ -3, -3, 0 });
         try b.shape(
             shape_tetrahedron,
             null,

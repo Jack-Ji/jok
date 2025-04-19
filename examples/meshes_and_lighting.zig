@@ -249,10 +249,10 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
 
-    b.scale(5, 5, 5);
+    b.scale(.{ 5, 5, 5 });
     try b.pushTransform();
 
-    b.translate(30, 5, 10);
+    b.translate(.{ 30, 5, 10 });
     try b.shape(
         cube,
         null,
@@ -265,7 +265,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     b.popTransform();
     try b.pushTransform();
-    b.translate(-30, 10, -20);
+    b.translate(.{ -30, 10, -20 });
     try b.shape(
         parametric_sphere,
         null,
@@ -278,7 +278,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     b.popTransform();
     try b.pushTransform();
-    b.translate(-20, 10, -20);
+    b.translate(.{ -20, 10, -20 });
     try b.shape(
         subdivided_sphere,
         null,
@@ -291,7 +291,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     b.popTransform();
     try b.pushTransform();
-    b.translate(-15, 5, -10);
+    b.translate(.{ -15, 5, -10 });
     try b.shape(
         hemisphere,
         null,

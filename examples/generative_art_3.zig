@@ -53,39 +53,35 @@ pub fn draw(ctx: jok.Context) !void {
     while (i < rect_num) : (i += 1) {
         const step = @as(f32, @floatFromInt(i));
         var transform = j2d.AffineTransform.init().scale(.{
-            .x = math.pow(f32, scale_step, step),
-            .y = math.pow(f32, scale_step, step),
+            math.pow(f32, scale_step, step),
+            math.pow(f32, scale_step, step),
         });
 
         // top-left
-        b.trs = transform.rotateByOrigin(-angle_step * step)
-            .translate(.{
-            .x = fb_size.getWidthFloat() / 4,
-            .y = fb_size.getHeightFloat() / 4,
+        b.trs = transform.rotateByOrigin(-angle_step * step).translate(.{
+            fb_size.getWidthFloat() / 4,
+            fb_size.getHeightFloat() / 4,
         });
         try b.rect(rect, .white, .{});
 
         // top-right
-        b.trs = transform.rotateByOrigin(angle_step * step)
-            .translate(.{
-            .x = fb_size.getWidthFloat() * 3 / 4,
-            .y = fb_size.getHeightFloat() / 4,
+        b.trs = transform.rotateByOrigin(angle_step * step).translate(.{
+            fb_size.getWidthFloat() * 3 / 4,
+            fb_size.getHeightFloat() / 4,
         });
         try b.rect(rect, .white, .{});
 
         // bottom-right
-        b.trs = transform.rotateByOrigin(-angle_step * step)
-            .translate(.{
-            .x = fb_size.getWidthFloat() * 3 / 4,
-            .y = fb_size.getHeightFloat() * 3 / 4,
+        b.trs = transform.rotateByOrigin(-angle_step * step).translate(.{
+            fb_size.getWidthFloat() * 3 / 4,
+            fb_size.getHeightFloat() * 3 / 4,
         });
         try b.rect(rect, .white, .{});
 
         // bottom-left
-        b.trs = transform.rotateByOrigin(angle_step * step)
-            .translate(.{
-            .x = fb_size.getWidthFloat() / 4,
-            .y = fb_size.getHeightFloat() * 3 / 4,
+        b.trs = transform.rotateByOrigin(angle_step * step).translate(.{
+            fb_size.getWidthFloat() / 4,
+            fb_size.getHeightFloat() * 3 / 4,
         });
         try b.rect(rect, .white, .{});
     }

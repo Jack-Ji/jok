@@ -72,14 +72,8 @@ pub fn draw(ctx: jok.Context) !void {
         for (0..ncircle) |i| {
             try b.pushTransform();
             defer b.popTransform();
-            b.translate(csz.getWidthFloat() / 2, csz.getHeightFloat() / 2);
-            b.translate(jok.utils.math.linearMap(
-                math.sin(ctx.seconds()),
-                -1,
-                1,
-                -radius,
-                radius,
-            ), 0);
+            b.translate(.{ csz.getWidthFloat() / 2, csz.getHeightFloat() / 2 });
+            b.translate(.{ jok.utils.math.linearMap(math.sin(ctx.seconds()), -1, 1, -radius, radius), 0 });
             b.rotateByPoint(
                 .{ .x = csz.getWidthFloat() / 2, .y = csz.getHeightFloat() / 2 },
                 std.math.degreesToRadians(rot + 360.0 * @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(ncircle))),
