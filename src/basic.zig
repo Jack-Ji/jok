@@ -238,8 +238,8 @@ pub const Rectangle = extern struct {
     }
 
     pub inline fn containsRect(r: Rectangle, b: Rectangle) bool {
-        return b.x >= r.x and b.x + b.width < r.x + r.width and
-            b.y >= r.y and b.y + b.height < r.y + r.height;
+        return b.x >= r.x and b.x + b.width <= r.x + r.width and
+            b.y >= r.y and b.y + b.height <= r.y + r.height;
     }
 };
 
