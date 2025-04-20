@@ -1,4 +1,4 @@
-name: WebAssembly Build
+name: Wasm
 
 on:
   pull_request:

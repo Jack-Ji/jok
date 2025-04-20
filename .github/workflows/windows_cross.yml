@@ -1,4 +1,4 @@
-name: Cross Build (windows)
+name: Windows (cross)
 
 on:
   pull_request:
