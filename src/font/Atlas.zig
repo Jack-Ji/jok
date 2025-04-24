@@ -4,7 +4,6 @@ const unicode = std.unicode;
 const json = std.json;
 const math = std.math;
 const ascii = std.ascii;
-const Font = @import("Font.zig");
 const jok = @import("../jok.zig");
 const truetype = jok.stb.truetype;
 const Sprite = jok.j2d.Sprite;
@@ -31,6 +30,7 @@ ranges: []CharRange,
 vmetric_ascent: f32,
 vmetric_descent: f32,
 vmetric_line_gap: f32,
+kerning_table: std.AutoHashMap(u64, f32),
 codepoint_search: std.AutoHashMap(u32, u32),
 
 pub fn destroy(self: *Atlas) void {
@@ -40,6 +40,7 @@ pub fn destroy(self: *Atlas) void {
         self.allocator.free(r.packedchar);
     }
     self.allocator.free(self.ranges);
+    self.kerning_table.deinit();
     self.codepoint_search.deinit();
     self.allocator.destroy(self);
 }
@@ -64,7 +65,7 @@ pub fn save(
     var json_root = json.Value{
         .object = json.ObjectMap.init(arena.allocator()),
     };
-    var vranges = json.Value{
+    var char_ranges = json.Value{
         .array = try json.Array.initCapacity(
             arena.allocator(),
             self.ranges.len,
@@ -123,9 +124,24 @@ pub fn save(
             vchars.array.appendAssumeCapacity(vchar);
         }
         vr.array.appendAssumeCapacity(vchars);
-        vranges.array.appendAssumeCapacity(vr);
+        char_ranges.array.appendAssumeCapacity(vr);
     }
-    try json_root.object.put("ranges", vranges);
+    var kerning_values = json.Value{
+        .array = try json.Array.initCapacity(
+            arena.allocator(),
+            self.kerning_table.count(),
+        ),
+    };
+    var it = self.kerning_table.iterator();
+    while (it.next()) |p| {
+        var vr = json.Value{
+            .array = try json.Array.initCapacity(arena.allocator(), 2),
+        };
+        vr.array.appendAssumeCapacity(.{ .integer = @intCast(p.key_ptr.*) });
+        vr.array.appendAssumeCapacity(.{ .float = @floatCast(p.value_ptr.*) });
+        kerning_values.array.appendAssumeCapacity(vr);
+    }
+    try json_root.object.put("char_ranges", char_ranges);
     try json_root.object.put("ascent", .{
         .float = self.vmetric_ascent,
     });
@@ -135,6 +151,7 @@ pub fn save(
     try json_root.object.put("line_gap", .{
         .float = self.vmetric_line_gap,
     });
+    try json_root.object.put("kerning_table", kerning_values);
     var stream = json.writeStream(bufstream.writer(), .{});
     try json_root.jsonStringify(&stream);
 
@@ -174,18 +191,21 @@ pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Atlas {
     if (parsed.value != .object) {
         return error.InvalidFormat;
     }
-    const vranges = parsed.value.object.get("ranges").?;
-    assert(vranges.array.items.len > 0);
+    const char_ranges = parsed.value.object.get("char_ranges").?;
+    assert(char_ranges.array.items.len > 0);
     var ranges = try allocator.alloc(
         CharRange,
-        vranges.array.items.len,
+        char_ranges.array.items.len,
     );
     @memset(ranges, Atlas.CharRange{
         .codepoint_begin = 0,
         .codepoint_end = 0,
         .packedchar = &.{},
     });
+    const kerning_pairs = parsed.value.object.get("kerning_table").?;
+    var kerning_table = std.AutoHashMap(u64, f32).init(allocator);
     errdefer {
+        kerning_table.deinit();
         for (ranges) |r| {
             if (r.packedchar.len > 0) {
                 allocator.free(r.packedchar);
@@ -194,7 +214,8 @@ pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Atlas {
         allocator.free(ranges);
     }
 
-    for (vranges.array.items, 0..) |vr, i| {
+    // char sprites
+    for (char_ranges.array.items, 0..) |vr, i| {
         ranges[i].codepoint_begin = @intCast(vr.array.items[0].integer);
         ranges[i].codepoint_end = @intCast(vr.array.items[1].integer);
         assert(ranges[i].codepoint_end >= ranges[i].codepoint_begin);
@@ -216,6 +237,13 @@ pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Atlas {
     const descent: f32 = @floatCast(parsed.value.object.get("descent").?.float);
     const line_gap: f32 = @floatCast(parsed.value.object.get("line_gap").?.float);
 
+    // kerning table
+    for (kerning_pairs.array.items) |vk| {
+        const merged_cp: u64 = @intCast(vk.array.items[0].integer);
+        const kvalue: f32 = @floatCast(vk.array.items[1].float);
+        try kerning_table.put(merged_cp, kvalue);
+    }
+
     const atlas = try allocator.create(Atlas);
     atlas.* = .{
         .allocator = allocator,
@@ -225,6 +253,7 @@ pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Atlas {
         .vmetric_ascent = ascent,
         .vmetric_descent = descent,
         .vmetric_line_gap = line_gap,
+        .kerning_table = kerning_table,
         .codepoint_search = std.AutoHashMap(u32, u32).init(allocator),
     };
     return atlas;
@@ -238,6 +267,12 @@ pub inline fn getFontSizeInPixels(self: Atlas) f32 {
 /// Calculate next line's y coordinate
 pub inline fn getVPosOfNextLine(self: Atlas, current_ypos: f32) f32 {
     return current_ypos + @round(self.getFontSizeInPixels() + self.vmetric_line_gap);
+}
+
+/// Get kerning value between 2 codepoints
+pub inline fn getKerningInPixels(self: Atlas, cp1: u32, cp2: u32) f32 {
+    const k = @as(u64, cp1) << 32 | cp2;
+    return self.kerning_table.get(k) orelse 0;
 }
 
 /// Position type of y axis (determine where text will be aligned vertically)
@@ -257,13 +292,11 @@ pub const BBox = struct {
     auto_hyphen: bool = true,
     box_type: BoxType = .aligned,
     kerning: bool = false,
-    font: ?*Font = null,
     scale: jok.Point = .unit,
 };
 
 /// Get bounding box of text
 pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox) !jok.Rectangle {
-    assert(!opt.kerning or opt.font != null);
     const yoffset = switch (opt.ypos_type) {
         .baseline => -self.vmetric_ascent,
         .top => 0,
@@ -299,7 +332,7 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
 
         // Kerning adjustment
         pos.x += if (opt.kerning and last_codepoint > 0)
-            opt.font.?.getKerningInPixels(self.getFontSizeInPixels(), last_codepoint, codepoint)
+            self.getKerningInPixels(last_codepoint, codepoint)
         else
             0;
 
@@ -364,7 +397,6 @@ pub const AppendOption = struct {
     ypos_type: YPosType = .top,
     box_type: BoxType = .aligned,
     kerning: bool = false,
-    font: ?*Font = null,
 };
 
 /// Append draw data for rendering utf8 string, return bounding box
@@ -377,7 +409,6 @@ pub fn appendDrawDataFromUTF8String(
     vindices: *std.ArrayList(u32),
     opt: AppendOption,
 ) !jok.Rectangle {
-    assert(!opt.kerning or opt.font != null);
     const yoffset = switch (opt.ypos_type) {
         .baseline => -self.vmetric_ascent,
         .top => 0,
@@ -406,7 +437,7 @@ pub fn appendDrawDataFromUTF8String(
         const size = try unicode.utf8ByteSequenceLength(text[i]);
         const codepoint = @as(u32, @intCast(try unicode.utf8Decode(text[i .. i + size])));
         pos.x += if (opt.kerning and last_codepoint > 0)
-            opt.font.?.getKerningInPixels(self.getFontSizeInPixels(), last_codepoint, codepoint)
+            self.getKerningInPixels(last_codepoint, codepoint)
         else
             0;
         if (self.getVerticesOfCodePoint(pos, opt.ypos_type, color, codepoint)) |cs| {

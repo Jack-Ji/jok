@@ -33,7 +33,7 @@ A minimal 2d/3d game framework for zig.
 * 3D sprite/billboard rendering
 * 3D particle system
 * 3D scene management
-* TrueType support, atlas generation/save/load
+* TrueType support, atlas generation/save/load (including kerning table for basic Latin)
 * SVG loading/rendering
 * Sound/Music playing/mixing
 * Tiled editor support (tmx/tsx loading/rendering)

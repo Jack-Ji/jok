@@ -166,6 +166,20 @@ pub fn createAtlas(
     );
     errdefer tex.destroy();
 
+    // Get kerning pairs (only consider basic Latin)
+    var kerning_table = std.AutoHashMap(u64, f32).init(allocator);
+    errdefer kerning_table.deinit();
+    for (0..0x7f) |cp1| {
+        for (0..0x7f) |cp2| {
+            if (cp1 == cp2) continue;
+            const v = self.getKerningInPixels(@floatFromInt(font_size), @intCast(cp1), @intCast(cp2));
+            if (v != 0) {
+                const k = @as(u64, cp1) << 32 | cp2;
+                try kerning_table.put(k, v);
+            }
+        }
+    }
+
     const vmetrics = self.getVMetrics(font_size);
     const atlas = try allocator.create(Atlas);
     atlas.* = .{
@@ -176,6 +190,7 @@ pub fn createAtlas(
         .vmetric_ascent = vmetrics.ascent,
         .vmetric_descent = vmetrics.descent,
         .vmetric_line_gap = vmetrics.line_gap,
+        .kerning_table = kerning_table,
         .codepoint_search = std.AutoHashMap(u32, u32).init(allocator),
     };
     return atlas;

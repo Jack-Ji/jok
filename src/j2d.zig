@@ -396,14 +396,13 @@ pub const Batch = struct {
 
     pub const TextOption = struct {
         pos: jok.Point = .origin,
-        atlas: ?*jok.font.Atlas = null,
+        atlas: ?*font.Atlas = null,
         ignore_unexist: bool = true,
-        ypos_type: jok.font.Atlas.YPosType = .top,
-        align_type: jok.font.Atlas.AlignType = .left,
+        ypos_type: font.Atlas.YPosType = .top,
+        align_type: font.Atlas.AlignType = .left,
         align_width: ?u32 = null,
         auto_hyphen: bool = true,
         kerning: bool = false,
-        font: ?*jok.font.Font = null,
         tint_color: jok.Color = .white,
         scale: jok.Point = .unit,
         rotate_angle: f32 = 0,
@@ -412,7 +411,6 @@ pub const Batch = struct {
     pub fn text(self: *Batch, comptime fmt: []const u8, args: anytype, opt: TextOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        assert(!opt.kerning or opt.font != null);
         const txt = imgui.format(fmt, args);
         if (txt.len == 0) return;
 
@@ -437,7 +435,6 @@ pub const Batch = struct {
                     .align_type = opt.align_type,
                     .align_width = opt.align_width,
                     .kerning = opt.kerning,
-                    .font = opt.font,
                     .scale = scaling,
                 },
             );
@@ -465,7 +462,7 @@ pub const Batch = struct {
 
             // Kerning adjustment
             pos.x += if (opt.kerning and last_codepoint > 0)
-                scaling.x * opt.font.?.getKerningInPixels(atlas.getFontSizeInPixels(), last_codepoint, codepoint)
+                scaling.x * atlas.getKerningInPixels(last_codepoint, codepoint)
             else
                 0;
 
@@ -485,7 +482,6 @@ pub const Batch = struct {
                             .align_type = opt.align_type,
                             .align_width = opt.align_width,
                             .kerning = opt.kerning,
-                            .font = opt.font,
                             .scale = scaling,
                         },
                     );
