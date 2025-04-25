@@ -450,7 +450,7 @@ pub const Batch = struct {
             align_width = @as(f32, @floatFromInt(w)) * scaling.x;
         }
 
-        var replaced_with_hyphen = false;
+        var wrapped = false;
         var line_x = pos.x;
         var last_size: u32 = 0;
         var last_codepoint: u32 = 0;
@@ -466,9 +466,9 @@ pub const Batch = struct {
             else
                 0;
 
-            if (replaced_with_hyphen or pos.x - line_x >= align_width) {
+            if (wrapped or pos.x - line_x >= align_width) {
                 // Wrapping text
-                replaced_with_hyphen = false;
+                wrapped = false;
                 pos = .{
                     .x = begin_x,
                     .y = pos.y + (atlas.getVPosOfNextLine(pos.y) - pos.y) * scaling.y,
@@ -495,7 +495,8 @@ pub const Batch = struct {
             } else if (opt.align_width != null) {
                 // Add hyphen at the end of line when possible
                 if (opt.auto_hyphen and last_size == 1 and size == 1 and
-                    ascii.isAlphabetic(@intCast(last_codepoint)) and ascii.isAlphabetic(@intCast(codepoint)))
+                    ascii.isAlphabetic(@intCast(codepoint)) and
+                    (ascii.isAlphabetic(@intCast(last_codepoint)) or ascii.isWhitespace(@intCast(last_codepoint))))
                 {
                     // Check if this is last character of the line
                     const new_x = pos.x + (atlas.getVerticesOfCodePoint(
@@ -505,8 +506,8 @@ pub const Batch = struct {
                         codepoint,
                     ).?.next_x - pos.x) * scaling.x;
                     if (new_x - line_x >= align_width) {
-                        replaced_with_hyphen = true;
-                        codepoint = '-'; // Replace next letter with hyphen
+                        wrapped = true;
+                        codepoint = if (ascii.isWhitespace(@intCast(last_codepoint))) ' ' else '-';
                     }
                 }
             }
@@ -541,7 +542,7 @@ pub const Batch = struct {
                 return error.UnsupportedCodepoint;
             }
 
-            if (!replaced_with_hyphen) {
+            if (!wrapped) {
                 i += size;
                 last_codepoint = codepoint;
                 last_size = size;
