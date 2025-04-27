@@ -428,7 +428,7 @@ pub const Batch = struct {
 
         if (opt.align_type != .left) {
             const bbox = try atlas.getBoundingBox(
-                txt,
+                std.mem.sliceTo(txt, '\n'),
                 pos,
                 .{
                     .ypos_type = opt.ypos_type,
@@ -475,7 +475,7 @@ pub const Batch = struct {
                 };
                 if (opt.align_type != .left) {
                     const bbox = try atlas.getBoundingBox(
-                        txt[i..],
+                        std.mem.sliceTo(txt[i..], '\n'),
                         pos,
                         .{
                             .ypos_type = opt.ypos_type,
@@ -492,7 +492,7 @@ pub const Batch = struct {
                     }
                 }
                 line_x = pos.x;
-            } else if (opt.align_width != null) {
+            } else if (opt.align_width != null and i < txt.len - 1) {
                 // Add hyphen at the end of line when possible
                 if (opt.auto_hyphen and last_size == 1 and size == 1 and
                     ascii.isAlphabetic(@intCast(codepoint)) and
@@ -511,7 +511,24 @@ pub const Batch = struct {
                     }
                 }
             }
-            if (atlas.getVerticesOfCodePoint(pos, opt.ypos_type, .white, codepoint)) |cs| {
+
+            // Record current state and step to next codepoint
+            if (!wrapped) {
+                if (size == 1 and codepoint == '\n') {
+                    wrapped = true;
+                }
+                i += size;
+                last_codepoint = codepoint;
+                last_size = size;
+            }
+
+            // Render current codepoint
+            if (atlas.getVerticesOfCodePoint(
+                pos,
+                opt.ypos_type,
+                .white,
+                codepoint,
+            )) |cs| {
                 const v = zmath.mul(
                     zmath.f32x4(
                         cs.vs[0].pos.x,
@@ -540,12 +557,6 @@ pub const Batch = struct {
             } else if (!opt.ignore_unexist) {
                 log.err("Doesn't support character: {s}({x})", .{ u8letter, codepoint });
                 return error.UnsupportedCodepoint;
-            }
-
-            if (!wrapped) {
-                i += size;
-                last_codepoint = codepoint;
-                last_size = size;
             }
         }
     }

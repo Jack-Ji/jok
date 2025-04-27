@@ -342,9 +342,10 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
             pos = .{ .x = rect.x, .y = self.getVPosOfNextLine(pos.y) };
             line_count += 1;
             rect.height += @round(self.getFontSizeInPixels() + self.vmetric_line_gap);
-        } else if (opt.align_width != null) {
+        } else if (opt.align_width != null and i < text.len - 1) {
             // Add hyphen at the end of line when possible
             if (opt.auto_hyphen and last_size == 1 and size == 1 and
+                ascii.isAlphabetic(@intCast(codepoint)) and
                 (ascii.isAlphabetic(@intCast(last_codepoint)) or ascii.isWhitespace(@intCast(last_codepoint))))
             {
                 // Check if this is last character of the line
@@ -360,7 +361,24 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
                 }
             }
         }
-        if (self.getVerticesOfCodePoint(pos, opt.ypos_type, .white, codepoint)) |cs| {
+
+        // Record current state and step to next codepoint
+        if (!wrapped) {
+            if (size == 1 and codepoint == '\n') {
+                wrapped = true;
+            }
+            i += size;
+            last_codepoint = codepoint;
+            last_size = size;
+        }
+
+        // Calculate size of current codepoint
+        if (self.getVerticesOfCodePoint(
+            pos,
+            opt.ypos_type,
+            .white,
+            codepoint,
+        )) |cs| {
             switch (opt.box_type) {
                 .aligned => {
                     rect.width = @max(cs.next_x - rect.x, rect.width);
@@ -373,12 +391,6 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
             }
             pos.x = cs.next_x;
             total_width = @max(cs.next_x - rect.x, rect.width);
-        }
-
-        if (!wrapped) {
-            i += size;
-            last_codepoint = codepoint;
-            last_size = size;
         }
     }
 
