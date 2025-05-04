@@ -77,7 +77,7 @@ pub fn destroy(self: *Font) void {
 }
 
 pub const AtlasOption = struct {
-    size: jok.Size = .{ .width = 1024, .height = 1024 },
+    size: jok.Size = .{ .width = 2048, .height = 2048 },
     keep_pixels: bool = false,
 };
 pub fn createAtlas(

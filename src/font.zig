@@ -38,7 +38,7 @@ pub const DebugFont = struct {
             const a = try font.createAtlas(
                 ctx,
                 font_size,
-                &[_][2]u32{.{ 0x0020, 0x00FF }},
+                &codepoint_ranges.cp437,
                 .{},
             );
             try atlases.put(font_size, a);

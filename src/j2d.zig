@@ -413,8 +413,9 @@ pub const Batch = struct {
         assert(!self.is_submitted);
         const txt = imgui.format(fmt, args);
         if (txt.len == 0) return;
-
-        const atlas = opt.atlas orelse self.ctx.getDebugAtlas(16);
+        const atlas = opt.atlas orelse self.ctx.getDebugAtlas(
+            @intFromFloat(@as(f32, @floatFromInt(self.ctx.cfg().jok_prebuild_atlas)) * self.ctx.getDpiScale()),
+        );
         var pos = self.trs.transformPoint(opt.pos);
         const begin_x = pos.x;
         const scaling = opt.scale.mul(self.trs.getScale());
