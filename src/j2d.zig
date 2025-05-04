@@ -401,7 +401,7 @@ pub const Batch = struct {
         ypos_type: font.Atlas.YPosType = .top,
         align_type: font.Atlas.AlignType = .left,
         align_width: ?u32 = null,
-        auto_hyphen: bool = true,
+        auto_hyphen: bool = false,
         kerning: bool = false,
         tint_color: jok.Color = .white,
         scale: jok.Point = .unit,
@@ -512,14 +512,15 @@ pub const Batch = struct {
                 }
             }
 
-            // Record current state and step to next codepoint
+            // Save state and step to next codepoint
             if (!wrapped) {
-                if (size == 1 and codepoint == '\n') {
-                    wrapped = true;
-                }
                 i += size;
                 last_codepoint = codepoint;
                 last_size = size;
+                if (size == 1 and codepoint == '\n') {
+                    wrapped = true;
+                    continue;
+                }
             }
 
             // Render current codepoint

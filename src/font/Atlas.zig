@@ -289,7 +289,7 @@ pub const BBox = struct {
     ypos_type: YPosType = .top,
     align_type: AlignType = .left,
     align_width: ?u32 = null,
-    auto_hyphen: bool = true,
+    auto_hyphen: bool = false,
     box_type: BoxType = .aligned,
     kerning: bool = false,
     scale: jok.Point = .unit,
@@ -362,14 +362,15 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
             }
         }
 
-        // Record current state and step to next codepoint
+        // Save state and step to next codepoint
         if (!wrapped) {
-            if (size == 1 and codepoint == '\n') {
-                wrapped = true;
-            }
             i += size;
             last_codepoint = codepoint;
             last_size = size;
+            if (size == 1 and codepoint == '\n') {
+                wrapped = true;
+                continue;
+            }
         }
 
         // Calculate size of current codepoint
