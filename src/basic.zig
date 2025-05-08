@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
@@ -467,6 +468,30 @@ pub const Color = extern struct {
 
     pub inline fn rgba(r: u8, g: u8, b: u8, a: u8) Color {
         return Color{ .r = r, .g = g, .b = b, .a = a };
+    }
+
+    pub inline fn float3(r: f32, g: f32, b: f32) Color {
+        assert(r >= 0 and r <= 1);
+        assert(g >= 0 and g <= 1);
+        assert(b >= 0 and b <= 1);
+        return Color{
+            .r = @intFromFloat(r * 255),
+            .g = @intFromFloat(g * 255),
+            .b = @intFromFloat(b * 255),
+        };
+    }
+
+    pub inline fn float4(r: f32, g: f32, b: f32, a: f32) Color {
+        assert(r >= 0 and r <= 1);
+        assert(g >= 0 and g <= 1);
+        assert(b >= 0 and b <= 1);
+        assert(a >= 0 and a <= 1);
+        return Color{
+            .r = @intFromFloat(r * 255),
+            .g = @intFromFloat(g * 255),
+            .b = @intFromFloat(b * 255),
+            .a = @intFromFloat(a * 255),
+        };
     }
 
     inline fn getPixelFormat() [*c]sdl.SDL_PixelFormat {

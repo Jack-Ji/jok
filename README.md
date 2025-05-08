@@ -27,7 +27,7 @@ A minimal 2d/3d game framework for zig.
 * 3D batch system
 * 3D skybox rendering
 * 3D mesh rendering (gouraud/flat shading)
-* 3D glTF 2.0 support
+* 3D model support (glTF 2.0/wavefront)
 * 3D rigid/skeleton animation rendering/blending
 * 3D lighting effect (Blinn-Phong model by default, customizable)
 * 3D sprite/billboard rendering
@@ -244,6 +244,7 @@ The limitations demand developers to be both creative and careful about game's d
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
 * [stb headers](https://github.com/nothings/stb) (MIT license)
 * [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
+* [zig-obj](https://github.com/chip2n/zig-obj) (MIT license)
 * [nativefiledialog](https://github.com/mlabbe/nativefiledialog) (zlib license)
 
 ## Built-in Fonts

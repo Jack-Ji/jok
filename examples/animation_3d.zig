@@ -20,6 +20,8 @@ var camera: j3d.Camera = undefined;
 var mesh1: *j3d.Mesh = undefined;
 var mesh2: *j3d.Mesh = undefined;
 var mesh3: *j3d.Mesh = undefined;
+var mesh4: *j3d.Mesh = undefined;
+var mesh5: *j3d.Mesh = undefined;
 var animation1_1: *j3d.Animation = undefined;
 var animation2_1: *j3d.Animation = undefined;
 var animation3_1: *j3d.Animation = undefined;
@@ -59,6 +61,8 @@ pub fn init(ctx: jok.Context) !void {
     mesh1 = try j3d.Mesh.fromGltf(ctx, "models/CesiumMan.glb", .{});
     mesh2 = try j3d.Mesh.fromGltf(ctx, "models/RiggedSimple.glb", .{});
     mesh3 = try j3d.Mesh.fromGltf(ctx, "models/Fox/Fox.gltf", .{});
+    mesh4 = try j3d.Mesh.fromObj(ctx, "models/akira.obj", "models/akira.mtl", .{});
+    mesh5 = try j3d.Mesh.fromObj(ctx, "models/prime_truckin.obj", "models/prime_truckin.mtl", .{});
     animation1_1 = try j3d.Animation.create(ctx.allocator(), mesh1.getAnimation("default").?);
     animation2_1 = try j3d.Animation.create(ctx.allocator(), mesh2.getAnimation("default").?);
     animation3_1 = try j3d.Animation.create(ctx.allocator(), mesh3.getAnimation("Walk").?);
@@ -254,6 +258,7 @@ pub fn draw(ctx: jok.Context) !void {
     });
     defer b.submit();
     b.scale(.{ 3, 3, 3 });
+    b.rotateY(std.math.pi);
     if (animation1) |a| {
         try b.animation(
             a,
@@ -274,6 +279,7 @@ pub fn draw(ctx: jok.Context) !void {
     }
 
     b.setIdentity();
+    b.rotateY(std.math.pi);
     b.translate(.{ -4, 0, 0 });
     if (animation2) |a| {
         try b.animation(
@@ -296,13 +302,10 @@ pub fn draw(ctx: jok.Context) !void {
         );
     }
 
-    b.trs = zmath.mul(
-        zmath.rotationY(-std.math.pi / 6.0),
-        zmath.mul(
-            zmath.scalingV(zmath.f32x4s(0.03)),
-            zmath.translation(4, 0, 0),
-        ),
-    );
+    b.setIdentity();
+    b.rotateY(std.math.pi);
+    b.scale(.{ 0.03, 0.03, 0.03 });
+    b.translate(.{ 4, 0, 0 });
     if (animation3) |a| {
         try b.animation(
             a,
@@ -328,6 +331,29 @@ pub fn draw(ctx: jok.Context) !void {
             },
         );
     }
+
+    b.setIdentity();
+    b.scale(.{ 0.5, 0.5, 0.5 });
+    b.rotateY(ctx.seconds());
+    b.translate(.{ -3, -3, 3 });
+    try b.mesh(
+        mesh4,
+        .{
+            .shading_method = @enumFromInt(shading_method),
+            .lighting = if (lighting) .{} else null,
+        },
+    );
+
+    b.setIdentity();
+    b.rotateY(ctx.seconds());
+    b.translate(.{ 3, -3, 3 });
+    try b.mesh(
+        mesh5,
+        .{
+            .shading_method = @enumFromInt(shading_method),
+            .lighting = if (lighting) .{} else null,
+        },
+    );
 
     ctx.debugPrint(
         "Press WSAD to move around, drag mouse while pressing right-button to rotate the view",
@@ -356,6 +382,8 @@ pub fn quit(ctx: jok.Context) void {
     mesh1.destroy();
     mesh2.destroy();
     mesh3.destroy();
+    mesh4.destroy();
+    mesh5.destroy();
     animation1_1.destroy();
     animation2_1.destroy();
     animation3_1.destroy();

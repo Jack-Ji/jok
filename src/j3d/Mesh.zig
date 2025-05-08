@@ -7,6 +7,7 @@ const j3d = jok.j3d;
 const physfs = jok.physfs;
 const zmath = jok.zmath;
 const zmesh = jok.zmesh;
+const zobj = jok.zobj;
 const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const ShadingMethod = TriangleRenderer.ShadingMethod;
@@ -17,6 +18,13 @@ const Self = @This();
 pub const Error = error{
     InvalidFormat,
     InvalidAnimation,
+    TooManyMaterial, // Only support single material (diffuse map)
+};
+
+const Format = enum {
+    shape,
+    gltf,
+    obj,
 };
 
 pub const RenderOption = struct {
@@ -59,13 +67,13 @@ pub const Node = struct {
         /// Push attributes data
         pub fn appendAttributes(
             self: *SubMesh,
-            indices: []u32,
-            positions: [][3]f32,
-            normals: ?[][3]f32,
-            colors: ?[]jok.Color,
-            texcoords: ?[][2]f32,
-            joints: ?[][4]u8,
-            weights: ?[][4]f32,
+            indices: []const u32,
+            positions: []const [3]f32,
+            normals: ?[]const [3]f32,
+            colors: ?[]const jok.Color,
+            texcoords: ?[]const [2]f32,
+            joints: ?[]const [4]u8,
+            weights: ?[]const [4]f32,
         ) !void {
             if (indices.len == 0) return;
             assert(@rem(indices.len, 3) == 0);
@@ -256,7 +264,7 @@ pub const Node = struct {
                 .{
                     .aabb = sm.aabb,
                     .cull_faces = opt.cull_faces,
-                    .front_face = if (node.mesh.is_gltf) .ccw else .cw, // Use CCW when it is GLTF model
+                    .front_face = if (node.mesh.format != .shape) .ccw else .cw, // Use CCW when it is GLTF/OBJ model
                     .color = opt.color,
                     .shading_method = opt.shading_method,
                     .texture = opt.texture orelse sm.getTexture(),
@@ -403,9 +411,9 @@ nodes_map: std.AutoHashMap(*const GltfNode, *Node),
 animations: std.StringHashMap(Animation),
 skins_map: std.AutoHashMap(*const GltfSkin, *Skin),
 own_textures: bool,
-is_gltf: bool,
+format: Format,
 
-pub fn create(allocator: std.mem.Allocator, mesh_count: usize, is_gltf: bool) !*Self {
+pub fn create(allocator: std.mem.Allocator, mesh_count: usize, format: Format) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
     self.allocator = allocator;
@@ -416,7 +424,7 @@ pub fn create(allocator: std.mem.Allocator, mesh_count: usize, is_gltf: bool) !*
     self.animations = std.StringHashMap(Animation).init(self.arena.allocator());
     self.skins_map = std.AutoHashMap(*const GltfSkin, *Skin).init(self.arena.allocator());
     self.own_textures = false;
-    self.is_gltf = is_gltf;
+    self.format = format;
     return self;
 }
 
@@ -431,7 +439,7 @@ pub fn fromShape(
     shape: zmesh.Shape,
     opt: ShapeOption,
 ) !*Self {
-    var self = try create(allocator, 1, false);
+    var self = try create(allocator, 1, .shape);
     errdefer self.destroy();
     try self.root.meshes[0].appendAttributes(
         shape.indices,
@@ -456,17 +464,197 @@ pub fn fromShape(
     return self;
 }
 
+/// Create mesh with OBJ model file
+pub const ObjOption = struct {
+    compute_aabb: bool = true,
+    tex: ?jok.Texture = null,
+    uvs: ?[2]jok.Point = null,
+};
+pub fn fromObj(
+    ctx: jok.Context,
+    obj_file_path: [*:0]const u8,
+    mtl_file_path: ?[*:0]const u8,
+    opt: ObjOption,
+) !*Self {
+    const obj_file_data = BLK: {
+        if (ctx.cfg().jok_enable_physfs) {
+            const handle = try physfs.open(obj_file_path, .read);
+            defer handle.close();
+            break :BLK try handle.readAllAlloc(ctx.allocator());
+        } else {
+            const idx = std.mem.indexOfSentinel(u8, 0, obj_file_path);
+            break :BLK try std.fs.cwd().readFileAlloc(ctx.allocator(), obj_file_path[0..idx :0], 1 << 30);
+        }
+    };
+    defer ctx.allocator().free(obj_file_data);
+
+    const mtl_file_data = BLK: {
+        if (mtl_file_path) |p| {
+            if (ctx.cfg().jok_enable_physfs) {
+                const handle = try physfs.open(p, .read);
+                defer handle.close();
+                break :BLK try handle.readAllAlloc(ctx.allocator());
+            } else {
+                const idx = std.mem.indexOfSentinel(u8, 0, p);
+                break :BLK try std.fs.cwd().readFileAlloc(ctx.allocator(), p[0..idx :0], 1 << 30);
+            }
+        } else {
+            break :BLK null;
+        }
+    };
+    defer if (mtl_file_data) |d| ctx.allocator().free(d);
+
+    // Parse obj data
+    var objdata = try zobj.parseObj(ctx.allocator(), obj_file_data);
+    defer objdata.deinit(ctx.allocator());
+    if (objdata.material_libs.len != 0 and objdata.material_libs.len > 1) {
+        return error.TooManyMaterial;
+    }
+
+    // Init mesh instance
+    var self = try create(ctx.allocator(), objdata.meshes.len, .obj);
+    errdefer self.destroy();
+
+    // Parse material data
+    var mtldata: ?zobj.MaterialData = null;
+    if (mtl_file_data) |d| {
+        mtldata = try zobj.parseMtl(ctx.allocator(), d);
+        var it = mtldata.?.materials.iterator();
+        while (it.next()) |e| {
+            if (e.value_ptr.diffuse_map) |map| {
+                const dir = std.fs.path.dirname(std.mem.sliceTo(mtl_file_path.?, 0)) orelse "";
+                const uri_path = std.mem.sliceTo(map.path, 0);
+                const path = try std.mem.joinZ(
+                    self.allocator,
+                    "/",
+                    &.{ dir, uri_path },
+                );
+                defer self.allocator.free(path);
+                const tex = try ctx.renderer().createTextureFromFile(
+                    ctx.allocator(),
+                    path,
+                    .static,
+                    true, // MTL texture's bottom-left is origin
+                );
+                try self.textures.put(@intFromPtr(map.path.ptr), tex);
+            }
+        }
+    }
+    defer if (mtldata) |*d| d.deinit(ctx.allocator());
+
+    // Add faces
+    for (0..objdata.meshes.len) |i| {
+        const mesh = objdata.meshes[i];
+
+        var idx: u32 = 0;
+        for (mesh.num_vertices) |n| {
+            assert(n >= 3);
+            assert(mesh.indices[idx..].len >= 3);
+
+            // Triangulate the polygon
+            for (2..n) |j| {
+                const idx1 = idx;
+                const idx2: u32 = @intCast(idx + j - 1);
+                const idx3: u32 = @intCast(idx + j);
+
+                // Get referenced material
+                var mtl1: ?zobj.Material = null;
+                var mtl2: ?zobj.Material = null;
+                var mtl3: ?zobj.Material = null;
+                if (mtldata != null) {
+                    for (mesh.materials) |m| {
+                        if (mtl1 == null and idx1 < m.end_index) {
+                            mtl1 = mtldata.?.materials.get(m.material).?;
+                        }
+                        if (mtl2 == null and idx2 < m.end_index) {
+                            mtl2 = mtldata.?.materials.get(m.material).?;
+                        }
+                        if (mtl3 == null and idx3 < m.end_index) {
+                            mtl3 = mtldata.?.materials.get(m.material).?;
+                        }
+                    }
+                    if (mtl1 != null and mtl1.?.diffuse_map != null) {
+                        // WARNING: we're assuming at most one material
+                        self.root.meshes[i].tex_id = @intFromPtr(mtl1.?.diffuse_map.?.path.ptr);
+                    }
+                }
+
+                // Calculate normal vector
+                const index1 = mesh.indices[idx1];
+                const index2 = mesh.indices[idx2];
+                const index3 = mesh.indices[idx3];
+                const v1 = zmath.f32x4(
+                    objdata.vertices[index2.vertex.? * 3] - objdata.vertices[index1.vertex.? * 3],
+                    objdata.vertices[index2.vertex.? * 3 + 1] - objdata.vertices[index1.vertex.? * 3 + 1],
+                    objdata.vertices[index2.vertex.? * 3 + 2] - objdata.vertices[index1.vertex.? * 3 + 2],
+                    0,
+                );
+                const v2 = zmath.f32x4(
+                    objdata.vertices[index3.vertex.? * 3] - objdata.vertices[index1.vertex.? * 3],
+                    objdata.vertices[index3.vertex.? * 3 + 1] - objdata.vertices[index1.vertex.? * 3 + 1],
+                    objdata.vertices[index3.vertex.? * 3 + 2] - objdata.vertices[index1.vertex.? * 3 + 2],
+                    0,
+                );
+                const normal = zmath.vecToArr3(zmath.normalize3(zmath.cross3(v1, v2)));
+
+                // Fill attributes of vertices
+                try self.root.meshes[i].appendAttributes(
+                    &.{ 0, 1, 2 },
+                    &.{
+                        .{ objdata.vertices[index1.vertex.? * 3], objdata.vertices[index1.vertex.? * 3 + 1], objdata.vertices[index1.vertex.? * 3 + 2] },
+                        .{ objdata.vertices[index2.vertex.? * 3], objdata.vertices[index2.vertex.? * 3 + 1], objdata.vertices[index2.vertex.? * 3 + 2] },
+                        .{ objdata.vertices[index3.vertex.? * 3], objdata.vertices[index3.vertex.? * 3 + 1], objdata.vertices[index3.vertex.? * 3 + 2] },
+                    },
+                    &.{ normal, normal, normal },
+                    null,
+                    if (mtl1 != null and mtl1.?.diffuse_map != null)
+                        &.{
+                            .{
+                                std.math.clamp(objdata.tex_coords[index1.tex_coord.? * 2], 0, 1),
+                                std.math.clamp(objdata.tex_coords[index1.tex_coord.? * 2 + 1], 0, 1),
+                            },
+                            .{
+                                std.math.clamp(objdata.tex_coords[index2.tex_coord.? * 2], 0, 1),
+                                std.math.clamp(objdata.tex_coords[index2.tex_coord.? * 2 + 1], 0, 1),
+                            },
+                            .{
+                                std.math.clamp(objdata.tex_coords[index3.tex_coord.? * 2], 0, 1),
+                                std.math.clamp(objdata.tex_coords[index3.tex_coord.? * 2 + 1], 0, 1),
+                            },
+                        }
+                    else
+                        null,
+                    null,
+                    null,
+                );
+            }
+
+            idx += n;
+        }
+
+        if (opt.compute_aabb) self.root.meshes[i].computeAabb();
+    }
+
+    if (opt.tex) |t| {
+        const tex_id = @intFromPtr(t.ptr);
+        for (self.root.meshes) |*m| {
+            m.tex_id = tex_id;
+            try self.textures.put(tex_id, t);
+            if (opt.uvs != null) {
+                m.remapTexcoords(opt.uvs.?[0], opt.uvs.?[1]);
+            }
+        }
+    }
+    return self;
+}
+
 /// Create mesh with GLTF model file
 pub const GltfOption = struct {
     compute_aabb: bool = true,
     tex: ?jok.Texture = null,
     uvs: ?[2]jok.Point = null,
 };
-pub fn fromGltf(
-    ctx: jok.Context,
-    file_path: [*:0]const u8,
-    opt: GltfOption,
-) !*Self {
+pub fn fromGltf(ctx: jok.Context, file_path: [*:0]const u8, opt: GltfOption) !*Self {
     var filedata: ?[]const u8 = null;
     defer if (filedata) |d| ctx.allocator().free(d);
 
@@ -494,7 +682,7 @@ pub fn fromGltf(
     };
     defer zmesh.io.freeData(data);
 
-    var self = try create(ctx.allocator(), 0, true);
+    var self = try create(ctx.allocator(), 0, .gltf);
     errdefer self.destroy();
 
     if (opt.tex) |t| { // Use external texture
@@ -505,10 +693,7 @@ pub fn fromGltf(
     }
 
     // Load the scene/nodes
-    const dir: []const u8 = if (std.mem.lastIndexOfScalar(u8, std.mem.sliceTo(file_path, 0), '/')) |idx|
-        file_path[0..idx]
-    else
-        "";
+    const dir: []const u8 = std.fs.path.dirname(std.mem.sliceTo(file_path, 0)) orelse "";
     var node_index: usize = 0;
     while (node_index < data.scene.?.nodes_count) : (node_index += 1) {
         try self.loadNodeTree(ctx, dir, data.scene.?.nodes.?[node_index], self.root, opt);
@@ -560,8 +745,8 @@ pub fn render(
     try self.root.render(
         csz,
         batch,
-        if (self.is_gltf) // Convert to right-handed system (glTF use left-handed system)
-            zmath.mul(zmath.scaling(-1, 1, 1), model)
+        if (self.format != .shape) // Convert to right-handed system (glTF/OBJ use right-handed system)
+            zmath.mul(zmath.scaling(1, 1, -1), model)
         else
             model,
         camera,
@@ -628,7 +813,7 @@ fn loadNodeTree(
                     if (self.textures.get(sm.tex_id) == null) {
                         var tex: jok.Texture = undefined;
                         if (image.uri) |p| { // Read external file
-                            const uri_path = std.mem.sliceTo(p, '\x00');
+                            const uri_path = std.mem.sliceTo(p, 0);
                             const path = try std.mem.joinZ(
                                 self.allocator,
                                 "/",

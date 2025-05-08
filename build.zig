@@ -467,6 +467,7 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Mode, 
     @import("src/vendor/svg/build.zig").inject(libmod, builder.path("src/vendor/svg"));
     @import("src/vendor/zmath/build.zig").inject(libmod, builder.path("src/vendor/zmath"));
     @import("src/vendor/zmesh/build.zig").inject(libmod, builder.path("src/vendor/zmesh"));
+    @import("src/vendor/zobj/build.zig").inject(libmod, builder.path("src/vendor/zobj"));
     @import("src/vendor/znoise/build.zig").inject(libmod, builder.path("src/vendor/znoise"));
     if (!opt.no_audio) @import("src/vendor/zaudio/build.zig").inject(libmod, builder.path("src/vendor/zaudio"));
     if (opt.use_cp) @import("src/vendor/chipmunk/build.zig").inject(libmod, builder.path("src/vendor/chipmunk"));

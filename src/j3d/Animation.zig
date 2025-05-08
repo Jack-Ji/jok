@@ -80,11 +80,14 @@ pub fn render(
     self: *Self,
     csz: jok.Size,
     batch: *j3d.Batch,
-    model: zmath.Mat,
+    _model: zmath.Mat,
     camera: Camera,
     tri_rd: *TriangleRenderer,
     opt: RenderOption,
 ) !void {
+    // Convert to right-handed system (glTF use right-handed system)
+    const model = zmath.mul(zmath.scaling(1, 1, -1), _model);
+
     // Reset world matrix
     var it = self.transforms.valueIterator();
     while (it.next()) |tr| {
@@ -214,7 +217,7 @@ pub fn render(
         self.anim.mesh.root,
         csz,
         batch,
-        zmath.mul(zmath.scaling(-1, 1, 1), model),
+        model,
         camera,
         tri_rd,
         opt,

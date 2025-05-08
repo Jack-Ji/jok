@@ -245,6 +245,7 @@ pub const Frame = struct {
     pub const Data = union(enum) {
         sp: Sprite,
         dcmd: internal.DrawCmd,
+        custom: *anyopaque,
     };
     data: Data,
     duration: f32,
