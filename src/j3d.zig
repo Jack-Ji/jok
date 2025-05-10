@@ -421,10 +421,13 @@ pub const Batch = struct {
             const col = color.toInternalColor();
             var i: usize = 2;
             while (i < indices.len) : (i += 3) {
+                const idx1 = indices[i - 2];
+                const idx2 = indices[i - 1];
+                const idx3 = indices[i];
                 self.draw_list.addTriangle(.{
-                    .p1 = .{ vertices[i - 2].pos.x, vertices[i - 2].pos.y },
-                    .p2 = .{ vertices[i - 1].pos.x, vertices[i - 1].pos.y },
-                    .p3 = .{ vertices[i].pos.x, vertices[i].pos.y },
+                    .p1 = .{ vertices[idx1].pos.x, vertices[idx1].pos.y },
+                    .p2 = .{ vertices[idx2].pos.x, vertices[idx2].pos.y },
+                    .p3 = .{ vertices[idx3].pos.x, vertices[idx3].pos.y },
                     .col = col,
                 });
             }
