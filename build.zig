@@ -231,6 +231,7 @@ pub fn createDesktopApp(
     // Install jok library
     if (opt.link_dynamic) {
         const install_jok = b.addInstallArtifact(jok.artifact, .{ .dest_dir = .{ .override = .{ .bin = {} } } });
+        exe.addLibraryPath(.{ .cwd_relative = "." });
         exe.step.dependOn(&install_jok.step);
     }
 
@@ -281,6 +282,7 @@ pub fn createTest(
     // Install jok library
     if (opt.link_dynamic) {
         const install_jok = b.addInstallArtifact(jok.artifact, .{ .dest_dir = .{ .override = .{ .bin = {} } } });
+        test_exe.addLibraryPath(.{ .cwd_relative = "." });
         test_exe.step.dependOn(&install_jok.step);
     }
 
@@ -342,6 +344,7 @@ pub fn createPlugin(
 
     // Install jok library
     const install_jok = b.addInstallArtifact(jok.artifact, .{ .dest_dir = .{ .override = .{ .bin = {} } } });
+    lib.addLibraryPath(.{ .cwd_relative = "." });
     lib.step.dependOn(&install_jok.step);
 
     return lib;
