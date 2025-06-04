@@ -26,7 +26,7 @@ export fn deinit(ctx: *const jok.Context, name: [*:0]const u8) void {
 
 export fn event(ctx: *const jok.Context, e: *const jok.Event, name: [*:0]const u8) void {
     plugin.event(ctx.*, e.*) catch |err| {
-        log.err("Plugin({s}) process event failed: {}", .{ err, name });
+        log.err("Plugin({s}) process event failed: {}", .{ name, err });
         if (@errorReturnTrace()) |trace| std.debug.dumpStackTrace(trace.*);
     };
 }
