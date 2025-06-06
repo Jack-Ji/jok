@@ -65,7 +65,7 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.none);
 
-    const mouse = jok.io.getMouseState();
+    const mouse = jok.io.getMouseState(ctx);
     const mouse_pos_in_iso_space = iso_transform.transformToIso(mouse.pos);
     const selected_x: isize = @intFromFloat(@floor(mouse_pos_in_iso_space.x));
     const selected_y: isize = @intFromFloat(@floor(mouse_pos_in_iso_space.y));

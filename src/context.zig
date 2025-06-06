@@ -541,7 +541,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 _ = imgui.sdl.processEvent(e);
 
                 // Game event processing
-                const we = jok.Event.from(ne);
+                const we = jok.Event.from(ne, self._ctx);
                 if (!builtin.cpu.arch.isWasm() and cfg.jok_exit_on_recv_esc and we == .key_up and we.key_up.scancode == .escape) {
                     kill(self);
                 } else if (cfg.jok_exit_on_recv_quit and we == .quit) {
@@ -698,9 +698,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             } else {
                 self._display_dpi = self._default_dpi;
             }
-
-            // Initialize i/o context
-            io.init(self._ctx);
 
             // Initialize window and renderer
             self._window = try jok.Window.init(cfg, getDpiScale(self));

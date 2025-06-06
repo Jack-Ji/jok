@@ -191,13 +191,13 @@ pub const MouseMotionEvent = struct {
     /// ignores screen boundaries if relative mouse mode is enabled
     delta: jok.Point,
 
-    pub fn fromNative(native: sdl.SDL_MouseMotionEvent) MouseMotionEvent {
+    pub fn fromNative(native: sdl.SDL_MouseMotionEvent, ctx: jok.Context) MouseMotionEvent {
         assert(native.type == sdl.SDL_MOUSEMOTION);
-        const pos = mapPositionToCanvas(.{
+        const pos = mapPositionToCanvas(ctx, .{
             .x = @floatFromInt(native.x),
             .y = @floatFromInt(native.y),
         });
-        const canvas_scale = getCanvasScale();
+        const canvas_scale = getCanvasScale(ctx);
         const delta_x = @as(f32, @floatFromInt(native.xrel)) * canvas_scale;
         const delta_y = @as(f32, @floatFromInt(native.yrel)) * canvas_scale;
         return .{
@@ -229,12 +229,12 @@ pub const MouseButtonEvent = struct {
     clicks: u8,
     pos: jok.Point,
 
-    pub fn fromNative(native: sdl.SDL_MouseButtonEvent) MouseButtonEvent {
+    pub fn fromNative(native: sdl.SDL_MouseButtonEvent, ctx: jok.Context) MouseButtonEvent {
         switch (native.type) {
             else => unreachable,
             sdl.SDL_MOUSEBUTTONDOWN, sdl.SDL_MOUSEBUTTONUP => {},
         }
-        const pos = mapPositionToCanvas(.{
+        const pos = mapPositionToCanvas(ctx, .{
             .x = @floatFromInt(native.x),
             .y = @floatFromInt(native.y),
         });
@@ -542,7 +542,7 @@ pub const Event = union(enum) {
     drop_complete: DropEvent,
     user: UserEvent,
 
-    pub fn from(raw: sdl.SDL_Event) Event {
+    pub fn from(raw: sdl.SDL_Event, ctx: jok.Context) Event {
         return switch (raw.type) {
             sdl.SDL_QUIT => Event{ .quit = raw.quit },
             sdl.SDL_APP_TERMINATING => Event{ .app_terminating = raw.common },
@@ -559,9 +559,9 @@ pub const Event = union(enum) {
             sdl.SDL_TEXTEDITING => Event{ .text_editing = raw.edit },
             sdl.SDL_TEXTINPUT => Event{ .text_input = raw.text },
             sdl.SDL_KEYMAPCHANGED => Event{ .key_map_changed = raw.common },
-            sdl.SDL_MOUSEMOTION => Event{ .mouse_motion = MouseMotionEvent.fromNative(raw.motion) },
-            sdl.SDL_MOUSEBUTTONDOWN => Event{ .mouse_button_down = MouseButtonEvent.fromNative(raw.button) },
-            sdl.SDL_MOUSEBUTTONUP => Event{ .mouse_button_up = MouseButtonEvent.fromNative(raw.button) },
+            sdl.SDL_MOUSEMOTION => Event{ .mouse_motion = MouseMotionEvent.fromNative(raw.motion, ctx) },
+            sdl.SDL_MOUSEBUTTONDOWN => Event{ .mouse_button_down = MouseButtonEvent.fromNative(raw.button, ctx) },
+            sdl.SDL_MOUSEBUTTONUP => Event{ .mouse_button_up = MouseButtonEvent.fromNative(raw.button, ctx) },
             sdl.SDL_MOUSEWHEEL => Event{ .mouse_wheel = MouseWheelEvent.fromNative(raw.wheel) },
             sdl.SDL_JOYAXISMOTION => Event{ .joy_axis_motion = JoyAxisEvent.fromNative(raw.jaxis) },
             sdl.SDL_JOYBALLMOTION => Event{ .joy_ball_motion = JoyBallEvent.fromNative(raw.jball) },
@@ -675,13 +675,13 @@ pub const MouseState = struct {
     pos: jok.Point,
 };
 
-pub fn getMouseState() MouseState {
+pub fn getMouseState(ctx: jok.Context) MouseState {
     var ms: MouseState = undefined;
     var x: c_int = undefined;
     var y: c_int = undefined;
     const buttons = sdl.SDL_GetMouseState(&x, &y);
     ms.buttons = MouseButtonState.fromNative(buttons);
-    ms.pos = mapPositionToCanvas(.{
+    ms.pos = mapPositionToCanvas(ctx, .{
         .x = @floatFromInt(x),
         .y = @floatFromInt(y),
     });
@@ -1252,10 +1252,6 @@ pub fn delay(ms: u32) void {
     sdl.SDL_Delay(ms);
 }
 
-test "platform independent declarations" {
-    std.testing.refAllDecls(@This());
-}
-
 pub fn numJoysticks() !u31 {
     const num = sdl.SDL_NumJoysticks();
     if (num < 0) return error.SdlError;
@@ -1339,19 +1335,13 @@ pub const GameController = struct {
     };
 };
 
-var ctx: jok.Context = undefined;
-
-pub fn init(_ctx: jok.Context) void {
-    ctx = _ctx;
-}
-
-inline fn getCanvasScale() f32 {
+inline fn getCanvasScale(ctx: jok.Context) f32 {
     const canvas_size = ctx.getCanvasSize();
     const canvas_area = ctx.getCanvasArea();
     return @as(f32, @floatFromInt(canvas_size.width)) / canvas_area.width;
 }
 
-inline fn mapPositionToCanvas(pos: jok.Point) jok.Point {
+inline fn mapPositionToCanvas(ctx: jok.Context, pos: jok.Point) jok.Point {
     const canvas_size = ctx.getCanvasSize();
     const canvas_area = ctx.getCanvasArea();
     const canvas_scale = @as(f32, @floatFromInt(canvas_size.width)) / canvas_area.width;

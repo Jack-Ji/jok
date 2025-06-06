@@ -33,7 +33,7 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(map.bgcolor);
 
-    const mouse_pos = jok.io.getMouseState().pos;
+    const mouse_pos = jok.io.getMouseState(ctx).pos;
 
     var b = try batchpool.new(.{});
     defer b.submit();

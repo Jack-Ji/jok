@@ -58,7 +58,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    const mouse = jok.io.getMouseState();
+    const mouse = jok.io.getMouseState(ctx);
     if (mouse.buttons.isPressed(.left)) {
         var rd = rand_gen.random();
         var i: u32 = 0;
