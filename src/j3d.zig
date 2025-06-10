@@ -251,7 +251,7 @@ pub const Batch = struct {
         };
 
         assert(self.id != invalid_batch_id);
-        assert(jok.utils.isMainThread());
+        assert(self.ctx.isMainThread());
 
         defer self.is_submitted = true;
 

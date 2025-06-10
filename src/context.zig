@@ -27,6 +27,7 @@ pub const Context = struct {
         realSeconds: *const fn (ctx: *anyopaque) f64,
         deltaSeconds: *const fn (ctx: *anyopaque) f32,
         fps: *const fn (ctx: *anyopaque) f32,
+        isMainThread: *const fn (ctx: *anyopaque) bool,
         window: *const fn (ctx: *anyopaque) jok.Window,
         renderer: *const fn (ctx: *anyopaque) jok.Renderer,
         canvas: *const fn (ctx: *anyopaque) jok.Texture,
@@ -77,6 +78,11 @@ pub const Context = struct {
     /// Get FPS of application
     pub fn fps(self: Context) f32 {
         return self.vtable.fps(self.ctx);
+    }
+
+    /// Whether current thread is main thread
+    pub fn isMainThread(self: Context) bool {
+        return self.vtable.isMainThread(self.ctx);
     }
 
     /// Get SDL window
@@ -213,11 +219,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Setup configuration
         _cfg: config.Config = cfg,
 
-        // Application Context
-        _ctx: Context = undefined,
-
         // Memory allocator
         _allocator: std.mem.Allocator = undefined,
+
+        // Main thread id
+        _main_thread_id: ?std.Thread.Id = undefined,
+
+        // Application Context
+        _ctx: Context = undefined,
 
         // Is running
         _running: bool = true,
@@ -293,10 +302,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
             var self = try _allocator.create(@This());
             self.* = .{};
             self._allocator = _allocator;
+            self._main_thread_id = std.Thread.getCurrentId();
             self._ctx = self.context();
-
-            // Init main-thread id
-            _ = jok.utils.isMainThread();
 
             // Init PhysicsFS
             physfs.init(self._allocator);
@@ -743,6 +750,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .realSeconds = realSeconds,
                     .deltaSeconds = deltaSeconds,
                     .fps = fps,
+                    .isMainThread = isMainThread,
                     .window = window,
                     .renderer = renderer,
                     .canvas = canvas,
@@ -830,6 +838,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn fps(ptr: *anyopaque) f32 {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._fps;
+        }
+
+        /// Whether current thread is main thread
+        pub fn isMainThread(ptr: *anyopaque) bool {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            return self._main_thread_id == std.Thread.getCurrentId();
         }
 
         /// Get SDL window

@@ -152,7 +152,7 @@ pub const Batch = struct {
     /// Submit batch, issue draw calls, don't reclaim itself
     pub fn submitWithoutReclaim(self: *Batch) void {
         assert(self.id != invalid_batch_id);
-        assert(jok.utils.isMainThread());
+        assert(self.ctx.isMainThread());
 
         defer self.is_submitted = true;
 
