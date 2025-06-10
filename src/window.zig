@@ -7,7 +7,8 @@ const log = std.log.scoped(.jok);
 pub const Window = struct {
     ptr: *sdl.SDL_Window,
 
-    pub fn init(cfg: jok.config.Config, dpi_scale: f32) !Window {
+    pub fn init(ctx: jok.Context) !Window {
+        const cfg = ctx.cfg();
         var flags: u32 = sdl.SDL_WINDOW_MOUSE_CAPTURE | sdl.SDL_WINDOW_MOUSE_FOCUS;
         if (cfg.jok_headless) {
             flags |= sdl.SDL_WINDOW_HIDDEN;
@@ -33,8 +34,8 @@ pub const Window = struct {
             },
             .custom => |size| {
                 // Make sure window size looks same on different screen
-                window_width = @intFromFloat(@as(f32, @floatFromInt(size.width)) * dpi_scale);
-                window_height = @intFromFloat(@as(f32, @floatFromInt(size.height)) * dpi_scale);
+                window_width = @intFromFloat(@as(f32, @floatFromInt(size.width)) * ctx.getDpiScale());
+                window_height = @intFromFloat(@as(f32, @floatFromInt(size.height)) * ctx.getDpiScale());
             },
         }
         const ptr = sdl.SDL_CreateWindow(

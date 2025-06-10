@@ -14,27 +14,44 @@ pub const Error = error{
 };
 
 // Draw call statistics
-pub const dcstats = struct {
-    pub var drawcall_count: u32 = 0;
-    pub var triangle_count: u32 = 0;
+pub const DcStats = struct {
+    allocator: std.mem.Allocator,
+    drawcall_count: u32,
+    triangle_count: u32,
 
-    pub fn clear() void {
-        drawcall_count = 0;
-        triangle_count = 0;
+    pub fn create(allocator: std.mem.Allocator) *DcStats {
+        const dc = allocator.create(DcStats) catch unreachable;
+        dc.* = .{
+            .allocator = allocator,
+            .drawcall_count = 0,
+            .triangle_count = 0,
+        };
+        return dc;
+    }
+
+    pub fn destroy(self: *DcStats) void {
+        self.allocator.destroy(self);
+    }
+
+    pub fn clear(self: *DcStats) void {
+        self.drawcall_count = 0;
+        self.triangle_count = 0;
     }
 };
 
 pub const Renderer = struct {
     ptr: *sdl.SDL_Renderer,
     cfg: jok.config.Config,
+    dc: *DcStats,
 
     // Create hardware accelerated renderer
-    pub fn init(cfg: jok.config.Config, window: jok.Window) !Renderer {
+    pub fn init(ctx: jok.Context) !Renderer {
+        const cfg = ctx.cfg();
         var flags: u32 = sdl.SDL_RENDERER_TARGETTEXTURE | sdl.SDL_RENDERER_ACCELERATED;
         if (cfg.jok_fps_limit == .auto) {
             flags |= sdl.SDL_RENDERER_PRESENTVSYNC;
         }
-        const ptr = sdl.SDL_CreateRenderer(window.ptr, -1, flags);
+        const ptr = sdl.SDL_CreateRenderer(ctx.window().ptr, -1, flags);
         if (ptr == null) {
             log.err("create renderer failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;
@@ -43,6 +60,7 @@ pub const Renderer = struct {
         var rd = Renderer{
             .ptr = ptr.?,
             .cfg = cfg,
+            .dc = DcStats.create(ctx.allocator()),
         };
         try rd.setBlendMode(.blend);
         const rdinfo = try rd.getInfo();
@@ -51,6 +69,7 @@ pub const Renderer = struct {
     }
 
     pub fn destroy(self: Renderer) void {
+        self.dc.destroy();
         sdl.SDL_DestroyRenderer(self.ptr);
     }
 
@@ -180,7 +199,7 @@ pub const Renderer = struct {
             log.err("render texture failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;
         }
-        dcstats.drawcall_count += 1;
+        self.dc.drawcall_count += 1;
     }
 
     pub fn drawTriangles(self: Renderer, tex: ?jok.Texture, vs: []const jok.Vertex, indices: ?[]const u32) !void {
@@ -195,8 +214,8 @@ pub const Renderer = struct {
             log.err("render triangles failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;
         }
-        dcstats.drawcall_count += 1;
-        dcstats.triangle_count += if (indices) |is|
+        self.dc.drawcall_count += 1;
+        self.dc.triangle_count += if (indices) |is|
             @as(u32, @intCast(is.len)) / 3
         else
             @as(u32, @intCast(vs.len)) / 3;
@@ -233,8 +252,8 @@ pub const Renderer = struct {
             log.err("render triangles failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;
         }
-        dcstats.drawcall_count += 1;
-        dcstats.triangle_count += @as(u32, @intCast(indices.len)) / 3;
+        self.dc.drawcall_count += 1;
+        self.dc.triangle_count += @as(u32, @intCast(indices.len)) / 3;
     }
 
     pub const TextureOption = struct {
