@@ -493,7 +493,7 @@ pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Self {
     const loaded = try jok.utils.gfx.jpng.loadTexture(ctx, path, .static, false);
     defer ctx.allocator().free(loaded.data);
     errdefer loaded.tex.destroy();
-    if (loaded.data.len <= magic_sheet_header.len and
+    if (loaded.data.len < magic_sheet_header.len + 2 or
         !std.mem.eql(u8, &magic_sheet_header, loaded.data[0..magic_sheet_header.len]))
     {
         return error.InvalidFormat;
