@@ -480,7 +480,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 imgui.sdl.newFrame(self.context());
                 defer imgui.sdl.draw(self.context());
 
-                self._renderer.clear(.black) catch unreachable;
+                self._renderer.clear(cfg.jok_framebuffer_color) catch unreachable;
                 self._renderer.setTarget(self._canvas_texture) catch unreachable;
                 defer {
                     self._renderer.setTarget(null) catch unreachable;

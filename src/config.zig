@@ -12,6 +12,9 @@ pub const Config = struct {
     /// Assets accessing method
     jok_enable_physfs: bool = true,
 
+    /// Clearing color of framebuffer
+    jok_framebuffer_color: jok.Color = .black,
+
     /// Canvas size (default to framebuffer's size)
     jok_canvas_size: ?jok.Size = null,
 
@@ -96,6 +99,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_log_level", .desc = "logging level" },
         .{ .name = "jok_fps_limit", .desc = "fps limit setting" },
         .{ .name = "jok_enable_physfs", .desc = "whether use physfs to access game assets" },
+        .{ .name = "jok_framebuffer_color", .desc = "clearing color of framebuffer" },
         .{ .name = "jok_canvas_size", .desc = "size of canvas" },
         .{ .name = "jok_enable_post_processing", .desc = "whether enable post-processing facility" },
         .{ .name = "jok_headless", .desc = "headless mode" },
