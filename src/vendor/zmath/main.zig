@@ -1386,16 +1386,19 @@ test "zmath.lerpInverse" {
 // Reference: https://www.gamedeveloper.com/programming/improved-lerp-smoothing-
 pub inline fn lerpOverTime(v0: anytype, v1: anytype, rate: anytype, dt: anytype) @TypeOf(v0, v1) {
     const t = std.math.exp2(-rate * dt);
-    return lerp(v0, v1, t);
+    return lerp(v1, v0, t);
 }
 
 pub inline fn lerpVOverTime(v0: anytype, v1: anytype, rate: anytype, dt: anytype) @TypeOf(v0, v1, rate, dt) {
     const t = std.math.exp2(-rate * dt);
-    return lerpV(v0, v1, t);
+    return lerpV(v1, v0, t);
 }
+
 test "zmath.lerpOverTime" {
     try expect(math.approxEqAbs(f32, lerpVOverTime(0.0, 1.0, 1.0, 1.0), 0.5, 0.0005));
     try expect(math.approxEqAbs(f32, lerpVOverTime(0.5, 1.0, 1.0, 1.0), 0.75, 0.0005));
+    try expect(math.approxEqAbs(f32, lerpVOverTime(0.0, 1.0, 1.0, 0.0), 0.0, 0.0005));
+    try expect(math.approxEqAbs(f32, lerpVOverTime(0.0, 1.0, 1.0, std.math.inf(f32)), 1.0, 0.0005));
     try expectVecApproxEqAbs(lerpOverTime(f32x4(0, 0, 10, 10), f32x4(100, 200, 100, 100), 1.0, 1.0), f32x4(50, 100, 55, 55), 0.0005);
 }
 
@@ -2008,13 +2011,13 @@ test "zmath.length3" {
 }
 
 pub inline fn normalize2(v: Vec) Vec {
-    return v * splat(F32x4, 1.0) / sqrt(dot2(v, v));
+    return v / sqrt(dot2(v, v));
 }
 pub inline fn normalize3(v: Vec) Vec {
-    return v * splat(F32x4, 1.0) / sqrt(dot3(v, v));
+    return v / sqrt(dot3(v, v));
 }
 pub inline fn normalize4(v: Vec) Vec {
-    return v * splat(F32x4, 1.0) / sqrt(dot4(v, v));
+    return v / sqrt(dot4(v, v));
 }
 test "zmath.normalize3" {
     {
@@ -2606,7 +2609,7 @@ pub fn inverseDet(m: Mat, out_det: ?*F32x4) Mat {
         out_det.?.* = det;
     }
 
-    if (math.approxEqAbs(f32, det[0], 0.0, math.floatEps(f32))) {
+    if (math.approxEqAbs(f64, det[0], 0.0, math.floatEps(f64))) {
         return .{
             f32x4(0.0, 0.0, 0.0, 0.0),
             f32x4(0.0, 0.0, 0.0, 0.0),
@@ -4425,19 +4428,6 @@ test "zmath.ifft" {
         }
     }
 }
-
-// ------------------------------------------------------------------------------
-//
-// Math utils
-//
-// ------------------------------------------------------------------------------
-pub const util = @import("util.zig");
-
-// ensure transitive closure of test coverage
-comptime {
-    _ = util;
-}
-
 // ------------------------------------------------------------------------------
 //
 // Private functions and constants
@@ -4529,6 +4519,147 @@ pub fn approxEqAbs(v0: anytype, v1: anytype, eps: f32) bool {
     }
     return true;
 }
+
+/// ==============================================================================
+///
+/// Collection of useful functions building on top of, and extending, core zmath.
+/// https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath
+///
+/// ------------------------------------------------------------------------------
+/// 1. Matrix functions
+/// ------------------------------------------------------------------------------
+///
+/// As an example, in a left handed Y-up system:
+///   getAxisX is equivalent to the right vector
+///   getAxisY is equivalent to the up vector
+///   getAxisZ is equivalent to the forward vector
+///
+/// getTranslationVec(m: Mat) Vec
+/// getAxisX(m: Mat) Vec
+/// getAxisY(m: Mat) Vec
+/// getAxisZ(m: Mat) Vec
+///
+/// ==============================================================================
+pub const util = struct {
+    pub fn getTranslationVec(m: Mat) Vec {
+        var _translation = m[3];
+        _translation[3] = 0;
+        return _translation;
+    }
+
+    pub fn setTranslationVec(m: *Mat, _translation: Vec) void {
+        const w = m[3][3];
+        m[3] = _translation;
+        m[3][3] = w;
+    }
+
+    pub fn getScaleVec(m: Mat) Vec {
+        const scale_x = length3(f32x4(m[0][0], m[1][0], m[2][0], 0))[0];
+        const scale_y = length3(f32x4(m[0][1], m[1][1], m[2][1], 0))[0];
+        const scale_z = length3(f32x4(m[0][2], m[1][2], m[2][2], 0))[0];
+        return f32x4(scale_x, scale_y, scale_z, 0);
+    }
+
+    pub fn getRotationQuat(_m: Mat) Quat {
+        // Ortho normalize given matrix.
+        const c1 = normalize3(f32x4(_m[0][0], _m[1][0], _m[2][0], 0));
+        const c2 = normalize3(f32x4(_m[0][1], _m[1][1], _m[2][1], 0));
+        const c3 = normalize3(f32x4(_m[0][2], _m[1][2], _m[2][2], 0));
+        var m = _m;
+        m[0][0] = c1[0];
+        m[1][0] = c1[1];
+        m[2][0] = c1[2];
+        m[0][1] = c2[0];
+        m[1][1] = c2[1];
+        m[2][1] = c2[2];
+        m[0][2] = c3[0];
+        m[1][2] = c3[1];
+        m[2][2] = c3[2];
+
+        // Extract rotation
+        return quatFromMat(m);
+    }
+
+    pub fn getAxisX(m: Mat) Vec {
+        return normalize3(f32x4(m[0][0], m[0][1], m[0][2], 0.0));
+    }
+
+    pub fn getAxisY(m: Mat) Vec {
+        return normalize3(f32x4(m[1][0], m[1][1], m[1][2], 0.0));
+    }
+
+    pub fn getAxisZ(m: Mat) Vec {
+        return normalize3(f32x4(m[2][0], m[2][1], m[2][2], 0.0));
+    }
+
+    test "zmath.util.mat.translation" {
+        // zig fmt: off
+        const mat_data = [18]f32{
+            1.0,
+            2.0, 3.0, 4.0, 5.0,
+            6.0, 7.0, 8.0, 9.0,
+            10.0,11.0, 12.0,13.0,
+            14.0, 15.0, 16.0, 17.0,
+            18.0,
+        };
+        // zig fmt: on
+        const mat = loadMat(mat_data[1..]);
+        try expectVecApproxEqAbs(getTranslationVec(mat), f32x4(14.0, 15.0, 16.0, 0.0), 0.0001);
+    }
+
+    test "zmath.util.mat.scale" {
+        const mat = mul(scaling(3, 4, 5), translation(6, 7, 8));
+        const scale = getScaleVec(mat);
+        try expectVecApproxEqAbs(scale, f32x4(3.0, 4.0, 5.0, 0.0), 0.0001);
+    }
+
+    test "zmath.util.mat.rotation" {
+        const rotate_origin = matFromRollPitchYaw(0.1, 1.2, 2.3);
+        const mat = mul(mul(rotate_origin, scaling(3, 4, 5)), translation(6, 7, 8));
+        const rotate_get = getRotationQuat(mat);
+        const v0 = mul(f32x4s(1), rotate_origin);
+        const v1 = mul(f32x4s(1), quatToMat(rotate_get));
+        try expectVecApproxEqAbs(v0, v1, 0.0001);
+    }
+
+    test "zmath.util.mat.z_vec" {
+        const degToRad = std.math.degreesToRadians;
+        var z_vec = getAxisZ(identity());
+        try expectVecApproxEqAbs(z_vec, f32x4(0.0, 0.0, 1.0, 0), 0.0001);
+        const rot_yaw = rotationY(degToRad(90));
+        identity = mul(identity(), rot_yaw);
+        z_vec = getAxisZ(identity());
+        try expectVecApproxEqAbs(z_vec, f32x4(1.0, 0.0, 0.0, 0), 0.0001);
+    }
+
+    test "zmath.util.mat.y_vec" {
+        const degToRad = std.math.degreesToRadians;
+        var y_vec = getAxisY(identity());
+        try expectVecApproxEqAbs(y_vec, f32x4(0.0, 1.0, 0.0, 0), 0.01);
+        const rot_yaw = rotationY(degToRad(90));
+        identity = mul(identity(), rot_yaw);
+        y_vec = getAxisY(identity());
+        try expectVecApproxEqAbs(y_vec, f32x4(0.0, 1.0, 0.0, 0), 0.01);
+        const rot_pitch = rotationX(degToRad(90));
+        identity = mul(identity(), rot_pitch);
+        y_vec = getAxisY(identity());
+        try expectVecApproxEqAbs(y_vec, f32x4(0.0, 0.0, 1.0, 0), 0.01);
+    }
+
+    test "zmath.util.mat.right" {
+        const degToRad = std.math.degreesToRadians;
+        var right = getAxisX(identity());
+        try expectVecApproxEqAbs(right, f32x4(1.0, 0.0, 0.0, 0), 0.01);
+        const rot_yaw = rotationY(degToRad(90));
+        identity = mul(identity, rot_yaw);
+        right = getAxisX(identity());
+        try expectVecApproxEqAbs(right, f32x4(0.0, 0.0, -1.0, 0), 0.01);
+        const rot_pitch = rotationX(degToRad(90));
+        identity = mul(identity(), rot_pitch);
+        right = getAxisX(identity());
+        try expectVecApproxEqAbs(right, f32x4(0.0, 1.0, 0.0, 0), 0.01);
+    }
+}; // util
 
 // ------------------------------------------------------------------------------
 // This software is available under 2 licenses -- choose whichever you prefer.
