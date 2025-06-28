@@ -97,37 +97,45 @@ pub const Texture = struct {
     pub const PixelData = struct {
         allocator: std.mem.Allocator,
         region: ?jok.Region,
-        pixels: []u8,
-        stride: u32,
+        buf: []u8,
+        pixels: []u32,
         width: u32,
         height: u32,
 
         pub inline fn destroy(self: PixelData) void {
-            self.allocator.free(self.pixels);
+            self.allocator.free(self.buf);
         }
 
-        pub inline fn clear(self: PixelData) void {
-            @memset(self.pixels, 0);
+        pub inline fn clear(self: PixelData, c: jok.Color, region: ?jok.Region) void {
+            const rgba = c.toRGBA32();
+            if (region) |r| {
+                assert(r.x + r.width <= self.width);
+                assert(r.y + r.height <= self.height);
+                for (0..r.height) |h| {
+                    const off_begin = (r.y + h) * self.width + r.x;
+                    const off_end = (r.y + h) * self.width + r.x + r.width;
+                    @memset(self.pixels[off_begin..off_end], rgba);
+                }
+            } else {
+                @memset(self.pixels, rgba);
+            }
         }
 
         pub inline fn getPixel(self: PixelData, x: u32, y: u32) jok.Color {
             assert(x < self.width);
             assert(y < self.height);
-            const line: [*]u32 = @alignCast(@ptrCast(self.pixels.ptr + y * self.stride));
-            return jok.Color.fromRGBA32(line[x]);
+            return jok.Color.fromRGBA32(self.pixels[y * self.width + x]);
         }
 
         pub inline fn setPixel(self: PixelData, x: u32, y: u32, c: jok.Color) void {
             assert(x < self.width);
             assert(y < self.height);
-            const line: [*]u32 = @alignCast(@ptrCast(self.pixels.ptr + y * self.stride));
-            line[x] = c.toRGBA32();
+            self.pixels[y * self.width + x] = c.toRGBA32();
         }
 
         pub inline fn setPixelByIndex(self: PixelData, index: u32, c: jok.Color) void {
-            const x = index % self.width;
-            const y = index / self.width;
-            self.setPixel(x, y, c);
+            assert(index < self.pixels.len);
+            self.pixels[index] = c.toRGBA32();
         }
     };
     pub fn createPixelData(self: Texture, allocator: std.mem.Allocator, region: ?jok.Region) !PixelData {
@@ -148,17 +156,22 @@ pub const Texture = struct {
             log.err("lock texture failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;
         }
+        assert(@rem(pitch, 4) == 0);
         sdl.SDL_UnlockTexture(self.ptr);
 
         const width = if (region) |r| r.width else info.width;
+        assert(width * 4 == pitch);
         const height = if (region) |r| r.height else info.height;
-        const bufsize = @as(u32, @intCast(pitch)) * height;
+        const bufsize = width * height * 4;
         const buf = try allocator.alloc(u8, bufsize);
+        var pixelbuf: []u32 = undefined;
+        pixelbuf.ptr = @alignCast(@ptrCast(buf.ptr));
+        pixelbuf.len = width * height;
         return .{
             .allocator = allocator,
             .region = region,
-            .pixels = buf,
-            .stride = @intCast(pitch),
+            .buf = buf,
+            .pixels = pixelbuf,
             .width = width,
             .height = height,
         };
@@ -185,11 +198,11 @@ pub const Texture = struct {
             log.err("lock texture failed: {s}", .{sdl.SDL_GetError()});
             return sdl.Error.SdlError;
         }
-        assert(@as(u32, @intCast(pitch)) == data.stride);
+        assert(@as(u32, @intCast(pitch)) == data.width * 4);
         var pixelbuf: []u8 = undefined;
         pixelbuf.ptr = @ptrCast(pixels.?);
-        pixelbuf.len = data.pixels.len;
-        @memcpy(pixelbuf, data.pixels);
+        pixelbuf.len = data.buf.len;
+        @memcpy(pixelbuf, data.buf);
         sdl.SDL_UnlockTexture(self.ptr);
     }
 };

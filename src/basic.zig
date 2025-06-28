@@ -470,27 +470,44 @@ pub const Color = extern struct {
         return Color{ .r = r, .g = g, .b = b, .a = a };
     }
 
-    pub inline fn float3(r: f32, g: f32, b: f32) Color {
-        assert(r >= 0 and r <= 1);
-        assert(g >= 0 and g <= 1);
-        assert(b >= 0 and b <= 1);
+    pub inline fn fromFloat3(c: [3]f32) Color {
+        assert(c[0] >= 0 and c[0] <= 1);
+        assert(c[1] >= 0 and c[1] <= 1);
+        assert(c[2] >= 0 and c[2] <= 1);
         return Color{
-            .r = @intFromFloat(r * 255),
-            .g = @intFromFloat(g * 255),
-            .b = @intFromFloat(b * 255),
+            .r = @intFromFloat(c[0] * 255),
+            .g = @intFromFloat(c[1] * 255),
+            .b = @intFromFloat(c[2] * 255),
         };
     }
 
-    pub inline fn float4(r: f32, g: f32, b: f32, a: f32) Color {
-        assert(r >= 0 and r <= 1);
-        assert(g >= 0 and g <= 1);
-        assert(b >= 0 and b <= 1);
-        assert(a >= 0 and a <= 1);
+    pub inline fn toFloat3(c: Color) [3]f32 {
+        return .{
+            @as(f32, @floatFromInt(c.r)) / 255,
+            @as(f32, @floatFromInt(c.g)) / 255,
+            @as(f32, @floatFromInt(c.b)) / 255,
+        };
+    }
+
+    pub inline fn fromFloat4(c: [4]f32) Color {
+        assert(c[0] >= 0 and c[0] <= 1);
+        assert(c[1] >= 0 and c[1] <= 1);
+        assert(c[2] >= 0 and c[2] <= 1);
+        assert(c[3] >= 0 and c[3] <= 1);
         return Color{
-            .r = @intFromFloat(r * 255),
-            .g = @intFromFloat(g * 255),
-            .b = @intFromFloat(b * 255),
-            .a = @intFromFloat(a * 255),
+            .r = @intFromFloat(c[0] * 255),
+            .g = @intFromFloat(c[1] * 255),
+            .b = @intFromFloat(c[2] * 255),
+            .a = @intFromFloat(c[3] * 255),
+        };
+    }
+
+    pub inline fn toFloat4(c: Color) [4]f32 {
+        return .{
+            @as(f32, @floatFromInt(c.r)) / 255,
+            @as(f32, @floatFromInt(c.g)) / 255,
+            @as(f32, @floatFromInt(c.b)) / 255,
+            @as(f32, @floatFromInt(c.a)) / 255,
         };
     }
 
