@@ -332,7 +332,7 @@ pub extern "kernel32" fn ExitProcess(exit_code: UINT) callconv(WINAPI) noreturn;
 
 pub extern "kernel32" fn CloseHandle(hObject: HANDLE) callconv(WINAPI) BOOL;
 
-pub const PTHREAD_START_ROUTINE = *const fn (LPVOID) callconv(.C) DWORD;
+pub const PTHREAD_START_ROUTINE = *const fn (LPVOID) callconv(.c) DWORD;
 pub const LPTHREAD_START_ROUTINE = PTHREAD_START_ROUTINE;
 
 pub extern "kernel32" fn CreateThread(

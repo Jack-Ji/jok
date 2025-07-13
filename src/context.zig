@@ -627,15 +627,16 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const info = try self._renderer.getInfo();
 
             // Print system info
-            try std.fmt.format(
-                std.io.getStdErr().writer(),
+            const writer = std.debug.lockStderrWriter(&.{});
+            defer std.debug.unlockStdErr();
+            try writer.print(
                 \\System info:
                 \\    Build Mode  : {s}
                 \\    Log Level   : {s}
-                \\    Zig Version : {}
+                \\    Zig Version : {f}
                 \\    CPU         : {s}
                 \\    ABI         : {s}
-                \\    SDL         : {}.{}.{}
+                \\    SDL         : {d}.{d}.{d}
                 \\    Platform    : {s}
                 \\    Memory      : {d}MB
                 \\    App Dir     : {s} 
@@ -983,7 +984,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 imgui.text("V-Sync Enabled: {}", .{rdinfo.flags & sdl.SDL_RENDERER_PRESENTVSYNC != 0});
                 imgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
                 imgui.separator();
-                imgui.text("Duration: {}", .{std.fmt.fmtDuration(@intFromFloat(self._seconds_real * 1e9))});
+                imgui.text("Duration: {D}", .{@as(u64, @intFromFloat(self._seconds_real * 1e9))});
                 if (self._running_slow) {
                     imgui.textColored(.{ 1, 0, 0, 1 }, "FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
                     imgui.textColored(.{ 1, 0, 0, 1 }, "CPU: {d:.1}ms", .{1000.0 / self._fps});
@@ -992,7 +993,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     imgui.text("CPU: {d:.1}ms", .{1000.0 / self._fps});
                 }
                 if (builtin.mode == .Debug) {
-                    imgui.text("Memory: {:.3}", .{std.fmt.fmtIntSizeBin(debug_allocator.total_requested_bytes)});
+                    imgui.text("Memory: {Bi:.3}", .{debug_allocator.total_requested_bytes});
                 }
                 imgui.text("Draw Calls: {d}", .{self._drawcall_count});
                 imgui.text("Triangles: {d}", .{self._triangle_count});

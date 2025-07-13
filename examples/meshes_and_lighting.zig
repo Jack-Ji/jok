@@ -42,7 +42,7 @@ var noise_gen = znoise.FnlGenerator{
     .octaves = 5,
     .lacunarity = 2.02,
 };
-fn uvToPos(uv: *const [2]f32, position: *[3]f32, userdata: ?*anyopaque) callconv(.C) void {
+fn uvToPos(uv: *const [2]f32, position: *[3]f32, userdata: ?*anyopaque) callconv(.c) void {
     _ = userdata;
     position[0] = uv[0];
     position[1] = 0.25 * noise_gen.noise2(uv[0], uv[1]);

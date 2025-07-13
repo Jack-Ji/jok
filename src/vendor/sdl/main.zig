@@ -74,16 +74,16 @@ pub extern fn SDL_SIMDAlloc(len: usize) ?*anyopaque;
 pub extern fn SDL_SIMDRealloc(mem: ?*anyopaque, len: usize) ?*anyopaque;
 pub extern fn SDL_SIMDFree(ptr: ?*anyopaque) void;
 
-const SDL_malloc_func = *const fn (size: usize) callconv(.C) ?*anyopaque;
-const SDL_calloc_func = *const fn (nmemb: usize, size: usize) callconv(.C) ?*anyopaque;
-const SDL_realloc_func = *const fn (mem: ?*anyopaque, size: usize) callconv(.C) ?*anyopaque;
-const SDL_free_func = *const fn (mem: ?*anyopaque) callconv(.C) void;
+const SDL_malloc_func = *const fn (size: usize) callconv(.c) ?*anyopaque;
+const SDL_calloc_func = *const fn (nmemb: usize, size: usize) callconv(.c) ?*anyopaque;
+const SDL_realloc_func = *const fn (mem: ?*anyopaque, size: usize) callconv(.c) ?*anyopaque;
+const SDL_free_func = *const fn (mem: ?*anyopaque) callconv(.c) void;
 pub extern fn SDL_SetMemoryFunctions(
     malloc_func: SDL_malloc_func,
     calloc_func: SDL_calloc_func,
     realloc_func: SDL_realloc_func,
     free_func: SDL_free_func,
-) callconv(.C) void;
+) callconv(.c) void;
 
 pub const SDL_Point = extern struct {
     x: c_int,
@@ -127,11 +127,11 @@ pub extern fn SDL_EncloseFPoints(points: [*c]const SDL_FPoint, count: c_int, cli
 pub extern fn SDL_IntersectRectAndLine(rect: [*c]const SDL_Rect, X1: [*c]c_int, Y1: [*c]c_int, X2: [*c]c_int, Y2: [*c]c_int) SDL_bool;
 pub extern fn SDL_IntersectFRectAndLine(rect: [*c]const SDL_FRect, X1: [*c]f32, Y1: [*c]f32, X2: [*c]f32, Y2: [*c]f32) SDL_bool;
 pub const SDL_RWops = extern struct {
-    size: ?*const fn ([*c]SDL_RWops) callconv(.C) i64,
-    seek: ?*const fn ([*c]SDL_RWops, i64, c_int) callconv(.C) i64,
-    read: ?*const fn ([*c]SDL_RWops, ?*anyopaque, usize, usize) callconv(.C) usize,
-    write: ?*const fn ([*c]SDL_RWops, ?*const anyopaque, usize, usize) callconv(.C) usize,
-    close: ?*const fn ([*c]SDL_RWops) callconv(.C) c_int,
+    size: ?*const fn ([*c]SDL_RWops) callconv(.c) i64,
+    seek: ?*const fn ([*c]SDL_RWops, i64, c_int) callconv(.c) i64,
+    read: ?*const fn ([*c]SDL_RWops, ?*anyopaque, usize, usize) callconv(.c) usize,
+    write: ?*const fn ([*c]SDL_RWops, ?*const anyopaque, usize, usize) callconv(.c) usize,
+    close: ?*const fn ([*c]SDL_RWops) callconv(.c) c_int,
 
     type: u32,
     hidden: Data,
@@ -381,7 +381,7 @@ pub const SDL_Surface = extern struct {
     map: ?*SDL_BlitMap,
     refcount: c_int,
 };
-pub const SDL_blit = ?*const fn (?*SDL_Surface, [*c]SDL_Rect, ?*SDL_Surface, [*c]SDL_Rect) callconv(.C) c_int;
+pub const SDL_blit = ?*const fn (?*SDL_Surface, [*c]SDL_Rect, ?*SDL_Surface, [*c]SDL_Rect) callconv(.c) c_int;
 pub const SDL_YUV_CONVERSION_JPEG: c_int = 0;
 pub const SDL_YUV_CONVERSION_BT601: c_int = 1;
 pub const SDL_YUV_CONVERSION_BT709: c_int = 2;
@@ -448,7 +448,7 @@ pub extern fn SDL_GetClipboardText() [*c]u8;
 pub extern fn SDL_HasClipboardText() SDL_bool;
 pub extern fn SDL_free(data: [*c]const u8) void;
 pub const SDL_AudioFormat = u16;
-pub const SDL_AudioCallback = ?*const fn (?*anyopaque, [*c]u8, c_int) callconv(.C) void;
+pub const SDL_AudioCallback = ?*const fn (?*anyopaque, [*c]u8, c_int) callconv(.c) void;
 pub const SDL_AudioSpec = extern struct {
     freq: c_int,
     format: SDL_AudioFormat,
@@ -460,7 +460,7 @@ pub const SDL_AudioSpec = extern struct {
     callback: SDL_AudioCallback,
     userdata: ?*anyopaque,
 };
-pub const SDL_AudioFilter = ?*const fn ([*c]SDL_AudioCVT, SDL_AudioFormat) callconv(.C) void;
+pub const SDL_AudioFilter = ?*const fn ([*c]SDL_AudioCVT, SDL_AudioFormat) callconv(.c) void;
 pub const SDL_AudioCVT = extern struct {
     needed: c_int,
     src_format: SDL_AudioFormat,
@@ -706,7 +706,7 @@ pub const SDL_HITTEST_RESIZE_BOTTOM: c_int = 7;
 pub const SDL_HITTEST_RESIZE_BOTTOMLEFT: c_int = 8;
 pub const SDL_HITTEST_RESIZE_LEFT: c_int = 9;
 pub const SDL_HitTestResult = c_uint;
-pub const SDL_HitTest = ?*const fn (?*SDL_Window, [*c]const SDL_Point, ?*anyopaque) callconv(.C) SDL_HitTestResult;
+pub const SDL_HitTest = ?*const fn (?*SDL_Window, [*c]const SDL_Point, ?*anyopaque) callconv(.c) SDL_HitTestResult;
 pub extern fn SDL_SetWindowHitTest(window: ?*SDL_Window, callback: SDL_HitTest, callback_data: ?*anyopaque) c_int;
 pub extern fn SDL_FlashWindow(window: ?*SDL_Window, operation: SDL_FlashOperation) c_int;
 pub extern fn SDL_DestroyWindow(window: ?*SDL_Window) void;
@@ -800,7 +800,7 @@ pub extern fn SDL_GetTicks64() u64;
 pub extern fn SDL_GetPerformanceCounter() u64;
 pub extern fn SDL_GetPerformanceFrequency() u64;
 pub extern fn SDL_Delay(ms: u32) void;
-pub const SDL_TimerCallback = ?*const fn (u32, ?*anyopaque) callconv(.C) u32;
+pub const SDL_TimerCallback = ?*const fn (u32, ?*anyopaque) callconv(.c) u32;
 pub const SDL_TimerID = c_int;
 pub extern fn SDL_AddTimer(interval: u32, callback: SDL_TimerCallback, param: ?*anyopaque) SDL_TimerID;
 pub extern fn SDL_RemoveTimer(id: SDL_TimerID) SDL_bool;
@@ -2002,7 +2002,7 @@ pub extern fn SDL_PollEvent(event: [*c]SDL_Event) c_int;
 pub extern fn SDL_WaitEvent(event: [*c]SDL_Event) c_int;
 pub extern fn SDL_WaitEventTimeout(event: [*c]SDL_Event, timeout: c_int) c_int;
 pub extern fn SDL_PushEvent(event: [*c]SDL_Event) c_int;
-pub const SDL_EventFilter = ?*const fn (?*anyopaque, [*c]SDL_Event) callconv(.C) c_int;
+pub const SDL_EventFilter = ?*const fn (?*anyopaque, [*c]SDL_Event) callconv(.c) c_int;
 pub extern fn SDL_SetEventFilter(filter: SDL_EventFilter, userdata: ?*anyopaque) void;
 pub extern fn SDL_GetEventFilter(filter: [*c]SDL_EventFilter, userdata: [*c]?*anyopaque) SDL_bool;
 pub extern fn SDL_AddEventWatch(filter: SDL_EventFilter, userdata: ?*anyopaque) void;
@@ -2051,7 +2051,7 @@ pub extern fn SDL_LogWarn(category: c_int, fmt: [*c]const u8, ...) void;
 pub extern fn SDL_LogError(category: c_int, fmt: [*c]const u8, ...) void;
 pub extern fn SDL_LogCritical(category: c_int, fmt: [*c]const u8, ...) void;
 pub extern fn SDL_LogMessage(category: c_int, priority: SDL_LogPriority, fmt: [*c]const u8, ...) void;
-pub const SDL_LogOutputFunction = ?*const fn (?*anyopaque, c_int, SDL_LogPriority, [*c]const u8) callconv(.C) void;
+pub const SDL_LogOutputFunction = ?*const fn (?*anyopaque, c_int, SDL_LogPriority, [*c]const u8) callconv(.c) void;
 pub extern fn SDL_LogGetOutputFunction(callback: [*c]SDL_LogOutputFunction, userdata: [*c]?*anyopaque) void;
 pub extern fn SDL_LogSetOutputFunction(callback: SDL_LogOutputFunction, userdata: ?*anyopaque) void;
 pub const _SDL_GameController = opaque {};
@@ -2302,7 +2302,7 @@ pub extern fn SDL_SetHintWithPriority(name: [*c]const u8, value: [*c]const u8, p
 pub extern fn SDL_SetHint(name: [*c]const u8, value: [*c]const u8) SDL_bool;
 pub extern fn SDL_GetHint(name: [*c]const u8) [*c]const u8;
 pub extern fn SDL_GetHintBoolean(name: [*c]const u8, default_value: SDL_bool) SDL_bool;
-pub const SDL_HintCallback = ?*const fn (?*anyopaque, [*c]const u8, [*c]const u8, [*c]const u8) callconv(.C) void;
+pub const SDL_HintCallback = ?*const fn (?*anyopaque, [*c]const u8, [*c]const u8, [*c]const u8) callconv(.c) void;
 pub extern fn SDL_AddHintCallback(name: [*c]const u8, callback: SDL_HintCallback, userdata: ?*anyopaque) void;
 pub extern fn SDL_DelHintCallback(name: [*c]const u8, callback: SDL_HintCallback, userdata: ?*anyopaque) void;
 pub extern fn SDL_ClearHints() void;

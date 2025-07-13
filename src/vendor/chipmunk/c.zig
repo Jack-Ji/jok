@@ -1,35 +1,35 @@
 pub const cpFloat = f32;
-pub fn cpfmax(arg_a: cpFloat, arg_b: cpFloat) callconv(.C) cpFloat {
+pub fn cpfmax(arg_a: cpFloat, arg_b: cpFloat) callconv(.c) cpFloat {
     const a = arg_a;
     const b = arg_b;
     return if (a > b) a else b;
 }
-pub fn cpfmin(arg_a: cpFloat, arg_b: cpFloat) callconv(.C) cpFloat {
+pub fn cpfmin(arg_a: cpFloat, arg_b: cpFloat) callconv(.c) cpFloat {
     const a = arg_a;
     const b = arg_b;
     return if (a < b) a else b;
 }
-pub fn cpfabs(arg_f: cpFloat) callconv(.C) cpFloat {
+pub fn cpfabs(arg_f: cpFloat) callconv(.c) cpFloat {
     const f = arg_f;
     return if (f < @as(cpFloat, @floatFromInt(@as(c_int, 0)))) -f else f;
 }
-pub fn cpfclamp(arg_f: cpFloat, arg_min: cpFloat, arg_max: cpFloat) callconv(.C) cpFloat {
+pub fn cpfclamp(arg_f: cpFloat, arg_min: cpFloat, arg_max: cpFloat) callconv(.c) cpFloat {
     const f = arg_f;
     const min = arg_min;
     const max = arg_max;
     return cpfmin(cpfmax(f, min), max);
 }
-pub fn cpfclamp01(arg_f: cpFloat) callconv(.C) cpFloat {
+pub fn cpfclamp01(arg_f: cpFloat) callconv(.c) cpFloat {
     const f = arg_f;
     return cpfmax(0.0, cpfmin(f, 1.0));
 }
-pub fn cpflerp(arg_f1: cpFloat, arg_f2: cpFloat, arg_t: cpFloat) callconv(.C) cpFloat {
+pub fn cpflerp(arg_f1: cpFloat, arg_f2: cpFloat, arg_t: cpFloat) callconv(.c) cpFloat {
     const f1 = arg_f1;
     const f2 = arg_f2;
     const t = arg_t;
     return (f1 * (1.0 - t)) + (f2 * t);
 }
-pub fn cpflerpconst(arg_f1: cpFloat, arg_f2: cpFloat, arg_d: cpFloat) callconv(.C) cpFloat {
+pub fn cpflerpconst(arg_f1: cpFloat, arg_f2: cpFloat, arg_d: cpFloat) callconv(.c) cpFloat {
     const f1 = arg_f1;
     const f2 = arg_f2;
     const d = arg_d;
@@ -104,10 +104,10 @@ pub const struct_cpArbiter = opaque {};
 pub const cpArbiter = struct_cpArbiter;
 pub const struct_cpSpace = opaque {};
 pub const cpSpace = struct_cpSpace;
-pub const cpCollisionBeginFunc = ?*const fn (?*cpArbiter, ?*cpSpace, cpDataPointer) callconv(.C) cpBool;
-pub const cpCollisionPreSolveFunc = ?*const fn (?*cpArbiter, ?*cpSpace, cpDataPointer) callconv(.C) cpBool;
-pub const cpCollisionPostSolveFunc = ?*const fn (?*cpArbiter, ?*cpSpace, cpDataPointer) callconv(.C) void;
-pub const cpCollisionSeparateFunc = ?*const fn (?*cpArbiter, ?*cpSpace, cpDataPointer) callconv(.C) void;
+pub const cpCollisionBeginFunc = ?*const fn (?*cpArbiter, ?*cpSpace, cpDataPointer) callconv(.c) cpBool;
+pub const cpCollisionPreSolveFunc = ?*const fn (?*cpArbiter, ?*cpSpace, cpDataPointer) callconv(.c) cpBool;
+pub const cpCollisionPostSolveFunc = ?*const fn (?*cpArbiter, ?*cpSpace, cpDataPointer) callconv(.c) void;
+pub const cpCollisionSeparateFunc = ?*const fn (?*cpArbiter, ?*cpSpace, cpDataPointer) callconv(.c) void;
 pub const struct_cpCollisionHandler = extern struct {
     typeA: cpCollisionType = @import("std").mem.zeroes(cpCollisionType),
     typeB: cpCollisionType = @import("std").mem.zeroes(cpCollisionType),
@@ -133,68 +133,68 @@ pub const cpvzero: cpVect = cpVect{
     .x = 0.0,
     .y = 0.0,
 };
-pub fn cpv(x: cpFloat, y: cpFloat) callconv(.C) cpVect {
+pub fn cpv(x: cpFloat, y: cpFloat) callconv(.c) cpVect {
     const v: cpVect = cpVect{
         .x = x,
         .y = y,
     };
     return v;
 }
-pub fn cpveql(v1: cpVect, v2: cpVect) callconv(.C) cpBool {
+pub fn cpveql(v1: cpVect, v2: cpVect) callconv(.c) cpBool {
     return @as(cpBool, @intFromBool((v1.x == v2.x) and (v1.y == v2.y)));
 }
-pub fn cpvadd(v1: cpVect, v2: cpVect) callconv(.C) cpVect {
+pub fn cpvadd(v1: cpVect, v2: cpVect) callconv(.c) cpVect {
     return cpv(v1.x + v2.x, v1.y + v2.y);
 }
-pub fn cpvsub(v1: cpVect, v2: cpVect) callconv(.C) cpVect {
+pub fn cpvsub(v1: cpVect, v2: cpVect) callconv(.c) cpVect {
     return cpv(v1.x - v2.x, v1.y - v2.y);
 }
-pub fn cpvneg(v: cpVect) callconv(.C) cpVect {
+pub fn cpvneg(v: cpVect) callconv(.c) cpVect {
     return cpv(-v.x, -v.y);
 }
-pub fn cpvmult(v: cpVect, s: cpFloat) callconv(.C) cpVect {
+pub fn cpvmult(v: cpVect, s: cpFloat) callconv(.c) cpVect {
     return cpv(v.x * s, v.y * s);
 }
-pub fn cpvdot(v1: cpVect, v2: cpVect) callconv(.C) cpFloat {
+pub fn cpvdot(v1: cpVect, v2: cpVect) callconv(.c) cpFloat {
     return (v1.x * v2.x) + (v1.y * v2.y);
 }
-pub fn cpvcross(v1: cpVect, v2: cpVect) callconv(.C) cpFloat {
+pub fn cpvcross(v1: cpVect, v2: cpVect) callconv(.c) cpFloat {
     return (v1.x * v2.y) - (v1.y * v2.x);
 }
-pub fn cpvperp(v: cpVect) callconv(.C) cpVect {
+pub fn cpvperp(v: cpVect) callconv(.c) cpVect {
     return cpv(-v.y, v.x);
 }
-pub fn cpvrperp(v: cpVect) callconv(.C) cpVect {
+pub fn cpvrperp(v: cpVect) callconv(.c) cpVect {
     return cpv(v.y, -v.x);
 }
-pub fn cpvproject(v1: cpVect, v2: cpVect) callconv(.C) cpVect {
+pub fn cpvproject(v1: cpVect, v2: cpVect) callconv(.c) cpVect {
     return cpvmult(v2, cpvdot(v1, v2) / cpvdot(v2, v2));
 }
-pub fn cpvforangle(a: cpFloat) callconv(.C) cpVect {
+pub fn cpvforangle(a: cpFloat) callconv(.c) cpVect {
     return cpv(cosf(a), sinf(a));
 }
-pub fn cpvtoangle(v: cpVect) callconv(.C) cpFloat {
+pub fn cpvtoangle(v: cpVect) callconv(.c) cpFloat {
     return atan2f(v.y, v.x);
 }
-pub fn cpvrotate(v1: cpVect, v2: cpVect) callconv(.C) cpVect {
+pub fn cpvrotate(v1: cpVect, v2: cpVect) callconv(.c) cpVect {
     return cpv((v1.x * v2.x) - (v1.y * v2.y), (v1.x * v2.y) + (v1.y * v2.x));
 }
-pub fn cpvunrotate(v1: cpVect, v2: cpVect) callconv(.C) cpVect {
+pub fn cpvunrotate(v1: cpVect, v2: cpVect) callconv(.c) cpVect {
     return cpv((v1.x * v2.x) + (v1.y * v2.y), (v1.y * v2.x) - (v1.x * v2.y));
 }
-pub fn cpvlengthsq(v: cpVect) callconv(.C) cpFloat {
+pub fn cpvlengthsq(v: cpVect) callconv(.c) cpFloat {
     return cpvdot(v, v);
 }
-pub fn cpvlength(v: cpVect) callconv(.C) cpFloat {
+pub fn cpvlength(v: cpVect) callconv(.c) cpFloat {
     return sqrtf(cpvdot(v, v));
 }
-pub fn cpvlerp(v1: cpVect, v2: cpVect, t: cpFloat) callconv(.C) cpVect {
+pub fn cpvlerp(v1: cpVect, v2: cpVect, t: cpFloat) callconv(.c) cpVect {
     return cpvadd(cpvmult(v1, 1.0 - t), cpvmult(v2, t));
 }
-pub fn cpvnormalize(v: cpVect) callconv(.C) cpVect {
+pub fn cpvnormalize(v: cpVect) callconv(.c) cpVect {
     return cpvmult(v, 1.0 / (cpvlength(v) + 0.000000000000000000000000000000000000011754943508222875));
 }
-pub fn cpvslerp(v1: cpVect, v2: cpVect, t: cpFloat) callconv(.C) cpVect {
+pub fn cpvslerp(v1: cpVect, v2: cpVect, t: cpFloat) callconv(.c) cpVect {
     const dot: cpFloat = cpvdot(cpvnormalize(v1), cpvnormalize(v2));
     const omega: cpFloat = acosf(cpfclamp(dot, -1.0, 1.0));
     if (@as(f64, @floatCast(omega)) < 0.001) {
@@ -205,30 +205,30 @@ pub fn cpvslerp(v1: cpVect, v2: cpVect, t: cpFloat) callconv(.C) cpVect {
     }
     return @import("std").mem.zeroes(cpVect);
 }
-pub fn cpvslerpconst(v1: cpVect, v2: cpVect, a: cpFloat) callconv(.C) cpVect {
+pub fn cpvslerpconst(v1: cpVect, v2: cpVect, a: cpFloat) callconv(.c) cpVect {
     const dot: cpFloat = cpvdot(cpvnormalize(v1), cpvnormalize(v2));
     const omega: cpFloat = acosf(cpfclamp(dot, -1.0, 1.0));
     return cpvslerp(v1, v2, cpfmin(a, omega) / omega);
 }
-pub fn cpvclamp(v: cpVect, len: cpFloat) callconv(.C) cpVect {
+pub fn cpvclamp(v: cpVect, len: cpFloat) callconv(.c) cpVect {
     return if (cpvdot(v, v) > (len * len)) cpvmult(cpvnormalize(v), len) else v;
 }
-pub fn cpvlerpconst(arg_v1: cpVect, arg_v2: cpVect, arg_d: cpFloat) callconv(.C) cpVect {
+pub fn cpvlerpconst(arg_v1: cpVect, arg_v2: cpVect, arg_d: cpFloat) callconv(.c) cpVect {
     const v1 = arg_v1;
     const v2 = arg_v2;
     const d = arg_d;
     return cpvadd(v1, cpvclamp(cpvsub(v2, v1), d));
 }
-pub fn cpvdist(v1: cpVect, v2: cpVect) callconv(.C) cpFloat {
+pub fn cpvdist(v1: cpVect, v2: cpVect) callconv(.c) cpFloat {
     return cpvlength(cpvsub(v1, v2));
 }
-pub fn cpvdistsq(v1: cpVect, v2: cpVect) callconv(.C) cpFloat {
+pub fn cpvdistsq(v1: cpVect, v2: cpVect) callconv(.c) cpFloat {
     return cpvlengthsq(cpvsub(v1, v2));
 }
-pub fn cpvnear(v1: cpVect, v2: cpVect, dist: cpFloat) callconv(.C) cpBool {
+pub fn cpvnear(v1: cpVect, v2: cpVect, dist: cpFloat) callconv(.c) cpBool {
     return @as(cpBool, @intFromBool(cpvdistsq(v1, v2) < (dist * dist)));
 }
-pub fn cpMat2x2New(arg_a: cpFloat, arg_b: cpFloat, arg_c: cpFloat, arg_d: cpFloat) callconv(.C) cpMat2x2 {
+pub fn cpMat2x2New(arg_a: cpFloat, arg_b: cpFloat, arg_c: cpFloat, arg_d: cpFloat) callconv(.c) cpMat2x2 {
     const a = arg_a;
     const b = arg_b;
     const c = arg_c;
@@ -241,7 +241,7 @@ pub fn cpMat2x2New(arg_a: cpFloat, arg_b: cpFloat, arg_c: cpFloat, arg_d: cpFloa
     };
     return m;
 }
-pub fn cpMat2x2Transform(arg_m: cpMat2x2, arg_v: cpVect) callconv(.C) cpVect {
+pub fn cpMat2x2Transform(arg_m: cpMat2x2, arg_v: cpVect) callconv(.c) cpVect {
     const m = arg_m;
     const v = arg_v;
     return cpv((v.x * m.a) + (v.y * m.b), (v.x * m.c) + (v.y * m.d));
@@ -253,7 +253,7 @@ pub const struct_cpBB = extern struct {
     t: cpFloat = @import("std").mem.zeroes(cpFloat),
 };
 pub const cpBB = struct_cpBB;
-pub fn cpBBNew(l: cpFloat, b: cpFloat, r: cpFloat, t: cpFloat) callconv(.C) cpBB {
+pub fn cpBBNew(l: cpFloat, b: cpFloat, r: cpFloat, t: cpFloat) callconv(.c) cpBB {
     const bb: cpBB = cpBB{
         .l = l,
         .b = b,
@@ -262,41 +262,41 @@ pub fn cpBBNew(l: cpFloat, b: cpFloat, r: cpFloat, t: cpFloat) callconv(.C) cpBB
     };
     return bb;
 }
-pub fn cpBBNewForExtents(c: cpVect, hw: cpFloat, hh: cpFloat) callconv(.C) cpBB {
+pub fn cpBBNewForExtents(c: cpVect, hw: cpFloat, hh: cpFloat) callconv(.c) cpBB {
     return cpBBNew(c.x - hw, c.y - hh, c.x + hw, c.y + hh);
 }
-pub fn cpBBNewForCircle(p: cpVect, r: cpFloat) callconv(.C) cpBB {
+pub fn cpBBNewForCircle(p: cpVect, r: cpFloat) callconv(.c) cpBB {
     return cpBBNewForExtents(p, r, r);
 }
-pub fn cpBBIntersects(a: cpBB, b: cpBB) callconv(.C) cpBool {
+pub fn cpBBIntersects(a: cpBB, b: cpBB) callconv(.c) cpBool {
     return @as(cpBool, @intFromBool((((a.l <= b.r) and (b.l <= a.r)) and (a.b <= b.t)) and (b.b <= a.t)));
 }
-pub fn cpBBContainsBB(bb: cpBB, other: cpBB) callconv(.C) cpBool {
+pub fn cpBBContainsBB(bb: cpBB, other: cpBB) callconv(.c) cpBool {
     return @as(cpBool, @intFromBool((((bb.l <= other.l) and (bb.r >= other.r)) and (bb.b <= other.b)) and (bb.t >= other.t)));
 }
-pub fn cpBBContainsVect(bb: cpBB, v: cpVect) callconv(.C) cpBool {
+pub fn cpBBContainsVect(bb: cpBB, v: cpVect) callconv(.c) cpBool {
     return @as(cpBool, @intFromBool((((bb.l <= v.x) and (bb.r >= v.x)) and (bb.b <= v.y)) and (bb.t >= v.y)));
 }
-pub fn cpBBMerge(a: cpBB, b: cpBB) callconv(.C) cpBB {
+pub fn cpBBMerge(a: cpBB, b: cpBB) callconv(.c) cpBB {
     return cpBBNew(cpfmin(a.l, b.l), cpfmin(a.b, b.b), cpfmax(a.r, b.r), cpfmax(a.t, b.t));
 }
-pub fn cpBBExpand(bb: cpBB, v: cpVect) callconv(.C) cpBB {
+pub fn cpBBExpand(bb: cpBB, v: cpVect) callconv(.c) cpBB {
     return cpBBNew(cpfmin(bb.l, v.x), cpfmin(bb.b, v.y), cpfmax(bb.r, v.x), cpfmax(bb.t, v.y));
 }
-pub fn cpBBCenter(arg_bb: cpBB) callconv(.C) cpVect {
+pub fn cpBBCenter(arg_bb: cpBB) callconv(.c) cpVect {
     const bb = arg_bb;
     return cpvlerp(cpv(bb.l, bb.b), cpv(bb.r, bb.t), 0.5);
 }
-pub fn cpBBArea(arg_bb: cpBB) callconv(.C) cpFloat {
+pub fn cpBBArea(arg_bb: cpBB) callconv(.c) cpFloat {
     const bb = arg_bb;
     return (bb.r - bb.l) * (bb.t - bb.b);
 }
-pub fn cpBBMergedArea(arg_a: cpBB, arg_b: cpBB) callconv(.C) cpFloat {
+pub fn cpBBMergedArea(arg_a: cpBB, arg_b: cpBB) callconv(.c) cpFloat {
     const a = arg_a;
     const b = arg_b;
     return (cpfmax(a.r, b.r) - cpfmin(a.l, b.l)) * (cpfmax(a.t, b.t) - cpfmin(a.b, b.b));
 }
-pub fn cpBBSegmentQuery(arg_bb: cpBB, arg_a: cpVect, arg_b: cpVect) callconv(.C) cpFloat {
+pub fn cpBBSegmentQuery(arg_bb: cpBB, arg_a: cpVect, arg_b: cpVect) callconv(.c) cpFloat {
     const bb = arg_bb;
     const a = arg_a;
     const b = arg_b;
@@ -326,16 +326,16 @@ pub fn cpBBSegmentQuery(arg_bb: cpBB, arg_a: cpVect, arg_b: cpVect) callconv(.C)
     }
     return @import("std").mem.zeroes(cpFloat);
 }
-pub fn cpBBIntersectsSegment(arg_bb: cpBB, arg_a: cpVect, arg_b: cpVect) callconv(.C) cpBool {
+pub fn cpBBIntersectsSegment(arg_bb: cpBB, arg_a: cpVect, arg_b: cpVect) callconv(.c) cpBool {
     const bb = arg_bb;
     const a = arg_a;
     const b = arg_b;
     return @as(cpBool, @intFromBool(cpBBSegmentQuery(bb, a, b) != __builtin_inff()));
 }
-pub fn cpBBClampVect(bb: cpBB, v: cpVect) callconv(.C) cpVect {
+pub fn cpBBClampVect(bb: cpBB, v: cpVect) callconv(.c) cpVect {
     return cpv(cpfclamp(v.x, bb.l, bb.r), cpfclamp(v.y, bb.b, bb.t));
 }
-pub fn cpBBWrapVect(bb: cpBB, v: cpVect) callconv(.C) cpVect {
+pub fn cpBBWrapVect(bb: cpBB, v: cpVect) callconv(.c) cpVect {
     const dx: cpFloat = cpfabs(bb.r - bb.l);
     const modx: cpFloat = fmodf(v.x - bb.l, dx);
     const x: cpFloat = if (modx > 0.0) modx else modx + dx;
@@ -344,7 +344,7 @@ pub fn cpBBWrapVect(bb: cpBB, v: cpVect) callconv(.C) cpVect {
     const y: cpFloat = if (mody > 0.0) mody else mody + dy;
     return cpv(x + bb.l, y + bb.b);
 }
-pub fn cpBBOffset(bb: cpBB, v: cpVect) callconv(.C) cpBB {
+pub fn cpBBOffset(bb: cpBB, v: cpVect) callconv(.c) cpBB {
     return cpBBNew(bb.l + v.x, bb.b + v.y, bb.r + v.x, bb.t + v.y);
 }
 pub const cpTransformIdentity: cpTransform = cpTransform{
@@ -355,7 +355,7 @@ pub const cpTransformIdentity: cpTransform = cpTransform{
     .tx = 0.0,
     .ty = 0.0,
 };
-pub fn cpTransformNew(arg_a: cpFloat, arg_b: cpFloat, arg_c: cpFloat, arg_d: cpFloat, arg_tx: cpFloat, arg_ty: cpFloat) callconv(.C) cpTransform {
+pub fn cpTransformNew(arg_a: cpFloat, arg_b: cpFloat, arg_c: cpFloat, arg_d: cpFloat, arg_tx: cpFloat, arg_ty: cpFloat) callconv(.c) cpTransform {
     const a = arg_a;
     const b = arg_b;
     const c = arg_c;
@@ -372,7 +372,7 @@ pub fn cpTransformNew(arg_a: cpFloat, arg_b: cpFloat, arg_c: cpFloat, arg_d: cpF
     };
     return t;
 }
-pub fn cpTransformNewTranspose(arg_a: cpFloat, arg_c: cpFloat, arg_tx: cpFloat, arg_b: cpFloat, arg_d: cpFloat, arg_ty: cpFloat) callconv(.C) cpTransform {
+pub fn cpTransformNewTranspose(arg_a: cpFloat, arg_c: cpFloat, arg_tx: cpFloat, arg_b: cpFloat, arg_d: cpFloat, arg_ty: cpFloat) callconv(.c) cpTransform {
     const a = arg_a;
     const c = arg_c;
     const tx = arg_tx;
@@ -389,27 +389,27 @@ pub fn cpTransformNewTranspose(arg_a: cpFloat, arg_c: cpFloat, arg_tx: cpFloat, 
     };
     return t;
 }
-pub fn cpTransformInverse(arg_t: cpTransform) callconv(.C) cpTransform {
+pub fn cpTransformInverse(arg_t: cpTransform) callconv(.c) cpTransform {
     const t = arg_t;
     const inv_det: cpFloat = @as(cpFloat, @floatCast(1.0 / @as(f64, @floatCast((t.a * t.d) - (t.c * t.b)))));
     return cpTransformNewTranspose(t.d * inv_det, -t.c * inv_det, ((t.c * t.ty) - (t.tx * t.d)) * inv_det, -t.b * inv_det, t.a * inv_det, ((t.tx * t.b) - (t.a * t.ty)) * inv_det);
 }
-pub fn cpTransformMult(arg_t1: cpTransform, arg_t2: cpTransform) callconv(.C) cpTransform {
+pub fn cpTransformMult(arg_t1: cpTransform, arg_t2: cpTransform) callconv(.c) cpTransform {
     const t1 = arg_t1;
     const t2 = arg_t2;
     return cpTransformNewTranspose((t1.a * t2.a) + (t1.c * t2.b), (t1.a * t2.c) + (t1.c * t2.d), ((t1.a * t2.tx) + (t1.c * t2.ty)) + t1.tx, (t1.b * t2.a) + (t1.d * t2.b), (t1.b * t2.c) + (t1.d * t2.d), ((t1.b * t2.tx) + (t1.d * t2.ty)) + t1.ty);
 }
-pub fn cpTransformPoint(arg_t: cpTransform, arg_p: cpVect) callconv(.C) cpVect {
+pub fn cpTransformPoint(arg_t: cpTransform, arg_p: cpVect) callconv(.c) cpVect {
     const t = arg_t;
     const p = arg_p;
     return cpv(((t.a * p.x) + (t.c * p.y)) + t.tx, ((t.b * p.x) + (t.d * p.y)) + t.ty);
 }
-pub fn cpTransformVect(arg_t: cpTransform, arg_v: cpVect) callconv(.C) cpVect {
+pub fn cpTransformVect(arg_t: cpTransform, arg_v: cpVect) callconv(.c) cpVect {
     const t = arg_t;
     const v = arg_v;
     return cpv((t.a * v.x) + (t.c * v.y), (t.b * v.x) + (t.d * v.y));
 }
-pub fn cpTransformbBB(arg_t: cpTransform, arg_bb: cpBB) callconv(.C) cpBB {
+pub fn cpTransformbBB(arg_t: cpTransform, arg_bb: cpBB) callconv(.c) cpBB {
     const t = arg_t;
     const bb = arg_bb;
     const center: cpVect = cpBBCenter(bb);
@@ -423,51 +423,51 @@ pub fn cpTransformbBB(arg_t: cpTransform, arg_bb: cpBB) callconv(.C) cpBB {
     const hh_max: cpFloat = cpfmax(cpfabs(d + e), cpfabs(d - e));
     return cpBBNewForExtents(cpTransformPoint(t, center), hw_max, hh_max);
 }
-pub fn cpTransformTranslate(arg_translate: cpVect) callconv(.C) cpTransform {
+pub fn cpTransformTranslate(arg_translate: cpVect) callconv(.c) cpTransform {
     const translate = arg_translate;
     return cpTransformNewTranspose(@as(cpFloat, @floatCast(1.0)), @as(cpFloat, @floatCast(0.0)), translate.x, @as(cpFloat, @floatCast(0.0)), @as(cpFloat, @floatCast(1.0)), translate.y);
 }
-pub fn cpTransformScale(arg_scaleX: cpFloat, arg_scaleY: cpFloat) callconv(.C) cpTransform {
+pub fn cpTransformScale(arg_scaleX: cpFloat, arg_scaleY: cpFloat) callconv(.c) cpTransform {
     const scaleX = arg_scaleX;
     const scaleY = arg_scaleY;
     return cpTransformNewTranspose(scaleX, @as(cpFloat, @floatCast(0.0)), @as(cpFloat, @floatCast(0.0)), @as(cpFloat, @floatCast(0.0)), scaleY, @as(cpFloat, @floatCast(0.0)));
 }
-pub fn cpTransformRotate(arg_radians: cpFloat) callconv(.C) cpTransform {
+pub fn cpTransformRotate(arg_radians: cpFloat) callconv(.c) cpTransform {
     const radians = arg_radians;
     const rot: cpVect = cpvforangle(radians);
     return cpTransformNewTranspose(rot.x, -rot.y, @as(cpFloat, @floatCast(0.0)), rot.y, rot.x, @as(cpFloat, @floatCast(0.0)));
 }
-pub fn cpTransformRigid(arg_translate: cpVect, arg_radians: cpFloat) callconv(.C) cpTransform {
+pub fn cpTransformRigid(arg_translate: cpVect, arg_radians: cpFloat) callconv(.c) cpTransform {
     const translate = arg_translate;
     const radians = arg_radians;
     const rot: cpVect = cpvforangle(radians);
     return cpTransformNewTranspose(rot.x, -rot.y, translate.x, rot.y, rot.x, translate.y);
 }
-pub fn cpTransformRigidInverse(arg_t: cpTransform) callconv(.C) cpTransform {
+pub fn cpTransformRigidInverse(arg_t: cpTransform) callconv(.c) cpTransform {
     const t = arg_t;
     return cpTransformNewTranspose(t.d, -t.c, (t.c * t.ty) - (t.tx * t.d), -t.b, t.a, (t.tx * t.b) - (t.a * t.ty));
 }
-pub fn cpTransformWrap(arg_outer: cpTransform, arg_inner: cpTransform) callconv(.C) cpTransform {
+pub fn cpTransformWrap(arg_outer: cpTransform, arg_inner: cpTransform) callconv(.c) cpTransform {
     const outer = arg_outer;
     const inner = arg_inner;
     return cpTransformMult(cpTransformInverse(outer), cpTransformMult(inner, outer));
 }
-pub fn cpTransformWrapInverse(arg_outer: cpTransform, arg_inner: cpTransform) callconv(.C) cpTransform {
+pub fn cpTransformWrapInverse(arg_outer: cpTransform, arg_inner: cpTransform) callconv(.c) cpTransform {
     const outer = arg_outer;
     const inner = arg_inner;
     return cpTransformMult(outer, cpTransformMult(inner, cpTransformInverse(outer)));
 }
-pub fn cpTransformOrtho(arg_bb: cpBB) callconv(.C) cpTransform {
+pub fn cpTransformOrtho(arg_bb: cpBB) callconv(.c) cpTransform {
     const bb = arg_bb;
     return cpTransformNewTranspose(@as(cpFloat, @floatCast(2.0 / @as(f64, @floatCast(bb.r - bb.l)))), @as(cpFloat, @floatCast(0.0)), -(bb.r + bb.l) / (bb.r - bb.l), @as(cpFloat, @floatCast(0.0)), @as(cpFloat, @floatCast(2.0 / @as(f64, @floatCast(bb.t - bb.b)))), -(bb.t + bb.b) / (bb.t - bb.b));
 }
-pub fn cpTransformBoneScale(arg_v0: cpVect, arg_v1: cpVect) callconv(.C) cpTransform {
+pub fn cpTransformBoneScale(arg_v0: cpVect, arg_v1: cpVect) callconv(.c) cpTransform {
     const v0 = arg_v0;
     const v1 = arg_v1;
     const d: cpVect = cpvsub(v1, v0);
     return cpTransformNewTranspose(d.x, -d.y, v0.x, d.y, d.x, v0.y);
 }
-pub fn cpTransformAxialScale(arg_axis: cpVect, arg_pivot: cpVect, arg_scale: cpFloat) callconv(.C) cpTransform {
+pub fn cpTransformAxialScale(arg_axis: cpVect, arg_pivot: cpVect, arg_scale: cpFloat) callconv(.c) cpTransform {
     const axis = arg_axis;
     const pivot = arg_pivot;
     const scale = arg_scale;
@@ -475,10 +475,10 @@ pub fn cpTransformAxialScale(arg_axis: cpVect, arg_pivot: cpVect, arg_scale: cpF
     const B: cpFloat = @as(cpFloat, @floatCast(@as(f64, @floatCast(cpvdot(axis, pivot))) * (1.0 - @as(f64, @floatCast(scale)))));
     return cpTransformNewTranspose(((scale * axis.x) * axis.x) + (axis.y * axis.y), A, axis.x * B, A, (axis.x * axis.x) + ((scale * axis.y) * axis.y), axis.y * B);
 }
-pub const cpSpatialIndexBBFunc = ?*const fn (?*anyopaque) callconv(.C) cpBB;
-pub const cpSpatialIndexIteratorFunc = ?*const fn (?*anyopaque, ?*anyopaque) callconv(.C) void;
-pub const cpSpatialIndexQueryFunc = ?*const fn (?*anyopaque, ?*anyopaque, cpCollisionID, ?*anyopaque) callconv(.C) cpCollisionID;
-pub const cpSpatialIndexSegmentQueryFunc = ?*const fn (?*anyopaque, ?*anyopaque, ?*anyopaque) callconv(.C) cpFloat;
+pub const cpSpatialIndexBBFunc = ?*const fn (?*anyopaque) callconv(.c) cpBB;
+pub const cpSpatialIndexIteratorFunc = ?*const fn (?*anyopaque, ?*anyopaque) callconv(.c) void;
+pub const cpSpatialIndexQueryFunc = ?*const fn (?*anyopaque, ?*anyopaque, cpCollisionID, ?*anyopaque) callconv(.c) cpCollisionID;
+pub const cpSpatialIndexSegmentQueryFunc = ?*const fn (?*anyopaque, ?*anyopaque, ?*anyopaque) callconv(.c) cpFloat;
 pub const cpSpatialIndexClass = struct_cpSpatialIndexClass;
 pub const struct_cpSpatialIndex = extern struct {
     klass: [*c]cpSpatialIndexClass = @import("std").mem.zeroes([*c]cpSpatialIndexClass),
@@ -487,17 +487,17 @@ pub const struct_cpSpatialIndex = extern struct {
     dynamicIndex: [*c]cpSpatialIndex = @import("std").mem.zeroes([*c]cpSpatialIndex),
 };
 pub const cpSpatialIndex = struct_cpSpatialIndex;
-pub const cpSpatialIndexDestroyImpl = ?*const fn ([*c]cpSpatialIndex) callconv(.C) void;
-pub const cpSpatialIndexCountImpl = ?*const fn ([*c]cpSpatialIndex) callconv(.C) c_int;
-pub const cpSpatialIndexEachImpl = ?*const fn ([*c]cpSpatialIndex, cpSpatialIndexIteratorFunc, ?*anyopaque) callconv(.C) void;
-pub const cpSpatialIndexContainsImpl = ?*const fn ([*c]cpSpatialIndex, ?*anyopaque, cpHashValue) callconv(.C) cpBool;
-pub const cpSpatialIndexInsertImpl = ?*const fn ([*c]cpSpatialIndex, ?*anyopaque, cpHashValue) callconv(.C) void;
-pub const cpSpatialIndexRemoveImpl = ?*const fn ([*c]cpSpatialIndex, ?*anyopaque, cpHashValue) callconv(.C) void;
-pub const cpSpatialIndexReindexImpl = ?*const fn ([*c]cpSpatialIndex) callconv(.C) void;
-pub const cpSpatialIndexReindexObjectImpl = ?*const fn ([*c]cpSpatialIndex, ?*anyopaque, cpHashValue) callconv(.C) void;
-pub const cpSpatialIndexReindexQueryImpl = ?*const fn ([*c]cpSpatialIndex, cpSpatialIndexQueryFunc, ?*anyopaque) callconv(.C) void;
-pub const cpSpatialIndexQueryImpl = ?*const fn ([*c]cpSpatialIndex, ?*anyopaque, cpBB, cpSpatialIndexQueryFunc, ?*anyopaque) callconv(.C) void;
-pub const cpSpatialIndexSegmentQueryImpl = ?*const fn ([*c]cpSpatialIndex, ?*anyopaque, cpVect, cpVect, cpFloat, cpSpatialIndexSegmentQueryFunc, ?*anyopaque) callconv(.C) void;
+pub const cpSpatialIndexDestroyImpl = ?*const fn ([*c]cpSpatialIndex) callconv(.c) void;
+pub const cpSpatialIndexCountImpl = ?*const fn ([*c]cpSpatialIndex) callconv(.c) c_int;
+pub const cpSpatialIndexEachImpl = ?*const fn ([*c]cpSpatialIndex, cpSpatialIndexIteratorFunc, ?*anyopaque) callconv(.c) void;
+pub const cpSpatialIndexContainsImpl = ?*const fn ([*c]cpSpatialIndex, ?*anyopaque, cpHashValue) callconv(.c) cpBool;
+pub const cpSpatialIndexInsertImpl = ?*const fn ([*c]cpSpatialIndex, ?*anyopaque, cpHashValue) callconv(.c) void;
+pub const cpSpatialIndexRemoveImpl = ?*const fn ([*c]cpSpatialIndex, ?*anyopaque, cpHashValue) callconv(.c) void;
+pub const cpSpatialIndexReindexImpl = ?*const fn ([*c]cpSpatialIndex) callconv(.c) void;
+pub const cpSpatialIndexReindexObjectImpl = ?*const fn ([*c]cpSpatialIndex, ?*anyopaque, cpHashValue) callconv(.c) void;
+pub const cpSpatialIndexReindexQueryImpl = ?*const fn ([*c]cpSpatialIndex, cpSpatialIndexQueryFunc, ?*anyopaque) callconv(.c) void;
+pub const cpSpatialIndexQueryImpl = ?*const fn ([*c]cpSpatialIndex, ?*anyopaque, cpBB, cpSpatialIndexQueryFunc, ?*anyopaque) callconv(.c) void;
+pub const cpSpatialIndexSegmentQueryImpl = ?*const fn ([*c]cpSpatialIndex, ?*anyopaque, cpVect, cpVect, cpFloat, cpSpatialIndexSegmentQueryFunc, ?*anyopaque) callconv(.c) void;
 pub const struct_cpSpatialIndexClass = extern struct {
     destroy: cpSpatialIndexDestroyImpl = @import("std").mem.zeroes(cpSpatialIndexDestroyImpl),
     count: cpSpatialIndexCountImpl = @import("std").mem.zeroes(cpSpatialIndexCountImpl),
@@ -523,7 +523,7 @@ pub extern fn cpBBTreeAlloc() ?*cpBBTree;
 pub extern fn cpBBTreeInit(tree: ?*cpBBTree, bbfunc: cpSpatialIndexBBFunc, staticIndex: [*c]cpSpatialIndex) [*c]cpSpatialIndex;
 pub extern fn cpBBTreeNew(bbfunc: cpSpatialIndexBBFunc, staticIndex: [*c]cpSpatialIndex) [*c]cpSpatialIndex;
 pub extern fn cpBBTreeOptimize(index: [*c]cpSpatialIndex) void;
-pub const cpBBTreeVelocityFunc = ?*const fn (?*anyopaque) callconv(.C) cpVect;
+pub const cpBBTreeVelocityFunc = ?*const fn (?*anyopaque) callconv(.c) cpVect;
 pub extern fn cpBBTreeSetVelocityFunc(index: [*c]cpSpatialIndex, func: cpBBTreeVelocityFunc) void;
 pub const struct_cpSweep1D = opaque {};
 pub const cpSweep1D = struct_cpSweep1D;
@@ -532,51 +532,51 @@ pub extern fn cpSweep1DInit(sweep: ?*cpSweep1D, bbfunc: cpSpatialIndexBBFunc, st
 pub extern fn cpSweep1DNew(bbfunc: cpSpatialIndexBBFunc, staticIndex: [*c]cpSpatialIndex) [*c]cpSpatialIndex;
 pub extern fn cpSpatialIndexFree(index: [*c]cpSpatialIndex) void;
 pub extern fn cpSpatialIndexCollideStatic(dynamicIndex: [*c]cpSpatialIndex, staticIndex: [*c]cpSpatialIndex, func: cpSpatialIndexQueryFunc, data: ?*anyopaque) void;
-pub fn cpSpatialIndexDestroy(arg_index: [*c]cpSpatialIndex) callconv(.C) void {
+pub fn cpSpatialIndexDestroy(arg_index: [*c]cpSpatialIndex) callconv(.c) void {
     const index = arg_index;
     if (index.*.klass != null) {
         index.*.klass.*.destroy.?(index);
     }
 }
-pub fn cpSpatialIndexCount(arg_index: [*c]cpSpatialIndex) callconv(.C) c_int {
+pub fn cpSpatialIndexCount(arg_index: [*c]cpSpatialIndex) callconv(.c) c_int {
     const index = arg_index;
     return index.*.klass.*.count.?(index);
 }
-pub fn cpSpatialIndexEach(arg_index: [*c]cpSpatialIndex, arg_func: cpSpatialIndexIteratorFunc, arg_data: ?*anyopaque) callconv(.C) void {
+pub fn cpSpatialIndexEach(arg_index: [*c]cpSpatialIndex, arg_func: cpSpatialIndexIteratorFunc, arg_data: ?*anyopaque) callconv(.c) void {
     const index = arg_index;
     const func = arg_func;
     const data = arg_data;
     index.*.klass.*.each.?(index, func, data);
 }
-pub fn cpSpatialIndexContains(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_hashid: cpHashValue) callconv(.C) cpBool {
+pub fn cpSpatialIndexContains(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_hashid: cpHashValue) callconv(.c) cpBool {
     const index = arg_index;
     const obj = arg_obj;
     const hashid = arg_hashid;
     return index.*.klass.*.contains.?(index, obj, hashid);
 }
-pub fn cpSpatialIndexInsert(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_hashid: cpHashValue) callconv(.C) void {
+pub fn cpSpatialIndexInsert(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_hashid: cpHashValue) callconv(.c) void {
     const index = arg_index;
     const obj = arg_obj;
     const hashid = arg_hashid;
     index.*.klass.*.insert.?(index, obj, hashid);
 }
-pub fn cpSpatialIndexRemove(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_hashid: cpHashValue) callconv(.C) void {
+pub fn cpSpatialIndexRemove(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_hashid: cpHashValue) callconv(.c) void {
     const index = arg_index;
     const obj = arg_obj;
     const hashid = arg_hashid;
     index.*.klass.*.remove.?(index, obj, hashid);
 }
-pub fn cpSpatialIndexReindex(arg_index: [*c]cpSpatialIndex) callconv(.C) void {
+pub fn cpSpatialIndexReindex(arg_index: [*c]cpSpatialIndex) callconv(.c) void {
     const index = arg_index;
     index.*.klass.*.reindex.?(index);
 }
-pub fn cpSpatialIndexReindexObject(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_hashid: cpHashValue) callconv(.C) void {
+pub fn cpSpatialIndexReindexObject(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_hashid: cpHashValue) callconv(.c) void {
     const index = arg_index;
     const obj = arg_obj;
     const hashid = arg_hashid;
     index.*.klass.*.reindexObject.?(index, obj, hashid);
 }
-pub fn cpSpatialIndexQuery(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_bb: cpBB, arg_func: cpSpatialIndexQueryFunc, arg_data: ?*anyopaque) callconv(.C) void {
+pub fn cpSpatialIndexQuery(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_bb: cpBB, arg_func: cpSpatialIndexQueryFunc, arg_data: ?*anyopaque) callconv(.c) void {
     const index = arg_index;
     const obj = arg_obj;
     const bb = arg_bb;
@@ -584,7 +584,7 @@ pub fn cpSpatialIndexQuery(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, 
     const data = arg_data;
     index.*.klass.*.query.?(index, obj, bb, func, data);
 }
-pub fn cpSpatialIndexSegmentQuery(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_a: cpVect, arg_b: cpVect, arg_t_exit: cpFloat, arg_func: cpSpatialIndexSegmentQueryFunc, arg_data: ?*anyopaque) callconv(.C) void {
+pub fn cpSpatialIndexSegmentQuery(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyopaque, arg_a: cpVect, arg_b: cpVect, arg_t_exit: cpFloat, arg_func: cpSpatialIndexSegmentQueryFunc, arg_data: ?*anyopaque) callconv(.c) void {
     const index = arg_index;
     const obj = arg_obj;
     const a = arg_a;
@@ -594,7 +594,7 @@ pub fn cpSpatialIndexSegmentQuery(arg_index: [*c]cpSpatialIndex, arg_obj: ?*anyo
     const data = arg_data;
     index.*.klass.*.segmentQuery.?(index, obj, a, b, t_exit, func, data);
 }
-pub fn cpSpatialIndexReindexQuery(arg_index: [*c]cpSpatialIndex, arg_func: cpSpatialIndexQueryFunc, arg_data: ?*anyopaque) callconv(.C) void {
+pub fn cpSpatialIndexReindexQuery(arg_index: [*c]cpSpatialIndex, arg_func: cpSpatialIndexQueryFunc, arg_data: ?*anyopaque) callconv(.c) void {
     const index = arg_index;
     const func = arg_func;
     const data = arg_data;
@@ -635,8 +635,8 @@ pub const CP_BODY_TYPE_KINEMATIC: c_int = 1;
 pub const CP_BODY_TYPE_STATIC: c_int = 2;
 pub const enum_cpBodyType = c_uint;
 pub const cpBodyType = enum_cpBodyType;
-pub const cpBodyVelocityFunc = ?*const fn (?*cpBody, cpVect, cpFloat, cpFloat) callconv(.C) void;
-pub const cpBodyPositionFunc = ?*const fn (?*cpBody, cpFloat) callconv(.C) void;
+pub const cpBodyVelocityFunc = ?*const fn (?*cpBody, cpVect, cpFloat, cpFloat) callconv(.c) void;
+pub const cpBodyPositionFunc = ?*const fn (?*cpBody, cpFloat) callconv(.c) void;
 pub extern fn cpBodyAlloc() ?*cpBody;
 pub extern fn cpBodyInit(body: ?*cpBody, mass: cpFloat, moment: cpFloat) ?*cpBody;
 pub extern fn cpBodyNew(mass: cpFloat, moment: cpFloat) ?*cpBody;
@@ -686,11 +686,11 @@ pub extern fn cpBodyApplyImpulseAtLocalPoint(body: ?*cpBody, impulse: cpVect, po
 pub extern fn cpBodyGetVelocityAtWorldPoint(body: ?*const cpBody, point: cpVect) cpVect;
 pub extern fn cpBodyGetVelocityAtLocalPoint(body: ?*const cpBody, point: cpVect) cpVect;
 pub extern fn cpBodyKineticEnergy(body: ?*const cpBody) cpFloat;
-pub const cpBodyShapeIteratorFunc = ?*const fn (?*cpBody, ?*cpShape, ?*anyopaque) callconv(.C) void;
+pub const cpBodyShapeIteratorFunc = ?*const fn (?*cpBody, ?*cpShape, ?*anyopaque) callconv(.c) void;
 pub extern fn cpBodyEachShape(body: ?*cpBody, func: cpBodyShapeIteratorFunc, data: ?*anyopaque) void;
-pub const cpBodyConstraintIteratorFunc = ?*const fn (?*cpBody, ?*cpConstraint, ?*anyopaque) callconv(.C) void;
+pub const cpBodyConstraintIteratorFunc = ?*const fn (?*cpBody, ?*cpConstraint, ?*anyopaque) callconv(.c) void;
 pub extern fn cpBodyEachConstraint(body: ?*cpBody, func: cpBodyConstraintIteratorFunc, data: ?*anyopaque) void;
-pub const cpBodyArbiterIteratorFunc = ?*const fn (?*cpBody, ?*cpArbiter, ?*anyopaque) callconv(.C) void;
+pub const cpBodyArbiterIteratorFunc = ?*const fn (?*cpBody, ?*cpArbiter, ?*anyopaque) callconv(.c) void;
 pub extern fn cpBodyEachArbiter(body: ?*cpBody, func: cpBodyArbiterIteratorFunc, data: ?*anyopaque) void;
 pub const struct_cpPointQueryInfo = extern struct {
     shape: ?*const cpShape = @import("std").mem.zeroes(?*const cpShape),
@@ -722,7 +722,7 @@ pub const CP_SHAPE_FILTER_NONE: cpShapeFilter = cpShapeFilter{
     .categories = ~~@as(cpBitmask, @bitCast(@as(c_int, 0))),
     .mask = ~~@as(cpBitmask, @bitCast(@as(c_int, 0))),
 };
-pub fn cpShapeFilterNew(arg_group: cpGroup, arg_categories: cpBitmask, arg_mask: cpBitmask) callconv(.C) cpShapeFilter {
+pub fn cpShapeFilterNew(arg_group: cpGroup, arg_categories: cpBitmask, arg_mask: cpBitmask) callconv(.c) cpShapeFilter {
     const group = arg_group;
     const categories = arg_categories;
     const mask = arg_mask;
@@ -790,8 +790,8 @@ pub extern fn cpBoxShapeNew2(body: ?*cpBody, box: cpBB, radius: cpFloat) ?*cpSha
 pub extern fn cpPolyShapeGetCount(shape: ?*const cpShape) c_int;
 pub extern fn cpPolyShapeGetVert(shape: ?*const cpShape, index: c_int) cpVect;
 pub extern fn cpPolyShapeGetRadius(shape: ?*const cpShape) cpFloat;
-pub const cpConstraintPreSolveFunc = ?*const fn (?*cpConstraint, ?*cpSpace) callconv(.C) void;
-pub const cpConstraintPostSolveFunc = ?*const fn (?*cpConstraint, ?*cpSpace) callconv(.C) void;
+pub const cpConstraintPreSolveFunc = ?*const fn (?*cpConstraint, ?*cpSpace) callconv(.c) void;
+pub const cpConstraintPostSolveFunc = ?*const fn (?*cpConstraint, ?*cpSpace) callconv(.c) void;
 pub extern fn cpConstraintDestroy(constraint: ?*cpConstraint) void;
 pub extern fn cpConstraintFree(constraint: ?*cpConstraint) void;
 pub extern fn cpConstraintGetSpace(constraint: ?*const cpConstraint) ?*cpSpace;
@@ -854,7 +854,7 @@ pub extern fn cpGrooveJointSetGrooveB(constraint: ?*cpConstraint, grooveB: cpVec
 pub extern fn cpGrooveJointGetAnchorB(constraint: ?*const cpConstraint) cpVect;
 pub extern fn cpGrooveJointSetAnchorB(constraint: ?*cpConstraint, anchorB: cpVect) void;
 pub extern fn cpConstraintIsDampedSpring(constraint: ?*const cpConstraint) cpBool;
-pub const cpDampedSpringForceFunc = ?*const fn (?*cpConstraint, cpFloat) callconv(.C) cpFloat;
+pub const cpDampedSpringForceFunc = ?*const fn (?*cpConstraint, cpFloat) callconv(.c) cpFloat;
 pub extern fn cpDampedSpringAlloc() ?*cpDampedSpring;
 pub extern fn cpDampedSpringInit(joint: ?*cpDampedSpring, a: ?*cpBody, b: ?*cpBody, anchorA: cpVect, anchorB: cpVect, restLength: cpFloat, stiffness: cpFloat, damping: cpFloat) ?*cpDampedSpring;
 pub extern fn cpDampedSpringNew(a: ?*cpBody, b: ?*cpBody, anchorA: cpVect, anchorB: cpVect, restLength: cpFloat, stiffness: cpFloat, damping: cpFloat) ?*cpConstraint;
@@ -871,7 +871,7 @@ pub extern fn cpDampedSpringSetDamping(constraint: ?*cpConstraint, damping: cpFl
 pub extern fn cpDampedSpringGetSpringForceFunc(constraint: ?*const cpConstraint) cpDampedSpringForceFunc;
 pub extern fn cpDampedSpringSetSpringForceFunc(constraint: ?*cpConstraint, springForceFunc: cpDampedSpringForceFunc) void;
 pub extern fn cpConstraintIsDampedRotarySpring(constraint: ?*const cpConstraint) cpBool;
-pub const cpDampedRotarySpringTorqueFunc = ?*const fn (?*struct_cpConstraint, cpFloat) callconv(.C) cpFloat;
+pub const cpDampedRotarySpringTorqueFunc = ?*const fn (?*struct_cpConstraint, cpFloat) callconv(.c) cpFloat;
 pub extern fn cpDampedRotarySpringAlloc() ?*cpDampedRotarySpring;
 pub extern fn cpDampedRotarySpringInit(joint: ?*cpDampedRotarySpring, a: ?*cpBody, b: ?*cpBody, restAngle: cpFloat, stiffness: cpFloat, damping: cpFloat) ?*cpDampedRotarySpring;
 pub extern fn cpDampedRotarySpringNew(a: ?*cpBody, b: ?*cpBody, restAngle: cpFloat, stiffness: cpFloat, damping: cpFloat) ?*cpConstraint;
@@ -955,23 +955,23 @@ pub extern fn cpSpaceRemoveConstraint(space: ?*cpSpace, constraint: ?*cpConstrai
 pub extern fn cpSpaceContainsShape(space: ?*cpSpace, shape: ?*cpShape) cpBool;
 pub extern fn cpSpaceContainsBody(space: ?*cpSpace, body: ?*cpBody) cpBool;
 pub extern fn cpSpaceContainsConstraint(space: ?*cpSpace, constraint: ?*cpConstraint) cpBool;
-pub const cpPostStepFunc = ?*const fn (?*cpSpace, ?*anyopaque, ?*anyopaque) callconv(.C) void;
+pub const cpPostStepFunc = ?*const fn (?*cpSpace, ?*anyopaque, ?*anyopaque) callconv(.c) void;
 pub extern fn cpSpaceAddPostStepCallback(space: ?*cpSpace, func: cpPostStepFunc, key: ?*anyopaque, data: ?*anyopaque) cpBool;
-pub const cpSpacePointQueryFunc = ?*const fn (?*cpShape, cpVect, cpFloat, cpVect, ?*anyopaque) callconv(.C) void;
+pub const cpSpacePointQueryFunc = ?*const fn (?*cpShape, cpVect, cpFloat, cpVect, ?*anyopaque) callconv(.c) void;
 pub extern fn cpSpacePointQuery(space: ?*cpSpace, point: cpVect, maxDistance: cpFloat, filter: cpShapeFilter, func: cpSpacePointQueryFunc, data: ?*anyopaque) void;
 pub extern fn cpSpacePointQueryNearest(space: ?*cpSpace, point: cpVect, maxDistance: cpFloat, filter: cpShapeFilter, out: [*c]cpPointQueryInfo) ?*cpShape;
-pub const cpSpaceSegmentQueryFunc = ?*const fn (?*cpShape, cpVect, cpVect, cpFloat, ?*anyopaque) callconv(.C) void;
+pub const cpSpaceSegmentQueryFunc = ?*const fn (?*cpShape, cpVect, cpVect, cpFloat, ?*anyopaque) callconv(.c) void;
 pub extern fn cpSpaceSegmentQuery(space: ?*cpSpace, start: cpVect, end: cpVect, radius: cpFloat, filter: cpShapeFilter, func: cpSpaceSegmentQueryFunc, data: ?*anyopaque) void;
 pub extern fn cpSpaceSegmentQueryFirst(space: ?*cpSpace, start: cpVect, end: cpVect, radius: cpFloat, filter: cpShapeFilter, out: [*c]cpSegmentQueryInfo) ?*cpShape;
-pub const cpSpaceBBQueryFunc = ?*const fn (?*cpShape, ?*anyopaque) callconv(.C) void;
+pub const cpSpaceBBQueryFunc = ?*const fn (?*cpShape, ?*anyopaque) callconv(.c) void;
 pub extern fn cpSpaceBBQuery(space: ?*cpSpace, bb: cpBB, filter: cpShapeFilter, func: cpSpaceBBQueryFunc, data: ?*anyopaque) void;
-pub const cpSpaceShapeQueryFunc = ?*const fn (?*cpShape, [*c]cpContactPointSet, ?*anyopaque) callconv(.C) void;
+pub const cpSpaceShapeQueryFunc = ?*const fn (?*cpShape, [*c]cpContactPointSet, ?*anyopaque) callconv(.c) void;
 pub extern fn cpSpaceShapeQuery(space: ?*cpSpace, shape: ?*cpShape, func: cpSpaceShapeQueryFunc, data: ?*anyopaque) cpBool;
-pub const cpSpaceBodyIteratorFunc = ?*const fn (?*cpBody, ?*anyopaque) callconv(.C) void;
+pub const cpSpaceBodyIteratorFunc = ?*const fn (?*cpBody, ?*anyopaque) callconv(.c) void;
 pub extern fn cpSpaceEachBody(space: ?*cpSpace, func: cpSpaceBodyIteratorFunc, data: ?*anyopaque) void;
-pub const cpSpaceShapeIteratorFunc = ?*const fn (?*cpShape, ?*anyopaque) callconv(.C) void;
+pub const cpSpaceShapeIteratorFunc = ?*const fn (?*cpShape, ?*anyopaque) callconv(.c) void;
 pub extern fn cpSpaceEachShape(space: ?*cpSpace, func: cpSpaceShapeIteratorFunc, data: ?*anyopaque) void;
-pub const cpSpaceConstraintIteratorFunc = ?*const fn (?*cpConstraint, ?*anyopaque) callconv(.C) void;
+pub const cpSpaceConstraintIteratorFunc = ?*const fn (?*cpConstraint, ?*anyopaque) callconv(.c) void;
 pub extern fn cpSpaceEachConstraint(space: ?*cpSpace, func: cpSpaceConstraintIteratorFunc, data: ?*anyopaque) void;
 pub extern fn cpSpaceReindexStatic(space: ?*cpSpace) void;
 pub extern fn cpSpaceReindexShape(space: ?*cpSpace, shape: ?*cpShape) void;
@@ -985,12 +985,12 @@ pub const struct_cpSpaceDebugColor = extern struct {
     a: f32 = @import("std").mem.zeroes(f32),
 };
 pub const cpSpaceDebugColor = struct_cpSpaceDebugColor;
-pub const cpSpaceDebugDrawCircleImpl = ?*const fn (cpVect, cpFloat, cpFloat, cpSpaceDebugColor, cpSpaceDebugColor, cpDataPointer) callconv(.C) void;
-pub const cpSpaceDebugDrawSegmentImpl = ?*const fn (cpVect, cpVect, cpSpaceDebugColor, cpDataPointer) callconv(.C) void;
-pub const cpSpaceDebugDrawFatSegmentImpl = ?*const fn (cpVect, cpVect, cpFloat, cpSpaceDebugColor, cpSpaceDebugColor, cpDataPointer) callconv(.C) void;
-pub const cpSpaceDebugDrawPolygonImpl = ?*const fn (c_int, [*c]const cpVect, cpFloat, cpSpaceDebugColor, cpSpaceDebugColor, cpDataPointer) callconv(.C) void;
-pub const cpSpaceDebugDrawDotImpl = ?*const fn (cpFloat, cpVect, cpSpaceDebugColor, cpDataPointer) callconv(.C) void;
-pub const cpSpaceDebugDrawColorForShapeImpl = ?*const fn (?*cpShape, cpDataPointer) callconv(.C) cpSpaceDebugColor;
+pub const cpSpaceDebugDrawCircleImpl = ?*const fn (cpVect, cpFloat, cpFloat, cpSpaceDebugColor, cpSpaceDebugColor, cpDataPointer) callconv(.c) void;
+pub const cpSpaceDebugDrawSegmentImpl = ?*const fn (cpVect, cpVect, cpSpaceDebugColor, cpDataPointer) callconv(.c) void;
+pub const cpSpaceDebugDrawFatSegmentImpl = ?*const fn (cpVect, cpVect, cpFloat, cpSpaceDebugColor, cpSpaceDebugColor, cpDataPointer) callconv(.c) void;
+pub const cpSpaceDebugDrawPolygonImpl = ?*const fn (c_int, [*c]const cpVect, cpFloat, cpSpaceDebugColor, cpSpaceDebugColor, cpDataPointer) callconv(.c) void;
+pub const cpSpaceDebugDrawDotImpl = ?*const fn (cpFloat, cpVect, cpSpaceDebugColor, cpDataPointer) callconv(.c) void;
+pub const cpSpaceDebugDrawColorForShapeImpl = ?*const fn (?*cpShape, cpDataPointer) callconv(.c) cpSpaceDebugColor;
 pub const CP_SPACE_DEBUG_DRAW_SHAPES: c_int = 1;
 pub const CP_SPACE_DEBUG_DRAW_CONSTRAINTS: c_int = 2;
 pub const CP_SPACE_DEBUG_DRAW_COLLISION_POINTS: c_int = 4;
@@ -1022,7 +1022,7 @@ pub extern fn cpCentroidForPoly(count: c_int, verts: [*c]const cpVect) cpVect;
 pub extern fn cpMomentForBox(m: cpFloat, width: cpFloat, height: cpFloat) cpFloat;
 pub extern fn cpMomentForBox2(m: cpFloat, box: cpBB) cpFloat;
 pub extern fn cpConvexHull(count: c_int, verts: [*c]const cpVect, result: [*c]cpVect, first: [*c]c_int, tol: cpFloat) c_int;
-pub fn cpClosetPointOnSegment(p: cpVect, a: cpVect, b: cpVect) callconv(.C) cpVect {
+pub fn cpClosetPointOnSegment(p: cpVect, a: cpVect, b: cpVect) callconv(.c) cpVect {
     const delta: cpVect = cpvsub(a, b);
     const t: cpFloat = cpfclamp01(cpvdot(delta, cpvsub(p, b)) / cpvlengthsq(delta));
     return cpvadd(b, cpvmult(delta, t));

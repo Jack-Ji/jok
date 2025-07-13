@@ -15,7 +15,7 @@ pub fn Signal(comptime types: []const type) type {
     }
     const funInfo = builtin.Type{
         .@"fn" = .{
-            .calling_convention = .Unspecified,
+            .calling_convention = .auto,
             .is_generic = false,
             .is_var_args = false,
             .return_type = void,

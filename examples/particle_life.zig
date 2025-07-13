@@ -285,9 +285,9 @@ fn saveSettings() !void {
 
         var f = try std.fs.cwd().createFile(realpath, .{});
         defer f.close();
+        var fwriter = f.writer(&.{});
 
-        try std.fmt.format(
-            f.writer(),
+        try fwriter.interface.print(
             "{d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5}",
             .{
                 number_r, number_g, number_w, number_b,
@@ -297,8 +297,7 @@ fn saveSettings() !void {
                 power_br, power_bg, power_bw, power_bb,
             },
         );
-        try std.fmt.format(
-            f.writer(),
+        try fwriter.interface.print(
             " {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5}",
             .{
                 v_rr,      v_rg, v_rw, v_rb,

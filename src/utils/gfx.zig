@@ -280,9 +280,10 @@ pub const jpng = struct {
         } else {
             const file = try std.fs.cwd().openFileZ(path, .{ .mode = .write_only });
             defer file.close();
+            var fwriter = file.writer(&.{});
 
             _ = try file.seekFromEnd(0);
-            try writeData(ctx, file.writer(), data, opt);
+            try writeData(ctx, &fwriter.interface, data, opt);
         }
     }
 

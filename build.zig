@@ -26,9 +26,14 @@ pub fn build(b: *Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     // Add test suits
+    const root = b.createModule(.{
+        .root_source_file = b.path("src/jok.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
     const tests = b.addTest(.{
         .name = "all",
-        .root_source_file = b.path("src/jok.zig"),
+        .root_module = root,
     });
     const test_step = b.step("test", "run tests");
     test_step.dependOn(&b.addRunArtifact(tests).step);
@@ -87,7 +92,7 @@ fn addExample(
     b: *Build,
     name: []const u8,
     target: ResolvedTarget,
-    optimize: std.builtin.Mode,
+    optimize: std.builtin.OptimizeMode,
     skipped: std.StringHashMap(bool),
     examples: *Build.Step,
     opt: ExampleOptions,
@@ -182,7 +187,7 @@ pub fn createDesktopApp(
     name: []const u8,
     game_root: []const u8,
     target: ResolvedTarget,
-    optimize: std.builtin.Mode,
+    optimize: std.builtin.OptimizeMode,
     opt: AppOptions,
 ) *Build.Step.Compile {
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
@@ -244,7 +249,7 @@ pub fn createTest(
     name: []const u8,
     root_source_file: []const u8,
     target: ResolvedTarget,
-    optimize: std.builtin.Mode,
+    optimize: std.builtin.OptimizeMode,
     opt: AppOptions,
 ) *Build.Step.Compile {
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
@@ -295,7 +300,7 @@ pub fn createPlugin(
     name: []const u8,
     plugin_root: []const u8,
     target: ResolvedTarget,
-    optimize: std.builtin.Mode,
+    optimize: std.builtin.OptimizeMode,
     opt: AppOptions,
 ) *Build.Step.Compile {
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
@@ -335,7 +340,8 @@ pub fn createPlugin(
     });
 
     // Create shared library
-    const lib = b.addSharedLibrary(.{
+    const lib = b.addLibrary(.{
+        .linkage = .dynamic,
         .name = name,
         .root_module = root,
     });
@@ -365,7 +371,7 @@ pub fn createWeb(
     name: []const u8,
     game_root: []const u8,
     target: ResolvedTarget,
-    optimize: std.builtin.Mode,
+    optimize: std.builtin.OptimizeMode,
     opt: WebOptions,
 ) struct {
     emlink: *Build.Step.InstallDir,
@@ -404,7 +410,7 @@ pub fn createWeb(
     });
 
     // Create wasm object file
-    const lib = builder.addStaticLibrary(.{
+    const lib = builder.addLibrary(.{
         .name = name,
         .root_module = root,
     });
@@ -439,7 +445,7 @@ pub const JokOptions = struct {
     use_nfd: bool = false,
     link_dynamic: bool = false,
 };
-fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Mode, opt: JokOptions) struct {
+fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) struct {
     module: *Build.Module,
     artifact: *Build.Step.Compile,
 } {
@@ -478,7 +484,7 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Mode, 
 
     var lib: *Build.Step.Compile = undefined;
     if (target.result.cpu.arch.isWasm()) {
-        lib = builder.addStaticLibrary(.{ .name = "jok", .root_module = libmod });
+        lib = builder.addLibrary(.{ .name = "jok", .root_module = libmod });
 
         // Setup emscripten when necessary
         const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
@@ -487,10 +493,11 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Mode, 
         // Add the Emscripten system include seach path
         lib.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
     } else {
-        lib = if (opt.link_dynamic)
-            builder.addSharedLibrary(.{ .name = "jok", .root_module = libmod })
-        else
-            builder.addStaticLibrary(.{ .name = "jok", .root_module = libmod });
+        lib = builder.addLibrary(.{
+            .linkage = if (opt.link_dynamic) .dynamic else .static,
+            .name = "jok",
+            .root_module = libmod,
+        });
         CrossSDL.init(b).link(lib, .dynamic);
     }
 
@@ -542,7 +549,8 @@ const CrossSDL = struct {
             .target = exe.root_module.resolved_target.?,
             .optimize = exe.root_module.optimize.?,
         });
-        const build_linux_sdl_stub = sdk.builder.addSharedLibrary(.{
+        const build_linux_sdl_stub = sdk.builder.addLibrary(.{
+            .linkage = .dynamic,
             .name = "SDL2",
             .root_module = mod,
         });
@@ -676,7 +684,8 @@ const CrossSDL = struct {
     };
 
     fn printPathsErrorMessage(sdk: *Sdk, config_path: []const u8, target_local: ResolvedTarget, err: GetPathsError) !void {
-        const writer = std.io.getStdErr().writer();
+        const writer = std.debug.lockStderrWriter(&.{});
+        defer std.debug.unlockStdErr();
         const target_name = try tripleName(sdk.builder.allocator, target_local);
         defer sdk.builder.allocator.free(target_name);
 
@@ -823,8 +832,9 @@ const CrossSDL = struct {
 
             var file = try dirpath.dir.createFile("sdl.S", .{});
             defer file.close();
+            const fwriter = file.writer(&.{});
 
-            var writer = file.writer();
+            var writer = fwriter.interface;
             try writer.writeAll(".text\n");
 
             var iter = std.mem.splitScalar(u8, sdl2_symbol_definitions, '\n');
@@ -891,20 +901,20 @@ const CrossSDL = struct {
             const path = if (self.subdir) |subdir|
                 try std.fmt.allocPrint(
                     self.builder.allocator,
-                    "{s}/{s}/o/{}",
+                    "{s}/{s}/o/{x}",
                     .{
                         self.builder.cache_root.path.?,
                         subdir,
-                        std.fmt.fmtSliceHexLower(&hash),
+                        &hash,
                     },
                 )
             else
                 try std.fmt.allocPrint(
                     self.builder.allocator,
-                    "{s}/o/{}",
+                    "{s}/o/{x}",
                     .{
                         self.builder.cache_root.path.?,
-                        std.fmt.fmtSliceHexLower(&hash),
+                        &hash,
                     },
                 );
 

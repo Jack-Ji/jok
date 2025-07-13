@@ -317,10 +317,11 @@ pub fn fromPicturesInDir(
                         .{fname[0 .. fname.len - 4]},
                     ),
                     .image = .{
-                        .file_path = try std.fmt.allocPrintZ(
+                        .file_path = try std.fmt.allocPrintSentinel(
                             arena.allocator(),
                             "{s}/{s}",
                             .{ dir_path, fname },
+                            0,
                         ),
                     },
                 });
@@ -490,6 +491,16 @@ pub fn save(
 
 /// Load sprite-sheet from jpng
 pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Self {
+    const S = struct {
+        inline fn getFloat(v: json.Value) f32 {
+            return switch (v) {
+                .integer => |i| @floatFromInt(i),
+                .float => |f| @floatCast(f),
+                else => unreachable,
+            };
+        }
+    };
+
     const loaded = try jok.utils.gfx.jpng.loadTexture(ctx, path, .static, false);
     defer ctx.allocator().free(loaded.data);
     errdefer loaded.tex.destroy();
@@ -523,12 +534,12 @@ pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Self {
         const name = entry.key_ptr.*;
         const info = entry.value_ptr.*.object;
         rects[i] = SpriteRect{
-            .s0 = @floatCast(info.get("s0").?.float),
-            .t0 = @floatCast(info.get("t0").?.float),
-            .s1 = @floatCast(info.get("s1").?.float),
-            .t1 = @floatCast(info.get("t1").?.float),
-            .width = @floatCast(info.get("w").?.float),
-            .height = @floatCast(info.get("h").?.float),
+            .s0 = S.getFloat(info.get("s0").?),
+            .t0 = S.getFloat(info.get("t0").?),
+            .s1 = S.getFloat(info.get("s1").?),
+            .t1 = S.getFloat(info.get("t1").?),
+            .width = S.getFloat(info.get("w").?),
+            .height = S.getFloat(info.get("h").?),
         };
         try search_tree.putNoClobber(
             try std.fmt.allocPrint(allocator, "{s}", .{name}),

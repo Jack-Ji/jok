@@ -240,11 +240,11 @@ test "Async Task" {
         fn return_nothing() void {}
 
         fn long_work(ch: *Channel(u32), a: u32, b: u32) u32 {
-            std.time.sleep(std.time.ns_per_s);
+            std.Thread.sleep(std.time.ns_per_s);
             ch.push(std.math.pow(u32, a, 1)) catch unreachable;
-            std.time.sleep(std.time.ns_per_ms * 10);
+            std.Thread.sleep(std.time.ns_per_ms * 10);
             ch.push(std.math.pow(u32, a, 2)) catch unreachable;
-            std.time.sleep(std.time.ns_per_ms * 10);
+            std.Thread.sleep(std.time.ns_per_ms * 10);
             ch.push(std.math.pow(u32, a, 3)) catch unreachable;
             return a + b;
         }

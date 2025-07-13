@@ -2,9 +2,9 @@
 pub const stbi_uc = u8;
 pub const stbi_us = c_ushort;
 pub const stbi_io_callbacks = extern struct {
-    read: ?*const fn (?*anyopaque, [*c]u8, c_int) callconv(.C) c_int,
-    skip: ?*const fn (?*anyopaque, c_int) callconv(.C) void,
-    eof: ?*const fn (?*anyopaque) callconv(.C) c_int,
+    read: ?*const fn (?*anyopaque, [*c]u8, c_int) callconv(.c) c_int,
+    skip: ?*const fn (?*anyopaque, c_int) callconv(.c) void,
+    eof: ?*const fn (?*anyopaque) callconv(.c) c_int,
 };
 pub extern fn stbi_load_from_memory(buffer: [*c]const stbi_uc, len: c_int, x: [*c]c_int, y: [*c]c_int, channels_in_file: [*c]c_int, desired_channels: c_int) [*c]stbi_uc;
 pub extern fn stbi_load_from_callbacks(clbk: [*c]const stbi_io_callbacks, user: ?*anyopaque, x: [*c]c_int, y: [*c]c_int, channels_in_file: [*c]c_int, desired_channels: c_int) [*c]stbi_uc;
@@ -89,7 +89,7 @@ pub extern fn stbi_write_bmp(filename: [*c]const u8, w: c_int, h: c_int, comp: c
 pub extern fn stbi_write_tga(filename: [*c]const u8, w: c_int, h: c_int, comp: c_int, data: ?*const anyopaque) c_int;
 pub extern fn stbi_write_hdr(filename: [*c]const u8, w: c_int, h: c_int, comp: c_int, data: [*c]const f32) c_int;
 pub extern fn stbi_write_jpg(filename: [*c]const u8, x: c_int, y: c_int, comp: c_int, data: ?*const anyopaque, quality: c_int) c_int;
-pub const stbi_write_func = fn (?*anyopaque, ?*anyopaque, c_int) callconv(.C) void;
+pub const stbi_write_func = fn (?*anyopaque, ?*anyopaque, c_int) callconv(.c) void;
 pub extern fn stbi_write_png_to_func(func: ?*const stbi_write_func, context: ?*anyopaque, w: c_int, h: c_int, comp: c_int, data: ?*const anyopaque, stride_in_bytes: c_int) c_int;
 pub extern fn stbi_write_bmp_to_func(func: ?*const stbi_write_func, context: ?*anyopaque, w: c_int, h: c_int, comp: c_int, data: ?*const anyopaque) c_int;
 pub extern fn stbi_write_tga_to_func(func: ?*const stbi_write_func, context: ?*anyopaque, w: c_int, h: c_int, comp: c_int, data: ?*const anyopaque) c_int;

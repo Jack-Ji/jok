@@ -237,7 +237,7 @@ pub const UvToPositionFn = *const fn (
     uv: *const [2]f32,
     position: *[3]f32,
     userdata: ?*anyopaque,
-) callconv(.C) void;
+) callconv(.c) void;
 
 pub fn initParametric(
     fun: UvToPositionFn,

@@ -1293,7 +1293,7 @@ inline fn initPropertyTree(element: *const xml.Element, allocator: std.mem.Alloc
 }
 
 inline fn getExternalFileContent(allocator: std.mem.Allocator, use_physfs: bool, path: []const u8) ![]const u8 {
-    const zpath = try std.fmt.allocPrintZ(allocator, "{s}", .{path});
+    const zpath = try std.fmt.allocPrintSentinel(allocator, "{s}", .{path}, 0);
     defer allocator.free(zpath);
     if (use_physfs) {
         const handle = try physfs.open(zpath, .read);

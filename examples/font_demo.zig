@@ -52,15 +52,11 @@ pub fn init(ctx: jok.Context) !void {
     );
     var t = std.time.nanoTimestamp();
     try atlas.save(ctx, "atlas.png", .{});
-    std.debug.print("Atlas save time: {s}\n", .{std.fmt.fmtDuration(
-        @intCast(std.time.nanoTimestamp() - t),
-    )});
+    std.debug.print("Atlas save time: {D}\n", .{@as(u64, @intCast(std.time.nanoTimestamp() - t))});
     atlas.destroy();
     t = std.time.nanoTimestamp();
     saved_atlas = try font.Atlas.load(ctx, "atlas.png");
-    std.debug.print("Atlas load time: {s}\n", .{std.fmt.fmtDuration(
-        @intCast(std.time.nanoTimestamp() - t),
-    )});
+    std.debug.print("Atlas load time: {D}\n", .{@as(u64, @intCast(std.time.nanoTimestamp() - t))});
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {

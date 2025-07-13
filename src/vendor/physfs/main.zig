@@ -481,13 +481,13 @@ pub const File = struct {
     }
 
     /// Get std.io.Reader
-    pub const Reader = io.Reader(File, Error, read);
+    pub const Reader = io.GenericReader(File, Error, read);
     pub fn reader(self: File) Reader {
         return .{ .context = self };
     }
 
     /// Get std.io.Writer
-    pub const Writer = io.Writer(File, Error, write);
+    pub const Writer = io.GenericWriter(File, Error, write);
     pub fn writer(self: File) Writer {
         return .{ .context = self };
     }
@@ -502,19 +502,19 @@ var mem_allocations: std.AutoHashMap(usize, usize) = undefined;
 var mem_mutex: std.Thread.Mutex = .{};
 const mem_alignment: std.mem.Alignment = .@"16";
 
-fn memInit() callconv(.C) c_int {
+fn memInit() callconv(.c) c_int {
     assert(mem_allocator != null);
     mem_allocations = std.AutoHashMap(usize, usize).init(mem_allocator.?);
     mem_allocations.ensureTotalCapacity(32) catch @panic("OOM");
     return 1;
 }
 
-fn memDeinit() callconv(.C) void {
+fn memDeinit() callconv(.c) void {
     assert(mem_allocator != null);
     mem_allocations.deinit();
 }
 
-fn memAlloc(size: usize) callconv(.C) ?*anyopaque {
+fn memAlloc(size: usize) callconv(.c) ?*anyopaque {
     assert(mem_allocator != null);
     mem_mutex.lock();
     defer mem_mutex.unlock();
@@ -530,7 +530,7 @@ fn memAlloc(size: usize) callconv(.C) ?*anyopaque {
     return mem.ptr;
 }
 
-fn memRealloc(ptr: ?*anyopaque, size: usize) callconv(.C) ?*anyopaque {
+fn memRealloc(ptr: ?*anyopaque, size: usize) callconv(.c) ?*anyopaque {
     assert(mem_allocator != null);
     mem_mutex.lock();
     defer mem_mutex.unlock();
@@ -551,7 +551,7 @@ fn memRealloc(ptr: ?*anyopaque, size: usize) callconv(.C) ?*anyopaque {
     return mem.ptr;
 }
 
-fn memFree(ptr: ?*anyopaque) callconv(.C) void {
+fn memFree(ptr: ?*anyopaque) callconv(.c) void {
     if (ptr == null) return;
 
     assert(mem_allocator != null);
@@ -568,7 +568,7 @@ fn memFree(ptr: ?*anyopaque) callconv(.C) void {
 //------------------------------------------------------------------------------
 
 pub const stb = struct {
-    pub fn writeCallback(ctx: ?*anyopaque, data: ?*anyopaque, size: c_int) callconv(.C) void {
+    pub fn writeCallback(ctx: ?*anyopaque, data: ?*anyopaque, size: c_int) callconv(.c) void {
         const handle: *File = @alignCast(@ptrCast(ctx.?));
         var wdata: []u8 = undefined;
         wdata.ptr = @ptrCast(data.?);
@@ -585,26 +585,26 @@ pub const zaudio = struct {
     const SeekOrigin = AudioVfs.SeekOrigin;
     const FileInfo = AudioVfs.FileInfo;
 
-    fn onOpen(_: *AudioVfs, file_path: [*:0]const u8, mode: AudioOpenMode, handle: *AudioFileHandle) callconv(.C) AudioResult {
+    fn onOpen(_: *AudioVfs, file_path: [*:0]const u8, mode: AudioOpenMode, handle: *AudioFileHandle) callconv(.c) AudioResult {
         const open_mode: OpenMode = if (mode == .read) .read else .write;
         const file = open(file_path, open_mode) catch |e| @panic(@errorName(e));
         handle.* = @ptrCast(file.handle);
         return .success;
     }
-    fn onOpenW(_: *AudioVfs, file_path: [*:0]const u32, mode: AudioOpenMode, handle: *AudioFileHandle) callconv(.C) AudioResult {
+    fn onOpenW(_: *AudioVfs, file_path: [*:0]const u32, mode: AudioOpenMode, handle: *AudioFileHandle) callconv(.c) AudioResult {
         _ = file_path;
         _ = mode;
         _ = handle;
         return .invalid_operation;
     }
-    fn onClose(_: *AudioVfs, handle: AudioFileHandle) callconv(.C) AudioResult {
+    fn onClose(_: *AudioVfs, handle: AudioFileHandle) callconv(.c) AudioResult {
         const file = File{
             .handle = @ptrCast(handle),
         };
         file.close();
         return .success;
     }
-    fn onRead(_: *AudioVfs, handle: AudioFileHandle, dst: [*]u8, size: usize, bytes_read: *usize) callconv(.C) AudioResult {
+    fn onRead(_: *AudioVfs, handle: AudioFileHandle, dst: [*]u8, size: usize, bytes_read: *usize) callconv(.c) AudioResult {
         const file = File{
             .handle = @ptrCast(handle),
         };
@@ -614,7 +614,7 @@ pub const zaudio = struct {
         bytes_read.* = file.read(data) catch |e| @panic(@errorName(e));
         return .success;
     }
-    fn onWrite(_: *AudioVfs, handle: AudioFileHandle, src: [*]const u8, size: usize, bytes_written: *usize) callconv(.C) AudioResult {
+    fn onWrite(_: *AudioVfs, handle: AudioFileHandle, src: [*]const u8, size: usize, bytes_written: *usize) callconv(.c) AudioResult {
         const file = File{
             .handle = @ptrCast(handle),
         };
@@ -625,7 +625,7 @@ pub const zaudio = struct {
         bytes_written.* = size;
         return .success;
     }
-    fn onSeek(_: *AudioVfs, handle: AudioFileHandle, offset: i64, origin: SeekOrigin) callconv(.C) AudioResult {
+    fn onSeek(_: *AudioVfs, handle: AudioFileHandle, offset: i64, origin: SeekOrigin) callconv(.c) AudioResult {
         const file = File{
             .handle = @ptrCast(handle),
         };
@@ -638,14 +638,14 @@ pub const zaudio = struct {
         }
         return .success;
     }
-    fn onTell(_: *AudioVfs, handle: AudioFileHandle, offset: *i64) callconv(.C) AudioResult {
+    fn onTell(_: *AudioVfs, handle: AudioFileHandle, offset: *i64) callconv(.c) AudioResult {
         const file = File{
             .handle = @ptrCast(handle),
         };
         offset.* = @intCast(file.tell() catch |e| @panic(@errorName(e)));
         return .success;
     }
-    fn onInfo(_: *AudioVfs, handle: AudioFileHandle, info: *FileInfo) callconv(.C) AudioResult {
+    fn onInfo(_: *AudioVfs, handle: AudioFileHandle, info: *FileInfo) callconv(.c) AudioResult {
         const file = File{
             .handle = @ptrCast(handle),
         };
@@ -679,7 +679,7 @@ pub const zmesh = struct {
         path: [*:0]const u8,
         size: *usize,
         data: *?*anyopaque,
-    ) callconv(.C) ZmeshResult {
+    ) callconv(.c) ZmeshResult {
         _ = file_opts;
 
         const handle = open(path, .read) catch |e| {
@@ -717,7 +717,7 @@ pub const zmesh = struct {
         mem_opts: *const ZmeshMemoryOptions,
         file_opts: *const ZmeshFileOptions,
         data: ?*anyopaque,
-    ) callconv(.C) void {
+    ) callconv(.c) void {
         _ = file_opts;
 
         mem_opts.free_func.?(mem_opts.user_data, data);
@@ -804,11 +804,11 @@ pub const ErrorCode = enum(c_int) {
     }
 };
 const MemAllocator = extern struct {
-    init_fn: ?*const fn () callconv(.C) c_int,
-    deinit_fn: ?*const fn () callconv(.C) void,
-    malloc_fn: ?*const fn (usize) callconv(.C) ?*anyopaque,
-    realloc_fn: ?*const fn (?*anyopaque, usize) callconv(.C) ?*anyopaque,
-    free_fn: ?*const fn (?*anyopaque) callconv(.C) void,
+    init_fn: ?*const fn () callconv(.c) c_int,
+    deinit_fn: ?*const fn () callconv(.c) void,
+    malloc_fn: ?*const fn (usize) callconv(.c) ?*anyopaque,
+    realloc_fn: ?*const fn (?*anyopaque, usize) callconv(.c) ?*anyopaque,
+    free_fn: ?*const fn (?*anyopaque) callconv(.c) void,
 };
 extern fn PHYSFS_init(argv0: ?[*:0]const u8) c_int;
 extern fn PHYSFS_deinit() c_int;

@@ -170,6 +170,22 @@ pub fn save(
 
 /// Load atlas from jpng file
 pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Atlas {
+    const S = struct {
+        inline fn getFloat(v: json.Value) f32 {
+            return switch (v) {
+                .integer => |i| @floatFromInt(i),
+                .float => |f| @floatCast(f),
+                else => unreachable,
+            };
+        }
+        inline fn getInt(v: json.Value, T: type) T {
+            return switch (v) {
+                .integer => |i| @intCast(i),
+                else => unreachable,
+            };
+        }
+    };
+
     const loaded = try jok.utils.gfx.jpng.loadTexture(ctx, path, .static, false);
     defer ctx.allocator().free(loaded.data);
     errdefer loaded.tex.destroy();
@@ -222,25 +238,25 @@ pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Atlas {
         const chars_num = ranges[i].codepoint_end - ranges[i].codepoint_begin + 1;
         ranges[i].packedchar = try allocator.alloc(truetype.stbtt_packedchar, chars_num);
         for (vr.array.items[2].array.items, 0..) |vchars, j| {
-            ranges[i].packedchar[j].x0 = @intCast(vchars.array.items[0].integer);
-            ranges[i].packedchar[j].y0 = @intCast(vchars.array.items[1].integer);
-            ranges[i].packedchar[j].x1 = @intCast(vchars.array.items[2].integer);
-            ranges[i].packedchar[j].y1 = @intCast(vchars.array.items[3].integer);
-            ranges[i].packedchar[j].xoff = @floatCast(vchars.array.items[4].float);
-            ranges[i].packedchar[j].yoff = @floatCast(vchars.array.items[5].float);
-            ranges[i].packedchar[j].xadvance = @floatCast(vchars.array.items[6].float);
-            ranges[i].packedchar[j].xoff2 = @floatCast(vchars.array.items[7].float);
-            ranges[i].packedchar[j].yoff2 = @floatCast(vchars.array.items[8].float);
+            ranges[i].packedchar[j].x0 = S.getInt(vchars.array.items[0], c_ushort);
+            ranges[i].packedchar[j].y0 = S.getInt(vchars.array.items[1], c_ushort);
+            ranges[i].packedchar[j].x1 = S.getInt(vchars.array.items[2], c_ushort);
+            ranges[i].packedchar[j].y1 = S.getInt(vchars.array.items[3], c_ushort);
+            ranges[i].packedchar[j].xoff = S.getFloat(vchars.array.items[4]);
+            ranges[i].packedchar[j].yoff = S.getFloat(vchars.array.items[5]);
+            ranges[i].packedchar[j].xadvance = S.getFloat(vchars.array.items[6]);
+            ranges[i].packedchar[j].xoff2 = S.getFloat(vchars.array.items[7]);
+            ranges[i].packedchar[j].yoff2 = S.getFloat(vchars.array.items[8]);
         }
     }
-    const ascent: f32 = @floatCast(parsed.value.object.get("ascent").?.float);
-    const descent: f32 = @floatCast(parsed.value.object.get("descent").?.float);
-    const line_gap: f32 = @floatCast(parsed.value.object.get("line_gap").?.float);
+    const ascent: f32 = S.getFloat(parsed.value.object.get("ascent").?);
+    const descent: f32 = S.getFloat(parsed.value.object.get("descent").?);
+    const line_gap: f32 = S.getFloat(parsed.value.object.get("line_gap").?);
 
     // kerning table
     for (kerning_pairs.array.items) |vk| {
-        const merged_cp: u64 = @intCast(vk.array.items[0].integer);
-        const kvalue: f32 = @floatCast(vk.array.items[1].float);
+        const merged_cp: u64 = S.getInt(vk.array.items[0], u64);
+        const kvalue: f32 = S.getFloat(vk.array.items[1]);
         try kerning_table.put(merged_cp, kvalue);
     }
 

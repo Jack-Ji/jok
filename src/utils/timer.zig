@@ -74,7 +74,7 @@ pub fn GenericTimer(comptime fun: anytype) type {
             };
         }
 
-        fn call(_: u32, ptr: ?*anyopaque) callconv(.C) u32 {
+        fn call(_: u32, ptr: ?*anyopaque) callconv(.c) u32 {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             self.args[0] = @call(.auto, self.fp, self.args);
             if (self.args[0] == 0) {

@@ -114,13 +114,13 @@ pub const World = struct {
         if (self.debug) |dbg| dbg.deinit();
     }
 
-    fn shapeFree(space: ?*c.cpSpace, shape: ?*anyopaque, unused: ?*anyopaque) callconv(.C) void {
+    fn shapeFree(space: ?*c.cpSpace, shape: ?*anyopaque, unused: ?*anyopaque) callconv(.c) void {
         _ = unused;
         c.cpSpaceRemoveShape(space, @ptrCast(shape));
         c.cpShapeFree(@ptrCast(shape));
     }
 
-    fn postShapeFree(shape: ?*c.cpShape, user_data: ?*anyopaque) callconv(.C) void {
+    fn postShapeFree(shape: ?*c.cpShape, user_data: ?*anyopaque) callconv(.c) void {
         _ = c.cpSpaceAddPostStepCallback(
             @ptrCast(user_data),
             shapeFree,
@@ -129,13 +129,13 @@ pub const World = struct {
         );
     }
 
-    fn constraintFree(space: ?*c.cpSpace, constraint: ?*anyopaque, unused: ?*anyopaque) callconv(.C) void {
+    fn constraintFree(space: ?*c.cpSpace, constraint: ?*anyopaque, unused: ?*anyopaque) callconv(.c) void {
         _ = unused;
         c.cpSpaceRemoveConstraint(space, @ptrCast(constraint));
         c.cpConstraintFree(@ptrCast(constraint));
     }
 
-    fn postConstraintFree(constraint: ?*c.cpConstraint, user_data: ?*anyopaque) callconv(.C) void {
+    fn postConstraintFree(constraint: ?*c.cpConstraint, user_data: ?*anyopaque) callconv(.c) void {
         _ = c.cpSpaceAddPostStepCallback(
             @ptrCast(user_data),
             constraintFree,
@@ -144,13 +144,13 @@ pub const World = struct {
         );
     }
 
-    fn bodyFree(space: ?*c.cpSpace, body: ?*anyopaque, unused: ?*anyopaque) callconv(.C) void {
+    fn bodyFree(space: ?*c.cpSpace, body: ?*anyopaque, unused: ?*anyopaque) callconv(.c) void {
         _ = unused;
         c.cpSpaceRemoveBody(space, @ptrCast(body));
         c.cpBodyFree(@ptrCast(body));
     }
 
-    fn postBodyFree(body: ?*c.cpBody, user_data: ?*anyopaque) callconv(.C) void {
+    fn postBodyFree(body: ?*c.cpBody, user_data: ?*anyopaque) callconv(.c) void {
         _ = c.cpSpaceAddPostStepCallback(
             @ptrCast(user_data),
             bodyFree,
@@ -456,7 +456,7 @@ const PhysicsDebug = struct {
         outline_color: c.cpSpaceDebugColor,
         fill_color: c.cpSpaceDebugColor,
         data: c.cpDataPointer,
-    ) callconv(.C) void {
+    ) callconv(.c) void {
         _ = outline_color;
         var debug = @as(*PhysicsDebug, @ptrCast(@alignCast(data)));
         // Zig fmt: off
@@ -489,7 +489,7 @@ const PhysicsDebug = struct {
         b: c.cpVect,
         color: c.cpSpaceDebugColor,
         data: c.cpDataPointer,
-    ) callconv(.C) void {
+    ) callconv(.c) void {
         drawFatSegment(a, b, 2, color, color, data);
     }
 
@@ -500,7 +500,7 @@ const PhysicsDebug = struct {
         outline_color: c.cpSpaceDebugColor,
         fill_color: c.cpSpaceDebugColor,
         data: c.cpDataPointer,
-    ) callconv(.C) void {
+    ) callconv(.c) void {
         _ = outline_color;
         var debug = @as(*PhysicsDebug, @ptrCast(@alignCast(data)));
 
@@ -550,7 +550,7 @@ const PhysicsDebug = struct {
         outline_color: c.cpSpaceDebugColor,
         fill_color: c.cpSpaceDebugColor,
         data: c.cpDataPointer,
-    ) callconv(.C) void {
+    ) callconv(.c) void {
         _ = radius;
         _ = outline_color;
         var debug = @as(*PhysicsDebug, @ptrCast(@alignCast(data)));
@@ -583,7 +583,7 @@ const PhysicsDebug = struct {
         pos: c.cpVect,
         color: c.cpSpaceDebugColor,
         data: c.cpDataPointer,
-    ) callconv(.C) void {
+    ) callconv(.c) void {
         drawCircle(
             pos,
             0,
@@ -597,7 +597,7 @@ const PhysicsDebug = struct {
     fn drawColorForShape(
         shape: ?*c.cpShape,
         data: c.cpDataPointer,
-    ) callconv(.C) c.cpSpaceDebugColor {
+    ) callconv(.c) c.cpSpaceDebugColor {
         _ = data;
         if (c.cpShapeGetSensor(shape) == 1) {
             return .{ .r = 1, .g = 1, .b = 1, .a = draw_alpha };

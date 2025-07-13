@@ -20,13 +20,13 @@ const Error = error{
 /// draw: Draw the plugin
 /// get_memory: Get the memory of the plugin
 /// reload_memory: Reload the memory of the plugin
-const InitFn = *const fn (ctx: *const jok.Context, name: [*:0]const u8) callconv(.C) bool;
-const DeinitFn = *const fn (ctx: *const jok.Context, name: [*:0]const u8) callconv(.C) void;
-const EventFn = *const fn (ctx: *const jok.Context, e: *const jok.Event, name: [*:0]const u8) callconv(.C) void;
-const UpdateFn = *const fn (ctx: *const jok.Context, name: [*:0]const u8) callconv(.C) void;
-const DrawFn = *const fn (ctx: *const jok.Context, name: [*:0]const u8) callconv(.C) void;
-const GetMemoryFn = *const fn () callconv(.C) ?*const anyopaque;
-const ReloadMemoryFn = *const fn (mem: ?*const anyopaque, name: [*:0]const u8) callconv(.C) void;
+const InitFn = *const fn (ctx: *const jok.Context, name: [*:0]const u8) callconv(.c) bool;
+const DeinitFn = *const fn (ctx: *const jok.Context, name: [*:0]const u8) callconv(.c) void;
+const EventFn = *const fn (ctx: *const jok.Context, e: *const jok.Event, name: [*:0]const u8) callconv(.c) void;
+const UpdateFn = *const fn (ctx: *const jok.Context, name: [*:0]const u8) callconv(.c) void;
+const DrawFn = *const fn (ctx: *const jok.Context, name: [*:0]const u8) callconv(.c) void;
+const GetMemoryFn = *const fn () callconv(.c) ?*const anyopaque;
+const ReloadMemoryFn = *const fn (mem: ?*const anyopaque, name: [*:0]const u8) callconv(.c) void;
 
 pub const Plugin = struct {
     lib: DynLib,

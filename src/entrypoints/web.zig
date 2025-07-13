@@ -16,12 +16,12 @@ const jok_config = config.init(game);
 /// Jok Context
 const Context = jok.JokContext(jok_config);
 
-const LoopFn = *const fn (args: ?*anyopaque) callconv(.C) void;
+const LoopFn = *const fn (args: ?*anyopaque) callconv(.c) void;
 extern fn emscripten_set_main_loop_arg(fp: LoopFn, args: ?*anyopaque, fps: c_int, simulate_infinite_loop: bool) void;
 extern fn emscripten_cancel_main_loop() void;
 extern fn emscripten_run_script(s: [*:0]const u8) void;
 
-fn mainLoop(args: ?*anyopaque) callconv(.C) void {
+fn mainLoop(args: ?*anyopaque) callconv(.c) void {
     var jok_ctx: *Context = @alignCast(@ptrCast(args.?));
     if (jok_ctx._running) {
         jok_ctx.tick(game.event, game.update, game.draw);
