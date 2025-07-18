@@ -8,9 +8,26 @@
 #include <assert.h>
 #include <string.h>
 #include <gtk/gtk.h>
+#if defined(GDK_WINDOWING_X11)
+#include <gdk/gdkx.h>
+#endif /* defined(GDK_WINDOWING_X11) */
 #include "nfd.h"
 #include "nfd_common.h"
 
+#if defined(GDK_WINDOWING_X11)
+#define SHOW_DIALOG(diag) \
+    do { \
+        gtk_widget_show_all(dialog); \
+        if (GDK_IS_X11_DISPLAY(gdk_display_get_default())) { \
+            GdkWindow *window = gtk_widget_get_window(dialog); \
+            gdk_window_set_events(window, gdk_window_get_events(window) | GDK_PROPERTY_CHANGE_MASK); \
+            gtk_window_present_with_time(GTK_WINDOW(dialog), gdk_x11_get_server_time(window)); \
+        } \
+    } while (0)
+#else
+#define SHOW_DIALOG(diag) \
+    do {} while (0)
+#endif
 
 const char INIT_FAIL_MSG[] = "gtk_init_check failed to initilaize GTK+";
 
@@ -191,6 +208,9 @@ nfdresult_t NFD_OpenDialog( const nfdchar_t *filterList,
     /* Set the default path */
     SetDefaultPath(dialog, defaultPath);
 
+    /* Work around focus issue on X11 (https://github.com/mlabbe/nativefiledialog/issues/79) */  \
+    SHOW_DIALOG(diag);
+
     result = NFD_CANCEL;
     if ( gtk_dialog_run( GTK_DIALOG(dialog) ) == GTK_RESPONSE_ACCEPT )
     {
@@ -249,6 +269,9 @@ nfdresult_t NFD_OpenDialogMultiple( const nfdchar_t *filterList,
     /* Set the default path */
     SetDefaultPath(dialog, defaultPath);
 
+    /* Work around focus issue on X11 (https://github.com/mlabbe/nativefiledialog/issues/79) */  \
+    SHOW_DIALOG(diag);
+
     result = NFD_CANCEL;
     if ( gtk_dialog_run( GTK_DIALOG(dialog) ) == GTK_RESPONSE_ACCEPT )
     {
@@ -296,6 +319,9 @@ nfdresult_t NFD_SaveDialog( const nfdchar_t *filterList,
     /* Set the default path */
     SetDefaultPath(dialog, defaultPath);
     
+    /* Work around focus issue on X11 (https://github.com/mlabbe/nativefiledialog/issues/79) */  \
+    SHOW_DIALOG(diag);
+
     result = NFD_CANCEL;    
     if ( gtk_dialog_run( GTK_DIALOG(dialog) ) == GTK_RESPONSE_ACCEPT )
     {
@@ -349,6 +375,9 @@ nfdresult_t NFD_PickFolder(const nfdchar_t *defaultPath,
     /* Set the default path */
     SetDefaultPath(dialog, defaultPath);
     
+    /* Work around focus issue on X11 (https://github.com/mlabbe/nativefiledialog/issues/79) */  \
+    SHOW_DIALOG(diag);
+
     result = NFD_CANCEL;    
     if ( gtk_dialog_run( GTK_DIALOG(dialog) ) == GTK_RESPONSE_ACCEPT )
     {
