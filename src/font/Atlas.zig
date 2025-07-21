@@ -152,7 +152,11 @@ pub fn save(
         .float = self.vmetric_line_gap,
     });
     try json_root.object.put("kerning_table", kerning_values);
-    var stream = json.writeStream(bufstream.writer(), .{});
+    var adapter = bufstream.writer().adaptToNewApi();
+    var stream = json.Stringify{
+        .writer = &adapter.new_interface,
+        .options = .{},
+    };
     try json_root.jsonStringify(&stream);
 
     // Save to disk
