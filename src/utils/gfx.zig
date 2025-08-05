@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const physfs = jok.physfs;
 const stb = jok.stb;
+const gzip = @import("gzip.zig");
 
 pub const Error = error{
     EncodeTextureFailed,
@@ -228,7 +229,7 @@ pub fn savePixelsToFile(
 ///                +--- Encryption Bit (not implemented)
 ///
 pub const jpng = struct {
-    const CompressLevel = std.compress.flate.deflate.Level;
+    const CompressLevel = gzip.Level;
     const Flags = packed struct(u8) {
         compressed: bool,
         encrypted: bool = false,
@@ -359,7 +360,7 @@ pub const jpng = struct {
             var read_stream = std.io.fixedBufferStream(custom_data);
             var write_stream = std.ArrayList(u8).init(allocator);
             defer write_stream.deinit();
-            try std.compress.gzip.decompress(read_stream.reader(), write_stream.writer());
+            try gzip.decompress(read_stream.reader(), write_stream.writer());
             return .{
                 .allocator = allocator,
                 .pixels = pixels,
@@ -413,7 +414,7 @@ pub const jpng = struct {
             const writebuf = try ctx.allocator().alloc(u8, data.len);
             defer ctx.allocator().free(writebuf);
             var write_stream = std.io.fixedBufferStream(writebuf);
-            try std.compress.gzip.compress(
+            try gzip.compress(
                 read_stream.reader(),
                 write_stream.writer(),
                 .{ .level = lvl },
