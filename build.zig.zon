@@ -1,6 +1,6 @@
 .{
     .name = .jok,
-    .version = "0.54.4",
+    .version = "0.54.5",
     .fingerprint = 0x8204585c92cd7f34, // Changing this has security and trust implications.
     .paths = .{
         "README.md",
@@ -12,8 +12,8 @@
     },
     .dependencies = .{
         .emsdk = .{
-            .url = "git+https://github.com/emscripten-core/emsdk#4.0.3",
-            .hash = "N-V-__8AAOG3BQCJ9cn-N2swm2o5cLmDhmdHmtwNngOChK78",
+            .url = "git+https://github.com/emscripten-core/emsdk?ref=4.0.10#62a853cd3b3134398ce85cde8bb5cbb2ef0194cb",
+            .hash = "N-V-__8AAEWFDwBdd7oE1EcCE3lK2y01-2ourXGKhpZeaZxQ",
         },
     },
 }
