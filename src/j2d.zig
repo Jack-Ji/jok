@@ -247,6 +247,11 @@ pub const Batch = struct {
         self.trs = self.trs.rotateByOrigin(radian);
     }
 
+    pub fn rotateByCurrentOrigin(self: *Batch, radian: f32) void {
+        const t = self.trs.getTranslation();
+        self.trs = self.trs.rotateByPoint(.{ .x = t[0], .y = t[1] }, radian);
+    }
+
     pub fn rotateByPoint(self: *Batch, p: jok.Point, radian: f32) void {
         self.trs = self.trs.rotateByPoint(p, radian);
     }
