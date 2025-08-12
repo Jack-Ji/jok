@@ -101,5 +101,5 @@ pub fn getMemory() ?*const anyopaque {
 }
 
 pub fn reloadMemory(mem: ?*const anyopaque) void {
-    state = @constCast(@alignCast(@ptrCast(mem.?)));
+    state = @ptrCast(@alignCast(@constCast(mem.?)));
 }

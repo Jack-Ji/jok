@@ -172,11 +172,11 @@ pub fn draw(ctx: jok.Context) !void {
             try b.pushTransform();
             defer b.popTransform();
             b.setIdentity();
-            b.scale(.{
+            b.scaleAroundWorldOrigin(.{
                 (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
                 (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
             });
-            b.rotateByOrigin(ctx.seconds());
+            b.rotateByWorldOrigin(ctx.seconds());
             b.translate(.{
                 offset_transformed[0],
                 offset_transformed[1],

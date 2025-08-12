@@ -94,21 +94,24 @@ pub fn translateY(self: Self, t: f32) Self {
     };
 }
 
-pub fn scale(self: Self, v: [2]f32) Self {
+pub fn scaleAroundOrigin(self: Self, v: [2]f32) Self {
     return .{
         .mat = zmath.mul(self.mat, zmath.scaling(v[0], v[1], 0)),
     };
 }
 
-pub fn scaleX(self: Self, s: f32) Self {
+pub fn scaleAroundPoint(self: Self, p: jok.Point, v: [2]f32) Self {
     return .{
-        .mat = zmath.mul(self.mat, zmath.scaling(s, 1, 0)),
-    };
-}
-
-pub fn scaleY(self: Self, s: f32) Self {
-    return .{
-        .mat = zmath.mul(self.mat, zmath.scaling(1, s, 0)),
+        .mat = zmath.mul(
+            self.mat,
+            zmath.mul(
+                zmath.mul(
+                    zmath.translation(-p.x, -p.y, 0),
+                    zmath.scaling(v[0], v[1], 0),
+                ),
+                zmath.translation(p.x, p.y, 0),
+            ),
+        ),
     };
 }
 

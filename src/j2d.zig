@@ -243,7 +243,7 @@ pub const Batch = struct {
         self.trs = self.trs.translate(v);
     }
 
-    pub fn rotateByOrigin(self: *Batch, radian: f32) void {
+    pub fn rotateByWorldOrigin(self: *Batch, radian: f32) void {
         self.trs = self.trs.rotateByOrigin(radian);
     }
 
@@ -256,8 +256,17 @@ pub const Batch = struct {
         self.trs = self.trs.rotateByPoint(p, radian);
     }
 
-    pub fn scale(self: *Batch, v: [2]f32) void {
-        self.trs = self.trs.scale(v);
+    pub fn scaleAroundWorldOrigin(self: *Batch, v: [2]f32) void {
+        self.trs = self.trs.scaleAroundOrigin(v);
+    }
+
+    pub fn scaleAroundCurrentOrigin(self: *Batch, v: [2]f32) void {
+        const t = self.trs.getTranslation();
+        self.trs = self.trs.scaleAroundPoint(.{ .x = t[0], .y = t[1] }, v);
+    }
+
+    pub fn scaleAroundPoint(self: *Batch, p: jok.Point, v: [2]f32) void {
+        self.trs = self.trs.scaleAroundPoint(p, v);
     }
 
     pub const ImageOption = struct {

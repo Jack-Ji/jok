@@ -78,9 +78,9 @@ pub fn draw(ctx: jok.Context) !void {
     var b = try batchpool.new(.{});
     defer b.submit();
 
-    b.scale(.{ scale, scale });
-    b.rotateByOrigin(rotate);
     b.translate(translate);
+    b.scaleAroundCurrentOrigin(.{ scale, scale });
+    b.rotateByCurrentOrigin(rotate);
 
     {
         try b.pushTransform();
