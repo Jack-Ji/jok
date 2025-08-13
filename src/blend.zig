@@ -2,33 +2,33 @@ const jok = @import("jok.zig");
 const sdl = jok.sdl;
 
 pub const BlendMode = enum {
-    // no blending
-    // dstRGBA = srcRGBA
+    /// no blending
+    /// dstRGBA = srcRGBA
     none,
 
-    // alpha blending
-    // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
-    // dstA = srcA + (dstA * (1-srcA))
+    /// alpha blending
+    /// dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
+    /// dstA = srcA + (dstA * (1-srcA))
     blend,
 
-    // additive blending
-    // dstRGB = (srcRGB * srcA) + dstRGB
-    // dstA = dstA
+    /// additive blending
+    /// dstRGB = (srcRGB * srcA) + dstRGB
+    /// dstA = dstA
     additive,
 
-    // color modulate
-    // dstRGB = srcRGB * dstRGB
-    // dstA = dstA
+    /// color modulate
+    /// dstRGB = srcRGB * dstRGB
+    /// dstA = dstA
     modulate,
 
-    // color multiply
-    // dstRGB = (srcRGB * dstRGB) + (dstRGB * (1-srcA))
-    // dstA = dstA
+    /// color multiply
+    /// dstRGB = (srcRGB * dstRGB) + (dstRGB * (1-srcA))
+    /// dstA = dstA
     multiply,
 
-    //------------------------------------------------------------------------------
-    // Porter Duff compositing, might not supported on certain platform
-    // https://ssp.impulsetrain.com/porterduff.html
+    ///------------------------------------------------------------------------------
+    /// Porter Duff compositing, might not supported on certain platform
+    /// https://ssp.impulsetrain.com/porterduff.html
     //------------------------------------------------------------------------------
     pd_src,
     pd_src_atop,

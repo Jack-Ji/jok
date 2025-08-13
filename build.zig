@@ -77,6 +77,8 @@ pub fn build(b: *Build) void {
     };
     const build_examples = b.step("examples", "compile and install all examples");
     for (examples) |ex| addExample(b, ex.name, target, optimize, skipped_examples, build_examples, ex.opt);
+
+    setupDocs(b, target, optimize);
 }
 
 const ExampleOptions = struct {
@@ -165,6 +167,26 @@ fn addExample(
         b.step(b.fmt("run-{s}", .{name}), b.fmt("run {s}", .{name})).dependOn(&webapp.emrun.step);
         if (skipped.get("hotreload") == null) examples.dependOn(&webapp.emlink.step);
     }
+}
+
+/// Generate docs of framework
+fn setupDocs(b: *std.Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
+    const jok = getJokLibrary(b, target, optimize, .{
+        .dep_name = null,
+        .use_cp = true,
+        .use_nfd = true,
+    });
+    const lib = b.addLibrary(.{
+        .root_module = jok.module,
+        .name = "jok",
+    });
+    const docs = b.addInstallDirectory(.{
+        .source_dir = lib.getEmittedDocs(),
+        .install_dir = .{ .prefix = {} },
+        .install_subdir = "docs",
+    });
+    const docs_step = b.step("docs", "generate documentation");
+    docs_step.dependOn(&docs.step);
 }
 
 pub const Dependency = struct {
