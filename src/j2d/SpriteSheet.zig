@@ -474,7 +474,7 @@ pub fn save(
         try obj.put("h", json.Value{ .float = @as(f64, rect.height) });
         try json_root.object.put(name, json.Value{ .object = obj });
     }
-    var adapter = bufstream.writer().adaptToNewApi();
+    var adapter = bufstream.writer().adaptToNewApi(&.{});
     var stream = json.Stringify{
         .writer = &adapter.new_interface,
         .options = .{},

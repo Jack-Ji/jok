@@ -152,7 +152,7 @@ pub fn save(
         .float = self.vmetric_line_gap,
     });
     try json_root.object.put("kerning_table", kerning_values);
-    var adapter = bufstream.writer().adaptToNewApi();
+    var adapter = bufstream.writer().adaptToNewApi(&.{});
     var stream = json.Stringify{
         .writer = &adapter.new_interface,
         .options = .{},
