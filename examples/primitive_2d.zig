@@ -79,8 +79,8 @@ pub fn draw(ctx: jok.Context) !void {
     defer b.submit();
 
     b.translate(translate);
-    b.scaleAroundCurrentOrigin(.{ scale, scale });
-    b.rotateByCurrentOrigin(rotate);
+    b.scaleAroundLocalOrigin(.{ scale, scale });
+    b.rotateByLocalOrigin(rotate);
 
     {
         try b.pushTransform();

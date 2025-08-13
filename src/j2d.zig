@@ -247,7 +247,7 @@ pub const Batch = struct {
         self.trs = self.trs.rotateByOrigin(radian);
     }
 
-    pub fn rotateByCurrentOrigin(self: *Batch, radian: f32) void {
+    pub fn rotateByLocalOrigin(self: *Batch, radian: f32) void {
         const t = self.trs.getTranslation();
         self.trs = self.trs.rotateByPoint(.{ .x = t[0], .y = t[1] }, radian);
     }
@@ -260,7 +260,7 @@ pub const Batch = struct {
         self.trs = self.trs.scaleAroundOrigin(v);
     }
 
-    pub fn scaleAroundCurrentOrigin(self: *Batch, v: [2]f32) void {
+    pub fn scaleAroundLocalOrigin(self: *Batch, v: [2]f32) void {
         const t = self.trs.getTranslation();
         self.trs = self.trs.scaleAroundPoint(.{ .x = t[0], .y = t[1] }, v);
     }
@@ -303,7 +303,7 @@ pub const Batch = struct {
             .pos = self.trs.transformPoint(pos),
             .tint_color = opt.tint_color,
             .scale = .{ .x = scaling[0] * opt.scale.x, .y = scaling[1] * opt.scale.y },
-            .rotate_angle = opt.rotate_angle,
+            .rotate_angle = opt.rotate_angle + self.trs.getRotation(),
             .anchor_point = opt.anchor_point,
             .flip_h = opt.flip_h,
             .flip_v = opt.flip_v,
@@ -311,7 +311,7 @@ pub const Batch = struct {
         });
     }
 
-    /// NOTE: Rounded image is always axis-aligned
+    /// NOTE: Rounded image is always aligned with axis of world
     pub const ImageRoundedOption = struct {
         size: ?jok.Size = null,
         uv0: jok.Point = .origin,
@@ -400,7 +400,7 @@ pub const Batch = struct {
             .pos = self.trs.transformPoint(opt.pos),
             .tint_color = opt.tint_color,
             .scale = .{ .x = scaling[0] * opt.scale.x, .y = scaling[1] * opt.scale.y },
-            .rotate_angle = opt.rotate_angle,
+            .rotate_angle = opt.rotate_angle + self.trs.getRotation(),
             .anchor_point = opt.anchor_point,
             .flip_h = opt.flip_h,
             .flip_v = opt.flip_v,
@@ -430,13 +430,14 @@ pub const Batch = struct {
         const atlas = opt.atlas orelse self.ctx.getDebugAtlas(
             @intFromFloat(@as(f32, @floatFromInt(self.ctx.cfg().jok_prebuild_atlas)) * self.ctx.getDpiScale()),
         );
+        const rotation = opt.rotate_angle + self.trs.getRotation();
         var pos = self.trs.transformPoint(opt.pos);
         const begin_x = pos.x;
         const scaling = opt.scale.mul(self.trs.getScale());
         const mat = zmath.mul(
             zmath.mul(
                 zmath.translation(-pos.x, -pos.y, 0),
-                zmath.rotationZ(opt.rotate_angle),
+                zmath.rotationZ(rotation),
             ),
             zmath.translation(pos.x, pos.y, 0),
         );
@@ -566,7 +567,7 @@ pub const Batch = struct {
                     .pos = draw_pos,
                     .tint_color = opt.tint_color,
                     .scale = scaling,
-                    .rotate_angle = opt.rotate_angle,
+                    .rotate_angle = rotation,
                     .depth = opt.depth,
                 });
                 pos.x += (cs.next_x - pos.x) * scaling.x;
@@ -690,7 +691,7 @@ pub const Batch = struct {
         });
     }
 
-    /// NOTE: Rounded rectangle is always axis-aligned
+    /// NOTE: Rounded rectangle is always aligned with world axis
     pub const RectRoundedOption = struct {
         anchor_point: jok.Point = .anchor_top_left,
         thickness: f32 = 1.0,
@@ -725,7 +726,7 @@ pub const Batch = struct {
         });
     }
 
-    /// NOTE: Rounded rectangle is always axis-aligned
+    /// NOTE: Rounded rectangle is always aligned with world axis
     pub const FillRectRounded = struct {
         anchor_point: jok.Point = .anchor_top_left,
         rounding: f32 = 4,
@@ -1012,7 +1013,7 @@ pub const Batch = struct {
                     .p = c.center,
                     .radius = c.radius,
                     .color = color.toInternalColor(),
-                    .rotation = opt.rotate_angle,
+                    .rotation = opt.rotate_angle + self.trs.getRotation(),
                     .thickness = opt.thickness,
                     .num_segments = opt.num_segments,
                 },
@@ -1040,7 +1041,7 @@ pub const Batch = struct {
                     .p = e.center,
                     .radius = e.radius,
                     .color = color.toInternalColor(),
-                    .rotation = opt.rotate_angle,
+                    .rotation = opt.rotate_angle + self.trs.getRotation(),
                     .num_segments = opt.num_segments,
                 },
             },

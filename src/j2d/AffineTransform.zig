@@ -172,6 +172,10 @@ pub fn getTranslationY(self: Self) f32 {
     return v[1];
 }
 
+pub fn getRotation(self: Self) f32 {
+    return math.atan2(self.mat[0][1], self.mat[0][0]);
+}
+
 pub fn getScale(self: Self) [2]f32 {
     const v = zmath.util.getScaleVec(self.mat);
     return .{ v[0], v[1] };
