@@ -266,14 +266,17 @@ pub const Circle = extern struct {
     }
 
     pub inline fn intersectRect(c: Circle, r: Rectangle) bool {
-        if (c.containsPoint(.{ .x = r.x, .y = r.y }) or
-            c.containsPoint(.{ .x = r.x + r.width, .y = r.y }) or
-            c.containsPoint(.{ .x = r.x + r.width, .y = r.y + r.height }) or
-            c.containsPoint(.{ .x = r.x, .y = r.y + r.height }))
-        {
-            return true;
-        }
-        return false;
+        const cx1 = c.center.x - c.radius;
+        const cx2 = c.center.x + c.radius;
+        const cy1 = c.center.y - c.radius;
+        const cy2 = c.center.y + c.radius;
+        const rx1 = r.x;
+        const rx2 = r.x + r.width;
+        const ry1 = r.y;
+        const ry2 = r.y + r.height;
+        if (@max(cx2, rx2) - @min(cx1, rx1) > c.radius * 2 + r.width) return false;
+        if (@max(cy2, ry2) - @min(cy1, ry1) > c.radius * 2 + r.height) return false;
+        return true;
     }
 
     pub inline fn intersectTriangle(c: Circle, t: Triangle) bool {
