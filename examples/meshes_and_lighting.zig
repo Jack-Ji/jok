@@ -65,7 +65,7 @@ pub fn init(ctx: jok.Context) !void {
         [_]f32{ 60, 46, 30 },
         [_]f32{ 0, 0, 0 },
     );
-    terran = zmesh.Shape.initParametric(
+    terran = .initParametric(
         uvToPos,
         50,
         50,
@@ -75,36 +75,36 @@ pub fn init(ctx: jok.Context) !void {
     terran.invert(0, 0);
     terran.scale(100, 20, 100);
     terran.computeNormals();
-    cube = zmesh.Shape.initCube();
+    cube = .initCube();
     cube.computeNormals();
-    parametric_sphere = zmesh.Shape.initParametricSphere(15, 15);
+    parametric_sphere = .initParametricSphere(15, 15);
     parametric_sphere.computeNormals();
-    subdivided_sphere = zmesh.Shape.initSubdividedSphere(2);
+    subdivided_sphere = .initSubdividedSphere(2);
     subdivided_sphere.computeNormals();
-    hemisphere = zmesh.Shape.initHemisphere(15, 15);
+    hemisphere = .initHemisphere(15, 15);
     hemisphere.computeNormals();
-    cone = zmesh.Shape.initCone(15, 40);
+    cone = .initCone(15, 40);
     cone.computeNormals();
-    cylinder = zmesh.Shape.initCylinder(20, 1);
+    cylinder = .initCylinder(20, 1);
     cylinder.computeNormals();
-    disk = zmesh.Shape.initDisk(
+    disk = .initDisk(
         1,
         20,
         &.{ 0, 0, 0 },
         &.{ 0, 0, 1 },
     );
     disk.computeNormals();
-    torus = zmesh.Shape.initTorus(15, 20, 0.2);
+    torus = .initTorus(15, 20, 0.2);
     torus.computeNormals();
-    icosahedron = zmesh.Shape.initIcosahedron();
+    icosahedron = .initIcosahedron();
     icosahedron.computeNormals();
-    dodecahedron = zmesh.Shape.initDodecahedron();
+    dodecahedron = .initDodecahedron();
     dodecahedron.computeNormals();
-    octahedron = zmesh.Shape.initOctahedron();
+    octahedron = .initOctahedron();
     octahedron.computeNormals();
-    tetrahedron = zmesh.Shape.initTetrahedron();
+    tetrahedron = .initTetrahedron();
     tetrahedron.computeNormals();
-    rock = zmesh.Shape.initRock(3, 1);
+    rock = .initRock(3, 1);
     rock.computeNormals();
 }
 

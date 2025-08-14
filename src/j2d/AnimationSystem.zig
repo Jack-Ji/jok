@@ -17,7 +17,7 @@ allocator: std.mem.Allocator,
 
 // Animations
 animations: std.StringHashMap(Animation),
-temp_entries: std.ArrayList(std.StringHashMap(Animation).Entry),
+temp_entries: std.array_list.Managed(std.StringHashMap(Animation).Entry),
 
 // Notify animation is over
 sig: *AnimationSignal,
@@ -26,8 +26,8 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
     const self = try allocator.create(Self);
     self.* = .{
         .allocator = allocator,
-        .animations = std.StringHashMap(Animation).init(allocator),
-        .temp_entries = std.ArrayList(std.StringHashMap(Animation).Entry).init(allocator),
+        .animations = .init(allocator),
+        .temp_entries = .init(allocator),
         .sig = try AnimationSignal.create(allocator),
     };
     return self;

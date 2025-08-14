@@ -20,9 +20,9 @@ pub const DebugFont = struct {
     var atlases: std.AutoHashMap(u32, *Atlas) = undefined;
 
     pub fn init(allocator: std.mem.Allocator) !void {
-        arena = std.heap.ArenaAllocator.init(allocator);
+        arena = .init(allocator);
         font = try Font.fromTrueTypeData(arena.allocator(), font_data);
-        atlases = std.AutoHashMap(u32, *Atlas).init(arena.allocator());
+        atlases = .init(arena.allocator());
     }
 
     pub fn deinit() void {

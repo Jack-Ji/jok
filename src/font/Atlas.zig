@@ -438,8 +438,8 @@ pub fn appendDrawDataFromUTF8String(
     text: []const u8,
     _pos: jok.Point,
     color: jok.Color,
-    vattrib: *std.ArrayList(jok.Vertex),
-    vindices: *std.ArrayList(u32),
+    vattrib: *std.array_list.Managed(jok.Vertex),
+    vindices: *std.array_list.Managed(u32),
     opt: AppendOption,
 ) !jok.Rectangle {
     const yoffset = switch (opt.ypos_type) {

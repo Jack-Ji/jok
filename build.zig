@@ -173,8 +173,6 @@ fn addExample(
 fn setupDocs(b: *std.Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
     const jok = getJokLibrary(b, target, optimize, .{
         .dep_name = null,
-        .use_cp = true,
-        .use_nfd = true,
     });
     const lib = b.addLibrary(.{
         .root_module = jok.module,

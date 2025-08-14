@@ -39,26 +39,26 @@ pub const GltfNode = zmesh.io.zcgltf.bindings.Node;
 pub const Node = struct {
     pub const SubMesh = struct {
         mesh: *Self,
-        indices: std.ArrayList(u32),
-        positions: std.ArrayList([3]f32),
-        normals: std.ArrayList([3]f32),
-        colors: std.ArrayList(jok.Color),
-        texcoords: std.ArrayList([2]f32),
-        joints: std.ArrayList([4]u8),
-        weights: std.ArrayList([4]f32),
+        indices: std.array_list.Managed(u32),
+        positions: std.array_list.Managed([3]f32),
+        normals: std.array_list.Managed([3]f32),
+        colors: std.array_list.Managed(jok.Color),
+        texcoords: std.array_list.Managed([2]f32),
+        joints: std.array_list.Managed([4]u8),
+        weights: std.array_list.Managed([4]f32),
         aabb: ?[6]f32,
         tex_id: usize,
 
         pub fn init(allocator: std.mem.Allocator, mesh: *Self) SubMesh {
             return .{
                 .mesh = mesh,
-                .indices = std.ArrayList(u32).init(allocator),
-                .positions = std.ArrayList([3]f32).init(allocator),
-                .normals = std.ArrayList([3]f32).init(allocator),
-                .colors = std.ArrayList(jok.Color).init(allocator),
-                .texcoords = std.ArrayList([2]f32).init(allocator),
-                .joints = std.ArrayList([4]u8).init(allocator),
-                .weights = std.ArrayList([4]f32).init(allocator),
+                .indices = .init(allocator),
+                .positions = .init(allocator),
+                .normals = .init(allocator),
+                .colors = .init(allocator),
+                .texcoords = .init(allocator),
+                .joints = .init(allocator),
+                .weights = .init(allocator),
                 .aabb = null,
                 .tex_id = 0,
             };
@@ -144,7 +144,7 @@ pub const Node = struct {
 
     mesh: *Self,
     parent: ?*Node,
-    children: std.ArrayList(*Node),
+    children: std.array_list.Managed(*Node),
     scale: zmath.Vec,
     rotation: zmath.Vec,
     translation: zmath.Vec,
@@ -162,7 +162,7 @@ pub const Node = struct {
         const self = Node{
             .mesh = mesh,
             .parent = parent,
-            .children = std.ArrayList(*Node).init(allocator),
+            .children = std.array_list.Managed(*Node).init(allocator),
             .scale = zmath.f32x4(1.0, 1.0, 1.0, 0.0),
             .rotation = zmath.f32x4(0.0, 0.0, 0.0, 1.0),
             .translation = zmath.f32x4s(0),
@@ -299,14 +299,14 @@ pub const Animation = struct {
     };
     mesh: *Self,
     name: []const u8,
-    channels: std.ArrayList(Channel),
+    channels: std.array_list.Managed(Channel),
     duration: f32,
 
     fn fromGltfAnimation(allocator: std.mem.Allocator, mesh: *Self, gltf_anim: GltfAnimation, name: []const u8) !?Animation {
         var anim = Animation{
             .mesh = mesh,
             .name = name,
-            .channels = std.ArrayList(Channel).init(allocator),
+            .channels = std.array_list.Managed(Channel).init(allocator),
             .duration = 0,
         };
         for (gltf_anim.channels[0..gltf_anim.channels_count]) |ch| {

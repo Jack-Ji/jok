@@ -483,7 +483,7 @@ test bitReverse {
 }
 
 test "fixedLiteralEncoder codes" {
-    var al = std.ArrayList(u8).init(testing.allocator);
+    var al = std.array_list.Managed(u8).init(testing.allocator);
     defer al.deinit();
     var bw = std.io.bitWriter(.little, al.writer());
 

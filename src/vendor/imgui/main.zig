@@ -3557,7 +3557,7 @@ extern fn zguiSetNextFrameWantCaptureKeyboard(want_capture_keyboard: bool) void;
 // Helpers
 //
 //--------------------------------------------------------------------------------------------------
-var temp_buffer = std.ArrayList(u8).init(std.heap.c_allocator);
+var temp_buffer = std.array_list.Managed(u8).init(std.heap.c_allocator);
 
 pub fn format(comptime fmt: []const u8, args: anytype) []const u8 {
     const len = std.fmt.count(fmt, args);
@@ -3897,7 +3897,7 @@ pub fn beginDragDropSource(flags: DragDropFlags) bool {
 
 /// Note: `payload_type` can be at most 32 characters long
 pub fn setDragDropPayload(payload_type: [*:0]const u8, data: []const u8, cond: Condition) bool {
-    return zguiSetDragDropPayload(payload_type, @alignCast(@ptrCast(data.ptr)), data.len, cond);
+    return zguiSetDragDropPayload(payload_type, @ptrCast(@alignCast(data.ptr)), data.len, cond);
 }
 pub fn endDragDropSource() void {
     zguiEndDragDropSource();

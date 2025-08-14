@@ -38,11 +38,11 @@ pub const zcgltf = struct {
         data: *Data,
         mesh_index: u32,
         prim_index: u32,
-        indices: *std.ArrayList(u32),
-        positions: *std.ArrayList([3]f32),
-        normals: ?*std.ArrayList([3]f32),
-        texcoords0: ?*std.ArrayList([2]f32),
-        tangents: ?*std.ArrayList([4]f32),
+        indices: *std.array_list.Managed(u32),
+        positions: *std.array_list.Managed([3]f32),
+        normals: ?*std.array_list.Managed([3]f32),
+        texcoords0: ?*std.array_list.Managed([2]f32),
+        tangents: ?*std.array_list.Managed([4]f32),
     ) !void {
         assert(mesh_index < data.meshes_count);
         assert(prim_index < data.meshes.?[mesh_index].primitives_count);

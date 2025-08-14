@@ -293,7 +293,7 @@ pub fn fromPicturesInDir(
     opt: CreateSheetFromDirOption,
 ) !*Self {
     const allocator = ctx.allocator();
-    var images = try std.ArrayList(ImageSource).initCapacity(allocator, 10);
+    var images = try std.array_list.Managed(ImageSource).initCapacity(allocator, 10);
     defer images.deinit();
 
     var arena = std.heap.ArenaAllocator.init(allocator);

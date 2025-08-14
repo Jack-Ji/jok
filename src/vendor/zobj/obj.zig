@@ -1,7 +1,6 @@
 const std = @import("std");
 const tokenizeAny = std.mem.tokenizeAny;
 const splitAny = std.mem.splitAny;
-const ArrayListUnmanaged = std.ArrayListUnmanaged;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 const parseFloat = std.fmt.parseFloat;
@@ -32,21 +31,21 @@ pub const ObjData = struct {
 
     const Builder = struct {
         allocator: Allocator,
-        material_libs: ArrayListUnmanaged([]const u8) = .{},
-        vertices: ArrayListUnmanaged(f32) = .{},
-        tex_coords: ArrayListUnmanaged(f32) = .{},
-        normals: ArrayListUnmanaged(f32) = .{},
-        meshes: ArrayListUnmanaged(Mesh) = .{},
+        material_libs: std.ArrayList([]const u8) = .{},
+        vertices: std.ArrayList(f32) = .{},
+        tex_coords: std.ArrayList(f32) = .{},
+        normals: std.ArrayList(f32) = .{},
+        meshes: std.ArrayList(Mesh) = .{},
 
         // current mesh
         name: ?[]const u8 = null,
-        num_verts: ArrayListUnmanaged(u32) = .{},
-        indices: ArrayListUnmanaged(Mesh.Index) = .{},
+        num_verts: std.ArrayList(u32) = .{},
+        indices: std.ArrayList(Mesh.Index) = .{},
         index_i: u32 = 0,
 
         // current mesh material
         current_material: ?MeshMaterial = null,
-        mesh_materials: ArrayListUnmanaged(MeshMaterial) = .{},
+        mesh_materials: std.ArrayList(MeshMaterial) = .{},
         num_processed_verts: usize = 0,
 
         fn onError(self: *Builder) void {

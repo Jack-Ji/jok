@@ -17,7 +17,7 @@ const default_effects_capacity = 10;
 allocator: std.mem.Allocator,
 
 // Particle effects
-effects: std.ArrayList(Effect),
+effects: std.array_list.Managed(Effect),
 
 /// Create particle effect system/manager
 pub fn create(allocator: std.mem.Allocator) !*Self {
@@ -25,7 +25,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
     errdefer allocator.destroy(self);
     self.* = .{
         .allocator = allocator,
-        .effects = try std.ArrayList(Effect).initCapacity(allocator, default_effects_capacity),
+        .effects = try .initCapacity(allocator, default_effects_capacity),
     };
     return self;
 }
@@ -102,7 +102,7 @@ pub const Effect = struct {
     random: std.Random,
 
     /// All particles
-    particles: std.ArrayList(Particle),
+    particles: std.array_list.Managed(Particle),
 
     /// Particle emitter
     emit_fn: ParticleEmitFn,
@@ -140,8 +140,7 @@ pub const Effect = struct {
         assert(effect_duration > burst_freq);
         return Effect{
             .random = random,
-            .particles = try std.ArrayList(Particle)
-                .initCapacity(allocator, max_particle_num),
+            .particles = try .initCapacity(allocator, max_particle_num),
             .emit_fn = emit_fn,
             .origin = origin,
             .effect_duration = effect_duration,

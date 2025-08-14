@@ -646,7 +646,7 @@ test "file tokenization" {
             var original = io.fixedBufferStream(data);
 
             // buffer for decompressed data
-            var al = std.ArrayList(u8).init(testing.allocator);
+            var al = std.array_list.Managed(u8).init(testing.allocator);
             defer al.deinit();
             const writer = al.writer();
 
@@ -725,7 +725,7 @@ test "store simple compressor" {
     };
 
     var fbs = std.io.fixedBufferStream(data);
-    var al = std.ArrayList(u8).init(testing.allocator);
+    var al = std.array_list.Managed(u8).init(testing.allocator);
     defer al.deinit();
 
     var cmp = try store.compressor(.raw, al.writer());

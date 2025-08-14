@@ -22,7 +22,7 @@ const names = [_][]const u8{
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
-var characters: std.ArrayList(Actor) = undefined;
+var characters: std.array_list.Managed(Actor) = undefined;
 var rand_gen: std.Random.DefaultPrng = undefined;
 var delta_tick: f32 = 0;
 
@@ -45,10 +45,7 @@ pub fn init(ctx: jok.Context) !void {
         @intFromFloat(csz.getHeightFloat()),
         .{},
     );
-    characters = try std.ArrayList(Actor).initCapacity(
-        ctx.allocator(),
-        1000000,
-    );
+    characters = try .initCapacity(ctx.allocator(), 1000000);
     rand_gen = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
 }
 

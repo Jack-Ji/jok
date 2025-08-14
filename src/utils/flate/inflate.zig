@@ -392,7 +392,7 @@ test "decompress" {
     };
     for (cases) |c| {
         var fb = std.io.fixedBufferStream(c.in);
-        var al = std.ArrayList(u8).init(testing.allocator);
+        var al = std.array_list.Managed(u8).init(testing.allocator);
         defer al.deinit();
 
         try decompress(.raw, fb.reader(), al.writer());
@@ -449,7 +449,7 @@ test "gzip decompress" {
     };
     for (cases) |c| {
         var fb = std.io.fixedBufferStream(c.in);
-        var al = std.ArrayList(u8).init(testing.allocator);
+        var al = std.array_list.Managed(u8).init(testing.allocator);
         defer al.deinit();
 
         try decompress(.gzip, fb.reader(), al.writer());
@@ -475,7 +475,7 @@ test "zlib decompress" {
     };
     for (cases) |c| {
         var fb = std.io.fixedBufferStream(c.in);
-        var al = std.ArrayList(u8).init(testing.allocator);
+        var al = std.array_list.Managed(u8).init(testing.allocator);
         defer al.deinit();
 
         try decompress(.zlib, fb.reader(), al.writer());
@@ -533,7 +533,7 @@ test "fuzzing tests" {
 
     inline for (cases, 0..) |c, case_no| {
         var in = std.io.fixedBufferStream(@embedFile("testdata/fuzz/" ++ c.input ++ ".input"));
-        var out = std.ArrayList(u8).init(testing.allocator);
+        var out = std.array_list.Managed(u8).init(testing.allocator);
         defer out.deinit();
         errdefer std.debug.print("test case failed {}\n", .{case_no});
 
@@ -551,7 +551,7 @@ test "bug 18966" {
     const expect = @embedFile("testdata/fuzz/bug_18966.expect");
 
     var in = std.io.fixedBufferStream(input);
-    var out = std.ArrayList(u8).init(testing.allocator);
+    var out = std.array_list.Managed(u8).init(testing.allocator);
     defer out.deinit();
 
     try decompress(.gzip, in.reader(), out.writer());

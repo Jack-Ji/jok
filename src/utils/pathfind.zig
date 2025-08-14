@@ -39,7 +39,7 @@ inline fn verifyGraphStruct(graph: anytype) void {
 }
 
 /// Calculate Dijkstra/A* path, depending on how `graph` implements `hcost`
-pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, to: usize) !?std.ArrayList(usize) {
+pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, to: usize) !?std.array_list.Managed(usize) {
     verifyGraphStruct(graph);
 
     var arena = std.heap.ArenaAllocator.init(allocator);
@@ -71,7 +71,7 @@ pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, 
     }
 
     var pos = from;
-    var path = try std.ArrayList(usize).initCapacity(allocator, 10);
+    var path = try std.array_list.Managed(usize).initCapacity(allocator, 10);
     try path.append(pos);
     if (from != to) {
         while (true) {

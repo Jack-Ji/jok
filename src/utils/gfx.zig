@@ -358,7 +358,7 @@ pub const jpng = struct {
 
         if (flags.compressed) {
             var read_stream = std.io.fixedBufferStream(custom_data);
-            var write_stream = std.ArrayList(u8).init(allocator);
+            var write_stream = std.array_list.Managed(u8).init(allocator);
             defer write_stream.deinit();
             try gzip.decompress(read_stream.reader(), write_stream.writer());
             return .{

@@ -835,14 +835,14 @@ fn loadLayers(
             parallax: jok.Point = .unit,
             tint_color: jok.Color = .white,
         };
-        groups: std.ArrayList(Group),
+        groups: std.array_list.Managed(Group),
         offset: jok.Point,
         parallax: jok.Point,
         tint_color: jok.Color,
 
         fn init(allocator: std.mem.Allocator) Self {
             return .{
-                .groups = std.ArrayList(Group).init(allocator),
+                .groups = .init(allocator),
                 .offset = .origin,
                 .parallax = .unit,
                 .tint_color = .white,
@@ -942,7 +942,7 @@ fn loadLayers(
         .tint_color = .white,
     });
 
-    var ls = std.ArrayList(Layer).init(arena_allocator);
+    var ls = std.array_list.Managed(Layer).init(arena_allocator);
 
     // Recursively get next layer, until there's no layer left.
     // Visibility isn't considered, all layers are considered necessary to rendering.
@@ -1027,7 +1027,7 @@ fn loadLayers(
             if (!std.mem.eql(u8, encoding, "csv")) {
                 return error.UnsupportedLayerEncoding;
             }
-            var chunks = try std.ArrayList(Chunk).initCapacity(arena_allocator, 20);
+            var chunks = try std.array_list.Managed(Chunk).initCapacity(arena_allocator, 20);
             if (data.children.len > 0) {
                 if (data.findChildByTag("chunk") == null) {
                     try chunks.append(.{
@@ -1039,7 +1039,7 @@ fn loadLayers(
                         .height = size.height,
                         .gids = &.{},
                     });
-                    var gids = try std.ArrayList(GlobalTileID).initCapacity(arena_allocator, 20);
+                    var gids = try std.array_list.Managed(GlobalTileID).initCapacity(arena_allocator, 20);
                     var gid_it = std.mem.splitAny(u8, data.children[0].char_data, ",\r\n");
                     while (gid_it.next()) |s| {
                         if (s.len == 0) continue;
@@ -1071,7 +1071,7 @@ fn loadLayers(
                                 continue;
                             }
                         }
-                        var gids = try std.ArrayList(GlobalTileID).initCapacity(arena_allocator, 20);
+                        var gids = try std.array_list.Managed(GlobalTileID).initCapacity(arena_allocator, 20);
                         var gid_it = std.mem.splitAny(u8, ce.children[0].char_data, ",\n");
                         while (gid_it.next()) |s| {
                             if (s.len == 0) continue;
@@ -1097,7 +1097,7 @@ fn loadLayers(
         } else if (std.mem.eql(u8, e.tag, "objectgroup")) {
             layer = .{ .object_layer = undefined };
 
-            var objects = try std.ArrayList(Object).initCapacity(arena_allocator, 20);
+            var objects = try std.array_list.Managed(Object).initCapacity(arena_allocator, 20);
             var it = e.findChildrenByTag("object");
             while (it.next()) |oe| {
                 var o: Object = .{

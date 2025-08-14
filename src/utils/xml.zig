@@ -439,10 +439,10 @@ fn parseElement(parser: *Parser, alloc: Allocator, comptime kind: ElementKind) !
         },
     };
 
-    var attributes = std.ArrayList(Attribute).init(alloc);
+    var attributes = std.array_list.Managed(Attribute).init(alloc);
     defer attributes.deinit();
 
-    var children = std.ArrayList(Content).init(alloc);
+    var children = std.array_list.Managed(Content).init(alloc);
     defer children.deinit();
 
     while (parser.eatWs()) {

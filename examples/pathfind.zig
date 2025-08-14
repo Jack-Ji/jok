@@ -83,7 +83,7 @@ var rng: std.Random.DefaultPrng = undefined;
 var graph: Graph = undefined;
 var source: usize = 0;
 var source_update_time: f32 = 0;
-var path: ?std.ArrayList(usize) = null;
+var path: ?std.array_list.Managed(usize) = null;
 var walk_idx: usize = undefined;
 var searched_blocks: std.DynamicBitSet = undefined;
 

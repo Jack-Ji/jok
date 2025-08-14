@@ -36,7 +36,7 @@ pub const World = struct {
     space: *c.cpSpace,
 
     /// Objects in the world
-    objects: std.ArrayList(Object),
+    objects: std.array_list.Managed(Object),
 
     /// Internal debug rendering
     debug: ?*PhysicsDebug = null,
@@ -90,7 +90,7 @@ pub const World = struct {
             .fixed_dt = opt.fixed_dt,
             .accumulator = 0,
             .space = space.?,
-            .objects = try std.ArrayList(Object).initCapacity(
+            .objects = try std.array_list.Managed(Object).initCapacity(
                 allocator,
                 opt.prealloc_objects_num,
             ),
@@ -369,16 +369,16 @@ const PhysicsDebug = struct {
 
     allocator: std.mem.Allocator,
     max_vertex_num: u32,
-    vattribs: std.ArrayList(jok.Vertex),
-    vindices: std.ArrayList(u32),
+    vattribs: std.array_list.Managed(jok.Vertex),
+    vindices: std.array_list.Managed(u32),
     space_draw_option: c.cpSpaceDebugDrawOptions,
 
     fn init(allocator: std.mem.Allocator, max_vertex_num: u32) !*PhysicsDebug {
         var debug = try allocator.create(PhysicsDebug);
         debug.allocator = allocator;
         debug.max_vertex_num = max_vertex_num;
-        debug.vattribs = std.ArrayList(jok.Vertex).initCapacity(allocator, 1000) catch unreachable;
-        debug.vindices = std.ArrayList(u32).initCapacity(allocator, 3000) catch unreachable;
+        debug.vattribs = try .initCapacity(allocator, 1000);
+        debug.vindices = try .initCapacity(allocator, 3000);
         debug.space_draw_option = .{
             .drawCircle = drawCircle,
             .drawSegment = drawSegment,

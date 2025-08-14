@@ -80,7 +80,7 @@ pub const Object = struct {
     actor: Actor,
     transform: zmath.Mat,
     parent: ?*Object,
-    children: std.ArrayList(*Object),
+    children: std.array_list.Managed(*Object),
 
     /// Create an object
     pub fn create(allocator: std.mem.Allocator, actor: Actor) !*Object {
@@ -91,7 +91,7 @@ pub const Object = struct {
             .actor = actor,
             .transform = actor.getTransform(),
             .parent = null,
-            .children = std.ArrayList(*Object).init(allocator),
+            .children = .init(allocator),
         };
         return o;
     }

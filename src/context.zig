@@ -248,7 +248,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         // Post-processing
         _post_processing: pp.PostProcessingEffect = undefined,
-        _pp_actors: std.ArrayList(pp.Actor) = undefined,
+        _pp_actors: std.array_list.Managed(pp.Actor) = undefined,
 
         // Drawcall supress
         _supress_draw: bool = false,
@@ -258,8 +258,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         // Debug printing
         _debug_font_size: u32 = undefined,
-        _debug_print_vertices: std.ArrayList(jok.Vertex) = undefined,
-        _debug_print_indices: std.ArrayList(u32) = undefined,
+        _debug_print_vertices: std.array_list.Managed(jok.Vertex) = undefined,
+        _debug_print_indices: std.array_list.Managed(u32) = undefined,
 
         // Plugin System
         _plugin_system: *PluginSystem = undefined,
@@ -336,8 +336,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
             self._debug_font_size = @intFromFloat(@as(f32, @floatFromInt(cfg.jok_prebuild_atlas)) * getDpiScale(self));
-            self._debug_print_vertices = std.ArrayList(jok.Vertex).init(self._allocator);
-            self._debug_print_indices = std.ArrayList(u32).init(self._allocator);
+            self._debug_print_vertices = .init(self._allocator);
+            self._debug_print_indices = .init(self._allocator);
             _ = try font.DebugFont.getAtlas(self._ctx, self._debug_font_size);
 
             // Misc.
@@ -719,7 +719,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             if (cfg.jok_enable_post_processing) {
                 // Init post-processing facility
                 self._post_processing = try pp.PostProcessingEffect.init(self._ctx);
-                self._pp_actors = std.ArrayList(pp.Actor).init(self._allocator);
+                self._pp_actors = .init(self._allocator);
             }
             self.updateCanvasTargetArea();
 

@@ -40,7 +40,7 @@ pub const Object = struct {
     render_opt: Sprite.RenderOption,
     depth: f32,
     parent: ?*Object = null,
-    children: std.ArrayList(*Object),
+    children: std.array_list.Managed(*Object),
 
     /// Create an object
     pub fn create(allocator: std.mem.Allocator, actor: Actor, depth: ?f32) !*Object {
@@ -51,7 +51,7 @@ pub const Object = struct {
             .actor = actor,
             .render_opt = actor.render_opt,
             .depth = depth orelse 0.5,
-            .children = std.ArrayList(*Object).init(allocator),
+            .children = .init(allocator),
         };
         return o;
     }
@@ -158,7 +158,7 @@ pub const RenderOption = struct {
 };
 pub fn render(
     self: Self,
-    draw_commands: *std.ArrayList(DrawCmd),
+    draw_commands: *std.array_list.Managed(DrawCmd),
     opt: RenderOption,
 ) !void {
     const o = opt.object orelse self.root;

@@ -52,8 +52,8 @@ pub const Batch = struct {
     is_submitted: bool = false,
     ctx: jok.Context,
     draw_list: imgui.DrawList,
-    draw_commands: std.ArrayList(DrawCmd),
-    trs_stack: std.ArrayList(AffineTransform),
+    draw_commands: std.array_list.Managed(DrawCmd),
+    trs_stack: std.array_list.Managed(AffineTransform),
     trs: AffineTransform,
     depth_sort: DepthSortMethod,
     blend_mode: jok.BlendMode,
@@ -62,20 +62,17 @@ pub const Batch = struct {
     all_tex: std.AutoHashMap(*anyopaque, bool),
 
     fn init(_ctx: jok.Context) Batch {
-        const _draw_list = imgui.createDrawList();
-        const _draw_commands = std.ArrayList(DrawCmd).init(_ctx.allocator());
-        const _all_tex = std.AutoHashMap(*anyopaque, bool).init(_ctx.allocator());
         return .{
             .ctx = _ctx,
-            .draw_list = _draw_list,
-            .draw_commands = _draw_commands,
-            .trs_stack = std.ArrayList(AffineTransform).init(_ctx.allocator()),
+            .draw_list = imgui.createDrawList(),
+            .draw_commands = .init(_ctx.allocator()),
+            .trs_stack = .init(_ctx.allocator()),
             .trs = undefined,
             .depth_sort = .none,
             .blend_mode = .blend,
             .offscreen_target = null,
             .offscreen_clear_color = null,
-            .all_tex = _all_tex,
+            .all_tex = .init(_ctx.allocator()),
         };
     }
 
@@ -1334,13 +1331,13 @@ pub const Batch = struct {
 
 pub const ConvexPoly = struct {
     texture: ?jok.Texture,
-    points: std.ArrayList(jok.Vertex),
+    points: std.array_list.Managed(jok.Vertex),
     finished: bool = false,
 
     pub fn begin(allocator: std.mem.Allocator, texture: ?jok.Texture) ConvexPoly {
         return .{
             .texture = texture,
-            .points = std.ArrayList(jok.Vertex).init(allocator),
+            .points = .init(allocator),
         };
     }
 
@@ -1373,14 +1370,14 @@ pub const ConvexPoly = struct {
 pub const ConcavePoly = Polyline;
 
 pub const Polyline = struct {
-    points: std.ArrayList(jok.Point),
-    transformed: std.ArrayList(jok.Point),
+    points: std.array_list.Managed(jok.Point),
+    transformed: std.array_list.Managed(jok.Point),
     finished: bool = false,
 
     pub fn begin(allocator: std.mem.Allocator) Polyline {
         return .{
-            .points = std.ArrayList(jok.Point).init(allocator),
-            .transformed = std.ArrayList(jok.Point).init(allocator),
+            .points = .init(allocator),
+            .transformed = .init(allocator),
         };
     }
 

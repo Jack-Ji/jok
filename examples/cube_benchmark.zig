@@ -19,8 +19,8 @@ var camera: j3d.Camera = undefined;
 var cube: zmesh.Shape = undefined;
 var aabb: [6]f32 = undefined;
 var tex: jok.Texture = undefined;
-var translations: std.ArrayList(zmath.Mat) = undefined;
-var rotation_axises: std.ArrayList(zmath.Vec) = undefined;
+var translations: std.array_list.Managed(zmath.Mat) = undefined;
+var rotation_axises: std.array_list.Managed(zmath.Vec) = undefined;
 var texcoords = [_][2]f32{
     .{ 0, 1 },
     .{ 0, 0 },
@@ -72,8 +72,8 @@ pub fn init(ctx: jok.Context) !void {
     );
 
     var rng = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
-    translations = std.ArrayList(zmath.Mat).init(ctx.allocator());
-    rotation_axises = std.ArrayList(zmath.Vec).init(ctx.allocator());
+    translations = .init(ctx.allocator());
+    rotation_axises = .init(ctx.allocator());
     var i: u32 = 0;
     while (i < 5000) : (i += 1) {
         try translations.append(zmath.translation(

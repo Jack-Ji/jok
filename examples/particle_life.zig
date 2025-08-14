@@ -71,10 +71,10 @@ var bounded = true;
 var show_model = false;
 
 // Particle groups by color
-var green: ?std.ArrayList(Point) = null;
-var red: ?std.ArrayList(Point) = null;
-var white: ?std.ArrayList(Point) = null;
-var blue: ?std.ArrayList(Point) = null;
+var green: ?std.array_list.Managed(Point) = null;
+var red: ?std.array_list.Managed(Point) = null;
+var white: ?std.array_list.Managed(Point) = null;
+var blue: ?std.array_list.Managed(Point) = null;
 
 // Random generator
 var rand_gen: std.Random.DefaultPrng = undefined;
@@ -114,15 +114,15 @@ inline fn randomRange(comptime T: type, a: T, b: T) T {
 }
 
 // Draw all points from given group
-inline fn drawPoints(points: std.ArrayList(Point), batch: *j2d.Batch) !void {
+inline fn drawPoints(points: std.array_list.Managed(Point), batch: *j2d.Batch) !void {
     for (points.items) |p| {
         try p.draw(batch);
     }
 }
 
 // Generate a number of single colored points
-fn createPoints(allocator: std.mem.Allocator, n: i32, r: u8, g: u8, b: u8) !std.ArrayList(Point) {
-    var ps = try std.ArrayList(Point).initCapacity(
+fn createPoints(allocator: std.mem.Allocator, n: i32, r: u8, g: u8, b: u8) !std.array_list.Managed(Point) {
+    var ps = try std.array_list.Managed(Point).initCapacity(
         allocator,
         @intCast(n),
     );
@@ -139,8 +139,8 @@ fn createPoints(allocator: std.mem.Allocator, n: i32, r: u8, g: u8, b: u8) !std.
 
 // Interaction between 2 particle groups
 fn interaction(
-    g1: std.ArrayList(Point),
-    g2: std.ArrayList(Point),
+    g1: std.array_list.Managed(Point),
+    g2: std.array_list.Managed(Point),
     _g: f32,
     radius: f32,
 ) void {
@@ -318,7 +318,7 @@ fn loadSettings(allocator: std.mem.Allocator) !void {
         const content = try std.fs.cwd().readFileAlloc(allocator, p.path, 1024);
         defer allocator.free(content);
 
-        var floats = try std.ArrayList(f32).initCapacity(allocator, 37);
+        var floats = try std.array_list.Managed(f32).initCapacity(allocator, 37);
         defer floats.deinit();
         var it = std.mem.splitScalar(u8, content, ' ');
         while (it.next()) |t| {

@@ -148,11 +148,11 @@ pub inline fn clipTriangle(
     tri_world_normals: ?[3]zmath.Vec,
     tri_colors: ?[3]jok.Color,
     tri_texcoords: ?[3]jok.Point,
-    clip_vertices: *std.ArrayList(zmath.Vec),
-    clip_colors: *std.ArrayList(jok.Color),
-    clip_texcoords: *std.ArrayList(jok.Point),
-    world_positions: *std.ArrayList(zmath.Vec),
-    world_normals: *std.ArrayList(zmath.Vec),
+    clip_vertices: *std.array_list.Managed(zmath.Vec),
+    clip_colors: *std.array_list.Managed(jok.Color),
+    clip_texcoords: *std.array_list.Managed(jok.Point),
+    world_positions: *std.array_list.Managed(zmath.Vec),
+    world_normals: *std.array_list.Managed(zmath.Vec),
 ) void {
     const clip_plane_w = 0.001;
     var world_v0 = tri_world_positions[0];

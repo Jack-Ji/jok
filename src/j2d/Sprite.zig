@@ -70,7 +70,7 @@ pub const RenderOption = struct {
 /// Render to output
 pub fn render(
     self: Self,
-    draw_commands: *std.ArrayList(DrawCmd),
+    draw_commands: *std.array_list.Managed(DrawCmd),
     opt: RenderOption,
 ) !void {
     assert(opt.scale.x >= 0 and opt.scale.y >= 0);

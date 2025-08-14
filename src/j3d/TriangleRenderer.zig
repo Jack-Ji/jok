@@ -91,24 +91,24 @@ pub const RenderSpriteOption = struct {
 };
 
 // Temporary storage for clipping
-clip_vertices: std.ArrayList(zmath.Vec),
-clip_colors: std.ArrayList(jok.Color),
-clip_texcoords: std.ArrayList(jok.Point),
+clip_vertices: std.array_list.Managed(zmath.Vec),
+clip_colors: std.array_list.Managed(jok.Color),
+clip_texcoords: std.array_list.Managed(jok.Point),
 
 // Vertices in world space (after clipped)
-world_positions: std.ArrayList(zmath.Vec),
-world_normals: std.ArrayList(zmath.Vec),
+world_positions: std.array_list.Managed(zmath.Vec),
+world_normals: std.array_list.Managed(zmath.Vec),
 
 // Different tessellation level of plane
 planes: [10]zmesh.Shape,
 
 pub fn init(allocator: std.mem.Allocator) Self {
     var self = Self{
-        .clip_vertices = std.ArrayList(zmath.Vec).init(allocator),
-        .clip_colors = std.ArrayList(jok.Color).init(allocator),
-        .clip_texcoords = std.ArrayList(jok.Point).init(allocator),
-        .world_positions = std.ArrayList(zmath.Vec).init(allocator),
-        .world_normals = std.ArrayList(zmath.Vec).init(allocator),
+        .clip_vertices = .init(allocator),
+        .clip_colors = .init(allocator),
+        .clip_texcoords = .init(allocator),
+        .world_positions = .init(allocator),
+        .world_normals = .init(allocator),
         .planes = undefined,
     };
     for (&self.planes, 0..) |*p, i| {

@@ -590,7 +590,6 @@ pub fn BlockWriter(comptime WriterType: type) type {
 const expect = std.testing.expect;
 const fmt = std.fmt;
 const testing = std.testing;
-const ArrayList = std.ArrayList;
 
 const TestCase = @import("testdata/block_writer.zig").TestCase;
 const testCases = @import("testdata/block_writer.zig").testCases;
@@ -683,7 +682,7 @@ fn testBlock(comptime tc: TestCase, comptime tfn: TestFn) !void {
 
 // Uses writer function `tfn` to write `tokens`, tests that we got `want` as output.
 fn testWriteBlock(comptime tfn: TestFn, input: ?[]const u8, want: []const u8, tokens: []const Token) !void {
-    var buf = ArrayList(u8).init(testing.allocator);
+    var buf = std.array_list.Managed(u8).init(testing.allocator);
     var bw = blockWriter(buf.writer());
     try tfn.write(&bw, tokens, input, false);
     var got = buf.items;
@@ -692,7 +691,7 @@ fn testWriteBlock(comptime tfn: TestFn, input: ?[]const u8, want: []const u8, to
     //
     // Test if the writer produces the same output after reset.
     buf.deinit();
-    buf = ArrayList(u8).init(testing.allocator);
+    buf = std.array_list.Managed(u8).init(testing.allocator);
     defer buf.deinit();
     bw.setWriter(buf.writer());
 

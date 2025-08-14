@@ -22,14 +22,14 @@ pub const PostProcessingEffect = struct {
     ctx: jok.Context,
     size: jok.Size,
     vs: []jok.Vertex,
-    processed_vs: std.ArrayList(jok.Vertex),
+    processed_vs: std.array_list.Managed(jok.Vertex),
 
     pub fn init(ctx: jok.Context) !@This() {
         return .{
             .ctx = ctx,
             .size = undefined,
             .vs = &.{},
-            .processed_vs = std.ArrayList(jok.Vertex).init(ctx.allocator()),
+            .processed_vs = .init(ctx.allocator()),
         };
     }
 

@@ -13,8 +13,8 @@ const Self = @This();
 box_planes: [6]zmesh.Shape,
 
 // Temporary storage for clipping
-clip_vertices: std.ArrayList(zmath.Vec),
-clip_texcoords: std.ArrayList(jok.Point),
+clip_vertices: std.array_list.Managed(zmath.Vec),
+clip_texcoords: std.array_list.Managed(jok.Point),
 
 const InitOption = struct {
     plane_slices: i32 = 10,
@@ -73,8 +73,8 @@ pub fn init(allocator: std.mem.Allocator, opt: InitOption) Self {
                 break :BLK shape;
             },
         },
-        .clip_vertices = std.ArrayList(zmath.Vec).init(allocator),
-        .clip_texcoords = std.ArrayList(jok.Point).init(allocator),
+        .clip_vertices = .init(allocator),
+        .clip_texcoords = .init(allocator),
     };
 }
 
