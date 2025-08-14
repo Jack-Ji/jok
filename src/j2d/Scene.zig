@@ -165,6 +165,7 @@ pub fn render(
     if (o.actor.sprite) |s| {
         var rdopt = o.render_opt;
         rdopt.pos = opt.transform.transformPoint(rdopt.pos);
+        rdopt.rotate_angle += opt.transform.getRotation();
         rdopt.scale = rdopt.scale.mul(opt.transform.getScale());
         try s.render(draw_commands, rdopt);
     }

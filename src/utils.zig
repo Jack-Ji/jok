@@ -16,9 +16,6 @@ pub const timer = @import("utils/timer.zig");
 /// Signal utils
 pub const signal = @import("utils/signal.zig");
 
-/// Async tools
-pub const asynctool = @import("utils/async.zig");
-
 /// Tile map support
 pub const tiled = @import("utils/tiled.zig");
 
@@ -34,7 +31,6 @@ test "utils" {
     _ = timer;
     _ = signal;
     _ = pathfind;
-    _ = asynctool;
     _ = xml;
     _ = ring;
     _ = trait;
