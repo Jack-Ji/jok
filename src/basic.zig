@@ -222,11 +222,13 @@ pub const Rectangle = extern struct {
         return null;
     }
 
-    pub inline fn intersectLine(r: Rectangle, p0: *Point, p1: *Point) bool {
+    pub inline fn intersectLine(r: Rectangle, _p0: Point, _p1: Point) ?std.meta.Tuple(&.{ Point, Point }) {
+        var p0: Point = _p0;
+        var p1: Point = _p1;
         if (sdl.SDL_IntersectFRectAndLine(@ptrCast(&r), &p0.x, &p0.y, &p1.x, &p1.y) == 1) {
-            return true;
+            return .{ p0, p1 };
         }
-        return false;
+        return null;
     }
 
     pub inline fn intersectCircle(r: Rectangle, c: Circle) bool {
@@ -274,16 +276,9 @@ pub const Circle = extern struct {
         const rx2 = r.x + r.width;
         const ry1 = r.y;
         const ry2 = r.y + r.height;
-        if (@max(cx2, rx2) - @min(cx1, rx1) > c.radius * 2 + r.width) return false;
-        if (@max(cy2, ry2) - @min(cy1, ry1) > c.radius * 2 + r.height) return false;
+        if (cx2 <= rx1 or cx1 >= rx2) return false;
+        if (cy2 <= ry1 or cy1 >= ry2) return false;
         return true;
-    }
-
-    pub inline fn intersectTriangle(c: Circle, t: Triangle) bool {
-        if (c.containsPoint(t.p0) or c.containsPoint(t.p1) or c.containsPoint(t.p2)) {
-            return true;
-        }
-        return false;
     }
 };
 
@@ -324,24 +319,6 @@ pub const Ellipse = struct {
             a = e.radius.y;
         }
         return d1 + d2 <= 2 * a;
-    }
-
-    pub inline fn intersectRect(e: Ellipse, r: Rectangle) bool {
-        if (e.containsPoint(.{ .x = r.x, .y = r.y }) or
-            e.containsPoint(.{ .x = r.x + r.width, .y = r.y }) or
-            e.containsPoint(.{ .x = r.x + r.width, .y = r.y + r.height }) or
-            e.containsPoint(.{ .x = r.x, .y = r.y + r.height }))
-        {
-            return true;
-        }
-        return false;
-    }
-
-    pub inline fn intersectTriangle(e: Ellipse, t: Triangle) bool {
-        if (e.containsPoint(t.p0) or e.containsPoint(t.p1) or e.containsPoint(t.p2)) {
-            return true;
-        }
-        return false;
     }
 };
 
