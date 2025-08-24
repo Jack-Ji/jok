@@ -116,7 +116,7 @@ pub const Renderer = struct {
 
     // https://wiki.libsdl.org/SDL3/SDL_SetRenderVSync
     pub fn setVsync(self: Renderer, vsync: i32) !void {
-        if (!sdl.c.SDL_RenderSetVSync(self.ptr, @intCast(vsync))) {
+        if (!sdl.c.SDL_SetRenderVSync(self.ptr, vsync)) {
             log.err("Set vsync mode to {d} failed: {s}", .{ vsync, sdl.c.SDL_GetError() });
             return error.SdlError;
         }
@@ -221,25 +221,23 @@ pub const Renderer = struct {
     pub fn drawTrianglesRaw(
         self: Renderer,
         tex: ?jok.Texture,
-        vs: *anyopaque,
-        vs_count: usize,
-        xy_offset: usize,
+        xy_ptr: [*]const f32,
         xy_stride: u32,
-        cs_offset: usize,
+        cs_ptr: [*]const jok.ColorF,
         cs_stride: u32,
-        uv_offset: usize,
+        uv_ptr: [*]const f32,
         uv_stride: u32,
-        indices: []u32,
+        vs_count: usize,
+        indices: []const u32,
     ) !void {
-        const base = @intFromPtr(vs);
         if (!sdl.c.SDL_RenderGeometryRaw(
             self.ptr,
             if (tex) |t| t.ptr else null,
-            @ptrFromInt(base + xy_offset),
+            xy_ptr,
             @intCast(xy_stride),
-            @ptrFromInt(base + cs_offset),
+            @ptrCast(cs_ptr),
             @intCast(cs_stride),
-            @ptrFromInt(base + uv_offset),
+            uv_ptr,
             @intCast(uv_stride),
             @intCast(vs_count),
             @ptrCast(indices.ptr),

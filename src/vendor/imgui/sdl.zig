@@ -3,6 +3,8 @@ const jok = @import("../../jok.zig");
 const sdl = jok.sdl;
 const gui = @import("main.zig");
 
+var fcolors: std.array_list.Managed(jok.ColorF) = undefined;
+
 pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     gui.init(ctx.allocator());
 
@@ -27,9 +29,12 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     gui.io.setConfigFlags(.{ .no_mouse_cursor_change = true });
 
     gui.plot.init();
+
+    fcolors = std.array_list.Managed(jok.ColorF).initCapacity(ctx.allocator(), 1024) catch unreachable;
 }
 
 pub fn deinit() void {
+    fcolors.deinit();
     gui.plot.deinit();
     ImGui_ImplSDLRenderer3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
@@ -85,6 +90,17 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
         if (clip_region.width <= 0 or clip_region.height <= 0) continue;
         rd.setClipRegion(clip_region) catch unreachable;
 
+        // Convert colors
+        // https://github.com/libsdl-org/SDL/issues/9009
+        const vptr: [*]gui.DrawVert = @ptrCast(vs_ptr + @as(usize, cmd.vtx_offset));
+        const vcount: usize = @intCast(@as(u32, @intCast(vs_count)) - cmd.vtx_offset);
+        fcolors.ensureTotalCapacity(vcount) catch unreachable;
+        fcolors.clearRetainingCapacity();
+        var i: usize = 0;
+        while (i < vcount) : (i += 1) {
+            fcolors.appendAssumeCapacity(jok.ColorF.fromInternalColor(vptr[i].color));
+        }
+
         // Bind texture and draw
         const tex = jok.Texture{ .ptr = @ptrCast(@alignCast(cmd.texture_id)) };
         var indices: []u32 = undefined;
@@ -92,14 +108,13 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
         indices.len = @intCast(cmd.elem_count);
         rd.drawTrianglesRaw(
             tex,
-            @ptrCast(vs_ptr + @as(usize, cmd.vtx_offset)),
-            @intCast(@as(u32, @intCast(vs_count)) - cmd.vtx_offset),
-            @offsetOf(gui.DrawVert, "pos"),
+            @ptrFromInt(@intFromPtr(vptr) + @offsetOf(gui.DrawVert, "pos")),
             @sizeOf(gui.DrawVert),
-            @offsetOf(gui.DrawVert, "color"),
+            fcolors.items.ptr,
+            @sizeOf(jok.ColorF),
+            @ptrFromInt(@intFromPtr(vptr) + @offsetOf(gui.DrawVert, "uv")),
             @sizeOf(gui.DrawVert),
-            @offsetOf(gui.DrawVert, "uv"),
-            @sizeOf(gui.DrawVert),
+            vcount,
             indices,
         ) catch unreachable;
     }

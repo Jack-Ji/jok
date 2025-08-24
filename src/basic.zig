@@ -523,10 +523,10 @@ pub const Color = extern struct {
     /// Convert from ImGui's color type
     pub inline fn fromInternalColor(c: u32) Color {
         return .{
-            .r = @as(u8, c & 0xff),
-            .g = @as(u8, (c >> 8) & 0xff),
-            .b = @as(u8, (c >> 16) & 0xff),
-            .a = @as(u8, (c >> 24) & 0xff),
+            .r = @as(u8, @intCast(c & 0xff)),
+            .g = @as(u8, @intCast((c >> 8) & 0xff)),
+            .b = @as(u8, @intCast((c >> 16) & 0xff)),
+            .a = @as(u8, @intCast((c >> 24) & 0xff)),
         };
     }
 

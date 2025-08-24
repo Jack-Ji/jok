@@ -464,10 +464,6 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
     artifact: *Build.Step.Compile,
 } {
     const builder = getJokBuilder(b, opt.dep_name);
-    const sdl_dep = builder.dependency("sdl", .{
-        .target = target,
-        .optimize = optimize,
-    });
     const bos = builder.addOptions();
     bos.addOption(bool, "no_audio", opt.no_audio);
     bos.addOption(bool, "use_cp", opt.use_cp);
@@ -481,7 +477,7 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
             .{ .name = "build_options", .module = bos.createModule() },
         },
     });
-    jokmod.addIncludePath(sdl_dep.path("include"));
+    jokmod.addIncludePath(builder.dependency("sdl", .{}).path("include"));
 
     const libmod = builder.createModule(.{
         .target = target,
@@ -518,6 +514,10 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
             .root_module = libmod,
         });
 
+        const sdl_dep = builder.dependency("sdl", .{
+            .target = target,
+            .optimize = optimize,
+        });
         const sdl_lib = sdl_dep.artifact("SDL3");
         libmod.linkLibrary(sdl_lib);
     }

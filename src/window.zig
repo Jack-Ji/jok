@@ -169,4 +169,11 @@ pub const Window = struct {
             return error.SdlError;
         }
     }
+
+    pub fn setRelativeMouseMode(w: Window, on: bool) !void {
+        if (!sdl.c.SDL_SetWindowRelativeMouseMode(w.ptr, on)) {
+            log.err("Toggle relative mouse mode failed: {s}", .{sdl.c.SDL_GetError()});
+            return error.SdlError;
+        }
+    }
 };

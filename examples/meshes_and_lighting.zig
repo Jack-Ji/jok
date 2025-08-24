@@ -119,18 +119,18 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
         .key_down => |k| {
             if (k.scancode == .f1) {
                 S.fullscreen = !S.fullscreen;
-                try ctx.window().setFullscreen(if (S.fullscreen) .desktop_fullscreen else .none);
+                try ctx.window().setFullscreen(S.fullscreen);
             }
         },
         .mouse_button_down => |me| {
             if (me.button == .right) {
-                _ = jok.sdl.SDL_SetRelativeMouseMode(1);
+                try ctx.window().setRelativeMouseMode(true);
                 S.is_viewing = true;
             }
         },
         .mouse_button_up => |me| {
             if (me.button == .right) {
-                _ = jok.sdl.SDL_SetRelativeMouseMode(0);
+                try ctx.window().setRelativeMouseMode(false);
                 S.is_viewing = false;
             }
         },
@@ -142,17 +142,15 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                 );
             }
         },
-        .window => |we| {
-            if (we.type == .resized) {
-                camera.frustrum = j3d.Camera.ViewFrustrum{
-                    .perspective = .{
-                        .fov = std.math.degreesToRadians(70),
-                        .aspect_ratio = ctx.getAspectRatio(),
-                        .near = 0.1,
-                        .far = 1000,
-                    },
-                };
-            }
+        .window_resized => {
+            camera.frustrum = j3d.Camera.ViewFrustrum{
+                .perspective = .{
+                    .fov = std.math.degreesToRadians(70),
+                    .aspect_ratio = ctx.getAspectRatio(),
+                    .near = 0.1,
+                    .far = 1000,
+                },
+            };
         },
         else => {},
     }
@@ -195,7 +193,7 @@ pub fn draw(ctx: jok.Context) !void {
         _ = imgui.checkbox("lighting", .{ .v = &lighting });
         _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
         if (imgui.checkbox("vsync", .{ .v = &vsync })) {
-            try ctx.renderer().setVsync(vsync);
+            try ctx.renderer().setVsync(@intFromBool(vsync));
         }
     }
     imgui.end();
@@ -445,9 +443,9 @@ pub fn draw(ctx: jok.Context) !void {
             null,
             .{
                 .color = .rgb(
-                    @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[0] * 255),
-                    @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[1] * 255),
-                    @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[2] * 255),
+                    lighting_opt.?.lights[0].spot.diffuse[0],
+                    lighting_opt.?.lights[0].spot.diffuse[1],
+                    lighting_opt.?.lights[0].spot.diffuse[2],
                 ),
             },
         );
@@ -458,9 +456,9 @@ pub fn draw(ctx: jok.Context) !void {
             null,
             .{
                 .color = .rgb(
-                    @intFromFloat(lighting_opt.?.lights[1].point.diffuse[0] * 255),
-                    @intFromFloat(lighting_opt.?.lights[1].point.diffuse[1] * 255),
-                    @intFromFloat(lighting_opt.?.lights[1].point.diffuse[2] * 255),
+                    lighting_opt.?.lights[1].point.diffuse[0],
+                    lighting_opt.?.lights[1].point.diffuse[1],
+                    lighting_opt.?.lights[1].point.diffuse[2],
                 ),
             },
         );
@@ -477,10 +475,10 @@ pub fn draw(ctx: jok.Context) !void {
             null,
             .{
                 .color = .rgba(
-                    @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[0] * 255),
-                    @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[1] * 255),
-                    @intFromFloat(lighting_opt.?.lights[0].spot.diffuse[2] * 255),
-                    10,
+                    lighting_opt.?.lights[0].spot.diffuse[0],
+                    lighting_opt.?.lights[0].spot.diffuse[1],
+                    lighting_opt.?.lights[0].spot.diffuse[2],
+                    0.03,
                 ),
             },
         );
