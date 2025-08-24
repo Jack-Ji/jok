@@ -2,7 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const builtin = @import("builtin");
 const bos = @import("build_options");
-const w32 = @import("w32.zig");
 const config = @import("config.zig");
 const pp = @import("post_processing.zig");
 const PluginSystem = @import("PluginSystem.zig");
@@ -37,7 +36,6 @@ pub const Context = struct {
         setCanvasSize: *const fn (ctx: *anyopaque, size: ?jok.Size) anyerror!void,
         getCanvasArea: *const fn (ctx: *anyopaque) jok.Rectangle,
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
-        getDpiScale: *const fn (ctx: *anyopaque) f32,
         addPostProcessing: *const fn (ctx: *anyopaque, ppa: pp.Actor) anyerror!void,
         clearPostProcessing: *const fn (ctx: *anyopaque) void,
         supressDraw: *const fn (ctx: *anyopaque) void,
@@ -129,11 +127,6 @@ pub const Context = struct {
     /// Get aspect ratio of drawing area
     pub fn getAspectRatio(self: Context) f32 {
         return self.vtable.getAspectRatio(self.ctx);
-    }
-
-    /// Get dpi scale
-    pub fn getDpiScale(self: Context) f32 {
-        return self.vtable.getDpiScale(self.ctx);
     }
 
     /// Add post-processing effect
@@ -234,10 +227,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
         // Internal window
         _window: jok.Window = undefined,
 
-        // High DPI stuff
-        _default_dpi: f32 = undefined,
-        _display_dpi: f32 = undefined,
-
         // Renderer instance
         _renderer: jok.Renderer = undefined,
 
@@ -335,15 +324,15 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
-            self._debug_font_size = @intFromFloat(@as(f32, @floatFromInt(cfg.jok_prebuild_atlas)) * getDpiScale(self));
+            self._debug_font_size = @intFromFloat(@as(f32, @floatFromInt(cfg.jok_prebuild_atlas)));
             self._debug_print_vertices = .init(self._allocator);
             self._debug_print_indices = .init(self._allocator);
             _ = try font.DebugFont.getAtlas(self._ctx, self._debug_font_size);
 
             // Misc.
-            self._pc_freq = sdl.SDL_GetPerformanceFrequency();
+            self._pc_freq = sdl.c.SDL_GetPerformanceFrequency();
             self._pc_max_accumulated = self._pc_freq / 2;
-            self._pc_last = sdl.SDL_GetPerformanceCounter();
+            self._pc_last = sdl.c.SDL_GetPerformanceCounter();
             self._recent_update_costs = try CostDataType.init(self._allocator, max_costs_num);
             self._recent_draw_costs = try CostDataType.init(self._allocator, max_costs_num);
             self._recent_total_costs = try CostDataType.init(self._allocator, max_costs_num);
@@ -408,14 +397,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Update game
             if (pc_threshold > 0) {
                 while (true) {
-                    const pc = sdl.SDL_GetPerformanceCounter();
+                    const pc = sdl.c.SDL_GetPerformanceCounter();
                     self._pc_accumulated += pc - self._pc_last;
                     self._pc_last = pc;
                     if (self._pc_accumulated >= pc_threshold) {
                         break;
                     }
                     if ((pc_threshold - self._pc_accumulated) * 1000 > self._pc_freq) {
-                        sdl.SDL_Delay(1);
+                        sdl.c.SDL_Delay(1);
                     }
                 }
 
@@ -452,7 +441,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._delta_seconds = @as(f32, @floatFromInt(step_count)) * fps_delta_seconds;
             } else {
                 // Perform one update
-                const pc = sdl.SDL_GetPerformanceCounter();
+                const pc = sdl.c.SDL_GetPerformanceCounter();
                 self._delta_seconds = @floatCast(
                     @as(f64, @floatFromInt(pc - self._pc_last)) / @as(f64, @floatFromInt(self._pc_freq)),
                 );
@@ -467,9 +456,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             if (self._supress_draw) {
                 self._supress_draw = false;
             } else {
-                const pc_begin = sdl.SDL_GetPerformanceCounter();
+                const pc_begin = sdl.c.SDL_GetPerformanceCounter();
                 defer if (cfg.jok_detailed_frame_stats) {
-                    const cost = @as(f32, @floatFromInt((sdl.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
+                    const cost = @as(f32, @floatFromInt((sdl.c.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
                         @as(f32, @floatFromInt(self._pc_freq));
                     self._draw_cost = if (self._draw_cost > 0) (self._draw_cost + cost) / 2 else cost;
                 };
@@ -520,30 +509,16 @@ pub fn JokContext(comptime cfg: config.Config) type {
             comptime eventFn: *const fn (Context, jok.Event) anyerror!void,
             comptime updateFn: *const fn (Context) anyerror!void,
         ) void {
-            const pc_begin = sdl.SDL_GetPerformanceCounter();
+            const pc_begin = sdl.c.SDL_GetPerformanceCounter();
             defer if (cfg.jok_detailed_frame_stats) {
-                const cost = @as(f32, @floatFromInt((sdl.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
+                const cost = @as(f32, @floatFromInt((sdl.c.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
                     @as(f32, @floatFromInt(self._pc_freq));
                 self._update_cost = if (self._update_cost > 0) (self._update_cost + cost) / 2 else cost;
             };
 
             while (io.pollNativeEvent()) |ne| {
                 // ImGui event processing
-                var e = ne;
-                if (cfg.jok_window_highdpi) {
-                    switch (e.type) {
-                        sdl.SDL_MOUSEMOTION => {
-                            e.motion.x = @intFromFloat(@as(f32, @floatFromInt(e.motion.x)) / getDpiScale(self));
-                            e.motion.y = @intFromFloat(@as(f32, @floatFromInt(e.motion.y)) / getDpiScale(self));
-                        },
-                        sdl.SDL_MOUSEBUTTONDOWN, sdl.SDL_MOUSEBUTTONUP => {
-                            e.button.x = @intFromFloat(@as(f32, @floatFromInt(e.button.x)) / getDpiScale(self));
-                            e.button.y = @intFromFloat(@as(f32, @floatFromInt(e.button.y)) / getDpiScale(self));
-                        },
-                        else => {},
-                    }
-                }
-                _ = imgui.sdl.processEvent(e);
+                _ = imgui.sdl.processEvent(ne);
 
                 // Game event processing
                 const we = jok.Event.from(ne, self._ctx);
@@ -552,17 +527,15 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 } else if (cfg.jok_exit_on_recv_quit and we == .quit) {
                     kill(self);
                 } else {
-                    if (we == .window) {
-                        switch (we.window.type) {
-                            .resized, .size_changed => {
-                                if (self._canvas_size == null) {
-                                    self._canvas_texture.destroy();
-                                    self._canvas_texture = self._renderer.createTarget(.{}) catch unreachable;
-                                }
-                                self.updateCanvasTargetArea();
-                            },
-                            else => {},
-                        }
+                    switch (we) {
+                        .window_resized => {
+                            if (self._canvas_size == null) {
+                                self._canvas_texture.destroy();
+                                self._canvas_texture = self._renderer.createTarget(.{}) catch unreachable;
+                            }
+                            self.updateCanvasTargetArea();
+                        },
+                        else => {},
                     }
 
                     // Passed to game code
@@ -620,9 +593,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Check system information
         fn checkSys(self: *@This()) !void {
             const target = builtin.target;
-            var sdl_version: sdl.SDL_version = undefined;
-            sdl.SDL_GetVersion(&sdl_version);
-            const ram_size = sdl.SDL_GetSystemRAM();
+            const ram_size = sdl.c.SDL_GetSystemRAM();
             const info = try self._renderer.getInfo();
 
             // Print system info
@@ -642,8 +613,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 \\    
                 \\Renderer info:
                 \\    Driver           : {s}
-                \\    Vertical Sync    : {}
-                \\    Max Texture Size : {d}*{d}
+                \\    Vertical Sync    : {d}
+                \\    Max Texture Size : {d}
                 \\
                 \\
             ,
@@ -653,56 +624,37 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     builtin.zig_version,
                     @tagName(target.cpu.arch),
                     @tagName(target.abi),
-                    sdl_version.major,
-                    sdl_version.minor,
-                    sdl_version.patch,
+                    sdl.c.SDL_MAJOR_VERSION,
+                    sdl.c.SDL_MINOR_VERSION,
+                    sdl.c.SDL_MICRO_VERSION,
                     @tagName(target.os.tag),
                     ram_size,
                     physfs.getBaseDir(),
                     info.name,
-                    info.flags & sdl.SDL_RENDERER_PRESENTVSYNC != 0,
-                    info.max_texture_width,
-                    info.max_texture_height,
+                    info.vsync,
+                    info.max_texture_size,
                 },
             );
-
-            if (sdl_version.major < 2 or (sdl_version.minor == 0 and sdl_version.patch < 18)) {
-                log.err("SDL version too low, need at least 2.0.18", .{});
-                return error.SdlError;
-            }
         }
 
         /// Initialize SDL
         fn initSDL(self: *@This()) !void {
             if (cfg.jok_headless) {
-                _ = sdl.SDL_SetHint(sdl.SDL_HINT_VIDEODRIVER, "offscreen");
+                _ = sdl.c.SDL_SetHint(sdl.c.SDL_HINT_VIDEODRIVER, "offscreen");
             }
 
-            var excluded = sdl.SDL_INIT_AUDIO;
+            var init_flags = sdl.c.SDL_INIT_AUDIO |
+                sdl.c.SDL_INIT_VIDEO |
+                sdl.c.SDL_INIT_JOYSTICK |
+                sdl.c.SDL_INIT_GAMEPAD |
+                sdl.c.SDL_INIT_EVENTS |
+                sdl.c.SDL_INIT_SENSOR;
             if (builtin.cpu.arch.isWasm()) {
-                excluded |= sdl.SDL_INIT_HAPTIC;
+                init_flags |= sdl.c.SDL_INIT_HAPTIC;
             }
-            if (sdl.SDL_Init(sdl.SDL_INIT_EVERYTHING & ~excluded) < 0) {
-                log.err("Initialize SDL2 failed: {s}", .{sdl.SDL_GetError()});
+            if (!sdl.c.SDL_Init(init_flags)) {
+                log.err("Initialize SDL2 failed: {s}", .{sdl.c.SDL_GetError()});
                 return error.SdlError;
-            }
-
-            // Initialize dpi
-            self._default_dpi = switch (builtin.target.os.tag) {
-                .macos => 72.0,
-                else => 96.0,
-            };
-            if (cfg.jok_window_highdpi) {
-                if (builtin.target.os.tag == .windows) {
-                    // Enable High-DPI awareness
-                    // BUG: only workable on single monitor system
-                    _ = w32.SetProcessDPIAware();
-                }
-                if (sdl.SDL_GetDisplayDPI(0, null, &self._display_dpi, null) < 0) {
-                    self._display_dpi = self._default_dpi;
-                }
-            } else {
-                self._display_dpi = self._default_dpi;
             }
 
             // Initialize window and renderer
@@ -736,7 +688,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._canvas_texture.destroy();
             self._renderer.destroy();
             self._window.destroy();
-            sdl.SDL_Quit();
+            sdl.c.SDL_Quit();
         }
 
         /// Get type-erased context for application
@@ -760,7 +712,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .setCanvasSize = setCanvasSize,
                     .getCanvasArea = getCanvasArea,
                     .getAspectRatio = getAspectRatio,
-                    .getDpiScale = getDpiScale,
                     .addPostProcessing = addPostProcessing,
                     .clearPostProcessing = clearPostProcessing,
                     .supressDraw = supressDraw,
@@ -912,20 +863,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             return @as(f32, @floatFromInt(size.width)) / @as(f32, @floatFromInt(size.height));
         }
 
-        /// Get dpi scale
-        fn getDpiScale(ptr: *anyopaque) f32 {
-            const S = struct {
-                var scale: ?f32 = null;
-            };
-            if (S.scale) |s| {
-                return s;
-            } else {
-                const self: *@This() = @ptrCast(@alignCast(ptr));
-                S.scale = self._display_dpi / self._default_dpi;
-                return S.scale.?;
-            }
-        }
-
         /// Add post-processing effect
         pub fn addPostProcessing(ptr: *anyopaque, ppa: pp.Actor) !void {
             if (!cfg.jok_enable_post_processing) {
@@ -969,7 +906,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .pivot_x = 1,
                 .cond = if (opt.movable) .once else .always,
             });
-            imgui.setNextWindowSize(.{ .w = opt.width * getDpiScale(ptr), .h = 0, .cond = .always });
+            imgui.setNextWindowSize(.{ .w = opt.width, .h = 0, .cond = .always });
             if (imgui.begin("Frame Statistics", .{
                 .flags = .{
                     .no_title_bar = !opt.collapsible,
@@ -979,8 +916,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             })) {
                 imgui.text("Window Size: {d:.0}x{d:.0}", .{ ws.width, ws.height });
                 imgui.text("Canvas Size: {d:.0}x{d:.0}", .{ cs.width, cs.height });
-                imgui.text("Display DPI: {d:.1}", .{self._display_dpi});
-                imgui.text("V-Sync Enabled: {}", .{rdinfo.flags & sdl.SDL_RENDERER_PRESENTVSYNC != 0});
+                imgui.text("V-Sync Enabled: {}", .{rdinfo.vsync > 0});
                 imgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
                 imgui.separator();
                 imgui.text("Duration: {D}", .{@as(u64, @intFromFloat(self._seconds_real * 1e9))});

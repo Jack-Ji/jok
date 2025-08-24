@@ -146,10 +146,10 @@ pub inline fn clipTriangle(
     tri_world_positions: []const zmath.Vec,
     tri_clip_positions: []const zmath.Vec,
     tri_world_normals: ?[3]zmath.Vec,
-    tri_colors: ?[3]jok.Color,
+    tri_colors: ?[3]jok.ColorF,
     tri_texcoords: ?[3]jok.Point,
     clip_vertices: *std.array_list.Managed(zmath.Vec),
-    clip_colors: *std.array_list.Managed(jok.Color),
+    clip_colors: *std.array_list.Managed(jok.ColorF),
     clip_texcoords: *std.array_list.Managed(jok.Point),
     world_positions: *std.array_list.Managed(zmath.Vec),
     world_normals: *std.array_list.Managed(zmath.Vec),
@@ -175,9 +175,9 @@ pub inline fn clipTriangle(
         n1 = ns[1];
         n2 = ns[2];
     }
-    var c0: jok.Color = undefined;
-    var c1: jok.Color = undefined;
-    var c2: jok.Color = undefined;
+    var c0: jok.ColorF = undefined;
+    var c1: jok.ColorF = undefined;
+    var c2: jok.ColorF = undefined;
     if (tri_colors) |cs| {
         c0 = cs[0];
         c1 = cs[1];
@@ -210,8 +210,8 @@ pub inline fn clipTriangle(
             std.mem.swap(zmath.Vec, &n1, &n2);
         }
         if (tri_colors != null) {
-            std.mem.swap(jok.Color, &c0, &c1);
-            std.mem.swap(jok.Color, &c1, &c2);
+            std.mem.swap(jok.ColorF, &c0, &c1);
+            std.mem.swap(jok.ColorF, &c1, &c2);
         }
         if (tri_texcoords) |_| {
             std.mem.swap(jok.Point, &t0, &t1);
@@ -231,8 +231,8 @@ pub inline fn clipTriangle(
             std.mem.swap(zmath.Vec, &n0, &n1);
         }
         if (tri_colors != null) {
-            std.mem.swap(jok.Color, &c1, &c2);
-            std.mem.swap(jok.Color, &c0, &c1);
+            std.mem.swap(jok.ColorF, &c1, &c2);
+            std.mem.swap(jok.ColorF, &c0, &c1);
         }
         if (tri_texcoords) |_| {
             std.mem.swap(jok.Point, &t1, &t2);
@@ -272,12 +272,7 @@ pub inline fn clipTriangle(
                 zmath.normalize3(zmath.lerp(n1, n2, lerp))
             else
                 null;
-            var lerp_color: ?jok.Color = if (tri_colors) |_| .rgba(
-                @intFromFloat(@as(f32, @floatFromInt(c1.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c1.r))) * lerp),
-                @intFromFloat(@as(f32, @floatFromInt(c1.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c1.g))) * lerp),
-                @intFromFloat(@as(f32, @floatFromInt(c1.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c1.b))) * lerp),
-                @intFromFloat(@as(f32, @floatFromInt(c1.a)) + (@as(f32, @floatFromInt(c2.a)) - @as(f32, @floatFromInt(c1.a))) * lerp),
-            ) else null;
+            var lerp_color: ?jok.ColorF = if (tri_colors) |_| c1.lerp(c2, lerp) else null;
             var lerp_texcoord: ?jok.Point = if (tri_texcoords) |_| jok.Point{
                 .x = t1.x + (t2.x - t1.x) * lerp,
                 .y = t1.y + (t2.y - t1.y) * lerp,
@@ -307,12 +302,7 @@ pub inline fn clipTriangle(
                 zmath.normalize3(zmath.lerp(n0, n2, lerp))
             else
                 null;
-            lerp_color = if (tri_colors != null) .rgba(
-                @intFromFloat(@as(f32, @floatFromInt(c0.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c0.r))) * lerp),
-                @intFromFloat(@as(f32, @floatFromInt(c0.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c0.g))) * lerp),
-                @intFromFloat(@as(f32, @floatFromInt(c0.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c0.b))) * lerp),
-                @intFromFloat(@as(f32, @floatFromInt(c0.a)) + (@as(f32, @floatFromInt(c2.a)) - @as(f32, @floatFromInt(c0.a))) * lerp),
-            ) else null;
+            lerp_color = if (tri_colors != null) c0.lerp(c2, lerp) else null;
             lerp_texcoord = if (tri_texcoords != null) jok.Point{
                 .x = t0.x + (t2.x - t0.x) * lerp,
                 .y = t0.y + (t2.y - t0.y) * lerp,
@@ -332,12 +322,7 @@ pub inline fn clipTriangle(
             zmath.normalize3(zmath.lerp(n0, n1, lerp))
         else
             null;
-        var lerp_color: ?jok.Color = if (tri_colors != null) .rgba(
-            @intFromFloat(@as(f32, @floatFromInt(c0.r)) + (@as(f32, @floatFromInt(c1.r)) - @as(f32, @floatFromInt(c0.r))) * lerp),
-            @intFromFloat(@as(f32, @floatFromInt(c0.g)) + (@as(f32, @floatFromInt(c1.g)) - @as(f32, @floatFromInt(c0.g))) * lerp),
-            @intFromFloat(@as(f32, @floatFromInt(c0.b)) + (@as(f32, @floatFromInt(c1.b)) - @as(f32, @floatFromInt(c0.b))) * lerp),
-            @intFromFloat(@as(f32, @floatFromInt(c0.a)) + (@as(f32, @floatFromInt(c1.a)) - @as(f32, @floatFromInt(c0.a))) * lerp),
-        ) else null;
+        var lerp_color: ?jok.ColorF = if (tri_colors != null) c0.lerp(c1, lerp) else null;
         var lerp_texcoord: ?jok.Point = if (tri_texcoords != null) jok.Point{
             .x = t0.x + (t1.x - t0.x) * lerp,
             .y = t0.y + (t1.y - t0.y) * lerp,
@@ -358,12 +343,7 @@ pub inline fn clipTriangle(
                 zmath.normalize3(zmath.lerp(n1, n2, lerp))
             else
                 null;
-            lerp_color = if (tri_colors != null) .rgba(
-                @intFromFloat(@as(f32, @floatFromInt(c1.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c1.r))) * lerp),
-                @intFromFloat(@as(f32, @floatFromInt(c1.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c1.g))) * lerp),
-                @intFromFloat(@as(f32, @floatFromInt(c1.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c1.b))) * lerp),
-                @intFromFloat(@as(f32, @floatFromInt(c1.a)) + (@as(f32, @floatFromInt(c2.a)) - @as(f32, @floatFromInt(c1.a))) * lerp),
-            ) else null;
+            lerp_color = if (tri_colors != null) c1.lerp(c2, lerp) else null;
             lerp_texcoord = if (tri_texcoords != null) jok.Point{
                 .x = t1.x + (t2.x - t1.x) * lerp,
                 .y = t1.y + (t2.y - t1.y) * lerp,
@@ -399,12 +379,7 @@ pub inline fn clipTriangle(
                 zmath.normalize3(zmath.lerp(n0, n2, lerp))
             else
                 null;
-            lerp_color = if (tri_colors != null) .rgba(
-                @intFromFloat(@as(f32, @floatFromInt(c0.r)) + (@as(f32, @floatFromInt(c2.r)) - @as(f32, @floatFromInt(c0.r))) * lerp),
-                @intFromFloat(@as(f32, @floatFromInt(c0.g)) + (@as(f32, @floatFromInt(c2.g)) - @as(f32, @floatFromInt(c0.g))) * lerp),
-                @intFromFloat(@as(f32, @floatFromInt(c0.b)) + (@as(f32, @floatFromInt(c2.b)) - @as(f32, @floatFromInt(c0.b))) * lerp),
-                @intFromFloat(@as(f32, @floatFromInt(c0.a)) + (@as(f32, @floatFromInt(c2.a)) - @as(f32, @floatFromInt(c0.a))) * lerp),
-            ) else null;
+            lerp_color = if (tri_colors != null) c0.lerp(c2, lerp) else null;
             lerp_texcoord = if (tri_texcoords != null) jok.Point{
                 .x = t0.x + (t2.x - t0.x) * lerp,
                 .y = t0.y + (t2.y - t0.y) * lerp,

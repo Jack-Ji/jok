@@ -4,23 +4,23 @@ const jok = @import("jok.zig");
 const sdl = jok.sdl;
 
 pub const KeyModifierBit = enum(u16) {
-    left_shift = sdl.c.KMOD_LSHIFT,
-    right_shift = sdl.c.KMOD_RSHIFT,
-    left_control = sdl.c.KMOD_LCTRL,
-    right_control = sdl.c.KMOD_RCTRL,
+    left_shift = sdl.c.SDL_KMOD_LSHIFT,
+    right_shift = sdl.c.SDL_KMOD_RSHIFT,
+    left_control = sdl.c.SDL_KMOD_LCTRL,
+    right_control = sdl.c.SDL_KMOD_RCTRL,
     ///left alternate
-    left_alt = sdl.c.KMOD_LALT,
+    left_alt = sdl.c.SDL_KMOD_LALT,
     ///right alternate
-    right_alt = sdl.c.KMOD_RALT,
-    left_gui = sdl.c.KMOD_LGUI,
-    right_gui = sdl.c.KMOD_RGUI,
+    right_alt = sdl.c.SDL_KMOD_RALT,
+    left_gui = sdl.c.SDL_KMOD_LGUI,
+    right_gui = sdl.c.SDL_KMOD_RGUI,
     ///numeric lock
-    num_lock = sdl.c.KMOD_NUM,
+    num_lock = sdl.c.SDL_KMOD_NUM,
     ///capital letters lock
-    caps_lock = sdl.c.KMOD_CAPS,
-    mode = sdl.c.KMOD_MODE,
+    caps_lock = sdl.c.SDL_KMOD_CAPS,
+    mode = sdl.c.SDL_KMOD_MODE,
     ///scroll lock (= previous value sdl.c.KMOD_RESERVED)
-    scroll_lock = sdl.c.KMOD_SCROLL,
+    scroll_lock = sdl.c.SDL_KMOD_SCROLL,
 };
 pub const KeyModifierSet = struct {
     storage: u16,
@@ -39,7 +39,7 @@ pub const KeyModifierSet = struct {
     }
 };
 pub const KeyboardEvent = struct {
-    timestamp: u32,
+    timestamp: u64,
     window_id: u32,
     is_down: bool,
     is_repeat: bool,
@@ -50,16 +50,16 @@ pub const KeyboardEvent = struct {
     pub fn fromNative(native: sdl.c.SDL_KeyboardEvent) KeyboardEvent {
         switch (native.type) {
             else => unreachable,
-            sdl.c.SDL_KEYDOWN, sdl.c.SDL_KEYUP => {},
+            sdl.c.SDL_EVENT_KEY_DOWN, sdl.c.SDL_EVENT_KEY_UP => {},
         }
         return .{
             .timestamp = native.timestamp,
             .window_id = native.windowID,
             .is_down = native.down,
-            .is_repeat = native.repeat != 0,
-            .scancode = @enumFromInt(native.keysym.scancode),
-            .keycode = @enumFromInt(native.keysym.sym),
-            .modifiers = KeyModifierSet.fromNative(native.keysym.mod),
+            .is_repeat = native.repeat,
+            .scancode = @enumFromInt(native.scancode),
+            .keycode = @enumFromInt(native.key),
+            .modifiers = KeyModifierSet.fromNative(native.mod),
         };
     }
 };
@@ -95,7 +95,7 @@ pub const MouseButtonState = struct {
     }
 };
 pub const MouseMotionEvent = struct {
-    timestamp: u32,
+    timestamp: u64,
     /// originally named `windowID`
     window_id: u32,
     /// originally named `which`;
@@ -113,14 +113,14 @@ pub const MouseMotionEvent = struct {
     delta: jok.Point,
 
     pub fn fromNative(native: sdl.c.SDL_MouseMotionEvent, ctx: jok.Context) MouseMotionEvent {
-        assert(native.type == sdl.c.SDL_MOUSEMOTION);
+        assert(native.type == sdl.c.SDL_EVENT_MOUSE_MOTION);
         const pos = mapPositionToCanvas(ctx, .{
-            .x = @floatFromInt(native.x),
-            .y = @floatFromInt(native.y),
+            .x = native.x,
+            .y = native.y,
         });
         const canvas_scale = getCanvasScale(ctx);
-        const delta_x = @as(f32, @floatFromInt(native.xrel)) * canvas_scale;
-        const delta_y = @as(f32, @floatFromInt(native.yrel)) * canvas_scale;
+        const delta_x = native.xrel * canvas_scale;
+        const delta_y = native.yrel * canvas_scale;
         return .{
             .timestamp = native.timestamp,
             .window_id = native.windowID,
@@ -132,7 +132,7 @@ pub const MouseMotionEvent = struct {
     }
 };
 pub const MouseButtonEvent = struct {
-    timestamp: u32,
+    timestamp: u64,
     /// originally named `windowID`
     window_id: u32,
     /// originally named `which`,
@@ -148,11 +148,11 @@ pub const MouseButtonEvent = struct {
     pub fn fromNative(native: sdl.c.SDL_MouseButtonEvent, ctx: jok.Context) MouseButtonEvent {
         switch (native.type) {
             else => unreachable,
-            sdl.c.SDL_MOUSEBUTTONDOWN, sdl.c.SDL_MOUSEBUTTONUP => {},
+            sdl.c.SDL_EVENT_MOUSE_BUTTON_DOWN, sdl.c.SDL_EVENT_MOUSE_BUTTON_UP => {},
         }
         const pos = mapPositionToCanvas(ctx, .{
-            .x = @floatFromInt(native.x),
-            .y = @floatFromInt(native.y),
+            .x = native.x,
+            .y = native.y,
         });
         return .{
             .timestamp = native.timestamp,
@@ -171,7 +171,7 @@ pub const MouseWheelEvent = struct {
         flipped = sdl.c.SDL_MOUSEWHEEL_FLIPPED,
     };
 
-    timestamp: u32,
+    timestamp: u64,
     /// originally named `windowID`
     window_id: u32,
     /// originally named `which`,
@@ -184,20 +184,20 @@ pub const MouseWheelEvent = struct {
     /// positive to the right and negative to the left,
     /// unless field `direction` has value `.flipped`,
     /// in which case the signs are reversed.
-    delta_x: i32,
+    delta_x: f32,
     /// originally named `y`,
     /// the amount scrolled vertically,
     /// positive away from the user and negative towards the user,
     /// unless field `direction` has value `.flipped`,
     /// in which case the signs are reversed.
-    delta_y: i32,
+    delta_y: f32,
     /// On macOS, devices are often by default configured to have
     /// "natural" scrolling direction, which flips the sign of both delta values.
     /// In this case, this field will have value `.flipped` instead of `.normal`.
     direction: Direction,
 
     pub fn fromNative(native: sdl.c.SDL_MouseWheelEvent) MouseWheelEvent {
-        assert(native.type == sdl.c.SDL_MOUSEWHEEL);
+        assert(native.type == sdl.c.SDL_EVENT_MOUSE_WHEEL);
         return .{
             .timestamp = native.timestamp,
             .window_id = native.windowID,
@@ -210,7 +210,7 @@ pub const MouseWheelEvent = struct {
 };
 
 pub const JoyAxisEvent = struct {
-    timestamp: u32,
+    timestamp: u64,
     joystick_id: sdl.c.SDL_JoystickID,
     axis: u8,
     value: i16,
@@ -218,7 +218,7 @@ pub const JoyAxisEvent = struct {
     pub fn fromNative(native: sdl.c.SDL_JoyAxisEvent) JoyAxisEvent {
         switch (native.type) {
             else => unreachable,
-            sdl.c.SDL_JOYAXISMOTION => {},
+            sdl.c.SDL_EVENT_JOYSTICK_AXIS_MOTION => {},
         }
         return .{
             .timestamp = native.timestamp,
@@ -250,7 +250,7 @@ pub const JoyHatEvent = struct {
         left_down = sdl.c.SDL_HAT_LEFTDOWN,
     };
 
-    timestamp: u32,
+    timestamp: u64,
     joystick_id: sdl.c.SDL_JoystickID,
     hat: u8,
     value: HatValue,
@@ -258,7 +258,7 @@ pub const JoyHatEvent = struct {
     pub fn fromNative(native: sdl.c.SDL_JoyHatEvent) JoyHatEvent {
         switch (native.type) {
             else => unreachable,
-            sdl.c.SDL_JOYHATMOTION => {},
+            sdl.c.SDL_EVENT_JOYSTICK_HAT_MOTION => {},
         }
         return .{
             .timestamp = native.timestamp,
@@ -270,7 +270,7 @@ pub const JoyHatEvent = struct {
 };
 
 pub const JoyBallEvent = struct {
-    timestamp: u32,
+    timestamp: u64,
     joystick_id: sdl.c.SDL_JoystickID,
     ball: u8,
     relative_x: i16,
@@ -279,7 +279,7 @@ pub const JoyBallEvent = struct {
     pub fn fromNative(native: sdl.c.SDL_JoyBallEvent) JoyBallEvent {
         switch (native.type) {
             else => unreachable,
-            sdl.c.SDL_JOYBALLMOTION => {},
+            sdl.c.SDL_EVENT_JOYSTICK_BALL_MOTION => {},
         }
         return .{
             .timestamp = native.timestamp,
@@ -292,7 +292,7 @@ pub const JoyBallEvent = struct {
 };
 
 pub const JoyButtonEvent = struct {
-    timestamp: u32,
+    timestamp: u64,
     joystick_id: sdl.c.SDL_JoystickID,
     button: u8,
     is_down: bool,
@@ -300,7 +300,7 @@ pub const JoyButtonEvent = struct {
     pub fn fromNative(native: sdl.c.SDL_JoyButtonEvent) JoyButtonEvent {
         switch (native.type) {
             else => unreachable,
-            sdl.c.SDL_JOYBUTTONDOWN, sdl.c.SDL_JOYBUTTONUP => {},
+            sdl.c.SDL_EVENT_JOYSTICK_BUTTON_DOWN, sdl.c.SDL_EVENT_JOYSTICK_BUTTON_UP => {},
         }
         return .{
             .timestamp = native.timestamp,
@@ -312,7 +312,7 @@ pub const JoyButtonEvent = struct {
 };
 
 pub const GamepadAxisEvent = struct {
-    timestamp: u32,
+    timestamp: u64,
     joystick_id: sdl.c.SDL_JoystickID,
     axis: Gamepad.Axis,
     value: i16,
@@ -340,7 +340,7 @@ pub const GamepadAxisEvent = struct {
 };
 
 pub const GamepadButtonEvent = struct {
-    timestamp: u32,
+    timestamp: u64,
     joystick_id: sdl.c.SDL_JoystickID,
     button: Gamepad.Button,
     is_down: bool,
@@ -359,10 +359,10 @@ pub const GamepadButtonEvent = struct {
     }
 };
 
+/// from registerEvents
 pub const UserEvent = struct {
-    /// from Event.registerEvents
     type: u32,
-    timestamp: u32 = 0,
+    timestamp: u64 = 0,
     window_id: u32 = 0,
     code: i32,
     data1: ?*anyopaque = null,
@@ -393,16 +393,15 @@ pub const Event = union(enum) {
     pub const SensorEvent = sdl.c.SDL_SensorEvent;
     pub const QuitEvent = sdl.c.SDL_QuitEvent;
     pub const TouchFingerEvent = sdl.c.SDL_TouchFingerEvent;
-    pub const MultiGestureEvent = sdl.c.SDL_MultiGestureEvent;
     pub const DropEvent = sdl.c.SDL_DropEvent;
 
     clip_board_update: CommonEvent,
-    app_did_enter_background: CommonEvent,
-    app_did_enter_foreground: CommonEvent,
-    app_will_enter_foreground: CommonEvent,
-    app_will_enter_background: CommonEvent,
-    app_low_memory: CommonEvent,
-    app_terminating: CommonEvent,
+    did_enter_background: CommonEvent,
+    did_enter_foreground: CommonEvent,
+    will_enter_foreground: CommonEvent,
+    will_enter_background: CommonEvent,
+    low_memory: CommonEvent,
+    terminating: CommonEvent,
     render_targets_reset: CommonEvent,
     render_device_reset: CommonEvent,
     key_map_changed: CommonEvent,
@@ -476,12 +475,12 @@ pub const Event = union(enum) {
     pub fn from(raw: sdl.c.SDL_Event, ctx: jok.Context) Event {
         return switch (raw.type) {
             sdl.c.SDL_EVENT_QUIT => Event{ .quit = raw.quit },
-            sdl.c.SDL_EVENT_APP_TERMINATING => Event{ .app_terminating = raw.common },
-            sdl.c.SDL_EVENT_APP_LOWMEMORY => Event{ .app_low_memory = raw.common },
-            sdl.c.SDL_EVENT_APP_WILLENTERBACKGROUND => Event{ .app_will_enter_background = raw.common },
-            sdl.c.SDL_EVENT_APP_DIDENTERBACKGROUND => Event{ .app_did_enter_background = raw.common },
-            sdl.c.SDL_EVENT_APP_WILLENTERFOREGROUND => Event{ .app_will_enter_foreground = raw.common },
-            sdl.c.SDL_EVENT_APP_DIDENTERFOREGROUND => Event{ .app_did_enter_foreground = raw.common },
+            sdl.c.SDL_EVENT_TERMINATING => Event{ .terminating = raw.common },
+            sdl.c.SDL_EVENT_LOW_MEMORY => Event{ .low_memory = raw.common },
+            sdl.c.SDL_EVENT_WILL_ENTER_BACKGROUND => Event{ .will_enter_background = raw.common },
+            sdl.c.SDL_EVENT_DID_ENTER_BACKGROUND => Event{ .did_enter_background = raw.common },
+            sdl.c.SDL_EVENT_WILL_ENTER_FOREGROUND => Event{ .will_enter_foreground = raw.common },
+            sdl.c.SDL_EVENT_DID_ENTER_FOREGROUND => Event{ .did_enter_foreground = raw.common },
             sdl.c.SDL_EVENT_DISPLAY_ORIENTATION => Event{ .display_orientation = raw.display },
             sdl.c.SDL_EVENT_DISPLAY_ADDED => Event{ .display_added = raw.display },
             sdl.c.SDL_EVENT_DISPLAY_REMOVED => Event{ .display_removed = raw.display },
@@ -514,23 +513,23 @@ pub const Event = union(enum) {
             sdl.c.SDL_EVENT_WINDOW_LEAVE_FULLSCREEN => Event{ .window_leave_fullscreen = raw.window },
             sdl.c.SDL_EVENT_WINDOW_DESTROYED => Event{ .window_destroyed = raw.window },
             sdl.c.SDL_EVENT_WINDOW_HDR_STATE_CHANGED => Event{ .window_hdr_state_changed = raw.window },
-            sdl.c.SDL_EVENT_KEYDOWN => Event{ .key_down = KeyboardEvent.fromNative(raw.key) },
-            sdl.c.SDL_EVENT_KEYUP => Event{ .key_up = KeyboardEvent.fromNative(raw.key) },
-            sdl.c.SDL_EVENT_TEXTEDITING => Event{ .text_editing = raw.edit },
-            sdl.c.SDL_EVENT_TEXTINPUT => Event{ .text_input = raw.text },
-            sdl.c.SDL_EVENT_KEYMAPCHANGED => Event{ .key_map_changed = raw.common },
-            sdl.c.SDL_EVENT_MOUSEMOTION => Event{ .mouse_motion = MouseMotionEvent.fromNative(raw.motion, ctx) },
-            sdl.c.SDL_EVENT_MOUSEBUTTONDOWN => Event{ .mouse_button_down = MouseButtonEvent.fromNative(raw.button, ctx) },
-            sdl.c.SDL_EVENT_MOUSEBUTTONUP => Event{ .mouse_button_up = MouseButtonEvent.fromNative(raw.button, ctx) },
-            sdl.c.SDL_EVENT_MOUSEWHEEL => Event{ .mouse_wheel = MouseWheelEvent.fromNative(raw.wheel) },
-            sdl.c.SDL_EVENT_JOYAXISMOTION => Event{ .joy_axis_motion = JoyAxisEvent.fromNative(raw.jaxis) },
-            sdl.c.SDL_EVENT_JOYBALLMOTION => Event{ .joy_ball_motion = JoyBallEvent.fromNative(raw.jball) },
-            sdl.c.SDL_EVENT_JOYHATMOTION => Event{ .joy_hat_motion = JoyHatEvent.fromNative(raw.jhat) },
-            sdl.c.SDL_EVENT_JOYBUTTONDOWN => Event{ .joy_button_down = JoyButtonEvent.fromNative(raw.jbutton) },
-            sdl.c.SDL_EVENT_JOYBUTTONUP => Event{ .joy_button_up = JoyButtonEvent.fromNative(raw.jbutton) },
-            sdl.c.SDL_EVENT_JOYDEVICEADDED => Event{ .joy_device_added = raw.jdevice },
-            sdl.c.SDL_EVENT_JOYDEVICEREMOVED => Event{ .joy_device_removed = raw.jdevice },
-            sdl.c.SDL_EVENT_JOYBATTERYUPDATED => Event{ .joy_battery_level = raw.jbattery },
+            sdl.c.SDL_EVENT_KEY_DOWN => Event{ .key_down = KeyboardEvent.fromNative(raw.key) },
+            sdl.c.SDL_EVENT_KEY_UP => Event{ .key_up = KeyboardEvent.fromNative(raw.key) },
+            sdl.c.SDL_EVENT_TEXT_EDITING => Event{ .text_editing = raw.edit },
+            sdl.c.SDL_EVENT_TEXT_INPUT => Event{ .text_input = raw.text },
+            sdl.c.SDL_EVENT_KEYMAP_CHANGED => Event{ .key_map_changed = raw.common },
+            sdl.c.SDL_EVENT_MOUSE_MOTION => Event{ .mouse_motion = MouseMotionEvent.fromNative(raw.motion, ctx) },
+            sdl.c.SDL_EVENT_MOUSE_BUTTON_DOWN => Event{ .mouse_button_down = MouseButtonEvent.fromNative(raw.button, ctx) },
+            sdl.c.SDL_EVENT_MOUSE_BUTTON_UP => Event{ .mouse_button_up = MouseButtonEvent.fromNative(raw.button, ctx) },
+            sdl.c.SDL_EVENT_MOUSE_WHEEL => Event{ .mouse_wheel = MouseWheelEvent.fromNative(raw.wheel) },
+            sdl.c.SDL_EVENT_JOYSTICK_AXIS_MOTION => Event{ .joy_axis_motion = JoyAxisEvent.fromNative(raw.jaxis) },
+            sdl.c.SDL_EVENT_JOYSTICK_BALL_MOTION => Event{ .joy_ball_motion = JoyBallEvent.fromNative(raw.jball) },
+            sdl.c.SDL_EVENT_JOYSTICK_HAT_MOTION => Event{ .joy_hat_motion = JoyHatEvent.fromNative(raw.jhat) },
+            sdl.c.SDL_EVENT_JOYSTICK_BUTTON_DOWN => Event{ .joy_button_down = JoyButtonEvent.fromNative(raw.jbutton) },
+            sdl.c.SDL_EVENT_JOYSTICK_BUTTON_UP => Event{ .joy_button_up = JoyButtonEvent.fromNative(raw.jbutton) },
+            sdl.c.SDL_EVENT_JOYSTICK_ADDED => Event{ .joy_device_added = raw.jdevice },
+            sdl.c.SDL_EVENT_JOYSTICK_REMOVED => Event{ .joy_device_removed = raw.jdevice },
+            sdl.c.SDL_EVENT_JOYSTICK_BATTERY_UPDATED => Event{ .joy_battery_level = raw.jbattery },
             sdl.c.SDL_EVENT_GAMEPAD_AXIS_MOTION => Event{ .gamepad_axis_motion = GamepadAxisEvent.fromNative(raw.gaxis) },
             sdl.c.SDL_EVENT_GAMEPAD_BUTTON_DOWN => Event{ .gamepad_button_down = GamepadButtonEvent.fromNative(raw.gbutton) },
             sdl.c.SDL_EVENT_GAMEPAD_BUTTON_UP => Event{ .gamepad_button_up = GamepadButtonEvent.fromNative(raw.gbutton) },
@@ -540,14 +539,14 @@ pub const Event = union(enum) {
             sdl.c.SDL_EVENT_FINGER_DOWN => Event{ .finger_down = raw.tfinger },
             sdl.c.SDL_EVENT_FINGER_UP => Event{ .finger_up = raw.tfinger },
             sdl.c.SDL_EVENT_FINGER_MOTION => Event{ .finger_motion = raw.tfinger },
-            sdl.c.SDL_EVENT_CLIPBOARDUPDATE => Event{ .clip_board_update = raw.common },
-            sdl.c.SDL_EVENT_DROPFILE => Event{ .drop_file = raw.drop },
-            sdl.c.SDL_EVENT_DROPTEXT => Event{ .drop_text = raw.drop },
-            sdl.c.SDL_EVENT_DROPBEGIN => Event{ .drop_begin = raw.drop },
-            sdl.c.SDL_EVENT_DROPCOMPLETE => Event{ .drop_complete = raw.drop },
-            sdl.c.SDL_EVENT_AUDIODEVICEADDED => Event{ .audio_device_added = raw.adevice },
-            sdl.c.SDL_EVENT_AUDIODEVICEREMOVED => Event{ .audio_device_removed = raw.adevice },
-            sdl.c.SDL_EVENT_SENSORUPDATE => Event{ .sensor_update = raw.sensor },
+            sdl.c.SDL_EVENT_CLIPBOARD_UPDATE => Event{ .clip_board_update = raw.common },
+            sdl.c.SDL_EVENT_DROP_FILE => Event{ .drop_file = raw.drop },
+            sdl.c.SDL_EVENT_DROP_TEXT => Event{ .drop_text = raw.drop },
+            sdl.c.SDL_EVENT_DROP_BEGIN => Event{ .drop_begin = raw.drop },
+            sdl.c.SDL_EVENT_DROP_COMPLETE => Event{ .drop_complete = raw.drop },
+            sdl.c.SDL_EVENT_AUDIO_DEVICE_ADDED => Event{ .audio_device_added = raw.adevice },
+            sdl.c.SDL_EVENT_AUDIO_DEVICE_REMOVED => Event{ .audio_device_removed = raw.adevice },
+            sdl.c.SDL_EVENT_SENSOR_UPDATE => Event{ .sensor_update = raw.sensor },
             sdl.c.SDL_EVENT_RENDER_TARGETS_RESET => Event{ .render_targets_reset = raw.common },
             sdl.c.SDL_EVENT_RENDER_DEVICE_RESET => Event{ .render_device_reset = raw.common },
             else => |t| if (t >= sdl.c.SDL_EVENT_USER)
@@ -592,14 +591,14 @@ pub fn pumpEvents() void {
 
 pub fn pollEvent() ?Event {
     var ev: sdl.c.SDL_Event = undefined;
-    if (sdl.c.SDL_PollEvent(&ev) != 0)
+    if (sdl.c.SDL_PollEvent(&ev))
         return Event.from(ev);
     return null;
 }
 
 pub fn pollNativeEvent() ?sdl.c.SDL_Event {
     var ev: sdl.c.SDL_Event = undefined;
-    if (sdl.c.SDL_PollEvent(&ev) != 0)
+    if (sdl.c.SDL_PollEvent(&ev))
         return ev;
     return null;
 }
@@ -610,7 +609,7 @@ pub fn pollNativeEvent() ?sdl.c.SDL_Event {
 /// the thread that initialized the video subsystem.
 pub fn waitEvent() !Event {
     var ev: sdl.c.SDL_Event = undefined;
-    if (sdl.c.SDL_WaitEvent(&ev) != 0)
+    if (sdl.c.SDL_WaitEvent(&ev))
         return Event.from(ev);
     return sdl.c.Error.SdlError;
 }
@@ -622,7 +621,7 @@ pub fn waitEvent() !Event {
 /// the thread that initialized the video subsystem.
 pub fn waitEventTimeout(timeout: usize) ?Event {
     var ev: sdl.c.SDL_Event = undefined;
-    if (sdl.c.SDL_WaitEventTimeout(&ev, @intCast(timeout)) != 0)
+    if (sdl.c.SDL_WaitEventTimeout(&ev, @intCast(timeout)))
         return Event.from(ev);
     return null;
 }
@@ -634,13 +633,13 @@ pub const MouseState = struct {
 
 pub fn getMouseState(ctx: jok.Context) MouseState {
     var ms: MouseState = undefined;
-    var x: c_int = undefined;
-    var y: c_int = undefined;
+    var x: f32 = undefined;
+    var y: f32 = undefined;
     const buttons = sdl.c.SDL_GetMouseState(&x, &y);
     ms.buttons = MouseButtonState.fromNative(buttons);
     ms.pos = mapPositionToCanvas(ctx, .{
-        .x = @floatFromInt(x),
-        .y = @floatFromInt(y),
+        .x = x,
+        .y = y,
     });
     return ms;
 }
@@ -892,10 +891,10 @@ pub const Scancode = enum(sdl.c.SDL_Scancode) {
 };
 
 pub const KeyboardState = struct {
-    states: []const u8,
+    states: []const bool,
 
     pub fn isPressed(ks: KeyboardState, scancode: Scancode) bool {
-        return ks.states[@intCast(@intFromEnum(scancode))] != 0;
+        return ks.states[@intCast(@intFromEnum(scancode))];
     }
 };
 
@@ -1155,7 +1154,7 @@ pub const Keycode = enum(sdl.c.SDL_Keycode) {
 
 pub const Clipboard = struct {
     pub fn get() !?[]const u8 {
-        if (sdl.c.SDL_HasClipboardText() == sdl.c.SDL_FALSE)
+        if (!sdl.c.SDL_HasClipboardText())
             return null;
         const c_string = sdl.c.SDL_GetClipboardText();
         const txt = std.mem.sliceTo(c_string, 0);
@@ -1170,57 +1169,79 @@ pub const Clipboard = struct {
         sdl.c.SDL_free(@ptrCast(txt));
     }
     pub fn set(txt: []const u8) !void {
-        if (sdl.c.SDL_SetClipboardText(@ptrCast(txt)) != 0) {
+        if (!sdl.c.SDL_SetClipboardText(@ptrCast(txt))) {
             return sdl.c.Error.SdlError;
         }
     }
 };
 
-pub fn getTicks() u32 {
+pub fn getTicks() u64 {
     return sdl.c.SDL_GetTicks();
 }
 
-pub fn getTicks64() u64 {
-    return sdl.c.SDL_GetTicks64();
+pub fn getTicksNS() u64 {
+    return sdl.c.SDL_GetTicksNS();
 }
 
 pub fn delay(ms: u32) void {
     sdl.c.SDL_Delay(ms);
 }
 
-pub fn numJoysticks() !u31 {
-    const num = sdl.c.SDL_NumJoysticks();
-    if (num < 0) return error.SdlError;
-    return @intCast(num);
+pub fn delayNS(ns: u32) void {
+    sdl.c.SDL_DelayNS(ns);
+}
+
+pub const JoystickList = struct {
+    ids: []sdl.c.SDL_JoystickID,
+
+    pub fn deinit(self: @This()) void {
+        sdl.c.SDL_free(self.ids.ptr);
+    }
+};
+
+pub fn getJoysticks() ?JoystickList {
+    var num: u32 = undefined;
+    const joysticks = sdl.c.SDL_GetJoysticks(&num);
+    if (joysticks == null) {
+        return null;
+    }
+    var js = JoystickList{};
+    js.ids.ptr = @ptrCast(joysticks);
+    js.idx.len = @intCast(num);
+    return js;
 }
 
 pub const Gamepad = struct {
     ptr: *sdl.c.SDL_Gamepad,
 
-    pub fn open(joystick_index: u32) !Gamepad {
+    pub fn open(joystick_index: sdl.c.SDL_JoystickID) !Gamepad {
         return Gamepad{
             .ptr = sdl.c.SDL_OpenGamepad(joystick_index) orelse return error.SdlError,
         };
     }
 
-    pub fn is(joystick_index: u31) bool {
-        return sdl.c.SDL_IsGamepad(joystick_index) > 0;
+    pub fn is(joystick_index: sdl.c.SDL_JoystickID) bool {
+        return sdl.c.SDL_IsGamepad(joystick_index);
     }
 
     pub fn close(self: Gamepad) void {
-        sdl.c.SDL_GamepadClose(self.ptr);
+        sdl.c.SDL_CloseGamepad(self.ptr);
     }
 
-    pub fn nameForIndex(joystick_index: u31) []const u8 {
-        return std.mem.sliceTo(sdl.c.SDL_GamepadNameForIndex(joystick_index), 0);
+    pub fn name(self: Gamepad) []const u8 {
+        return std.mem.sliceTo(sdl.c.SDL_GetJoystickName(self.ptr), 0);
     }
 
-    pub fn getButton(self: Gamepad, button: Button) u8 {
-        return sdl.c.SDL_GamepadGetButton(self.ptr, @intFromEnum(button));
+    pub fn hasButton(self: Gamepad, button: Button) bool {
+        return sdl.c.SDL_GamepadHasButton(self.ptr, @intFromEnum(button));
+    }
+
+    pub fn isButtonPressed(self: Gamepad, button: Button) bool {
+        return sdl.c.SDL_GetGamepadButton(self.ptr, @intFromEnum(button));
     }
 
     pub fn getAxis(self: Gamepad, axis: Axis) i16 {
-        return sdl.c.SDL_GamepadGetAxis(self.ptr, @intFromEnum(axis));
+        return sdl.c.SDL_GetGamepadAxis(self.ptr, @intFromEnum(axis));
     }
 
     pub fn getAxisNormalized(self: Gamepad, axis: Axis) f32 {
@@ -1228,10 +1249,10 @@ pub const Gamepad = struct {
     }
 
     pub fn instanceId(self: Gamepad) sdl.c.SDL_JoystickID {
-        return sdl.c.SDL_JoystickInstanceID(sdl.c.SDL_GamepadGetJoystick(self.ptr));
+        return sdl.c.SDL_GetJoystickID(sdl.c.SDL_GetGamepadJoystick(self.ptr));
     }
 
-    pub const Button = enum(i32) {
+    pub const Button = enum(sdl.c.SDL_GamepadButton) {
         sourth = sdl.c.SDL_GAMEPAD_BUTTON_SOUTH,
         east = sdl.c.SDL_GAMEPAD_BUTTON_EAST,
         west = sdl.c.SDL_GAMEPAD_BUTTON_WEST,
@@ -1257,7 +1278,7 @@ pub const Gamepad = struct {
         touchpad = sdl.c.SDL_GAMEPAD_BUTTON_TOUCHPAD,
     };
 
-    pub const Axis = enum(i32) {
+    pub const Axis = enum(sdl.c.SDL_GamepadAxis) {
         left_x = sdl.c.SDL_GAMEPAD_AXIS_LEFTX,
         left_y = sdl.c.SDL_GAMEPAD_AXIS_LEFTY,
         right_x = sdl.c.SDL_GAMEPAD_AXIS_RIGHTX,

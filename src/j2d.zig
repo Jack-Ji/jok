@@ -189,7 +189,7 @@ pub const Batch = struct {
         rd.setBlendMode(self.blend_mode) catch unreachable;
         var it = self.all_tex.keyIterator();
         while (it.next()) |k| {
-            const tex = jok.Texture{ .ptr = @ptrCast(k.*) };
+            const tex = jok.Texture{ .ptr = @ptrCast(@alignCast(k.*)) };
             tex.setBlendMode(self.blend_mode) catch unreachable;
         }
 
@@ -425,7 +425,7 @@ pub const Batch = struct {
         const txt = imgui.format(fmt, args);
         if (txt.len == 0) return;
         const atlas = opt.atlas orelse self.ctx.getDebugAtlas(
-            @intFromFloat(@as(f32, @floatFromInt(self.ctx.cfg().jok_prebuild_atlas)) * self.ctx.getDpiScale()),
+            @intCast(self.ctx.cfg().jok_prebuild_atlas),
         );
         const rotation = opt.rotate_angle + self.trs.getRotation();
         var pos = self.trs.transformPoint(opt.pos);

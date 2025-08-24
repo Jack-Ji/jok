@@ -34,7 +34,6 @@ pub const Config = struct {
     jok_window_always_on_top: bool = false,
     jok_window_ime_ui: bool = false,
     jok_window_mouse_mode: MouseMode = .normal,
-    jok_window_highdpi: bool = false,
 
     /// Exit event processing
     jok_exit_on_recv_esc: bool = true,
@@ -112,7 +111,6 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_window_ime_ui", .desc = "whether show ime ui" },
         .{ .name = "jok_window_always_on_top", .desc = "whether window is locked to most front layer" },
         .{ .name = "jok_window_mouse_mode", .desc = "mouse mode setting" },
-        .{ .name = "jok_window_highdpi", .desc = "whether enable high dpi support" },
         .{ .name = "jok_exit_on_recv_esc", .desc = "whether exit game when esc is pressed" },
         .{ .name = "jok_exit_on_recv_quit", .desc = "whether exit game when getting quit event" },
         .{ .name = "jok_check_memory_leak", .desc = "whether detect memory-leak on shutdown" },

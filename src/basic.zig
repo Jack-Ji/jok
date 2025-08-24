@@ -448,22 +448,28 @@ pub const Color = extern struct {
         return Color{ .r = r, .g = g, .b = b, .a = a };
     }
 
-    pub inline fn fromColorF(c: ColorF) Color {
+    pub inline fn fromColorF(_c: ColorF) Color {
+        var c: @Vector(4, f32) = .{ _c.r, _c.g, _c.b, _c.a };
+        const multiplier: @Vector(4, f32) = @splat(255.0);
+        c *= multiplier;
         return Color{
-            .r = @intFromFloat(c.r * 255),
-            .g = @intFromFloat(c.g * 255),
-            .b = @intFromFloat(c.b * 255),
-            .a = @intFromFloat(c.a * 255),
+            .r = @intFromFloat(c[0]),
+            .g = @intFromFloat(c[1]),
+            .b = @intFromFloat(c[2]),
+            .a = @intFromFloat(c[3]),
         };
     }
 
-    pub inline fn toColorF(c: Color) ColorF {
-        return .{
-            .r = @as(f32, @floatFromInt(c.r)) / 255,
-            .g = @as(f32, @floatFromInt(c.g)) / 255,
-            .b = @as(f32, @floatFromInt(c.b)) / 255,
-            .a = @as(f32, @floatFromInt(c.a)) / 255,
+    pub inline fn toColorF(_c: Color) ColorF {
+        var c: @Vector(4, f32) = .{
+            @floatFromInt(_c.r),
+            @floatFromInt(_c.g),
+            @floatFromInt(_c.b),
+            @floatFromInt(_c.a),
         };
+        const multiplier: @Vector(4, f32) = @splat(1.0 / 255.0);
+        c *= multiplier;
+        return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
     }
 
     inline fn getPixelFormatDetails() [*c]sdl.c.SDL_PixelFormatDetails {
@@ -488,14 +494,16 @@ pub const Color = extern struct {
 
     /// Convert from HSL
     pub inline fn fromHSL(hsl: [4]f32) Color {
-        const _rgba = zmath.hslToRgb(
+        const c = zmath.hslToRgb(
             zmath.loadArr4(hsl),
         );
+        const multiplier: @Vector(4, f32) = @splat(255.0);
+        c *= multiplier;
         return .{
-            .r = @intFromFloat(_rgba[0] * 255),
-            .g = @intFromFloat(_rgba[1] * 255),
-            .b = @intFromFloat(_rgba[2] * 255),
-            .a = @intFromFloat(_rgba[3] * 255),
+            .r = @intFromFloat(c[0]),
+            .g = @intFromFloat(c[1]),
+            .b = @intFromFloat(c[2]),
+            .a = @intFromFloat(c[3]),
         };
     }
 
@@ -528,6 +536,11 @@ pub const Color = extern struct {
             (@as(u32, c.g) << 8) |
             (@as(u32, c.b) << 16) |
             (@as(u32, c.a) << 24);
+    }
+
+    pub inline fn lerp(c0: Color, c1: Color, t: f32) Color {
+        assert(t >= 0 and t <= 1);
+        return c0.toColorF().lerp(c1.toColorF(), t).toColor();
     }
 
     pub inline fn mod(c0: Color, c1: Color) Color {
@@ -617,6 +630,17 @@ pub const Color = extern struct {
 };
 
 pub const ColorF = extern struct {
+    pub const none = rgba(0, 0, 0, 0);
+    pub const black = rgb(0, 0, 0);
+    pub const white = rgb(1, 1, 1);
+    pub const red = rgb(1, 0, 0);
+    pub const green = rgb(0, 1, 0);
+    pub const blue = rgb(0, 0, 1);
+    pub const magenta = rgb(1, 0, 1);
+    pub const cyan = rgb(0, 1, 1);
+    pub const yellow = rgb(1, 1, 0);
+    pub const purple = rgb(1, 0.5, 1);
+
     r: f32,
     g: f32,
     b: f32,
@@ -630,21 +654,27 @@ pub const ColorF = extern struct {
         return ColorF{ .r = r, .g = g, .b = b, .a = a };
     }
 
-    pub inline fn fromColor(c: Color) ColorF {
-        return ColorF{
-            .r = @as(f32, @floatFromInt(c.r)) / 255.0,
-            .g = @as(f32, @floatFromInt(c.g)) / 255.0,
-            .b = @as(f32, @floatFromInt(c.b)) / 255.0,
-            .a = @as(f32, @floatFromInt(c.a)) / 255.0,
+    pub inline fn fromColor(_c: Color) ColorF {
+        var c: @Vector(4, f32) = .{
+            @floatFromInt(_c.r),
+            @floatFromInt(_c.g),
+            @floatFromInt(_c.b),
+            @floatFromInt(_c.a),
         };
+        const multiplier: @Vector(4, f32) = @splat(1.0 / 255.0);
+        c *= multiplier;
+        return ColorF{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
     }
 
-    pub inline fn toColor(c: ColorF) Color {
+    pub inline fn toColor(_c: ColorF) Color {
+        var c: @Vector(4, f32) = .{ _c.r, _c.g, _c.b, _c.a };
+        const multiplier: @Vector(4, f32) = @splat(255.0);
+        c *= multiplier;
         return .{
-            .r = @intFromFloat(c.r * 255),
-            .g = @intFromFloat(c.g * 255),
-            .b = @intFromFloat(c.b * 255),
-            .a = @intFromFloat(c.a * 255),
+            .r = @intFromFloat(c[0]),
+            .g = @intFromFloat(c[1]),
+            .b = @intFromFloat(c[2]),
+            .a = @intFromFloat(c[3]),
         };
     }
 
@@ -680,6 +710,14 @@ pub const ColorF = extern struct {
     /// Convert to ImGui's color type
     pub inline fn toInternalColor(c: ColorF) u32 {
         return c.toColor().toInternalColor();
+    }
+
+    pub inline fn lerp(_c0: ColorF, _c1: ColorF, t: f32) ColorF {
+        assert(t >= 0 and t <= 1);
+        const c0 = zmath.f32x4(_c0.r, _c0.g, _c0.b, _c0.a);
+        const c1 = zmath.f32x4(_c1.r, _c1.g, _c1.b, _c1.a);
+        const c = zmath.lerp(c0, c1, t);
+        return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
     }
 
     pub inline fn mod(c0: ColorF, c1: ColorF) ColorF {

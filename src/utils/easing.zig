@@ -297,6 +297,14 @@ pub fn easeColor(x: f32, _from: jok.Color, _to: jok.Color) jok.Color {
     return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
 }
 
+pub fn easeColorF(x: f32, _from: jok.ColorF, _to: jok.ColorF) jok.ColorF {
+    const es = EaseVector(4, f32);
+    const from = @Vector(4, f32){ _from.r, _from.g, _from.b, _from.a };
+    const to = @Vector(4, f32){ _to.r, _to.g, _to.b, _to.a };
+    const c = es.ease(x, from, to);
+    return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
+}
+
 pub fn easeArray(x: f32, comptime n: usize, _from: [n]f32, _to: [n]f32) [n]f32 {
     const es = EaseVector(n, f32);
     const from: @Vector(4, f32) = _from;

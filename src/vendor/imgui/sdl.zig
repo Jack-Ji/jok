@@ -16,15 +16,11 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
         unreachable;
     }
 
-    gui.getStyle().scaleAllSizes(ctx.getDpiScale());
     if (!enable_ini_file) {
         gui.io.setIniFilename(null);
     }
 
-    const font = gui.io.addFontFromMemory(
-        jok.font.DebugFont.font_data,
-        16 * ctx.getDpiScale(),
-    );
+    const font = gui.io.addFontFromMemory(jok.font.DebugFont.font_data, 16);
     gui.io.setDefaultFont(font);
 
     // Disable automatic mouse state updating
@@ -60,7 +56,7 @@ pub fn draw(ctx: jok.Context) void {
     ImGui_ImplSDLRenderer3_RenderDrawData(gui.getDrawData(), renderer.ptr);
 }
 
-pub fn processEvent(event: sdl.SDL_Event) bool {
+pub fn processEvent(event: sdl.c.SDL_Event) bool {
     return ImGui_ImplSDL3_ProcessEvent(&event);
 }
 
@@ -90,7 +86,7 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
         rd.setClipRegion(clip_region) catch unreachable;
 
         // Bind texture and draw
-        const tex = jok.Texture{ .ptr = @ptrCast(cmd.texture_id) };
+        const tex = jok.Texture{ .ptr = @ptrCast(@alignCast(cmd.texture_id)) };
         var indices: []u32 = undefined;
         indices.ptr = @ptrCast(is_ptr + cmd.idx_offset);
         indices.len = @intCast(cmd.elem_count);

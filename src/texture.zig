@@ -14,7 +14,6 @@ pub const Texture = struct {
     pub const ScaleMode = enum(sdl.c.SDL_ScaleMode) {
         nearest = sdl.c.SDL_SCALEMODE_NEAREST,
         linear = sdl.c.SDL_SCALEMODE_LINEAR,
-        pixelart = sdl.c.SDL_SCALEMODE_PIXELART,
     };
 
     ptr: *sdl.c.SDL_Texture,
@@ -49,7 +48,7 @@ pub const Texture = struct {
             pixels.ptr,
             @intCast(info.width * 4),
         )) {
-            log.err("update texture failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Update texture failed: {s}", .{sdl.c.SDL_GetError()});
             return error.SdlError;
         }
     }
@@ -57,7 +56,7 @@ pub const Texture = struct {
     pub fn getBlendMode(self: Texture) !jok.BlendMode {
         var blend_mode: sdl.c.SDL_BlendMode = undefined;
         if (!sdl.c.SDL_GetTextureBlendMode(self.ptr, &blend_mode)) {
-            log.err("get blend mode failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Get blend mode failed: {s}", .{sdl.c.SDL_GetError()});
             return error.SdlError;
         }
         return jok.BlendMode.fromNative(blend_mode);
@@ -65,7 +64,7 @@ pub const Texture = struct {
 
     pub fn setBlendMode(self: Texture, blend_mode: jok.BlendMode) !void {
         if (!sdl.c.SDL_SetTextureBlendMode(self.ptr, blend_mode.toNative())) {
-            log.err("set blend mode failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Set blend mode failed: {s}", .{sdl.c.SDL_GetError()});
             return error.SdlError;
         }
     }
@@ -73,7 +72,7 @@ pub const Texture = struct {
     pub fn getScaleMode(self: Texture) !ScaleMode {
         const scale_mode: sdl.c.SDL_ScaleMode = undefined;
         if (!sdl.c.SDL_GetTextureScaleMode(self.ptr, &scale_mode)) {
-            log.err("get scale mode failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Get scale mode failed: {s}", .{sdl.c.SDL_GetError()});
             return error.SdlError;
         }
         return @enumFromInt(scale_mode);
@@ -81,7 +80,7 @@ pub const Texture = struct {
 
     pub fn setScaleMode(self: Texture, scale_mode: ScaleMode) !void {
         if (!sdl.c.SDL_SetTextureScaleMode(self.ptr, @intFromEnum(scale_mode))) {
-            log.err("set scale mode failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Set scale mode failed: {s}", .{sdl.c.SDL_GetError()});
             return error.SdlError;
         }
     }
@@ -146,7 +145,7 @@ pub const Texture = struct {
             &pixels,
             &pitch,
         )) {
-            log.err("lock texture failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Lock texture failed: {s}", .{sdl.c.SDL_GetError()});
             return error.SdlError;
         }
         assert(@rem(pitch, 4) == 0);
@@ -188,7 +187,7 @@ pub const Texture = struct {
             &pixels,
             &pitch,
         )) {
-            log.err("lock texture failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Lock texture failed: {s}", .{sdl.c.SDL_GetError()});
             return error.SdlError;
         }
         assert(@as(u32, @intCast(pitch)) == data.width * 4);

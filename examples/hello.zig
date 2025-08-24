@@ -26,9 +26,9 @@ var screenshot_time: i64 = -1;
 var screenshot_tex: ?jok.Texture = null;
 var screenshot_pos: jok.Point = undefined;
 var screenshot_size: jok.Point = undefined;
-var screenshot_tint_color: jok.Color = undefined;
+var screenshot_tint_color: jok.ColorF = undefined;
 var point_easing_system: *easing.EasingSystem(jok.Point) = undefined;
-var color_easing_system: *easing.EasingSystem(jok.Color) = undefined;
+var color_easing_system: *easing.EasingSystem(jok.ColorF) = undefined;
 var show_stats: bool = true;
 var suppress: bool = true;
 
@@ -64,7 +64,7 @@ pub fn init(ctx: jok.Context) !void {
     text_draw_pos = csz.toPoint().scale(0.5);
     text_speed = .{ .x = 100, .y = 100 };
     point_easing_system = try easing.EasingSystem(jok.Point).create(ctx.allocator());
-    color_easing_system = try easing.EasingSystem(jok.Color).create(ctx.allocator());
+    color_easing_system = try easing.EasingSystem(jok.ColorF).create(ctx.allocator());
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
@@ -76,19 +76,11 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
         .key_down => |k| {
             if (k.scancode == .f1) {
                 S.fullscreen = !S.fullscreen;
-                try ctx.window().setFullscreen(if (S.fullscreen) .desktop_fullscreen else .none);
+                try ctx.window().setFullscreen(S.fullscreen);
             } else if (k.scancode == .f2) {
                 const csz = ctx.getCanvasSize();
-                const pixels = try ctx.renderer().getPixels(ctx.allocator(), null);
+                const pixels = try ctx.renderer().getPixels(null);
                 defer pixels.destroy();
-                try jok.utils.gfx.savePixelsToFile(
-                    ctx,
-                    pixels.pixels,
-                    pixels.width,
-                    pixels.height,
-                    "screenshot.png",
-                    .{},
-                );
                 screenshot_tex = try pixels.createTexture(ctx.renderer(), .{});
                 screenshot_time = std.time.timestamp();
                 try point_easing_system.add(
@@ -112,7 +104,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                 try color_easing_system.add(
                     &screenshot_tint_color,
                     .in_out_quad,
-                    easing.easeColor,
+                    easing.easeColorF,
                     1,
                     .none,
                     .white,
@@ -121,7 +113,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
             } else if (k.scancode == .f3) {
                 show_stats = !show_stats;
             } else if (k.scancode == .f4) {
-                ctx.window().setPosition(.center);
+                try ctx.window().setPosition(.center);
             }
         },
         else => {},
@@ -173,8 +165,8 @@ pub fn draw(ctx: jok.Context) !void {
             defer b.popTransform();
             b.setIdentity();
             b.scaleAroundWorldOrigin(.{
-                (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
-                (1.3 + std.math.sin(ctx.seconds())) * ctx.getDpiScale(),
+                (1.3 + std.math.sin(ctx.seconds())),
+                (1.3 + std.math.sin(ctx.seconds())),
             });
             b.rotateByWorldOrigin(ctx.seconds());
             b.translate(.{
@@ -226,10 +218,10 @@ pub fn draw(ctx: jok.Context) !void {
         var b = try batchpool_3d.new(.{ .camera = camera, .triangle_sort = .simple });
         defer b.submit();
 
-        const color = jok.Color.rgb(
-            @intFromFloat(128 + 127 * std.math.sin(ctx.seconds())),
-            100,
-            @intFromFloat(128 + 127 * std.math.cos(ctx.seconds())),
+        const color = jok.ColorF.rgb(
+            0.5 + 0.5 * std.math.sin(ctx.seconds()),
+            0.4,
+            0.5 + 0.5 * std.math.cos(ctx.seconds()),
         );
 
         b.rotateY(ctx.seconds());
@@ -295,7 +287,7 @@ pub fn draw(ctx: jok.Context) !void {
                         .width = @intFromFloat(screenshot_size.x - 10),
                         .height = @intFromFloat(screenshot_size.y - 10),
                     },
-                    .tint_color = screenshot_tint_color,
+                    .tint_color = screenshot_tint_color.toColor(),
                 },
             );
         } else {

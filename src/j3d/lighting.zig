@@ -44,22 +44,22 @@ pub const LightingOption = struct {
 
     // Calculate color of light source
     light_calc_fn: ?*const fn (
-        material_color: jok.Color,
+        material_color: jok.ColorF,
         eye_pos: zmath.Vec,
         vertex_pos: zmath.Vec,
         normal: zmath.Vec,
         opt: LightingOption,
-    ) jok.Color = null,
+    ) jok.ColorF = null,
 };
 
 /// Calculate tint color of vertex according to lighting paramters
 pub fn calcLightColor(
-    material_color: jok.Color,
+    material_color: jok.ColorF,
     eye_pos: zmath.Vec,
     vertex_pos: zmath.Vec,
     normal: zmath.Vec,
     opt: LightingOption,
-) jok.Color {
+) jok.ColorF {
     const S = struct {
         inline fn calcColor(
             raw_color: zmath.Vec,
@@ -91,13 +91,12 @@ pub fn calcLightColor(
     assert(math.approxEqAbs(f32, eye_pos[3], 1.0, math.floatEps(f32)));
     assert(math.approxEqAbs(f32, vertex_pos[3], 1.0, math.floatEps(f32)));
     assert(math.approxEqAbs(f32, normal[3], 0, math.floatEps(f32)));
-    const ts = zmath.f32x4s(1.0 / 255.0);
     const raw_color = zmath.f32x4(
-        @floatFromInt(material_color.r),
-        @floatFromInt(material_color.g),
-        @floatFromInt(material_color.b),
+        material_color.r,
+        material_color.g,
+        material_color.b,
         0,
-    ) * ts;
+    );
 
     var final_color = zmath.f32x4s(0);
     for (opt.lights[0..opt.lights_num]) |ul| {
@@ -166,9 +165,9 @@ pub fn calcLightColor(
         zmath.f32x4s(1),
     );
     return .{
-        .r = @intFromFloat(final_color[0] * 255),
-        .g = @intFromFloat(final_color[1] * 255),
-        .b = @intFromFloat(final_color[2] * 255),
+        .r = final_color[0],
+        .g = final_color[1],
+        .b = final_color[2],
         .a = material_color.a,
     };
 }

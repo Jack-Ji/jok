@@ -21,7 +21,7 @@ pub const Vector = @import("j3d/Vector.zig");
 
 pub const RenderOption = struct {
     cull_faces: bool = true,
-    color: jok.Color = .white,
+    color: jok.ColorF = .white,
     shading_method: ShadingMethod = .gouraud,
     texture: ?jok.Texture = null,
     lighting: ?LightingOption = null,
@@ -29,12 +29,12 @@ pub const RenderOption = struct {
 
 pub const BatchOption = struct {
     camera: ?Camera = null,
-    wireframe_color: ?jok.Color = null,
+    wireframe_color: ?jok.ColorF = null,
     triangle_sort: TriangleSort = .none,
     blend_mode: jok.BlendMode = .blend,
     clip_rect: ?jok.Rectangle = null,
     offscreen_target: ?jok.Texture = null,
-    offscreen_clear_color: ?jok.Color = null,
+    offscreen_clear_color: ?jok.ColorF = null,
 };
 
 pub const TriangleSort = union(enum(u8)) {
@@ -58,7 +58,7 @@ pub const Batch = struct {
     skybox_rd: SkyboxRenderer,
     trs_stack: std.array_list.Managed(zmath.Mat),
     trs: zmath.Mat,
-    wireframe_color: ?jok.Color,
+    wireframe_color: ?jok.ColorF,
     triangle_sort: TriangleSort,
     indices: std.array_list.Managed(u32),
     vertices: std.array_list.Managed(jok.Vertex),
@@ -68,7 +68,7 @@ pub const Batch = struct {
     draw_list: imgui.DrawList,
     blend_mode: jok.BlendMode,
     offscreen_target: ?jok.Texture,
-    offscreen_clear_color: ?jok.Color,
+    offscreen_clear_color: ?jok.ColorF,
 
     fn init(_ctx: jok.Context) Batch {
         const allocator = _ctx.allocator();
@@ -265,7 +265,7 @@ pub const Batch = struct {
         const old_target = rd.getTarget();
         if (self.offscreen_target) |t| {
             rd.setTarget(t) catch unreachable;
-            if (self.offscreen_clear_color) |c| rd.clear(c) catch unreachable;
+            if (self.offscreen_clear_color) |c| rd.clear(c.toColor()) catch unreachable;
         }
         defer if (self.offscreen_target != null) {
             rd.setTarget(old_target) catch unreachable;
@@ -277,7 +277,7 @@ pub const Batch = struct {
             // Apply blend mode to textures
             var it = self.all_tex.keyIterator();
             while (it.next()) |k| {
-                const tex = jok.Texture{ .ptr = @ptrCast(k.*) };
+                const tex = jok.Texture{ .ptr = @ptrCast(@alignCast(k.*)) };
                 tex.setBlendMode(self.blend_mode) catch unreachable;
             }
 
@@ -482,7 +482,7 @@ pub const Batch = struct {
     pub fn skybox(
         self: *Batch,
         textures: [6]jok.Texture,
-        color: ?jok.Color,
+        color: ?jok.ColorF,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);

@@ -548,22 +548,22 @@ pub inline fn getVerticesOfCodePoint(
         .vs = [_]jok.Vertex{
             .{
                 .pos = .{ .x = quad.x0, .y = quad.y0 + yoffset },
-                .color = color,
+                .color = color.toColorF(),
                 .texcoord = .{ .x = quad.s0, .y = quad.t0 },
             },
             .{
                 .pos = .{ .x = quad.x1, .y = quad.y0 + yoffset },
-                .color = color,
+                .color = color.toColorF(),
                 .texcoord = .{ .x = quad.s1, .y = quad.t0 },
             },
             .{
                 .pos = .{ .x = quad.x1, .y = quad.y1 + yoffset },
-                .color = color,
+                .color = color.toColorF(),
                 .texcoord = .{ .x = quad.s1, .y = quad.t1 },
             },
             .{
                 .pos = .{ .x = quad.x0, .y = quad.y1 + yoffset },
-                .color = color,
+                .color = color.toColorF(),
                 .texcoord = .{ .x = quad.s0, .y = quad.t1 },
             },
         },

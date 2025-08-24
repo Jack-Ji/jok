@@ -15,6 +15,7 @@ pub const Circle = basic.Circle;
 pub const Ellipse = basic.Ellipse;
 pub const Triangle = basic.Triangle;
 pub const Color = basic.Color;
+pub const ColorF = basic.ColorF;
 pub const Vertex = basic.Vertex;
 
 /// Window of App

@@ -91,7 +91,7 @@ pub fn render(
     batch: *j3d.Batch,
     camera: Camera,
     textures: [6]jok.Texture, // cube textures: right/left/top/bottom/front/back
-    color: ?jok.Color, // tint color
+    color: ?jok.ColorF, // tint color
 ) !void {
     const csz_w = csz.getWidthFloat();
     const csz_h = csz.getHeightFloat();

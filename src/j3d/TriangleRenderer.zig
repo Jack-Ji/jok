@@ -39,7 +39,7 @@ pub const RenderMeshOption = struct {
     front_face: FrontFace = .cw,
 
     /// Uniform material color
-    color: jok.Color = .white,
+    color: jok.ColorF = .white,
 
     /// Shading style
     shading_method: ShadingMethod = .gouraud,
@@ -59,7 +59,7 @@ pub const RenderSpriteOption = struct {
     texture: ?jok.Texture = null,
 
     /// Tint color
-    tint_color: jok.Color = .white,
+    tint_color: jok.ColorF = .white,
 
     /// Shading style
     shading_method: ShadingMethod = .gouraud,
@@ -92,7 +92,7 @@ pub const RenderSpriteOption = struct {
 
 // Temporary storage for clipping
 clip_vertices: std.array_list.Managed(zmath.Vec),
-clip_colors: std.array_list.Managed(jok.Color),
+clip_colors: std.array_list.Managed(jok.ColorF),
 clip_texcoords: std.array_list.Managed(jok.Point),
 
 // Vertices in world space (after clipped)
@@ -150,7 +150,7 @@ pub fn renderMesh(
     indices: []const u32,
     positions: []const [3]f32,
     normals: ?[]const [3]f32,
-    colors: ?[]const jok.Color,
+    colors: ?[]const jok.ColorF,
     texcoords: ?[]const [2]f32,
     opt: RenderMeshOption,
 ) !void {
@@ -300,8 +300,8 @@ pub fn renderMesh(
                 zmath.normalize3(world_n2),
             };
         } else null;
-        const tri_colors: ?[3]jok.Color = if (colors) |cs|
-            [3]jok.Color{ cs[idx0], cs[idx1], cs[idx2] }
+        const tri_colors: ?[3]jok.ColorF = if (colors) |cs|
+            [3]jok.ColorF{ cs[idx0], cs[idx1], cs[idx2] }
         else
             null;
         const tri_texcoords: ?[3]jok.Point = if (texcoords) |ts|
@@ -362,9 +362,9 @@ pub fn renderMesh(
         const d2 = positions_screen[2][2];
 
         // Get color of vertices
-        var c0: jok.Color = undefined;
-        var c1: jok.Color = undefined;
-        var c2: jok.Color = undefined;
+        var c0: jok.ColorF = undefined;
+        var c1: jok.ColorF = undefined;
+        var c2: jok.ColorF = undefined;
         switch (opt.shading_method) {
             .gouraud => {
                 const c0_diffuse = if (colors) |_| self.clip_colors.items[idx0] else opt.color;
@@ -390,19 +390,11 @@ pub fn renderMesh(
                 } else c2_diffuse;
             },
             .flat => {
-                const c0_diffuse = if (colors) |_| jok.Color{
-                    .r = @intCast((@as(u16, self.clip_colors.items[idx0].r) +
-                        @as(u16, self.clip_colors.items[idx1].r) +
-                        @as(u16, self.clip_colors.items[idx2].r)) / 3),
-                    .g = @intCast((@as(u16, self.clip_colors.items[idx0].g) +
-                        @as(u16, self.clip_colors.items[idx1].g) +
-                        @as(u16, self.clip_colors.items[idx2].g)) / 3),
-                    .b = @intCast((@as(u16, self.clip_colors.items[idx0].b) +
-                        @as(u16, self.clip_colors.items[idx1].b) +
-                        @as(u16, self.clip_colors.items[idx2].b)) / 3),
-                    .a = @intCast((@as(u16, self.clip_colors.items[idx0].a) +
-                        @as(u16, self.clip_colors.items[idx1].a) +
-                        @as(u16, self.clip_colors.items[idx2].a)) / 3),
+                const c0_diffuse = if (colors) |_| jok.ColorF{
+                    .r = (self.clip_colors.items[idx0].r + self.clip_colors.items[idx1].r + self.clip_colors.items[idx2].r) / 3.0,
+                    .g = (self.clip_colors.items[idx0].g + self.clip_colors.items[idx1].g + self.clip_colors.items[idx2].g) / 3.0,
+                    .b = (self.clip_colors.items[idx0].b + self.clip_colors.items[idx1].b + self.clip_colors.items[idx2].b) / 3.0,
+                    .a = (self.clip_colors.items[idx0].a + self.clip_colors.items[idx1].a + self.clip_colors.items[idx2].a) / 3.0,
                 } else opt.color;
                 c0 = if (opt.lighting) |lt| BLK: {
                     var center = (world_v0 + world_v1 + world_v2) / zmath.f32x4s(3);
