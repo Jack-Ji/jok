@@ -50,8 +50,8 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
             "c/zwrapper/zplot.cpp",
             "c/zwrapper/zgizmo.cpp",
             "c/zwrapper/znode_editor.cpp",
-            "c/impl/imgui_impl_sdl2.cpp",
-            "c/impl/imgui_impl_sdlrenderer2.cpp",
+            "c/impl/imgui_impl_sdl3.cpp",
+            "c/impl/imgui_impl_sdlrenderer3.cpp",
         },
         .flags = cflags,
     });

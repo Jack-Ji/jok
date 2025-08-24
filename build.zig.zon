@@ -1,6 +1,6 @@
 .{
     .name = .jok,
-    .version = "0.57.1",
+    .version = "0.58.0",
     .fingerprint = 0x8204585c92cd7f34, // Changing this has security and trust implications.
     .paths = .{
         "README.md",
@@ -11,6 +11,10 @@
         "examples",
     },
     .dependencies = .{
+        .sdl = .{
+            .url = "git+https://github.com/castholm/SDL#1994ca5dbad5a3e3c670a9ab8533d86cfd97bdc0",
+            .hash = "sdl-0.2.6+3.2.20-7uIn9NgjfwHH5a6HhyLHat2nHU3OP5B05QHhKJKuxEex",
+        },
         .emsdk = .{
             .url = "git+https://github.com/emscripten-core/emsdk?ref=4.0.10#62a853cd3b3134398ce85cde8bb5cbb2ef0194cb",
             .hash = "N-V-__8AAEWFDwBdd7oE1EcCE3lK2y01-2ourXGKhpZeaZxQ",

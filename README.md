@@ -1,18 +1,18 @@
 [![build](/../../actions/workflows/windows_native.yml/badge.svg)](/../../actions/workflows/windows_native.yml) [![build](/../../actions/workflows/linux_native.yml/badge.svg)](/../../actions/workflows/linux_native.yml) [![build](/../../actions/workflows/macos_native.yml/badge.svg)](/../../actions/workflows/macos_native.yml) [![build](/../../actions/workflows/webassembly.yml/badge.svg)](/../../actions/workflows/webassembly.yml) [![build](/../../actions/workflows/windows_cross.yml/badge.svg)](/../../actions/workflows/windows_cross.yml) [![build](/../../actions/workflows/linux_cross.yml/badge.svg)](/../../actions/workflows/linux_cross.yml)
 
-
 # jok
 A minimal 2d/3d game framework for zig.
 
+**The main branch is in the progress of porting to SDL3, please consider SDL2 branch in the mean time.**
+
 ## What you need?
 * [Zig Compiler](https://ziglang.org/download/) (Master branch always targets latest zig, use tagged release if you wanna stick to stable version)
-* SDL2 Library
 * Any code editor you like (consider using [zls](https://github.com/zigtools/zls) for your own favor)
 
 ## Features
 * Friendly build system, very easy to setup new project
 * Able to cross-compile between Windows and Linux (thanks to [ziglang](https://ziglang.org))
-* Excellent rendering performance (thanks to SDL2's [geometry rendering](https://wiki.libsdl.org/SDL2/SDL_RenderGeometryRaw))
+* Excellent rendering performance (thanks to SDL3's [geometry rendering](https://wiki.libsdl.org/SDL3/SDL_RenderGeometryRaw))
 * Fully integrated Dear-ImGui
 * Asset system (via [physfs](https://github.com/icculus/physfs), supports fs/zip/7zip/iso etc)
 * Plugin System (register/unregister/hot-reloading)
@@ -131,40 +131,6 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     }
     ```
 
-3. Install SDL2 library:
-
-    * Windows Platform
-    
-        Download SDL2 library from [here](https://libsdl.org/), extract into your hard drive, and create file `.build_config/sdl.json` in your project directory:
-        ```json
-        {
-          "x86_64-windows-gnu": {
-            "include": "D:/SDL2-2.28.5/x86_64-w64-mingw32/include",
-            "libs": "D:/SDL2-2.28.5/x86_64-w64-mingw32/lib",
-            "bin": "D:/SDL2-2.28.5/x86_64-w64-mingw32/bin"
-          }
-        }
-        ```
-        If you have multiple projects, you can config path to a global `sdl.json` using environment variable, defaults to `SDL_CONFIG_PATH`.
-    
-    * Linux Platform
-    
-        Debian/Ubuntu:
-        ```bash
-        sudo apt install libsdl2-dev
-        ```
-    
-        Fedora/CentOS:
-        ```bash
-        sudo yum install SDL2-devel
-        ```
-    
-    * MacOS
-    
-        ```bash
-        brew install sdl2
-        ```
-
 4. Write some code!
 
     You may import and use jok now, here's skeleton of your `src/main.zig`:
@@ -238,7 +204,7 @@ With so many tools, engines and computing resources at hand, however, gamedev is
 The limitations demand developers to be both creative and careful about game's design.
 
 ## Third-Party Libraries
-* [SDL2](https://www.libsdl.org) (zlib license)
+* [SDL3](https://www.libsdl.org) (zlib license)
 * [physfs](https://github.com/icculus/physfs) (zlib license)
 * [zig-gamedev](https://github.com/zig-gamedev/zig-gamedev) (MIT license)
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)

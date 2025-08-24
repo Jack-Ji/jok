@@ -401,8 +401,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             comptime drawFn: *const fn (Context) anyerror!void,
         ) void {
             const pc_threshold: u64 = switch (cfg.jok_fps_limit) {
-                .none => 0,
-                .auto => 0,
+                .none, .auto => 0,
                 .manual => |_fps| self._pc_freq / @as(u64, _fps),
             };
 
@@ -669,7 +668,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             if (sdl_version.major < 2 or (sdl_version.minor == 0 and sdl_version.patch < 18)) {
                 log.err("SDL version too low, need at least 2.0.18", .{});
-                return sdl.Error.SdlError;
+                return error.SdlError;
             }
         }
 
@@ -685,7 +684,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
             if (sdl.SDL_Init(sdl.SDL_INIT_EVERYTHING & ~excluded) < 0) {
                 log.err("Initialize SDL2 failed: {s}", .{sdl.SDL_GetError()});
-                return sdl.Error.SdlError;
+                return error.SdlError;
             }
 
             // Initialize dpi

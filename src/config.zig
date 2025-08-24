@@ -63,7 +63,7 @@ pub const WindowSize = union(enum) {
 /// Graphics flushing method
 pub const FpsLimit = union(enum) {
     none, // No limit, draw as fast as we can
-    auto, // Enable vsync when hardware acceleration is available, default to 30 fps otherwise
+    auto, // Capped by vsync automatically
     manual: u32, // Capped to given fps, fixed time step
 
     pub inline fn str(self: @This()) []const u8 {

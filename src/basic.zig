@@ -208,7 +208,7 @@ pub const Rectangle = extern struct {
     }
 
     pub inline fn hasIntersection(r: Rectangle, b: Rectangle) bool {
-        if (sdl.SDL_HasIntersectionF(@ptrCast(&r), @ptrCast(&b)) == 1) {
+        if (sdl.c.SDL_HasRectIntersectionFloat(@ptrCast(&r), @ptrCast(&b)) == 1) {
             return true;
         }
         return false;
@@ -216,7 +216,7 @@ pub const Rectangle = extern struct {
 
     pub inline fn intersectRect(r: Rectangle, b: Rectangle) ?Rectangle {
         var result: Rectangle = undefined;
-        if (sdl.SDL_IntersectFRect(@ptrCast(&r), @ptrCast(&b), @ptrCast(&result)) == 1) {
+        if (sdl.c.SDL_GetRectIntersectionFloat(@ptrCast(&r), @ptrCast(&b), @ptrCast(&result)) == 1) {
             return result;
         }
         return null;
@@ -225,7 +225,7 @@ pub const Rectangle = extern struct {
     pub inline fn intersectLine(r: Rectangle, _p0: Point, _p1: Point) ?std.meta.Tuple(&.{ Point, Point }) {
         var p0: Point = _p0;
         var p1: Point = _p1;
-        if (sdl.SDL_IntersectFRectAndLine(@ptrCast(&r), &p0.x, &p0.y, &p1.x, &p1.y) == 1) {
+        if (sdl.c.SDL_GetRectAndLineIntersectionFloat(@ptrCast(&r), &p0.x, &p0.y, &p1.x, &p1.y) == 1) {
             return .{ p0, p1 };
         }
         return null;
@@ -423,8 +423,6 @@ pub const Triangle = extern struct {
 pub const Color = extern struct {
     pub const ParseError = error{
         UnknownFormat,
-        InvalidCharacter,
-        Overflow,
     };
     pub const none = rgba(0x00, 0x00, 0x00, 0x00);
     pub const black = rgb(0x00, 0x00, 0x00);
@@ -450,65 +448,42 @@ pub const Color = extern struct {
         return Color{ .r = r, .g = g, .b = b, .a = a };
     }
 
-    pub inline fn fromFloat3(c: [3]f32) Color {
-        assert(c[0] >= 0 and c[0] <= 1);
-        assert(c[1] >= 0 and c[1] <= 1);
-        assert(c[2] >= 0 and c[2] <= 1);
+    pub inline fn fromColorF(c: ColorF) Color {
         return Color{
-            .r = @intFromFloat(c[0] * 255),
-            .g = @intFromFloat(c[1] * 255),
-            .b = @intFromFloat(c[2] * 255),
+            .r = @intFromFloat(c.r * 255),
+            .g = @intFromFloat(c.g * 255),
+            .b = @intFromFloat(c.b * 255),
+            .a = @intFromFloat(c.a * 255),
         };
     }
 
-    pub inline fn toFloat3(c: Color) [3]f32 {
+    pub inline fn toColorF(c: Color) ColorF {
         return .{
-            @as(f32, @floatFromInt(c.r)) / 255,
-            @as(f32, @floatFromInt(c.g)) / 255,
-            @as(f32, @floatFromInt(c.b)) / 255,
+            .r = @as(f32, @floatFromInt(c.r)) / 255,
+            .g = @as(f32, @floatFromInt(c.g)) / 255,
+            .b = @as(f32, @floatFromInt(c.b)) / 255,
+            .a = @as(f32, @floatFromInt(c.a)) / 255,
         };
     }
 
-    pub inline fn fromFloat4(c: [4]f32) Color {
-        assert(c[0] >= 0 and c[0] <= 1);
-        assert(c[1] >= 0 and c[1] <= 1);
-        assert(c[2] >= 0 and c[2] <= 1);
-        assert(c[3] >= 0 and c[3] <= 1);
-        return Color{
-            .r = @intFromFloat(c[0] * 255),
-            .g = @intFromFloat(c[1] * 255),
-            .b = @intFromFloat(c[2] * 255),
-            .a = @intFromFloat(c[3] * 255),
-        };
-    }
-
-    pub inline fn toFloat4(c: Color) [4]f32 {
-        return .{
-            @as(f32, @floatFromInt(c.r)) / 255,
-            @as(f32, @floatFromInt(c.g)) / 255,
-            @as(f32, @floatFromInt(c.b)) / 255,
-            @as(f32, @floatFromInt(c.a)) / 255,
-        };
-    }
-
-    inline fn getPixelFormat() [*c]sdl.SDL_PixelFormat {
+    inline fn getPixelFormatDetails() [*c]sdl.c.SDL_PixelFormatDetails {
         const S = struct {
-            var pixel_format: ?[*c]sdl.SDL_PixelFormat = null;
+            var pixel_format: ?[*c]sdl.c.SDL_PixelFormatDetails = null;
         };
         if (S.pixel_format == null) {
-            S.pixel_format = sdl.SDL_AllocFormat(sdl.SDL_PIXELFORMAT_RGBA32);
+            S.pixel_format = sdl.c.SDL_GetPixelFormatDetails(sdl.c.SDL_PIXELFORMAT_RGBA32);
         }
         return S.pixel_format.?;
     }
 
     pub inline fn fromRGBA32(i: u32) Color {
         var c: Color = undefined;
-        sdl.SDL_GetRGBA(i, getPixelFormat(), &c.r, &c.g, &c.b, &c.a);
+        sdl.c.SDL_GetRGBA(i, getPixelFormatDetails(), &c.r, &c.g, &c.b, &c.a);
         return c;
     }
 
     pub inline fn toRGBA32(c: Color) u32 {
-        return sdl.SDL_MapRGBA(getPixelFormat(), c.r, c.g, c.b, c.a);
+        return sdl.c.SDL_MapRGBA(getPixelFormatDetails(), c.r, c.g, c.b, c.a);
     }
 
     /// Convert from HSL
@@ -641,8 +616,84 @@ pub const Color = extern struct {
     }
 };
 
+pub const ColorF = extern struct {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32 = 1,
+
+    pub inline fn rgb(r: f32, g: f32, b: f32) ColorF {
+        return ColorF{ .r = r, .g = g, .b = b };
+    }
+
+    pub inline fn rgba(r: f32, g: f32, b: f32, a: f32) ColorF {
+        return ColorF{ .r = r, .g = g, .b = b, .a = a };
+    }
+
+    pub inline fn fromColor(c: Color) ColorF {
+        return ColorF{
+            .r = @as(f32, @floatFromInt(c.r)) / 255.0,
+            .g = @as(f32, @floatFromInt(c.g)) / 255.0,
+            .b = @as(f32, @floatFromInt(c.b)) / 255.0,
+            .a = @as(f32, @floatFromInt(c.a)) / 255.0,
+        };
+    }
+
+    pub inline fn toColor(c: ColorF) Color {
+        return .{
+            .r = @intFromFloat(c.r * 255),
+            .g = @intFromFloat(c.g * 255),
+            .b = @intFromFloat(c.b * 255),
+            .a = @intFromFloat(c.a * 255),
+        };
+    }
+
+    pub inline fn fromRGBA32(i: u32) ColorF {
+        return fromColor(Color.fromRGBA32(i));
+    }
+
+    pub inline fn toRGBA32(c: ColorF) u32 {
+        return c.toColor().toRGBA32();
+    }
+
+    /// Convert from HSL
+    pub inline fn fromHSL(hsl: [4]f32) ColorF {
+        const _rgba = zmath.hslToRgb(
+            zmath.loadArr4(hsl),
+        );
+        return .{ .r = _rgba[0], .g = _rgba[1], .b = _rgba[2], .a = _rgba[3] };
+    }
+
+    /// Convert to HSL
+    pub inline fn toHSL(c: ColorF) [4]f32 {
+        const hsl = zmath.rgbToHsl(
+            zmath.f32x4(c.r, c.g, c.b, c.a),
+        );
+        return zmath.vecToArr4(hsl);
+    }
+
+    /// Convert from ImGui's color type
+    pub inline fn fromInternalColor(c: u32) ColorF {
+        return fromColor(Color.fromInternalColor(c));
+    }
+
+    /// Convert to ImGui's color type
+    pub inline fn toInternalColor(c: ColorF) u32 {
+        return c.toColor().toInternalColor();
+    }
+
+    pub inline fn mod(c0: ColorF, c1: ColorF) ColorF {
+        return .{
+            .r = c0.r * c1.r,
+            .g = c0.g * c1.g,
+            .b = c0.b * c1.b,
+            .a = c0.a * c1.a,
+        };
+    }
+};
+
 pub const Vertex = extern struct {
     pos: Point,
-    color: Color,
+    color: ColorF,
     texcoord: Point = undefined,
 };

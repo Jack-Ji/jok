@@ -8,11 +8,11 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
 
     const window = ctx.window();
     const renderer = ctx.renderer();
-    if (!ImGui_ImplSDL2_InitForSDLRenderer(window.ptr, renderer.ptr)) {
+    if (!ImGui_ImplSDL3_InitForSDLRenderer(window.ptr, renderer.ptr)) {
         unreachable;
     }
 
-    if (!ImGui_ImplSDLRenderer2_Init(renderer.ptr)) {
+    if (!ImGui_ImplSDLRenderer3_Init(renderer.ptr)) {
         unreachable;
     }
 
@@ -35,14 +35,14 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
 
 pub fn deinit() void {
     gui.plot.deinit();
-    ImGui_ImplSDLRenderer2_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
+    ImGui_ImplSDLRenderer3_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
     gui.deinit();
 }
 
 pub fn newFrame(ctx: jok.Context) void {
-    ImGui_ImplSDLRenderer2_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
+    ImGui_ImplSDLRenderer3_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
 
     const fbsize = ctx.renderer().getOutputSize() catch unreachable;
     gui.io.setDisplaySize(
@@ -57,11 +57,11 @@ pub fn newFrame(ctx: jok.Context) void {
 pub fn draw(ctx: jok.Context) void {
     const renderer = ctx.renderer();
     gui.render();
-    ImGui_ImplSDLRenderer2_RenderDrawData(gui.getDrawData(), renderer.ptr);
+    ImGui_ImplSDLRenderer3_RenderDrawData(gui.getDrawData(), renderer.ptr);
 }
 
 pub fn processEvent(event: sdl.SDL_Event) bool {
-    return ImGui_ImplSDL2_ProcessEvent(&event);
+    return ImGui_ImplSDL3_ProcessEvent(&event);
 }
 
 pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
@@ -109,12 +109,12 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
     }
 }
 
-// These functions are defined in `imgui_impl_sdl2.cpp` and 'imgui_impl_sdlrenderer2.cpp`
-extern fn ImGui_ImplSDL2_InitForSDLRenderer(window: *const anyopaque, renderer: *const anyopaque) bool;
-extern fn ImGui_ImplSDL2_NewFrame() void;
-extern fn ImGui_ImplSDL2_Shutdown() void;
-extern fn ImGui_ImplSDL2_ProcessEvent(event: *const anyopaque) bool;
-extern fn ImGui_ImplSDLRenderer2_Init(renderer: *const anyopaque) bool;
-extern fn ImGui_ImplSDLRenderer2_NewFrame() void;
-extern fn ImGui_ImplSDLRenderer2_RenderDrawData(draw_data: *const anyopaque, renderer: *const anyopaque) void;
-extern fn ImGui_ImplSDLRenderer2_Shutdown() void;
+// These functions are defined in `imgui_impl_sdl3.cpp` and 'imgui_impl_sdlrenderer3.cpp`
+extern fn ImGui_ImplSDL3_InitForSDLRenderer(window: *const anyopaque, renderer: *const anyopaque) bool;
+extern fn ImGui_ImplSDL3_NewFrame() void;
+extern fn ImGui_ImplSDL3_Shutdown() void;
+extern fn ImGui_ImplSDL3_ProcessEvent(event: *const anyopaque) bool;
+extern fn ImGui_ImplSDLRenderer3_Init(renderer: *const anyopaque) bool;
+extern fn ImGui_ImplSDLRenderer3_NewFrame() void;
+extern fn ImGui_ImplSDLRenderer3_RenderDrawData(draw_data: *const anyopaque, renderer: *const anyopaque) void;
+extern fn ImGui_ImplSDLRenderer3_Shutdown() void;
