@@ -21,7 +21,7 @@ pub fn GenericTimer(comptime fun: anytype) type {
         allocator: std.mem.Allocator,
         fp: *const FunType,
         args: ArgsType,
-        timer_id: ?sdl.SDL_TimerID = null,
+        timer_id: ?sdl.c.SDL_TimerID = null,
         controller: ?*TimerController = null,
         td: ?*TimerController.TimerData = null,
 

@@ -213,8 +213,8 @@ pub const Effect = struct {
         comptime _radius: f32,
         comptime _acceleration: f32,
         comptime _age: f32,
-        comptime _color_initial: jok.Color,
-        comptime _color_final: jok.Color,
+        comptime _color_initial: jok.ColorF,
+        comptime _color_final: jok.ColorF,
         comptime _color_fade_age: f32,
     ) type {
         return struct {
@@ -307,9 +307,9 @@ pub const Particle = struct {
     scale_max: f32 = 1,
 
     /// Color changing
-    color: jok.Color = undefined,
-    color_initial: jok.Color = .white,
-    color_final: jok.Color = .white,
+    color: jok.ColorF = undefined,
+    color_initial: jok.ColorF = .white,
+    color_final: jok.ColorF = .white,
     color_fade_age: f32 = 0,
 
     fn updatePos(self: *Particle, delta_time: f32) void {
@@ -332,8 +332,8 @@ pub const Particle = struct {
         self.scale = std.math.clamp(self.scale, 0.0, self.scale_max);
     }
 
-    fn lerpColorElement(v1: u8, v2: u8, c1: f32, c2: f32) u8 {
-        return @intFromFloat(@as(f32, @floatFromInt(v1)) * c1 + @as(f32, @floatFromInt(v2)) * c2);
+    fn lerpColorElement(v1: f32, v2: f32, c1: f32, c2: f32) f32 {
+        return v1 * c1 + v2 * c2;
     }
 
     fn updateColor(self: *Particle) void {
@@ -341,14 +341,8 @@ pub const Particle = struct {
             self.color = self.color_initial;
         } else {
             assert(self.color_fade_age > 0);
-            const c1 = @max(self.age, 0.0) / self.color_fade_age;
-            const c2 = 1.0 - c1;
-            self.color = .{
-                .r = lerpColorElement(self.color_initial.r, self.color_final.r, c1, c2),
-                .g = lerpColorElement(self.color_initial.g, self.color_final.g, c1, c2),
-                .b = lerpColorElement(self.color_initial.b, self.color_final.b, c1, c2),
-                .a = lerpColorElement(self.color_initial.a, self.color_final.a, c1, c2),
-            };
+            const t = @max(self.age, 0.0) / self.color_fade_age;
+            self.color = self.color_initial.lerp(self.color_final, t);
         }
     }
 

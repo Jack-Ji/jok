@@ -112,8 +112,6 @@ pub fn init(ctx: jok.Context) !void {
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
-    _ = ctx;
-
     const S = struct {
         var is_viewing: bool = false;
         const mouse_speed: f32 = 0.0025;
@@ -122,13 +120,13 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
     switch (e) {
         .mouse_button_down => |me| {
             if (me.button == .right) {
-                _ = jok.sdl.SDL_SetRelativeMouseMode(1);
+                try ctx.window().setRelativeMouseMode(true);
                 S.is_viewing = true;
             }
         },
         .mouse_button_up => |me| {
             if (me.button == .right) {
-                _ = jok.sdl.SDL_SetRelativeMouseMode(0);
+                try ctx.window().setRelativeMouseMode(false);
                 S.is_viewing = false;
             }
         },
@@ -188,7 +186,7 @@ pub fn draw(ctx: jok.Context) !void {
         plane,
         null,
         .{
-            .color = .rgba(100, 100, 100, 200),
+            .color = .rgba(0.4, 0.4, 0.4, 0.8),
             .lighting = .{},
         },
     );

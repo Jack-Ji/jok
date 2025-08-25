@@ -8,7 +8,7 @@ pub const PostProcessingFn = *const fn (
     pos: jok.Point,
     data1: ?*anyopaque,
     data2: ?*anyopaque,
-) ?jok.Color;
+) ?jok.ColorF;
 
 pub const Actor = struct {
     ppfn: PostProcessingFn,

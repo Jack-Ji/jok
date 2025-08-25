@@ -46,7 +46,7 @@ pub fn init(ctx: jok.Context) !void {
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.6)),
             .mesh = try Mesh.fromShape(ctx.allocator(), sphere, .{}),
-            .color = .rgb(255, 255, 0),
+            .color = .rgb(1, 1, 0),
             .disable_lighting = true,
         },
     });
@@ -54,14 +54,14 @@ pub fn init(ctx: jok.Context) !void {
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.2)),
             .mesh = try Mesh.fromShape(ctx.allocator(), sphere, .{}),
-            .color = .rgb(0, 0, 255),
+            .color = .rgb(0, 0, 1),
         },
     });
     moon = try Scene.Object.create(ctx.allocator(), .{
         .mesh = .{
             .transform = zmath.scalingV(zmath.f32x4s(0.06)),
             .mesh = try Mesh.fromShape(ctx.allocator(), sphere, .{}),
-            .color = .rgb(192, 192, 192),
+            .color = .rgb(0.7, 0.7, 0.7),
         },
     });
     try scene.root.addChild(sun);
@@ -72,8 +72,6 @@ pub fn init(ctx: jok.Context) !void {
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
-    _ = ctx;
-
     const S = struct {
         var is_viewing: bool = false;
         const mouse_speed: f32 = 0.0025;
@@ -82,13 +80,13 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
     switch (e) {
         .mouse_button_down => |me| {
             if (me.button == .right) {
-                _ = jok.sdl.SDL_SetRelativeMouseMode(1);
+                try ctx.window().setRelativeMouseMode(true);
                 S.is_viewing = true;
             }
         },
         .mouse_button_up => |me| {
             if (me.button == .right) {
-                _ = jok.sdl.SDL_SetRelativeMouseMode(0);
+                try ctx.window().setRelativeMouseMode(false);
                 S.is_viewing = false;
             }
         },

@@ -3,7 +3,7 @@ const jok = @import("../../jok.zig");
 const sdl = jok.sdl;
 const gui = @import("main.zig");
 
-var fcolors: std.array_list.Managed(jok.ColorF) = undefined;
+var fcolors = std.array_list.Managed(jok.ColorF).init(std.heap.c_allocator);
 
 pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     gui.init(ctx.allocator());
@@ -29,12 +29,9 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     gui.io.setConfigFlags(.{ .no_mouse_cursor_change = true });
 
     gui.plot.init();
-
-    fcolors = std.array_list.Managed(jok.ColorF).initCapacity(ctx.allocator(), 1024) catch unreachable;
 }
 
 pub fn deinit() void {
-    fcolors.deinit();
     gui.plot.deinit();
     ImGui_ImplSDLRenderer3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
@@ -92,7 +89,7 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
 
         // Convert colors
         // https://github.com/libsdl-org/SDL/issues/9009
-        const vptr: [*]gui.DrawVert = @ptrCast(vs_ptr + @as(usize, cmd.vtx_offset));
+        const vptr: [*]gui.DrawVert = vs_ptr + @as(usize, cmd.vtx_offset);
         const vcount: usize = @intCast(@as(u32, @intCast(vs_count)) - cmd.vtx_offset);
         fcolors.ensureTotalCapacity(vcount) catch unreachable;
         fcolors.clearRetainingCapacity();

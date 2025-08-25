@@ -35,6 +35,8 @@ pub fn build(b: *Build) void {
         .name = "all",
         .root_module = root,
     });
+    tests.linkLibC();
+    tests.addIncludePath(b.dependency("sdl", .{}).path("include"));
     const test_step = b.step("test", "run tests");
     test_step.dependOn(&b.addRunArtifact(tests).step);
 

@@ -23,7 +23,7 @@ var texcoords = [_][2]f32{
     .{ 1, 0 },
 };
 var skybox_textures: [6]jok.Texture = undefined;
-var skybox_tint_color: jok.Color = jok.Color.white;
+var skybox_tint_color: jok.ColorF = .white;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -101,8 +101,6 @@ pub fn init(ctx: jok.Context) !void {
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
-    _ = ctx;
-
     const S = struct {
         var is_viewing: bool = false;
         const mouse_speed: f32 = 0.0025;
@@ -111,13 +109,13 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
     switch (e) {
         .mouse_button_down => |me| {
             if (me.button == .right) {
-                _ = jok.sdl.SDL_SetRelativeMouseMode(1);
+                try ctx.window().setRelativeMouseMode(true);
                 S.is_viewing = true;
             }
         },
         .mouse_button_up => |me| {
             if (me.button == .right) {
-                _ = jok.sdl.SDL_SetRelativeMouseMode(0);
+                try ctx.window().setRelativeMouseMode(false);
                 S.is_viewing = false;
             }
         },
@@ -155,15 +153,11 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.rgb(77, 77, 77));
 
     if (imgui.begin("Tint Color", .{})) {
-        var cs: [3]f32 = .{
-            @as(f32, @floatFromInt(skybox_tint_color.r)) / 255,
-            @as(f32, @floatFromInt(skybox_tint_color.g)) / 255,
-            @as(f32, @floatFromInt(skybox_tint_color.b)) / 255,
-        };
+        var cs: [3]f32 = .{ skybox_tint_color.r, skybox_tint_color.g, skybox_tint_color.b };
         if (imgui.colorEdit3("Tint Color", .{ .col = &cs })) {
-            skybox_tint_color.r = @intFromFloat(cs[0] * 255);
-            skybox_tint_color.g = @intFromFloat(cs[1] * 255);
-            skybox_tint_color.b = @intFromFloat(cs[2] * 255);
+            skybox_tint_color.r = cs[0];
+            skybox_tint_color.g = cs[1];
+            skybox_tint_color.b = cs[2];
         }
     }
     imgui.end();

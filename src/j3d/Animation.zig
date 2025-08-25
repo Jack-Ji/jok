@@ -19,7 +19,7 @@ pub const Transition = struct {
 
 pub const RenderOption = struct {
     texture: ?jok.Texture = null,
-    color: jok.Color = .white,
+    color: jok.ColorF = .white,
     shading_method: ShadingMethod = .gouraud,
     cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,

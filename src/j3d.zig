@@ -541,7 +541,7 @@ pub const Batch = struct {
     }
 
     pub const LineOption = struct {
-        color: jok.Color = .white,
+        color: jok.ColorF = .white,
         thickness: f32 = 0.1,
         stacks: u32 = 10,
     };
@@ -601,7 +601,7 @@ pub const Batch = struct {
     pub fn triangle(
         self: *Batch,
         pos: [3][3]f32,
-        colors: ?[3]jok.Color,
+        colors: ?[3]jok.ColorF,
         texcoords: ?[3][2]f32,
         opt: TriangleOption,
     ) !void {
@@ -653,7 +653,7 @@ pub const Batch = struct {
         indices: []const u32,
         pos: []const [3]f32,
         normals: ?[]const [3]f32,
-        colors: ?[]const [3]jok.Color,
+        colors: ?[]const [3]jok.ColorF,
         texcoords: ?[]const [2]f32,
         opt: TriangleOption,
     ) !void {

@@ -123,8 +123,6 @@ pub fn init(ctx: jok.Context) !void {
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
-    _ = ctx;
-
     const S = struct {
         var is_viewing: bool = false;
         const mouse_speed: f32 = 0.0025;
@@ -133,13 +131,13 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
     switch (e) {
         .mouse_button_down => |me| {
             if (me.button == .right) {
-                _ = jok.sdl.SDL_SetRelativeMouseMode(1);
+                try ctx.window().setRelativeMouseMode(true);
                 S.is_viewing = true;
             }
         },
         .mouse_button_up => |me| {
             if (me.button == .right) {
-                _ = jok.sdl.SDL_SetRelativeMouseMode(0);
+                try ctx.window().setRelativeMouseMode(false);
                 S.is_viewing = false;
             }
         },
@@ -177,9 +175,9 @@ pub fn update(ctx: jok.Context) !void {
         zmath.rotationY(ctx.seconds()),
     ));
     sprites[12].actor.sprite.tint_color = .rgb(
-        @intFromFloat(127 * (1 + @sin(ctx.seconds()))),
-        @intFromFloat(127 * (1 + @cos(ctx.seconds()))),
-        100,
+        0.5 * (1 + @sin(ctx.seconds())),
+        0.5 * (1 + @cos(ctx.seconds())),
+        0.4,
     );
     sprites[13].actor.sprite.rotate_angle = ctx.seconds() * 2;
 }

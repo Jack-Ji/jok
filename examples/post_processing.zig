@@ -13,13 +13,13 @@ var camera: j3d.Camera = undefined;
 var skybox_textures: [6]jok.Texture = undefined;
 var appctx: jok.Context = undefined;
 
-fn ppCallback(pos: jok.Point, _: ?*anyopaque, _: ?*anyopaque) ?jok.Color {
+fn ppCallback(pos: jok.Point, _: ?*anyopaque, _: ?*anyopaque) ?jok.ColorF {
     const t = appctx.seconds();
-    return jok.Color{
-        .r = @intFromFloat((1.0 + @cos(t * pos.x)) * 125),
-        .g = @intFromFloat((1.0 + @sin(t * pos.y)) * 125),
-        .b = @intFromFloat((1.0 + @sin(t * pos.x * pos.y)) * 125),
-        .a = 255,
+    return jok.ColorF{
+        .r = 1 + @cos(t * pos.x) * 0.5,
+        .g = 1 + @sin(t * pos.y) * 0.5,
+        .b = 1 + @sin(t * pos.x * pos.y) * 0.5,
+        .a = 1,
     };
 }
 

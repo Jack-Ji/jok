@@ -1175,7 +1175,7 @@ fn loadLayers(
                                 .x = x + try std.fmt.parseFloat(f32, xs[0..idx]),
                                 .y = y + try std.fmt.parseFloat(f32, xs[idx + 1 ..]),
                             },
-                            .color = tint_color,
+                            .color = tint_color.toColorF(),
                         });
                     }
                     convex.end();

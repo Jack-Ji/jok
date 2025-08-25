@@ -70,7 +70,7 @@ pub fn init(ctx: jok.Context) !void {
     animation3_3 = try j3d.Animation.create(ctx.allocator(), mesh3.getAnimation("Run").?);
 }
 
-pub fn event(_: jok.Context, e: jok.Event) !void {
+pub fn event(ctx: jok.Context, e: jok.Event) !void {
     const S = struct {
         var is_viewing: bool = false;
         const mouse_speed: f32 = 0.0025;
@@ -98,17 +98,17 @@ pub fn event(_: jok.Context, e: jok.Event) !void {
             }
         },
         .mouse_wheel => |me| {
-            camera.zoomBy(@as(f32, @floatFromInt(me.delta_y)) * -0.1);
+            camera.zoomBy(me.delta_y * -0.1);
         },
         .mouse_button_down => |me| {
             if (me.button == .right) {
-                _ = jok.sdl.SDL_SetRelativeMouseMode(1);
+                try ctx.window().setRelativeMouseMode(true);
                 S.is_viewing = true;
             }
         },
         .mouse_button_up => |me| {
             if (me.button == .right) {
-                _ = jok.sdl.SDL_SetRelativeMouseMode(0);
+                try ctx.window().setRelativeMouseMode(false);
                 S.is_viewing = false;
             }
         },

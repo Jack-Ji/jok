@@ -208,10 +208,7 @@ pub const Rectangle = extern struct {
     }
 
     pub inline fn hasIntersection(r: Rectangle, b: Rectangle) bool {
-        if (sdl.c.SDL_HasRectIntersectionFloat(@ptrCast(&r), @ptrCast(&b)) == 1) {
-            return true;
-        }
-        return false;
+        return sdl.c.SDL_HasRectIntersectionFloat(@ptrCast(&r), @ptrCast(&b));
     }
 
     pub inline fn intersectRect(r: Rectangle, b: Rectangle) ?Rectangle {
@@ -441,10 +438,12 @@ pub const Color = extern struct {
     a: u8 = 255,
 
     pub inline fn rgb(r: u8, g: u8, b: u8) Color {
+        assert(r <= 255 and g <= 255 and b <= 255);
         return Color{ .r = r, .g = g, .b = b };
     }
 
     pub inline fn rgba(r: u8, g: u8, b: u8, a: u8) Color {
+        assert(r <= 255 and g <= 255 and b <= 255 and a <= 255);
         return Color{ .r = r, .g = g, .b = b, .a = a };
     }
 
@@ -472,9 +471,9 @@ pub const Color = extern struct {
         return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
     }
 
-    inline fn getPixelFormatDetails() [*c]sdl.c.SDL_PixelFormatDetails {
+    inline fn getPixelFormatDetails() [*c]const sdl.c.SDL_PixelFormatDetails {
         const S = struct {
-            var pixel_format: ?[*c]sdl.c.SDL_PixelFormatDetails = null;
+            var pixel_format: ?[*c]const sdl.c.SDL_PixelFormatDetails = null;
         };
         if (S.pixel_format == null) {
             S.pixel_format = sdl.c.SDL_GetPixelFormatDetails(sdl.c.SDL_PIXELFORMAT_RGBA32);
@@ -484,12 +483,12 @@ pub const Color = extern struct {
 
     pub inline fn fromRGBA32(i: u32) Color {
         var c: Color = undefined;
-        sdl.c.SDL_GetRGBA(i, getPixelFormatDetails(), &c.r, &c.g, &c.b, &c.a);
+        sdl.c.SDL_GetRGBA(i, getPixelFormatDetails(), null, &c.r, &c.g, &c.b, &c.a);
         return c;
     }
 
     pub inline fn toRGBA32(c: Color) u32 {
-        return sdl.c.SDL_MapRGBA(getPixelFormatDetails(), c.r, c.g, c.b, c.a);
+        return sdl.c.SDL_MapRGBA(getPixelFormatDetails(), null, c.r, c.g, c.b, c.a);
     }
 
     /// Convert from HSL
@@ -523,10 +522,10 @@ pub const Color = extern struct {
     /// Convert from ImGui's color type
     pub inline fn fromInternalColor(c: u32) Color {
         return .{
-            .r = @as(u8, @intCast(c & 0xff)),
-            .g = @as(u8, @intCast((c >> 8) & 0xff)),
-            .b = @as(u8, @intCast((c >> 16) & 0xff)),
-            .a = @as(u8, @intCast((c >> 24) & 0xff)),
+            .r = @intCast(c & 0xff),
+            .g = @intCast((c >> 8) & 0xff),
+            .b = @intCast((c >> 16) & 0xff),
+            .a = @intCast((c >> 24) & 0xff),
         };
     }
 
@@ -647,10 +646,17 @@ pub const ColorF = extern struct {
     a: f32 = 1,
 
     pub inline fn rgb(r: f32, g: f32, b: f32) ColorF {
+        assert(r >= 0 and r <= 1);
+        assert(g >= 0 and g <= 1);
+        assert(b >= 0 and b <= 1);
         return ColorF{ .r = r, .g = g, .b = b };
     }
 
     pub inline fn rgba(r: f32, g: f32, b: f32, a: f32) ColorF {
+        assert(r >= 0 and r <= 1);
+        assert(g >= 0 and g <= 1);
+        assert(b >= 0 and b <= 1);
+        assert(a >= 0 and a <= 1);
         return ColorF{ .r = r, .g = g, .b = b, .a = a };
     }
 

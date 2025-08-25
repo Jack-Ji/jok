@@ -433,7 +433,7 @@ const PhysicsDebug = struct {
         };
     }
 
-    fn cpColorToRGBA(color: c.cpSpaceDebugColor) jok.Color {
+    fn cpColorToRGBA(color: c.cpSpaceDebugColor) jok.ColorF {
         //return .{
         //    .r = @floatToInt(u8, @round(color.r * 255)),
         //    .g = @floatToInt(u8, @round(color.g * 255)),
@@ -442,10 +442,10 @@ const PhysicsDebug = struct {
         //};
         _ = color;
         return .{
-            .r = 255,
-            .g = 255,
+            .r = 1,
+            .g = 1,
             .b = 0,
-            .a = 128,
+            .a = 0.5,
         };
     }
 

@@ -242,7 +242,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = .rgb(130, 160, 190),
+            .color = .rgb(0.5, 0.6, 0.7),
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -376,7 +376,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = .rgb(150, 160, 190),
+            .color = .rgb(0.6, 0.6, 0.7),
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -390,7 +390,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = .rgb(180, 170, 190),
+            .color = .rgb(0.7, 0.6, 0.7),
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -404,7 +404,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = .rgb(180, 70, 90),
+            .color = .rgb(0.7, 0.3, 0.4),
             .shading_method = @enumFromInt(shading_method),
         },
     );
@@ -418,7 +418,7 @@ pub fn draw(ctx: jok.Context) !void {
         null,
         .{
             .lighting = lighting_opt,
-            .color = .rgb(230, 230, 50),
+            .color = .rgb(0.9, 0.9, 0.2),
             .shading_method = @enumFromInt(shading_method),
         },
     );

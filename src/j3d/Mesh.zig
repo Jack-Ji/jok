@@ -29,7 +29,7 @@ const Format = enum {
 
 pub const RenderOption = struct {
     texture: ?jok.Texture = null,
-    color: jok.Color = .white,
+    color: jok.ColorF = .white,
     shading_method: ShadingMethod = .gouraud,
     cull_faces: bool = true,
     lighting: ?lighting.LightingOption = null,
@@ -42,7 +42,7 @@ pub const Node = struct {
         indices: std.array_list.Managed(u32),
         positions: std.array_list.Managed([3]f32),
         normals: std.array_list.Managed([3]f32),
-        colors: std.array_list.Managed(jok.Color),
+        colors: std.array_list.Managed(jok.ColorF),
         texcoords: std.array_list.Managed([2]f32),
         joints: std.array_list.Managed([4]u8),
         weights: std.array_list.Managed([4]f32),
@@ -70,7 +70,7 @@ pub const Node = struct {
             indices: []const u32,
             positions: []const [3]f32,
             normals: ?[]const [3]f32,
-            colors: ?[]const jok.Color,
+            colors: ?[]const jok.ColorF,
             texcoords: ?[]const [2]f32,
             joints: ?[]const [4]u8,
             weights: ?[]const [4]f32,
@@ -912,19 +912,10 @@ fn loadNodeTree(
                         assert(accessor.component_type == .r_32f);
                         if (accessor.type == .vec3) {
                             const slice = @as([*]const [3]f32, @ptrFromInt(data_addr))[0..num_vertices];
-                            for (slice) |c| try sm.colors.append(.rgb(
-                                @intFromFloat(255 * c[0]),
-                                @intFromFloat(255 * c[1]),
-                                @intFromFloat(255 * c[2]),
-                            ));
+                            for (slice) |c| try sm.colors.append(.rgb(c[0], c[1], c[2]));
                         } else if (accessor.type == .vec4) {
                             const slice = @as([*]const [4]f32, @ptrFromInt(data_addr))[0..num_vertices];
-                            for (slice) |c| try sm.colors.append(.rgba(
-                                @intFromFloat(255 * c[0]),
-                                @intFromFloat(255 * c[1]),
-                                @intFromFloat(255 * c[2]),
-                                @intFromFloat(255 * c[3]),
-                            ));
+                            for (slice) |c| try sm.colors.append(.rgba(c[0], c[1], c[2], c[3]));
                         }
                     } else if (attrib.type == .texcoord) {
                         assert(accessor.type == .vec2);
