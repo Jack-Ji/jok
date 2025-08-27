@@ -76,6 +76,7 @@ pub fn build(b: *Build) void {
         .{ .name = "generative_art_4", .opt = .{} },
         .{ .name = "generative_art_5", .opt = .{} },
         .{ .name = "hotreload", .opt = .{ .plugins = &.{ "plugin_hot", "plugin" }, .support_web = false } },
+        .{ .name = "2048", .opt = .{} },
     };
     const build_examples = b.step("examples", "compile and install all examples");
     for (examples) |ex| addExample(b, ex.name, target, optimize, skipped_examples, build_examples, ex.opt);
