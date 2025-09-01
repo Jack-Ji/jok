@@ -4,7 +4,6 @@ const builtin = @import("builtin");
 const bos = @import("build_options");
 const config = @import("config.zig");
 const pp = @import("post_processing.zig");
-const PluginSystem = @import("PluginSystem.zig");
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
 const io = jok.io;
@@ -43,9 +42,6 @@ pub const Context = struct {
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
         debugPrint: *const fn (ctx: *anyopaque, text: []const u8, opt: DebugPrint) void,
         getDebugAtlas: *const fn (ctx: *anyopaque, size: u32) *font.Atlas,
-        registerPlugin: *const fn (ctx: *anyopaque, name: []const u8, path: []const u8, hotreload: bool) anyerror!void,
-        unregisterPlugin: *const fn (ctx: *anyopaque, name: []const u8) anyerror!void,
-        forceReloadPlugin: *const fn (ctx: *anyopaque, name: []const u8) anyerror!void,
     },
 
     /// Get setup configuration
@@ -168,21 +164,6 @@ pub const Context = struct {
     pub fn getDebugAtlas(self: Context, size: u32) *font.Atlas {
         return self.vtable.getDebugAtlas(self.ctx, size);
     }
-
-    /// Register new plugin
-    pub fn registerPlugin(self: Context, name: []const u8, path: []const u8, hotreload: bool) !void {
-        try self.vtable.registerPlugin(self.ctx, name, path, hotreload);
-    }
-
-    /// Unregister plugin
-    pub fn unregisterPlugin(self: Context, name: []const u8) !void {
-        try self.vtable.unregisterPlugin(self.ctx, name);
-    }
-
-    ///  Force reload plugin
-    pub fn forceReloadPlugin(self: Context, name: []const u8) !void {
-        try self.vtable.forceReloadPlugin(self.ctx, name);
-    }
 };
 
 pub const DisplayStats = struct {
@@ -250,9 +231,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _debug_print_vertices: std.array_list.Managed(jok.Vertex) = undefined,
         _debug_print_indices: std.array_list.Managed(u32) = undefined,
 
-        // Plugin System
-        _plugin_system: *PluginSystem = undefined,
-
         // Elapsed time of game
         _seconds: f32 = 0,
         _seconds_real: f64 = 0,
@@ -317,11 +295,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._audio_engine = try zaudio.Engine.create(audio_config);
             }
 
-            // Init plugin system
-            if (bos.link_dynamic) {
-                self._plugin_system = try PluginSystem.create(self._allocator);
-            }
-
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
             self._debug_font_size = @intFromFloat(@as(f32, @floatFromInt(cfg.jok_prebuild_atlas)));
@@ -349,11 +322,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._debug_print_vertices.deinit();
             self._debug_print_indices.deinit();
             font.DebugFont.deinit();
-
-            // Destroy plugin system
-            if (bos.link_dynamic) {
-                self._plugin_system.destroy(self._ctx);
-            }
 
             // Destroy audio engine
             if (!bos.no_audio) {
@@ -495,9 +463,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         return;
                     }
                 };
-                if (bos.link_dynamic) {
-                    self._plugin_system.draw(self._ctx);
-                }
             }
 
             self._updateFrameStats();
@@ -547,9 +512,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                             return;
                         }
                     };
-                    if (bos.link_dynamic) {
-                        self._plugin_system.event(self._ctx, we);
-                    }
                 }
             }
 
@@ -561,9 +523,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     return;
                 }
             };
-            if (bos.link_dynamic) {
-                self._plugin_system.update(self._ctx);
-            }
         }
 
         /// Update frame stats once per second
@@ -719,9 +678,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .displayStats = displayStats,
                     .debugPrint = debugPrint,
                     .getDebugAtlas = getDebugAtlas,
-                    .registerPlugin = registerPlugin,
-                    .unregisterPlugin = unregisterPlugin,
-                    .forceReloadPlugin = forceReloadPlugin,
                 },
             };
         }
@@ -1033,38 +989,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
         pub fn getDebugAtlas(ptr: *anyopaque, size: u32) *font.Atlas {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return font.DebugFont.getAtlas(self._ctx, size) catch unreachable;
-        }
-
-        /// Register new plugin
-        pub fn registerPlugin(ptr: *anyopaque, name: []const u8, path: []const u8, hotreload: bool) !void {
-            if (!bos.link_dynamic) {
-                @panic("plugin system isn't enabled!");
-            }
-            const self: *@This() = @ptrCast(@alignCast(ptr));
-            try self._plugin_system.register(
-                self.context(),
-                name,
-                path,
-                hotreload,
-            );
-        }
-
-        /// Unregister plugin
-        pub fn unregisterPlugin(ptr: *anyopaque, name: []const u8) !void {
-            if (!bos.link_dynamic) {
-                @panic("plugin system isn't enabled!");
-            }
-            const self: *@This() = @ptrCast(@alignCast(ptr));
-            try self._plugin_system.unregister(self.context(), name);
-        }
-
-        ///  Force reload plugin
-        pub fn forceReloadPlugin(ptr: *anyopaque, name: []const u8) !void {
-            if (!bos.link_dynamic) {
-                @panic("plugin system isn't enabled!");
-            }
-            const self: *@This() = @ptrCast(@alignCast(ptr));
-            try self._plugin_system.forceReload(name);
         }
     };
 }

@@ -15,7 +15,6 @@ A minimal 2d/3d game framework for zig.
 * Excellent rendering performance (thanks to SDL3's [geometry rendering](https://wiki.libsdl.org/SDL3/SDL_RenderGeometryRaw))
 * Fully integrated Dear-ImGui
 * Asset system (via [physfs](https://github.com/icculus/physfs), supports fs/zip/7zip/iso etc)
-* Plugin System (register/unregister/hot-reloading)
 * 2D batch system
 * 2D primitives (line/rectangle/quad/triangle/circle/ellipse/bezier-curve/convex-polygon/concave-polygon/polyline)
 * 2D sprite rendering (scale/rotate/blending/flipping/depth)
@@ -23,7 +22,6 @@ A minimal 2d/3d game framework for zig.
 * 2D animation system
 * 2D particle system
 * 2D scene management
-* 2D physics system (via [chipmunk](https://chipmunk-physics.net/), optional)
 * 3D batch system
 * 3D skybox rendering
 * 3D mesh rendering (gouraud/flat shading)
@@ -157,14 +155,6 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     pub fn quit(ctx: jok.Context) void {
         // your deinit code
     }
-
-    pub fn getMemory() ?*const anyopaque {
-        // OPTIONAL: return memory of your game
-    }
-    
-    pub fn reloadMemory(mem: ?*const anyopaque) void {
-        // OPTIONAL: restore memory of your game
-    }
     ```
     
     Noticed yet? That's right, you don't need to write main function, `jok` got your back.
@@ -180,12 +170,6 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     defining some public constants using predefined names (they're all prefixed with`jok_`).
     Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig).
     Most of which are still modifiable at runtime.
-    
-    The other 2 optional public functions are only needed when you'are writing a plugin:
-    * getMemory - get memory of you plugin, called when plugin is updated
-    * reloadMemory - reload memory of your plugin, called when plugin is updated
-
-    For more detail of plugin's usage, check example `hotreload`.
     
     Now, compile and run your game using command `zig build run`, have fun!
     Please let me know if you have any issue or developed something interesting with this little framework.
@@ -207,7 +191,6 @@ The limitations demand developers to be both creative and careful about game's d
 * [SDL3](https://www.libsdl.org) (zlib license)
 * [physfs](https://github.com/icculus/physfs) (zlib license)
 * [zig-gamedev](https://github.com/zig-gamedev/zig-gamedev) (MIT license)
-* [chipmunk](https://chipmunk-physics.net/) (MIT license)
 * [stb headers](https://github.com/nothings/stb) (MIT license)
 * [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
 * [zig-obj](https://github.com/chip2n/zig-obj) (MIT license)
