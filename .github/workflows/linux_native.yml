@@ -26,12 +26,6 @@ jobs:
         uses: mlugg/setup-zig@v2.0.5
         with:
           version: master
-      - name: Install sdl2
-        run: |
-          sudo apt-get update
-          sudo apt-get install libsdl2-dev
-      - name: SDL version
-        run: sdl2-config --version
       - name: Check format
         continue-on-error: true
         run: zig fmt --check .

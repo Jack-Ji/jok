@@ -21,8 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        #host: [ubuntu-latest, macos-latest]
-        host: [ubuntu-latest]
+        host: [ubuntu-latest, macos-latest]
     runs-on: ${{matrix.host}}
     steps:
       - name: Checkout repository
@@ -31,28 +30,5 @@ jobs:
         uses: mlugg/setup-zig@v2.0.5
         with:
           version: master
-      - name: Download SDL2 (MinGW)
-        uses: carlosperate/download-file-action@v1.0.3
-        with:
-          file-url: https://www.libsdl.org/release/SDL2-devel-2.30.9-mingw.tar.gz
-          file-name: SDL2.tar.gz
-          location: .
-      - name: Extract SDL2
-        uses: brunoborges/justextract@v1
-        with:
-          file: SDL2.tar.gz
-      - name: Create SDK file
-        uses: DamianReeves/write-file-action@v1.2
-        with:
-          path: .build_config/sdl.json
-          contents: |
-            {
-              "x86_64-windows-gnu": {
-                "include": "SDL2-2.30.9/x86_64-w64-mingw32/include",
-                "libs": "SDL2-2.30.9/x86_64-w64-mingw32/lib",
-                "bin": "SDL2-2.30.9/x86_64-w64-mingw32/bin"
-              }
-            }
-          write-mode: overwrite
       - name: Build examples
         run: zig build -Dtarget=x86_64-windows-gnu -Dskip=particle_life examples
