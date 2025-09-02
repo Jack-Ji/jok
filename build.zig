@@ -327,7 +327,7 @@ pub fn createWeb(
     lib.linkLibrary(jok.artifact);
 
     // Link using emcc
-    const em = Emscripten.init(b, builder.lazyDependency("emsdk", .{}).?);
+    const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
     const link_step = em.link(.{
         .lib_main = lib,
         .target = target,
@@ -393,7 +393,7 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
         lib = builder.addLibrary(.{ .name = "jok", .root_module = libmod });
 
         // Setup emscripten when necessary
-        const em = Emscripten.init(b, builder.lazyDependency("emsdk", .{}).?);
+        const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
         em.possibleSetup(lib);
 
         // Add the Emscripten system include seach path

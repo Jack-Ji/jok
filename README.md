@@ -3,8 +3,6 @@
 # jok
 A minimal 2d/3d game framework for zig.
 
-**The main branch is in the progress of porting to SDL3, please consider SDL2 branch in the mean time.**
-
 ## What you need?
 * [Zig Compiler](https://ziglang.org/download/) (Master branch always targets latest zig, use tagged release if you wanna stick to stable version)
 * Any code editor you like (consider using [zls](https://github.com/zigtools/zls) for your own favor)
