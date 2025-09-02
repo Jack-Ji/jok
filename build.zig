@@ -69,6 +69,7 @@ pub fn build(b: *Build) void {
         .{ .name = "isometric", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "conway_life", .opt = .{} },
         .{ .name = "tiled", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "2048", .opt = .{} },
         .{ .name = "generative_art_1", .opt = .{} },
         .{ .name = "generative_art_2", .opt = .{} },
         .{ .name = "generative_art_3", .opt = .{} },
