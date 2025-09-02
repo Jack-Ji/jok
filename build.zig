@@ -326,7 +326,7 @@ pub fn createWeb(
     lib.linkLibrary(jok.artifact);
 
     // Link using emcc
-    const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
+    const em = Emscripten.init(b, builder.lazyDependency("emsdk", .{}).?);
     const link_step = em.link(.{
         .lib_main = lib,
         .target = target,
@@ -392,11 +392,12 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
         lib = builder.addLibrary(.{ .name = "jok", .root_module = libmod });
 
         // Setup emscripten when necessary
-        const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
+        const em = Emscripten.init(b, builder.lazyDependency("emsdk", .{}).?);
         em.possibleSetup(lib);
 
         // Add the Emscripten system include seach path
-        lib.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
+        libmod.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
+        jokmod.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
     } else {
         lib = builder.addLibrary(.{
             .linkage = .static,
