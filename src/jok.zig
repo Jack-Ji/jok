@@ -58,7 +58,6 @@ pub const zobj = vendor.zobj;
 pub const imgui = vendor.imgui;
 pub const stb = vendor.stb;
 pub const svg = vendor.svg;
-pub const cp = vendor.cp;
 pub const nfd = vendor.nfd;
 
 // All tests

@@ -129,7 +129,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(.none);
+    try ctx.renderer().clear(.black);
     if (show_stats) ctx.displayStats(.{});
 
     imgui.setNextWindowPos(.{ .x = 50, .y = 200, .cond = .once });

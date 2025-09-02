@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
 
@@ -69,7 +70,9 @@ pub const Window = struct {
         if (cfg.jok_window_max_size) |size| {
             try window.setMaximumSize(size);
         }
-        try window.setPosition(.center);
+        if (!builtin.cpu.arch.isWasm()) {
+            try window.setPosition(.center);
+        }
         try window.setResizable(cfg.jok_window_resizable);
         try window.setAlwaysOnTop(cfg.jok_window_always_on_top);
 

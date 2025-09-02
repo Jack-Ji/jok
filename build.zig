@@ -63,20 +63,18 @@ pub fn build(b: *Build) void {
         .{ .name = "audio_demo", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "easing", .opt = .{} },
         .{ .name = "svg", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "cp_demo", .opt = .{ .use_cp = true } },
         .{ .name = "blending", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "pathfind", .opt = .{} },
         .{ .name = "post_processing", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "isometric", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "conway_life", .opt = .{} },
         .{ .name = "tiled", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "2048", .opt = .{} },
         .{ .name = "generative_art_1", .opt = .{} },
         .{ .name = "generative_art_2", .opt = .{} },
         .{ .name = "generative_art_3", .opt = .{} },
         .{ .name = "generative_art_4", .opt = .{} },
         .{ .name = "generative_art_5", .opt = .{} },
-        .{ .name = "hotreload", .opt = .{ .plugins = &.{ "plugin_hot", "plugin" }, .support_web = false } },
-        .{ .name = "2048", .opt = .{} },
     };
     const build_examples = b.step("examples", "compile and install all examples");
     for (examples) |ex| addExample(b, ex.name, target, optimize, skipped_examples, build_examples, ex.opt);
@@ -85,8 +83,6 @@ pub fn build(b: *Build) void {
 }
 
 const ExampleOptions = struct {
-    plugins: []const []const u8 = &.{},
-    use_cp: bool = false,
     use_nfd: bool = false,
     support_web: bool = true,
     preload_path: ?[]const u8 = null,
@@ -117,32 +113,12 @@ fn addExample(
             optimize,
             .{
                 .dep_name = null,
-                .use_cp = opt.use_cp,
                 .use_nfd = opt.use_nfd,
-                .link_dynamic = opt.plugins.len != 0,
             },
         );
 
         const install_cmd = b.addInstallArtifact(exe, .{});
         b.step(name, b.fmt("compile {s}", .{name})).dependOn(&install_cmd.step);
-
-        // Create plugins
-        for (opt.plugins) |pname| {
-            const plugin = createPlugin(
-                b,
-                pname,
-                b.fmt("examples/{s}.zig", .{pname}),
-                target,
-                optimize,
-                .{ .dep_name = null, .link_dynamic = true },
-            );
-            const install_plugin = b.addInstallArtifact(
-                plugin,
-                .{ .dest_dir = .{ .override = .{ .bin = {} } } },
-            );
-            b.step(pname, b.fmt("compile plugin {s}", .{pname})).dependOn(&install_plugin.step);
-            install_cmd.step.dependOn(&install_plugin.step);
-        }
 
         // Capable of running
         if (target.query.isNative()) {
@@ -163,7 +139,6 @@ fn addExample(
             .{
                 .dep_name = null,
                 .preload_path = opt.preload_path,
-                .use_cp = opt.use_cp,
             },
         );
         b.step(name, b.fmt("compile {s}", .{name})).dependOn(&webapp.emlink.step);
@@ -199,9 +174,7 @@ pub const AppOptions = struct {
     dep_name: ?[]const u8 = "jok",
     additional_deps: []const Dependency = &.{},
     no_audio: bool = false,
-    use_cp: bool = false,
     use_nfd: bool = false,
-    link_dynamic: bool = false,
 };
 
 /// Create desktop application (windows/linux/macos)
@@ -217,9 +190,7 @@ pub fn createDesktopApp(
     const jok = getJokLibrary(b, target, optimize, .{
         .dep_name = opt.dep_name,
         .no_audio = opt.no_audio,
-        .use_cp = opt.use_cp,
         .use_nfd = opt.use_nfd,
-        .link_dynamic = opt.link_dynamic,
     });
 
     // Create game module
@@ -254,13 +225,6 @@ pub fn createDesktopApp(
     });
     exe.linkLibrary(jok.artifact);
 
-    // Install jok library
-    if (opt.link_dynamic) {
-        const install_jok = b.addInstallArtifact(jok.artifact, .{ .dest_dir = .{ .override = .{ .bin = {} } } });
-        exe.addLibraryPath(.{ .cwd_relative = "." });
-        exe.step.dependOn(&install_jok.step);
-    }
-
     return exe;
 }
 
@@ -277,9 +241,7 @@ pub fn createTest(
     const jok = getJokLibrary(b, target, optimize, .{
         .dep_name = opt.dep_name,
         .no_audio = opt.no_audio,
-        .use_cp = opt.use_cp,
         .use_nfd = opt.use_nfd,
-        .link_dynamic = opt.link_dynamic,
     });
 
     // Create module to be used for testing
@@ -303,74 +265,7 @@ pub fn createTest(
     });
     test_exe.linkLibrary(jok.artifact);
 
-    // Install jok library
-    if (opt.link_dynamic) {
-        const install_jok = b.addInstallArtifact(jok.artifact, .{ .dest_dir = .{ .override = .{ .bin = {} } } });
-        test_exe.addLibraryPath(.{ .cwd_relative = "." });
-        test_exe.step.dependOn(&install_jok.step);
-    }
-
     return test_exe;
-}
-
-/// Create plugin
-pub fn createPlugin(
-    b: *Build,
-    name: []const u8,
-    plugin_root: []const u8,
-    target: ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-    opt: AppOptions,
-) *Build.Step.Compile {
-    assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
-    assert(opt.link_dynamic);
-    const jok = getJokLibrary(b, target, optimize, .{
-        .dep_name = opt.dep_name,
-        .no_audio = opt.no_audio,
-        .use_cp = opt.use_cp,
-        .use_nfd = opt.use_nfd,
-        .link_dynamic = opt.link_dynamic,
-    });
-
-    // Create plugin module
-    const plugin = b.createModule(.{
-        .root_source_file = b.path(plugin_root),
-        .target = target,
-        .optimize = optimize,
-        .imports = &.{
-            .{ .name = "jok", .module = jok.module },
-        },
-    });
-    for (opt.additional_deps) |d| {
-        plugin.addImport(d.name, d.mod);
-    }
-
-    // Create root module
-    const builder = getJokBuilder(b, opt.dep_name);
-    const root = b.createModule(.{
-        .root_source_file = builder.path("src/entrypoints/plugin.zig"),
-        .target = target,
-        .optimize = optimize,
-        .imports = &.{
-            .{ .name = "jok", .module = jok.module },
-            .{ .name = "plugin", .module = plugin },
-        },
-    });
-
-    // Create shared library
-    const lib = b.addLibrary(.{
-        .linkage = .dynamic,
-        .name = name,
-        .root_module = root,
-    });
-    lib.linkLibrary(jok.artifact);
-
-    // Install jok library
-    const install_jok = b.addInstallArtifact(jok.artifact, .{ .dest_dir = .{ .override = .{ .bin = {} } } });
-    lib.addLibraryPath(.{ .cwd_relative = "." });
-    lib.step.dependOn(&install_jok.step);
-
-    return lib;
 }
 
 pub const WebOptions = struct {
@@ -379,7 +274,6 @@ pub const WebOptions = struct {
     shell_file_path: ?[]const u8 = null,
     preload_path: ?[]const u8 = null,
     no_audio: bool = false,
-    use_cp: bool = false,
 };
 
 /// Create web application (windows/linux/macos)
@@ -398,7 +292,6 @@ pub fn createWeb(
     const jok = getJokLibrary(b, target, optimize, .{
         .dep_name = opt.dep_name,
         .no_audio = opt.no_audio,
-        .use_cp = opt.use_cp,
     });
 
     // Create game module
@@ -434,7 +327,7 @@ pub fn createWeb(
     lib.linkLibrary(jok.artifact);
 
     // Link using emcc
-    const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
+    const em = Emscripten.init(b, builder.lazyDependency("emsdk", .{}).?);
     const link_step = em.link(.{
         .lib_main = lib,
         .target = target,
@@ -458,9 +351,7 @@ pub fn createWeb(
 pub const JokOptions = struct {
     dep_name: ?[]const u8 = "jok",
     no_audio: bool = false,
-    use_cp: bool = false,
     use_nfd: bool = false,
-    link_dynamic: bool = false,
 };
 fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) struct {
     module: *Build.Module,
@@ -469,9 +360,7 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
     const builder = getJokBuilder(b, opt.dep_name);
     const bos = builder.addOptions();
     bos.addOption(bool, "no_audio", opt.no_audio);
-    bos.addOption(bool, "use_cp", opt.use_cp);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
-    bos.addOption(bool, "link_dynamic", opt.link_dynamic);
     const jokmod = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
         .target = target,
@@ -497,7 +386,6 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
     @import("src/vendor/zobj/build.zig").inject(libmod, builder.path("src/vendor/zobj"));
     @import("src/vendor/znoise/build.zig").inject(libmod, builder.path("src/vendor/znoise"));
     if (!opt.no_audio) @import("src/vendor/zaudio/build.zig").inject(libmod, builder.path("src/vendor/zaudio"));
-    if (opt.use_cp) @import("src/vendor/chipmunk/build.zig").inject(libmod, builder.path("src/vendor/chipmunk"));
     if (opt.use_nfd) @import("src/vendor/nfd/build.zig").inject(libmod, builder.path("src/vendor/nfd"));
 
     var lib: *Build.Step.Compile = undefined;
@@ -505,14 +393,15 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
         lib = builder.addLibrary(.{ .name = "jok", .root_module = libmod });
 
         // Setup emscripten when necessary
-        const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
+        const em = Emscripten.init(b, builder.lazyDependency("emsdk", .{}).?);
         em.possibleSetup(lib);
 
         // Add the Emscripten system include seach path
-        lib.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
+        libmod.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
+        jokmod.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
     } else {
         lib = builder.addLibrary(.{
-            .linkage = if (opt.link_dynamic) .dynamic else .static,
+            .linkage = .static,
             .name = "jok",
             .root_module = libmod,
         });

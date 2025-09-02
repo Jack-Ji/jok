@@ -122,6 +122,10 @@ pub const Renderer = struct {
         }
     }
 
+    pub fn isClipEnabled(self: Renderer) bool {
+        return sdl.c.SDL_RenderClipEnabled(self.ptr);
+    }
+
     pub fn getClipRegion(self: Renderer) ?jok.Region {
         var rect: sdl.c.SDL_Rect = undefined;
         if (!sdl.c.SDL_GetRenderClipRect(self.ptr, &rect)) {

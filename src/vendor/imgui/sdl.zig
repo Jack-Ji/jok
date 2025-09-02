@@ -67,8 +67,9 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
 
     const rd = ctx.renderer();
     const csz = ctx.getCanvasSize();
+    const clip_enabled = rd.isClipEnabled();
     const old_clip = rd.getClipRegion();
-    defer rd.setClipRegion(old_clip) catch unreachable;
+    defer rd.setClipRegion(if (clip_enabled) old_clip else null) catch unreachable;
 
     const commands = dl.getCmdBufferData()[0..@as(u32, @intCast(dl.getCmdBufferLength()))];
     const vs_ptr = dl.getVertexBufferData();
@@ -84,7 +85,7 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
         clip_region.y = @intFromFloat(std.math.clamp(cmd.clip_rect[1], 0.0, csz.getHeightFloat()));
         clip_region.width = @intFromFloat(@min(@as(f32, @floatFromInt(csz.width - clip_region.x)), cmd.clip_rect[2] - cmd.clip_rect[0]));
         clip_region.height = @intFromFloat(@min(@as(f32, @floatFromInt(csz.height - clip_region.y)), cmd.clip_rect[3] - cmd.clip_rect[1]));
-        if (clip_region.width <= 0 or clip_region.height <= 0) continue;
+        if (clip_region.width == 0 or clip_region.height == 0) continue;
         rd.setClipRegion(clip_region) catch unreachable;
 
         // Convert colors

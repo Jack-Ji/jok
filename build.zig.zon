@@ -18,6 +18,7 @@
         .emsdk = .{
             .url = "git+https://github.com/emscripten-core/emsdk?ref=4.0.10#62a853cd3b3134398ce85cde8bb5cbb2ef0194cb",
             .hash = "N-V-__8AAEWFDwBdd7oE1EcCE3lK2y01-2ourXGKhpZeaZxQ",
+            .lazy = true,
         },
     },
 }
