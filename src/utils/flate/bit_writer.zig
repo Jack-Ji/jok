@@ -32,7 +32,7 @@ pub fn BitWriter(comptime WriterType: type) type {
 
         const Self = @This();
 
-        pub const Error = WriterType.Error || error{UnfinishedBits};
+        pub const Error = std.Io.Writer.Error || error{UnfinishedBits};
 
         pub fn init(writer: WriterType) Self {
             return .{ .inner_writer = writer };

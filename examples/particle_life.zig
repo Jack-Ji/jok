@@ -315,7 +315,7 @@ fn loadSettings(allocator: std.mem.Allocator) !void {
     if (path) |p| {
         defer p.deinit();
 
-        const content = try std.fs.cwd().readFileAlloc(allocator, p.path, 1024);
+        const content = try std.fs.cwd().readFileAlloc(p.path, allocator, .limited(1024));
         defer allocator.free(content);
 
         var floats = try std.array_list.Managed(f32).initCapacity(allocator, 37);

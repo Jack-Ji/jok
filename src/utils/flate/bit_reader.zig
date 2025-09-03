@@ -38,7 +38,7 @@ pub fn BitReader(comptime T: type, comptime ReaderType: type) type {
 
         const Self = @This();
 
-        pub const Error = ReaderType.Error || error{EndOfStream};
+        pub const Error = std.Io.Reader.Error || error{EndOfStream};
 
         pub fn init(rdr: ReaderType) Self {
             var self = Self{ .forward_reader = rdr };
@@ -67,7 +67,7 @@ pub fn BitReader(comptime T: type, comptime ReaderType: type) type {
                 (self.nbits >> 3); // 0 for 0-7, 1 for 8-16, ... same as / 8
 
             var buf: [t_bytes]u8 = [_]u8{0} ** t_bytes;
-            const bytes_read = self.forward_reader.readAll(buf[0..empty_bytes]) catch 0;
+            const bytes_read = self.forward_reader.readSliceShort(buf[0..empty_bytes]) catch 0;
             if (bytes_read > 0) {
                 const u: T = std.mem.readInt(T, buf[0..t_bytes], .little);
                 self.bits |= u << @as(Tshift, @intCast(self.nbits));
@@ -90,7 +90,7 @@ pub fn BitReader(comptime T: type, comptime ReaderType: type) type {
                 n += 1;
             }
             // Then use forward reader for all other bytes.
-            try self.forward_reader.readNoEof(buf[n..]);
+            try self.forward_reader.readSliceAll(buf[n..]);
         }
 
         pub const flag = struct {

@@ -1,7 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("../../jok.zig");
-const io = std.io;
 const assert = std.debug.assert;
 
 //------------------------------------------------------------------------------
@@ -351,6 +350,21 @@ pub fn open(fname: [*:0]const u8, mode: OpenMode) Error!File {
     if (handle) |h| {
         return .{
             .handle = h,
+            .buf = try mem_allocator.?.alloc(u8, 4096),
+            .reader = .{
+                .vtable = &.{
+                    .stream = File.stream,
+                },
+                .buffer = &.{},
+                .seek = 0,
+                .end = 0,
+            },
+            .writer = .{
+                .vtable = &.{
+                    .drain = File.drain,
+                },
+                .buffer = &.{},
+            },
         };
     }
     return getLastErrorCode().toError();
@@ -359,9 +373,13 @@ pub fn open(fname: [*:0]const u8, mode: OpenMode) Error!File {
 /// An opened file
 pub const File = struct {
     handle: *FileHandle,
+    buf: []u8 = &.{},
+    reader: std.Io.Reader = undefined,
+    writer: std.Io.Writer = undefined,
 
     /// Close opened file
     pub fn close(self: File) void {
+        if (self.buf.len > 0) mem_allocator.?.free(self.buf);
         if (PHYSFS_close(self.handle) == 0) {
             @panic(getLastErrorCode().toDesc());
         }
@@ -480,16 +498,29 @@ pub const File = struct {
         }
     }
 
-    /// Get std.io.Reader
-    pub const Reader = io.GenericReader(File, Error, read);
-    pub fn reader(self: File) Reader {
-        return .{ .context = self };
+    fn stream(r: *std.Io.Reader, w: *std.Io.Writer, limit: std.Io.Limit) std.Io.Reader.StreamError!usize {
+        var file: *File = @alignCast(@fieldParentPtr("reader", r));
+        if (file.eof()) {
+            return error.EndOfStream;
+        }
+        const bufsize = @min(file.buf.len, @intFromEnum(limit));
+        const size = file.read(file.buf[0..bufsize]) catch return error.ReadFailed;
+        try w.writeAll(file.buf[0..size]);
+        return size;
     }
 
-    /// Get std.io.Writer
-    pub const Writer = io.GenericWriter(File, Error, write);
-    pub fn writer(self: File) Writer {
-        return .{ .context = self };
+    fn drain(w: *std.Io.Writer, data: []const []const u8, splat: usize) std.Io.Writer.Error!usize {
+        var file: *File = @alignCast(@fieldParentPtr("writer", w));
+        var written_size: usize = 0;
+        for (data) |d| {
+            file.writeAll(d) catch return error.WriteFailed;
+            written_size += d.len;
+        }
+        for (0..splat) |_| {
+            file.writeAll(data[data.len - 1]) catch return error.WriteFailed;
+            written_size += data[data.len - 1].len;
+        }
+        return written_size;
     }
 };
 
@@ -569,7 +600,7 @@ fn memFree(ptr: ?*anyopaque) callconv(.c) void {
 
 pub const stb = struct {
     pub fn writeCallback(ctx: ?*anyopaque, data: ?*anyopaque, size: c_int) callconv(.c) void {
-        const handle: *File = @alignCast(@ptrCast(ctx.?));
+        const handle: *File = @ptrCast(@alignCast(ctx.?));
         var wdata: []u8 = undefined;
         wdata.ptr = @ptrCast(data.?);
         wdata.len = @intCast(size);

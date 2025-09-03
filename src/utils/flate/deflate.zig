@@ -310,7 +310,7 @@ fn Deflate(comptime container: Container, comptime WriterType: type, comptime Bl
                     self.slide();
                     continue;
                 }
-                const n = try reader.readAll(buf);
+                const n = try reader.readSliceShort(buf);
                 self.hasher.update(buf[0..n]);
                 self.win.written(n);
                 // Process window

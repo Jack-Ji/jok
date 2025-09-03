@@ -37,7 +37,11 @@ pub fn create(ctx: jok.Context, path: [*:0]const u8) !*Font {
 
         self.font_data = try handle.readAllAlloc(allocator);
     } else {
-        self.font_data = try std.fs.cwd().readFileAlloc(allocator, std.mem.sliceTo(path, 0), 1 << 30);
+        self.font_data = try std.fs.cwd().readFileAlloc(
+            std.mem.sliceTo(path, 0),
+            allocator,
+            .limited(1 << 30),
+        );
     }
 
     // Extract font info

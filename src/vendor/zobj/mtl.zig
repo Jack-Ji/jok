@@ -221,8 +221,8 @@ pub const TextureMap = struct { path: []const u8, opts: []const u8 };
 pub fn parse(allocator: Allocator, data: []const u8) !MaterialData {
     var b = MaterialData.Builder{ .allocator = allocator };
     errdefer b.onError();
-    var fbs = std.io.fixedBufferStream(data);
-    return try parseCustom(MaterialData, &b, fbs.reader());
+    var reader = std.Io.Reader.fixed(data);
+    return try parseCustom(MaterialData, &b, &reader);
 }
 
 pub fn parseCustom(comptime T: type, b: *T.Builder, reader: anytype) !T {

@@ -33,9 +33,9 @@ pub fn loadPixelsFromFile(ctx: jok.Context, path: [*:0]const u8, flip: bool) !Fi
         filedata = try handle.readAllAlloc(allocator);
     } else {
         filedata = try std.fs.cwd().readFileAlloc(
-            allocator,
             std.mem.sliceTo(path, 0),
-            1 << 30,
+            allocator,
+            .limited(1 << 30),
         );
     }
     defer allocator.free(filedata);
@@ -274,10 +274,10 @@ pub const jpng = struct {
         );
 
         if (ctx.cfg().jok_enable_physfs) {
-            const handle = try physfs.open(path, .append);
+            var handle = try physfs.open(path, .append);
             defer handle.close();
 
-            try writeData(ctx, handle.writer(), data, opt);
+            try writeData(ctx, &handle.writer, data, opt);
         } else {
             const file = try std.fs.cwd().openFileZ(path, .{ .mode = .write_only });
             defer file.close();
@@ -312,8 +312,9 @@ pub const jpng = struct {
         } else {
             const file = try std.fs.cwd().openFileZ(path, .{ .mode = .read_only });
             defer file.close();
+            var reader = std.fs.File.Reader.init(file, &.{});
 
-            data = try file.readToEndAlloc(allocator, 1 << 30);
+            data = try reader.interface.readAlloc(allocator, 1 << 30);
         }
         defer allocator.free(data);
 
@@ -357,10 +358,11 @@ pub const jpng = struct {
         }
 
         if (flags.compressed) {
-            var read_stream = std.io.fixedBufferStream(custom_data);
-            var write_stream = std.array_list.Managed(u8).init(allocator);
-            defer write_stream.deinit();
-            try gzip.decompress(read_stream.reader(), write_stream.writer());
+            var bufreader = std.Io.Reader.fixed(custom_data);
+            var writebuf = try std.ArrayList(u8).initCapacity(allocator, 1 << 27);
+            defer writebuf.deinit(allocator);
+            var bufwriter = std.Io.Writer.fromArrayList(&writebuf);
+            try gzip.decompress(&bufreader, &bufwriter);
             return .{
                 .allocator = allocator,
                 .pixels = pixels,
@@ -368,7 +370,7 @@ pub const jpng = struct {
                     .width = @intCast(width),
                     .height = @intCast(height),
                 },
-                .data = try write_stream.toOwnedSlice(),
+                .data = try writebuf.toOwnedSlice(allocator),
             };
         } else {
             const cloned_custom = try allocator.alloc(u8, custom_data.len);
@@ -405,21 +407,21 @@ pub const jpng = struct {
         };
     }
 
-    inline fn writeData(ctx: jok.Context, writer: anytype, data: []const u8, opt: SaveOption) !void {
+    inline fn writeData(ctx: jok.Context, writer: *std.Io.Writer, data: []const u8, opt: SaveOption) !void {
         const flags = Flags{
             .compressed = opt.data_compress_level != null,
         };
         if (opt.data_compress_level) |lvl| {
-            var read_stream = std.io.fixedBufferStream(data);
+            var bufreader = std.Io.Reader.fixed(data);
             const writebuf = try ctx.allocator().alloc(u8, data.len);
             defer ctx.allocator().free(writebuf);
-            var write_stream = std.io.fixedBufferStream(writebuf);
+            var bufwriter = std.Io.Writer.fixed(writebuf);
             try gzip.compress(
-                read_stream.reader(),
-                write_stream.writer(),
+                &bufreader,
+                &bufwriter,
                 .{ .level = lvl },
             );
-            const deflated = write_stream.getWritten();
+            const deflated = bufwriter.buffered();
             try writer.writeAll(deflated);
             const checksum = std.hash.Crc32.hash(deflated);
             try writer.writeInt(u32, checksum, .big);

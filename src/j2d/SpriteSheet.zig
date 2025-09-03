@@ -122,9 +122,9 @@ pub fn create(
                         break :BLK try file.readAllAlloc(allocator);
                     } else {
                         break :BLK try std.fs.cwd().readFileAlloc(
-                            allocator,
                             std.mem.sliceTo(path, 0),
-                            1 << 30,
+                            allocator,
+                            .limited(1 << 30),
                         );
                     }
                 };
@@ -452,10 +452,10 @@ pub fn save(
     var arena = std.heap.ArenaAllocator.init(self.allocator);
     defer arena.deinit();
     const databuf = try arena.allocator().alloc(u8, max_sheet_data_size);
-    var bufstream = std.io.fixedBufferStream(databuf);
+    var bufwriter = std.Io.Writer.fixed(databuf);
 
     // Magic header
-    try bufstream.writer().writeAll(&magic_sheet_header);
+    try bufwriter.writeAll(&magic_sheet_header);
 
     // Serialize sheet info
     var json_root = json.Value{
@@ -474,9 +474,8 @@ pub fn save(
         try obj.put("h", json.Value{ .float = @as(f64, rect.height) });
         try json_root.object.put(name, json.Value{ .object = obj });
     }
-    var adapter = bufstream.writer().adaptToNewApi(&.{});
     var stream = json.Stringify{
-        .writer = &adapter.new_interface,
+        .writer = &bufwriter,
         .options = .{},
     };
     try json_root.jsonStringify(&stream);
@@ -488,7 +487,7 @@ pub fn save(
         self.packed_pixels.?.width,
         self.packed_pixels.?.height,
         path,
-        bufstream.getWritten(),
+        bufwriter.buffered(),
         opt,
     );
 }

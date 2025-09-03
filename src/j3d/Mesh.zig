@@ -483,7 +483,11 @@ pub fn fromObj(
             break :BLK try handle.readAllAlloc(ctx.allocator());
         } else {
             const idx = std.mem.indexOfSentinel(u8, 0, obj_file_path);
-            break :BLK try std.fs.cwd().readFileAlloc(ctx.allocator(), obj_file_path[0..idx :0], 1 << 30);
+            break :BLK try std.fs.cwd().readFileAlloc(
+                obj_file_path[0..idx :0],
+                ctx.allocator(),
+                .limited(1 << 30),
+            );
         }
     };
     defer ctx.allocator().free(obj_file_data);
@@ -496,7 +500,11 @@ pub fn fromObj(
                 break :BLK try handle.readAllAlloc(ctx.allocator());
             } else {
                 const idx = std.mem.indexOfSentinel(u8, 0, p);
-                break :BLK try std.fs.cwd().readFileAlloc(ctx.allocator(), p[0..idx :0], 1 << 30);
+                break :BLK try std.fs.cwd().readFileAlloc(
+                    p[0..idx :0],
+                    ctx.allocator(),
+                    .limited(1 << 30),
+                );
             }
         } else {
             break :BLK null;

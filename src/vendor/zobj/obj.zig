@@ -255,11 +255,11 @@ const DefType = enum {
 pub fn parse(allocator: Allocator, data: []const u8) !ObjData {
     var b = ObjData.Builder{ .allocator = allocator };
     errdefer b.onError();
-    var fbs = std.io.fixedBufferStream(data);
-    return try parseCustom(ObjData, &b, fbs.reader());
+    var reader = std.Io.Reader.fixed(data);
+    return try parseCustom(ObjData, &b, &reader);
 }
 
-pub fn parseCustom(comptime T: type, b: *T.Builder, reader: anytype) !T {
+pub fn parseCustom(comptime T: type, b: *T.Builder, reader: *std.Io.Reader) !T {
     var buffer: [1024]u8 = undefined;
     var lines = lineIterator(reader, &buffer);
     while (try lines.next()) |line| {

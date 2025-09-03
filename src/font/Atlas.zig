@@ -56,10 +56,10 @@ pub fn save(
     var arena = std.heap.ArenaAllocator.init(self.allocator);
     defer arena.deinit();
     const databuf = try arena.allocator().alloc(u8, max_atlas_data_size);
-    var bufstream = std.io.fixedBufferStream(databuf);
+    var bufwriter = std.Io.Writer.fixed(databuf);
 
     // Magic header
-    try bufstream.writer().writeAll(&magic_atlas_header);
+    try bufwriter.writeAll(&magic_atlas_header);
 
     // Serialize atlas info
     var json_root = json.Value{
@@ -152,9 +152,8 @@ pub fn save(
         .float = self.vmetric_line_gap,
     });
     try json_root.object.put("kerning_table", kerning_values);
-    var adapter = bufstream.writer().adaptToNewApi(&.{});
     var stream = json.Stringify{
-        .writer = &adapter.new_interface,
+        .writer = &bufwriter,
         .options = .{},
     };
     try json_root.jsonStringify(&stream);
@@ -167,7 +166,7 @@ pub fn save(
         info.width,
         info.height,
         path,
-        bufstream.getWritten(),
+        bufwriter.buffered(),
         opt,
     );
 }
