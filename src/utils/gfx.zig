@@ -3,7 +3,6 @@ const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const physfs = jok.physfs;
 const stb = jok.stb;
-const gzip = @import("gzip.zig");
 
 pub const Error = error{
     EncodeTextureFailed,
@@ -229,7 +228,6 @@ pub fn savePixelsToFile(
 ///                +--- Encryption Bit (not implemented)
 ///
 pub const jpng = struct {
-    const CompressLevel = gzip.Level;
     const Flags = packed struct(u8) {
         compressed: bool,
         encrypted: bool = false,
@@ -244,7 +242,7 @@ pub const jpng = struct {
 
     pub const SaveOption = struct {
         png_compress_level: u8 = 8,
-        data_compress_level: ?CompressLevel = .level_4,
+        data_compress_level: ?std.compress.flate.Compress.Level = null, // TODO std lib not finished yet
     };
 
     /// Save texture in jpng format
@@ -281,9 +279,10 @@ pub const jpng = struct {
         } else {
             const file = try std.fs.cwd().openFileZ(path, .{ .mode = .write_only });
             defer file.close();
-            var fwriter = file.writer(&.{});
 
+            // TODO seems std.fs.File.openFileZ truncate file always, or SEEK doesn't work, probably a bug, need more testing
             _ = try file.seekFromEnd(0);
+            var fwriter = file.writer(&.{});
             try writeData(ctx, &fwriter.interface, data, opt);
         }
     }
@@ -312,7 +311,7 @@ pub const jpng = struct {
         } else {
             const file = try std.fs.cwd().openFileZ(path, .{ .mode = .read_only });
             defer file.close();
-            var reader = std.fs.File.Reader.init(file, &.{});
+            var reader = file.reader(&.{});
 
             data = try reader.interface.readAlloc(allocator, 1 << 30);
         }
@@ -359,10 +358,8 @@ pub const jpng = struct {
 
         if (flags.compressed) {
             var bufreader = std.Io.Reader.fixed(custom_data);
-            var writebuf = try std.ArrayList(u8).initCapacity(allocator, 1 << 27);
-            defer writebuf.deinit(allocator);
-            var bufwriter = std.Io.Writer.fromArrayList(&writebuf);
-            try gzip.decompress(&bufreader, &bufwriter);
+            var decompress = std.compress.flate.Decompress.init(&bufreader, .gzip, &.{});
+            const customdata = try decompress.reader.readAlloc(allocator, 1 << 27);
             return .{
                 .allocator = allocator,
                 .pixels = pixels,
@@ -370,7 +367,7 @@ pub const jpng = struct {
                     .width = @intCast(width),
                     .height = @intCast(height),
                 },
-                .data = try writebuf.toOwnedSlice(allocator),
+                .data = customdata,
             };
         } else {
             const cloned_custom = try allocator.alloc(u8, custom_data.len);
@@ -412,15 +409,16 @@ pub const jpng = struct {
             .compressed = opt.data_compress_level != null,
         };
         if (opt.data_compress_level) |lvl| {
-            var bufreader = std.Io.Reader.fixed(data);
             const writebuf = try ctx.allocator().alloc(u8, data.len);
             defer ctx.allocator().free(writebuf);
             var bufwriter = std.Io.Writer.fixed(writebuf);
-            try gzip.compress(
-                &bufreader,
+            var compress = std.compress.flate.Compress.init(
                 &bufwriter,
-                .{ .level = lvl },
+                &.{},
+                .{ .container = .gzip, .level = lvl },
             );
+            try compress.writer.writeAll(data);
+            try compress.end();
             const deflated = bufwriter.buffered();
             try writer.writeAll(deflated);
             const checksum = std.hash.Crc32.hash(deflated);

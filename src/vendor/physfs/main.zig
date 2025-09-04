@@ -512,7 +512,7 @@ pub const File = struct {
     fn drain(w: *std.Io.Writer, data: []const []const u8, splat: usize) std.Io.Writer.Error!usize {
         var file: *File = @alignCast(@fieldParentPtr("writer", w));
         var written_size: usize = 0;
-        for (data) |d| {
+        for (data[0 .. data.len - 1]) |d| {
             file.writeAll(d) catch return error.WriteFailed;
             written_size += d.len;
         }

@@ -24,7 +24,6 @@ pub const xml = @import("utils/xml.zig");
 
 //============================= Stolen From Old Standard Library =============================
 pub const ring = @import("utils/ring.zig"); // Generic ring data structure
-pub const gzip = @import("utils/gzip.zig"); // gzip compress/decompress
 pub const trait = @import("utils/trait.zig"); // Trait system
 
 test "utils" {

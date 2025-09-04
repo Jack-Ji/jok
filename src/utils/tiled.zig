@@ -535,7 +535,7 @@ pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !*TiledMap {
     } else {
         var file = try std.fs.cwd().openFileZ(path, .{ .mode = .read_only });
         defer file.close();
-        var reader = std.fs.File.Reader.init(file, &.{});
+        var reader = file.reader(&.{});
 
         data = try reader.interface.readAlloc(allocator, 1 << 30);
         dirname = std.fs.path.dirname(zpath) orelse ".";
@@ -1303,7 +1303,7 @@ inline fn getExternalFileContent(allocator: std.mem.Allocator, use_physfs: bool,
     } else {
         var file = try std.fs.cwd().openFileZ(zpath, .{ .mode = .read_only });
         defer file.close();
-        var reader = std.fs.File.Reader.init(file, &.{});
+        var reader = file.reader(&.{});
 
         return try reader.interface.readAlloc(allocator, 1 << 30);
     }
