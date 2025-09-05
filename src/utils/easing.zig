@@ -230,10 +230,10 @@ pub fn EaseScalar(comptime T: type) type {
     return struct {
         pub fn ease(x: f32, from: T, to: T) T {
             return switch (T) {
-                f32 => from + (to - from) * x,
-                f64 => from + (to - from) * @as(f64, @floatCast(x)),
-                c_int, i8, i16, i32, i64 => from + @as(T, @intFromFloat(@as(f32, @floatFromInt(to - from)) * x)),
-                u8, u16, u32, u64 => from + @as(T, @intFromFloat(@as(f32, @floatFromInt(@as(i64, to) - @as(i64, from))) * x)),
+                f32 => @mulAdd(f32, to - from, x, from),
+                f64 => @mulAdd(f64, to - from, @as(f64, @floatCast(x)), from),
+                c_int, i8, i16, i32, i64 => @intFromFloat(@mulAdd(f32, @as(f32, @floatFromInt(to - from)), x, @as(f32, @floatFromInt(from)))),
+                u8, u16, u32, u64 => @intFromFloat(@mulAdd(f32, @as(f32, @floatFromInt(to)) - @as(f32, @floatFromInt(from)), x, @as(f32, @floatFromInt(from)))),
                 else => unreachable,
             };
         }
@@ -267,12 +267,13 @@ pub fn EaseVector(comptime N: u32, comptime T: type) type {
 
         pub fn ease(x: f32, from: Vec, to: Vec) Vec {
             return switch (T) {
-                f32 => from + (to - from) * @as(Vec, @splat(x)),
-                f64 => from + (to - from) * @as(Vec, @splat(@as(f64, x))),
+                f32 => @mulAdd(Vec, to - from, @as(Vec, @splat(x)), from),
+                f64 => @mulAdd(Vec, to - from, @as(Vec, @splat(@as(f64, @floatCast(x)))), from),
                 c_int, i8, i16, i32, i64, u8, u16, u32, u64 => BLK: {
+                    const VecN = @Vector(N, f64);
                     const from_f64 = convert(T, f64, from);
                     const to_f64 = convert(T, f64, to);
-                    const result_f64 = from_f64 + (to_f64 - from_f64) * @as(@Vector(N, f64), @splat(@as(f64, x)));
+                    const result_f64 = @mulAdd(VecN, to_f64 - from_f64, @as(VecN, @splat(@as(f64, x))), from_f64);
                     break :BLK convert(f64, T, result_f64);
                 },
                 else => unreachable,
