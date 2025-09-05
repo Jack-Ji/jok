@@ -280,9 +280,8 @@ pub const jpng = struct {
             const file = try std.fs.cwd().openFileZ(path, .{ .mode = .write_only });
             defer file.close();
 
-            // TODO seems std.fs.File.openFileZ truncate file always, or SEEK doesn't work, probably a bug, need more testing
-            _ = try file.seekFromEnd(0);
             var fwriter = file.writer(&.{});
+            fwriter.pos = (file.stat() catch unreachable).size;
             try writeData(ctx, &fwriter.interface, data, opt);
         }
     }
@@ -313,7 +312,8 @@ pub const jpng = struct {
             defer file.close();
             var reader = file.reader(&.{});
 
-            data = try reader.interface.readAlloc(allocator, 1 << 30);
+            const size = (file.stat() catch unreachable).size;
+            data = try reader.interface.readAlloc(allocator, size);
         }
         defer allocator.free(data);
 

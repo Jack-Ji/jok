@@ -24,7 +24,7 @@ pub fn init(ctx: jok.Context) !void {
     const size = ctx.getCanvasSize();
     sheet1 = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
-        "images",
+        if (ctx.cfg().jok_enable_physfs) "images" else "assets/images",
         @intFromFloat(size.getWidthFloat()),
         @intFromFloat(size.getHeightFloat()),
         .{ .keep_packed_pixels = true },
@@ -35,7 +35,7 @@ pub fn init(ctx: jok.Context) !void {
 
     sheet3 = try j2d.SpriteSheet.fromSinglePicture(
         ctx,
-        "images/image9.jpg",
+        if (ctx.cfg().jok_enable_physfs) "images/image9.jpg" else "assets/images/image9.jpg",
         &.{
             .{
                 .name = "cute",
