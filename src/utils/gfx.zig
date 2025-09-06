@@ -313,7 +313,7 @@ pub const jpng = struct {
             var reader = file.reader(&.{});
 
             const size = (file.stat() catch unreachable).size;
-            data = try reader.interface.readAlloc(allocator, size);
+            data = try reader.interface.readAlloc(allocator, @intCast(size));
         }
         defer allocator.free(data);
 
