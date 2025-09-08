@@ -122,14 +122,38 @@ pub const Renderer = struct {
         }
     }
 
+    pub fn isViewportSet(self: Renderer) bool {
+        return sdl.c.SDL_RenderViewportSet(self.ptr);
+    }
+
+    pub fn getViewport(self: Renderer) !jok.Region {
+        var rect: sdl.c.SDL_Rect = undefined;
+        if (!sdl.c.SDL_GetRenderViewport(self.ptr, &rect)) {
+            log.err("Get viewport failed: {s}", .{sdl.c.SDL_GetError()});
+            return error.SdlError;
+        }
+        return @bitCast(rect);
+    }
+
+    pub fn setViewport(self: Renderer, region: ?jok.Region) !void {
+        if (!sdl.c.SDL_SetRenderViewport(
+            self.ptr,
+            if (region) |r| @ptrCast(&r) else null,
+        )) {
+            log.err("Set viewport failed: {s}", .{sdl.c.SDL_GetError()});
+            return error.SdlError;
+        }
+    }
+
     pub fn isClipEnabled(self: Renderer) bool {
         return sdl.c.SDL_RenderClipEnabled(self.ptr);
     }
 
-    pub fn getClipRegion(self: Renderer) ?jok.Region {
+    pub fn getClipRegion(self: Renderer) !jok.Region {
         var rect: sdl.c.SDL_Rect = undefined;
         if (!sdl.c.SDL_GetRenderClipRect(self.ptr, &rect)) {
-            return null;
+            log.err("Get clip rect failed: {s}", .{sdl.c.SDL_GetError()});
+            return error.SdlError;
         }
         return @bitCast(rect);
     }
@@ -140,6 +164,7 @@ pub const Renderer = struct {
             if (clip_region) |r| @ptrCast(&r) else null,
         )) {
             log.err("Set clip region failed: {s}", .{sdl.c.SDL_GetError()});
+            return error.SdlError;
         }
     }
 

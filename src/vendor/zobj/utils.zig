@@ -7,10 +7,11 @@ pub fn LineIterator(comptime Reader: type) type {
 
         pub fn next(self: *@This()) !?[]const u8 {
             var writer = std.Io.Writer.fixed(self.buffer);
-            _ = self.reader.streamDelimiter(&writer, '\n') catch |err| switch (err) {
-                error.EndOfStream => if (writer.end == 0) return null,
-                else => |e| return e,
+            const size = self.reader.streamDelimiterEnding(&writer, '\n') catch |err| {
+                if (err == error.EndOfStream) return null;
+                return err;
             };
+            if (size == 0) return null;
             var line = writer.buffered();
             if (0 < line.len and line[line.len - 1] == '\r')
                 line = line[0 .. line.len - 1];

@@ -67,8 +67,15 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
 
     const rd = ctx.renderer();
     const csz = ctx.getCanvasSize();
+
+    // Restore viewport
+    const viewport_set = rd.isViewportSet();
+    const viewport = rd.getViewport() catch unreachable;
+    defer rd.setViewport(if (viewport_set) viewport else null) catch unreachable;
+
+    // Restore clip rect
     const clip_enabled = rd.isClipEnabled();
-    const old_clip = rd.getClipRegion();
+    const old_clip = rd.getClipRegion() catch unreachable;
     defer rd.setClipRegion(if (clip_enabled) old_clip else null) catch unreachable;
 
     const commands = dl.getCmdBufferData()[0..@as(u32, @intCast(dl.getCmdBufferLength()))];
