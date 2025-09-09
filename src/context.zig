@@ -181,6 +181,7 @@ pub const DebugPrint = struct {
 /// Context generator
 pub fn JokContext(comptime cfg: config.Config) type {
     const DebugAllocatorType = std.heap.DebugAllocator(.{
+        .stack_trace_frames = 3,
         .safety = true,
         .enable_memory_limit = true,
     });
