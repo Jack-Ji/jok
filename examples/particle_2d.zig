@@ -98,7 +98,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(.none);
+    try ctx.renderer().clear(.black);
     ctx.displayStats(.{});
 
     var b = try batchpool.new(.{ .blend_mode = .additive });
