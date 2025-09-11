@@ -619,7 +619,9 @@ pub const zaudio = struct {
     fn onOpen(_: *AudioVfs, file_path: [*:0]const u8, mode: AudioOpenMode, handle: *AudioFileHandle) callconv(.c) AudioResult {
         const open_mode: OpenMode = if (mode == .read) .read else .write;
         const file = open(file_path, open_mode) catch |e| @panic(@errorName(e));
-        handle.* = @ptrCast(file.handle);
+        const fileptr = mem_allocator.?.create(File) catch |e| @panic(@errorName(e));
+        fileptr.* = file;
+        handle.* = @ptrCast(fileptr);
         return .success;
     }
     fn onOpenW(_: *AudioVfs, file_path: [*:0]const u32, mode: AudioOpenMode, handle: *AudioFileHandle) callconv(.c) AudioResult {
@@ -629,58 +631,47 @@ pub const zaudio = struct {
         return .invalid_operation;
     }
     fn onClose(_: *AudioVfs, handle: AudioFileHandle) callconv(.c) AudioResult {
-        const file = File{
-            .handle = @ptrCast(handle),
-        };
-        file.close();
+        const fileptr: *File = @ptrCast(@alignCast(handle));
+        fileptr.close();
+        mem_allocator.?.destroy(fileptr);
         return .success;
     }
     fn onRead(_: *AudioVfs, handle: AudioFileHandle, dst: [*]u8, size: usize, bytes_read: *usize) callconv(.c) AudioResult {
-        const file = File{
-            .handle = @ptrCast(handle),
-        };
+        const fileptr: *File = @ptrCast(@alignCast(handle));
         var data: []u8 = undefined;
         data.ptr = dst;
         data.len = size;
-        bytes_read.* = file.read(data) catch |e| @panic(@errorName(e));
+        bytes_read.* = fileptr.read(data) catch |e| @panic(@errorName(e));
         return .success;
     }
     fn onWrite(_: *AudioVfs, handle: AudioFileHandle, src: [*]const u8, size: usize, bytes_written: *usize) callconv(.c) AudioResult {
-        const file = File{
-            .handle = @ptrCast(handle),
-        };
+        const fileptr: *File = @ptrCast(@alignCast(handle));
         var data: []u8 = undefined;
         data.ptr = @constCast(src);
         data.len = size;
-        file.writeAll(data) catch |e| @panic(@errorName(e));
+        fileptr.writeAll(data) catch |e| @panic(@errorName(e));
         bytes_written.* = size;
         return .success;
     }
     fn onSeek(_: *AudioVfs, handle: AudioFileHandle, offset: i64, origin: SeekOrigin) callconv(.c) AudioResult {
-        const file = File{
-            .handle = @ptrCast(handle),
-        };
-        const curoff: isize = @intCast(file.tell() catch |e| @panic(@errorName(e)));
-        const size: isize = @intCast(file.length() catch |e| @panic(@errorName(e)));
+        const fileptr: *File = @ptrCast(@alignCast(handle));
+        const curoff: isize = @intCast(fileptr.tell() catch |e| @panic(@errorName(e)));
+        const size: isize = @intCast(fileptr.length() catch |e| @panic(@errorName(e)));
         switch (origin) {
-            .start => file.seek(@intCast(offset)) catch |e| @panic(@errorName(e)),
-            .current => file.seek(@intCast(curoff + offset)) catch |e| @panic(@errorName(e)),
-            .end => file.seek(@intCast(size + offset)) catch |e| @panic(@errorName(e)),
+            .start => fileptr.seek(@intCast(offset)) catch |e| @panic(@errorName(e)),
+            .current => fileptr.seek(@intCast(curoff + offset)) catch |e| @panic(@errorName(e)),
+            .end => fileptr.seek(@intCast(size + offset)) catch |e| @panic(@errorName(e)),
         }
         return .success;
     }
     fn onTell(_: *AudioVfs, handle: AudioFileHandle, offset: *i64) callconv(.c) AudioResult {
-        const file = File{
-            .handle = @ptrCast(handle),
-        };
-        offset.* = @intCast(file.tell() catch |e| @panic(@errorName(e)));
+        const fileptr: *File = @ptrCast(@alignCast(handle));
+        offset.* = @intCast(fileptr.tell() catch |e| @panic(@errorName(e)));
         return .success;
     }
     fn onInfo(_: *AudioVfs, handle: AudioFileHandle, info: *FileInfo) callconv(.c) AudioResult {
-        const file = File{
-            .handle = @ptrCast(handle),
-        };
-        const size = file.length() catch |e| @panic(@errorName(e));
+        const fileptr: *File = @ptrCast(@alignCast(handle));
+        const size = fileptr.length() catch |e| @panic(@errorName(e));
         info.* = .{
             .size_in_bytes = size,
         };
