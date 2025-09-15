@@ -58,7 +58,7 @@ pub fn draw(ctx: jok.Context) void {
     ImGui_ImplSDLRenderer3_RenderDrawData(gui.getDrawData(), renderer.ptr);
 }
 
-pub fn processEvent(event: sdl.c.SDL_Event) bool {
+pub fn processEvent(event: sdl.SDL_Event) bool {
     return ImGui_ImplSDL3_ProcessEvent(&event);
 }
 

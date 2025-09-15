@@ -40,20 +40,20 @@ pub const DcStats = struct {
 };
 
 pub const Renderer = struct {
-    ptr: *sdl.c.SDL_Renderer,
+    ptr: *sdl.SDL_Renderer,
     cfg: jok.config.Config,
     dc: *DcStats,
 
     pub fn init(ctx: jok.Context) !Renderer {
         const cfg = ctx.cfg();
-        const props = sdl.c.SDL_CreateProperties();
-        _ = sdl.c.SDL_SetPointerProperty(props, sdl.c.SDL_PROP_RENDERER_CREATE_WINDOW_POINTER, ctx.window().ptr);
+        const props = sdl.SDL_CreateProperties();
+        _ = sdl.SDL_SetPointerProperty(props, sdl.SDL_PROP_RENDERER_CREATE_WINDOW_POINTER, ctx.window().ptr);
         if (cfg.jok_fps_limit == .auto) {
-            _ = sdl.c.SDL_SetNumberProperty(props, sdl.c.SDL_PROP_RENDERER_CREATE_PRESENT_VSYNC_NUMBER, 1);
+            _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_RENDERER_CREATE_PRESENT_VSYNC_NUMBER, 1);
         }
-        const ptr = sdl.c.SDL_CreateRendererWithProperties(props);
+        const ptr = sdl.SDL_CreateRendererWithProperties(props);
         if (ptr == null) {
-            log.err("Create renderer failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Create renderer failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
 
@@ -68,7 +68,7 @@ pub const Renderer = struct {
 
     pub fn destroy(self: Renderer) void {
         self.dc.destroy();
-        sdl.c.SDL_DestroyRenderer(self.ptr);
+        sdl.SDL_DestroyRenderer(self.ptr);
     }
 
     pub const Info = struct {
@@ -77,19 +77,19 @@ pub const Renderer = struct {
         max_texture_size: u32,
     };
     pub fn getInfo(self: Renderer) !Info {
-        const props = sdl.c.SDL_GetRendererProperties(self.ptr);
+        const props = sdl.SDL_GetRendererProperties(self.ptr);
         return .{
-            .name = std.mem.sliceTo(sdl.c.SDL_GetRendererName(self.ptr), 0),
-            .vsync = @intCast(sdl.c.SDL_GetNumberProperty(props, sdl.c.SDL_PROP_RENDERER_VSYNC_NUMBER, 0)),
-            .max_texture_size = @intCast(sdl.c.SDL_GetNumberProperty(props, sdl.c.SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0)),
+            .name = std.mem.sliceTo(sdl.SDL_GetRendererName(self.ptr), 0),
+            .vsync = @intCast(sdl.SDL_GetNumberProperty(props, sdl.SDL_PROP_RENDERER_VSYNC_NUMBER, 0)),
+            .max_texture_size = @intCast(sdl.SDL_GetNumberProperty(props, sdl.SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0)),
         };
     }
 
     pub fn getOutputSize(self: Renderer) !jok.Size {
         var width_pixels: c_int = undefined;
         var height_pixels: c_int = undefined;
-        if (!sdl.c.SDL_GetCurrentRenderOutputSize(self.ptr, &width_pixels, &height_pixels)) {
-            log.err("Get renderer's framebuffer size failed: {s}", .{sdl.c.SDL_GetError()});
+        if (!sdl.SDL_GetCurrentRenderOutputSize(self.ptr, &width_pixels, &height_pixels)) {
+            log.err("Get renderer's framebuffer size failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         return .{
@@ -102,106 +102,106 @@ pub const Renderer = struct {
         const old_color = try self.getColor();
         try self.setColor(color);
         defer self.setColor(old_color) catch unreachable;
-        if (!sdl.c.SDL_RenderClear(self.ptr)) {
-            log.err("Clear renderer failed: {s}", .{sdl.c.SDL_GetError()});
+        if (!sdl.SDL_RenderClear(self.ptr)) {
+            log.err("Clear renderer failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
     pub fn present(self: Renderer) void {
-        if (!sdl.c.SDL_RenderPresent(self.ptr)) {
-            log.err("Renderer present failed: {s}", .{sdl.c.SDL_GetError()});
+        if (!sdl.SDL_RenderPresent(self.ptr)) {
+            log.err("Renderer present failed: {s}", .{sdl.SDL_GetError()});
         }
     }
 
     // https://wiki.libsdl.org/SDL3/SDL_SetRenderVSync
     pub fn setVsync(self: Renderer, vsync: i32) !void {
-        if (!sdl.c.SDL_SetRenderVSync(self.ptr, vsync)) {
-            log.err("Set vsync mode to {d} failed: {s}", .{ vsync, sdl.c.SDL_GetError() });
+        if (!sdl.SDL_SetRenderVSync(self.ptr, vsync)) {
+            log.err("Set vsync mode to {d} failed: {s}", .{ vsync, sdl.SDL_GetError() });
             return error.SdlError;
         }
     }
 
     pub fn isViewportSet(self: Renderer) bool {
-        return sdl.c.SDL_RenderViewportSet(self.ptr);
+        return sdl.SDL_RenderViewportSet(self.ptr);
     }
 
     pub fn getViewport(self: Renderer) !jok.Region {
-        var rect: sdl.c.SDL_Rect = undefined;
-        if (!sdl.c.SDL_GetRenderViewport(self.ptr, &rect)) {
-            log.err("Get viewport failed: {s}", .{sdl.c.SDL_GetError()});
+        var rect: sdl.SDL_Rect = undefined;
+        if (!sdl.SDL_GetRenderViewport(self.ptr, &rect)) {
+            log.err("Get viewport failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         return @bitCast(rect);
     }
 
     pub fn setViewport(self: Renderer, region: ?jok.Region) !void {
-        if (!sdl.c.SDL_SetRenderViewport(
+        if (!sdl.SDL_SetRenderViewport(
             self.ptr,
             if (region) |r| @ptrCast(&r) else null,
         )) {
-            log.err("Set viewport failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Set viewport failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
     pub fn isClipEnabled(self: Renderer) bool {
-        return sdl.c.SDL_RenderClipEnabled(self.ptr);
+        return sdl.SDL_RenderClipEnabled(self.ptr);
     }
 
     pub fn getClipRegion(self: Renderer) !jok.Region {
-        var rect: sdl.c.SDL_Rect = undefined;
-        if (!sdl.c.SDL_GetRenderClipRect(self.ptr, &rect)) {
-            log.err("Get clip rect failed: {s}", .{sdl.c.SDL_GetError()});
+        var rect: sdl.SDL_Rect = undefined;
+        if (!sdl.SDL_GetRenderClipRect(self.ptr, &rect)) {
+            log.err("Get clip rect failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         return @bitCast(rect);
     }
 
     pub fn setClipRegion(self: Renderer, clip_region: ?jok.Region) !void {
-        if (!sdl.c.SDL_SetRenderClipRect(
+        if (!sdl.SDL_SetRenderClipRect(
             self.ptr,
             if (clip_region) |r| @ptrCast(&r) else null,
         )) {
-            log.err("Set clip region failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Set clip region failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
     pub fn getBlendMode(self: Renderer) !jok.BlendMode {
-        var blend_mode: sdl.c.SDL_BlendMode = undefined;
-        if (!sdl.c.SDL_GetRenderDrawBlendMode(self.ptr, &blend_mode)) {
-            log.err("Get renderer's blend mode failed: {s}", .{sdl.c.SDL_GetError()});
+        var blend_mode: sdl.SDL_BlendMode = undefined;
+        if (!sdl.SDL_GetRenderDrawBlendMode(self.ptr, &blend_mode)) {
+            log.err("Get renderer's blend mode failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         return jok.BlendMode.fromNative(blend_mode);
     }
 
     pub fn setBlendMode(self: Renderer, blend_mode: jok.BlendMode) !void {
-        if (!sdl.c.SDL_SetRenderDrawBlendMode(self.ptr, blend_mode.toNative())) {
-            log.err("Set renderer's blend mode to {s} failed: {s}", .{ @tagName(blend_mode), sdl.c.SDL_GetError() });
+        if (!sdl.SDL_SetRenderDrawBlendMode(self.ptr, blend_mode.toNative())) {
+            log.err("Set renderer's blend mode to {s} failed: {s}", .{ @tagName(blend_mode), sdl.SDL_GetError() });
             return error.SdlError;
         }
     }
 
     pub fn getColor(self: Renderer) !jok.Color {
-        var color: sdl.c.SDL_Color = undefined;
-        if (!sdl.c.SDL_GetRenderDrawColor(self.ptr, &color.r, &color.g, &color.b, &color.a)) {
-            log.err("Get renderer's color failed: {s}", .{sdl.c.SDL_GetError()});
+        var color: sdl.SDL_Color = undefined;
+        if (!sdl.SDL_GetRenderDrawColor(self.ptr, &color.r, &color.g, &color.b, &color.a)) {
+            log.err("Get renderer's color failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         return @bitCast(color);
     }
 
     pub fn setColor(self: Renderer, color: jok.Color) !void {
-        if (!sdl.c.SDL_SetRenderDrawColor(self.ptr, color.r, color.g, color.b, color.a)) {
-            log.err("Set renderer's color failed: {s}", .{sdl.c.SDL_GetError()});
+        if (!sdl.SDL_SetRenderDrawColor(self.ptr, color.r, color.g, color.b, color.a)) {
+            log.err("Set renderer's color failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
     pub fn getTarget(self: Renderer) ?jok.Texture {
-        const ptr = sdl.c.SDL_GetRenderTarget(self.ptr);
+        const ptr = sdl.SDL_GetRenderTarget(self.ptr);
         if (ptr != null) {
             return .{ .ptr = ptr };
         }
@@ -209,27 +209,27 @@ pub const Renderer = struct {
     }
 
     pub fn setTarget(self: Renderer, tex: ?jok.Texture) !void {
-        if (!sdl.c.SDL_SetRenderTarget(self.ptr, if (tex) |t| t.ptr else null)) {
-            log.err("Set renderer's target failed: {s}", .{sdl.c.SDL_GetError()});
+        if (!sdl.SDL_SetRenderTarget(self.ptr, if (tex) |t| t.ptr else null)) {
+            log.err("Set renderer's target failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
     pub fn drawTexture(self: Renderer, tex: jok.Texture, src: ?jok.Rectangle, dst: ?jok.Rectangle) !void {
-        if (!sdl.c.SDL_RenderTexture(
+        if (!sdl.SDL_RenderTexture(
             self.ptr,
             tex.ptr,
             if (src) |r| @ptrCast(&r) else null,
             if (dst) |r| @ptrCast(&r) else null,
         )) {
-            log.err("Render texture failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Render texture failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         self.dc.drawcall_count += 1;
     }
 
     pub fn drawTriangles(self: Renderer, tex: ?jok.Texture, vs: []const jok.Vertex, indices: ?[]const u32) !void {
-        if (!sdl.c.SDL_RenderGeometry(
+        if (!sdl.SDL_RenderGeometry(
             self.ptr,
             if (tex) |t| t.ptr else null,
             @ptrCast(vs.ptr),
@@ -237,7 +237,7 @@ pub const Renderer = struct {
             if (indices) |is| @ptrCast(is.ptr) else null,
             if (indices) |is| @intCast(is.len) else 0,
         )) {
-            log.err("Render triangles failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Render triangles failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         self.dc.drawcall_count += 1;
@@ -259,7 +259,7 @@ pub const Renderer = struct {
         vs_count: usize,
         indices: []const u32,
     ) !void {
-        if (!sdl.c.SDL_RenderGeometryRaw(
+        if (!sdl.SDL_RenderGeometryRaw(
             self.ptr,
             if (tex) |t| t.ptr else null,
             xy_ptr,
@@ -273,7 +273,7 @@ pub const Renderer = struct {
             @intCast(indices.len),
             4,
         )) {
-            log.err("Render triangles(raw) failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Render triangles(raw) failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         self.dc.drawcall_count += 1;
@@ -290,15 +290,15 @@ pub const Renderer = struct {
         if (size.width > rdinfo.max_texture_size or size.height > rdinfo.max_texture_size) {
             return error.TextureTooLarge;
         }
-        const ptr = sdl.c.SDL_CreateTexture(
+        const ptr = sdl.SDL_CreateTexture(
             self.ptr,
-            sdl.c.SDL_PIXELFORMAT_RGBA32, // Yes, we only accept rgba format!
+            sdl.SDL_PIXELFORMAT_RGBA32, // Yes, we only accept rgba format!
             @intFromEnum(opt.access),
             @intCast(size.width),
             @intCast(size.height),
         );
         if (ptr == null) {
-            log.err("Create texture failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Create texture failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         const tex = jok.Texture{ .ptr = ptr.? };
@@ -398,25 +398,25 @@ pub const Renderer = struct {
 
     /// Readonly pixels of previous rendered result
     pub const PixelData = struct {
-        surface: [*c]sdl.c.SDL_Surface,
+        surface: [*c]sdl.SDL_Surface,
         width: u32,
         height: u32,
 
         pub inline fn destroy(px: @This()) void {
-            sdl.c.SDL_DestroySurface(px.surface);
+            sdl.SDL_DestroySurface(px.surface);
         }
 
         pub inline fn getPixel(px: @This(), x: u32, y: u32) jok.Color {
             assert(x < px.width);
             assert(y < px.height);
             const c: jok.Color = undefined;
-            sdl.c.SDL_ReadSurfacePixel(px.surface, @intCast(x), @intCast(y), &c.r, &c.g, &c.b, &c.a);
+            sdl.SDL_ReadSurfacePixel(px.surface, @intCast(x), @intCast(y), &c.r, &c.g, &c.b, &c.a);
             return c;
         }
 
         pub inline fn createTexture(px: @This(), rd: Renderer, opt: TextureOption) !jok.Texture {
             const tex = jok.Texture{
-                .ptr = sdl.c.SDL_CreateTextureFromSurface(rd.ptr, px.surface),
+                .ptr = sdl.SDL_CreateTextureFromSurface(rd.ptr, px.surface),
             };
             try tex.setBlendMode(opt.blend_mode);
             try tex.setScaleMode(opt.scale_mode);
@@ -424,7 +424,7 @@ pub const Renderer = struct {
         }
     };
     pub fn getPixels(self: Renderer, region: ?jok.Region) !PixelData {
-        const rect: sdl.c.SDL_Rect = if (region) |r|
+        const rect: sdl.SDL_Rect = if (region) |r|
             @bitCast(r)
         else BLK: {
             const sz = try self.getOutputSize();
@@ -435,9 +435,9 @@ pub const Renderer = struct {
                 .h = @intCast(sz.height),
             };
         };
-        const surface = sdl.c.SDL_RenderReadPixels(self.ptr, &rect);
+        const surface = sdl.SDL_RenderReadPixels(self.ptr, &rect);
         if (surface == null) {
-            log.err("Read pixels failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Read pixels failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         return .{

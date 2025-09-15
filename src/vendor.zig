@@ -1,6 +1,14 @@
 const bos = @import("build_options");
 
-pub const sdl = @import("vendor/sdl/main.zig");
+pub const Error = error{
+    SdlError,
+};
+
+pub const sdl = @cImport({
+    @cDefine("SDL_DISABLE_OLD_NAMES", {});
+    @cInclude("SDL3/SDL.h");
+    @cInclude("SDL3/SDL_revision.h");
+});
 pub const physfs = @import("vendor/physfs/main.zig");
 pub const zaudio = if (bos.no_audio)
     .{ .Engine = struct {}, .Context = struct {} }

@@ -60,123 +60,123 @@ pub const BlendMode = enum {
     var _pd_clear: c_uint = undefined;
 
     inline fn init() void {
-        _pd_src = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_ONE,
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_ONE,
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_src = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
-        _pd_src_atop = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_DST_ALPHA,
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_DST_ALPHA,
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_src_atop = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
-        _pd_src_over = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_ONE,
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_ONE,
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_src_over = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
-        _pd_src_in = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_DST_ALPHA,
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_DST_ALPHA,
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_src_in = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
-        _pd_src_out = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_src_out = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
-        _pd_dst = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDFACTOR_ONE,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDFACTOR_ONE,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_dst = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
-        _pd_dst_atop = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
-            sdl.c.SDL_BLENDFACTOR_SRC_ALPHA,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
-            sdl.c.SDL_BLENDFACTOR_SRC_ALPHA,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_dst_atop = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
-        _pd_dst_over = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
-            sdl.c.SDL_BLENDFACTOR_ONE,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
-            sdl.c.SDL_BLENDFACTOR_ONE,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_dst_over = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
-        _pd_dst_in = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDFACTOR_SRC_ALPHA,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDFACTOR_SRC_ALPHA,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_dst_in = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
-        _pd_dst_out = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_dst_out = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
-        _pd_xor = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
-            sdl.c.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_xor = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
-        _pd_lighter = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_ONE,
-            sdl.c.SDL_BLENDFACTOR_ONE,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_ONE,
-            sdl.c.SDL_BLENDFACTOR_ONE,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_lighter = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
-        _pd_clear = sdl.c.SDL_ComposeCustomBlendMode(
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDOPERATION_ADD,
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDFACTOR_ZERO,
-            sdl.c.SDL_BLENDOPERATION_ADD,
+        _pd_clear = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
         );
     }
 
-    pub fn fromNative(mode: sdl.c.SDL_BlendMode) @This() {
+    pub fn fromNative(mode: sdl.SDL_BlendMode) @This() {
         if (!_init) {
             init();
             _init = true;
         }
         switch (mode) {
-            sdl.c.SDL_BLENDMODE_NONE => return .none,
-            sdl.c.SDL_BLENDMODE_BLEND => return .blend,
-            sdl.c.SDL_BLENDMODE_ADD => return .additive,
-            sdl.c.SDL_BLENDMODE_MOD => return .modulate,
-            sdl.c.SDL_BLENDMODE_MUL => return .multiply,
+            sdl.SDL_BLENDMODE_NONE => return .none,
+            sdl.SDL_BLENDMODE_BLEND => return .blend,
+            sdl.SDL_BLENDMODE_ADD => return .additive,
+            sdl.SDL_BLENDMODE_MOD => return .modulate,
+            sdl.SDL_BLENDMODE_MUL => return .multiply,
             else => {
                 if (mode == _pd_src) return .pd_src;
                 if (mode == _pd_src_atop) return .pd_src_atop;
@@ -196,17 +196,17 @@ pub const BlendMode = enum {
         }
     }
 
-    pub fn toNative(self: @This()) sdl.c.SDL_BlendMode {
+    pub fn toNative(self: @This()) sdl.SDL_BlendMode {
         if (!_init) {
             init();
             _init = true;
         }
         return switch (self) {
-            .none => sdl.c.SDL_BLENDMODE_NONE,
-            .blend => sdl.c.SDL_BLENDMODE_BLEND,
-            .additive => sdl.c.SDL_BLENDMODE_ADD,
-            .modulate => sdl.c.SDL_BLENDMODE_MOD,
-            .multiply => sdl.c.SDL_BLENDMODE_MUL,
+            .none => sdl.SDL_BLENDMODE_NONE,
+            .blend => sdl.SDL_BLENDMODE_BLEND,
+            .additive => sdl.SDL_BLENDMODE_ADD,
+            .modulate => sdl.SDL_BLENDMODE_MOD,
+            .multiply => sdl.SDL_BLENDMODE_MUL,
             .pd_src => _pd_src,
             .pd_src_atop => _pd_src_atop,
             .pd_src_over => _pd_src_over,

@@ -375,10 +375,10 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
         .target = target,
         .optimize = optimize,
     });
+    libmod.addIncludePath(builder.dependency("sdl", .{}).path("include"));
     @import("src/vendor/system_sdk/build.zig").inject(libmod, builder.path("src/vendor/system_sdk"));
     @import("src/vendor/imgui/build.zig").inject(libmod, builder.path("src/vendor/imgui"));
     @import("src/vendor/physfs/build.zig").inject(libmod, builder.path("src/vendor/physfs"));
-    @import("src/vendor/sdl/build.zig").inject(libmod, builder.path("src/vendor/sdl"));
     @import("src/vendor/stb/build.zig").inject(libmod, builder.path("src/vendor/stb"));
     @import("src/vendor/svg/build.zig").inject(libmod, builder.path("src/vendor/svg"));
     @import("src/vendor/zmath/build.zig").inject(libmod, builder.path("src/vendor/zmath"));

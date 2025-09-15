@@ -304,9 +304,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             _ = try font.DebugFont.getAtlas(self._ctx, self._debug_font_size);
 
             // Misc.
-            self._pc_freq = sdl.c.SDL_GetPerformanceFrequency();
+            self._pc_freq = sdl.SDL_GetPerformanceFrequency();
             self._pc_max_accumulated = self._pc_freq / 2;
-            self._pc_last = sdl.c.SDL_GetPerformanceCounter();
+            self._pc_last = sdl.SDL_GetPerformanceCounter();
             self._recent_update_costs = try CostDataType.init(self._allocator, max_costs_num);
             self._recent_draw_costs = try CostDataType.init(self._allocator, max_costs_num);
             self._recent_total_costs = try CostDataType.init(self._allocator, max_costs_num);
@@ -366,14 +366,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Update game
             if (pc_threshold > 0) {
                 while (true) {
-                    const pc = sdl.c.SDL_GetPerformanceCounter();
+                    const pc = sdl.SDL_GetPerformanceCounter();
                     self._pc_accumulated += pc - self._pc_last;
                     self._pc_last = pc;
                     if (self._pc_accumulated >= pc_threshold) {
                         break;
                     }
                     if ((pc_threshold - self._pc_accumulated) * 1000 > self._pc_freq) {
-                        sdl.c.SDL_Delay(1);
+                        sdl.SDL_Delay(1);
                     }
                 }
 
@@ -410,7 +410,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._delta_seconds = @as(f32, @floatFromInt(step_count)) * fps_delta_seconds;
             } else {
                 // Perform one update
-                const pc = sdl.c.SDL_GetPerformanceCounter();
+                const pc = sdl.SDL_GetPerformanceCounter();
                 self._delta_seconds = @floatCast(
                     @as(f64, @floatFromInt(pc - self._pc_last)) / @as(f64, @floatFromInt(self._pc_freq)),
                 );
@@ -425,9 +425,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             if (self._supress_draw) {
                 self._supress_draw = false;
             } else {
-                const pc_begin = sdl.c.SDL_GetPerformanceCounter();
+                const pc_begin = sdl.SDL_GetPerformanceCounter();
                 defer if (cfg.jok_detailed_frame_stats) {
-                    const cost = @as(f32, @floatFromInt((sdl.c.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
+                    const cost = @as(f32, @floatFromInt((sdl.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
                         @as(f32, @floatFromInt(self._pc_freq));
                     self._draw_cost = if (self._draw_cost > 0) (self._draw_cost + cost) / 2 else cost;
                 };
@@ -475,9 +475,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             comptime eventFn: *const fn (Context, jok.Event) anyerror!void,
             comptime updateFn: *const fn (Context) anyerror!void,
         ) void {
-            const pc_begin = sdl.c.SDL_GetPerformanceCounter();
+            const pc_begin = sdl.SDL_GetPerformanceCounter();
             defer if (cfg.jok_detailed_frame_stats) {
-                const cost = @as(f32, @floatFromInt((sdl.c.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
+                const cost = @as(f32, @floatFromInt((sdl.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
                     @as(f32, @floatFromInt(self._pc_freq));
                 self._update_cost = if (self._update_cost > 0) (self._update_cost + cost) / 2 else cost;
             };
@@ -553,7 +553,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Check system information
         fn checkSys(self: *@This()) !void {
             const target = builtin.target;
-            const ram_size = sdl.c.SDL_GetSystemRAM();
+            const ram_size = sdl.SDL_GetSystemRAM();
             const info = try self._renderer.getInfo();
 
             // Print system info
@@ -584,9 +584,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     builtin.zig_version,
                     @tagName(target.cpu.arch),
                     @tagName(target.abi),
-                    sdl.c.SDL_MAJOR_VERSION,
-                    sdl.c.SDL_MINOR_VERSION,
-                    sdl.c.SDL_MICRO_VERSION,
+                    sdl.SDL_MAJOR_VERSION,
+                    sdl.SDL_MINOR_VERSION,
+                    sdl.SDL_MICRO_VERSION,
                     @tagName(target.os.tag),
                     ram_size,
                     physfs.getBaseDir(),
@@ -600,20 +600,20 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Initialize SDL
         fn initSDL(self: *@This()) !void {
             if (cfg.jok_headless) {
-                _ = sdl.c.SDL_SetHint(sdl.c.SDL_HINT_VIDEODRIVER, "offscreen");
+                _ = sdl.SDL_SetHint(sdl.SDL_HINT_VIDEODRIVER, "offscreen");
             }
 
-            var init_flags = sdl.c.SDL_INIT_AUDIO |
-                sdl.c.SDL_INIT_VIDEO |
-                sdl.c.SDL_INIT_JOYSTICK |
-                sdl.c.SDL_INIT_GAMEPAD |
-                sdl.c.SDL_INIT_EVENTS |
-                sdl.c.SDL_INIT_SENSOR;
+            var init_flags = sdl.SDL_INIT_AUDIO |
+                sdl.SDL_INIT_VIDEO |
+                sdl.SDL_INIT_JOYSTICK |
+                sdl.SDL_INIT_GAMEPAD |
+                sdl.SDL_INIT_EVENTS |
+                sdl.SDL_INIT_SENSOR;
             if (builtin.cpu.arch.isWasm()) {
-                init_flags |= sdl.c.SDL_INIT_HAPTIC;
+                init_flags |= sdl.SDL_INIT_HAPTIC;
             }
-            if (!sdl.c.SDL_Init(init_flags)) {
-                log.err("Initialize SDL2 failed: {s}", .{sdl.c.SDL_GetError()});
+            if (!sdl.SDL_Init(init_flags)) {
+                log.err("Initialize SDL2 failed: {s}", .{sdl.SDL_GetError()});
                 return error.SdlError;
             }
 
@@ -648,7 +648,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._canvas_texture.destroy();
             self._renderer.destroy();
             self._window.destroy();
-            sdl.c.SDL_Quit();
+            sdl.SDL_Quit();
         }
 
         /// Get type-erased context for application

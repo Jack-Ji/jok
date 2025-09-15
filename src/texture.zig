@@ -6,20 +6,20 @@ const sdl = jok.sdl;
 const log = std.log.scoped(.jok);
 
 pub const Texture = struct {
-    pub const Access = enum(sdl.c.SDL_TextureAccess) {
-        static = sdl.c.SDL_TEXTUREACCESS_STATIC,
-        streaming = sdl.c.SDL_TEXTUREACCESS_STREAMING,
-        target = sdl.c.SDL_TEXTUREACCESS_TARGET,
+    pub const Access = enum(sdl.SDL_TextureAccess) {
+        static = sdl.SDL_TEXTUREACCESS_STATIC,
+        streaming = sdl.SDL_TEXTUREACCESS_STREAMING,
+        target = sdl.SDL_TEXTUREACCESS_TARGET,
     };
-    pub const ScaleMode = enum(sdl.c.SDL_ScaleMode) {
-        nearest = sdl.c.SDL_SCALEMODE_NEAREST,
-        linear = sdl.c.SDL_SCALEMODE_LINEAR,
+    pub const ScaleMode = enum(sdl.SDL_ScaleMode) {
+        nearest = sdl.SDL_SCALEMODE_NEAREST,
+        linear = sdl.SDL_SCALEMODE_LINEAR,
     };
 
-    ptr: *sdl.c.SDL_Texture,
+    ptr: *sdl.SDL_Texture,
 
     pub fn destroy(self: Texture) void {
-        sdl.c.SDL_DestroyTexture(self.ptr);
+        sdl.SDL_DestroyTexture(self.ptr);
     }
 
     pub const Info = struct {
@@ -29,12 +29,12 @@ pub const Texture = struct {
         access: Access,
     };
     pub fn query(self: Texture) !Info {
-        const props = sdl.c.SDL_GetTextureProperties(self.ptr);
+        const props = sdl.SDL_GetTextureProperties(self.ptr);
         return Info{
-            .width = @intCast(sdl.c.SDL_GetNumberProperty(props, sdl.c.SDL_PROP_TEXTURE_WIDTH_NUMBER, 0)),
-            .height = @intCast(sdl.c.SDL_GetNumberProperty(props, sdl.c.SDL_PROP_TEXTURE_HEIGHT_NUMBER, 0)),
-            .format = @intCast(sdl.c.SDL_GetNumberProperty(props, sdl.c.SDL_PROP_TEXTURE_FORMAT_NUMBER, 0)),
-            .access = @enumFromInt(@as(sdl.c.SDL_TextureAccess, @intCast(sdl.c.SDL_GetNumberProperty(props, sdl.c.SDL_PROP_TEXTURE_ACCESS_NUMBER, 0)))),
+            .width = @intCast(sdl.SDL_GetNumberProperty(props, sdl.SDL_PROP_TEXTURE_WIDTH_NUMBER, 0)),
+            .height = @intCast(sdl.SDL_GetNumberProperty(props, sdl.SDL_PROP_TEXTURE_HEIGHT_NUMBER, 0)),
+            .format = @intCast(sdl.SDL_GetNumberProperty(props, sdl.SDL_PROP_TEXTURE_FORMAT_NUMBER, 0)),
+            .access = @enumFromInt(@as(sdl.SDL_TextureAccess, @intCast(sdl.SDL_GetNumberProperty(props, sdl.SDL_PROP_TEXTURE_ACCESS_NUMBER, 0)))),
         };
     }
 
@@ -42,45 +42,45 @@ pub const Texture = struct {
     pub fn updateSlow(self: Texture, pixels: []const u8) !void {
         const info = try self.query();
         assert(pixels.len == info.width * info.height * 4);
-        if (!sdl.c.SDL_UpdateTexture(
+        if (!sdl.SDL_UpdateTexture(
             self.ptr,
             null,
             pixels.ptr,
             @intCast(info.width * 4),
         )) {
-            log.err("Update texture failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Update texture failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
     pub fn getBlendMode(self: Texture) !jok.BlendMode {
-        var blend_mode: sdl.c.SDL_BlendMode = undefined;
-        if (!sdl.c.SDL_GetTextureBlendMode(self.ptr, &blend_mode)) {
-            log.err("Get blend mode failed: {s}", .{sdl.c.SDL_GetError()});
+        var blend_mode: sdl.SDL_BlendMode = undefined;
+        if (!sdl.SDL_GetTextureBlendMode(self.ptr, &blend_mode)) {
+            log.err("Get blend mode failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         return jok.BlendMode.fromNative(blend_mode);
     }
 
     pub fn setBlendMode(self: Texture, blend_mode: jok.BlendMode) !void {
-        if (!sdl.c.SDL_SetTextureBlendMode(self.ptr, blend_mode.toNative())) {
-            log.err("Set blend mode failed: {s}", .{sdl.c.SDL_GetError()});
+        if (!sdl.SDL_SetTextureBlendMode(self.ptr, blend_mode.toNative())) {
+            log.err("Set blend mode failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
     pub fn getScaleMode(self: Texture) !ScaleMode {
-        const scale_mode: sdl.c.SDL_ScaleMode = undefined;
-        if (!sdl.c.SDL_GetTextureScaleMode(self.ptr, &scale_mode)) {
-            log.err("Get scale mode failed: {s}", .{sdl.c.SDL_GetError()});
+        const scale_mode: sdl.SDL_ScaleMode = undefined;
+        if (!sdl.SDL_GetTextureScaleMode(self.ptr, &scale_mode)) {
+            log.err("Get scale mode failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         return @enumFromInt(scale_mode);
     }
 
     pub fn setScaleMode(self: Texture, scale_mode: ScaleMode) !void {
-        if (!sdl.c.SDL_SetTextureScaleMode(self.ptr, @intFromEnum(scale_mode))) {
-            log.err("Set scale mode failed: {s}", .{sdl.c.SDL_GetError()});
+        if (!sdl.SDL_SetTextureScaleMode(self.ptr, @intFromEnum(scale_mode))) {
+            log.err("Set scale mode failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
@@ -133,23 +133,23 @@ pub const Texture = struct {
     pub fn createPixelData(self: Texture, allocator: std.mem.Allocator, region: ?jok.Region) !PixelData {
         const info = try self.query();
         assert(info.access == .streaming);
-        assert(info.format == @as(u32, @intCast(sdl.c.SDL_PIXELFORMAT_RGBA32)));
+        assert(info.format == @as(u32, @intCast(sdl.SDL_PIXELFORMAT_RGBA32)));
         assert(region == null or region.?.width <= info.width);
         assert(region == null or region.?.height <= info.height);
 
         var pixels: ?*anyopaque = undefined;
         var pitch: c_int = undefined;
-        if (!sdl.c.SDL_LockTexture(
+        if (!sdl.SDL_LockTexture(
             self.ptr,
             if (region) |r| @ptrCast(&r) else null,
             &pixels,
             &pitch,
         )) {
-            log.err("Lock texture failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Lock texture failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         assert(@rem(pitch, 4) == 0);
-        sdl.c.SDL_UnlockTexture(self.ptr);
+        sdl.SDL_UnlockTexture(self.ptr);
 
         const width = if (region) |r| r.width else info.width;
         assert(width * 4 == pitch);
@@ -172,7 +172,7 @@ pub const Texture = struct {
     pub fn update(self: Texture, data: PixelData) !void {
         const info = try self.query();
         assert(info.access == .streaming);
-        assert(info.format == @as(u32, @intCast(sdl.c.SDL_PIXELFORMAT_RGBA32)));
+        assert(info.format == @as(u32, @intCast(sdl.SDL_PIXELFORMAT_RGBA32)));
 
         const width = if (data.region) |r| r.width else info.width;
         const height = if (data.region) |r| r.height else info.height;
@@ -181,13 +181,13 @@ pub const Texture = struct {
 
         var pixels: ?*anyopaque = undefined;
         var pitch: c_int = undefined;
-        if (!sdl.c.SDL_LockTexture(
+        if (!sdl.SDL_LockTexture(
             self.ptr,
             if (data.region) |r| @ptrCast(&r) else null,
             &pixels,
             &pitch,
         )) {
-            log.err("Lock texture failed: {s}", .{sdl.c.SDL_GetError()});
+            log.err("Lock texture failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
         assert(@as(u32, @intCast(pitch)) == data.width * 4);
@@ -195,6 +195,6 @@ pub const Texture = struct {
         pixelbuf.ptr = @ptrCast(pixels.?);
         pixelbuf.len = data.buf.len;
         @memcpy(pixelbuf, data.buf);
-        sdl.c.SDL_UnlockTexture(self.ptr);
+        sdl.SDL_UnlockTexture(self.ptr);
     }
 };

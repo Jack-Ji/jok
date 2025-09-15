@@ -208,12 +208,12 @@ pub const Rectangle = extern struct {
     }
 
     pub inline fn hasIntersection(r: Rectangle, b: Rectangle) bool {
-        return sdl.c.SDL_HasRectIntersectionFloat(@ptrCast(&r), @ptrCast(&b));
+        return sdl.SDL_HasRectIntersectionFloat(@ptrCast(&r), @ptrCast(&b));
     }
 
     pub inline fn intersectRect(r: Rectangle, b: Rectangle) ?Rectangle {
         var result: Rectangle = undefined;
-        if (sdl.c.SDL_GetRectIntersectionFloat(@ptrCast(&r), @ptrCast(&b), @ptrCast(&result)) == 1) {
+        if (sdl.SDL_GetRectIntersectionFloat(@ptrCast(&r), @ptrCast(&b), @ptrCast(&result)) == 1) {
             return result;
         }
         return null;
@@ -222,7 +222,7 @@ pub const Rectangle = extern struct {
     pub inline fn intersectLine(r: Rectangle, _p0: Point, _p1: Point) ?std.meta.Tuple(&.{ Point, Point }) {
         var p0: Point = _p0;
         var p1: Point = _p1;
-        if (sdl.c.SDL_GetRectAndLineIntersectionFloat(@ptrCast(&r), &p0.x, &p0.y, &p1.x, &p1.y) == 1) {
+        if (sdl.SDL_GetRectAndLineIntersectionFloat(@ptrCast(&r), &p0.x, &p0.y, &p1.x, &p1.y) == 1) {
             return .{ p0, p1 };
         }
         return null;
@@ -471,24 +471,24 @@ pub const Color = extern struct {
         return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
     }
 
-    inline fn getPixelFormatDetails() [*c]const sdl.c.SDL_PixelFormatDetails {
+    inline fn getPixelFormatDetails() [*c]const sdl.SDL_PixelFormatDetails {
         const S = struct {
-            var pixel_format: ?[*c]const sdl.c.SDL_PixelFormatDetails = null;
+            var pixel_format: ?[*c]const sdl.SDL_PixelFormatDetails = null;
         };
         if (S.pixel_format == null) {
-            S.pixel_format = sdl.c.SDL_GetPixelFormatDetails(sdl.c.SDL_PIXELFORMAT_RGBA32);
+            S.pixel_format = sdl.SDL_GetPixelFormatDetails(sdl.SDL_PIXELFORMAT_RGBA32);
         }
         return S.pixel_format.?;
     }
 
     pub inline fn fromRGBA32(i: u32) Color {
         var c: Color = undefined;
-        sdl.c.SDL_GetRGBA(i, getPixelFormatDetails(), null, &c.r, &c.g, &c.b, &c.a);
+        sdl.SDL_GetRGBA(i, getPixelFormatDetails(), null, &c.r, &c.g, &c.b, &c.a);
         return c;
     }
 
     pub inline fn toRGBA32(c: Color) u32 {
-        return sdl.c.SDL_MapRGBA(getPixelFormatDetails(), null, c.r, c.g, c.b, c.a);
+        return sdl.SDL_MapRGBA(getPixelFormatDetails(), null, c.r, c.g, c.b, c.a);
     }
 
     /// Convert from HSL
