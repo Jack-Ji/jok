@@ -71,7 +71,7 @@ pub const Window = struct {
             try window.setMaximumSize(size);
         }
         if (!builtin.cpu.arch.isWasm()) {
-            try window.setPosition(.center);
+            window.setPosition(.center) catch {};
         }
         try window.setResizable(cfg.jok_window_resizable);
         try window.setAlwaysOnTop(cfg.jok_window_always_on_top);
