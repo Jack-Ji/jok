@@ -122,9 +122,9 @@ pub fn create(
                         break :BLK try file.readAllAlloc(allocator);
                     } else {
                         break :BLK try std.fs.cwd().readFileAlloc(
-                            std.mem.sliceTo(path, 0),
                             allocator,
-                            .limited(1 << 30),
+                            std.mem.sliceTo(path, 0),
+                            (1 << 30),
                         );
                     }
                 };

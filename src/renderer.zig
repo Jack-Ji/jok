@@ -365,9 +365,9 @@ pub const Renderer = struct {
             );
         } else {
             const filedata = try std.fs.cwd().readFileAlloc(
-                std.mem.sliceTo(image_file, 0),
                 allocator,
-                .limited(1 << 30),
+                std.mem.span(image_file),
+                (1 << 30),
             );
             defer allocator.free(filedata);
 

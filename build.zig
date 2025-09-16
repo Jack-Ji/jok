@@ -59,7 +59,7 @@ pub fn build(b: *Build) void {
         .{ .name = "solar_system", .opt = .{} },
         .{ .name = "font_demo", .opt = .{} },
         .{ .name = "skybox", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "particle_life", .opt = .{ .use_nfd = true, .support_web = false } },
+        // .{ .name = "particle_life", .opt = .{ .use_nfd = true, .support_web = false } },
         .{ .name = "audio_demo", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "easing", .opt = .{} },
         .{ .name = "svg", .opt = .{ .preload_path = "examples/assets" } },
