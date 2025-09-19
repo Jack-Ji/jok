@@ -7,12 +7,7 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
     }
 
     mod.addIncludePath(dir.path(mod.owner, "c/miniaudio"));
-    if (mod.resolved_target.?.result.os.tag == .macos) {
-        mod.linkFramework("CoreAudio", .{});
-        mod.linkFramework("CoreFoundation", .{});
-        mod.linkFramework("AudioUnit", .{});
-        mod.linkFramework("AudioToolbox", .{});
-    } else if (mod.resolved_target.?.result.os.tag == .linux) {
+    if (mod.resolved_target.?.result.os.tag == .linux) {
         mod.linkSystemLibrary("pthread", .{});
         mod.linkSystemLibrary("m", .{});
         mod.linkSystemLibrary("dl", .{});

@@ -10,10 +10,7 @@ pub const sdl = @cImport({
     @cInclude("SDL3/SDL_revision.h");
 });
 pub const physfs = @import("vendor/physfs/main.zig");
-pub const zaudio = if (bos.no_audio)
-    .{ .Engine = struct {}, .Context = struct {} }
-else
-    @import("vendor/zaudio/main.zig");
+pub const zaudio = @import("vendor/zaudio/main.zig");
 pub const zmath = @import("vendor/zmath/main.zig");
 pub const zmesh = @import("vendor/zmesh/main.zig");
 pub const znoise = @import("vendor/znoise/main.zig");

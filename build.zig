@@ -1,6 +1,5 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const panic = std.debug.panic;
 const Build = std.Build;
 const ResolvedTarget = Build.ResolvedTarget;
 const OptimizeMode = std.builtin.OptimizeMode;
@@ -173,7 +172,6 @@ pub const Dependency = struct {
 pub const AppOptions = struct {
     dep_name: ?[]const u8 = "jok",
     additional_deps: []const Dependency = &.{},
-    no_audio: bool = false,
     use_nfd: bool = false,
 };
 
@@ -189,7 +187,6 @@ pub fn createDesktopApp(
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
     const jok = getJokLibrary(b, target, optimize, .{
         .dep_name = opt.dep_name,
-        .no_audio = opt.no_audio,
         .use_nfd = opt.use_nfd,
     });
 
@@ -228,52 +225,11 @@ pub fn createDesktopApp(
     return exe;
 }
 
-/// Create test executable (windows/linux/macos)
-pub fn createTest(
-    b: *Build,
-    name: []const u8,
-    root_source_file: []const u8,
-    target: ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-    opt: AppOptions,
-) *Build.Step.Compile {
-    assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
-    const jok = getJokLibrary(b, target, optimize, .{
-        .dep_name = opt.dep_name,
-        .no_audio = opt.no_audio,
-        .use_nfd = opt.use_nfd,
-    });
-
-    // Create module to be used for testing
-    const builder = getJokBuilder(b, opt.dep_name);
-    const root = b.createModule(.{
-        .root_source_file = b.path(root_source_file),
-        .target = target,
-        .optimize = optimize,
-        .imports = &.{
-            .{ .name = "jok", .module = jok.module },
-        },
-    });
-    for (opt.additional_deps) |d| {
-        root.addImport(d.name, d.mod);
-    }
-
-    // Create test executable
-    const test_exe = builder.addTest(.{
-        .name = name,
-        .root_module = root,
-    });
-    test_exe.linkLibrary(jok.artifact);
-
-    return test_exe;
-}
-
 pub const WebOptions = struct {
     dep_name: ?[]const u8 = "jok",
     additional_deps: []const Dependency = &.{},
     shell_file_path: ?[]const u8 = null,
     preload_path: ?[]const u8 = null,
-    no_audio: bool = false,
 };
 
 /// Create web application (windows/linux/macos)
@@ -291,7 +247,6 @@ pub fn createWeb(
     assert(target.result.cpu.arch.isWasm() and target.result.os.tag == .emscripten);
     const jok = getJokLibrary(b, target, optimize, .{
         .dep_name = opt.dep_name,
-        .no_audio = opt.no_audio,
     });
 
     // Create game module
@@ -350,7 +305,6 @@ pub fn createWeb(
 // Create jok library
 pub const JokOptions = struct {
     dep_name: ?[]const u8 = "jok",
-    no_audio: bool = false,
     use_nfd: bool = false,
 };
 fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) struct {
@@ -359,7 +313,6 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
 } {
     const builder = getJokBuilder(b, opt.dep_name);
     const bos = builder.addOptions();
-    bos.addOption(bool, "no_audio", opt.no_audio);
     bos.addOption(bool, "use_nfd", opt.use_nfd);
     const jokmod = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
@@ -376,7 +329,6 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
         .optimize = optimize,
     });
     libmod.addIncludePath(builder.dependency("sdl", .{}).path("include"));
-    @import("src/vendor/system_sdk/build.zig").inject(libmod, builder.path("src/vendor/system_sdk"));
     @import("src/vendor/imgui/build.zig").inject(libmod, builder.path("src/vendor/imgui"));
     @import("src/vendor/physfs/build.zig").inject(libmod, builder.path("src/vendor/physfs"));
     @import("src/vendor/stb/build.zig").inject(libmod, builder.path("src/vendor/stb"));
@@ -385,7 +337,7 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
     @import("src/vendor/zmesh/build.zig").inject(libmod, builder.path("src/vendor/zmesh"));
     @import("src/vendor/zobj/build.zig").inject(libmod, builder.path("src/vendor/zobj"));
     @import("src/vendor/znoise/build.zig").inject(libmod, builder.path("src/vendor/znoise"));
-    if (!opt.no_audio) @import("src/vendor/zaudio/build.zig").inject(libmod, builder.path("src/vendor/zaudio"));
+    @import("src/vendor/zaudio/build.zig").inject(libmod, builder.path("src/vendor/zaudio"));
     if (opt.use_nfd) @import("src/vendor/nfd/build.zig").inject(libmod, builder.path("src/vendor/nfd"));
 
     var lib: *Build.Step.Compile = undefined;

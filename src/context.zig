@@ -96,7 +96,6 @@ pub const Context = struct {
 
     /// Get audio engine
     pub fn audioEngine(self: Context) *zaudio.Engine {
-        if (bos.no_audio) @panic("Audio is disabled!");
         return self.vtable.audioEngine(self.ctx);
     }
 
@@ -285,16 +284,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Init imgui
             imgui.sdl.init(self._ctx, cfg.jok_imgui_ini_file);
 
+            // Init audio engine
+            self._audio_engine = try zaudio.sdl.init(self._ctx);
+
             // Init zmesh
             zmesh.init(self._allocator);
-
-            // Init audio engine
-            if (!bos.no_audio) {
-                zaudio.init(self._allocator);
-                var audio_config = zaudio.Engine.Config.init();
-                audio_config.resource_manager_vfs = &physfs.zaudio.vfs;
-                self._audio_engine = try zaudio.Engine.create(audio_config);
-            }
 
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
@@ -324,14 +318,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._debug_print_indices.deinit();
             font.DebugFont.deinit();
 
-            // Destroy audio engine
-            if (!bos.no_audio) {
-                self._audio_engine.destroy();
-                zaudio.deinit();
-            }
-
             // Destroy zmesh
             zmesh.deinit();
+
+            // Destroy audio engine
+            zaudio.sdl.deinit();
 
             // Destroy imgui
             imgui.sdl.deinit();

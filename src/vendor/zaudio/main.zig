@@ -1,5 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
+pub const sdl = @import("sdl.zig");
 //--------------------------------------------------------------------------------------------------
 //
 // Misc
@@ -447,10 +448,6 @@ pub const Vfs = extern struct {
     on_seek: ?*const fn (self: *Vfs, handle: FileHandle, offset: i64, origin: SeekOrigin) callconv(.c) Result,
     on_tell: ?*const fn (self: *Vfs, handle: FileHandle, offset: *i64) callconv(.c) Result,
     on_info: ?*const fn (self: *Vfs, handle: FileHandle, info: *FileInfo) callconv(.c) Result,
-};
-
-pub const Context = opaque {
-    // TODO: Add methods.
 };
 
 pub const Log = opaque {
@@ -1543,227 +1540,12 @@ pub const NodeGraph = opaque {
 };
 //--------------------------------------------------------------------------------------------------
 //
-// Device
-//
-//--------------------------------------------------------------------------------------------------
-pub const Device = opaque {
-    pub fn create(context: ?*Context, config: Config) Error!*Device {
-        var handle: ?*Device = null;
-        try maybeError(zaudioDeviceCreate(context, &config, &handle));
-        return handle.?;
-    }
-    extern fn zaudioDeviceCreate(
-        context: ?*Context,
-        config: *const Config,
-        out_handle: ?*?*Device,
-    ) Result;
-
-    pub const destroy = zaudioDeviceDestroy;
-    extern fn zaudioDeviceDestroy(device: *Device) void;
-
-    pub const getUserData = zaudioDeviceGetUserData;
-    extern fn zaudioDeviceGetUserData(device: *const Device) ?*anyopaque;
-
-    pub fn getContext(device: *const Device) *const Context {
-        return ma_device_get_context(@constCast(device));
-    }
-    pub fn getContextMut(device: *Device) *Context {
-        return ma_device_get_context(device);
-    }
-    extern fn ma_device_get_context(device: *Device) *Context;
-
-    pub fn getLog(device: *const Device) ?*const Log {
-        return ma_device_get_log(@constCast(device));
-    }
-    pub fn getLogMut(device: *Device) ?*Log {
-        return ma_device_get_log(device);
-    }
-    extern fn ma_device_get_log(device: *Device) ?*Log;
-
-    pub fn start(device: *Device) Error!void {
-        try maybeError(ma_device_start(device));
-    }
-    extern fn ma_device_start(device: *Device) Result;
-
-    pub fn stop(device: *Device) Error!void {
-        try maybeError(ma_device_stop(device));
-    }
-    extern fn ma_device_stop(device: *Device) Result;
-
-    pub fn isStarted(device: *const Device) bool {
-        return ma_device_is_started(device) != .false32;
-    }
-    extern fn ma_device_is_started(device: *const Device) Bool32;
-
-    pub const getState = ma_device_get_state;
-    extern fn ma_device_get_state(device: *const Device) State;
-
-    pub fn setMasterVolume(device: *Device, volume: f32) Error!void {
-        try maybeError(ma_device_set_master_volume(device, volume));
-    }
-    extern fn ma_device_set_master_volume(device: *Device, volume: f32) Result;
-
-    pub fn getMasterVolume(device: *const Device) Error!f32 {
-        var volume: f32 = 0.0;
-        try maybeError(ma_device_get_master_volume(device, &volume));
-        return volume;
-    }
-    extern fn ma_device_get_master_volume(device: *const Device, volume: *f32) Result;
-
-    pub const Type = enum(c_int) {
-        playback = 1,
-        capture = 2,
-        duplex = 3,
-        loopback = 4,
-    };
-
-    pub const State = enum(c_int) {
-        uninitialized = 0,
-        stopped = 1,
-        started = 2,
-        starting = 3,
-        stopping = 4,
-    };
-
-    pub const Config = extern struct {
-        device_type: Type,
-        sample_rate: u32,
-        period_size_in_frames: u32,
-        period_size_in_milliseconds: u32,
-        periods: u32,
-        performance_profile: PerformanceProfile,
-        no_pre_silenced_output_buffer: bool,
-        no_clip: bool,
-        no_disable_denormals: bool,
-        no_fixed_sized_callback: bool,
-        data_callback: ?DataProc,
-        notification_callback: ?NotificationProc,
-        stop_callback: ?StopProc,
-        user_data: ?*anyopaque,
-        resampling: extern struct {
-            format: Format,
-            channels: u32,
-            sample_rate_in: u32,
-            sample_rate_out: u32,
-            algorithm: ResampleAlgorithm,
-            backend_vtable: ?*anyopaque, // TODO: Should be `*ma_resampling_backend_vtable` (custom resamplers).
-            backend_user_data: ?*anyopaque,
-            linear: extern struct {
-                lpf_order: u32,
-            },
-        },
-        playback: extern struct {
-            device_id: ?*const Id,
-            format: Format,
-            channels: u32,
-            channel_map: [*]Channel,
-            channel_mix_mode: ChannelMixMode,
-            calculate_lfe_from_spatial_channels: Bool32,
-            share_mode: ShareMode,
-        },
-        capture: extern struct {
-            device_id: ?*const Id,
-            format: Format,
-            channels: u32,
-            channel_map: [*]Channel,
-            channel_mix_mode: ChannelMixMode,
-            calculate_lfe_from_spatial_channels: Bool32,
-            share_mode: ShareMode,
-        },
-        wasapi: extern struct {
-            usage: WasapiUsage,
-            no_auto_convert_src: bool,
-            no_default_quality_src: bool,
-            no_auto_stream_routing: bool,
-            no_hardware_offloading: bool,
-            loopback_process_id: u32,
-            loopback_process_exclude: bool,
-        },
-        alsa: extern struct {
-            no_mmap: Bool32,
-            no_auto_format: Bool32,
-            no_auto_channels: Bool32,
-            no_auto_resample: Bool32,
-        },
-        pulse: extern struct {
-            stream_name_playback: [*:0]const u8,
-            stream_name_capture: [*:0]const u8,
-            channel_map: i32,
-        },
-        coreaudio: extern struct {
-            allow_nominal_sample_rate_change: Bool32,
-        },
-        opensl: extern struct {
-            stream_type: OpenslStreamType,
-            recording_preset: OpenslRecordingPreset,
-            enable_compatibility_workarounds: Bool32,
-        },
-        aaudio: extern struct {
-            usage: AaudioUsage,
-            content_type: AaudioContentType,
-            input_preset: AaudioInputPreset,
-            allowed_capture_policy: AaudioAllowedCapturePolicy,
-            no_auto_start_after_reroute: Bool32,
-            enable_compatibility_workarounds: Bool32,
-            allow_set_buffer_capacity: Bool32,
-        },
-
-        pub fn init(device_type: Type) Config {
-            var config: Config = undefined;
-            zaudioDeviceConfigInit(device_type, &config);
-            return config;
-        }
-        extern fn zaudioDeviceConfigInit(device_type: Type, out_config: *Config) void;
-    };
-
-    pub const DataProc = *const fn (
-        device: *Device,
-        output: ?*anyopaque,
-        input: ?*const anyopaque,
-        frame_count: u32,
-    ) callconv(.c) void;
-
-    pub const NotificationProc = *const fn (
-        *const anyopaque, // TODO: Should be `*const ma_device_notification`.
-    ) callconv(.c) void;
-
-    pub const StopProc = *const fn (device: *Device) callconv(.c) void;
-
-    pub const Id = extern union {
-        wasapi: [64]i32,
-        dsound: [16]u8,
-        winmm: u32,
-        alsa: [256]u8,
-        pulse: [256]u8,
-        jack: i32,
-        coreaudio: [256]u8,
-        sndio: [256]u8,
-        audio4: [256]u8,
-        oss: [64]u8,
-        aaudio: i32,
-        opensl: u32,
-        webaudio: [32]u8,
-        custom: extern union {
-            i: i32,
-            s: [256]u8,
-            p: ?*anyopaque,
-        },
-        nullbackend: i32,
-    };
-};
-//--------------------------------------------------------------------------------------------------
-//
 // Engine (-> NodeGraph -> Node)
 //
 //--------------------------------------------------------------------------------------------------
 pub const Engine = opaque {
     pub const Config = extern struct {
         resource_manager: ?*ResourceManager,
-        context: ?*Context,
-        device: ?*Device,
-        playback_device_id: ?*Device.Id,
-        data_callback: ?Device.DataProc,
-        notification_callback: ?Device.NotificationProc,
         log: ?*Log,
         listener_count: u32,
         channels: u32,
@@ -1864,14 +1646,6 @@ pub const Engine = opaque {
         return ma_engine_get_resource_manager(engine);
     }
     extern fn ma_engine_get_resource_manager(engine: *Engine) *ResourceManager;
-
-    pub fn getDevice(engine: *const Engine) ?*const Device {
-        return ma_engine_get_device(@constCast(engine));
-    }
-    pub fn getDeviceMut(engine: *Engine) ?*Device {
-        return ma_engine_get_device(engine);
-    }
-    extern fn ma_engine_get_device(engine: *Engine) ?*Device;
 
     pub fn getLog(engine: *const Engine) ?*const Log {
         return ma_engine_get_log(@constCast(engine));
@@ -2921,31 +2695,6 @@ test "zaudio.sound.basic" {
     try expect(num_channels == 1);
     try expect(sample_rate > 0);
     try expect(format != .unknown);
-}
-
-test "zaudio.device.basic" {
-    init(std.testing.allocator);
-    defer deinit();
-
-    var config = Device.Config.init(.playback);
-    config.playback.format = .float32;
-    config.playback.channels = 2;
-    config.sample_rate = 48_000;
-    const device = Device.create(null, config) catch |err| {
-        std.debug.print("Failed to create Device with error: {s}", .{@errorName(err)});
-        return;
-    };
-    defer device.destroy();
-    try device.start();
-    try expect(device.getState() == .started or device.getState() == .starting);
-    try device.stop();
-    try expect(device.getState() == .stopped or device.getState() == .stopping);
-    const context = device.getContext();
-    _ = context;
-    const log = device.getLog();
-    _ = log;
-    try device.setMasterVolume(0.1);
-    try expect((try device.getMasterVolume()) == 0.1);
 }
 
 test "zaudio.node_graph.basic" {
