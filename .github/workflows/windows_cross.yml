@@ -31,4 +31,4 @@ jobs:
         with:
           version: master
       - name: Build examples
-        run: zig build -Dtarget=x86_64-windows-gnu -Dskip=particle_life examples
+        run: zig build -Dtarget=x86_64-windows-gnu examples

@@ -3,8 +3,8 @@ const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
 const imgui = jok.imgui;
-const nfd = jok.nfd;
 const j2d = jok.j2d;
+const dialog = jok.utils.dialog;
 
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1200, .height = 800 },
@@ -273,103 +273,90 @@ fn randomnizeSimulation() void {
     v_bb = randomRange(f32, 10, 500) * radius_variance;
 }
 
-fn saveSettings() !void {
-    const path = try nfd.saveFileDialog("txt", "model.txt");
-    if (path) |p| {
-        defer p.deinit();
+fn saveSettings(_: ?*anyopaque, paths: [][:0]const u8) !void {
+    const realpath = paths[0];
+    var f = try std.fs.cwd().createFile(realpath, .{});
+    defer f.close();
+    var fwriter = f.writer(&.{});
 
-        var realpath = p.path;
-        if (!std.mem.endsWith(u8, p.path, ".txt")) {
-            realpath = imgui.formatZ("{s}.txt", .{p.path});
-        }
-
-        var f = try std.fs.cwd().createFile(realpath, .{});
-        defer f.close();
-        var fwriter = f.writer(&.{});
-
-        try fwriter.interface.print(
-            "{d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5}",
-            .{
-                number_r, number_g, number_w, number_b,
-                power_rr, power_rg, power_rw, power_rb,
-                power_gr, power_gg, power_gw, power_gb,
-                power_wr, power_wg, power_ww, power_wb,
-                power_br, power_bg, power_bw, power_bb,
-            },
-        );
-        try fwriter.interface.print(
-            " {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5}",
-            .{
-                v_rr,      v_rg, v_rw, v_rb,
-                v_gr,      v_gg, v_gw, v_gb,
-                v_wr,      v_wg, v_ww, v_wb,
-                v_br,      v_bg, v_bw, v_bb,
-                viscosity,
-            },
-        );
-    }
+    try fwriter.interface.print(
+        "{d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5}",
+        .{
+            number_r, number_g, number_w, number_b,
+            power_rr, power_rg, power_rw, power_rb,
+            power_gr, power_gg, power_gw, power_gb,
+            power_wr, power_wg, power_ww, power_wb,
+            power_br, power_bg, power_bw, power_bb,
+        },
+    );
+    try fwriter.interface.print(
+        " {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5}",
+        .{
+            v_rr,      v_rg, v_rw, v_rb,
+            v_gr,      v_gg, v_gw, v_gb,
+            v_wr,      v_wg, v_ww, v_wb,
+            v_br,      v_bg, v_bw, v_bb,
+            viscosity,
+        },
+    );
 }
 
-fn loadSettings(allocator: std.mem.Allocator) !void {
-    const path = try nfd.openFileDialog("txt", null);
-    if (path) |p| {
-        defer p.deinit();
+fn loadSettings(_: ?*anyopaque, paths: [][:0]const u8) !void {
+    const allocator = std.heap.c_allocator;
+    const content = try std.fs.cwd().readFileAlloc(paths[0], allocator, .limited(1024));
+    defer allocator.free(content);
 
-        const content = try std.fs.cwd().readFileAlloc(p.path, allocator, .limited(1024));
-        defer allocator.free(content);
-
-        var floats = try std.array_list.Managed(f32).initCapacity(allocator, 37);
-        defer floats.deinit();
-        var it = std.mem.splitScalar(u8, content, ' ');
-        while (it.next()) |t| {
-            try floats.append(try std.fmt.parseFloat(f32, t));
-        }
-
-        if (floats.items.len != 37) {
-            std.log.err("Invalid format", .{});
-            return;
-        }
-
-        number_r = @intFromFloat(floats.items[0]);
-        number_g = @intFromFloat(floats.items[1]);
-        number_w = @intFromFloat(floats.items[2]);
-        number_b = @intFromFloat(floats.items[3]);
-        power_rr = floats.items[4];
-        power_rg = floats.items[5];
-        power_rw = floats.items[6];
-        power_rb = floats.items[7];
-        power_gr = floats.items[8];
-        power_gg = floats.items[9];
-        power_gw = floats.items[10];
-        power_gb = floats.items[11];
-        power_wr = floats.items[12];
-        power_wg = floats.items[13];
-        power_ww = floats.items[14];
-        power_wb = floats.items[15];
-        power_br = floats.items[16];
-        power_bg = floats.items[17];
-        power_bw = floats.items[18];
-        power_bb = floats.items[19];
-        v_rr = floats.items[20];
-        v_rg = floats.items[21];
-        v_rw = floats.items[22];
-        v_rb = floats.items[23];
-        v_gr = floats.items[24];
-        v_gg = floats.items[25];
-        v_gw = floats.items[26];
-        v_gb = floats.items[27];
-        v_wr = floats.items[28];
-        v_wg = floats.items[29];
-        v_ww = floats.items[30];
-        v_wb = floats.items[31];
-        v_br = floats.items[32];
-        v_bg = floats.items[33];
-        v_bw = floats.items[34];
-        v_bb = floats.items[35];
-        viscosity = floats.items[36];
-
-        try restart(allocator);
+    var floats = try std.array_list.Managed(f32).initCapacity(allocator, 37);
+    defer floats.deinit();
+    var it = std.mem.splitScalar(u8, content, ' ');
+    while (it.next()) |t| {
+        try floats.append(try std.fmt.parseFloat(f32, t));
     }
+
+    if (floats.items.len != 37) {
+        std.log.err("Invalid format", .{});
+        return;
+    }
+
+    number_r = @intFromFloat(floats.items[0]);
+    number_g = @intFromFloat(floats.items[1]);
+    number_w = @intFromFloat(floats.items[2]);
+    number_b = @intFromFloat(floats.items[3]);
+    power_rr = floats.items[4];
+    power_rg = floats.items[5];
+    power_rw = floats.items[6];
+    power_rb = floats.items[7];
+    power_gr = floats.items[8];
+    power_gg = floats.items[9];
+    power_gw = floats.items[10];
+    power_gb = floats.items[11];
+    power_wr = floats.items[12];
+    power_wg = floats.items[13];
+    power_ww = floats.items[14];
+    power_wb = floats.items[15];
+    power_br = floats.items[16];
+    power_bg = floats.items[17];
+    power_bw = floats.items[18];
+    power_bb = floats.items[19];
+    v_rr = floats.items[20];
+    v_rg = floats.items[21];
+    v_rw = floats.items[22];
+    v_rb = floats.items[23];
+    v_gr = floats.items[24];
+    v_gg = floats.items[25];
+    v_gw = floats.items[26];
+    v_gb = floats.items[27];
+    v_wr = floats.items[28];
+    v_wg = floats.items[29];
+    v_ww = floats.items[30];
+    v_wb = floats.items[31];
+    v_br = floats.items[32];
+    v_bg = floats.items[33];
+    v_bw = floats.items[34];
+    v_bb = floats.items[35];
+    viscosity = floats.items[36];
+
+    try restart(allocator);
 }
 
 fn updateGui(ctx: jok.Context) !void {
@@ -382,10 +369,32 @@ fn updateGui(ctx: jok.Context) !void {
             try restart(ctx.allocator());
         }
         if (imgui.button("Save Model", .{})) {
-            try saveSettings();
+            try dialog.showDialog(
+                ctx,
+                .save_file,
+                saveSettings,
+                null,
+                .{
+                    .title = "Save Model",
+                    .filters = &.{
+                        .{ .name = "text file", .pattern = "txt" },
+                    },
+                },
+            );
         }
         if (imgui.button("Load Model", .{})) {
-            try loadSettings(ctx.allocator());
+            try dialog.showDialog(
+                ctx,
+                .open_file,
+                loadSettings,
+                null,
+                .{
+                    .title = "Load Model",
+                    .filters = &.{
+                        .{ .name = "text file", .pattern = "txt" },
+                    },
+                },
+            );
         }
         _ = imgui.sliderFloat(
             "Viscosity/Friction",

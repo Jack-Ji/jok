@@ -32,5 +32,5 @@ jobs:
         with:
           version: master
       - name: Build examples
-        run: zig build -Dtarget=${{matrix.target}} -Dskip=particle_life examples
+        run: zig build -Dtarget=${{matrix.target}} examples
 

@@ -192,7 +192,6 @@ The limitations demand developers to be both creative and careful about game's d
 * [stb headers](https://github.com/nothings/stb) (MIT license)
 * [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
 * [zig-obj](https://github.com/chip2n/zig-obj) (MIT license)
-* [nativefiledialog](https://github.com/mlabbe/nativefiledialog) (zlib license)
 
 ## Built-in Fonts
 * [Classic Console Neue](http://webdraft.hu/fonts/classic-console/) (MIT license)

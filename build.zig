@@ -10,17 +10,6 @@ pub fn build(b: *Build) void {
         if (skip) return;
     }
 
-    // Get skipped examples' names
-    var skipped_examples = std.StringHashMap(bool).init(b.allocator);
-    if (b.option(
-        []const u8,
-        "skip",
-        "skip given demos when building `examples`. e.g. \"particle_life,intersection_2d\"",
-    )) |s| {
-        var it = std.mem.splitScalar(u8, s, ',');
-        while (it.next()) |name| skipped_examples.put(name, true) catch unreachable;
-    }
-
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -58,7 +47,7 @@ pub fn build(b: *Build) void {
         .{ .name = "solar_system", .opt = .{} },
         .{ .name = "font_demo", .opt = .{} },
         .{ .name = "skybox", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "particle_life", .opt = .{ .use_nfd = true, .support_web = false } },
+        .{ .name = "particle_life", .opt = .{ .support_web = false } },
         .{ .name = "audio_demo", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "easing", .opt = .{} },
         .{ .name = "svg", .opt = .{ .preload_path = "examples/assets" } },
@@ -76,13 +65,12 @@ pub fn build(b: *Build) void {
         .{ .name = "generative_art_5", .opt = .{} },
     };
     const build_examples = b.step("examples", "compile and install all examples");
-    for (examples) |ex| addExample(b, ex.name, target, optimize, skipped_examples, build_examples, ex.opt);
+    for (examples) |ex| addExample(b, ex.name, target, optimize, build_examples, ex.opt);
 
     setupDocs(b, target, optimize);
 }
 
 const ExampleOptions = struct {
-    use_nfd: bool = false,
     support_web: bool = true,
     preload_path: ?[]const u8 = null,
 };
@@ -93,7 +81,6 @@ fn addExample(
     name: []const u8,
     target: ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
-    skipped: std.StringHashMap(bool),
     examples: *Build.Step,
     opt: ExampleOptions,
 ) void {
@@ -112,7 +99,6 @@ fn addExample(
             optimize,
             .{
                 .dep_name = null,
-                .use_nfd = opt.use_nfd,
             },
         );
 
@@ -127,7 +113,7 @@ fn addExample(
             run_cmd.cwd = b.path("zig-out/bin");
             b.step(b.fmt("run-{s}", .{name}), b.fmt("run {s}", .{name})).dependOn(&run_cmd.step);
         }
-        if (skipped.get(name) == null) examples.dependOn(&install_cmd.step);
+        examples.dependOn(&install_cmd.step);
     } else if (opt.support_web) {
         const webapp = createWeb(
             b,
@@ -142,7 +128,7 @@ fn addExample(
         );
         b.step(name, b.fmt("compile {s}", .{name})).dependOn(&webapp.emlink.step);
         b.step(b.fmt("run-{s}", .{name}), b.fmt("run {s}", .{name})).dependOn(&webapp.emrun.step);
-        if (skipped.get("hotreload") == null) examples.dependOn(&webapp.emlink.step);
+        examples.dependOn(&webapp.emlink.step);
     }
 }
 
@@ -172,7 +158,6 @@ pub const Dependency = struct {
 pub const AppOptions = struct {
     dep_name: ?[]const u8 = "jok",
     additional_deps: []const Dependency = &.{},
-    use_nfd: bool = false,
 };
 
 /// Create desktop application (windows/linux/macos)
@@ -187,7 +172,6 @@ pub fn createDesktopApp(
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
     const jok = getJokLibrary(b, target, optimize, .{
         .dep_name = opt.dep_name,
-        .use_nfd = opt.use_nfd,
     });
 
     // Create game module
@@ -305,7 +289,6 @@ pub fn createWeb(
 // Create jok library
 pub const JokOptions = struct {
     dep_name: ?[]const u8 = "jok",
-    use_nfd: bool = false,
 };
 fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) struct {
     module: *Build.Module,
@@ -313,7 +296,6 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
 } {
     const builder = getJokBuilder(b, opt.dep_name);
     const bos = builder.addOptions();
-    bos.addOption(bool, "use_nfd", opt.use_nfd);
     const jokmod = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
         .target = target,
@@ -338,7 +320,6 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
     @import("src/vendor/zobj/build.zig").inject(libmod, builder.path("src/vendor/zobj"));
     @import("src/vendor/znoise/build.zig").inject(libmod, builder.path("src/vendor/znoise"));
     @import("src/vendor/zaudio/build.zig").inject(libmod, builder.path("src/vendor/zaudio"));
-    if (opt.use_nfd) @import("src/vendor/nfd/build.zig").inject(libmod, builder.path("src/vendor/nfd"));
 
     var lib: *Build.Step.Compile = undefined;
     if (target.result.cpu.arch.isWasm()) {

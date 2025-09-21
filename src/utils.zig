@@ -13,6 +13,9 @@ pub const easing = @import("utils/easing.zig");
 /// Timer utils
 pub const timer = @import("utils/timer.zig");
 
+/// Dialog utils
+pub const dialog = @import("utils/dialog.zig");
+
 /// Signal utils
 pub const signal = @import("utils/signal.zig");
 
