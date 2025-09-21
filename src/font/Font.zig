@@ -25,7 +25,7 @@ font_data: ?[]const u8,
 font_info: truetype.stbtt_fontinfo,
 
 /// Create Font instance with truetype file
-pub fn create(ctx: jok.Context, path: [*:0]const u8) !*Font {
+pub fn create(ctx: jok.Context, path: [:0]const u8) !*Font {
     const allocator = ctx.allocator();
     var self = try allocator.create(Font);
     self.allocator = allocator;

@@ -499,7 +499,7 @@ pub const TiledMap = struct {
 };
 
 /// Load TMX file
-pub fn loadTMX(ctx: jok.Context, path: [*:0]const u8) !*TiledMap {
+pub fn loadTMX(ctx: jok.Context, path: [:0]const u8) !*TiledMap {
     const zpath = std.mem.sliceTo(path, 0);
     assert(std.mem.endsWith(u8, zpath, ".tmx"));
     const allocator = ctx.allocator();

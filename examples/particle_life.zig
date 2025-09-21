@@ -883,8 +883,11 @@ pub fn draw(ctx: jok.Context) !void {
 }
 
 pub fn quit(ctx: jok.Context) void {
-    _ = ctx;
     std.log.info("game quit", .{});
+
+    if (saved_path) |p| {
+        ctx.allocator().free(p);
+    }
 
     if (green) |g| g.deinit();
     if (red) |g| g.deinit();

@@ -28,7 +28,7 @@ pub const Unit = enum {
     cm,
     in,
 
-    fn str(self: Unit) [*:0]const u8 {
+    fn str(self: Unit) [:0]const u8 {
         return switch (self) {
             .px => "px",
             .pt => "pt",
@@ -101,7 +101,7 @@ pub fn createBitmapFromData(
 
 pub fn createBitmapFromFile(
     allocator: std.mem.Allocator,
-    path: [*:0]const u8,
+    path: [:0]const u8,
     opt: CreateBitmap,
 ) !SvgBitmap {
     const handle = try physfs.open(path, .read);

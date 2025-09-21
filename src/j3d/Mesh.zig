@@ -472,8 +472,8 @@ pub const ObjOption = struct {
 };
 pub fn fromObj(
     ctx: jok.Context,
-    obj_file_path: [*:0]const u8,
-    mtl_file_path: ?[*:0]const u8,
+    obj_file_path: [:0]const u8,
+    mtl_file_path: ?[:0]const u8,
     opt: ObjOption,
 ) !*Self {
     const obj_file_data = BLK: {
@@ -662,7 +662,7 @@ pub const GltfOption = struct {
     tex: ?jok.Texture = null,
     uvs: ?[2]jok.Point = null,
 };
-pub fn fromGltf(ctx: jok.Context, file_path: [*:0]const u8, opt: GltfOption) !*Self {
+pub fn fromGltf(ctx: jok.Context, file_path: [:0]const u8, opt: GltfOption) !*Self {
     var filedata: ?[]const u8 = null;
     defer if (filedata) |d| ctx.allocator().free(d);
 

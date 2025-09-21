@@ -84,8 +84,8 @@ pub fn deinit() void {
 /// Get the "base dir". This is the directory where the application was run
 /// from, which is probably the installation directory, and may or may not
 /// be the process's current working directory.
-pub fn getBaseDir() [*:0]const u8 {
-    return PHYSFS_getBaseDir();
+pub fn getBaseDir() [:0]const u8 {
+    return std.mem.sliceTo(PHYSFS_getBaseDir(), 0);
 }
 
 /// Get the "pref dir". This is meant to be where users can write personal
@@ -106,23 +106,23 @@ pub fn getBaseDir() [*:0]const u8 {
 ///  "/Users/bob/Library/Application Support/My Program Name"
 ///
 /// (etc.)
-pub fn getPrefDir(org: [*:0]const u8, app: [*:0]const u8) [*:0]const u8 {
+pub fn getPrefDir(org: [:0]const u8, app: [:0]const u8) [:0]const u8 {
     if (PHYSFS_getPrefDir(org, app)) |p| {
-        return p;
+        return std.mem.sliceTo(p, 0);
     }
     @panic("can't get data dir");
 }
 
 /// Get the current write dir. The default write dir is NULL.
-pub fn getWriteDir() ?[*:0]const u8 {
-    return PHYSFS_getWriteDir();
+pub fn getWriteDir() ?[:0]const u8 {
+    return std.mem.sliceTo(PHYSFS_getWriteDir(), 0);
 }
 
 /// Set a new write dir. This will override the previous setting.
 /// New path is specified in platform-dependent notation.
 /// Setting to NULL disables the write dir, so no files can be opened
 /// for writing via PhysicsFS.
-pub fn setWriteDir(path: ?[*:0]const u8) Error!void {
+pub fn setWriteDir(path: [:0]const u8) Error!void {
     if (PHYSFS_setWriteDir(path) == 0) {
         return getLastErrorCode().toError();
     }
@@ -131,8 +131,8 @@ pub fn setWriteDir(path: ?[*:0]const u8) Error!void {
 /// Get current search paths, using given memory allocator.
 pub fn getSearchPathsAlloc(allocator: std.mem.Allocator) Error!struct {
     allocator: std.mem.Allocator,
-    cpaths: [*]?[*:0]const u8,
-    paths: [][*:0]const u8,
+    cpaths: [*]?[:0]const u8,
+    paths: [][:0]const u8,
 
     pub fn deinit(self: *@This()) void {
         PHYSFS_freeList(@ptrCast(self.cpaths));
@@ -148,7 +148,7 @@ pub fn getSearchPathsAlloc(allocator: std.mem.Allocator) Error!struct {
         const result = .{
             .allocator = allocator,
             .cpaths = cpaths,
-            .paths = try allocator.alloc([*:0]const u8, path_count),
+            .paths = try allocator.alloc([:0]const u8, path_count),
         };
         for (0..path_count) |i| {
             result.paths[i] = cpaths[i].?;
@@ -161,14 +161,14 @@ pub fn getSearchPathsAlloc(allocator: std.mem.Allocator) Error!struct {
 
 /// Get iterator for current search paths.
 pub fn getSearchPathsIterator() Error!struct {
-    cpaths: [*]?[*:0]const u8,
+    cpaths: [*]?[:0]const u8,
     idx: usize,
 
     pub fn deinit(it: *@This()) void {
         PHYSFS_freeList(@ptrCast(it.cpaths));
     }
 
-    pub fn next(it: *@This()) ?[*:0]const u8 {
+    pub fn next(it: *@This()) ?[:0]const u8 {
         const p = it.cpaths[it.idx];
         if (p != null) it.idx += 1;
         return p;
@@ -201,7 +201,7 @@ pub fn getSearchPathsIterator() Error!struct {
 /// archives at a specific point in the file tree and prevent overlap; this
 /// is useful for downloadable mods that might trample over application data
 /// or each other, for example.
-pub fn mount(dir_or_archive: [*:0]const u8, mount_point: [*:0]const u8, append: bool) Error!void {
+pub fn mount(dir_or_archive: [:0]const u8, mount_point: [:0]const u8, append: bool) Error!void {
     if (PHYSFS_mount(dir_or_archive, mount_point, if (append) 1 else 0) == 0) {
         return getLastErrorCode().toError();
     }
@@ -209,7 +209,7 @@ pub fn mount(dir_or_archive: [*:0]const u8, mount_point: [*:0]const u8, append: 
 
 /// Add an archive, contained in a memory buffer, to the search path.
 /// `newDir` must be a unique string to identify this archive.
-pub fn mountMemory(buf: []const u8, new_dir: [*:0]const u8, mount_point: [*:0]const u8, append: bool) Error!void {
+pub fn mountMemory(buf: []const u8, new_dir: [:0]const u8, mount_point: [:0]const u8, append: bool) Error!void {
     assert(buf.len > 0);
     if (PHYSFS_mountMemory(
         @ptrCast(buf.ptr),
@@ -224,7 +224,7 @@ pub fn mountMemory(buf: []const u8, new_dir: [*:0]const u8, mount_point: [*:0]co
 }
 
 /// Remove a directory or archive from the search path.
-pub fn unmount(dir_or_archive: [*:0]const u8) Error!void {
+pub fn unmount(dir_or_archive: [:0]const u8) Error!void {
     if (PHYSFS_unmount(dir_or_archive) == 0) {
         return getLastErrorCode().toError();
     }
@@ -235,7 +235,7 @@ pub fn unmount(dir_or_archive: [*:0]const u8) Error!void {
 /// This is specified in platform-independent notation in relation to the
 /// write dir. All missing parent directories are also created if they
 /// don't exist.
-pub fn mkdir(dirname: [*:0]const u8) Error!void {
+pub fn mkdir(dirname: [:0]const u8) Error!void {
     if (PHYSFS_mkdir(dirname) == 0) {
         return getLastErrorCode().toError();
     }
@@ -244,7 +244,7 @@ pub fn mkdir(dirname: [*:0]const u8) Error!void {
 /// Delete a file or directory.
 /// `filename` is specified in platform-independent notation in relation to the
 /// write dir. A directory must be empty before this call can delete it.
-pub fn delete(filename: [*:0]const u8) Error!void {
+pub fn delete(filename: [:0]const u8) Error!void {
     if (PHYSFS_delete(filename) == 0) {
         return getLastErrorCode().toError();
     }
@@ -256,22 +256,22 @@ pub fn delete(filename: [*:0]const u8) Error!void {
 /// which may be a directory, or an archive. Even if there are multiple
 /// matches in different parts of the search path, only the first one found
 /// is used, just like when opening a file.
-pub fn getRealDir(filename: [*:0]const u8) ?[*:0]const u8 {
-    return PHYSFS_getRealDir(filename);
+pub fn getRealDir(filename: [:0]const u8) ?[:0]const u8 {
+    return std.mem.sliceTo(PHYSFS_getRealDir(filename), 0);
 }
 
 /// Get a file listing of a search path's directory, using given memory allocator.
 pub const ListedFiles = struct {
     allocator: std.mem.Allocator,
-    cfiles: [*]?[*:0]const u8,
-    files: [][*:0]const u8,
+    cfiles: [*]?[:0]const u8,
+    files: [][:0]const u8,
 
     pub fn deinit(self: *@This()) void {
         PHYSFS_freeList(@ptrCast(self.cfiles));
         self.allocator.free(self.files);
     }
 };
-pub fn listAlloc(allocator: std.mem.Allocator, dir: [*:0]const u8) Error!ListedFiles {
+pub fn listAlloc(allocator: std.mem.Allocator, dir: [:0]const u8) Error!ListedFiles {
     if (PHYSFS_enumerateFiles(dir)) |cfiles| {
         var file_count: usize = 0;
         while (cfiles[file_count] != null) {
@@ -281,7 +281,7 @@ pub fn listAlloc(allocator: std.mem.Allocator, dir: [*:0]const u8) Error!ListedF
         const result = ListedFiles{
             .allocator = allocator,
             .cfiles = cfiles,
-            .files = try allocator.alloc([*:0]const u8, file_count),
+            .files = try allocator.alloc([:0]const u8, file_count),
         };
         for (0..file_count) |i| {
             result.files[i] = cfiles[i].?;
@@ -301,13 +301,13 @@ pub const ListIterator = struct {
         PHYSFS_freeList(@ptrCast(it.cfiles));
     }
 
-    pub fn next(it: *@This()) ?[*:0]const u8 {
+    pub fn next(it: *@This()) ?[:0]const u8 {
         const p = it.cfiles[it.idx];
         if (p != null) it.idx += 1;
-        return p;
+        return std.mem.sliceTo(p, 0);
     }
 };
-pub fn getListIterator(dir: [*:0]const u8) Error!ListIterator {
+pub fn getListIterator(dir: [:0]const u8) Error!ListIterator {
     if (PHYSFS_enumerateFiles(dir)) |cfiles| {
         return .{
             .cfiles = cfiles,
@@ -318,12 +318,12 @@ pub fn getListIterator(dir: [*:0]const u8) Error!ListIterator {
 }
 
 /// Determine if a file exists in the search path.
-pub fn exists(fname: [*:0]const u8) bool {
+pub fn exists(fname: [:0]const u8) bool {
     return if (PHYSFS_exists(fname) == 0) false else true;
 }
 
 /// Get various information about a directory or a file.
-pub fn fstat(fname: [*:0]const u8) Error!FileStat {
+pub fn fstat(fname: [:0]const u8) Error!FileStat {
     var result: FileStat = undefined;
     if (PHYSFS_stat(fname, &result) == 0) {
         return getLastErrorCode().toError();
@@ -341,7 +341,7 @@ pub const OpenMode = enum {
     write,
     append,
 };
-pub fn open(fname: [*:0]const u8, mode: OpenMode) Error!File {
+pub fn open(fname: [:0]const u8, mode: OpenMode) Error!File {
     const handle = switch (mode) {
         .read => PHYSFS_openRead(fname),
         .write => PHYSFS_openWrite(fname),
@@ -618,7 +618,7 @@ pub const zaudio = struct {
 
     fn onOpen(_: *AudioVfs, file_path: [*:0]const u8, mode: AudioOpenMode, handle: *AudioFileHandle) callconv(.c) AudioResult {
         const open_mode: OpenMode = if (mode == .read) .read else .write;
-        const file = open(file_path, open_mode) catch |e| @panic(@errorName(e));
+        const file = open(std.mem.sliceTo(file_path, 0), open_mode) catch |e| @panic(@errorName(e));
         const fileptr = mem_allocator.?.create(File) catch |e| @panic(@errorName(e));
         fileptr.* = file;
         handle.* = @ptrCast(fileptr);
@@ -704,7 +704,7 @@ pub const zmesh = struct {
     ) callconv(.c) ZmeshResult {
         _ = file_opts;
 
-        const handle = open(path, .read) catch |e| {
+        const handle = open(std.mem.sliceTo(path, 0), .read) catch |e| {
             if (e == error.OutOfMemory) return .out_of_memory;
             if (e == error.NotFound) return .file_not_found;
             @panic(@errorName(e));

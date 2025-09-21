@@ -347,7 +347,7 @@ pub const Renderer = struct {
     pub fn createTextureFromFile(
         self: Renderer,
         allocator: std.mem.Allocator,
-        image_file: [*:0]const u8,
+        image_file: [:0]const u8,
         access: jok.Texture.Access,
         flip: bool,
     ) !jok.Texture {

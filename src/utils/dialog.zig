@@ -25,7 +25,7 @@ pub const DialogFilter = extern struct {
 
 /// Dialog options
 pub const DialogOption = struct {
-    title: ?[*:0]const u8 = null,
+    title: ?[:0]const u8 = null,
     accept_label: ?[:0]const u8 = null,
     cancel_label: ?[:0]const u8 = null,
     filters: []const DialogFilter = &.{},

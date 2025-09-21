@@ -21,7 +21,7 @@ pub const FilePixels = struct {
         self.allocator.free(self.pixels);
     }
 };
-pub fn loadPixelsFromFile(ctx: jok.Context, path: [*:0]const u8, flip: bool) !FilePixels {
+pub fn loadPixelsFromFile(ctx: jok.Context, path: [:0]const u8, flip: bool) !FilePixels {
     const allocator = ctx.allocator();
 
     var filedata: []const u8 = undefined;
@@ -84,7 +84,7 @@ pub fn savePixelsToFile(
     pixels: []const u8,
     width: u32,
     height: u32,
-    path: [*:0]const u8,
+    path: [:0]const u8,
     opt: EncodingOption,
 ) !void {
     const channels = 4;
@@ -251,7 +251,7 @@ pub const jpng = struct {
         pixels: []const u8,
         width: u32,
         height: u32,
-        path: [*:0]const u8,
+        path: [:0]const u8,
         data: []const u8,
         opt: SaveOption,
     ) !void {
@@ -298,7 +298,7 @@ pub const jpng = struct {
             self.allocator.free(self.data);
         }
     };
-    pub fn loadPixels(ctx: jok.Context, path: [*:0]const u8, flip: bool) !PixelData {
+    pub fn loadPixels(ctx: jok.Context, path: [:0]const u8, flip: bool) !PixelData {
         const allocator = ctx.allocator();
 
         var data: []const u8 = undefined;
@@ -389,7 +389,7 @@ pub const jpng = struct {
         tex: jok.Texture,
         data: []const u8, // custom data, **SHOULD BE FREED BY CALLER**
     };
-    pub fn loadTexture(ctx: jok.Context, path: [*:0]const u8, access: jok.Texture.Access, flip: bool) !TextureData {
+    pub fn loadTexture(ctx: jok.Context, path: [:0]const u8, access: jok.Texture.Access, flip: bool) !TextureData {
         const pixeldata = try loadPixels(ctx, path, flip);
         errdefer pixeldata.destroy();
         const tex = try ctx.renderer().createTexture(

@@ -287,7 +287,7 @@ pub const CreateSheetFromDirOption = struct {
 };
 pub fn fromPicturesInDir(
     ctx: jok.Context,
-    dir_path: [*:0]const u8,
+    dir_path: [:0]const u8,
     width: u32,
     height: u32,
     opt: CreateSheetFromDirOption,
@@ -378,7 +378,7 @@ pub const SpriteInfo = struct {
 };
 pub fn fromSinglePicture(
     ctx: jok.Context,
-    path: [*:0]const u8,
+    path: [:0]const u8,
     sprites: []const SpriteInfo,
 ) !*Self {
     var tex = try ctx.renderer().createTextureFromFile(
@@ -445,7 +445,7 @@ pub fn destroy(self: *Self) void {
 pub fn save(
     self: Self,
     ctx: jok.Context,
-    path: [*:0]const u8,
+    path: [:0]const u8,
     opt: jok.utils.gfx.jpng.SaveOption,
 ) !void {
     if (self.packed_pixels == null) return error.NoPixelData;
@@ -493,7 +493,7 @@ pub fn save(
 }
 
 /// Load sprite-sheet from jpng
-pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Self {
+pub fn load(ctx: jok.Context, path: [:0]const u8) !*Self {
     const S = struct {
         inline fn getFloat(v: json.Value) f32 {
             return switch (v) {

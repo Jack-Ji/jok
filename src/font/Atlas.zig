@@ -49,7 +49,7 @@ pub fn destroy(self: *Atlas) void {
 pub fn save(
     self: Atlas,
     ctx: jok.Context,
-    path: [*:0]const u8,
+    path: [:0]const u8,
     opt: jok.utils.gfx.jpng.SaveOption,
 ) !void {
     if (self.pixels == null) return error.NoPixelData;
@@ -172,7 +172,7 @@ pub fn save(
 }
 
 /// Load atlas from jpng file
-pub fn load(ctx: jok.Context, path: [*:0]const u8) !*Atlas {
+pub fn load(ctx: jok.Context, path: [:0]const u8) !*Atlas {
     const S = struct {
         inline fn getFloat(v: json.Value) f32 {
             return switch (v) {
