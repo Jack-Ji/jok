@@ -26,11 +26,12 @@ pub const DialogFilter = extern struct {
 /// Dialog options
 pub const DialogOption = struct {
     title: ?[*:0]const u8 = null,
-    accept_label: ?[*:0]const u8 = null,
-    cancel_label: ?[*:0]const u8 = null,
+    accept_label: ?[:0]const u8 = null,
+    cancel_label: ?[:0]const u8 = null,
     filters: []const DialogFilter = &.{},
-    default_location: ?[*:0]const u8 = null,
+    default_location: ?[:0]const u8 = null,
     allow_many: bool = false,
+    run_on_main_thread: bool = true,
 };
 
 pub const DialogCallback = *const fn (userdata: ?*anyopaque, paths: [][:0]const u8) anyerror!void;
@@ -47,6 +48,7 @@ pub fn showDialog(ctx: jok.Context, dt: DialogType, callback: DialogCallback, us
         .callback = callback,
         .userdata = userdata,
         .filters = try ctx.allocator().dupe(DialogFilter, opt.filters),
+        .run_on_main_thread = opt.run_on_main_thread,
     };
 
     const props = sdl.SDL_CreateProperties();
@@ -79,6 +81,7 @@ const RealUserData = struct {
     callback: DialogCallback,
     userdata: ?*anyopaque,
     filters: []const DialogFilter,
+    run_on_main_thread: bool,
 
     fn deinit(self: *RealUserData) void {
         self.allocator.free(self.filters);
@@ -86,6 +89,7 @@ const RealUserData = struct {
     }
 };
 
+// Called from arbitrary thread
 fn realCallback(_userdata: ?*anyopaque, filelist: [*c]const [*c]const u8, _: c_int) callconv(.c) void {
     const real_userdata: *RealUserData = @ptrCast(@alignCast(_userdata.?));
     defer real_userdata.deinit();
@@ -112,7 +116,31 @@ fn realCallback(_userdata: ?*anyopaque, filelist: [*c]const [*c]const u8, _: c_i
         path_ptr += 1;
     }
 
-    real_userdata.callback(real_userdata.userdata, files) catch |e| {
+    if (real_userdata.run_on_main_thread) {
+        const real_userdata2 = real_userdata.allocator.create(RealUserData2) catch unreachable;
+        defer real_userdata.allocator.destroy(real_userdata2);
+
+        real_userdata2.* = .{
+            .real_userdata = real_userdata,
+            .files = files,
+        };
+        _ = sdl.SDL_RunOnMainThread(realCallback2, real_userdata2, true);
+    } else {
+        real_userdata.callback(real_userdata.userdata, files) catch |e| {
+            log.err("Dialog callback failed: {s}", .{@errorName(e)});
+        };
+    }
+}
+
+const RealUserData2 = struct {
+    real_userdata: *RealUserData,
+    files: [][:0]const u8,
+};
+
+// Called from main thread
+fn realCallback2(_userdata: ?*anyopaque) callconv(.c) void {
+    const real_userdata2: *RealUserData2 = @ptrCast(@alignCast(_userdata.?));
+    real_userdata2.real_userdata.callback(real_userdata2.real_userdata.userdata, real_userdata2.files) catch |e| {
         log.err("Dialog callback failed: {s}", .{@errorName(e)});
     };
 }

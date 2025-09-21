@@ -10,6 +10,7 @@ pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1200, .height = 800 },
 };
 
+var jokctx: jok.Context = undefined;
 var batchpool: j2d.BatchPool(64, false) = undefined;
 
 // Image positions
@@ -79,6 +80,9 @@ var blue: ?std.array_list.Managed(Point) = null;
 // Random generator
 var rand_gen: std.Random.DefaultPrng = undefined;
 var rand: std.Random = undefined;
+
+// Remembered path
+var saved_path: ?[:0]const u8 = null;
 
 const Point = struct {
     // position
@@ -274,6 +278,11 @@ fn randomnizeSimulation() void {
 }
 
 fn saveSettings(_: ?*anyopaque, paths: [][:0]const u8) !void {
+    if (saved_path) |p| {
+        jokctx.allocator().free(p);
+    }
+    saved_path = try jokctx.allocator().dupeZ(u8, paths[0]);
+
     const realpath = paths[0];
     var f = try std.fs.cwd().createFile(realpath, .{});
     defer f.close();
@@ -379,6 +388,7 @@ fn updateGui(ctx: jok.Context) !void {
                     .filters = &.{
                         .{ .name = "text file", .pattern = "txt" },
                     },
+                    .default_location = saved_path,
                 },
             );
         }
@@ -393,6 +403,7 @@ fn updateGui(ctx: jok.Context) !void {
                     .filters = &.{
                         .{ .name = "text file", .pattern = "txt" },
                     },
+                    .default_location = saved_path,
                 },
             );
         }
@@ -820,6 +831,7 @@ fn renderSimulation() !void {
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
+    jokctx = ctx;
     batchpool = try @TypeOf(batchpool).init(ctx);
     rand_gen = std.Random.DefaultPrng.init(
         @intCast(std.time.timestamp()),
