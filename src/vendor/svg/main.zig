@@ -100,16 +100,28 @@ pub fn createBitmapFromData(
 }
 
 pub fn createBitmapFromFile(
-    allocator: std.mem.Allocator,
+    ctx: jok.Context,
     path: [:0]const u8,
     opt: CreateBitmap,
 ) !SvgBitmap {
-    const handle = try physfs.open(path, .read);
-    defer handle.close();
+    const allocator = ctx.allocator();
 
-    const data = try handle.readAllAlloc(allocator);
-    defer allocator.free(data);
-    return try createBitmapFromData(allocator, data, opt);
+    var filedata: []const u8 = undefined;
+    if (ctx.cfg().jok_enable_physfs) {
+        const handle = try physfs.open(path, .read);
+        defer handle.close();
+
+        filedata = try handle.readAllAlloc(allocator);
+    } else {
+        filedata = try std.fs.cwd().readFileAlloc(
+            std.mem.sliceTo(path, 0),
+            allocator,
+            .limited(1 << 30),
+        );
+    }
+    defer allocator.free(filedata);
+
+    return try createBitmapFromData(allocator, filedata, opt);
 }
 
 const NSVGimage = extern struct {

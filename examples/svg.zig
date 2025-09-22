@@ -19,7 +19,7 @@ pub fn init(ctx: jok.Context) !void {
     batchpool = try @TypeOf(batchpool).init(ctx);
 
     svg = try jok.svg.createBitmapFromFile(
-        ctx.allocator(),
+        ctx,
         "tiger.svg",
         .{},
     );
