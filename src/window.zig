@@ -18,6 +18,7 @@ pub const Window = struct {
         _ = sdl.SDL_SetStringProperty(props, sdl.SDL_PROP_WINDOW_CREATE_TITLE_STRING, cfg.jok_window_title);
         _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, cfg.jok_headless);
         _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, cfg.jok_window_borderless);
+        _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
         var window_width: c_int = 800;
         var window_height: c_int = 600;
         switch (cfg.jok_window_size) {
@@ -81,6 +82,20 @@ pub const Window = struct {
 
     pub fn destroy(w: Window) void {
         sdl.SDL_DestroyWindow(w.ptr);
+    }
+
+    pub fn maximize(w: Window) !void {
+        if (!sdl.SDL_MaximizeWindow(w.ptr)) {
+            log.err("Minimum window failed: {s}", .{sdl.SDL_GetError()});
+            return error.SdlError;
+        }
+    }
+
+    pub fn minimize(w: Window) !void {
+        if (!sdl.SDL_MinimizeWindow(w.ptr)) {
+            log.err("Minimize window failed: {s}", .{sdl.SDL_GetError()});
+            return error.SdlError;
+        }
     }
 
     pub fn getSize(w: Window) jok.Size {
