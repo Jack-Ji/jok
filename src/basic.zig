@@ -459,16 +459,8 @@ pub const Color = extern struct {
         };
     }
 
-    pub inline fn toColorF(_c: Color) ColorF {
-        var c: @Vector(4, f32) = .{
-            @floatFromInt(_c.r),
-            @floatFromInt(_c.g),
-            @floatFromInt(_c.b),
-            @floatFromInt(_c.a),
-        };
-        const multiplier: @Vector(4, f32) = @splat(1.0 / 255.0);
-        c *= multiplier;
-        return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
+    pub inline fn toColorF(c: Color) ColorF {
+        return .{ .r = u8tof32[c.r], .g = u8tof32[c.g], .b = u8tof32[c.b], .a = u8tof32[c.a] };
     }
 
     inline fn getPixelFormatDetails() [*c]const sdl.SDL_PixelFormatDetails {
@@ -509,12 +501,7 @@ pub const Color = extern struct {
     /// Convert to HSL
     pub inline fn toHSL(c: Color) [4]f32 {
         const hsl = zmath.rgbToHsl(
-            zmath.f32x4(
-                @as(f32, @floatFromInt(c.r)) / 255,
-                @as(f32, @floatFromInt(c.g)) / 255,
-                @as(f32, @floatFromInt(c.b)) / 255,
-                @as(f32, @floatFromInt(c.a)) / 255,
-            ),
+            zmath.f32x4(u8tof32[c.r], u8tof32[c.g], u8tof32[c.b], u8tof32[c.a]),
         );
         return zmath.vecToArr4(hsl);
     }
@@ -543,12 +530,7 @@ pub const Color = extern struct {
     }
 
     pub inline fn mod(c0: Color, c1: Color) Color {
-        return .{
-            .r = @intFromFloat(@as(f32, @floatFromInt(c0.r)) * @as(f32, @floatFromInt(c1.r)) / 255.0),
-            .g = @intFromFloat(@as(f32, @floatFromInt(c0.g)) * @as(f32, @floatFromInt(c1.g)) / 255.0),
-            .b = @intFromFloat(@as(f32, @floatFromInt(c0.b)) * @as(f32, @floatFromInt(c1.b)) / 255.0),
-            .a = @intFromFloat(@as(f32, @floatFromInt(c0.a)) * @as(f32, @floatFromInt(c1.a)) / 255.0),
-        };
+        return c0.toColorF().mod(c1.toColorF()).toColor();
     }
 
     /// parses a hex string color literal.
@@ -628,6 +610,16 @@ pub const Color = extern struct {
     }
 };
 
+const u8tof32: [256]f32 = calcU8Table();
+
+fn calcU8Table() [256]f32 {
+    var cs: [256]f32 = undefined;
+    inline for (0..256) |i| {
+        cs[i] = @as(f32, @floatFromInt(i)) / 255.0;
+    }
+    return cs;
+}
+
 pub const ColorF = extern struct {
     pub const none = rgba(0, 0, 0, 0);
     pub const black = rgb(0, 0, 0);
@@ -660,16 +652,8 @@ pub const ColorF = extern struct {
         return ColorF{ .r = r, .g = g, .b = b, .a = a };
     }
 
-    pub inline fn fromColor(_c: Color) ColorF {
-        var c: @Vector(4, f32) = .{
-            @floatFromInt(_c.r),
-            @floatFromInt(_c.g),
-            @floatFromInt(_c.b),
-            @floatFromInt(_c.a),
-        };
-        const multiplier: @Vector(4, f32) = @splat(1.0 / 255.0);
-        c *= multiplier;
-        return ColorF{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
+    pub inline fn fromColor(c: Color) ColorF {
+        return ColorF{ .r = u8tof32[c.r], .g = u8tof32[c.g], .b = u8tof32[c.b], .a = u8tof32[c.a] };
     }
 
     pub inline fn toColor(_c: ColorF) Color {
