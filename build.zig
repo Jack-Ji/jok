@@ -330,6 +330,8 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
         em.possibleSetup(lib);
 
         // Add the Emscripten system include seach path
+        libmod.addCMacro("__WINT_TYPE__", "unsigned int");
+        jokmod.addCMacro("__WINT_TYPE__", "unsigned int");
         libmod.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
         jokmod.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
     } else {
