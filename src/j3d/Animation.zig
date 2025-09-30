@@ -338,8 +338,9 @@ pub fn getSkinMatrix(
     };
     var skin_m = S.m_zero;
     for (0..4) |i| {
-        const j = joints[i];
         const w = weights[i];
+        if (w == 0) continue;
+        const j = joints[i];
         const m = zmath.mul(zmath.mul(
             skin.inverse_matrices[j],
             self.getNodeTransform(skin.nodes[j]),
