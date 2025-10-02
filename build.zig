@@ -295,14 +295,10 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
     artifact: *Build.Step.Compile,
 } {
     const builder = getJokBuilder(b, opt.dep_name);
-    const bos = builder.addOptions();
     const jokmod = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &.{
-            .{ .name = "build_options", .module = bos.createModule() },
-        },
     });
     jokmod.addIncludePath(builder.dependency("sdl", .{}).path("include"));
 

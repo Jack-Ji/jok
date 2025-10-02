@@ -1,5 +1,3 @@
-const bos = @import("build_options");
-
 pub const Error = error{
     SdlError,
 };

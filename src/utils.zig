@@ -27,7 +27,6 @@ pub const xml = @import("utils/xml.zig");
 
 //============================= Stolen From Old Standard Library =============================
 pub const ring = @import("utils/ring.zig"); // Generic ring data structure
-pub const trait = @import("utils/trait.zig"); // Trait system
 
 test "utils" {
     _ = timer;
@@ -35,5 +34,4 @@ test "utils" {
     _ = pathfind;
     _ = xml;
     _ = ring;
-    _ = trait;
 }

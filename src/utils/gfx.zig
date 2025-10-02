@@ -234,15 +234,18 @@ pub const jpng = struct {
         dummy: u6 = 0,
     };
 
-    /// Magic string at end of file
+    // Magic string at end of file
     const magic = [_]u8{ 'p', 'n', 'g', '@', 'j', 'o', 'k' };
 
-    /// Maximum size of custom data (64MB)
+    // Maximum size of custom data (64MB)
     const max_custom_size = (1 << 26);
+
+    // Buffer for compressing
+    var compress_buf: [std.compress.flate.max_window_len]u8 = undefined;
 
     pub const SaveOption = struct {
         png_compress_level: u8 = 8,
-        data_compress_level: ?std.compress.flate.Compress.Level = null, // TODO std lib not finished yet
+        data_compress_options: ?std.compress.flate.Compress.Options = .level_4,
     };
 
     /// Save texture in jpng format
@@ -358,8 +361,10 @@ pub const jpng = struct {
 
         if (flags.compressed) {
             var bufreader = std.Io.Reader.fixed(custom_data);
-            var decompress = std.compress.flate.Decompress.init(&bufreader, .gzip, &.{});
-            const customdata = try decompress.reader.readAlloc(allocator, 1 << 27);
+            var decompress = std.compress.flate.Decompress.init(&bufreader, .gzip, &compress_buf);
+            const databuf = try allocator.alloc(u8, 1 << 27);
+            defer allocator.free(databuf);
+            const datasize = try decompress.reader.readSliceShort(databuf);
             return .{
                 .allocator = allocator,
                 .pixels = pixels,
@@ -367,7 +372,7 @@ pub const jpng = struct {
                     .width = @intCast(width),
                     .height = @intCast(height),
                 },
-                .data = customdata,
+                .data = try allocator.dupe(u8, databuf[0..datasize]),
             };
         } else {
             const cloned_custom = try allocator.alloc(u8, custom_data.len);
@@ -406,19 +411,20 @@ pub const jpng = struct {
 
     inline fn writeData(ctx: jok.Context, writer: *std.Io.Writer, data: []const u8, opt: SaveOption) !void {
         const flags = Flags{
-            .compressed = opt.data_compress_level != null,
+            .compressed = opt.data_compress_options != null,
         };
-        if (opt.data_compress_level) |lvl| {
+        if (opt.data_compress_options) |compress_opt| {
             const writebuf = try ctx.allocator().alloc(u8, data.len);
             defer ctx.allocator().free(writebuf);
             var bufwriter = std.Io.Writer.fixed(writebuf);
-            var compress = std.compress.flate.Compress.init(
+            var compress = try std.compress.flate.Compress.init(
                 &bufwriter,
-                &.{},
-                .{ .container = .gzip, .level = lvl },
+                &compress_buf,
+                .gzip,
+                compress_opt,
             );
             try compress.writer.writeAll(data);
-            try compress.end();
+            try compress.writer.flush();
             const deflated = bufwriter.buffered();
             try writer.writeAll(deflated);
             const checksum = std.hash.Crc32.hash(deflated);

@@ -22,7 +22,7 @@ extern fn emscripten_cancel_main_loop() void;
 extern fn emscripten_run_script(s: [*:0]const u8) void;
 
 fn mainLoop(args: ?*anyopaque) callconv(.c) void {
-    var jok_ctx: *Context = @alignCast(@ptrCast(args.?));
+    var jok_ctx: *Context = @ptrCast(@alignCast(args.?));
     if (jok_ctx._running) {
         jok_ctx.tick(game.event, game.update, game.draw);
     } else {
@@ -39,7 +39,7 @@ pub fn main() !void {
     game.init(jok_ctx.context()) catch |err| {
         log.err("Init game failed: {}", .{err});
         if (@errorReturnTrace()) |trace| {
-            std.debug.dumpStackTrace(trace.*);
+            std.debug.dumpStackTrace(trace);
             return;
         }
     };
