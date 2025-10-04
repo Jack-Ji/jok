@@ -197,7 +197,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _allocator: std.mem.Allocator = undefined,
 
         // Main thread id
-        _main_thread_id: ?std.Thread.Id = undefined,
+        _main_thread_id: std.Thread.Id = undefined,
 
         // Application Context
         _ctx: Context = undefined,
