@@ -543,6 +543,40 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Check system information
         fn checkSys(self: *@This()) !void {
+            const S = struct {
+                fn fmtSdlDrivers(
+                    current_driver: [*:0]const u8,
+                    num_drivers: c_int,
+                    getDriver: *const fn (c_int) callconv(.c) ?[*:0]const u8,
+                ) FormatSdlDrivers {
+                    return .{
+                        .current_driver = current_driver,
+                        .num_drivers = num_drivers,
+                        .getDriver = getDriver,
+                    };
+                }
+
+                const FormatSdlDrivers = struct {
+                    current_driver: [*:0]const u8,
+                    num_drivers: c_int,
+                    getDriver: *const fn (c_int) callconv(.c) ?[*:0]const u8,
+
+                    pub fn format(fcontext: FormatSdlDrivers, writer: *std.Io.Writer) std.Io.Writer.Error!void {
+                        var i: c_int = 0;
+                        while (i < fcontext.num_drivers) : (i += 1) {
+                            if (i != 0) {
+                                try writer.writeAll(", ");
+                            }
+                            const driver = fcontext.getDriver(i).?;
+                            try writer.writeAll(std.mem.span(driver));
+                            if (std.mem.orderZ(u8, fcontext.current_driver, driver) == .eq) {
+                                try writer.writeAll(" (current)");
+                            }
+                        }
+                    }
+                };
+            };
+
             const target = builtin.target;
             const ram_size = sdl.SDL_GetSystemRAM();
             const info = try self._renderer.getInfo();
@@ -552,18 +586,18 @@ pub fn JokContext(comptime cfg: config.Config) type {
             defer std.debug.unlockStdErr();
             try writer.print(
                 \\System info:
-                \\    Build Mode  : {s}
-                \\    Log Level   : {s}
-                \\    Zig Version : {f}
-                \\    CPU         : {s}
-                \\    ABI         : {s}
-                \\    SDL         : {d}.{d}.{d}
-                \\    Platform    : {s}
-                \\    Memory      : {d}MB
-                \\    App Dir     : {s} 
-                \\    
-                \\Renderer info:
-                \\    Driver           : {s}
+                \\    Build Mode       : {s}
+                \\    Log Level        : {s}
+                \\    Zig Version      : {f}
+                \\    CPU              : {s}
+                \\    ABI              : {s}
+                \\    SDL              : {d}.{d}.{d}
+                \\    Platform         : {s}
+                \\    Memory           : {d}MB
+                \\    App Dir          : {s} 
+                \\    Audio Drivers    : {f}
+                \\    Video Drivers    : {f}
+                \\    Graphics API     : {s}
                 \\    Vertical Sync    : {d}
                 \\    Max Texture Size : {d}
                 \\
@@ -581,6 +615,16 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     @tagName(target.os.tag),
                     ram_size,
                     physfs.getBaseDir(),
+                    S.fmtSdlDrivers(
+                        sdl.SDL_GetCurrentAudioDriver().?,
+                        sdl.SDL_GetNumAudioDrivers(),
+                        sdl.SDL_GetAudioDriver,
+                    ),
+                    S.fmtSdlDrivers(
+                        sdl.SDL_GetCurrentVideoDriver().?,
+                        sdl.SDL_GetNumVideoDrivers(),
+                        sdl.SDL_GetVideoDriver,
+                    ),
                     info.name,
                     info.vsync,
                     info.max_texture_size,
