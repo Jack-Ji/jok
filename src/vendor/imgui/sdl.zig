@@ -107,12 +107,13 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
         }
 
         // Bind texture and draw
-        const tex = jok.Texture{ .ptr = @ptrCast(@alignCast(cmd.texture_id)) };
         var indices: []u32 = undefined;
         indices.ptr = @ptrCast(is_ptr + cmd.idx_offset);
         indices.len = @intCast(cmd.elem_count);
         rd.drawTrianglesRaw(
-            tex,
+            if (@intFromEnum(cmd.texture_ref.tex_id) != 0) .{
+                .ptr = @ptrFromInt(@as(usize, @intCast(@intFromEnum(cmd.texture_ref.tex_id)))),
+            } else null,
             @ptrFromInt(@intFromPtr(vptr) + @offsetOf(gui.DrawVert, "pos")),
             @sizeOf(gui.DrawVert),
             fcolors.items.ptr,

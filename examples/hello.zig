@@ -134,7 +134,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     imgui.setNextWindowPos(.{ .x = 50, .y = 200, .cond = .once });
     if (imgui.begin("canvas", .{})) {
-        imgui.image(ctx.canvas().ptr, .{
+        imgui.image(ctx.canvas().toReference(), .{
             .w = ctx.getAspectRatio() * 100,
             .h = 100,
         });

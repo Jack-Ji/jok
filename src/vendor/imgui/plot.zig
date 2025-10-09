@@ -286,6 +286,10 @@ pub fn setupAxis(axis: Axis, args: SetupAxis) void {
     zguiPlot_SetupAxis(axis, if (args.label) |l| l else null, args.flags);
 }
 extern fn zguiPlot_SetupAxis(axis: Axis, label: ?[*:0]const u8, flags: AxisFlags) void;
+pub fn setAxis(axis: Axis) void {
+    zguiPlot_SetAxis(axis);
+}
+extern fn zguiPlot_SetAxis(axis: Axis) void;
 //----------------------------------------------------------------------------------------------
 pub const Condition = enum(u32) {
     none = @intFromEnum(gui.Condition.none),

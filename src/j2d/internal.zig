@@ -235,8 +235,8 @@ pub const DrawCmd = struct {
     pub fn render(self: DrawCmd, dl: imgui.DrawList) void {
         switch (self.cmd) {
             .quad_image => |c| {
-                dl.pushTextureId(c.texture.ptr);
-                defer dl.popTextureId();
+                dl.pushTexture(c.texture.toReference());
+                defer dl.popTexture();
                 dl.primReserve(6, 4);
                 dl.primQuadUV(
                     .{ c.p1.x, c.p1.y },
@@ -250,7 +250,7 @@ pub const DrawCmd = struct {
                     c.tint_color,
                 );
             },
-            .image_rounded => |c| dl.addImageRounded(c.texture.ptr, .{
+            .image_rounded => |c| dl.addImageRounded(c.texture.toReference(), .{
                 .pmin = .{ c.pmin.x, c.pmin.y },
                 .pmax = .{ c.pmax.x, c.pmax.y },
                 .uvmin = .{ c.uv0.x, c.uv0.y },
@@ -378,8 +378,8 @@ pub const DrawCmd = struct {
                 .num_segments = @intCast(c.num_segments),
             }),
             .convex_polygon_fill => |c| {
-                if (c.texture) |tex| dl.pushTextureId(tex.ptr);
-                defer if (c.texture != null) dl.popTextureId();
+                if (c.texture) |tex| dl.pushTexture(tex.toReference());
+                defer if (c.texture != null) dl.popTexture();
                 const idx_count = (c.points.items.len - 2) * 3;
                 const vtx_count = c.points.items.len;
                 const cur_idx = dl.getCurrentIndex();

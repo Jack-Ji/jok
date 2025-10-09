@@ -93,6 +93,11 @@ extern "C"
         ImPlot::SetupFinish();
     }
 
+    ZGUI_API void zguiPlot_SetAxis(ImAxis axis)
+    {
+        ImPlot::SetAxis(axis);
+    }
+
     ZGUI_API bool zguiPlot_BeginPlot(const char *title_id, float width, float height, ImPlotFlags flags)
     {
         return ImPlot::BeginPlot(title_id, {width, height}, flags);
@@ -350,6 +355,32 @@ extern "C"
             (*(const ImVec4 *)&(col[0])),
             size,
             flags);
+    }
+
+    ZGUI_API void zguiPlot_TagX(double x, float col[4], bool round)
+    {
+        ImPlot::TagX(x, (*(const ImVec4 *)&(col[0])), round);
+    }
+
+    ZGUI_API void zguiPlot_TagXText(double x, float col[4], const char *fmt, ...)
+    {
+        va_list args;
+        va_start(args, fmt);
+        ImPlot::TagXV(x, (*(const ImVec4 *)&(col[0])), fmt, args);
+        va_end(args);
+    }
+
+    ZGUI_API void zguiPlot_TagY(double y, float col[4], bool round)
+    {
+        ImPlot::TagY(y, (*(const ImVec4 *)&(col[0])), round);
+    }
+
+    ZGUI_API void zguiPlot_TagYText(double y, float col[4], const char *fmt, ...)
+    {
+        va_list args;
+        va_start(args, fmt);
+        ImPlot::TagYV(y, (*(const ImVec4 *)&(col[0])), fmt, args);
+        va_end(args);
     }
 
     ZGUI_API void zguiPlot_PlotText(

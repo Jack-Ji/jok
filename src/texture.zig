@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
 const sdl = jok.sdl;
+const imgui = jok.imgui;
 
 const log = std.log.scoped(.jok);
 
@@ -20,6 +21,13 @@ pub const Texture = struct {
 
     pub fn destroy(self: Texture) void {
         sdl.SDL_DestroyTexture(self.ptr);
+    }
+
+    pub fn toReference(self: Texture) imgui.TextureRef {
+        return .{
+            .tex_data = null,
+            .tex_id = @enumFromInt(@intFromPtr(self.ptr)),
+        };
     }
 
     pub const Info = struct {

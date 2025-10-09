@@ -1,11 +1,6 @@
 const std = @import("std");
 
 pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
-    if (mod.resolved_target.?.result.os.tag == .windows) {
-        mod.addCMacro("MA_API", "__declspec(dllexport)");
-        mod.addCMacro("ZAUDIO_API", "__declspec(dllexport)");
-    }
-
     mod.addIncludePath(dir.path(mod.owner, "c/miniaudio"));
     if (mod.resolved_target.?.result.os.tag == .linux) {
         mod.linkSystemLibrary("pthread", .{});

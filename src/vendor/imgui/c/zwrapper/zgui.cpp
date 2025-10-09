@@ -34,6 +34,11 @@ extern "C"
         ImGui::SetAllocatorFunctions(alloc_func, free_func, nullptr);
     }
 
+    ZGUI_API void zguiSetNextWindowViewport(ImGuiID viewport_id)
+    {
+        ImGui::SetNextWindowViewport(viewport_id);
+    }
+
     ZGUI_API void zguiSetNextWindowPos(float x, float y, ImGuiCond cond, float pivot_x, float pivot_y)
     {
         ImGui::SetNextWindowPos({x, y}, cond, {pivot_x, pivot_y});
@@ -44,6 +49,11 @@ extern "C"
         ImGui::SetNextWindowSize({w, h}, cond);
     }
 
+    ZGUI_API void zguiSetNextWindowContentSize(float w, float h)
+    {
+        ImGui::SetNextWindowContentSize({w, h});
+    }
+
     ZGUI_API void zguiSetNextWindowCollapsed(bool collapsed, ImGuiCond cond)
     {
         ImGui::SetNextWindowCollapsed(collapsed, cond);
@@ -52,6 +62,11 @@ extern "C"
     ZGUI_API void zguiSetNextWindowFocus(void)
     {
         ImGui::SetNextWindowFocus();
+    }
+    
+    ZGUI_API void zguiSetNextWindowScroll(float scroll_x, float scroll_y)
+    {
+        ImGui::SetNextWindowScroll({scroll_x, scroll_y});
     }
 
     ZGUI_API void zguiSetNextWindowBgAlpha(float alpha)
@@ -67,6 +82,16 @@ extern "C"
     ZGUI_API void zguiSetKeyboardFocusHere(int offset)
     {
         ImGui::SetKeyboardFocusHere(offset);
+    }
+
+    ZGUI_API void zguiSetNavCursorVisible(bool visible) 
+    {
+        ImGui::SetNavCursorVisible(visible);
+    }
+
+    ZGUI_API void zguiSetNextItemAllowOverlap() 
+    {
+        ImGui::SetNextItemAllowOverlap();
     }
 
     ZGUI_API bool zguiBegin(const char *name, bool *p_open, ImGuiWindowFlags flags)
@@ -330,6 +355,11 @@ extern "C"
     ZGUI_API void zguiSetMouseCursor(int cursor)
     {
         ImGui::SetMouseCursor(cursor);
+    }
+
+    ZGUI_API void zguiSetNextFrameWantCaptureMouse(bool want_capture_mouse)
+    {
+        ImGui::SetNextFrameWantCaptureMouse(want_capture_mouse);
     }
 
     ZGUI_API void zguiGetMousePos(float pos[2])
@@ -612,6 +642,11 @@ extern "C"
     ZGUI_API void zguiEndListBox(void)
     {
         ImGui::EndListBox();
+    }
+
+    ZGUI_API bool zguiListBox(const char* label, int* current_item, const char* const items[], int items_count, int height_in_items) 
+    {
+        return ImGui::ListBox(label, current_item, items, items_count, height_in_items);
     }
 
     ZGUI_API bool zguiSelectable(const char *label, bool selected, ImGuiSelectableFlags flags, float w, float h)
@@ -1055,26 +1090,40 @@ extern "C"
     }
 
     ZGUI_API void zguiImage(
-        ImTextureID user_texture_id,
+        ImTextureRef user_texture_id,
         float w,
         float h,
         const float uv0[2],
-        const float uv1[2],
-        const float tint_col[4],
-        const float border_col[4])
+        const float uv1[2])
     {
         ImGui::Image(
             user_texture_id,
             {w, h},
             {uv0[0], uv0[1]},
+            {uv1[0], uv1[1]});
+    }
+
+    ZGUI_API void zguiImageWithBg(
+        ImTextureRef user_texture_id,
+        float w,
+        float h,
+        const float uv0[2],
+        const float uv1[2],
+        const float bg_col[4],
+        const float tint_col[4])
+    {
+        ImGui::ImageWithBg(
+            user_texture_id,
+            {w, h},
+            {uv0[0], uv0[1]},
             {uv1[0], uv1[1]},
-            {tint_col[0], tint_col[1], tint_col[2], tint_col[3]},
-            {border_col[0], border_col[1], border_col[2], border_col[3]});
+            {bg_col[0], bg_col[1], bg_col[2], bg_col[3]},
+            {tint_col[0], tint_col[1], tint_col[2], tint_col[3]});
     }
 
     ZGUI_API bool zguiImageButton(
         const char *str_id,
-        ImTextureID user_texture_id,
+        ImTextureRef user_texture_id,
         float w,
         float h,
         const float uv0[2],
@@ -1120,6 +1169,14 @@ extern "C"
     ZGUI_API void zguiProgressBar(float fraction, float w, float h, const char *overlay)
     {
         return ImGui::ProgressBar(fraction, {w, h}, overlay);
+    }
+
+    ZGUI_API bool zguiTextLink(const char* label) {
+        return ImGui::TextLink(label) ;
+    }
+
+    ZGUI_API void zguiTextLinkOpenURL(const char* label, const char* url) {
+        ImGui::TextLinkOpenURL(label, url) ;
     }
 
     ZGUI_API ImGuiContext *zguiCreateContext(ImFontAtlas *shared_font_atlas)
@@ -1266,6 +1323,16 @@ extern "C"
         ImGui::PopStyleVar(count);
     }
 
+    ZGUI_API void zguiPushItemFlag(int item_flag, bool enabled)
+    {
+        ImGui::PushItemFlag(item_flag, enabled);
+    }
+
+    ZGUI_API void zguiPopItemFlag()
+    {
+        ImGui::PopItemFlag();
+    }
+
     ZGUI_API void zguiPushItemWidth(float item_width)
     {
         ImGui::PushItemWidth(item_width);
@@ -1303,9 +1370,9 @@ extern "C"
         uv[1] = cs[1];
     }
 
-    ZGUI_API void zguiPushFont(ImFont *font)
+    ZGUI_API void zguiPushFont(ImFont *font, float font_size_base_unscaled)
     {
-        ImGui::PushFont(font);
+        ImGui::PushFont(font, font_size_base_unscaled);
     }
 
     ZGUI_API void zguiPopFont(void)
@@ -1379,6 +1446,11 @@ extern "C"
         ImGui::TreePush(str_id);
     }
 
+    ZGUI_API float zguiGetTreeNodeToLabelSpacing() 
+    {
+        return ImGui::GetTreeNodeToLabelSpacing();
+    }
+
     ZGUI_API void zguiTreePushPtrId(const void *ptr_id)
     {
         ImGui::TreePush(ptr_id);
@@ -1439,6 +1511,11 @@ extern "C"
         return ImGui::GetClipboardText();
     }
 
+    ZGUI_API ImFont *zguiIoAddFontDefault(const ImFontConfig *config)
+    {
+        return ImGui::GetIO().Fonts->AddFontDefault(config);
+    }
+
     ZGUI_API ImFont *zguiIoAddFontFromFileWithConfig(
         const char *filename,
         float size_pixels,
@@ -1470,6 +1547,11 @@ extern "C"
         return ImGui::GetIO().Fonts->AddFontFromMemoryTTF(font_data, font_size, size_pixels, &config, nullptr);
     }
 
+    ZGUI_API void zguiIoRemoveFont(ImFont* font)
+    {
+        ImGui::GetIO().Fonts->RemoveFont(font);
+    }
+
     ZGUI_API ImFontConfig zguiFontConfig_Init(void)
     {
         return ImFontConfig();
@@ -1485,24 +1567,9 @@ extern "C"
         ImGui::GetIO().FontDefault = font;
     }
 
-    ZGUI_API unsigned char *zguiIoGetFontsTexDataAsRgba32(int *width, int *height)
+    ZGUI_API ImTextureRef zguiIoGetFontsTexRef(void)
     {
-        unsigned char *font_pixels;
-        int font_width, font_height;
-        ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&font_pixels, &font_width, &font_height);
-        *width = font_width;
-        *height = font_height;
-        return font_pixels;
-    }
-
-    ZGUI_API void zguiIoSetFontsTexId(ImTextureID id)
-    {
-        ImGui::GetIO().Fonts->TexID = id;
-    }
-
-    ZGUI_API ImTextureID zguiIoGetFontsTexId(void)
-    {
-        return ImGui::GetIO().Fonts->TexID;
+        return ImGui::GetIO().Fonts->TexRef;
     }
 
     ZGUI_API void zguiIoSetConfigWindowsMoveFromTitleBarOnly(bool enabled)
@@ -1537,6 +1604,11 @@ extern "C"
     ZGUI_API void zguiIoSetConfigFlags(ImGuiConfigFlags flags)
     {
         ImGui::GetIO().ConfigFlags = flags;
+    }
+
+    ZGUI_API void zguiIoSetBackendFlags(ImGuiBackendFlags flags)
+    {
+        ImGui::GetIO().BackendFlags = flags;
     }
 
     ZGUI_API void zguiIoSetDisplaySize(float width, float height)
@@ -1646,6 +1718,11 @@ extern "C"
         return ImGui::GetMouseClickedCount(button);
     }
 
+    ZGUI_API bool zguiIsAnyMouseDown() 
+    {
+        return ImGui::IsAnyMouseDown();
+    }
+
     ZGUI_API bool zguiIsMouseDragging(ImGuiMouseButton button, float lock_threshold)
     {
         return ImGui::IsMouseDragging(button, lock_threshold);
@@ -1708,27 +1785,6 @@ extern "C"
         pos[1] = p.y;
     }
 
-    ZGUI_API void zguiGetContentRegionMax(float pos[2])
-    {
-        const ImVec2 p = ImGui::GetContentRegionMax();
-        pos[0] = p.x;
-        pos[1] = p.y;
-    }
-
-    ZGUI_API void zguiGetWindowContentRegionMin(float pos[2])
-    {
-        const ImVec2 p = ImGui::GetWindowContentRegionMin();
-        pos[0] = p.x;
-        pos[1] = p.y;
-    }
-
-    ZGUI_API void zguiGetWindowContentRegionMax(float pos[2])
-    {
-        const ImVec2 p = ImGui::GetWindowContentRegionMax();
-        pos[0] = p.x;
-        pos[1] = p.y;
-    }
-
     ZGUI_API void zguiPushTextWrapPos(float wrap_pos_x)
     {
         ImGui::PushTextWrapPos(wrap_pos_x);
@@ -1757,6 +1813,11 @@ extern "C"
     ZGUI_API void zguiEndTabBar(void)
     {
         ImGui::EndTabBar();
+    }
+
+    ZGUI_API bool zguiTabItemButton(const char* label, ImGuiTabItemFlags flags ) 
+    {
+        return ImGui::TabItemButton(label, flags);
     }
 
     ZGUI_API void zguiSetTabItemClosed(const char *tab_or_docked_window_label)
@@ -1853,6 +1914,36 @@ extern "C"
     {
         ImGui::CloseCurrentPopup();
     }
+
+    ZGUI_API void zguiPlotLines(
+        const char* label, 
+        const float* values, 
+        int values_count, 
+        int values_offset, 
+        const char* overlay_text, 
+        float scale_min, 
+        float scale_max, 
+        float graph_size[2], 
+        int stride)
+    {
+        ImGui::PlotLines(label, values, values_count, values_offset, overlay_text, scale_min, scale_max, ImVec2(graph_size[0], graph_size[1]), stride);
+    }  
+    
+
+    ZGUI_API void zguiPlotHistogram(
+        const char* label, 
+        const float* values, 
+        int values_count, 
+        int values_offset, 
+        const char* overlay_text, 
+        float scale_min, 
+        float scale_max, 
+        float graph_size[2], 
+        int stride)
+    {
+        ImGui::PlotHistogram(label, values, values_count, values_offset, overlay_text, scale_min, scale_max, ImVec2(graph_size[0], graph_size[1]), stride);
+    }
+
     //--------------------------------------------------------------------------------------------------
     //
     // Tables
@@ -1947,10 +2038,56 @@ extern "C"
         ImGui::TableSetColumnEnabled(column_n, v);
     }
 
+    ZGUI_API int zguiTableGetHoveredColumn() 
+    {
+        return ImGui::TableGetHoveredColumn();
+    }
+
     ZGUI_API void zguiTableSetBgColor(ImGuiTableBgTarget target, ImU32 color, int column_n)
     {
         ImGui::TableSetBgColor(target, color, column_n);
     }
+
+    ZGUI_API void zguiColumns(int count , const char* id , bool borders)
+    {
+        ImGui::Columns();
+    }
+
+    ZGUI_API void zguiNextColumn()
+    {
+        ImGui::NextColumn();
+    }
+
+    ZGUI_API int zguiGetColumnIndex()
+    {
+        return ImGui::GetColumnIndex();
+    }
+
+    ZGUI_API float zguiGetColumnWidth(int column_index) //-1
+    {
+        return ImGui::GetColumnWidth(column_index);
+    }
+
+    ZGUI_API void zguiSetColumnWidth(int column_index, float width)
+    {
+        ImGui::SetColumnWidth(column_index, width);
+    }
+
+    ZGUI_API float zguiGetColumnOffset(int column_index ) //-1
+    {
+        return ImGui::GetColumnOffset(column_index);
+    }
+
+    ZGUI_API void zguiSetColumnOffset(int column_index, float offset_x)
+    {
+        ImGui::SetColumnOffset(column_index, offset_x);
+    }
+
+    ZGUI_API int zguiGetColumnsCount()
+    {
+        return ImGui::GetColumnsCount();
+    }
+
     //--------------------------------------------------------------------------------------------------
     //
     // Color Utilities
@@ -1988,43 +2125,31 @@ extern "C"
     {
         return ImGui::IsKeyDown(key);
     }
-    //--------------------------------------------------------------------------------------------------
-    //
-    // Logging/Capture
-    //
-    //--------------------------------------------------------------------------------------------------
-    ZGUI_API void zguiLogToTTY(int auto_open_depth)
+
+    ZGUI_API bool zguiIsKeyPressed(ImGuiKey key, bool repeat)
     {
-		ImGui::LogToTTY(auto_open_depth);
+        return ImGui::IsKeyPressed(key, repeat);
     }
 
-    ZGUI_API void zguiLogToFile(int auto_open_depth, const char *filename)
-	{
-		ImGui::LogToFile(auto_open_depth, filename);
-	}
+    ZGUI_API bool zguiIsKeyReleased(ImGuiKey key)
+    {
+        return ImGui::IsKeyReleased(key);
+    }
 
-    ZGUI_API void zguiLogToClipboard(int auto_open_depth)
-	{
-		ImGui::LogToClipboard(auto_open_depth);
-	}
+    ZGUI_API void zguiSetNextFrameWantCaptureKeyboard(bool want_capture_keyboard) 
+    {
+        ImGui::SetNextFrameWantCaptureKeyboard(want_capture_keyboard);
+    }
 
-    ZGUI_API void zguiLogFinish()
-	{
-		ImGui::LogFinish();
-	}
+    ZGUI_API int zguiGetKeyPressedAmount(ImGuiKey key, float repeat_delay, float rate) 
+    {
+        return ImGui::GetKeyPressedAmount(key, repeat_delay, rate);
+    }
 
-    ZGUI_API void zguiLogButtons()
-	{
-		ImGui::LogButtons();
-	}
-
-    ZGUI_API void zguiLogText(const char* fmt, ...)
-	{
-        va_list args;
-        va_start(args, fmt);
-		ImGui::LogTextV(fmt, args);
-        va_end(args);
-	}
+    ZGUI_API void zguiSetItemKeyOwner(ImGuiKey key) 
+    {
+        ImGui::SetItemKeyOwner(key);
+    }
     //--------------------------------------------------------------------------------------------------
     //
     // DrawList
@@ -2033,6 +2158,11 @@ extern "C"
     ZGUI_API ImDrawList *zguiGetWindowDrawList(void)
     {
         return ImGui::GetWindowDrawList();
+    }
+
+    ZGUI_API float zguiGetWindowDpiScale(void)
+    {
+        return ImGui::GetWindowDpiScale();
     }
 
     ZGUI_API ImDrawList *zguiGetBackgroundDrawList(void)
@@ -2132,14 +2262,14 @@ extern "C"
         draw_list->PopClipRect();
     }
 
-    ZGUI_API void zguiDrawList_PushTextureId(ImDrawList *draw_list, ImTextureID texture_id)
+    ZGUI_API void zguiDrawList_PushTextureRef(ImDrawList *draw_list, ImTextureRef texture_ref)
     {
-        draw_list->PushTextureID(texture_id);
+        draw_list->PushTexture(texture_ref);
     }
 
-    ZGUI_API void zguiDrawList_PopTextureId(ImDrawList *draw_list)
+    ZGUI_API void zguiDrawList_PopTexture(ImDrawList *draw_list)
     {
-        draw_list->PopTextureID();
+        draw_list->PopTexture();
     }
 
     ZGUI_API void zguiDrawList_GetClipRectMin(ImDrawList *draw_list, float clip_min[2])
@@ -2326,6 +2456,21 @@ extern "C"
         draw_list->AddText({pos[0], pos[1]}, col, text_begin, text_end);
     }
 
+    ZGUI_API void zguiDrawList_AddTextExtended(
+        ImDrawList *draw_list,
+        ImFont* font, 
+        float font_size, 
+        const float pos[2], 
+        ImU32 col, 
+        const char* text_begin, 
+        const char* text_end, 
+        float wrap_width, 
+        const float cpu_fine_clip_rect[][4])
+    {   
+        const ImVec4* clip_rect = (cpu_fine_clip_rect != nullptr) ? (const ImVec4 *)&cpu_fine_clip_rect[0][0] : nullptr;
+        draw_list->AddText(font, font_size, {pos[0], pos[1]}, col, text_begin, text_end, wrap_width, clip_rect);
+    }
+
     ZGUI_API void zguiDrawList_AddPolyline(
         ImDrawList *draw_list,
         const float points[][2],
@@ -2384,7 +2529,7 @@ extern "C"
 
     ZGUI_API void zguiDrawList_AddImage(
         ImDrawList *draw_list,
-        ImTextureID user_texture_id,
+        ImTextureRef user_texture_id,
         const float pmin[2],
         const float pmax[2],
         const float uvmin[2],
@@ -2402,7 +2547,7 @@ extern "C"
 
     ZGUI_API void zguiDrawList_AddImageQuad(
         ImDrawList *draw_list,
-        ImTextureID user_texture_id,
+        ImTextureRef user_texture_id,
         const float p1[2],
         const float p2[2],
         const float p3[2],
@@ -2428,7 +2573,7 @@ extern "C"
 
     ZGUI_API void zguiDrawList_AddImageRounded(
         ImDrawList *draw_list,
-        ImTextureID user_texture_id,
+        ImTextureRef user_texture_id,
         const float pmin[2],
         const float pmax[2],
         const float uvmin[2],
@@ -2621,6 +2766,11 @@ extern "C"
         return ImGui::GetMainViewport();
     }
 
+    ZGUI_API ImGuiID zguiViewport_GetId(ImGuiViewport *viewport)
+    {
+        return viewport->ID;
+    }
+
     ZGUI_API void zguiViewport_GetPos(ImGuiViewport *viewport, float p[2])
     {
         const ImVec2 pos = viewport->Pos;
@@ -2649,6 +2799,14 @@ extern "C"
         p[1] = sz.y;
     }
 
+    ZGUI_API void zguiUpdatePlatformWindows() {
+        ImGui::UpdatePlatformWindows();
+    }
+
+    ZGUI_API void zguiRenderPlatformWindowsDefault() {
+        ImGui::RenderPlatformWindowsDefault();
+    }
+
     //--------------------------------------------------------------------------------------------------
     //
     // Docking
@@ -2669,9 +2827,24 @@ extern "C"
     // DockBuilder (Unstable internal imgui API, subject to change, use at own risk)
     //
     //--------------------------------------------------------------------------------------------------
+    ZGUI_API void zguiDockNodeRect(const ImGuiDockNode* node, ImRect* out_rect)
+    {
+        *out_rect = node->Rect();
+    }
+
     ZGUI_API void zguiDockBuilderDockWindow(const char *window_name, ImGuiID node_id)
     {
         ImGui::DockBuilderDockWindow(window_name, node_id);
+    }
+
+    ZGUI_API ImGuiDockNode* zguiDockBuilderGetNode(ImGuiID node_id)
+    {
+        return ImGui::DockBuilderGetNode(node_id);
+    }
+
+    ZGUI_API ImGuiDockNode* zguiDockBuilderGetCentralNode(ImGuiID node_id)
+    {
+        return ImGui::DockBuilderGetCentralNode(node_id);
     }
 
     ZGUI_API ImGuiID zguiDockBuilderAddNode(ImGuiID node_id, ImGuiDockNodeFlags flags)

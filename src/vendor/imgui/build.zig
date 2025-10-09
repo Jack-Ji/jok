@@ -7,26 +7,13 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
         "-Wno-error=date-time",
     };
 
-    if (mod.resolved_target.?.result.os.tag == .windows) {
-        mod.addCMacro("IMGUI_API", "__declspec(dllexport)");
-        mod.addCMacro("IMPLOT_API", "__declspec(dllexport)");
-        mod.addCMacro("ZGUI_API", "__declspec(dllexport)");
-    }
-
-    if (mod.resolved_target.?.result.os.tag == .emscripten) {
-        mod.addCMacro("__EMSCRIPTEN__", "1");
-        mod.addCMacro("__EMSCRIPTEN_major__", "4");
-        mod.addCMacro("__EMSCRIPTEN_minor__", "0");
-        mod.addCMacro("ImTextureID", "unsigned long");
-        mod.stack_protector = false;
+    mod.link_libc = true;
+    if (mod.resolved_target.?.result.abi != .msvc)
         mod.link_libcpp = true;
-    } else {
-        mod.link_libc = true;
-        if (mod.resolved_target.?.result.abi != .msvc) mod.link_libcpp = true;
-    }
 
     mod.addIncludePath(dir.path(mod.owner, "c/imgui"));
     mod.addIncludePath(dir.path(mod.owner, "c/implot"));
+    mod.addIncludePath(dir.path(mod.owner, "c/imgui_knobs"));
     mod.addIncludePath(dir.path(mod.owner, "c/imguizmo"));
     mod.addIncludePath(dir.path(mod.owner, "c/node_editor"));
     mod.addIncludePath(dir.path(mod.owner, "c/impl"));
@@ -41,6 +28,7 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
             "c/implot/implot_demo.cpp",
             "c/implot/implot.cpp",
             "c/implot/implot_items.cpp",
+            "c/imgui_knobs/imgui-knobs.cpp",
             "c/imguizmo/ImGuizmo.cpp",
             "c/node_editor/crude_json.cpp",
             "c/node_editor/imgui_canvas.cpp",
@@ -48,6 +36,7 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
             "c/node_editor/imgui_node_editor.cpp",
             "c/zwrapper/zgui.cpp",
             "c/zwrapper/zplot.cpp",
+            "c/zwrapper/zknobs.cpp",
             "c/zwrapper/zgizmo.cpp",
             "c/zwrapper/znode_editor.cpp",
             "c/impl/imgui_impl_sdl3.cpp",

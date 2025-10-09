@@ -230,8 +230,8 @@ pub const Batch = struct {
     pub fn submitWithoutReclaim(self: *Batch) void {
         const S = struct {
             inline fn addTriangles(dl: imgui.DrawList, indices: []u32, vertices: []jok.Vertex, texture: ?jok.Texture) void {
-                if (texture) |tex| dl.pushTextureId(tex.ptr);
-                defer if (texture != null) dl.popTextureId();
+                if (texture) |tex| dl.pushTexture(tex.toReference());
+                defer if (texture != null) dl.popTexture();
 
                 dl.primReserve(@intCast(indices.len), @intCast(indices.len));
                 const white_pixel_uv = imgui.getFontTexUvWhitePixel();
@@ -434,8 +434,8 @@ pub const Batch = struct {
         } else {
             switch (self.triangle_sort) {
                 .none => {
-                    if (texture) |tex| self.draw_list.pushTextureId(tex.ptr);
-                    defer if (texture != null) self.draw_list.popTextureId();
+                    if (texture) |tex| self.draw_list.pushTexture(tex.toReference());
+                    defer if (texture != null) self.draw_list.popTexture();
 
                     self.draw_list.primReserve(@intCast(indices.len), @intCast(vertices.len));
                     const white_pixel_uv = imgui.getFontTexUvWhitePixel();
