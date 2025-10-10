@@ -16,7 +16,9 @@ pub fn init(ctx: jok.Context) !*audio.Engine {
     engine_cfg.no_device = .true32;
     engine_cfg.channels = 2;
     engine_cfg.sample_rate = 48000;
-    engine_cfg.resource_manager_vfs = &physfs.zaudio.vfs;
+    if (ctx.cfg().jok_enable_physfs) {
+        engine_cfg.resource_manager_vfs = &physfs.zaudio.vfs;
+    }
     engine = try audio.Engine.create(engine_cfg);
     frames = std.array_list.Managed(u8).init(ctx.allocator());
 
