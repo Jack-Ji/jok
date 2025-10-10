@@ -1361,9 +1361,9 @@ extern fn zguiGetFont() Font;
 /// `pub fn getFontSize() f32`
 pub const getFontSize = zguiGetFontSize;
 extern fn zguiGetFontSize() f32;
-/// `void pushFont(font: Font, font_size_base_unscaled: f32) void`
+/// `void pushFont(font: ?Font, font_size_base_unscaled: f32) void`
 pub const pushFont = zguiPushFont;
-extern fn zguiPushFont(font: Font, font_size_base_unscaled: f32) void;
+extern fn zguiPushFont(font: ?Font, font_size_base_unscaled: f32) void;
 /// `void popFont() void`
 pub const popFont = zguiPopFont;
 extern fn zguiPopFont() void;
