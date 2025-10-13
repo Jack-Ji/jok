@@ -24,7 +24,7 @@ pub fn build(b: *Build) void {
         .root_module = root,
     });
     tests.linkLibC();
-    tests.addIncludePath(b.dependency("sdl", .{}).path("include"));
+    tests.root_module.addImport("sdl", getSdlModule(b, target, optimize));
     const test_step = b.step("test", "run tests");
     test_step.dependOn(&b.addRunArtifact(tests).step);
 
@@ -300,13 +300,14 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
         .target = target,
         .optimize = optimize,
     });
-    jokmod.addIncludePath(builder.dependency("sdl", .{}).path("include"));
+    jokmod.addImport("sdl", getSdlModule(builder, target, optimize));
 
     const libmod = builder.createModule(.{
+        .root_source_file = builder.path("src/jok.zig"),
         .target = target,
         .optimize = optimize,
     });
-    libmod.addIncludePath(builder.dependency("sdl", .{}).path("include"));
+    libmod.addImport("sdl", getSdlModule(builder, target, optimize));
     @import("src/vendor/imgui/build.zig").inject(libmod, builder.path("src/vendor/imgui"));
     @import("src/vendor/physfs/build.zig").inject(libmod, builder.path("src/vendor/physfs"));
     @import("src/vendor/stb/build.zig").inject(libmod, builder.path("src/vendor/stb"));
@@ -337,10 +338,7 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
             .root_module = libmod,
         });
 
-        const sdl_dep = builder.dependency("sdl", .{
-            .target = target,
-            .optimize = optimize,
-        });
+        const sdl_dep = builder.dependency("sdl", .{ .target = target, .optimize = optimize });
         const sdl_lib = sdl_dep.artifact("SDL3");
         libmod.linkLibrary(sdl_lib);
     }
@@ -351,6 +349,19 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
 // Get jok's own builder from project's
 fn getJokBuilder(b: *Build, dep_name: ?[]const u8) *Build {
     return if (dep_name) |dep| b.dependency(dep, .{ .skipbuild = true }).builder else b;
+}
+
+// Get module for SDL3 headers
+fn getSdlModule(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode) *Build.Module {
+    const sdl_dep = b.dependency("sdl", .{});
+    const tc = b.addTranslateC(.{
+        .root_source_file = sdl_dep.path("include/SDL3/SDL.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    tc.addIncludePath(sdl_dep.path("include"));
+    tc.defineCMacro("SDL_DISABLE_OLD_NAMES", null);
+    return tc.createModule();
 }
 
 // Sdk for compile and link using emscripten
