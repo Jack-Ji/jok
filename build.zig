@@ -324,7 +324,7 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
 
         // Setup emscripten when necessary
         const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
-        em.possibleSetup(lib);
+        em.possibleSetup(&lib.step);
 
         // Add the Emscripten system include seach path
         libmod.addCMacro("__WINT_TYPE__", "unsigned int");
@@ -361,6 +361,15 @@ fn getSdlModule(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode)
     });
     tc.addIncludePath(sdl_dep.path("include"));
     tc.defineCMacro("SDL_DISABLE_OLD_NAMES", null);
+    if (target.result.cpu.arch.isWasm()) {
+        // Setup emscripten when necessary
+        const em = Emscripten.init(b, b.dependency("emsdk", .{}));
+        em.possibleSetup(&tc.step);
+
+        // Add the Emscripten system include seach path
+        tc.defineCMacro("__WINT_TYPE__", "unsigned int");
+        tc.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
+    }
     return tc.createModule();
 }
 
@@ -388,7 +397,7 @@ const Emscripten = struct {
     // NOTE 3: this code works just fine when the SDK version is updated in build.zig.zon
     // since this will be cloned into a new zig cache directory which doesn't have
     // an .emscripten file yet until the one-time setup.
-    fn possibleSetup(sdk: *Sdk, lib: *Build.Step.Compile) void {
+    fn possibleSetup(sdk: *Sdk, step: *Build.Step) void {
         const dot_emsc_path = sdk.path(&.{".emscripten"}).getPath(sdk.builder);
         const dot_emsc_exists = !std.meta.isError(std.fs.accessAbsolute(dot_emsc_path, .{}));
         if (!dot_emsc_exists) {
@@ -397,7 +406,7 @@ const Emscripten = struct {
             const emsdk_activate = sdk.createEmsdkStep();
             emsdk_activate.addArgs(&.{ "activate", "latest" });
             emsdk_activate.step.dependOn(&emsdk_install.step);
-            lib.step.dependOn(&emsdk_activate.step);
+            step.dependOn(&emsdk_activate.step);
         }
     }
 

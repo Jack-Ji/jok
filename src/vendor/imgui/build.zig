@@ -11,6 +11,8 @@ pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
     if (mod.resolved_target.?.result.abi != .msvc)
         mod.link_libcpp = true;
 
+    const sdl_dep = mod.owner.dependency("sdl", .{});
+    mod.addIncludePath(sdl_dep.path("include"));
     mod.addIncludePath(dir.path(mod.owner, "c/imgui"));
     mod.addIncludePath(dir.path(mod.owner, "c/implot"));
     mod.addIncludePath(dir.path(mod.owner, "c/imgui_knobs"));
