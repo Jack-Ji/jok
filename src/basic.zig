@@ -232,6 +232,10 @@ pub const Rectangle = extern struct {
         return c.intersectRect(r);
     }
 
+    pub inline fn intersectTriangle(r: Rectangle, tri: Triangle) bool {
+        return tri.intersectRect(r);
+    }
+
     pub inline fn containsPoint(r: Rectangle, p: Point) bool {
         return p.x >= r.x and p.x < r.x + r.width and
             p.y >= r.y and p.y < r.y + r.height;
@@ -414,6 +418,25 @@ pub const Triangle = extern struct {
             }
         }
         return true;
+    }
+
+    pub inline fn intersectRect(tri: Triangle, r: Rectangle) bool {
+        if (r.containsPoint(tri.p0) or r.containsPoint(tri.p1) or r.containsPoint(tri.p2)) {
+            return true;
+        }
+        if (!tri.boundingRect().intersectRect(r)) {
+            return false;
+        }
+        if (tri.intersectTriangle(
+            tri,
+            .{ .p0 = r.getTopLeft(), .p1 = r.getTopRight(), .p2 = r.getBottomLeft() },
+        ) or tri.intersectTriangle(
+            tri,
+            .{ .p0 = r.getTopLeft(), .p1 = r.getTopRight(), .p2 = r.getBottomRight() },
+        )) {
+            return true;
+        }
+        return false;
     }
 };
 
