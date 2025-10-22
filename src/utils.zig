@@ -25,13 +25,18 @@ pub const tiled = @import("utils/tiled.zig");
 /// XML processing
 pub const xml = @import("utils/xml.zig");
 
+/// Finite state machine
+/// Ported from https://github.com/cryptocode/zigfsm
+pub const fsm = @import("utils/fsm.zig");
+
 //============================= Stolen From Old Standard Library =============================
 pub const ring = @import("utils/ring.zig"); // Generic ring data structure
 
-test "utils" {
+test "all utils" {
     _ = timer;
     _ = signal;
     _ = pathfind;
     _ = xml;
+    _ = fsm;
     _ = ring;
 }
