@@ -369,6 +369,15 @@ fn getSdlModule(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode)
         // Add the Emscripten system include seach path
         tc.defineCMacro("__WINT_TYPE__", "unsigned int");
         tc.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
+    } else if (target.result.os.tag.isDarwin()) {
+        // Workaround issue: https://github.com/ziglang/translate-c/issues/189
+        tc.defineCMacro("TARGET_CPU_PPC", "1");
+        tc.defineCMacro("TARGET_CPU_PPC64", "1");
+        tc.defineCMacro("TARGET_CPU_X86", "1");
+        tc.defineCMacro("TARGET_CPU_X86_64", "1");
+        tc.defineCMacro("TARGET_CPU_ARM", "1");
+        tc.defineCMacro("TARGET_CPU_ARM64", "1");
+        tc.defineCMacro("MAC_OS_X_VERSION_MIN_REQUIRED", "1070");
     }
     return tc.createModule();
 }
