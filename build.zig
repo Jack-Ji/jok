@@ -308,15 +308,15 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
         .optimize = optimize,
     });
     libmod.addImport("sdl", getSdlModule(builder, target, optimize));
-    @import("src/vendor/physfs/build.zig").inject(libmod, builder.path("src/vendor/physfs"));
-    @import("src/vendor/stb/build.zig").inject(libmod, builder.path("src/vendor/stb"));
-    @import("src/vendor/svg/build.zig").inject(libmod, builder.path("src/vendor/svg"));
-    @import("src/vendor/zgui/build.zig").inject(libmod, builder.path("src/vendor/zgui"));
-    @import("src/vendor/zaudio/build.zig").inject(libmod, builder.path("src/vendor/zaudio"));
-    @import("src/vendor/zmath/build.zig").inject(libmod, builder.path("src/vendor/zmath"));
-    @import("src/vendor/zmesh/build.zig").inject(libmod, builder.path("src/vendor/zmesh"));
-    @import("src/vendor/zobj/build.zig").inject(libmod, builder.path("src/vendor/zobj"));
-    @import("src/vendor/znoise/build.zig").inject(libmod, builder.path("src/vendor/znoise"));
+    @import("src/vendor/physfs/build.zig").inject(libmod);
+    @import("src/vendor/stb/build.zig").inject(libmod);
+    @import("src/vendor/svg/build.zig").inject(libmod);
+    @import("src/vendor/zgui/build.zig").inject(libmod);
+    @import("src/vendor/zaudio/build.zig").inject(libmod);
+    @import("src/vendor/zmath/build.zig").inject(libmod);
+    @import("src/vendor/zmesh/build.zig").inject(libmod);
+    @import("src/vendor/zobj/build.zig").inject(libmod);
+    @import("src/vendor/znoise/build.zig").inject(libmod);
 
     var lib: *Build.Step.Compile = undefined;
     if (target.result.cpu.arch.isWasm()) {

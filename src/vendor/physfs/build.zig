@@ -1,6 +1,7 @@
 const std = @import("std");
 
-pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
+pub fn inject(mod: *std.Build.Module) void {
+    const dir = mod.owner.path(std.fs.path.dirname(@src().file).?);
     const cflags = &.{
         "-Wno-return-type-c-linkage",
         "-fno-sanitize=undefined",

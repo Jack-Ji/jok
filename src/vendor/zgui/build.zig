@@ -1,6 +1,7 @@
 const std = @import("std");
 
-pub fn inject(mod: *std.Build.Module, dir: std.Build.LazyPath) void {
+pub fn inject(mod: *std.Build.Module) void {
+    const dir = mod.owner.path(std.fs.path.dirname(@src().file).?);
     const cflags = &.{
         "-fno-sanitize=undefined",
         "-Wno-elaborated-enum-base",
