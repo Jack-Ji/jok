@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
-const sdl = jok.sdl;
+const sdl = jok.vendor.sdl;
 
 pub const KeyModifierBit = enum(u16) {
     left_shift = sdl.SDL_KMOD_LSHIFT,

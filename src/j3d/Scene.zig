@@ -5,8 +5,8 @@ const math = std.math;
 const internal = @import("internal.zig");
 const Mesh = @import("Mesh.zig");
 const jok = @import("../jok.zig");
-const zmath = jok.zmath;
 const j3d = jok.j3d;
+const zmath = jok.vendor.zmath;
 const lighting = j3d.lighting;
 const Self = @This();
 

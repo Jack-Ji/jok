@@ -1,8 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok.zig");
-const sdl = jok.sdl;
-
+const sdl = jok.vendor.sdl;
 const log = std.log.scoped(.jok);
 
 pub const Window = struct {

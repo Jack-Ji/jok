@@ -1,13 +1,13 @@
 const std = @import("std");
 const jok = @import("jok");
-const physfs = jok.physfs;
 const font = jok.font;
-const zmath = jok.zmath;
-const imgui = jok.imgui;
 const j2d = jok.j2d;
 const j3d = jok.j3d;
-const zmesh = jok.zmesh;
 const easing = jok.utils.easing;
+const physfs = jok.vendor.physfs;
+const zmath = jok.vendor.zmath;
+const zgui = jok.vendor.zgui;
+const zmesh = jok.vendor.zmesh;
 
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1280, .height = 720 },
@@ -132,14 +132,14 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.black);
     if (show_stats) ctx.displayStats(.{});
 
-    imgui.setNextWindowPos(.{ .x = 50, .y = 200, .cond = .once });
-    if (imgui.begin("canvas", .{})) {
-        imgui.image(ctx.canvas().toReference(), .{
+    zgui.setNextWindowPos(.{ .x = 50, .y = 200, .cond = .once });
+    if (zgui.begin("canvas", .{})) {
+        zgui.image(ctx.canvas().toReference(), .{
             .w = ctx.getAspectRatio() * 100,
             .h = 100,
         });
     }
-    imgui.end();
+    zgui.end();
 
     const csz = ctx.getCanvasSize();
     const center_x: f32 = @floatFromInt(csz.width / 2);

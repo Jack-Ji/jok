@@ -1,9 +1,9 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
-const sdl = jok.sdl;
-const physfs = jok.physfs;
-const stb = jok.stb;
+const sdl = jok.vendor.sdl;
+const physfs = jok.vendor.physfs;
+const stb = jok.vendor.stb;
 
 const log = std.log.scoped(.jok);
 

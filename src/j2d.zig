@@ -6,9 +6,9 @@ const ascii = std.ascii;
 const unicode = std.unicode;
 const jok = @import("jok.zig");
 const font = jok.font;
-const imgui = jok.imgui;
-const zmath = jok.zmath;
-const zmesh = jok.zmesh;
+const zgui = jok.vendor.zgui;
+const zmath = jok.vendor.zmath;
+const zmesh = jok.vendor.zmesh;
 const log = std.log.scoped(.jok);
 
 const internal = @import("j2d/internal.zig");
@@ -51,7 +51,7 @@ pub const Batch = struct {
     reclaimer: BatchReclaimer = undefined,
     is_submitted: bool = false,
     ctx: jok.Context,
-    draw_list: imgui.DrawList,
+    draw_list: zgui.DrawList,
     draw_commands: std.array_list.Managed(DrawCmd),
     trs_stack: std.array_list.Managed(AffineTransform),
     trs: AffineTransform,
@@ -64,7 +64,7 @@ pub const Batch = struct {
     fn init(_ctx: jok.Context) Batch {
         return .{
             .ctx = _ctx,
-            .draw_list = imgui.createDrawList(),
+            .draw_list = zgui.createDrawList(),
             .draw_commands = .init(_ctx.allocator()),
             .trs_stack = .init(_ctx.allocator()),
             .trs = undefined,
@@ -78,7 +78,7 @@ pub const Batch = struct {
 
     fn deinit(self: *Batch) void {
         self.trs_stack.deinit();
-        imgui.destroyDrawList(self.draw_list);
+        zgui.destroyDrawList(self.draw_list);
         self.draw_commands.deinit();
         self.all_tex.deinit();
     }
@@ -204,7 +204,7 @@ pub const Batch = struct {
         };
 
         // Submit draw command
-        imgui.sdl.renderDrawList(self.ctx, self.draw_list);
+        zgui.sdl.renderDrawList(self.ctx, self.draw_list);
     }
 
     /// Submit batch, issue draw calls, and reclaim itself
@@ -422,7 +422,7 @@ pub const Batch = struct {
     pub fn text(self: *Batch, comptime fmt: []const u8, args: anytype, opt: TextOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const txt = imgui.format(fmt, args);
+        const txt = zgui.format(fmt, args);
         if (txt.len == 0) return;
         const atlas = opt.atlas orelse self.ctx.getDebugAtlas(
             @intCast(self.ctx.cfg().jok_prebuild_atlas),

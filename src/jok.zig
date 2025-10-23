@@ -47,21 +47,10 @@ pub const font = @import("font.zig");
 pub const utils = @import("utils.zig");
 
 /// Vendor libraries
-const vendor = @import("vendor.zig");
-pub const sdl = vendor.sdl;
-pub const physfs = vendor.physfs;
-pub const zaudio = vendor.zaudio;
-pub const zmath = vendor.zmath;
-pub const zmesh = vendor.zmesh;
-pub const znoise = vendor.znoise;
-pub const zobj = vendor.zobj;
-pub const imgui = vendor.imgui;
-pub const stb = vendor.stb;
-pub const svg = vendor.svg;
-pub const nfd = vendor.nfd;
+pub const vendor = @import("vendor.zig");
 
 // All tests
-test "all" {
+test "all tests" {
     _ = j2d;
     _ = j3d;
     _ = font;

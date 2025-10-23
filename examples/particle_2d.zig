@@ -1,8 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
-const physfs = jok.physfs;
 const j2d = jok.j2d;
+const physfs = jok.vendor.physfs;
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var rd: std.Random.DefaultPrng = undefined;

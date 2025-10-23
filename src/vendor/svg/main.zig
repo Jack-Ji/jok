@@ -1,6 +1,6 @@
 const std = @import("std");
 const jok = @import("../../jok.zig");
-const physfs = jok.physfs;
+const physfs = jok.vendor.physfs;
 const builtin = @import("builtin");
 
 pub const Error = error{

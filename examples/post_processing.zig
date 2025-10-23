@@ -1,8 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
-const physfs = jok.physfs;
 const j3d = jok.j3d;
+const physfs = jok.vendor.physfs;
 
 pub const jok_window_resizable = true;
 pub const jok_canvas_size = jok.Size{ .width = 320, .height = 180 };

@@ -1,6 +1,6 @@
 const std = @import("std");
 const jok = @import("../../jok.zig");
-const sdl = jok.sdl;
+const sdl = jok.vendor.sdl;
 const gui = @import("main.zig");
 
 var fcolors = std.array_list.Managed(jok.ColorF).init(std.heap.c_allocator);

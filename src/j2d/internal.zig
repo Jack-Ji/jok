@@ -3,7 +3,7 @@ const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
 const AffineTransform = @import("AffineTransform.zig");
-const imgui = jok.imgui;
+const zgui = jok.vendor.zgui;
 
 pub const QuadImageCmd = struct {
     texture: jok.Texture,
@@ -232,7 +232,7 @@ pub const DrawCmd = struct {
         return if (ascend) d0.depth < d1.depth else d0.depth > d1.depth;
     }
 
-    pub fn render(self: DrawCmd, dl: imgui.DrawList) void {
+    pub fn render(self: DrawCmd, dl: zgui.DrawList) void {
         switch (self.cmd) {
             .quad_image => |c| {
                 dl.pushTexture(c.texture.toReference());
@@ -304,7 +304,7 @@ pub const DrawCmd = struct {
                 .thickness = c.thickness,
             }),
             .quad_fill => |c| {
-                const white_pixel_uv = imgui.getFontTexUvWhitePixel();
+                const white_pixel_uv = zgui.getFontTexUvWhitePixel();
                 const cur_idx = dl.getCurrentIndex();
                 dl.primReserve(6, 4);
                 dl.primWriteVtx(.{ c.p1.x, c.p1.y }, white_pixel_uv, c.color1);
@@ -326,7 +326,7 @@ pub const DrawCmd = struct {
                 .thickness = c.thickness,
             }),
             .triangle_fill => |c| {
-                const white_pixel_uv = imgui.getFontTexUvWhitePixel();
+                const white_pixel_uv = zgui.getFontTexUvWhitePixel();
                 const cur_idx = dl.getCurrentIndex();
                 dl.primReserve(3, 3);
                 dl.primWriteVtx(.{ c.p1.x, c.p1.y }, white_pixel_uv, c.color1);
@@ -383,7 +383,7 @@ pub const DrawCmd = struct {
                 const idx_count = (c.points.items.len - 2) * 3;
                 const vtx_count = c.points.items.len;
                 const cur_idx = dl.getCurrentIndex();
-                const white_pixel_uv = imgui.getFontTexUvWhitePixel();
+                const white_pixel_uv = zgui.getFontTexUvWhitePixel();
                 dl.primReserve(
                     @intCast(idx_count),
                     @intCast(vtx_count),

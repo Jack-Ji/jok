@@ -2,9 +2,9 @@
 const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
-const imgui = jok.imgui;
 const j2d = jok.j2d;
 const dialog = jok.utils.dialog;
+const zgui = jok.vendor.zgui;
 
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1200, .height = 800 },
@@ -369,15 +369,15 @@ fn loadSettings(_: ?*anyopaque, paths: [][:0]const u8) !void {
 }
 
 fn updateGui(ctx: jok.Context) !void {
-    if (imgui.begin("Settings", .{})) {
-        if (imgui.button("START/RESTART", .{})) {
+    if (zgui.begin("Settings", .{})) {
+        if (zgui.button("START/RESTART", .{})) {
             try restart(ctx.allocator());
         }
-        if (imgui.button("Randomize", .{})) {
+        if (zgui.button("Randomize", .{})) {
             randomnizeSimulation();
             try restart(ctx.allocator());
         }
-        if (imgui.button("Save Model", .{})) {
+        if (zgui.button("Save Model", .{})) {
             try dialog.showDialog(
                 ctx,
                 .save_file,
@@ -392,7 +392,7 @@ fn updateGui(ctx: jok.Context) !void {
                 },
             );
         }
-        if (imgui.button("Load Model", .{})) {
+        if (zgui.button("Load Model", .{})) {
             try dialog.showDialog(
                 ctx,
                 .open_file,
@@ -407,166 +407,166 @@ fn updateGui(ctx: jok.Context) !void {
                 },
             );
         }
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "Viscosity/Friction",
             .{ .v = &viscosity, .min = 0, .max = 1 },
         );
-        _ = imgui.checkbox("Bounded", .{ .v = &bounded });
-        _ = imgui.checkbox("Show Model", .{ .v = &show_model });
+        _ = zgui.checkbox("Bounded", .{ .v = &bounded });
+        _ = zgui.checkbox("Show Model", .{ .v = &show_model });
 
-        imgui.separator();
-        _ = imgui.sliderInt(
+        zgui.separator();
+        _ = zgui.sliderInt(
             "GREEN:",
             .{ .v = &number_g, .min = 0, .max = 3000 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "green x green:",
             .{ .v = &power_gg, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "green x red:",
             .{ .v = &power_gr, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "green x white:",
             .{ .v = &power_gw, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "green x blue:",
             .{ .v = &power_gb, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius g x g:",
             .{ .v = &v_gg, .min = 10, .max = 500 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius g x r:",
             .{ .v = &v_gr, .min = 10, .max = 500 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius g x w:",
             .{ .v = &v_gw, .min = 10, .max = 500 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius g x b:",
             .{ .v = &v_gb, .min = 10, .max = 500 },
         );
 
-        imgui.separator();
-        _ = imgui.sliderInt(
+        zgui.separator();
+        _ = zgui.sliderInt(
             "RED:",
             .{ .v = &number_r, .min = 0, .max = 3000 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "red x green:",
             .{ .v = &power_rg, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "red x red:",
             .{ .v = &power_rr, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "red x white:",
             .{ .v = &power_rw, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "red x blue:",
             .{ .v = &power_rb, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius r x g:",
             .{ .v = &v_rg, .min = 10, .max = 500 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius r x r:",
             .{ .v = &v_rr, .min = 10, .max = 500 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius r x w:",
             .{ .v = &v_rw, .min = 10, .max = 500 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius r x b:",
             .{ .v = &v_rb, .min = 10, .max = 500 },
         );
 
-        imgui.separator();
-        _ = imgui.sliderInt(
+        zgui.separator();
+        _ = zgui.sliderInt(
             "WHITE:",
             .{ .v = &number_w, .min = 0, .max = 3000 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "white x green:",
             .{ .v = &power_wg, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "white x red:",
             .{ .v = &power_wr, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "white x white:",
             .{ .v = &power_ww, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "white x blue:",
             .{ .v = &power_wb, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius w x g:",
             .{ .v = &v_wg, .min = 10, .max = 500 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius w x r:",
             .{ .v = &v_wr, .min = 10, .max = 500 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius w x w:",
             .{ .v = &v_ww, .min = 10, .max = 500 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius w x b:",
             .{ .v = &v_wb, .min = 10, .max = 500 },
         );
 
-        imgui.separator();
-        _ = imgui.sliderInt(
+        zgui.separator();
+        _ = zgui.sliderInt(
             "BLUE:",
             .{ .v = &number_b, .min = 0, .max = 3000 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "blue x green:",
             .{ .v = &power_bg, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "blue x red:",
             .{ .v = &power_br, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "blue x white:",
             .{ .v = &power_bw, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "blue x blue:",
             .{ .v = &power_bb, .min = -100, .max = 100 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius b x g:",
             .{ .v = &v_bg, .min = 10, .max = 500 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius b x r:",
             .{ .v = &v_br, .min = 10, .max = 500 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius b x w:",
             .{ .v = &v_bw, .min = 10, .max = 500 },
         );
-        _ = imgui.sliderFloat(
+        _ = zgui.sliderFloat(
             "radius b x b:",
             .{ .v = &v_bb, .min = 10, .max = 500 },
         );
     }
-    imgui.end();
+    zgui.end();
 }
 
 fn renderSimulation() !void {

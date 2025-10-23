@@ -2,8 +2,8 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("jok.zig");
-const sdl = jok.sdl;
-const zmath = jok.zmath;
+const sdl = jok.vendor.sdl;
+const zmath = jok.vendor.zmath;
 const minAndMax = jok.utils.math.minAndMax;
 
 pub const Point = extern struct {

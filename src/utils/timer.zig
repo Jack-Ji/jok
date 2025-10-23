@@ -2,7 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const sdl = jok.sdl;
+const sdl = jok.vendor.sdl;
 const log = std.log.scoped(.jok);
 
 /// Generic timer for scheduling async calls

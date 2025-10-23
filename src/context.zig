@@ -1,18 +1,17 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const builtin = @import("builtin");
-const bos = @import("build_options");
 const config = @import("config.zig");
 const pp = @import("post_processing.zig");
 const jok = @import("jok.zig");
-const sdl = jok.sdl;
 const io = jok.io;
-const physfs = jok.physfs;
 const font = jok.font;
-const imgui = jok.imgui;
-const plot = imgui.plot;
-const zaudio = jok.zaudio;
-const zmesh = jok.zmesh;
+const sdl = jok.vendor.sdl;
+const physfs = jok.vendor.physfs;
+const zgui = jok.vendor.zgui;
+const zaudio = jok.vendor.zaudio;
+const zmesh = jok.vendor.zmesh;
+const plot = zgui.plot;
 const log = std.log.scoped(.jok);
 
 /// Application context
@@ -281,8 +280,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Init SDL window and renderer
             try self.initSDL();
 
-            // Init imgui
-            imgui.sdl.init(self._ctx, cfg.jok_imgui_ini_file);
+            // Init zgui
+            zgui.sdl.init(self._ctx, cfg.jok_imgui_ini_file);
 
             // Init audio engine
             self._audio_engine = try zaudio.sdl.init(self._ctx);
@@ -324,8 +323,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Destroy audio engine
             zaudio.sdl.deinit();
 
-            // Destroy imgui
-            imgui.sdl.deinit();
+            // Destroy zgui
+            zgui.sdl.deinit();
 
             // Destroy window and renderer
             self.deinitSDL();
@@ -425,8 +424,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
                 defer self._renderer.present();
 
-                imgui.sdl.newFrame(self.context());
-                defer imgui.sdl.draw(self.context());
+                zgui.sdl.newFrame(self.context());
+                defer zgui.sdl.draw(self.context());
 
                 self._renderer.clear(cfg.jok_framebuffer_color) catch unreachable;
                 self._renderer.setTarget(self._canvas_texture) catch unreachable;
@@ -475,7 +474,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             while (io.pollNativeEvent()) |ne| {
                 // ImGui event processing
-                _ = imgui.sdl.processEvent(ne);
+                _ = zgui.sdl.processEvent(ne);
 
                 // Game event processing
                 const we = jok.Event.from(ne, self._ctx);
@@ -891,44 +890,44 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const rdinfo = self._renderer.getInfo() catch unreachable;
             const ws = self._window.getSize();
             const cs = getCanvasSize(ptr);
-            imgui.setNextWindowBgAlpha(.{ .alpha = 0.7 });
-            imgui.setNextWindowPos(.{
+            zgui.setNextWindowBgAlpha(.{ .alpha = 0.7 });
+            zgui.setNextWindowPos(.{
                 .x = @floatFromInt(ws.width),
                 .y = 0,
                 .pivot_x = 1,
                 .cond = if (opt.movable) .once else .always,
             });
-            imgui.setNextWindowSize(.{ .w = opt.width, .h = 0, .cond = .always });
-            if (imgui.begin("Frame Statistics", .{
+            zgui.setNextWindowSize(.{ .w = opt.width, .h = 0, .cond = .always });
+            if (zgui.begin("Frame Statistics", .{
                 .flags = .{
                     .no_title_bar = !opt.collapsible,
                     .no_resize = true,
                     .always_auto_resize = true,
                 },
             })) {
-                imgui.text("Window Size: {d:.0}x{d:.0}", .{ ws.width, ws.height });
-                imgui.text("Canvas Size: {d:.0}x{d:.0}", .{ cs.width, cs.height });
-                imgui.text("V-Sync Enabled: {}", .{rdinfo.vsync > 0});
-                imgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
-                imgui.separator();
-                imgui.text("Duration: {D}", .{@as(u64, @intFromFloat(self._seconds_real * 1e9))});
+                zgui.text("Window Size: {d:.0}x{d:.0}", .{ ws.width, ws.height });
+                zgui.text("Canvas Size: {d:.0}x{d:.0}", .{ cs.width, cs.height });
+                zgui.text("V-Sync Enabled: {}", .{rdinfo.vsync > 0});
+                zgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
+                zgui.separator();
+                zgui.text("Duration: {D}", .{@as(u64, @intFromFloat(self._seconds_real * 1e9))});
                 if (self._running_slow) {
-                    imgui.textColored(.{ 1, 0, 0, 1 }, "FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
-                    imgui.textColored(.{ 1, 0, 0, 1 }, "CPU: {d:.1}ms", .{1000.0 / self._fps});
+                    zgui.textColored(.{ 1, 0, 0, 1 }, "FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
+                    zgui.textColored(.{ 1, 0, 0, 1 }, "CPU: {d:.1}ms", .{1000.0 / self._fps});
                 } else {
-                    imgui.text("FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
-                    imgui.text("CPU: {d:.1}ms", .{1000.0 / self._fps});
+                    zgui.text("FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
+                    zgui.text("CPU: {d:.1}ms", .{1000.0 / self._fps});
                 }
                 if (builtin.mode == .Debug) {
-                    imgui.text("Memory: {Bi:.3}", .{debug_allocator.total_requested_bytes});
+                    zgui.text("Memory: {Bi:.3}", .{debug_allocator.total_requested_bytes});
                 }
-                imgui.text("Draw Calls: {d}", .{self._drawcall_count});
-                imgui.text("Triangles: {d}", .{self._triangle_count});
+                zgui.text("Draw Calls: {d}", .{self._drawcall_count});
+                zgui.text("Triangles: {d}", .{self._triangle_count});
 
                 if (cfg.jok_detailed_frame_stats and self._seconds_real > 1) {
-                    imgui.separator();
+                    zgui.separator();
                     if (plot.beginPlot(
-                        imgui.formatZ("Costs of Update/Draw ({}s)", .{opt.duration}),
+                        zgui.formatZ("Costs of Update/Draw ({}s)", .{opt.duration}),
                         .{
                             .h = opt.width * 3 / 4,
                             .flags = .{ .no_menus = true },
@@ -997,7 +996,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     }
                 }
             }
-            imgui.end();
+            zgui.end();
         }
 
         /// Display text

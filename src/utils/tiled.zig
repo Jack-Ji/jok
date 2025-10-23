@@ -5,7 +5,7 @@ const assert = std.debug.assert;
 const xml = @import("xml.zig");
 const jok = @import("../jok.zig");
 const j2d = jok.j2d;
-const physfs = jok.physfs;
+const physfs = jok.vendor.physfs;
 const log = std.log.scoped(.jok);
 
 pub const Error = error{

@@ -1673,6 +1673,11 @@ extern "C"
         ImGui::GetIO().AddInputCharacter(c);
     }
 
+    ZGUI_API ImVector<ImTextureData*>* zguiPlatformIoGetTextures()
+    {
+        return &ImGui::GetPlatformIO().Textures;
+    }
+
     ZGUI_API bool zguiIsItemHovered(ImGuiHoveredFlags flags)
     {
         return ImGui::IsItemHovered(flags);

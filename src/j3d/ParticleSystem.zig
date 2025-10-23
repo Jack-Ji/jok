@@ -7,8 +7,8 @@ const Camera = @import("Camera.zig");
 const jok = @import("../jok.zig");
 const j3d = jok.j3d;
 const j2d = jok.j2d;
-const zmesh = jok.zmesh;
-const zmath = jok.zmath;
+const zmesh = jok.vendor.zmesh;
+const zmath = jok.vendor.zmath;
 const Self = @This();
 
 const default_effects_capacity = 10;

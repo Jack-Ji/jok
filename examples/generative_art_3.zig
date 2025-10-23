@@ -2,7 +2,6 @@ const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
 const font = jok.font;
-const zmath = jok.zmath;
 const j2d = jok.j2d;
 
 pub const jok_window_size = jok.config.WindowSize{

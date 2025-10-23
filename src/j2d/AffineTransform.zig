@@ -5,7 +5,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
-const zmath = jok.zmath;
+const zmath = jok.vendor.zmath;
 const Self = @This();
 
 mat: zmath.Mat,

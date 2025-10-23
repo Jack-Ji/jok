@@ -1,11 +1,11 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
-const physfs = jok.physfs;
 const font = jok.font;
 const j3d = jok.j3d;
-const zmath = jok.zmath;
-const zmesh = jok.zmesh;
+const physfs = jok.vendor.physfs;
+const zmath = jok.vendor.zmath;
+const zmesh = jok.vendor.zmesh;
 
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1280, .height = 720 },

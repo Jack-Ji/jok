@@ -1,8 +1,8 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
-const sdl = jok.sdl;
-const imgui = jok.imgui;
+const sdl = jok.vendor.sdl;
+const zgui = jok.vendor.zgui;
 
 const log = std.log.scoped(.jok);
 
@@ -23,7 +23,7 @@ pub const Texture = struct {
         sdl.SDL_DestroyTexture(self.ptr);
     }
 
-    pub fn toReference(self: Texture) imgui.TextureRef {
+    pub fn toReference(self: Texture) zgui.TextureRef {
         return .{
             .tex_data = null,
             .tex_id = @enumFromInt(@intFromPtr(self.ptr)),

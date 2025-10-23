@@ -2,8 +2,8 @@ const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const DrawCmd = @import("internal.zig").DrawCmd;
-const imgui = jok.imgui;
-const zmath = jok.zmath;
+const zgui = jok.vendor.zgui;
+const zmath = jok.vendor.zmath;
 const Self = @This();
 
 // Size of sprite

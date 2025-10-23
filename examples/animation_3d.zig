@@ -1,12 +1,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
-const physfs = jok.physfs;
-const imgui = jok.imgui;
 const font = jok.font;
-const zmath = jok.zmath;
-const zmesh = jok.zmesh;
 const j3d = jok.j3d;
+const physfs = jok.vendor.physfs;
+const zgui = jok.vendor.zgui;
+const zmath = jok.vendor.zmath;
+const zmesh = jok.vendor.zmesh;
 
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1280, .height = 720 },
@@ -76,7 +76,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
         const mouse_speed: f32 = 0.0025;
     };
 
-    if (imgui.io.getWantCaptureMouse()) return;
+    if (zgui.io.getWantCaptureMouse()) return;
 
     switch (e) {
         .mouse_motion => |me| {
@@ -158,69 +158,69 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
-    if (imgui.begin("Control Panel", .{})) {
-        imgui.textUnformatted("shading method");
-        imgui.sameLine(.{});
-        _ = imgui.radioButtonStatePtr("gouraud", .{
+    if (zgui.begin("Control Panel", .{})) {
+        zgui.textUnformatted("shading method");
+        zgui.sameLine(.{});
+        _ = zgui.radioButtonStatePtr("gouraud", .{
             .v = &shading_method,
             .v_button = 0,
         });
-        imgui.sameLine(.{});
-        _ = imgui.radioButtonStatePtr("flat", .{
+        zgui.sameLine(.{});
+        _ = zgui.radioButtonStatePtr("flat", .{
             .v = &shading_method,
             .v_button = 1,
         });
-        _ = imgui.checkbox("lighting", .{ .v = &lighting });
-        _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
+        _ = zgui.checkbox("lighting", .{ .v = &lighting });
+        _ = zgui.checkbox("wireframe", .{ .v = &wireframe });
 
-        imgui.separatorText("Play Animation");
+        zgui.separatorText("Play Animation");
 
-        if (imgui.beginCombo("CesiumMan", .{
-            .preview_value = imgui.formatZ("{s}", .{
+        if (zgui.beginCombo("CesiumMan", .{
+            .preview_value = zgui.formatZ("{s}", .{
                 if (animation1) |a| a.getName() else "none",
             }),
         })) {
-            if (imgui.selectable("none", .{ .selected = animation1 == null })) {
+            if (zgui.selectable("none", .{ .selected = animation1 == null })) {
                 animation1 = null;
             }
-            if (imgui.selectable(
-                imgui.formatZ("{s}", .{animation1_1.getName()}),
+            if (zgui.selectable(
+                zgui.formatZ("{s}", .{animation1_1.getName()}),
                 .{ .selected = animation1 == animation1_1 },
             )) {
                 animation1 = animation1_1;
                 animation_playtime1 = 0;
             }
-            imgui.endCombo();
+            zgui.endCombo();
         }
 
-        if (imgui.beginCombo("RiggedSimple", .{
-            .preview_value = imgui.formatZ("{s}", .{
+        if (zgui.beginCombo("RiggedSimple", .{
+            .preview_value = zgui.formatZ("{s}", .{
                 if (animation2) |a| a.getName() else "none",
             }),
         })) {
-            if (imgui.selectable("none", .{ .selected = animation2 == null })) {
+            if (zgui.selectable("none", .{ .selected = animation2 == null })) {
                 animation2 = null;
             }
-            if (imgui.selectable(
-                imgui.formatZ("{s}", .{animation2_1.getName()}),
+            if (zgui.selectable(
+                zgui.formatZ("{s}", .{animation2_1.getName()}),
                 .{ .selected = animation2 == animation2_1 },
             )) {
                 animation2 = animation2_1;
                 animation_playtime2 = 0;
             }
-            imgui.endCombo();
+            zgui.endCombo();
         }
 
-        if (imgui.beginCombo("Fox", .{
-            .preview_value = imgui.formatZ("{s}", .{
+        if (zgui.beginCombo("Fox", .{
+            .preview_value = zgui.formatZ("{s}", .{
                 if (animation3) |a| a.getName() else "none",
             }),
         })) {
-            if (imgui.selectable("none", .{ .selected = animation3 == null })) {
+            if (zgui.selectable("none", .{ .selected = animation3 == null })) {
                 animation3 = null;
             }
-            if (imgui.selectable(
-                imgui.formatZ("{s}", .{animation3_1.getName()}),
+            if (zgui.selectable(
+                zgui.formatZ("{s}", .{animation3_1.getName()}),
                 .{ .selected = animation3 == animation3_1 },
             )) {
                 animation3_old = animation3;
@@ -228,8 +228,8 @@ pub fn draw(ctx: jok.Context) !void {
                 animation_playtime3 = 0;
                 animation_transition3 = 0;
             }
-            if (imgui.selectable(
-                imgui.formatZ("{s}", .{animation3_2.getName()}),
+            if (zgui.selectable(
+                zgui.formatZ("{s}", .{animation3_2.getName()}),
                 .{ .selected = animation3 == animation3_2 },
             )) {
                 animation3_old = animation3;
@@ -237,8 +237,8 @@ pub fn draw(ctx: jok.Context) !void {
                 animation_playtime3 = 0;
                 animation_transition3 = 0;
             }
-            if (imgui.selectable(
-                imgui.formatZ("{s}", .{animation3_3.getName()}),
+            if (zgui.selectable(
+                zgui.formatZ("{s}", .{animation3_3.getName()}),
                 .{ .selected = animation3 == animation3_3 },
             )) {
                 animation3_old = animation3;
@@ -246,10 +246,10 @@ pub fn draw(ctx: jok.Context) !void {
                 animation_playtime3 = 0;
                 animation_transition3 = 0;
             }
-            imgui.endCombo();
+            zgui.endCombo();
         }
     }
-    imgui.end();
+    zgui.end();
 
     var b = try batchpool.new(.{
         .camera = camera,
@@ -364,7 +364,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{ .pos = .{ .x = 20, .y = 30 } },
     );
     ctx.debugPrint(
-        imgui.format(
+        zgui.format(
             "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
             .{
                 // zig fmt: off

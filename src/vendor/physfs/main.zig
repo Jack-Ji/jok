@@ -609,8 +609,8 @@ pub const stb = struct {
 };
 
 pub const zaudio = struct {
-    const AudioVfs = jok.zaudio.Vfs;
-    const AudioResult = jok.zaudio.Result;
+    const AudioVfs = jok.vendor.zaudio.Vfs;
+    const AudioResult = jok.vendor.zaudio.Result;
     const AudioFileHandle = AudioVfs.FileHandle;
     const AudioOpenMode = AudioVfs.OpenMode;
     const SeekOrigin = AudioVfs.SeekOrigin;
@@ -691,9 +691,9 @@ pub const zaudio = struct {
 };
 
 pub const zmesh = struct {
-    const ZmeshFileOptions = jok.zmesh.io.zcgltf.bindings.FileOptions;
-    const ZmeshMemoryOptions = jok.zmesh.io.zcgltf.bindings.MemoryOptions;
-    const ZmeshResult = jok.zmesh.io.zcgltf.bindings.Result;
+    const ZmeshFileOptions = jok.vendor.zmesh.io.zcgltf.bindings.FileOptions;
+    const ZmeshMemoryOptions = jok.vendor.zmesh.io.zcgltf.bindings.MemoryOptions;
+    const ZmeshResult = jok.vendor.zmesh.io.zcgltf.bindings.Result;
 
     fn read(
         mem_opts: *const ZmeshMemoryOptions,

@@ -5,7 +5,7 @@ const json = std.json;
 const math = std.math;
 const ascii = std.ascii;
 const jok = @import("../jok.zig");
-const truetype = jok.stb.truetype;
+const truetype = jok.vendor.stb.truetype;
 const Sprite = jok.j2d.Sprite;
 const Atlas = @This();
 

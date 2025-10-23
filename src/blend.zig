@@ -1,5 +1,5 @@
 const jok = @import("jok.zig");
-const sdl = jok.sdl;
+const sdl = jok.vendor.sdl;
 
 pub const BlendMode = enum {
     /// no blending

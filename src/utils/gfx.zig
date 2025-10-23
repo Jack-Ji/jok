@@ -1,8 +1,8 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const physfs = jok.physfs;
-const stb = jok.stb;
+const physfs = jok.vendor.physfs;
+const stb = jok.vendor.stb;
 
 pub const Error = error{
     EncodeTextureFailed,

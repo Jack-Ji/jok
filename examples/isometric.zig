@@ -1,9 +1,9 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
-const physfs = jok.physfs;
 const font = jok.font;
 const j2d = jok.j2d;
+const physfs = jok.vendor.physfs;
 
 const Tile = struct {
     pos: jok.Point,

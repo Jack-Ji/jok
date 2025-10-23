@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const zmath = jok.zmath;
+const zmath = jok.vendor.zmath;
 
 /// Test whether an OBB (oriented AABB) is outside of clipping space.
 /// Algorithm description: We simply test whether all vertices is

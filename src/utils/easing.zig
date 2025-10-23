@@ -4,7 +4,6 @@ const std = @import("std");
 const math = std.math;
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const zmath = jok.zmath;
 const signal = @import("signal.zig");
 
 pub const EasingType = enum(u8) {

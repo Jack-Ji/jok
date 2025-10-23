@@ -1,13 +1,13 @@
 const std = @import("std");
 const jok = @import("jok");
 const font = jok.font;
-const zmath = jok.zmath;
-const zmesh = jok.zmesh;
-const imgui = jok.imgui;
 const j3d = jok.j3d;
 const Camera = j3d.Camera;
 const Scene = j3d.Scene;
 const Mesh = j3d.Mesh;
+const zmath = jok.vendor.zmath;
+const zmesh = jok.vendor.zmesh;
+const zgui = jok.vendor.zgui;
 
 var batchpool: j3d.BatchPool(64, false) = undefined;
 var camera: Camera = undefined;
@@ -148,7 +148,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{ .pos = .{ .x = 20, .y = 10 } },
     );
     ctx.debugPrint(
-        imgui.format(
+        zgui.format(
             "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
             .{
                 // zig fmt: off

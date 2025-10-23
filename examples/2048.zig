@@ -3,7 +3,7 @@ const builtin = @import("builtin");
 const jok = @import("jok");
 const j2d = jok.j2d;
 const font = jok.font;
-const physfs = jok.physfs;
+const physfs = jok.vendor.physfs;
 
 const GRID_SIZE = 4;
 const TILE_SIZE = 100;

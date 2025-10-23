@@ -1,10 +1,10 @@
 const std = @import("std");
 const jok = @import("jok");
 const font = jok.font;
-const zmath = jok.zmath;
-const imgui = jok.imgui;
 const j2d = jok.j2d;
 const pathfind = jok.utils.pathfind;
+const zmath = jok.vendor.zmath;
+const zgui = jok.vendor.zgui;
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
 const cell_size = 10;

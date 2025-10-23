@@ -31,7 +31,7 @@ pub fn build(b: *Build) void {
     // Add examples
     const examples = [_]struct { name: []const u8, opt: ExampleOptions }{
         .{ .name = "hello", .opt = .{} },
-        .{ .name = "imgui_demo", .opt = .{} },
+        .{ .name = "zgui_demo", .opt = .{} },
         .{ .name = "sprite_benchmark", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "cube_benchmark", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "sprite_sheet", .opt = .{ .preload_path = "examples/assets" } },
@@ -308,15 +308,15 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
         .optimize = optimize,
     });
     libmod.addImport("sdl", getSdlModule(builder, target, optimize));
-    @import("src/vendor/imgui/build.zig").inject(libmod, builder.path("src/vendor/imgui"));
     @import("src/vendor/physfs/build.zig").inject(libmod, builder.path("src/vendor/physfs"));
     @import("src/vendor/stb/build.zig").inject(libmod, builder.path("src/vendor/stb"));
     @import("src/vendor/svg/build.zig").inject(libmod, builder.path("src/vendor/svg"));
+    @import("src/vendor/zgui/build.zig").inject(libmod, builder.path("src/vendor/zgui"));
+    @import("src/vendor/zaudio/build.zig").inject(libmod, builder.path("src/vendor/zaudio"));
     @import("src/vendor/zmath/build.zig").inject(libmod, builder.path("src/vendor/zmath"));
     @import("src/vendor/zmesh/build.zig").inject(libmod, builder.path("src/vendor/zmesh"));
     @import("src/vendor/zobj/build.zig").inject(libmod, builder.path("src/vendor/zobj"));
     @import("src/vendor/znoise/build.zig").inject(libmod, builder.path("src/vendor/znoise"));
-    @import("src/vendor/zaudio/build.zig").inject(libmod, builder.path("src/vendor/zaudio"));
 
     var lib: *Build.Step.Compile = undefined;
     if (target.result.cpu.arch.isWasm()) {

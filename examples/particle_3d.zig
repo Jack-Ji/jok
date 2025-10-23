@@ -2,13 +2,13 @@ const std = @import("std");
 const builtin = @import("builtin");
 const math = std.math;
 const jok = @import("jok");
-const physfs = jok.physfs;
 const j2d = jok.j2d;
 const j3d = jok.j3d;
-const zmath = jok.zmath;
-const zmesh = jok.zmesh;
 const font = jok.font;
-const imgui = jok.imgui;
+const physfs = jok.vendor.physfs;
+const zmath = jok.vendor.zmath;
+const zmesh = jok.vendor.zmesh;
+const zgui = jok.vendor.zgui;
 
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1280, .height = 720 },
@@ -165,10 +165,10 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.none);
     ctx.displayStats(.{});
 
-    if (imgui.begin("Control", .{})) {
-        _ = imgui.checkbox("sort by depth", .{ .v = &sort_by_depth });
+    if (zgui.begin("Control", .{})) {
+        _ = zgui.checkbox("sort by depth", .{ .v = &sort_by_depth });
     }
-    imgui.end();
+    zgui.end();
 
     var b = try batchpool.new(.{
         .camera = camera,
@@ -197,7 +197,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{ .pos = .{ .x = 20, .y = 10 } },
     );
     ctx.debugPrint(
-        imgui.format(
+        zgui.format(
             "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
             .{
                 // zig fmt: off

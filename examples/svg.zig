@@ -1,12 +1,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
-const physfs = jok.physfs;
 const font = jok.font;
 const j2d = jok.j2d;
+const physfs = jok.vendor.physfs;
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
-var svg: jok.svg.SvgBitmap = undefined;
+var svg: jok.vendor.svg.SvgBitmap = undefined;
 var tex: jok.Texture = undefined;
 
 pub fn init(ctx: jok.Context) !void {
@@ -18,7 +18,7 @@ pub fn init(ctx: jok.Context) !void {
 
     batchpool = try @TypeOf(batchpool).init(ctx);
 
-    svg = try jok.svg.createBitmapFromFile(
+    svg = try jok.vendor.svg.createBitmapFromFile(
         ctx,
         "tiger.svg",
         .{},

@@ -1,8 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
-const physfs = jok.physfs;
 const j2d = jok.j2d;
+const physfs = jok.vendor.physfs;
 
 pub const jok_fps_limit: jok.config.FpsLimit = .none;
 

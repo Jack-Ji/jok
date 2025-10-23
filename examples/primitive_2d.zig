@@ -1,7 +1,8 @@
 const std = @import("std");
 const jok = @import("jok");
-const imgui = jok.imgui;
 const j2d = jok.j2d;
+const zgui = jok.vendor.zgui;
+
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1280, .height = 720 },
 };
@@ -57,23 +58,23 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.none);
 
-    imgui.setNextWindowPos(.{
+    zgui.setNextWindowPos(.{
         .cond = .always,
         .x = 0,
         .y = 0,
     });
-    if (imgui.begin("Control", .{ .flags = .{
+    if (zgui.begin("Control", .{ .flags = .{
         .always_auto_resize = true,
         .no_title_bar = true,
         .no_resize = true,
     } })) {
-        _ = imgui.sliderFloat("scale", .{ .v = &scale, .min = 0.1, .max = 1.4 });
-        imgui.sameLine(.{ .spacing = 50 });
-        _ = imgui.sliderFloat("rotate", .{ .v = &rotate, .min = 0, .max = std.math.pi * 2 });
-        imgui.sameLine(.{ .spacing = 50 });
-        _ = imgui.sliderFloat2("translate", .{ .v = &translate, .min = 0, .max = 400 });
+        _ = zgui.sliderFloat("scale", .{ .v = &scale, .min = 0.1, .max = 1.4 });
+        zgui.sameLine(.{ .spacing = 50 });
+        _ = zgui.sliderFloat("rotate", .{ .v = &rotate, .min = 0, .max = std.math.pi * 2 });
+        zgui.sameLine(.{ .spacing = 50 });
+        _ = zgui.sliderFloat2("translate", .{ .v = &translate, .min = 0, .max = 400 });
     }
-    imgui.end();
+    zgui.end();
 
     var b = try batchpool.new(.{});
     defer b.submit();

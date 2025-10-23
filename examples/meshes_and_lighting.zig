@@ -3,13 +3,13 @@ const assert = std.debug.assert;
 const math = std.math;
 const builtin = @import("builtin");
 const jok = @import("jok");
-const imgui = jok.imgui;
-const znoise = jok.znoise;
-const zmath = jok.zmath;
-const zmesh = jok.zmesh;
 const font = jok.font;
 const j3d = jok.j3d;
 const Camera = j3d.Camera;
+const zgui = jok.vendor.zgui;
+const znoise = jok.vendor.znoise;
+const zmath = jok.vendor.zmath;
+const zmesh = jok.vendor.zmesh;
 
 pub const jok_window_resizable = true;
 
@@ -178,25 +178,25 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.rgb(77, 77, 77));
     ctx.displayStats(.{});
 
-    if (imgui.begin("Control Panel", .{})) {
-        imgui.textUnformatted("shading method");
-        imgui.sameLine(.{});
-        _ = imgui.radioButtonStatePtr("gouraud", .{
+    if (zgui.begin("Control Panel", .{})) {
+        zgui.textUnformatted("shading method");
+        zgui.sameLine(.{});
+        _ = zgui.radioButtonStatePtr("gouraud", .{
             .v = &shading_method,
             .v_button = 0,
         });
-        imgui.sameLine(.{});
-        _ = imgui.radioButtonStatePtr("flat", .{
+        zgui.sameLine(.{});
+        _ = zgui.radioButtonStatePtr("flat", .{
             .v = &shading_method,
             .v_button = 1,
         });
-        _ = imgui.checkbox("lighting", .{ .v = &lighting });
-        _ = imgui.checkbox("wireframe", .{ .v = &wireframe });
-        if (imgui.checkbox("vsync", .{ .v = &vsync })) {
+        _ = zgui.checkbox("lighting", .{ .v = &lighting });
+        _ = zgui.checkbox("wireframe", .{ .v = &wireframe });
+        if (zgui.checkbox("vsync", .{ .v = &vsync })) {
             try ctx.renderer().setVsync(@intFromBool(vsync));
         }
     }
-    imgui.end();
+    zgui.end();
 
     var lighting_opt: ?j3d.lighting.LightingOption = .{};
     if (lighting) {
@@ -489,7 +489,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{ .pos = .{ .x = 20, .y = 10 } },
     );
     ctx.debugPrint(
-        imgui.format(
+        zgui.format(
             "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
             .{
                 camera.position[0], camera.position[1], camera.position[2],

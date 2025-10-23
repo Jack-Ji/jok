@@ -2,7 +2,7 @@ const std = @import("std");
 const jok = @import("../jok.zig");
 const assert = std.debug.assert;
 const math = std.math;
-const zmath = jok.zmath;
+const zmath = jok.vendor.zmath;
 
 /// Linearly map `v` from [from, to] to [map_from, map_to]
 pub inline fn linearMap(_v: f32, from: f32, to: f32, map_from: f32, map_to: f32) f32 {

@@ -1,12 +1,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
-const physfs = jok.physfs;
-const imgui = jok.imgui;
 const font = jok.font;
-const zmath = jok.zmath;
-const zmesh = jok.zmesh;
 const j3d = jok.j3d;
+const physfs = jok.vendor.physfs;
+const zgui = jok.vendor.zgui;
+const zmath = jok.vendor.zmath;
+const zmesh = jok.vendor.zmesh;
 
 var batchpool: j3d.BatchPool(64, false) = undefined;
 var camera: j3d.Camera = undefined;
@@ -152,15 +152,15 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.rgb(77, 77, 77));
 
-    if (imgui.begin("Tint Color", .{})) {
+    if (zgui.begin("Tint Color", .{})) {
         var cs: [3]f32 = .{ skybox_tint_color.r, skybox_tint_color.g, skybox_tint_color.b };
-        if (imgui.colorEdit3("Tint Color", .{ .col = &cs })) {
+        if (zgui.colorEdit3("Tint Color", .{ .col = &cs })) {
             skybox_tint_color.r = cs[0];
             skybox_tint_color.g = cs[1];
             skybox_tint_color.b = cs[2];
         }
     }
-    imgui.end();
+    zgui.end();
 
     var b = try batchpool.new(.{ .camera = camera, .triangle_sort = .simple });
     b.trs = zmath.mul(
@@ -183,7 +183,7 @@ pub fn draw(ctx: jok.Context) !void {
         .{ .pos = .{ .x = 20, .y = 10 } },
     );
     ctx.debugPrint(
-        imgui.format(
+        zgui.format(
             "Camera: pos({d:.3},{d:.3},{d:.3}) dir({d:.3},{d:.3},{d:.3})",
             .{
                 // zig fmt: off

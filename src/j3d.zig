@@ -3,9 +3,9 @@ const builtin = @import("builtin");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("jok.zig");
-const imgui = jok.imgui;
-const zmath = jok.zmath;
-const zmesh = jok.zmesh;
+const zgui = jok.vendor.zgui;
+const zmath = jok.vendor.zmath;
+const zmesh = jok.vendor.zmesh;
 
 const TriangleRenderer = @import("j3d/TriangleRenderer.zig");
 const SkyboxRenderer = @import("j3d/SkyboxRenderer.zig");
@@ -65,7 +65,7 @@ pub const Batch = struct {
     depths: std.array_list.Managed(f32),
     textures: std.array_list.Managed(?jok.Texture),
     all_tex: std.AutoHashMap(*anyopaque, bool),
-    draw_list: imgui.DrawList,
+    draw_list: zgui.DrawList,
     blend_mode: jok.BlendMode,
     offscreen_target: ?jok.Texture,
     offscreen_clear_color: ?jok.ColorF,
@@ -86,7 +86,7 @@ pub const Batch = struct {
             .depths = .init(allocator),
             .textures = .init(allocator),
             .all_tex = .init(allocator),
-            .draw_list = imgui.createDrawList(),
+            .draw_list = zgui.createDrawList(),
             .blend_mode = .blend,
             .offscreen_target = null,
             .offscreen_clear_color = null,
@@ -102,7 +102,7 @@ pub const Batch = struct {
         self.depths.deinit();
         self.textures.deinit();
         self.all_tex.deinit();
-        imgui.destroyDrawList(self.draw_list);
+        zgui.destroyDrawList(self.draw_list);
     }
 
     pub fn recycleMemory(self: *Batch) void {
@@ -229,12 +229,12 @@ pub const Batch = struct {
     /// Submit batch, issue draw calls, don't reclaim itself
     pub fn submitWithoutReclaim(self: *Batch) void {
         const S = struct {
-            inline fn addTriangles(dl: imgui.DrawList, indices: []u32, vertices: []jok.Vertex, texture: ?jok.Texture) void {
+            inline fn addTriangles(dl: zgui.DrawList, indices: []u32, vertices: []jok.Vertex, texture: ?jok.Texture) void {
                 if (texture) |tex| dl.pushTexture(tex.toReference());
                 defer if (texture != null) dl.popTexture();
 
                 dl.primReserve(@intCast(indices.len), @intCast(indices.len));
-                const white_pixel_uv = imgui.getFontTexUvWhitePixel();
+                const white_pixel_uv = zgui.getFontTexUvWhitePixel();
                 const cur_idx = dl.getCurrentIndex();
                 for (indices) |i| {
                     const p = vertices[i];
@@ -272,7 +272,7 @@ pub const Batch = struct {
         };
 
         if (self.wireframe_color != null) {
-            imgui.sdl.renderDrawList(self.ctx, self.draw_list);
+            zgui.sdl.renderDrawList(self.ctx, self.draw_list);
         } else {
             // Apply blend mode to textures
             var it = self.all_tex.keyIterator();
@@ -283,7 +283,7 @@ pub const Batch = struct {
 
             switch (self.triangle_sort) {
                 .none => {
-                    imgui.sdl.renderDrawList(self.ctx, self.draw_list);
+                    zgui.sdl.renderDrawList(self.ctx, self.draw_list);
                 },
                 .simple => {
                     if (!self.is_submitted) {
@@ -315,7 +315,7 @@ pub const Batch = struct {
                         );
                     }
 
-                    imgui.sdl.renderDrawList(self.ctx, self.draw_list);
+                    zgui.sdl.renderDrawList(self.ctx, self.draw_list);
                 },
             }
         }
@@ -438,7 +438,7 @@ pub const Batch = struct {
                     defer if (texture != null) self.draw_list.popTexture();
 
                     self.draw_list.primReserve(@intCast(indices.len), @intCast(vertices.len));
-                    const white_pixel_uv = imgui.getFontTexUvWhitePixel();
+                    const white_pixel_uv = zgui.getFontTexUvWhitePixel();
                     const cur_idx = self.draw_list.getCurrentIndex();
                     var i: usize = 0;
                     while (i < vertices.len) : (i += 1) {

@@ -2,9 +2,9 @@ const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
 const j2d = jok.j2d;
-const physfs = jok.physfs;
 const font = jok.font;
-const zaudio = jok.zaudio;
+const physfs = jok.vendor.physfs;
+const zaudio = jok.vendor.zaudio;
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var atlas: *font.Atlas = undefined;

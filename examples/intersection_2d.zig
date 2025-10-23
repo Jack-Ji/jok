@@ -1,7 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
-const imgui = jok.imgui;
 const j2d = jok.j2d;
+const zgui = jok.vendor.zgui;
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var offset0: [2]f32 = .{ 0, 0 };
@@ -81,20 +81,20 @@ pub fn draw(ctx: jok.Context) !void {
         .{ .thickness = rect_thickness },
     );
 
-    if (imgui.begin("Control", .{})) {
-        imgui.separator();
-        imgui.text("triangle 0", .{});
-        _ = imgui.dragFloat2("offset 0", .{ .v = &offset0 });
-        _ = imgui.dragFloat2("p0", .{ .v = @ptrCast(&tri0.p0) });
-        _ = imgui.dragFloat2("p1", .{ .v = @ptrCast(&tri0.p1) });
-        _ = imgui.dragFloat2("p2", .{ .v = @ptrCast(&tri0.p2) });
-        imgui.text("triangle 1", .{});
-        _ = imgui.dragFloat2("offset 1", .{ .v = &offset1 });
-        _ = imgui.dragFloat2("p3", .{ .v = @ptrCast(&tri1.p0) });
-        _ = imgui.dragFloat2("p4", .{ .v = @ptrCast(&tri1.p1) });
-        _ = imgui.dragFloat2("p5", .{ .v = @ptrCast(&tri1.p2) });
+    if (zgui.begin("Control", .{})) {
+        zgui.separator();
+        zgui.text("triangle 0", .{});
+        _ = zgui.dragFloat2("offset 0", .{ .v = &offset0 });
+        _ = zgui.dragFloat2("p0", .{ .v = @ptrCast(&tri0.p0) });
+        _ = zgui.dragFloat2("p1", .{ .v = @ptrCast(&tri0.p1) });
+        _ = zgui.dragFloat2("p2", .{ .v = @ptrCast(&tri0.p2) });
+        zgui.text("triangle 1", .{});
+        _ = zgui.dragFloat2("offset 1", .{ .v = &offset1 });
+        _ = zgui.dragFloat2("p3", .{ .v = @ptrCast(&tri1.p0) });
+        _ = zgui.dragFloat2("p4", .{ .v = @ptrCast(&tri1.p1) });
+        _ = zgui.dragFloat2("p5", .{ .v = @ptrCast(&tri1.p2) });
     }
-    imgui.end();
+    zgui.end();
 }
 
 pub fn quit(ctx: jok.Context) void {

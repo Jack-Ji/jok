@@ -2,11 +2,11 @@ const std = @import("std");
 const builtin = @import("builtin");
 const assert = std.debug.assert;
 const json = std.json;
-const Sprite = @import("Sprite.zig");
 const jok = @import("../jok.zig");
-const physfs = jok.physfs;
-const stb_rect_pack = jok.stb.rect_pack;
-const stb_image = jok.stb.image;
+const physfs = jok.vendor.physfs;
+const stb_rect_pack = jok.vendor.stb.rect_pack;
+const stb_image = jok.vendor.stb.image;
+const Sprite = @import("Sprite.zig");
 const Self = @This();
 
 pub const Error = error{

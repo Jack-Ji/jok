@@ -1,7 +1,7 @@
 const std = @import("std");
 const jok = @import("../../jok.zig");
-const sdl = jok.sdl;
-const physfs = jok.physfs;
+const sdl = jok.vendor.sdl;
+const physfs = jok.vendor.physfs;
 const audio = @import("main.zig");
 
 var engine: *audio.Engine = undefined;
