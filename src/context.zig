@@ -353,6 +353,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .manual => |_fps| self._pc_freq / @as(u64, _fps),
             };
 
+            // Process input
+            self._event(eventFn);
+
             // Update game
             if (pc_threshold > 0) {
                 while (true) {
@@ -364,6 +367,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     }
                     if ((pc_threshold - self._pc_accumulated) * 1000 > self._pc_freq) {
                         sdl.SDL_Delay(1);
+                        continue;
                     }
                 }
 
@@ -382,14 +386,19 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     self._seconds += self._delta_seconds;
                     self._seconds_real += self._delta_seconds;
 
-                    self._update(eventFn, updateFn);
+                    self._update(updateFn);
                 }
                 assert(step_count > 0);
 
                 // Update frame lag
                 self._frame_lag += @max(0, step_count - 1);
                 if (self._running_slow) {
-                    if (self._frame_lag == 0) self._running_slow = false;
+                    if (self._frame_lag == 0) {
+                        self._running_slow = false;
+                    } else if (self._frame_lag > 10) {
+                        // Supress rendering, give `update` chance to catch up
+                        self._supress_draw = true;
+                    }
                 } else if (self._frame_lag >= 5) {
                     // Consider game running slow when lagging more than 5 frames
                     self._running_slow = true;
@@ -408,7 +417,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self._seconds += self._delta_seconds;
                 self._seconds_real += self._delta_seconds;
 
-                self._update(eventFn, updateFn);
+                self._update(updateFn);
             }
 
             // Do rendering
@@ -459,19 +468,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._updateFrameStats();
         }
 
-        /// Update game state
-        inline fn _update(
+        inline fn _event(
             self: *@This(),
             comptime eventFn: *const fn (Context, jok.Event) anyerror!void,
-            comptime updateFn: *const fn (Context) anyerror!void,
         ) void {
-            const pc_begin = sdl.SDL_GetPerformanceCounter();
-            defer if (cfg.jok_detailed_frame_stats) {
-                const cost = @as(f32, @floatFromInt((sdl.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
-                    @as(f32, @floatFromInt(self._pc_freq));
-                self._update_cost = if (self._update_cost > 0) (self._update_cost + cost) / 2 else cost;
-            };
-
             while (io.pollNativeEvent()) |ne| {
                 // ImGui event processing
                 _ = zgui.sdl.processEvent(ne);
@@ -505,6 +505,18 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     };
                 }
             }
+        }
+
+        inline fn _update(
+            self: *@This(),
+            comptime updateFn: *const fn (Context) anyerror!void,
+        ) void {
+            const pc_begin = sdl.SDL_GetPerformanceCounter();
+            defer if (cfg.jok_detailed_frame_stats) {
+                const cost = @as(f32, @floatFromInt((sdl.SDL_GetPerformanceCounter() - pc_begin) * 1000)) /
+                    @as(f32, @floatFromInt(self._pc_freq));
+                self._update_cost = if (self._update_cost > 0) (self._update_cost + cost) / 2 else cost;
+            };
 
             updateFn(self._ctx) catch |err| {
                 log.err("Got error in `update`: {s}", .{@errorName(err)});
