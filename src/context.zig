@@ -637,6 +637,18 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 _ = sdl.SDL_SetHint(sdl.SDL_HINT_VIDEODRIVER, "offscreen");
             }
 
+            // Initialize custom memory allocator
+            MemAdapter.init(self._allocator);
+            if (!sdl.SDL_SetMemoryFunctions(
+                MemAdapter.alloc,
+                MemAdapter.calloc,
+                MemAdapter.realloc,
+                MemAdapter.free,
+            )) {
+                log.err("Initialize custom allocator for SDL3 failed: {s}", .{sdl.SDL_GetError()});
+                return error.SdlError;
+            }
+
             var init_flags = sdl.SDL_INIT_AUDIO |
                 sdl.SDL_INIT_VIDEO |
                 sdl.SDL_INIT_JOYSTICK |
@@ -647,7 +659,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 init_flags |= sdl.SDL_INIT_HAPTIC;
             }
             if (!sdl.SDL_Init(init_flags)) {
-                log.err("Initialize SDL2 failed: {s}", .{sdl.SDL_GetError()});
+                log.err("Initialize SDL3 failed: {s}", .{sdl.SDL_GetError()});
                 return error.SdlError;
             }
 
@@ -683,6 +695,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._renderer.destroy();
             self._window.destroy();
             sdl.SDL_Quit();
+            MemAdapter.deinit();
         }
 
         /// Get type-erased context for application
@@ -1027,3 +1040,84 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
     };
 }
+
+///////////////////// Custom Memory Allocator for SDL /////////////////////
+const MemAdapter = struct {
+    var mem_allocator: std.mem.Allocator = undefined;
+    var mem_allocations: std.AutoHashMap(usize, usize) = undefined;
+    var mem_mutex: std.Thread.Mutex = .{};
+    const mem_alignment: std.mem.Alignment = .@"16";
+
+    fn init(allocator: std.mem.Allocator) void {
+        mem_allocator = allocator;
+        mem_allocations = std.AutoHashMap(usize, usize).init(allocator);
+        mem_allocations.ensureTotalCapacity(1024) catch @panic("out of memory");
+    }
+
+    fn deinit() void {
+        var it = mem_allocations.iterator();
+        while (it.next()) |kv| {
+            const mem = @as([*]align(mem_alignment.toByteUnits()) u8, @ptrFromInt(kv.key_ptr.*))[0..kv.value_ptr.*];
+            mem_allocator.free(mem);
+        }
+        mem_allocations.deinit();
+    }
+
+    fn alloc(size: usize) callconv(.c) ?*anyopaque {
+        mem_mutex.lock();
+        defer mem_mutex.unlock();
+
+        const mem = mem_allocator.alignedAlloc(
+            u8,
+            mem_alignment,
+            size,
+        ) catch @panic("out of memory");
+
+        @memset(mem, 0);
+
+        mem_allocations.put(@intFromPtr(mem.ptr), size) catch @panic("out of memory");
+
+        return mem.ptr;
+    }
+
+    fn calloc(nmemb: usize, size: usize) callconv(.c) ?*anyopaque {
+        return alloc(nmemb * size);
+    }
+
+    fn realloc(maybe_ptr: ?*anyopaque, size: usize) callconv(.c) ?*anyopaque {
+        mem_mutex.lock();
+        defer mem_mutex.unlock();
+
+        const old_mem = if (maybe_ptr) |ptr| BLK: {
+            const kv = mem_allocations.fetchRemove(@intFromPtr(ptr)).?;
+            const old_size = kv.value;
+            break :BLK @as([*]align(mem_alignment.toByteUnits()) u8, @ptrCast(@alignCast(ptr)))[0..old_size];
+        } else null;
+
+        const new_mem = if (old_mem) |m| mem_allocator.realloc(
+            m,
+            size,
+        ) catch @panic("out of memory") else mem_allocator.alignedAlloc(
+            u8,
+            mem_alignment,
+            size,
+        ) catch @panic("out of memory");
+
+        mem_allocations.put(@intFromPtr(new_mem.ptr), size) catch @panic("out of memory");
+
+        return new_mem.ptr;
+    }
+
+    fn free(maybe_ptr: ?*anyopaque) callconv(.c) void {
+        if (maybe_ptr) |ptr| {
+            mem_mutex.lock();
+            defer mem_mutex.unlock();
+
+            if (mem_allocations.fetchRemove(@intFromPtr(ptr))) |kv| {
+                const size = kv.value;
+                const mem = @as([*]align(mem_alignment.toByteUnits()) u8, @ptrCast(@alignCast(ptr)))[0..size];
+                mem_allocator.free(mem);
+            }
+        }
+    }
+};

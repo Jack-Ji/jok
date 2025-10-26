@@ -3,9 +3,10 @@ const jok = @import("../../jok.zig");
 const sdl = jok.vendor.sdl;
 const gui = @import("main.zig");
 
-var fcolors = std.array_list.Managed(jok.ColorF).init(std.heap.c_allocator);
+var fcolors: std.array_list.Managed(jok.ColorF) = undefined;
 
 pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
+    fcolors = @TypeOf(fcolors).init(ctx.allocator());
     gui.init(ctx.allocator());
 
     const window = ctx.window();
@@ -36,6 +37,7 @@ pub fn deinit() void {
     ImGui_ImplSDLRenderer3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     gui.deinit();
+    fcolors.deinit();
 }
 
 pub fn newFrame(ctx: jok.Context) void {
