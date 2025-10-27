@@ -365,8 +365,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     if (self._pc_accumulated >= pc_threshold) {
                         break;
                     }
-                    if ((pc_threshold - self._pc_accumulated) * 1000 > self._pc_freq) {
-                        sdl.SDL_Delay(1);
+                    const remaining_ns: u64 = ((pc_threshold - self._pc_accumulated) * 1_000_000_000) / self._pc_freq;
+                    if (remaining_ns > 1_000_000) { // Only sleep if >1 ms
+                        sdl.SDL_DelayNS(remaining_ns);
                         continue;
                     }
                 }
