@@ -33,7 +33,7 @@ A minimal 2d/3d game framework for zig.
 * SVG loading/rendering
 * Sound/Music playing/mixing
 * Tiled editor support (tmx/tsx loading/rendering)
-* Misc little utils, such as easing/timer/signal system
+* Misc little utils, such as easing/timer/signal/fsm system
 
 ## Supported platforms
 * Windows
@@ -187,10 +187,15 @@ The limitations demand developers to be both creative and careful about game's d
 
 ## Third-Party Libraries
 * [SDL3](https://www.libsdl.org) (zlib license)
-* [physfs](https://github.com/icculus/physfs) (zlib license)
+* [miniaudio](https://github.com/mackron/miniaudio) (MIT license)
 * [zig-gamedev](https://github.com/zig-gamedev/zig-gamedev) (MIT license)
-* [stb headers](https://github.com/nothings/stb) (MIT license)
 * [imgui](https://github.com/ocornut/imgui) (MIT license)
+* [cgltf](https://github.com/jkuhlmann/cgltf) (MIT license)
+* [meshoptimizer](https://github.com/zeux/meshoptimizer) (MIT license)
+* [par_shapes](https://github.com/prideout/par/blob/master/par_shapes.h) (MIT license)
+* [FastNoiseLite](https://github.com/Auburn/FastNoiseLite) (MIT license)
+* [physfs](https://github.com/icculus/physfs) (zlib license)
+* [stb headers](https://github.com/nothings/stb) (MIT license)
 * [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
 * [zig-obj](https://github.com/chip2n/zig-obj) (MIT license)
 * [zigfsm](https://github.com/cryptocode/zigfsm) (MIT license)
