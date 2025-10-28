@@ -190,8 +190,10 @@ The limitations demand developers to be both creative and careful about game's d
 * [physfs](https://github.com/icculus/physfs) (zlib license)
 * [zig-gamedev](https://github.com/zig-gamedev/zig-gamedev) (MIT license)
 * [stb headers](https://github.com/nothings/stb) (MIT license)
+* [imgui](https://github.com/ocornut/imgui) (MIT license)
 * [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
 * [zig-obj](https://github.com/chip2n/zig-obj) (MIT license)
+* [zigfsm](https://github.com/cryptocode/zigfsm) (MIT license)
 
 ## Built-in Fonts
 * [Classic Console Neue](http://webdraft.hu/fonts/classic-console/) (MIT license)
