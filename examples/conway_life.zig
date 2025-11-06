@@ -21,7 +21,9 @@ var time: f32 = 0;
 
 pub fn init(ctx: jok.Context) !void {
     batchpool = try @TypeOf(batchpool).init(ctx);
-    var rng = std.Random.DefaultPrng.init(@intCast(std.time.milliTimestamp()));
+    var thread = std.Io.Threaded.init_single_threaded;
+    const io = thread.ioBasic();
+    var rng = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(io)).toSeconds()));
     map = &map_a;
     for (0..map_height) |y| {
         for (0..map_width) |x| {

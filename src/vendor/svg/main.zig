@@ -106,17 +106,27 @@ pub fn createBitmapFromFile(
 ) !SvgBitmap {
     const allocator = ctx.allocator();
 
-    var filedata: []const u8 = undefined;
+    var filedata: []u8 = undefined;
     if (ctx.cfg().jok_enable_physfs) {
         const handle = try physfs.open(path, .read);
         defer handle.close();
 
         filedata = try handle.readAllAlloc(allocator);
     } else {
-        filedata = try std.fs.cwd().readFileAlloc(
+        var thread = std.Io.Threaded.init_single_threaded;
+        const io = thread.ioBasic();
+        const stat = try std.Io.Dir.statPath(
+            std.Io.Dir.cwd(),
+            io,
             std.mem.sliceTo(path, 0),
-            allocator,
-            .limited(1 << 30),
+            .{ .follow_symlinks = false },
+        );
+        filedata = try allocator.alloc(u8, @intCast(stat.size));
+        _ = try std.Io.Dir.readFile(
+            std.Io.Dir.cwd(),
+            io,
+            std.mem.sliceTo(path, 0),
+            filedata,
         );
     }
     defer allocator.free(filedata);

@@ -594,7 +594,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const info = try self._renderer.getInfo();
 
             // Print system info
-            const writer = std.debug.lockStderrWriter(&.{});
+            const writer = std.debug.lockStderrWriter(&.{}).@"0";
             defer std.debug.unlockStdErr();
             try writer.print(
                 \\System info:

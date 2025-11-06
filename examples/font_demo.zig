@@ -50,13 +50,20 @@ pub fn init(ctx: jok.Context) !void {
         &font.codepoint_ranges.chinese_full,
         .{ .keep_pixels = true },
     );
-    var t = std.time.nanoTimestamp();
+
+    var thread = std.Io.Threaded.init_single_threaded;
+    const io = thread.ioBasic();
+    var t = try std.Io.Clock.awake.now(io);
     try atlas.save(ctx, "atlas.png", .{});
-    std.debug.print("Atlas save time: {D}\n", .{@as(u64, @intCast(std.time.nanoTimestamp() - t))});
+    std.debug.print("Atlas save time: {D}\n", .{
+        @as(i64, @intCast(t.durationTo(try std.Io.Clock.awake.now(io)).nanoseconds)),
+    });
     atlas.destroy();
-    t = std.time.nanoTimestamp();
+    t = try std.Io.Clock.awake.now(io);
     saved_atlas = try font.Atlas.load(ctx, "atlas.png");
-    std.debug.print("Atlas load time: {D}\n", .{@as(u64, @intCast(std.time.nanoTimestamp() - t))});
+    std.debug.print("Atlas load time: {D}\n", .{
+        @as(i64, @intCast(t.durationTo(try std.Io.Clock.awake.now(io)).nanoseconds)),
+    });
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {

@@ -37,7 +37,9 @@ pub fn init(ctx: jok.Context) !void {
     }
 
     batchpool = try @TypeOf(batchpool).init(ctx);
-    rd = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
+    var thread = std.Io.Threaded.init_single_threaded;
+    const io = thread.ioBasic();
+    rd = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(io)).toSeconds()));
     sheet = try j2d.SpriteSheet.create(
         ctx,
         &[_]j2d.SpriteSheet.ImageSource{

@@ -398,7 +398,7 @@ pub const File = struct {
     /// Note that if another process/thread is writing to this file at the same
     /// time, then the information this function supplies could be incorrect
     /// before you get it. Use with caution, or better yet, don't use at all.
-    pub fn readAllAlloc(self: File, allocator: std.mem.Allocator) Error![]const u8 {
+    pub fn readAllAlloc(self: File, allocator: std.mem.Allocator) Error![]u8 {
         const total = try self.length();
         const data = try allocator.alloc(u8, total);
         errdefer allocator.free(data);

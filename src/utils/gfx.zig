@@ -24,17 +24,27 @@ pub const FilePixels = struct {
 pub fn loadPixelsFromFile(ctx: jok.Context, path: [:0]const u8, flip: bool) !FilePixels {
     const allocator = ctx.allocator();
 
-    var filedata: []const u8 = undefined;
+    var filedata: []u8 = undefined;
     if (ctx.cfg().jok_enable_physfs) {
         const handle = try physfs.open(path, .read);
         defer handle.close();
 
         filedata = try handle.readAllAlloc(allocator);
     } else {
-        filedata = try std.fs.cwd().readFileAlloc(
+        var thread = std.Io.Threaded.init_single_threaded;
+        const io = thread.ioBasic();
+        const stat = try std.Io.Dir.statPath(
+            std.Io.Dir.cwd(),
+            io,
             std.mem.sliceTo(path, 0),
-            allocator,
-            .limited(1 << 30),
+            .{ .follow_symlinks = false },
+        );
+        filedata = try allocator.alloc(u8, @intCast(stat.size));
+        _ = try std.Io.Dir.readFile(
+            std.Io.Dir.cwd(),
+            io,
+            std.mem.sliceTo(path, 0),
+            filedata,
         );
     }
     defer allocator.free(filedata);
@@ -280,11 +290,14 @@ pub const jpng = struct {
 
             try writeData(ctx, &handle.writer, data, opt);
         } else {
-            const file = try std.fs.cwd().openFileZ(path, .{ .mode = .write_only });
+            const file = try std.fs.cwd().openFile(
+                std.mem.sliceTo(path, 0),
+                .{ .mode = .write_only },
+            );
             defer file.close();
 
             var fwriter = file.writer(&.{});
-            fwriter.pos = (file.stat() catch unreachable).size;
+            fwriter.pos = (try file.stat()).size;
             try writeData(ctx, &fwriter.interface, data, opt);
         }
     }
@@ -311,11 +324,18 @@ pub const jpng = struct {
 
             data = try handle.readAllAlloc(allocator);
         } else {
-            const file = try std.fs.cwd().openFileZ(path, .{ .mode = .read_only });
-            defer file.close();
-            var reader = file.reader(&.{});
+            var thread = std.Io.Threaded.init_single_threaded;
+            const io = thread.ioBasic();
+            const file = try std.Io.Dir.openFile(
+                std.Io.Dir.cwd(),
+                io,
+                std.mem.sliceTo(path, 0),
+                .{ .mode = .read_only },
+            );
+            defer file.close(io);
 
-            const size = (file.stat() catch unreachable).size;
+            var reader = file.reader(io, &.{});
+            const size = try reader.getSize();
             data = try reader.interface.readAlloc(allocator, @intCast(size));
         }
         defer allocator.free(data);

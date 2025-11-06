@@ -22,7 +22,7 @@ var shape_parametric_sphere: zmesh.Shape = undefined;
 var shape_tetrahedron: zmesh.Shape = undefined;
 var text_draw_pos: jok.Point = undefined;
 var text_speed: jok.Point = undefined;
-var screenshot_time: i64 = -1;
+var screenshot_time: std.Io.Timestamp = undefined;
 var screenshot_tex: ?jok.Texture = null;
 var screenshot_pos: jok.Point = undefined;
 var screenshot_size: jok.Point = undefined;
@@ -82,7 +82,11 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                 const pixels = try ctx.renderer().getPixels(null);
                 defer pixels.destroy();
                 screenshot_tex = try pixels.createTexture(ctx.renderer(), .{});
-                screenshot_time = std.time.timestamp();
+
+                var thread = std.Io.Threaded.init_single_threaded;
+                const io = thread.ioBasic();
+                screenshot_time = try std.Io.Clock.awake.now(io);
+
                 try point_easing_system.add(
                     &screenshot_pos,
                     .in_out_circ,
@@ -262,7 +266,10 @@ pub fn draw(ctx: jok.Context) !void {
     }
 
     if (screenshot_tex) |tex| {
-        if (std.time.timestamp() - screenshot_time < 5) {
+        var thread = std.Io.Threaded.init_single_threaded;
+        const io = thread.ioBasic();
+        const now = try std.Io.Clock.awake.now(io);
+        if (screenshot_time.durationTo(now).toSeconds() < 5) {
             var b = try batchpool_2d.new(.{});
             defer b.submit();
 

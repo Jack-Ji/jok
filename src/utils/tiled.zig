@@ -521,7 +521,7 @@ pub fn loadTMX(ctx: jok.Context, path: [:0]const u8) !*TiledMap {
     tmap.props = PropertyTree.init(tmap.arena.allocator());
     errdefer tmap.destroy();
 
-    var data: []const u8 = undefined;
+    var data: []u8 = undefined;
     var dirname: []const u8 = undefined;
     if (ctx.cfg().jok_enable_physfs) {
         const handle = try physfs.open(path, .read);
@@ -533,11 +533,21 @@ pub fn loadTMX(ctx: jok.Context, path: [:0]const u8) !*TiledMap {
         else
             "";
     } else {
-        var file = try std.fs.cwd().openFileZ(path, .{ .mode = .read_only });
-        defer file.close();
-        var reader = file.reader(&.{});
-
-        data = try reader.interface.readAlloc(allocator, 1 << 30);
+        var thread = std.Io.Threaded.init_single_threaded;
+        const io = thread.ioBasic();
+        const stat = try std.Io.Dir.statPath(
+            std.Io.Dir.cwd(),
+            io,
+            std.mem.sliceTo(path, 0),
+            .{ .follow_symlinks = false },
+        );
+        data = try allocator.alloc(u8, @intCast(stat.size));
+        _ = try std.Io.Dir.readFile(
+            std.Io.Dir.cwd(),
+            io,
+            std.mem.sliceTo(path, 0),
+            data,
+        );
         dirname = std.fs.path.dirname(zpath) orelse ".";
     }
     defer allocator.free(data);
@@ -1301,11 +1311,22 @@ inline fn getExternalFileContent(allocator: std.mem.Allocator, use_physfs: bool,
         defer handle.close();
         return try handle.readAllAlloc(allocator);
     } else {
-        var file = try std.fs.cwd().openFileZ(zpath, .{ .mode = .read_only });
-        defer file.close();
-        var reader = file.reader(&.{});
-
-        return try reader.interface.readAlloc(allocator, 1 << 30);
+        var thread = std.Io.Threaded.init_single_threaded;
+        const io = thread.ioBasic();
+        const stat = try std.Io.Dir.statPath(
+            std.Io.Dir.cwd(),
+            io,
+            std.mem.sliceTo(path, 0),
+            .{ .follow_symlinks = false },
+        );
+        const filedata = try allocator.alloc(u8, @intCast(stat.size));
+        _ = try std.Io.Dir.readFile(
+            std.Io.Dir.cwd(),
+            io,
+            std.mem.sliceTo(path, 0),
+            filedata,
+        );
+        return filedata;
     }
 }
 
