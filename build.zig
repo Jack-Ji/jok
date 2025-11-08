@@ -453,6 +453,7 @@ const Emscripten = struct {
         emcc.addArg("-sINITIAL_MEMORY=128mb");
         emcc.addArg("-sALLOW_MEMORY_GROWTH=1");
         emcc.addArg("-sMAXIMUM_MEMORY=2gb");
+        emcc.addArg("-sERROR_ON_UNDEFINED_SYMBOLS=0");
         if (opt.shell_file_path) |p| emcc.addPrefixedFileArg("--shell-file=", p);
         if (opt.preload_path) |p| {
             emcc.addArg("--preload-file");
