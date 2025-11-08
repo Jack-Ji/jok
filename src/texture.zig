@@ -17,7 +17,7 @@ pub const Texture = struct {
         linear = sdl.SDL_SCALEMODE_LINEAR,
     };
 
-    ptr: *sdl.SDL_Texture,
+    ptr: [*c]sdl.SDL_Texture,
 
     pub fn destroy(self: Texture) void {
         sdl.SDL_DestroyTexture(self.ptr);

@@ -6,6 +6,7 @@ const log = std.log.scoped(.jok);
 
 pub const Window = struct {
     ptr: *sdl.SDL_Window,
+    cfg: jok.config.Config,
 
     pub fn init(ctx: jok.Context) !Window {
         const cfg = ctx.cfg();
@@ -17,7 +18,9 @@ pub const Window = struct {
         _ = sdl.SDL_SetStringProperty(props, sdl.SDL_PROP_WINDOW_CREATE_TITLE_STRING, cfg.jok_window_title);
         _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, cfg.jok_headless);
         _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, cfg.jok_window_borderless);
-        _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
+        if (cfg.jok_renderer_type != .software) {
+            _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
+        }
         var window_width: c_int = 800;
         var window_height: c_int = 600;
         switch (cfg.jok_window_size) {
@@ -63,7 +66,7 @@ pub const Window = struct {
             },
         }
 
-        const window = Window{ .ptr = ptr.? };
+        const window = Window{ .ptr = ptr.?, .cfg = ctx.cfg() };
         if (cfg.jok_window_min_size) |size| {
             try window.setMinimumSize(size);
         }
@@ -79,66 +82,67 @@ pub const Window = struct {
         return window;
     }
 
-    pub fn destroy(w: Window) void {
-        sdl.SDL_DestroyWindow(w.ptr);
+    pub fn destroy(self: Window) void {
+        sdl.SDL_DestroyWindow(self.ptr);
     }
 
-    pub fn maximize(w: Window) !void {
-        if (!sdl.SDL_MaximizeWindow(w.ptr)) {
+    pub fn maximize(self: Window) !void {
+        if (!sdl.SDL_MaximizeWindow(self.ptr)) {
             log.err("Minimum window failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
-    pub fn minimize(w: Window) !void {
-        if (!sdl.SDL_MinimizeWindow(w.ptr)) {
+    pub fn minimize(self: Window) !void {
+        if (!sdl.SDL_MinimizeWindow(self.ptr)) {
             log.err("Minimize window failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
-    pub fn getSize(w: Window) jok.Size {
+    pub fn getSize(self: Window) jok.Size {
         var width: c_int = undefined;
         var height: c_int = undefined;
-        _ = sdl.SDL_GetWindowSize(w.ptr, &width, &height);
+        _ = sdl.SDL_GetWindowSize(self.ptr, &width, &height);
         return .{
             .width = @intCast(width),
             .height = @intCast(height),
         };
     }
 
-    pub fn setSize(w: Window, s: jok.Size) !void {
-        if (!sdl.SDL_SetWindowSize(w.ptr, @intCast(s.width), @intCast(s.height))) {
+    pub fn setSize(self: Window, s: jok.Size) !void {
+        if (!sdl.SDL_SetWindowSize(self.ptr, @intCast(s.width), @intCast(s.height))) {
             log.err("Set size failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
-    pub fn setMinimumSize(w: Window, s: jok.Size) !void {
-        if (!sdl.SDL_SetWindowMinimumSize(w.ptr, @intCast(s.width), @intCast(s.height))) {
+    pub fn setMinimumSize(self: Window, s: jok.Size) !void {
+        if (!sdl.SDL_SetWindowMinimumSize(self.ptr, @intCast(s.width), @intCast(s.height))) {
             log.err("Set maximum size failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
-    pub fn setMaximumSize(w: Window, s: jok.Size) !void {
-        if (!sdl.SDL_SetWindowMinimumSize(w.ptr, @intCast(s.width), @intCast(s.height))) {
+    pub fn setMaximumSize(self: Window, s: jok.Size) !void {
+        if (!sdl.SDL_SetWindowMinimumSize(self.ptr, @intCast(s.width), @intCast(s.height))) {
             log.err("Set minimum size failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
-    pub fn setResizable(w: Window, resizable: bool) !void {
-        if (!sdl.SDL_SetWindowResizable(w.ptr, resizable)) {
+    pub fn setResizable(self: Window, resizable: bool) !void {
+        if (self.cfg.jok_renderer_type == .software) return;
+        if (!sdl.SDL_SetWindowResizable(self.ptr, resizable)) {
             log.err("Toggle resizable failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
-    pub fn getPosition(w: Window) jok.Point {
+    pub fn getPosition(self: Window) jok.Point {
         var x: c_int = undefined;
         var y: c_int = undefined;
-        _ = sdl.SDL_GetWindowPosition(w.ptr, &x, &y);
+        _ = sdl.SDL_GetWindowPosition(self.ptr, &x, &y);
         return .{
             .x = @floatFromInt(x),
             .y = @floatFromInt(y),
@@ -149,46 +153,46 @@ pub const Window = struct {
         center,
         custom: jok.Point,
     };
-    pub fn setPosition(w: Window, pos: WindowPos) !void {
+    pub fn setPosition(self: Window, pos: WindowPos) !void {
         if (!switch (pos) {
-            .center => sdl.SDL_SetWindowPosition(w.ptr, sdl.SDL_WINDOWPOS_CENTERED, sdl.SDL_WINDOWPOS_CENTERED),
-            .custom => |p| sdl.SDL_SetWindowPosition(w.ptr, @intFromFloat(p.x), @intFromFloat(p.y)),
+            .center => sdl.SDL_SetWindowPosition(self.ptr, sdl.SDL_WINDOWPOS_CENTERED, sdl.SDL_WINDOWPOS_CENTERED),
+            .custom => |p| sdl.SDL_SetWindowPosition(self.ptr, @intFromFloat(p.x), @intFromFloat(p.y)),
         }) {
             log.err("Set position failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
-    pub fn setTitle(w: Window, title: [:0]const u8) !void {
-        if (!sdl.SDL_SetWindowTitle(w.ptr, title)) {
+    pub fn setTitle(self: Window, title: [:0]const u8) !void {
+        if (!sdl.SDL_SetWindowTitle(self.ptr, title)) {
             log.err("Set title failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
-    pub fn setVisible(w: Window, visible: bool) !void {
-        if (!if (visible) sdl.SDL_ShowWindow(w.ptr) else sdl.SDL_HideWindow(w.ptr)) {
+    pub fn setVisible(self: Window, visible: bool) !void {
+        if (!if (visible) sdl.SDL_ShowWindow(self.ptr) else sdl.SDL_HideWindow(self.ptr)) {
             log.err("Toggle visibility failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
-    pub fn setFullscreen(w: Window, on: bool) !void {
-        if (!sdl.SDL_SetWindowFullscreen(w.ptr, on)) {
+    pub fn setFullscreen(self: Window, on: bool) !void {
+        if (!sdl.SDL_SetWindowFullscreen(self.ptr, on)) {
             log.err("Toggle fullscreen failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
-    pub fn setAlwaysOnTop(w: Window, on: bool) !void {
-        if (!sdl.SDL_SetWindowAlwaysOnTop(w.ptr, on)) {
+    pub fn setAlwaysOnTop(self: Window, on: bool) !void {
+        if (!sdl.SDL_SetWindowAlwaysOnTop(self.ptr, on)) {
             log.err("Toggle always-on-top failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
 
-    pub fn setRelativeMouseMode(w: Window, on: bool) !void {
-        if (!sdl.SDL_SetWindowRelativeMouseMode(w.ptr, on)) {
+    pub fn setRelativeMouseMode(self: Window, on: bool) !void {
+        if (!sdl.SDL_SetWindowRelativeMouseMode(self.ptr, on)) {
             log.err("Toggle relative mouse mode failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }

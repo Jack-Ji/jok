@@ -2,7 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const builtin = @import("builtin");
 const config = @import("config.zig");
-const pp = @import("post_processing.zig");
 const jok = @import("jok.zig");
 const io = jok.io;
 const font = jok.font;
@@ -34,8 +33,6 @@ pub const Context = struct {
         setCanvasSize: *const fn (ctx: *anyopaque, size: ?jok.Size) anyerror!void,
         getCanvasArea: *const fn (ctx: *anyopaque) jok.Rectangle,
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
-        addPostProcessing: *const fn (ctx: *anyopaque, ppa: pp.Actor) anyerror!void,
-        clearPostProcessing: *const fn (ctx: *anyopaque) void,
         supressDraw: *const fn (ctx: *anyopaque) void,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
@@ -123,21 +120,6 @@ pub const Context = struct {
         return self.vtable.getAspectRatio(self.ctx);
     }
 
-    /// Add post-processing effect
-    pub fn addPostProcessing(self: Context, ppa: pp.Actor) !void {
-        if (ppa.region) |r| {
-            const canvas_size = self.getCanvasSize();
-            assert(r.width < canvas_size.width);
-            assert(r.height < canvas_size.height);
-        }
-        try self.vtable.addPostProcessing(self.ctx, ppa);
-    }
-
-    /// Clear post-processing effects
-    pub fn clearPostProcessing(self: Context) void {
-        return self.vtable.clearPostProcessing(self.ctx);
-    }
-
     /// Supress drawcall of current frame
     pub fn supressDraw(self: Context) void {
         return self.vtable.supressDraw(self.ctx);
@@ -214,10 +196,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _canvas_texture: jok.Texture = undefined,
         _canvas_size: ?jok.Size = cfg.jok_canvas_size,
         _canvas_target_area: ?jok.Rectangle = null,
-
-        // Post-processing
-        _post_processing: pp.PostProcessingEffect = undefined,
-        _pp_actors: std.array_list.Managed(pp.Actor) = undefined,
 
         // Drawcall supress
         _supress_draw: bool = false,
@@ -349,7 +327,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
             comptime drawFn: *const fn (Context) anyerror!void,
         ) void {
             const pc_threshold: u64 = switch (cfg.jok_fps_limit) {
-                .none, .auto => 0,
+                .none => 0,
+                .auto => if (cfg.jok_renderer_type == .software) @divTrunc(self._pc_freq, 30) else 0,
                 .manual => |_fps| self._pc_freq / @as(u64, _fps),
             };
 
@@ -432,29 +411,28 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     self._draw_cost = if (self._draw_cost > 0) (self._draw_cost + cost) / 2 else cost;
                 };
 
-                defer self._renderer.present();
+                defer {
+                    self._renderer.present();
+                    if (cfg.jok_renderer_type == .software) {
+                        _ = sdl.SDL_UpdateWindowSurface(self._window.ptr);
+                    }
+                }
 
                 zgui.sdl.newFrame(self.context());
                 defer zgui.sdl.draw(self.context());
 
                 self._renderer.clear(cfg.jok_framebuffer_color) catch unreachable;
-                self._renderer.setTarget(self._canvas_texture) catch unreachable;
-                defer {
-                    self._renderer.setTarget(null) catch unreachable;
-                    if (cfg.jok_enable_post_processing and self._pp_actors.items.len > 0) {
-                        self._post_processing.reset();
-                        for (self._pp_actors.items) |a| {
-                            self._post_processing.applyActor(a);
-                        }
-                        self._post_processing.render();
-                    } else {
-                        self._renderer.drawTexture(
-                            self._canvas_texture,
-                            null,
-                            self._canvas_target_area,
-                        ) catch unreachable;
-                    }
+                if (cfg.jok_renderer_type != .software) {
+                    self._renderer.setTarget(self._canvas_texture) catch unreachable;
                 }
+                defer if (cfg.jok_renderer_type != .software) {
+                    self._renderer.setTarget(null) catch unreachable;
+                    self._renderer.drawTexture(
+                        self._canvas_texture,
+                        null,
+                        self._canvas_target_area,
+                    ) catch unreachable;
+                };
 
                 drawFn(self._ctx) catch |err| {
                     log.err("Got error in `draw`: {s}", .{@errorName(err)});
@@ -484,15 +462,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 } else if (cfg.jok_exit_on_recv_quit and we == .quit) {
                     kill(self);
                 } else {
-                    switch (we) {
-                        .window_resized => {
-                            if (self._canvas_size == null) {
-                                self._canvas_texture.destroy();
-                                self._canvas_texture = self._renderer.createTarget(.{}) catch unreachable;
-                            }
-                            self.updateCanvasTargetArea();
-                        },
-                        else => {},
+                    if (cfg.jok_renderer_type != .software and we == .window_resized) {
+                        if (self._canvas_size == null) {
+                            self._canvas_texture.destroy();
+                            self._canvas_texture = self._renderer.createTarget(.{}) catch unreachable;
+                        }
+                        self.updateCanvasTargetArea();
                     }
 
                     // Passed to game code
@@ -683,15 +658,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
             // Check and print system info
             try self.checkSys();
 
-            // Init drawing target
-            self._canvas_texture = try self._renderer.createTarget(.{ .size = self._canvas_size });
-
-            if (cfg.jok_enable_post_processing) {
-                // Init post-processing facility
-                self._post_processing = try pp.PostProcessingEffect.init(self._ctx);
-                self._pp_actors = .init(self._allocator);
+            // Init offline drawing target
+            if (cfg.jok_renderer_type != .software) {
+                self._canvas_texture = try self._renderer.createTarget(.{ .size = self._canvas_size });
+                self.updateCanvasTargetArea();
             }
-            self.updateCanvasTargetArea();
 
             if (!builtin.cpu.arch.isWasm() and !cfg.jok_headless and cfg.jok_exit_on_recv_esc) {
                 log.info("Press ESC to exit game", .{});
@@ -700,11 +671,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Deinitialize SDL
         fn deinitSDL(self: *@This()) void {
-            if (cfg.jok_enable_post_processing) {
-                self._pp_actors.deinit();
-                self._post_processing.destroy();
+            if (cfg.jok_renderer_type != .software) {
+                self._canvas_texture.destroy();
             }
-            self._canvas_texture.destroy();
             self._renderer.destroy();
             self._window.destroy();
             sdl.SDL_Quit();
@@ -732,8 +701,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .setCanvasSize = setCanvasSize,
                     .getCanvasArea = getCanvasArea,
                     .getAspectRatio = getAspectRatio,
-                    .addPostProcessing = addPostProcessing,
-                    .clearPostProcessing = clearPostProcessing,
                     .supressDraw = supressDraw,
                     .isRunningSlow = isRunningSlow,
                     .displayStats = displayStats,
@@ -764,9 +731,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 };
             } else {
                 self._canvas_target_area = null;
-            }
-            if (cfg.jok_enable_post_processing) {
-                self._post_processing.onCanvasChange();
             }
         }
 
@@ -829,6 +793,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Get canvas texture
         fn canvas(ptr: *anyopaque) jok.Texture {
             const self: *@This() = @ptrCast(@alignCast(ptr));
+            if (cfg.jok_renderer_type == .software) return .{ .ptr = null };
             return self._canvas_texture;
         }
 
@@ -847,7 +812,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Get size of canvas
         fn getCanvasSize(ptr: *anyopaque) jok.Size {
             const self: *@This() = @ptrCast(@alignCast(ptr));
-            if (self._canvas_size) |sz| return sz;
+            if (cfg.jok_renderer_type != .software) {
+                if (self._canvas_size) |sz| return sz;
+            }
             return self._renderer.getOutputSize() catch unreachable;
         }
 
@@ -855,6 +822,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn setCanvasSize(ptr: *anyopaque, size: ?jok.Size) !void {
             assert(size == null or (size.?.width > 0 and size.?.width > 0));
             const self: *@This() = @ptrCast(@alignCast(ptr));
+            if (cfg.jok_renderer_type == .software) @panic("Unsupported when using software renderer!");
             self._canvas_texture.destroy();
             self._canvas_size = size;
             self._canvas_texture = try self._renderer.createTarget(.{ .size = self._canvas_size });
@@ -878,24 +846,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn getAspectRatio(ptr: *anyopaque) f32 {
             const size = getCanvasSize(ptr);
             return @as(f32, @floatFromInt(size.width)) / @as(f32, @floatFromInt(size.height));
-        }
-
-        /// Add post-processing effect
-        pub fn addPostProcessing(ptr: *anyopaque, ppa: pp.Actor) !void {
-            if (!cfg.jok_enable_post_processing) {
-                @panic("post-processing isn't enabled!");
-            }
-            const self: *@This() = @ptrCast(@alignCast(ptr));
-            try self._pp_actors.append(ppa);
-        }
-
-        /// Clear post-processing effect
-        pub fn clearPostProcessing(ptr: *anyopaque) void {
-            if (!cfg.jok_enable_post_processing) {
-                @panic("post-processing isn't enabled!");
-            }
-            const self: *@This() = @ptrCast(@alignCast(ptr));
-            self._pp_actors.clearRetainingCapacity();
         }
 
         /// Supress drawcall of current frame
@@ -931,10 +881,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .always_auto_resize = true,
                 },
             })) {
-                zgui.text("Window Size: {d:.0}x{d:.0}", .{ ws.width, ws.height });
-                zgui.text("Canvas Size: {d:.0}x{d:.0}", .{ cs.width, cs.height });
-                zgui.text("V-Sync Enabled: {}", .{rdinfo.vsync > 0});
                 zgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
+                zgui.text("Window Size: {d:.0}x{d:.0}", .{ ws.width, ws.height });
+                zgui.text("Renderer Type: {s}", .{cfg.jok_renderer_type.str()});
+                zgui.text("V-Sync Enabled: {}", .{rdinfo.vsync > 0});
+                zgui.text("Canvas Size: {d:.0}x{d:.0}", .{ cs.width, cs.height });
                 zgui.separator();
                 zgui.text("Duration: {D}", .{@as(u64, @intFromFloat(self._seconds_real * 1e9))});
                 if (self._running_slow) {

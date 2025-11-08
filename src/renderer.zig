@@ -46,12 +46,25 @@ pub const Renderer = struct {
 
     pub fn init(ctx: jok.Context) !Renderer {
         const cfg = ctx.cfg();
-        const props = sdl.SDL_CreateProperties();
-        _ = sdl.SDL_SetPointerProperty(props, sdl.SDL_PROP_RENDERER_CREATE_WINDOW_POINTER, ctx.window().ptr);
-        if (cfg.jok_fps_limit == .auto) {
-            _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_RENDERER_CREATE_PRESENT_VSYNC_NUMBER, 1);
-        }
-        const ptr = sdl.SDL_CreateRendererWithProperties(props);
+        const ptr = BLK: {
+            switch (cfg.jok_renderer_type) {
+                .software => {
+                    const surface = sdl.SDL_GetWindowSurface(ctx.window().ptr);
+                    break :BLK sdl.SDL_CreateSoftwareRenderer(surface);
+                },
+                .accelerated => {
+                    const props = sdl.SDL_CreateProperties();
+                    _ = sdl.SDL_SetPointerProperty(props, sdl.SDL_PROP_RENDERER_CREATE_WINDOW_POINTER, ctx.window().ptr);
+                    if (cfg.jok_fps_limit == .auto) {
+                        _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_RENDERER_CREATE_PRESENT_VSYNC_NUMBER, 1);
+                    }
+                    break :BLK sdl.SDL_CreateRendererWithProperties(props);
+                },
+                .gpu => {
+                    @panic("not yet");
+                },
+            }
+        };
         if (ptr == null) {
             log.err("Create renderer failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
@@ -286,9 +299,11 @@ pub const Renderer = struct {
         scale_mode: jok.Texture.ScaleMode = .linear,
     };
     pub fn createTexture(self: Renderer, size: jok.Size, pixels: ?[]const u8, opt: TextureOption) !jok.Texture {
-        const rdinfo = try self.getInfo();
-        if (size.width > rdinfo.max_texture_size or size.height > rdinfo.max_texture_size) {
-            return error.TextureTooLarge;
+        if (self.cfg.jok_renderer_type != .software) {
+            const rdinfo = try self.getInfo();
+            if (size.width > rdinfo.max_texture_size or size.height > rdinfo.max_texture_size) {
+                return error.TextureTooLarge;
+            }
         }
         const ptr = sdl.SDL_CreateTexture(
             self.ptr,
@@ -385,6 +400,7 @@ pub const Renderer = struct {
         scale_mode: jok.Texture.ScaleMode = .linear,
     };
     pub fn createTarget(self: Renderer, opt: TargetOption) !jok.Texture {
+        if (self.cfg.jok_renderer_type == .software) @panic("Unsupported when using software renderer!");
         const size = opt.size orelse BLK: {
             const sz = try self.getOutputSize();
             break :BLK sz;

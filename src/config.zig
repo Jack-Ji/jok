@@ -12,14 +12,14 @@ pub const Config = struct {
     /// Assets accessing method
     jok_enable_physfs: bool = true,
 
+    // Type of renderer
+    jok_renderer_type: RendererType = .accelerated,
+
     /// Clearing color of framebuffer
     jok_framebuffer_color: jok.Color = .black,
 
     /// Canvas size (default to framebuffer's size)
     jok_canvas_size: ?jok.Size = null,
-
-    /// Whether enable post-processing
-    jok_enable_post_processing: bool = false,
 
     /// Headless mode
     jok_headless: bool = false,
@@ -57,6 +57,21 @@ pub const WindowSize = union(enum) {
     maximized,
     fullscreen,
     custom: struct { width: u32, height: u32 },
+};
+
+/// Renderer type
+pub const RendererType = enum {
+    software, // software renderer, many limitations, created with SDL_CreateSoftwareRenderer
+    accelerated, // accelerated renderer, created with SDL_CreateRenderer
+    gpu, // accelerated renderer with shader support, created with SDL_CreateGPURenderer
+
+    pub inline fn str(self: @This()) []const u8 {
+        return switch (self) {
+            .software => "software",
+            .accelerated => "accelerated",
+            .gpu => "gpu",
+        };
+    }
 };
 
 /// Graphics flushing method
@@ -98,9 +113,9 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_log_level", .desc = "logging level" },
         .{ .name = "jok_fps_limit", .desc = "fps limit setting" },
         .{ .name = "jok_enable_physfs", .desc = "whether use physfs to access game assets" },
+        .{ .name = "jok_renderer_type", .desc = "type of renderer" },
         .{ .name = "jok_framebuffer_color", .desc = "clearing color of framebuffer" },
         .{ .name = "jok_canvas_size", .desc = "size of canvas" },
-        .{ .name = "jok_enable_post_processing", .desc = "whether enable post-processing facility" },
         .{ .name = "jok_headless", .desc = "headless mode" },
         .{ .name = "jok_window_title", .desc = "title of window" },
         .{ .name = "jok_window_size", .desc = "size of window" },

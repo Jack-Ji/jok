@@ -53,7 +53,6 @@ pub fn build(b: *Build) void {
         .{ .name = "svg", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "blending", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "pathfind", .opt = .{} },
-        .{ .name = "post_processing", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "isometric", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "conway_life", .opt = .{} },
         .{ .name = "tiled", .opt = .{ .preload_path = "examples/assets" } },
