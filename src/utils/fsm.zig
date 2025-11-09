@@ -644,7 +644,7 @@ pub const Interface = struct {
     /// if there's a mismatch. When this convention doesn't work, use @fieldParentPtr directly.
     pub fn downcast(comptime Implementer: type, interface_ref: anytype) *Implementer {
         const field_name = comptime std.meta.fieldNames(Implementer).*[0];
-        return @fieldParentPtr(field_name, interface_ref);
+        return @alignCast(@fieldParentPtr(field_name, interface_ref));
     }
 
     /// Instantiates an interface type and populates its function pointers to point to
@@ -726,9 +726,6 @@ test "moore machine: three-level intensity light" {
     try expect(!fsm.canTransitionTo(.medium));
     try expect(!fsm.canTransitionTo(.bright));
     try expect(!fsm.canTransitionTo(.off));
-
-    // Uncomment to generate a Graphviz diagram
-    // try fsm.exportGraphviz("lights", std.io.getStdOut().writer(), .{.layout = "circo", .shape = "box"});
 }
 
 test "minimal without event" {
@@ -1000,9 +997,6 @@ test "csv parser" {
 
     try Parser.parse(&fsm, csv_input);
     try expect(fsm.isInFinalState());
-
-    // Uncomment to generate a Graphviz diagram
-    // try fsm.exportGraphviz("csv", std.io.getStdOut().writer(), .{.shape = "box", .shape_final_state = "doublecircle", .show_initial_state=true});
 }
 
 // An alternative to the "csv parser" test using do(...) return values rather than transition callbacks
@@ -1124,9 +1118,6 @@ test "csv parser, without handler callback" {
 
     try Parser.parse(&fsm, csv_input);
     try expect(fsm.isInFinalState());
-
-    // Uncomment to generate a Graphviz diagram
-    // try fsm.exportGraphviz("csv", std.io.getStdOut().writer(), .{.shape = "box", .shape_final_state = "doublecircle", .show_initial_state=true});
 }
 
 test "handler that cancels" {
