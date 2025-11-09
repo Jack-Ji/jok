@@ -99,7 +99,7 @@ pub const Object = struct {
     /// Destroy an object
     pub fn destroy(o: *Object, recursive: bool) void {
         if (recursive) {
-            for (o.children.items) |c| c.destroy(true);
+            while (o.children.items.len > 0) o.children.getLast().destroy(true);
         }
         if (o.actor == .mesh) {
             o.actor.mesh.mesh.destroy();
