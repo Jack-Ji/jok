@@ -426,16 +426,15 @@ const Emscripten = struct {
         optimize: OptimizeMode,
         shell_file_path: ?Build.LazyPath = null,
         preload_path: ?[]const u8 = null,
-        release_use_closure: bool = false,
         release_use_lto: bool = true,
+        use_filesystem: bool = true,
         use_emmalloc: bool = false,
-        use_offset_converter: bool = true, // needed for @returnAddress builtin used by Zig allocators
         extra_args: []const []const u8 = &.{},
     };
     fn link(sdk: *Sdk, opt: EmLinkOptions) *Build.Step.InstallDir {
         const emcc_path = sdk.path(&.{ "upstream", "emscripten", "emcc" }).getPath(sdk.builder);
         const emcc = sdk.builder.addSystemCommand(&.{emcc_path});
-        emcc.setName("emcc"); // hide emcc path
+        emcc.setName("emcc");
         if (opt.optimize == .Debug) {
             emcc.addArg("-sASSERTIONS");
             emcc.addArgs(&.{ "-Og", "-sSAFE_HEAP=1", "-sSTACK_OVERFLOW_CHECK=1" });
@@ -447,7 +446,6 @@ const Emscripten = struct {
                 emcc.addArg("-O3");
             }
             if (opt.release_use_lto) emcc.addArg("-flto");
-            if (opt.release_use_closure) emcc.addArgs(&.{ "--closure", "1" });
         }
         emcc.addArg("-sUSE_SDL=3");
         emcc.addArg("-sINITIAL_MEMORY=128mb");
@@ -459,8 +457,8 @@ const Emscripten = struct {
             emcc.addArg("--preload-file");
             emcc.addArg(sdk.builder.fmt("{s}@/", .{sdk.builder.pathFromRoot(p)}));
         }
+        if (!opt.use_filesystem) emcc.addArg("-sNO_FILESYSTEM=1");
         if (opt.use_emmalloc) emcc.addArg("-sMALLOC='emmalloc'");
-        if (opt.use_offset_converter) emcc.addArg("-sUSE_OFFSET_CONVERTER");
         for (opt.extra_args) |arg| emcc.addArg(arg);
 
         // add the main lib, and then scan for library dependencies and add those too

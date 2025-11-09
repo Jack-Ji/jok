@@ -187,6 +187,7 @@ The limitations demand developers to be both creative and careful about game's d
 
 ## Third-Party Libraries
 * [SDL3](https://www.libsdl.org) (zlib license)
+* [SDL3 using Zig build system](https://github.com/castholm/SDL) (zlib license)
 * [miniaudio](https://github.com/mackron/miniaudio) (MIT license)
 * [zig-gamedev](https://github.com/zig-gamedev/zig-gamedev) (MIT license)
 * [imgui](https://github.com/ocornut/imgui) (MIT license)
