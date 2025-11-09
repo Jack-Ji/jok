@@ -59,7 +59,7 @@ pub const Object = struct {
     /// Destroy an object
     pub fn destroy(o: *Object, recursive: bool) void {
         if (recursive) {
-            while (o.children.items.len > 0) o.children.getLast().destroy(true);
+            while (o.children.items.len > 0) o.children.items[0].destroy(true);
         }
         o.removeSelf();
         o.children.deinit();
