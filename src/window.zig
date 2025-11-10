@@ -178,6 +178,7 @@ pub const Window = struct {
     }
 
     pub fn setFullscreen(self: Window, on: bool) !void {
+        if (self.cfg.jok_renderer_type == .software) return;
         if (!sdl.SDL_SetWindowFullscreen(self.ptr, on)) {
             log.err("Toggle fullscreen failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
