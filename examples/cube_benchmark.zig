@@ -71,7 +71,6 @@ pub fn init(ctx: jok.Context) !void {
         false,
     );
 
-    batchpool = try @TypeOf(batchpool).init(ctx);
     var thread = std.Io.Threaded.init_single_threaded;
     const io = thread.ioBasic();
     var rng = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(io)).toSeconds()));
