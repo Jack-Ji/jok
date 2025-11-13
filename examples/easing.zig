@@ -60,7 +60,7 @@ fn finishEase(ev: *const PointEase.EasingValue) void {
 pub fn init(ctx: jok.Context) !void {
     batchpool = try @TypeOf(batchpool).init(ctx);
     point_easing_system = try PointEase.create(ctx.allocator());
-    try point_easing_system.sig.connect(finishEase);
+    try point_easing_system.sig.connect(finishEase, null);
     for (&blocks, 0..) |*b, i| {
         b.* = .{
             .id = @intCast(i),
