@@ -135,33 +135,26 @@ pub const TimerController = struct {
     pub fn update(c: *TimerController, delta_seconds: f32) void {
         var delta_ms: u32 = @intFromFloat(delta_seconds * 1000);
 
-        // Update timers' state
-        var node = c.tlist.first;
-        while (node) |n| {
-            var data: *TimerData = @fieldParentPtr("node", n);
-            if (data.ms >= delta_ms) {
-                data.ms -= delta_ms;
-                break;
-            } else {
-                data.ms = 0;
-                delta_ms -= data.ms;
-            }
-            node = n.next;
-        }
+        while (delta_ms > 0 and c.tlist.len() > 0) {
+            const node = c.tlist.first.?;
+            var data: *TimerData = @fieldParentPtr("node", node);
 
-        // Call expired timers' callbacks
-        while (c.tlist.first) |n| {
-            var data: *TimerData = @fieldParentPtr("node", n);
-            if (data.ms != 0) break;
-            const ms = data.timer.doCallback();
-            if (ms == 0) {
-                data.timer.destroy();
+            // Update timers' state
+            if (data.ms > delta_ms) {
+                data.ms -= delta_ms;
+                delta_ms = 0;
             } else {
-                c.tlist.remove(n);
-                data.ms = ms;
-                c.addNode(data);
+                delta_ms -= data.ms;
+                data.ms = 0;
+                const ms = data.timer.doCallback();
+                if (ms == 0) {
+                    data.timer.destroy();
+                } else {
+                    c.tlist.remove(node);
+                    data.ms = ms;
+                    c.addNode(data);
+                }
             }
-            node = n.next;
         }
     }
 
@@ -266,5 +259,5 @@ test "timer" {
     controller.update(0.009);
     controller.update(0.008);
     controller.update(0.007);
-    try std.testing.expectEqual(440, S.sum);
+    try std.testing.expectEqual(450, S.sum);
 }
