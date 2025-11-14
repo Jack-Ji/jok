@@ -162,19 +162,19 @@ pub const Rectangle = extern struct {
     }
 
     pub inline fn getTopRight(r: Rectangle) jok.Point {
-        return .{ .x = r.x + r.width - 1, .y = r.y };
+        return .{ .x = r.x + r.width, .y = r.y };
     }
 
     pub inline fn getBottomLeft(r: Rectangle) jok.Point {
-        return .{ .x = r.x, .y = r.y + r.height - 1 };
+        return .{ .x = r.x, .y = r.y + r.height };
     }
 
     pub inline fn getBottomRight(r: Rectangle) jok.Point {
-        return .{ .x = r.x + r.width - 1, .y = r.y + r.height - 1 };
+        return .{ .x = r.x + r.width, .y = r.y + r.height };
     }
 
     pub inline fn getCenter(r: Rectangle) jok.Point {
-        return .{ .x = @floor(r.x + r.width * 0.5), .y = @floor(r.y + r.height * 0.5) };
+        return .{ .x = r.x + r.width * 0.5, .y = r.y + r.height * 0.5 };
     }
 
     pub inline fn translate(r: Rectangle, v: [2]f32) Rectangle {
@@ -287,7 +287,7 @@ pub const Ellipse = struct {
     center: Point = .origin,
     radius: Point = .unit,
 
-    pub inline fn translate(e: Ellipse, v: [2]f32) Circle {
+    pub inline fn translate(e: Ellipse, v: [2]f32) Ellipse {
         return .{
             .center = e.center.add(v),
             .radius = e.radius,
