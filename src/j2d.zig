@@ -169,6 +169,14 @@ pub const Batch = struct {
                     ascendCompare,
                 ),
             }
+
+            const csz = self.ctx.getCanvasSize();
+            const screen = jok.Rectangle{
+                .x = 0,
+                .y = 0,
+                .width = @floatFromInt(csz.width),
+                .height = @floatFromInt(csz.height),
+            };
             for (self.draw_commands.items) |dcmd| {
                 switch (dcmd.cmd) {
                     .quad_image => |c| self.all_tex.put(c.texture.ptr, true) catch unreachable,
@@ -178,7 +186,9 @@ pub const Batch = struct {
                     },
                     else => {},
                 }
-                dcmd.render(self.draw_list);
+                if (screen.intersectRect(dcmd.getRect()) != null) {
+                    dcmd.render(self.draw_list);
+                }
             }
         }
 

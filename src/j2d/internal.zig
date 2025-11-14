@@ -221,7 +221,7 @@ pub const DrawCmd = struct {
         };
     }
 
-    pub fn compare(d0: DrawCmd, d1: DrawCmd, ascend: bool) bool {
+    pub inline fn compare(d0: DrawCmd, d1: DrawCmd, ascend: bool) bool {
         if (math.approxEqAbs(f32, d0.depth, d1.depth, 0.0001)) {
             const tex0 = d0.getTexture();
             const tex1 = d1.getTexture();
@@ -232,7 +232,161 @@ pub const DrawCmd = struct {
         return if (ascend) d0.depth < d1.depth else d0.depth > d1.depth;
     }
 
-    pub fn render(self: DrawCmd, dl: zgui.DrawList) void {
+    pub inline fn getRect(self: DrawCmd) jok.Rectangle {
+        var rect: jok.Rectangle = undefined;
+        switch (self.cmd) {
+            .quad_image => |c| {
+                rect.x = @min(c.p1.x, c.p2.x, c.p3.x, c.p4.x);
+                rect.y = @min(c.p1.y, c.p2.y, c.p3.y, c.p4.y);
+                rect.width = @max(c.p1.x, c.p2.x, c.p3.x, c.p4.x) - rect.x;
+                rect.height = @max(c.p1.y, c.p2.y, c.p3.y, c.p4.y) - rect.y;
+            },
+            .image_rounded => |c| {
+                rect.x = c.pmin.x;
+                rect.y = c.pmin.y;
+                rect.width = c.pmax.x - c.pmin.x;
+                rect.height = c.pmax.y - c.pmin.y;
+            },
+            .line => |c| {
+                rect.x = @min(c.p1.x, c.p2.x);
+                rect.y = @min(c.p1.y, c.p2.y);
+                rect.width = @max(c.p1.x, c.p2.x) - rect.x;
+                rect.height = @max(c.p1.y, c.p2.y) - rect.y;
+            },
+            .rect_rounded => |c| {
+                rect.x = c.pmin.x;
+                rect.y = c.pmin.y;
+                rect.width = c.pmax.x - c.pmin.x;
+                rect.height = c.pmax.y - c.pmin.y;
+            },
+            .rect_rounded_fill => |c| {
+                rect.x = c.pmin.x;
+                rect.y = c.pmin.y;
+                rect.width = c.pmax.x - c.pmin.x;
+                rect.height = c.pmax.y - c.pmin.y;
+            },
+            .quad => |c| {
+                rect.x = @min(c.p1.x, c.p2.x);
+                rect.y = @min(c.p1.y, c.p2.y);
+                rect.width = @max(c.p1.x, c.p2.x) - rect.x;
+                rect.height = @max(c.p1.y, c.p2.y) - rect.y;
+            },
+            .quad_fill => |c| {
+                rect.x = @min(c.p1.x, c.p2.x);
+                rect.y = @min(c.p1.y, c.p2.y);
+                rect.width = @max(c.p1.x, c.p2.x) - rect.x;
+                rect.height = @max(c.p1.y, c.p2.y) - rect.y;
+            },
+            .triangle => |c| {
+                rect.x = @min(c.p1.x, c.p2.x, c.p3.x);
+                rect.y = @min(c.p1.y, c.p2.y, c.p3.y);
+                rect.width = @max(c.p1.x, c.p2.x, c.p3.x) - rect.x;
+                rect.height = @max(c.p1.y, c.p2.y, c.p3.y) - rect.y;
+            },
+            .triangle_fill => |c| {
+                rect.x = @min(c.p1.x, c.p2.x, c.p3.x);
+                rect.y = @min(c.p1.y, c.p2.y, c.p3.y);
+                rect.width = @max(c.p1.x, c.p2.x, c.p3.x) - rect.x;
+                rect.height = @max(c.p1.y, c.p2.y, c.p3.y) - rect.y;
+            },
+            .circle => |c| {
+                rect.x = c.p.x - c.radius;
+                rect.y = c.p.y - c.radius;
+                rect.width = c.radius * 2;
+                rect.height = c.radius * 2;
+            },
+            .circle_fill => |c| {
+                rect.x = c.p.x - c.radius;
+                rect.y = c.p.y - c.radius;
+                rect.width = c.radius * 2;
+                rect.height = c.radius * 2;
+            },
+            .ellipse => |c| {
+                rect.x = c.p.x - c.radius.x;
+                rect.y = c.p.y - c.radius.y;
+                rect.width = c.radius.x * 2;
+                rect.height = c.radius.y * 2;
+            },
+            .ellipse_fill => |c| {
+                rect.x = c.p.x - c.radius.x;
+                rect.y = c.p.y - c.radius.y;
+                rect.width = c.radius.x * 2;
+                rect.height = c.radius.y * 2;
+            },
+            .ngon => |c| {
+                rect.x = c.p.x - c.radius;
+                rect.y = c.p.y - c.radius;
+                rect.width = c.radius * 2;
+                rect.height = c.radius * 2;
+            },
+            .ngon_fill => |c| {
+                rect.x = c.p.x - c.radius;
+                rect.y = c.p.y - c.radius;
+                rect.width = c.radius * 2;
+                rect.height = c.radius * 2;
+            },
+            .convex_polygon_fill => |c| {
+                var minx: f32 = std.math.floatMax(f32);
+                var maxx: f32 = 0;
+                var miny: f32 = std.math.floatMax(f32);
+                var maxy: f32 = 0;
+                for (c.points.items) |p| {
+                    const pos = c.transform.transformPoint(p.pos);
+                    if (minx > pos.x) minx = pos.x;
+                    if (miny > pos.y) miny = pos.y;
+                    if (maxx < pos.x) maxx = pos.x;
+                    if (maxy < pos.y) maxy = pos.y;
+                }
+                rect.x = minx;
+                rect.y = miny;
+                rect.width = maxx - minx;
+                rect.height = maxy - miny;
+            },
+            .concave_polygon_fill => |c| {
+                var minx: f32 = std.math.floatMax(f32);
+                var maxx: f32 = 0;
+                var miny: f32 = std.math.floatMax(f32);
+                var maxy: f32 = 0;
+                for (c.points.items) |p| {
+                    const pos = c.transform.transformPoint(p);
+                    if (minx > pos.x) minx = pos.x;
+                    if (miny > pos.y) miny = pos.y;
+                    if (maxx < pos.x) maxx = pos.x;
+                    if (maxy < pos.y) maxy = pos.y;
+                }
+                rect.x = minx;
+                rect.y = miny;
+                rect.width = maxx - minx;
+                rect.height = maxy - miny;
+            },
+            .polyline => |c| {
+                var minx: f32 = std.math.floatMax(f32);
+                var maxx: f32 = 0;
+                var miny: f32 = std.math.floatMax(f32);
+                var maxy: f32 = 0;
+                for (c.points.items) |p| {
+                    const pos = c.transform.transformPoint(p);
+                    if (minx > pos.x) minx = pos.x;
+                    if (miny > pos.y) miny = pos.y;
+                    if (maxx < pos.x) maxx = pos.x;
+                    if (maxy < pos.y) maxy = pos.y;
+                }
+                rect.x = minx;
+                rect.y = miny;
+                rect.width = maxx - minx;
+                rect.height = maxy - miny;
+            },
+            else => {
+                rect.x = 0;
+                rect.y = 0;
+                rect.width = 1;
+                rect.height = 1;
+            },
+        }
+        return rect;
+    }
+
+    pub inline fn render(self: DrawCmd, dl: zgui.DrawList) void {
         switch (self.cmd) {
             .quad_image => |c| {
                 dl.pushTexture(c.texture.toReference());

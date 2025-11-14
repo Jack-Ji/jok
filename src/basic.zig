@@ -28,8 +28,8 @@ pub const Point = extern struct {
 
     pub inline fn toSize(p: Point) Size {
         return .{
-            .width = @intCast(@round(p.x)),
-            .height = @intCast(@round(p.y)),
+            .width = @intFromFloat(@round(p.x)),
+            .height = @intFromFloat(@round(p.y)),
         };
     }
 
@@ -142,10 +142,10 @@ pub const Rectangle = extern struct {
 
     pub inline fn toRegion(r: Rectangle) Region {
         return .{
-            .x = @intCast(@round(r.x)),
-            .y = @intCast(@round(r.y)),
-            .width = @intCast(@round(r.width)),
-            .height = @intCast(@round(r.height)),
+            .x = @intFromFloat(@round(r.x)),
+            .y = @intFromFloat(@round(r.y)),
+            .width = @intFromFloat(@round(r.width)),
+            .height = @intFromFloat(@round(r.height)),
         };
     }
 
@@ -213,7 +213,7 @@ pub const Rectangle = extern struct {
 
     pub inline fn intersectRect(r: Rectangle, b: Rectangle) ?Rectangle {
         var result: Rectangle = undefined;
-        if (sdl.SDL_GetRectIntersectionFloat(@ptrCast(&r), @ptrCast(&b), @ptrCast(&result)) == 1) {
+        if (sdl.SDL_GetRectIntersectionFloat(@ptrCast(&r), @ptrCast(&b), @ptrCast(&result))) {
             return result;
         }
         return null;
@@ -222,7 +222,7 @@ pub const Rectangle = extern struct {
     pub inline fn intersectLine(r: Rectangle, _p0: Point, _p1: Point) ?std.meta.Tuple(&.{ Point, Point }) {
         var p0: Point = _p0;
         var p1: Point = _p1;
-        if (sdl.SDL_GetRectAndLineIntersectionFloat(@ptrCast(&r), &p0.x, &p0.y, &p1.x, &p1.y) == 1) {
+        if (sdl.SDL_GetRectAndLineIntersectionFloat(@ptrCast(&r), &p0.x, &p0.y, &p1.x, &p1.y)) {
             return .{ p0, p1 };
         }
         return null;
@@ -424,14 +424,12 @@ pub const Triangle = extern struct {
         if (r.containsPoint(tri.p0) or r.containsPoint(tri.p1) or r.containsPoint(tri.p2)) {
             return true;
         }
-        if (!tri.boundingRect().intersectRect(r)) {
+        if (tri.boundingRect().intersectRect(r) == null) {
             return false;
         }
         if (tri.intersectTriangle(
-            tri,
             .{ .p0 = r.getTopLeft(), .p1 = r.getTopRight(), .p2 = r.getBottomLeft() },
         ) or tri.intersectTriangle(
-            tri,
             .{ .p0 = r.getTopLeft(), .p1 = r.getTopRight(), .p2 = r.getBottomRight() },
         )) {
             return true;
@@ -441,9 +439,6 @@ pub const Triangle = extern struct {
 };
 
 pub const Color = extern struct {
-    pub const ParseError = error{
-        UnknownFormat,
-    };
     pub const none = rgba(0x00, 0x00, 0x00, 0x00);
     pub const black = rgb(0x00, 0x00, 0x00);
     pub const white = rgb(0xFF, 0xFF, 0xFF);
@@ -508,7 +503,7 @@ pub const Color = extern struct {
 
     /// Convert from HSL
     pub inline fn fromHSL(hsl: [4]f32) Color {
-        const c = zmath.hslToRgb(
+        var c = zmath.hslToRgb(
             zmath.loadArr4(hsl),
         );
         const multiplier: @Vector(4, f32) = @splat(255.0);
@@ -566,7 +561,7 @@ pub const Color = extern struct {
     /// - `#RRGGBB`
     /// - `RRGGBBAA`
     /// - `#RRGGBBAA`
-    pub fn parse(str: []const u8) ParseError!Color {
+    pub fn parse(str: []const u8) !Color {
         switch (str.len) {
             // RGB
             3 => {
