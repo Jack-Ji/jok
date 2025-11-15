@@ -51,6 +51,7 @@ pub const vendor = @import("vendor.zig");
 
 // All tests
 test "all tests" {
+    _ = basic;
     _ = j2d;
     _ = j3d;
     _ = font;

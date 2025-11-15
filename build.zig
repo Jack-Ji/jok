@@ -14,6 +14,9 @@ pub fn build(b: *Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     // Add test suits
+    const jok = getJokLibrary(b, target, optimize, .{
+        .dep_name = null,
+    });
     const root = b.createModule(.{
         .root_source_file = b.path("src/jok.zig"),
         .target = target,
@@ -24,6 +27,7 @@ pub fn build(b: *Build) void {
         .root_module = root,
     });
     tests.linkLibC();
+    tests.linkLibrary(jok.artifact);
     tests.root_module.addImport("sdl", getSdlModule(b, target, optimize));
     const test_step = b.step("test", "run tests");
     test_step.dependOn(&b.addRunArtifact(tests).step);

@@ -743,3 +743,140 @@ pub const Vertex = extern struct {
     color: ColorF,
     texcoord: Point = undefined,
 };
+
+test "basic" {
+    const testing = std.testing;
+    const expect = testing.expect;
+    const expectEqual = testing.expectEqual;
+    const expectApproxEqAbs = testing.expectApproxEqAbs;
+
+    // Point tests
+    {
+        const p = Point{ .x = 1.0, .y = 2.0 };
+        try expectEqual(p.toArray(), [_]f32{ 1.0, 2.0 });
+        try expectEqual(p.toSize(), Size{ .width = 1, .height = 2 });
+        try expectApproxEqAbs(p.angle(), math.atan2(@as(f32, 2.0), @as(f32, 1.0)), 0.000001);
+        try expectApproxEqAbs(p.angleDegree(), std.math.radiansToDegrees(math.atan2(@as(f32, 2.0), @as(f32, 1.0))), 0.000001);
+        try expectEqual(p.add(.{ 3.0, 4.0 }), Point{ .x = 4.0, .y = 6.0 });
+        try expectEqual(p.sub(.{ 0.5, 1.0 }), Point{ .x = 0.5, .y = 1.0 });
+        try expectEqual(p.mul(.{ 2.0, 3.0 }), Point{ .x = 2.0, .y = 6.0 });
+        try expectEqual(p.scale(2.0), Point{ .x = 2.0, .y = 4.0 });
+        try expect(p.isSame(p));
+        try expect(!p.isSame(.{ .x = 1.000002, .y = 2.0 }));
+        try expectApproxEqAbs(p.distance2(.origin), 5.0, 0.000001);
+        try expectApproxEqAbs(p.distance(.origin), std.math.sqrt(5.0), 0.000001);
+    }
+
+    // Size tests
+    {
+        const s = Size{ .width = 10, .height = 20 };
+        try expectEqual(s.toPoint(), Point{ .x = 10.0, .y = 20.0 });
+        try expectApproxEqAbs(s.getWidthFloat(), 10.0, 0.000001);
+        try expectApproxEqAbs(s.getHeightFloat(), 20.0, 0.000001);
+        try expect(s.isSame(s));
+        try expect(!s.isSame(.{ .width = 10, .height = 21 }));
+        try expectEqual(s.area(), 200);
+    }
+
+    // Region tests
+    {
+        const r = Region{ .x = 5, .y = 10, .width = 15, .height = 25 };
+        try expectEqual(r.toRect(), Rectangle{ .x = 5.0, .y = 10.0, .width = 15.0, .height = 25.0 });
+        try expect(r.isSame(r));
+        try expect(!r.isSame(.{ .x = 5, .y = 10, .width = 15, .height = 26 }));
+        try expectEqual(r.area(), 375);
+    }
+
+    // Rectangle tests (skipping SDL-dependent functions for unit test safety)
+    {
+        const rect = Rectangle{ .x = 0.0, .y = 0.0, .width = 10.0, .height = 20.0 };
+        try expectEqual(rect.toRegion(), Region{ .x = 0, .y = 0, .width = 10, .height = 20 });
+        try expectEqual(rect.getPos(), Point{ .x = 0.0, .y = 0.0 });
+        try expectEqual(rect.getSize(), Point{ .x = 10.0, .y = 20.0 });
+        try expectEqual(rect.getTopLeft(), Point{ .x = 0.0, .y = 0.0 });
+        try expectEqual(rect.getTopRight(), Point{ .x = 10.0, .y = 0.0 });
+        try expectEqual(rect.getBottomLeft(), Point{ .x = 0.0, .y = 20.0 });
+        try expectEqual(rect.getBottomRight(), Point{ .x = 10.0, .y = 20.0 });
+        try expectEqual(rect.getCenter(), Point{ .x = 5.0, .y = 10.0 });
+        try expectEqual(rect.translate(.{ 1.0, 2.0 }), Rectangle{ .x = 1.0, .y = 2.0, .width = 10.0, .height = 20.0 });
+        try expectEqual(rect.scale(.{ 2.0, 0.5 }), Rectangle{ .x = 0.0, .y = 0.0, .width = 20.0, .height = 10.0 });
+        try expect(rect.isSame(rect));
+        try expectApproxEqAbs(rect.area(), 200.0, 0.000001);
+        try expect(rect.containsPoint(.{ .x = 5.0, .y = 10.0 }));
+        try expect(!rect.containsPoint(.{ .x = 10.0, .y = 10.0 }));
+        const inner = Rectangle{ .x = 1.0, .y = 1.0, .width = 5.0, .height = 5.0 };
+        try expect(rect.containsRect(inner));
+        try expect(!rect.containsRect(.{ .x = -1.0, .y = 0.0, .width = 11.0, .height = 20.0 }));
+    }
+
+    // Circle tests
+    {
+        const c = Circle{ .center = .{ .x = 0.0, .y = 0.0 }, .radius = 5.0 };
+        try expectEqual(c.translate(.{ 1.0, 2.0 }), Circle{ .center = .{ .x = 1.0, .y = 2.0 }, .radius = 5.0 });
+        try expect(c.containsPoint(.{ .x = 0.0, .y = 0.0 }));
+        try expect(!c.containsPoint(.{ .x = 6.0, .y = 0.0 }));
+        const c2 = Circle{ .center = .{ .x = 4.0, .y = 0.0 }, .radius = 2.0 };
+        try expect(c.intersectCircle(c2));
+        try expect(!c.intersectCircle(.{ .center = .{ .x = 10.0, .y = 0.0 }, .radius = 2.0 }));
+        const rect = Rectangle{ .x = -3.0, .y = -3.0, .width = 6.0, .height = 6.0 };
+        try expect(c.intersectRect(rect));
+        try expect(!c.intersectRect(.{ .x = 6.0, .y = 0.0, .width = 1.0, .height = 1.0 }));
+    }
+
+    // Ellipse tests
+    {
+        const e = Ellipse{ .center = .origin, .radius = .{ .x = 5.0, .y = 3.0 } };
+        try expectEqual(e.translate(.{ 1.0, 2.0 }), Ellipse{ .center = .{ .x = 1.0, .y = 2.0 }, .radius = .{ .x = 5.0, .y = 3.0 } });
+        try expectApproxEqAbs(e.getFocalRadius2(), 16.0, 0.000001);
+        try expectApproxEqAbs(e.getFocalRadius(), 4.0, 0.000001);
+        try expect(e.containsPoint(.origin));
+        try expect(!e.containsPoint(.{ .x = 6.0, .y = 0.0 })); // approximate
+    }
+
+    // Triangle tests
+    {
+        const tri = Triangle{
+            .p0 = .{ .x = 0.0, .y = 0.0 },
+            .p1 = .{ .x = 4.0, .y = 0.0 },
+            .p2 = .{ .x = 2.0, .y = 3.0 },
+        };
+        try expectEqual(tri.translate(.{ 1.0, 1.0 }), Triangle{
+            .p0 = .{ .x = 1.0, .y = 1.0 },
+            .p1 = .{ .x = 5.0, .y = 1.0 },
+            .p2 = .{ .x = 3.0, .y = 4.0 },
+        });
+        try expectApproxEqAbs(tri.area(), 6.0, 0.000001);
+        try expectEqual(tri.boundingRect(), Rectangle{ .x = 0.0, .y = 0.0, .width = 4.0, .height = 3.0 });
+        const bc = tri.barycentricCoord(.{ .x = 2.0, .y = 1.0 });
+        try expectApproxEqAbs(bc[0], 1.0 / 3.0, 0.000001);
+        try expectApproxEqAbs(bc[1], 1.0 / 3.0, 0.000001);
+        try expectApproxEqAbs(bc[2], 1.0 / 3.0, 0.000001);
+        try expect(tri.containsPoint(.{ .x = 2.0, .y = 1.0 }));
+        try expect(!tri.containsPoint(.{ .x = 5.0, .y = 1.0 }));
+        const small_tri = Triangle{
+            .p0 = .{ .x = 1.0, .y = 0.5 },
+            .p1 = .{ .x = 2.0, .y = 0.5 },
+            .p2 = .{ .x = 1.5, .y = 1.0 },
+        };
+        try expect(tri.containsTriangle(small_tri));
+        try expect(!tri.containsTriangle(.{
+            .p0 = .{ .x = -1.0, .y = 0.0 },
+            .p1 = .{ .x = 0.0, .y = 0.0 },
+            .p2 = .{ .x = -0.5, .y = 1.0 },
+        }));
+        const other_tri = Triangle{
+            .p0 = .{ .x = 1.0, .y = 1.0 },
+            .p1 = .{ .x = 3.0, .y = 1.0 },
+            .p2 = .{ .x = 2.0, .y = 2.0 },
+        };
+        try expect(tri.intersectTriangle(other_tri));
+        try expect(!tri.intersectTriangle(.{
+            .p0 = .{ .x = 5.0, .y = 0.0 },
+            .p1 = .{ .x = 9.0, .y = 0.0 },
+            .p2 = .{ .x = 7.0, .y = 3.0 },
+        }));
+        const rect = Rectangle{ .x = -1.0, .y = -1.0, .width = 6.0, .height = 6.0 };
+        try expect(tri.intersectRect(rect));
+        try expect(!tri.intersectRect(.{ .x = 5.0, .y = -1.0, .width = 1.0, .height = 6.0 }));
+    }
+}
