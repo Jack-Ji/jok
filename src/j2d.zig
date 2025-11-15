@@ -17,7 +17,7 @@ pub const AffineTransform = @import("j2d/AffineTransform.zig");
 pub const Sprite = @import("j2d/Sprite.zig");
 pub const SpriteSheet = @import("j2d/SpriteSheet.zig");
 pub const ParticleSystem = @import("j2d/ParticleSystem.zig");
-pub const AnimationSystem = @import("j2d/AnimationSystem.zig");
+pub const AnimationSystem = @import("j2d/AnimationSystem.zig").AnimationSystem;
 pub const Scene = @import("j2d/Scene.zig");
 pub const Vector = @import("j2d/Vector.zig");
 
