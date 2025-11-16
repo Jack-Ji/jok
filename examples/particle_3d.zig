@@ -19,6 +19,8 @@ var rand: std.Random.DefaultPrng = undefined;
 var plane: zmesh.Shape = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var ps: *j3d.ParticleSystem = undefined;
+var e1: *j3d.ParticleSystem.Effect = undefined;
+var e2: *j3d.ParticleSystem.Effect = undefined;
 var camera: j3d.Camera = undefined;
 var sort_by_depth: bool = false;
 
@@ -93,7 +95,8 @@ pub fn init(ctx: jok.Context) !void {
         sheet.getSpriteByName("ogre").?,
         .{ .x = 0.2, .y = 0.2 },
     );
-    try ps.addEffect(
+    e1 = try ps.add(
+        "fire1",
         rand.random(),
         5000,
         emitter1.emit,
@@ -102,7 +105,8 @@ pub fn init(ctx: jok.Context) !void {
         40,
         0.016,
     );
-    try ps.addEffect(
+    e2 = try ps.add(
+        "fire2",
         rand.random(),
         5000,
         emitter2.emit,
@@ -192,7 +196,8 @@ pub fn draw(ctx: jok.Context) !void {
             .lighting = .{},
         },
     );
-    try b.effects(ps);
+    try b.effect(e1);
+    if (ps.get("fire2")) |e| try b.effect(e);
 
     ctx.debugPrint(
         "Press WSAD to move around, drag mouse while pressing right-button to rotate the view",

@@ -507,17 +507,15 @@ pub const Batch = struct {
     }
 
     /// Render particle effects
-    pub fn effects(self: *Batch, ps: *ParticleSystem) !void {
+    pub fn effect(self: *Batch, e: *const ParticleSystem.Effect) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        for (ps.effects.items) |eff| {
-            try eff.render(
-                self.ctx.getCanvasSize(),
-                self,
-                self.camera,
-                &self.tri_rd,
-            );
-        }
+        try e.render(
+            self.ctx.getCanvasSize(),
+            self,
+            self.camera,
+            &self.tri_rd,
+        );
     }
 
     /// Render given sprite
