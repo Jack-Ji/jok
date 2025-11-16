@@ -18,12 +18,20 @@ pub fn AnimationSystem(comptime FrameDataType: type) type {
             duration: f32,
         };
 
+        /// Emits when animation starts
         const AnimBeginSignal = jok.utils.signal.Signal(&.{
             []const u8, // Name of animation
         });
+
+        /// Emits when animation is over (looping animations never end)
         const AnimEndSignal = jok.utils.signal.Signal(&.{
             []const u8, // Name of animation
         });
+
+        /// Emits every time an animation advances to a new frame.
+        /// WARNING: This can fire frequently (10+ times/sec per animation).
+        /// Only connect listeners that do minimal work. For expensive operations,
+        /// use begin/end signals or poll getCurrentFrame() as needed.
         const FrameSteppingSignal = jok.utils.signal.Signal(&.{
             []const u8, // Name of animation
             u32, // Index of frame
@@ -106,9 +114,9 @@ pub fn AnimationSystem(comptime FrameDataType: type) type {
                 .is_over = false,
                 .is_stopped = false,
             };
-            errdefer self.allocator.free(anim.frames);
+            errdefer anim.deinit(self.allocator);
             @memcpy(anim.frames, frames);
-            try self.animations.put(dname, anim);
+            try self.animations.put(anim.name, anim);
         }
 
         /// Add simple animation with fixed duration
@@ -147,13 +155,13 @@ pub fn AnimationSystem(comptime FrameDataType: type) type {
                 .is_over = false,
                 .is_stopped = false,
             };
-            errdefer self.allocator.free(anim.frames);
+            errdefer anim.deinit(self.allocator);
             const duration = 1.0 / fps;
             for (anim.frames, 0..) |*f, i| {
                 f.data = frames[i];
                 f.duration = duration;
             }
-            try self.animations.put(dname, anim);
+            try self.animations.put(anim.name, anim);
         }
 
         /// Remove animation
@@ -315,8 +323,8 @@ pub fn AnimationSystem(comptime FrameDataType: type) type {
                 anim.is_stopped = false;
             }
 
-            pub fn getCurrentFrame(self: Animation) FrameDataType {
-                return self.frames[self.play_index orelse 0].data;
+            pub fn getCurrentFrame(anim: Animation) FrameDataType {
+                return anim.frames[anim.play_index orelse if (anim.reverse) anim.range_end else anim.range_begin].data;
             }
 
             inline fn update(anim: *Animation, delta_tick: f32) void {

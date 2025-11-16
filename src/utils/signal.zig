@@ -78,7 +78,7 @@ pub fn Signal(comptime types: []const type) type {
             self.connected.clearRetainingCapacity();
         }
 
-        pub fn emit(self: *@This(), args: ArgsType) void {
+        pub inline fn emit(self: *@This(), args: ArgsType) void {
             var i: usize = 0;
             while (i < self.connected.items.len) {
                 const slot = self.connected.items[i];
