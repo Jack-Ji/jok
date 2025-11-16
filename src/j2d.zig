@@ -38,6 +38,7 @@ pub const BatchOption = struct {
     blend_mode: jok.BlendMode = .blend,
     antialiased: bool = true,
     clip_rect: ?jok.Rectangle = null,
+    do_early_clipping: bool = false,
     offscreen_target: ?jok.Texture = null,
     offscreen_clear_color: ?jok.Color = null,
 };
@@ -57,6 +58,8 @@ pub const Batch = struct {
     trs: AffineTransform,
     depth_sort: DepthSortMethod,
     blend_mode: jok.BlendMode,
+    clip_rect: jok.Rectangle = undefined,
+    do_early_clipping: bool,
     offscreen_target: ?jok.Texture,
     offscreen_clear_color: ?jok.Color,
     all_tex: std.AutoHashMap(*anyopaque, bool),
@@ -70,6 +73,7 @@ pub const Batch = struct {
             .trs = undefined,
             .depth_sort = .none,
             .blend_mode = .blend,
+            .do_early_clipping = false,
             .offscreen_target = null,
             .offscreen_clear_color = null,
             .all_tex = .init(_ctx.allocator()),
@@ -94,25 +98,47 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         defer self.is_submitted = false;
 
-        self.draw_list.reset();
-        self.draw_list.pushClipRect(if (opt.clip_rect) |r|
-            .{
-                .pmin = .{ r.x, r.y },
-                .pmax = .{ r.x + r.width, r.y + r.height },
+        self.draw_commands.clearRetainingCapacity();
+        self.all_tex.clearRetainingCapacity();
+        self.trs_stack.clearRetainingCapacity();
+        self.trs = AffineTransform.init();
+        self.depth_sort = opt.depth_sort;
+        self.blend_mode = opt.blend_mode;
+        self.do_early_clipping = opt.do_early_clipping;
+        self.offscreen_target = opt.offscreen_target;
+        self.offscreen_clear_color = opt.offscreen_clear_color;
+        if (self.offscreen_target) |t| {
+            const info = t.query() catch unreachable;
+            if (info.access != .target) {
+                @panic("Given texture isn't suitable for offscreen rendering!");
             }
-        else BLK: {
+        }
+
+        self.clip_rect = opt.clip_rect orelse BLK: {
             if (opt.offscreen_target) |tex| {
                 const info = tex.query() catch unreachable;
                 break :BLK .{
-                    .pmin = .{ 0, 0 },
-                    .pmax = .{ @floatFromInt(info.width), @floatFromInt(info.height) },
+                    .x = 0,
+                    .y = 0,
+                    .width = @floatFromInt(info.width),
+                    .height = @floatFromInt(info.height),
                 };
             }
             const csz = self.ctx.getCanvasSize();
             break :BLK .{
-                .pmin = .{ 0, 0 },
-                .pmax = .{ @floatFromInt(csz.width), @floatFromInt(csz.height) },
+                .x = 0,
+                .y = 0,
+                .width = csz.getWidthFloat(),
+                .height = csz.getHeightFloat(),
             };
+        };
+        self.draw_list.reset();
+        self.draw_list.pushClipRect(.{
+            .pmin = .{ self.clip_rect.x, self.clip_rect.y },
+            .pmax = .{
+                self.clip_rect.x + self.clip_rect.width,
+                self.clip_rect.y + self.clip_rect.height,
+            },
         });
         if (opt.antialiased) {
             self.draw_list.setDrawListFlags(.{
@@ -121,20 +147,6 @@ pub const Batch = struct {
                 .anti_aliased_fill = true,
                 .allow_vtx_offset = true,
             });
-        }
-        self.draw_commands.clearRetainingCapacity();
-        self.all_tex.clearRetainingCapacity();
-        self.trs_stack.clearRetainingCapacity();
-        self.trs = AffineTransform.init();
-        self.depth_sort = opt.depth_sort;
-        self.blend_mode = opt.blend_mode;
-        self.offscreen_target = opt.offscreen_target;
-        self.offscreen_clear_color = opt.offscreen_clear_color;
-        if (self.offscreen_target) |t| {
-            const info = t.query() catch unreachable;
-            if (info.access != .target) {
-                @panic("Given texture isn't suitable for offscreen rendering!");
-            }
         }
     }
 
@@ -170,13 +182,6 @@ pub const Batch = struct {
                 ),
             }
 
-            const csz = self.ctx.getCanvasSize();
-            const screen = jok.Rectangle{
-                .x = 0,
-                .y = 0,
-                .width = @floatFromInt(csz.width),
-                .height = @floatFromInt(csz.height),
-            };
             for (self.draw_commands.items) |dcmd| {
                 switch (dcmd.cmd) {
                     .quad_image => |c| self.all_tex.put(c.texture.ptr, true) catch unreachable,
@@ -186,7 +191,11 @@ pub const Batch = struct {
                     },
                     else => {},
                 }
-                if (screen.intersectRect(dcmd.getRect()) != null) {
+                if (self.do_early_clipping) {
+                    if (self.clip_rect.intersectRect(dcmd.getRect()) != null) {
+                        dcmd.render(self.draw_list);
+                    }
+                } else {
                     dcmd.render(self.draw_list);
                 }
             }
@@ -381,12 +390,10 @@ pub const Batch = struct {
         try s.render(&self.draw_commands, .{ .transform = self.trs });
     }
 
-    pub fn effects(self: *Batch, ps: *const ParticleSystem) !void {
+    pub fn effect(self: *Batch, e: *const ParticleSystem.Effect) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        for (ps.effects.items) |eff| {
-            try eff.render(&self.draw_commands, .{ .transform = self.trs });
-        }
+        try e.render(&self.draw_commands, .{ .transform = self.trs });
     }
 
     pub const SpriteOption = struct {
