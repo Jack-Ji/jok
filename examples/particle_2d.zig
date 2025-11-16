@@ -10,6 +10,8 @@ var sheet: *j2d.SpriteSheet = undefined;
 var font: *jok.font.Font = undefined;
 var atlas: *jok.font.Atlas = undefined;
 var ps: *j2d.ParticleSystem = undefined;
+var e1: *j2d.ParticleSystem.Effect = undefined;
+var e2: *j2d.ParticleSystem.Effect = undefined;
 
 // fire effect
 const emitter1 = j2d.ParticleSystem.Effect.FireEmitter(
@@ -62,7 +64,8 @@ pub fn init(ctx: jok.Context) !void {
     ps = try j2d.ParticleSystem.create(ctx.allocator());
     emitter1.sprite = sheet.getSpriteByName("particle");
     emitter2.sprite = atlas.getSpriteOfCodePoint('*');
-    try ps.addEffect(
+    e1 = try ps.add(
+        "fire1",
         rd.random(),
         8000,
         emitter1.emit,
@@ -72,7 +75,8 @@ pub fn init(ctx: jok.Context) !void {
         0.016,
         .{},
     );
-    try ps.addEffect(
+    e2 = try ps.add(
+        "fire2",
         rd.random(),
         2000,
         emitter2.emit,
@@ -91,10 +95,10 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
 
 pub fn update(ctx: jok.Context) !void {
     const kbd = jok.io.getKeyboardState();
-    if (kbd.isPressed(.up)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, -10));
-    if (kbd.isPressed(.down)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(0, 10));
-    if (kbd.isPressed(.left)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(-10, 0));
-    if (kbd.isPressed(.right)) ps.effects.items[0].origin = ps.effects.items[0].origin.add(j2d.Vector.new(10, 0));
+    if (kbd.isPressed(.up)) e1.origin = e1.origin.add(j2d.Vector.new(0, -10));
+    if (kbd.isPressed(.down)) e1.origin = e1.origin.add(j2d.Vector.new(0, 10));
+    if (kbd.isPressed(.left)) e1.origin = e1.origin.add(j2d.Vector.new(-10, 0));
+    if (kbd.isPressed(.right)) e1.origin = e1.origin.add(j2d.Vector.new(10, 0));
 
     ps.update(ctx.deltaSeconds());
 }
@@ -105,7 +109,8 @@ pub fn draw(ctx: jok.Context) !void {
 
     var b = try batchpool.new(.{ .blend_mode = .additive });
     defer b.submit();
-    try b.effects(ps);
+    try b.effect(e1);
+    if (ps.get("fire2")) |e| try b.effect(e);
 }
 
 pub fn quit(ctx: jok.Context) void {

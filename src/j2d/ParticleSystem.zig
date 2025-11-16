@@ -7,6 +7,8 @@ const Sprite = @import("Sprite.zig");
 const AffineTransform = @import("AffineTransform.zig");
 const Self = @This();
 
+const EffectPool = std.heap.MemoryPool(Effect);
+const SearchMap = std.StringHashMap(*Effect);
 const default_effects_capacity = 10;
 
 pub const RenderOption = struct {
@@ -16,8 +18,14 @@ pub const RenderOption = struct {
 // Memory allocator
 allocator: std.mem.Allocator,
 
+// Effect pool, for fast allocation
+pool: EffectPool,
+
 // Particle effects
-effects: std.array_list.Managed(Effect),
+effects: std.DoublyLinkedList,
+
+// Hashmap for searching effects
+search_tree: SearchMap,
 
 /// Create particle effect system/manager
 pub fn create(allocator: std.mem.Allocator) !*Self {
@@ -25,53 +33,57 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
     errdefer allocator.destroy(self);
     self.* = .{
         .allocator = allocator,
-        .effects = try .initCapacity(allocator, default_effects_capacity),
+        .pool = EffectPool.init(allocator),
+        .effects = .{},
+        .search_tree = SearchMap.init(allocator),
     };
     return self;
 }
 
 /// Destroy particle effect system/manager
 pub fn destroy(self: *Self) void {
-    for (self.effects.items) |e| {
-        e.deinit();
+    self.search_tree.deinit();
+    var node = self.effects.first;
+    while (node) |n| {
+        var e: *Effect = @alignCast(@fieldParentPtr("node", n));
+        node = n.next;
+        e.deinit(self.allocator);
     }
-    self.effects.deinit();
+    self.pool.deinit();
     self.allocator.destroy(self);
 }
 
 /// Update system
 pub fn update(self: *Self, delta_time: f32) void {
-    var i: usize = 0;
-    while (i < self.effects.items.len) {
-        var e = &self.effects.items[i];
+    var node = self.effects.first;
+    while (node) |n| {
+        var e: *Effect = @alignCast(@fieldParentPtr("node", n));
+        node = n.next;
         e.update(delta_time);
-        if (e.isOver()) {
-            e.deinit();
-            _ = self.effects.swapRemove(i);
-        } else {
-            i += 1;
-        }
+        if (e.isOver()) self.remove(e);
     }
 }
 
 /// Clear all effects
-pub fn clear(self: *Self, retain_memory: bool) void {
-    for (self.effects.items) |e| {
-        e.deinit();
+pub fn clear(self: *Self) void {
+    var node = self.effects.first;
+    while (node) |n| {
+        const e: *Effect = @alignCast(@fieldParentPtr("node", n));
+        node = n.next;
+        e.deinit(self.allocator);
     }
-    if (retain_memory) {
-        self.effects.clearRetainingCapacity();
-    } else {
-        self.effects.clearAndFree();
-    }
+    _ = self.pool.reset(.retain_capacity);
+    self.effects = .{};
+    self.search_tree.clearRetainingCapacity();
 }
 
 /// Add effect
 pub const AddEffect = struct {
     depth: f32 = 0.5,
 };
-pub fn addEffect(
+pub fn add(
     self: *Self,
+    name: []const u8,
     random: std.Random,
     max_particle_num: u32,
     emit_fn: Effect.ParticleEmitFn,
@@ -80,20 +92,46 @@ pub fn addEffect(
     gen_amount: u32,
     burst_freq: f32,
     opt: AddEffect,
-) !void {
-    var effect = try Effect.init(
-        self.allocator,
-        random,
-        max_particle_num,
-        emit_fn,
-        origin,
-        effect_duration,
-        gen_amount,
-        burst_freq,
-        opt.depth,
-    );
-    errdefer effect.deinit();
-    try self.effects.append(effect);
+) !*Effect {
+    assert(name.len > 0);
+    if (self.search_tree.contains(name)) {
+        return error.NameUsed;
+    }
+    const effect = try self.pool.create();
+    const dname = try self.allocator.dupe(u8, name);
+    errdefer self.allocator.free(dname);
+    effect.* = .{
+        .system = self,
+        .name = dname,
+        .random = random,
+        .particles = try std.ArrayList(Particle)
+            .initCapacity(self.allocator, max_particle_num),
+        .emit_fn = emit_fn,
+        .origin = origin,
+        .effect_duration = effect_duration,
+        .gen_amount = gen_amount,
+        .burst_freq = burst_freq,
+        .burst_countdown = burst_freq,
+        .depth = opt.depth,
+    };
+    errdefer effect.deinit(self.allocator);
+    self.effects.append(&effect.node);
+    try self.search_tree.put(effect.name, effect);
+    return effect;
+}
+
+pub fn get(self: *Self, name: []const u8) ?*Effect {
+    return self.search_tree.get(name);
+}
+
+pub fn remove(self: *Self, e: *Effect) void {
+    assert(e.system == self);
+    if (self.search_tree.remove(e.name)) {
+        self.effects.remove(&e.node);
+        e.deinit(self.allocator);
+        self.pool.destroy(e);
+        e.name = ""; // Deliberately set name to null str, which will be detected as dead effect
+    }
 }
 
 /// Represent a particle effect
@@ -103,11 +141,20 @@ pub const Effect = struct {
         origin: Vector,
     ) Particle;
 
+    /// Link node in system
+    node: std.DoublyLinkedList.Node = .{},
+
+    // Point back to system
+    system: *Self,
+
+    /// Name of effect (unique in system)
+    name: []const u8,
+
     /// Random number generator
     random: std.Random,
 
     /// All particles
-    particles: std.array_list.Managed(Particle),
+    particles: std.ArrayList(Particle),
 
     /// Particle emitter
     emit_fn: ParticleEmitFn,
@@ -130,39 +177,9 @@ pub const Effect = struct {
     /// Depth of effect
     depth: f32,
 
-    /// Particle effect initialization
-    pub fn init(
-        allocator: std.mem.Allocator,
-        random: std.Random,
-        max_particle_num: u32,
-        emit_fn: ParticleEmitFn,
-        origin: Vector,
-        effect_duration: f32,
-        gen_amount: u32,
-        burst_freq: f32,
-        depth: f32,
-    ) !Effect {
-        assert(max_particle_num > 0);
-        assert(effect_duration > 0);
-        assert(gen_amount > 0);
-        assert(burst_freq > 0);
-        assert(effect_duration > burst_freq);
-        return Effect{
-            .random = random,
-            .particles = try std.array_list.Managed(Particle)
-                .initCapacity(allocator, max_particle_num),
-            .emit_fn = emit_fn,
-            .origin = origin,
-            .effect_duration = effect_duration,
-            .gen_amount = gen_amount,
-            .burst_freq = burst_freq,
-            .burst_countdown = burst_freq,
-            .depth = depth,
-        };
-    }
-
-    fn deinit(self: Effect) void {
-        self.particles.deinit();
+    fn deinit(self: *Effect, allocator: std.mem.Allocator) void {
+        allocator.free(self.name);
+        self.particles.deinit(allocator);
     }
 
     /// Update effect
@@ -202,14 +219,17 @@ pub const Effect = struct {
     }
 
     /// Render to output
-    pub fn render(self: Effect, draw_commands: *std.array_list.Managed(DrawCmd), opt: RenderOption) !void {
+    pub fn render(self: *const Effect, draw_commands: *std.array_list.Managed(DrawCmd), opt: RenderOption) !void {
+        if (self.name.len == 0) {
+            return; // Warning: Although we handled dead effect here, it's best to always use `ParticleSystem.get` to get effect!!!
+        }
         for (self.particles.items) |p| {
             try p.render(draw_commands, opt.transform, self.depth);
         }
     }
 
     /// If effect is over
-    pub fn isOver(self: Effect) bool {
+    pub fn isOver(self: *const Effect) bool {
         return self.effect_duration <= 0 and self.particles.items.len == 0;
     }
 
@@ -223,7 +243,7 @@ pub const Effect = struct {
         comptime _color_fade_age: f32,
     ) type {
         return struct {
-            pub var sprite: ?Sprite = null;
+            pub var sprite: ?Sprite = null; // don't forget
             pub var radius = _radius;
             pub var acceleration = _acceleration;
             pub var age = _age;
@@ -239,7 +259,7 @@ pub const Effect = struct {
 
                 assert(color_fade_age < age);
                 return Particle{
-                    .sprite = sprite,
+                    .sprite = sprite.?,
                     .age = age,
                     .pos = origin.add(offset),
                     .move_speed = Vector.new(-offset.x() * 0.5, 0),
@@ -261,7 +281,7 @@ pub const Effect = struct {
 /// Represent a particle
 pub const Particle = struct {
     /// Sprite of particle
-    sprite: ?Sprite,
+    sprite: Sprite,
 
     /// Life of particle
     age: f32,
@@ -289,53 +309,44 @@ pub const Particle = struct {
     color_final: jok.Color = .white,
     color_fade_age: f32 = 0,
 
-    fn updatePos(self: *Particle, delta_time: f32) void {
+    inline fn updatePos(self: *Particle, delta_time: f32) void {
         assert(self.move_damp >= 0 and self.move_damp <= 1);
         self.move_speed = self.move_speed.scale(self.move_damp);
         self.move_speed = self.move_speed.add(self.move_acceleration.scale(delta_time));
         self.pos = self.pos.add(self.move_speed.scale(delta_time));
     }
 
-    fn updateRotation(self: *Particle, delta_time: f32) void {
+    inline fn updateRotation(self: *Particle, delta_time: f32) void {
         assert(self.rotation_damp >= 0 and self.rotation_damp <= 1);
         self.rotation_speed *= self.rotation_damp;
         self.angle += self.rotation_speed * delta_time;
     }
 
-    fn updateScale(self: *Particle, delta_time: f32) void {
+    inline fn updateScale(self: *Particle, delta_time: f32) void {
         assert(self.scale_max > 0);
         self.scale_speed += self.scale_acceleration * delta_time;
         self.scale += self.scale_speed * delta_time;
         self.scale = std.math.clamp(self.scale, 0.0, self.scale_max);
     }
 
-    fn lerpColorElement(v1: u8, v2: u8, c1: f32, c2: f32) u8 {
-        return @intFromFloat(@as(f32, @floatFromInt(v1)) * c1 + @as(f32, @floatFromInt(v2)) * c2);
-    }
-
-    fn updateColor(self: *Particle) void {
-        if (self.age > self.color_fade_age) {
-            self.color = self.color_initial;
+    inline fn updateColor(self: *Particle) void {
+        if (self.age >= self.color_fade_age) {
+            self.color = self.color_final;
         } else {
             assert(self.color_fade_age > 0);
-            const c1 = @max(self.age, 0.0) / self.color_fade_age;
-            const c2 = 1.0 - c1;
-            self.color = .{
-                .r = lerpColorElement(self.color_initial.r, self.color_final.r, c1, c2),
-                .g = lerpColorElement(self.color_initial.g, self.color_final.g, c1, c2),
-                .b = lerpColorElement(self.color_initial.b, self.color_final.b, c1, c2),
-                .a = lerpColorElement(self.color_initial.a, self.color_final.a, c1, c2),
-            };
+            const c = @max(self.age, 0.0) / self.color_fade_age;
+            assert(c >= 0.0 and c <= 1.0);
+            self.color = self.color_initial.lerp(self.color_final, c);
         }
     }
 
     /// If particle is dead
-    pub inline fn isDead(self: Particle) bool {
+    inline fn isDead(self: Particle) bool {
         return self.age <= 0;
     }
 
     /// Update particle's status
-    pub fn update(self: *Particle, delta_time: f32) void {
+    inline fn update(self: *Particle, delta_time: f32) void {
         if (self.age <= 0) return;
         self.age -= delta_time;
         self.updatePos(delta_time);
@@ -345,13 +356,13 @@ pub const Particle = struct {
     }
 
     /// Render to output
-    fn render(
+    inline fn render(
         self: Particle,
         draw_commands: *std.array_list.Managed(DrawCmd),
         transform: AffineTransform,
         depth: f32,
     ) !void {
-        try self.sprite.?.render(
+        try self.sprite.render(
             draw_commands,
             .{
                 .pos = transform.transformPoint(.{ .x = self.pos.x(), .y = self.pos.y() }),
