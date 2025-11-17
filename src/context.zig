@@ -622,7 +622,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Initialize SDL
         fn initSDL(self: *@This()) !void {
             if (cfg.jok_headless) {
-                _ = sdl.SDL_SetHint(sdl.SDL_HINT_VIDEODRIVER, "offscreen");
+                _ = sdl.SDL_SetHint(sdl.SDL_HINT_VIDEO_DRIVER, "offscreen");
             }
 
             // Initialize custom memory allocator

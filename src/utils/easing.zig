@@ -87,7 +87,7 @@ pub fn EasingSystem(comptime T: type) type {
             const self = try allocator.create(Self);
             self.* = .{
                 .allocator = allocator,
-                .pool = EasingPool.init(allocator),
+                .pool = .empty,
                 .vars = .{},
                 .search_tree = EasingSearchMap.init(allocator),
                 .sig = try EasingSignal.create(allocator),
@@ -96,7 +96,7 @@ pub fn EasingSystem(comptime T: type) type {
         }
 
         pub fn destroy(self: *Self) void {
-            self.pool.deinit();
+            self.pool.deinit(self.allocator);
             self.search_tree.deinit();
             self.sig.destroy();
             self.allocator.destroy(self);
@@ -183,7 +183,7 @@ pub fn EasingSystem(comptime T: type) type {
             // Remove old easing if exists
             self.remove(v);
 
-            const ev = try self.pool.create();
+            const ev = try self.pool.create(self.allocator);
             ev.* = .{
                 .state = .new,
                 .easing_type = easing_type,
@@ -218,7 +218,7 @@ pub fn EasingSystem(comptime T: type) type {
         }
 
         pub fn clear(self: *Self) void {
-            _ = self.pool.reset(.retain_capacity);
+            _ = self.pool.reset(self.allocator, .retain_capacity);
             self.search_tree.clearRetainingCapacity();
             self.vars = .{};
         }

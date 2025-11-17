@@ -79,18 +79,19 @@ pub fn Signal(comptime types: []const type) type {
         }
 
         pub inline fn emit(self: *@This(), args: ArgsType) void {
-            var i: usize = 0;
-            while (i < self.connected.items.len) {
-                const slot = self.connected.items[i];
+            var count = self.connected.items.len;
+            var idx: usize = 0;
+            while (count > 0 and idx < self.connected.items.len) : (count -= 1) {
+                const slot = self.connected.items[idx];
                 if (slot.fp) |fp| {
                     _ = @call(.auto, fp, slot.args orelse args);
                     if (slot.once) {
-                        _ = self.connected.orderedRemove(i); // only trigger once
+                        _ = self.connected.orderedRemove(idx); // only trigger once
                     } else {
-                        i += 1;
+                        idx += 1;
                     }
                 } else {
-                    _ = self.connected.orderedRemove(i); // cleanup dead
+                    _ = self.connected.orderedRemove(idx); // cleanup dead
                 }
             }
         }

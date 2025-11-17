@@ -301,7 +301,7 @@ pub const Renderer = struct {
     pub fn createTexture(self: Renderer, size: jok.Size, pixels: ?[]const u8, opt: TextureOption) !jok.Texture {
         if (self.cfg.jok_renderer_type != .software) {
             const rdinfo = try self.getInfo();
-            if (size.width > rdinfo.max_texture_size or size.height > rdinfo.max_texture_size) {
+            if (rdinfo.max_texture_size > 0 and (size.width > rdinfo.max_texture_size or size.height > rdinfo.max_texture_size)) {
                 return error.TextureTooLarge;
             }
         }

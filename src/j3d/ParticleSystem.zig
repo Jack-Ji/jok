@@ -33,7 +33,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
     errdefer allocator.destroy(self);
     self.* = .{
         .allocator = allocator,
-        .pool = EffectPool.init(allocator),
+        .pool = .empty,
         .effects = .{},
         .search_tree = SearchMap.init(allocator),
     };
@@ -49,7 +49,7 @@ pub fn destroy(self: *Self) void {
         node = n.next;
         e.deinit(self.allocator);
     }
-    self.pool.deinit();
+    self.pool.deinit(self.allocator);
     self.allocator.destroy(self);
 }
 
@@ -72,7 +72,7 @@ pub fn clear(self: *Self) void {
         node = n.next;
         e.deinit(self.allocator);
     }
-    _ = self.pool.reset(.retain_capacity);
+    _ = self.pool.reset(self.allocator, .retain_capacity);
     self.effects = .{};
     self.search_tree.clearRetainingCapacity();
 }
@@ -93,7 +93,7 @@ pub fn add(
     if (self.search_tree.contains(name)) {
         return error.NameUsed;
     }
-    const effect = try self.pool.create();
+    const effect = try self.pool.create(self.allocator);
     const dname = try self.allocator.dupe(u8, name);
     errdefer self.allocator.free(dname);
     effect.* = .{
