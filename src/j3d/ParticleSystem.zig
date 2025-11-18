@@ -9,6 +9,7 @@ const j3d = jok.j3d;
 const j2d = jok.j2d;
 const zmesh = jok.vendor.zmesh;
 const zmath = jok.vendor.zmath;
+const signal = jok.utils.signal;
 const Self = @This();
 
 const EffectPool = std.heap.MemoryPool(Effect);
@@ -27,6 +28,10 @@ effects: std.DoublyLinkedList,
 // Hashmap for searching effects
 search_tree: SearchMap,
 
+// Signal begin/end of effect
+sig_begin: *signal.Signal(&.{[]const u8}),
+sig_end: *signal.Signal(&.{[]const u8}),
+
 /// Create particle effect system/manager
 pub fn create(allocator: std.mem.Allocator) !*Self {
     const self = try allocator.create(Self);
@@ -36,12 +41,16 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
         .pool = .empty,
         .effects = .{},
         .search_tree = SearchMap.init(allocator),
+        .sig_begin = try signal.Signal(&.{[]const u8}).create(allocator),
+        .sig_end = try signal.Signal(&.{[]const u8}).create(allocator),
     };
     return self;
 }
 
 /// Destroy particle effect system/manager
 pub fn destroy(self: *Self) void {
+    self.sig_begin.destroy();
+    self.sig_end.destroy();
     self.search_tree.deinit();
     var node = self.effects.first;
     while (node) |n| {
@@ -112,6 +121,7 @@ pub fn add(
     errdefer effect.deinit(self.allocator);
     self.effects.append(&effect.node);
     try self.search_tree.put(effect.name, effect);
+    self.sig_begin.emit(.{effect.name});
     return effect;
 }
 
@@ -122,6 +132,7 @@ pub fn get(self: *Self, name: []const u8) ?*Effect {
 pub fn remove(self: *Self, e: *Effect) void {
     assert(e.system == self);
     if (self.search_tree.remove(e.name)) {
+        self.sig_end.emit(.{e.name});
         self.effects.remove(&e.node);
         e.deinit(self.allocator);
         self.pool.destroy(e);
