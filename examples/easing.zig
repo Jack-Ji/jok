@@ -29,7 +29,7 @@ const EasingBlock = struct {
     fn startEasing(self: *@This(), es: *PointEase) !void {
         try es.add(
             &self.pos,
-            @enumFromInt(@as(u8, @intCast(self.id))),
+            easing.getEasingFn(@enumFromInt(@as(u8, @intCast(self.id)))),
             easing.easePoint,
             2,
             .{
@@ -48,7 +48,7 @@ const EasingBlock = struct {
 fn finishEase(ev: *const PointEase.EasingValue) void {
     point_easing_system.add(
         ev.v,
-        ev.easing_type,
+        ev.easing_fn,
         ev.easing_apply_fn,
         ev.life_total,
         ev.to,
@@ -60,7 +60,7 @@ fn finishEase(ev: *const PointEase.EasingValue) void {
 pub fn init(ctx: jok.Context) !void {
     batchpool = try @TypeOf(batchpool).init(ctx);
     point_easing_system = try PointEase.create(ctx.allocator());
-    try point_easing_system.sig.connect(finishEase, null);
+    _ = try point_easing_system.sig.connect(finishEase, .{});
     for (&blocks, 0..) |*b, i| {
         b.* = .{
             .id = @intCast(i),

@@ -38,7 +38,7 @@ pub fn init(ctx: jok.Context) !void {
     );
     as1 = try j2d.AnimationSystem(j2d.Sprite).create(ctx.allocator());
     as2 = try j2d.AnimationSystem(j2d.DrawCmd).create(ctx.allocator());
-    try as1.sig_end.connect(animation_over, null);
+    _ = try as1.sig_end.connect(animation_over, .{});
     const player = sheet.getSpriteByName("player").?;
     try as1.addSimple(
         "player_left_right",

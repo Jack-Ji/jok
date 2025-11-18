@@ -50,7 +50,6 @@ pub fn EasingSystem(comptime T: type) type {
         pub const EasingValue = struct {
             node: std.DoublyLinkedList.Node = .{},
             state: VarState,
-            easing_type: EasingType,
             easing_fn: EasingFn,
             easing_apply_fn: EasingApplyFn,
             wait_total: f32,
@@ -170,7 +169,7 @@ pub fn EasingSystem(comptime T: type) type {
         pub fn add(
             self: *Self,
             v: *T,
-            easing_type: EasingType,
+            easing_fn: EasingFn,
             easing_apply_fn: EasingApplyFn,
             life: f32,
             from: ?T,
@@ -186,8 +185,7 @@ pub fn EasingSystem(comptime T: type) type {
             const ev = try self.pool.create(self.allocator);
             ev.* = .{
                 .state = .new,
-                .easing_type = easing_type,
-                .easing_fn = getEasingFn(easing_type),
+                .easing_fn = easing_fn,
                 .easing_apply_fn = easing_apply_fn,
                 .wait_total = opt.wait_time,
                 .waited = 0,
@@ -318,9 +316,9 @@ pub fn easeArray(x: f32, comptime n: usize, _from: [n]f32, _to: [n]f32) [n]f32 {
 ///
 ///////////////////////////////////////////////////////////////////////
 
-const EasingFn = *const fn (f32) f32;
+pub const EasingFn = *const fn (f32) f32;
 
-fn getEasingFn(t: EasingType) EasingFn {
+pub fn getEasingFn(t: EasingType) EasingFn {
     return switch (t) {
         .linear => linear,
         .in_sin => sin.in,
@@ -361,29 +359,29 @@ pub fn linear(x: f32) f32 {
 }
 
 pub const sin = struct {
-    fn in(x: f32) f32 {
+    pub fn in(x: f32) f32 {
         return 1 - math.cos((x * math.pi) / 2);
     }
 
-    fn out(x: f32) f32 {
+    pub fn out(x: f32) f32 {
         return math.sin((x * math.pi) / 2);
     }
 
-    fn inOut(x: f32) f32 {
+    pub fn inOut(x: f32) f32 {
         return -(math.cos(math.pi * x) - 1) / 2;
     }
 };
 
 pub const quad = struct {
-    fn in(x: f32) f32 {
+    pub fn in(x: f32) f32 {
         return x * x;
     }
 
-    fn out(x: f32) f32 {
+    pub fn out(x: f32) f32 {
         return 1 - (1 - x) * (1 - x);
     }
 
-    fn inOut(x: f32) f32 {
+    pub fn inOut(x: f32) f32 {
         return if (x < 0.5)
             2 * x * x
         else
@@ -392,15 +390,15 @@ pub const quad = struct {
 };
 
 pub const cubic = struct {
-    fn in(x: f32) f32 {
+    pub fn in(x: f32) f32 {
         return x * x * x;
     }
 
-    fn out(x: f32) f32 {
+    pub fn out(x: f32) f32 {
         return 1 - math.pow(f32, 1 - x, 3);
     }
 
-    fn inOut(x: f32) f32 {
+    pub fn inOut(x: f32) f32 {
         return if (x < 0.5)
             4 * x * x * x
         else
@@ -409,15 +407,15 @@ pub const cubic = struct {
 };
 
 pub const quart = struct {
-    fn in(x: f32) f32 {
+    pub fn in(x: f32) f32 {
         return x * x * x * x;
     }
 
-    fn out(x: f32) f32 {
+    pub fn out(x: f32) f32 {
         return 1 - math.pow(f32, 1 - x, 4);
     }
 
-    fn inOut(x: f32) f32 {
+    pub fn inOut(x: f32) f32 {
         return if (x < 0.5)
             8 * x * x * x * x
         else
@@ -426,15 +424,15 @@ pub const quart = struct {
 };
 
 pub const quint = struct {
-    fn in(x: f32) f32 {
+    pub fn in(x: f32) f32 {
         return x * x * x * x * x;
     }
 
-    fn out(x: f32) f32 {
+    pub fn out(x: f32) f32 {
         return 1 - math.pow(f32, 1 - x, 5);
     }
 
-    fn inOut(x: f32) f32 {
+    pub fn inOut(x: f32) f32 {
         return if (x < 0.5)
             16 * x * x * x * x * x
         else
@@ -443,21 +441,21 @@ pub const quint = struct {
 };
 
 pub const expo = struct {
-    fn in(x: f32) f32 {
+    pub fn in(x: f32) f32 {
         return if (math.approxEqAbs(f32, x, 0, math.floatEps(f32)))
             0
         else
             math.pow(f32, 2, 10 * x - 10);
     }
 
-    fn out(x: f32) f32 {
+    pub fn out(x: f32) f32 {
         return if (math.approxEqAbs(f32, x, 1, math.floatEps(f32)))
             1
         else
             1 - math.pow(f32, 2, -10 * x);
     }
 
-    fn inOut(x: f32) f32 {
+    pub fn inOut(x: f32) f32 {
         return if (math.approxEqAbs(f32, x, 0, math.floatEps(f32)))
             0
         else if (math.approxEqAbs(f32, x, 1, math.floatEps(f32)))
@@ -470,15 +468,15 @@ pub const expo = struct {
 };
 
 pub const circ = struct {
-    fn in(x: f32) f32 {
+    pub fn in(x: f32) f32 {
         return 1.0 - math.sqrt(1.0 - math.pow(f32, x, 2));
     }
 
-    fn out(x: f32) f32 {
+    pub fn out(x: f32) f32 {
         return math.sqrt(1.0 - math.pow(f32, x - 1, 2));
     }
 
-    fn inOut(x: f32) f32 {
+    pub fn inOut(x: f32) f32 {
         return if (x < 0.5)
             (1.0 - math.sqrt(1.0 - math.pow(f32, 2 * x, 2))) / 2
         else
@@ -487,19 +485,19 @@ pub const circ = struct {
 };
 
 pub const back = struct {
-    fn in(x: f32) f32 {
+    pub fn in(x: f32) f32 {
         const c1 = 1.70158;
         const c3 = c1 + 1;
         return c3 * x * x * x - c1 * x * x;
     }
 
-    fn out(x: f32) f32 {
+    pub fn out(x: f32) f32 {
         const c1 = 1.70158;
         const c3 = c1 + 1;
         return 1.0 + c3 * math.pow(f32, x - 1, 3) + c1 * math.pow(f32, x - 1, 2);
     }
 
-    fn inOut(x: f32) f32 {
+    pub fn inOut(x: f32) f32 {
         const c1 = 1.70158;
         const c2 = c1 * 1.525;
         return if (x < 0.5)
@@ -510,7 +508,7 @@ pub const back = struct {
 };
 
 pub const elastic = struct {
-    fn in(x: f32) f32 {
+    pub fn in(x: f32) f32 {
         const c4 = (2.0 * math.pi) / 3.0;
         return if (math.approxEqAbs(f32, x, 0, math.floatEps(f32)))
             0
@@ -520,7 +518,7 @@ pub const elastic = struct {
             -math.pow(f32, 2, 10 * x - 10) * math.sin((x * 10 - 10.75) * c4);
     }
 
-    fn out(x: f32) f32 {
+    pub fn out(x: f32) f32 {
         const c4 = (2.0 * math.pi) / 3.0;
         return if (math.approxEqAbs(f32, x, 0, math.floatEps(f32)))
             0
@@ -530,7 +528,7 @@ pub const elastic = struct {
             math.pow(f32, 2, -10 * x) * math.sin((x * 10 - 0.75) * c4) + 1;
     }
 
-    fn inOut(x: f32) f32 {
+    pub fn inOut(x: f32) f32 {
         const c5 = (2.0 * math.pi) / 4.5;
         return if (math.approxEqAbs(f32, x, 0, math.floatEps(f32)))
             0
@@ -544,11 +542,11 @@ pub const elastic = struct {
 };
 
 pub const bounce = struct {
-    fn in(x: f32) f32 {
+    pub fn in(x: f32) f32 {
         return 1 - out(1 - x);
     }
 
-    fn out(x: f32) f32 {
+    pub fn out(x: f32) f32 {
         const n1 = 7.5625;
         const d1 = 2.75;
         if (x < 1.0 / d1) {
@@ -565,7 +563,7 @@ pub const bounce = struct {
         }
     }
 
-    fn inOut(x: f32) f32 {
+    pub fn inOut(x: f32) f32 {
         return if (x < 0.5)
             (1.0 - out(1.0 - 2.0 * x)) / 2.0
         else

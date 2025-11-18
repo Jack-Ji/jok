@@ -5,7 +5,7 @@ A minimal 2d/3d game framework for zig.
 
 ## What you need?
 * [Zig Compiler](https://ziglang.org/download/) (Master branch always targets latest zig, use tagged release if you wanna stick to stable version)
-* Any code editor you like (consider using [zls](https://github.com/zigtools/zls) for your own favor)
+* Any code editor you like
 
 ## Features
 * Friendly build system, very easy to setup new project
@@ -33,7 +33,7 @@ A minimal 2d/3d game framework for zig.
 * SVG loading/rendering
 * Sound/Music playing/mixing
 * Tiled editor support (tmx/tsx loading/rendering)
-* Misc little utils, such as easing/timer/signal/fsm system
+* Misc powerful utils, such as easing/timer/signal/fsm system
 
 ## Supported platforms
 * Windows
