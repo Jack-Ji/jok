@@ -19,28 +19,12 @@ var rand: std.Random.DefaultPrng = undefined;
 var plane: zmesh.Shape = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var ps: *j3d.ParticleSystem = undefined;
+var emitter1: j3d.ParticleSystem.FireEmitter = undefined;
+var emitter2: j3d.ParticleSystem.FireEmitter = undefined;
 var e1: *j3d.ParticleSystem.Effect = undefined;
 var e2: *j3d.ParticleSystem.Effect = undefined;
 var camera: j3d.Camera = undefined;
 var sort_by_depth: bool = false;
-
-// fire effect
-const emitter1 = j3d.ParticleSystem.Effect.FireEmitter(
-    20,
-    50,
-    3,
-    .red,
-    .yellow,
-    1.75,
-);
-const emitter2 = j3d.ParticleSystem.Effect.FireEmitter(
-    20,
-    50,
-    3,
-    .black,
-    .white,
-    2.75,
-);
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -87,34 +71,16 @@ pub fn init(ctx: jok.Context) !void {
         .{ 150, 150, 150 },
         .{ 0, 0, 0 },
     );
-    emitter1.draw_data = j3d.ParticleSystem.DrawData.fromSprite(
-        sheet.getSpriteByName("white-circle").?,
-        .{ .x = 0.2, .y = 0.2 },
-    );
-    emitter2.draw_data = j3d.ParticleSystem.DrawData.fromSprite(
-        sheet.getSpriteByName("ogre").?,
-        .{ .x = 0.2, .y = 0.2 },
-    );
-    e1 = try ps.add(
-        "fire1",
-        rand.random(),
-        5000,
-        emitter1.emit,
-        j3d.Vector.new(0, 0, 0),
-        60,
-        40,
-        0.016,
-    );
-    e2 = try ps.add(
-        "fire2",
-        rand.random(),
-        5000,
-        emitter2.emit,
-        j3d.Vector.new(60, 0, 0),
-        60,
-        10,
-        0.016,
-    );
+    emitter1 = j3d.ParticleSystem.FireEmitter{
+        .draw_data = .fromSprite(sheet.getSpriteByName("white-circle").?, .{ .x = 0.2, .y = 0.2 }),
+    };
+    emitter2 = j3d.ParticleSystem.FireEmitter{
+        .draw_data = .fromSprite(sheet.getSpriteByName("ogre").?, .{ .x = 0.2, .y = 0.2 }),
+        .color_initial = .black,
+        .color_final = .white,
+    };
+    e1 = try ps.add("fire1", emitter1.emitter(), .{});
+    e2 = try ps.add("fire2", emitter2.emitter(), .{ .origin = .new(60, 0, 0) });
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {

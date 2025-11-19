@@ -10,27 +10,12 @@ var sheet: *j2d.SpriteSheet = undefined;
 var font: *jok.font.Font = undefined;
 var atlas: *jok.font.Atlas = undefined;
 var ps: *j2d.ParticleSystem = undefined;
+var emitter1: j2d.ParticleSystem.FireEmitter = undefined;
+var emitter2: j2d.ParticleSystem.FireEmitter = undefined;
 var e1: *j2d.ParticleSystem.Effect = undefined;
 var e2: *j2d.ParticleSystem.Effect = undefined;
 
 // fire effect
-const emitter1 = j2d.ParticleSystem.Effect.FireEmitter(
-    50,
-    200,
-    3,
-    .red,
-    .yellow,
-    2.75,
-);
-const emitter2 = j2d.ParticleSystem.Effect.FireEmitter(
-    50,
-    200,
-    3,
-    .red,
-    .green,
-    2.75,
-);
-
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
@@ -62,30 +47,14 @@ pub fn init(ctx: jok.Context) !void {
     );
     atlas = try font.createAtlas(ctx, 60, null, .{});
     ps = try j2d.ParticleSystem.create(ctx.allocator());
-    emitter1.sprite = sheet.getSpriteByName("particle");
-    emitter2.sprite = atlas.getSpriteOfCodePoint('*');
-    e1 = try ps.add(
-        "fire1",
-        rd.random(),
-        8000,
-        emitter1.emit,
-        j2d.Vector.new(400, 500),
-        60,
-        40,
-        0.016,
-        .{},
-    );
-    e2 = try ps.add(
-        "fire2",
-        rd.random(),
-        2000,
-        emitter2.emit,
-        j2d.Vector.new(200, 500),
-        60,
-        10,
-        0.016,
-        .{},
-    );
+    emitter1 = j2d.ParticleSystem.FireEmitter{
+        .sprite = sheet.getSpriteByName("particle").?,
+    };
+    emitter2 = j2d.ParticleSystem.FireEmitter{
+        .sprite = atlas.getSpriteOfCodePoint('*').?,
+    };
+    e1 = try ps.add("fire1", emitter1.emitter(), .{ .origin = .{ .x = 400, .y = 300 } });
+    e2 = try ps.add("fire2", emitter2.emitter(), .{ .origin = .{ .x = 200, .y = 500 } });
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {

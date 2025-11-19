@@ -19,6 +19,9 @@ const default_effects_capacity = 10;
 // Memory allocator
 allocator: std.mem.Allocator,
 
+// Default random generator
+rng: std.Random.DefaultPrng,
+
 // Effect pool, for fast allocation
 pool: EffectPool,
 
@@ -38,6 +41,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
     errdefer allocator.destroy(self);
     self.* = .{
         .allocator = allocator,
+        .rng = .init(@intCast(jok.vendor.sdl.SDL_GetTicksNS())),
         .pool = .empty,
         .effects = .{},
         .search_tree = SearchMap.init(allocator),
@@ -87,17 +91,16 @@ pub fn clear(self: *Self) void {
 }
 
 /// Add effect
-pub fn add(
-    self: *Self,
-    name: []const u8,
-    random: std.Random,
-    max_particle_num: u32,
-    emit_fn: Effect.ParticleEmitFn,
-    origin: Vector,
-    effect_duration: f32,
-    gen_amount: u32,
-    burst_freq: f32,
-) !*Effect {
+pub const AddEffect = struct {
+    random: ?std.Random = null,
+    origin: Vector = .zero,
+    max_particle_num: u32 = 1000,
+    effect_duration: ?f32 = null,
+    gen_amount: u32 = 20,
+    burst_freq: f32 = 0.1,
+    depth: f32 = 0.5,
+};
+pub fn add(self: *Self, name: []const u8, emitter: ParticleEmitter, opt: AddEffect) !*Effect {
     assert(name.len > 0);
     if (self.search_tree.contains(name)) {
         return error.NameUsed;
@@ -108,15 +111,15 @@ pub fn add(
     effect.* = .{
         .system = self,
         .name = dname,
-        .random = random,
+        .random = opt.random orelse self.rng.random(),
         .particles = try std.ArrayList(Particle)
-            .initCapacity(self.allocator, max_particle_num),
-        .emit_fn = emit_fn,
-        .origin = origin,
-        .effect_duration = effect_duration,
-        .gen_amount = gen_amount,
-        .burst_freq = burst_freq,
-        .burst_countdown = burst_freq,
+            .initCapacity(self.allocator, opt.max_particle_num),
+        .emitter = emitter,
+        .origin = opt.origin,
+        .effect_duration = opt.effect_duration,
+        .gen_amount = opt.gen_amount,
+        .burst_freq = opt.burst_freq,
+        .burst_countdown = opt.burst_freq,
     };
     errdefer effect.deinit(self.allocator);
     self.effects.append(&effect.node);
@@ -142,11 +145,6 @@ pub fn remove(self: *Self, e: *Effect) void {
 
 /// Represent a particle effect
 pub const Effect = struct {
-    pub const ParticleEmitFn = *const fn (
-        random: std.Random,
-        origin: Vector,
-    ) Particle;
-
     /// Link node in system
     node: std.DoublyLinkedList.Node = .{},
 
@@ -163,13 +161,13 @@ pub const Effect = struct {
     particles: std.ArrayList(Particle),
 
     /// Particle emitter
-    emit_fn: ParticleEmitFn,
+    emitter: ParticleEmitter,
 
     /// Origin of particle
     origin: Vector,
 
     /// Effect duration
-    effect_duration: f32,
+    effect_duration: ?f32,
 
     /// New particle amount per burst
     gen_amount: u32,
@@ -187,10 +185,10 @@ pub const Effect = struct {
 
     /// Update effect
     fn update(self: *Effect, delta_time: f32) void {
-        if (self.effect_duration > 0) {
-            self.effect_duration -= delta_time;
+        if (self.effect_duration == null or self.effect_duration.? > 0) {
+            if (self.effect_duration != null) self.effect_duration.? -= delta_time;
             self.burst_countdown -= delta_time;
-            if (self.effect_duration >= 0 and
+            if ((self.effect_duration == null or self.effect_duration.? >= 0) and
                 self.burst_countdown <= 0 and
                 self.particles.items.len < self.particles.capacity)
             {
@@ -198,7 +196,7 @@ pub const Effect = struct {
                 while (i < self.gen_amount) : (i += 1) {
                     // Generate new particle
                     self.particles.appendAssumeCapacity(
-                        self.emit_fn(self.random, self.origin),
+                        self.emitter.emit(self.random, self.origin),
                     );
                     if (self.particles.items.len == self.particles.capacity) break;
                 }
@@ -239,52 +237,7 @@ pub const Effect = struct {
 
     /// If effect is over
     pub fn isOver(self: *const Effect) bool {
-        return self.effect_duration <= 0 and self.particles.items.len == 0;
-    }
-
-    /// Bulitin particle emitter: fire
-    pub fn FireEmitter(
-        comptime _radius: f32,
-        comptime _acceleration: f32,
-        comptime _age: f32,
-        comptime _color_initial: jok.ColorF,
-        comptime _color_final: jok.ColorF,
-        comptime _color_fade_age: f32,
-    ) type {
-        return struct {
-            pub var draw_data: ?DrawData = null;
-            pub var radius = _radius;
-            pub var acceleration = _acceleration;
-            pub var age = _age;
-            pub var color_initial = _color_initial;
-            pub var color_final = _color_final;
-            pub var color_fade_age = _color_fade_age;
-
-            pub fn emit(random: std.Random, origin: Vector) Particle {
-                const offset = Vector.new(
-                    random.float(f32) * radius * @cos(random.float(f32) * std.math.tau) * @cos(random.float(f32) * std.math.tau),
-                    random.float(f32) * radius * @sin(random.float(f32) * std.math.tau),
-                    random.float(f32) * radius * @cos(random.float(f32) * std.math.tau) * @sin(random.float(f32) * std.math.tau),
-                );
-
-                assert(color_fade_age < age);
-                return Particle{
-                    .draw_data = draw_data.?,
-                    .age = age,
-                    .pos = origin.add(offset),
-                    .move_speed = Vector.new(-offset.x() * 0.5, 0, -offset.z() * 0.5),
-                    .move_acceleration = Vector.new(0, random.float(f32) * acceleration, 0),
-                    .move_damp = 0.96,
-                    .scale = 0.5,
-                    .scale_speed = -0.1,
-                    .scale_acceleration = 0.0,
-                    .scale_max = 1.0,
-                    .color_initial = color_initial,
-                    .color_final = color_final,
-                    .color_fade_age = color_fade_age,
-                };
-            }
-        };
+        return self.effect_duration != null and self.effect_duration.? <= 0 and self.particles.items.len == 0;
     }
 };
 
@@ -463,5 +416,65 @@ pub const Particle = struct {
                 );
             },
         }
+    }
+};
+
+/// Interface for particle emitters
+const ParticleEmitter = struct {
+    ptr: *anyopaque = undefined,
+    vtable: *const VTable = undefined,
+
+    const VTable = struct {
+        emit: *const fn (ctx: *anyopaque, random: std.Random, origin: Vector) Particle,
+    };
+
+    fn emit(pe: ParticleEmitter, random: std.Random, origin: Vector) Particle {
+        return pe.vtable.emit(pe.ptr, random, origin);
+    }
+};
+
+/////////////////////////// Bulitin Particle Emitters ///////////////////////////
+
+/// Fire Emitter
+pub const FireEmitter = struct {
+    draw_data: DrawData,
+    radius: f32 = 20,
+    acceleration: f32 = 50,
+    age: f32 = 3,
+    color_initial: jok.ColorF = .red,
+    color_final: jok.ColorF = .yellow,
+    color_fade_age: f32 = 2,
+
+    pub fn emitter(self: *FireEmitter) ParticleEmitter {
+        return .{
+            .ptr = @ptrCast(self),
+            .vtable = &.{ .emit = emit },
+        };
+    }
+
+    fn emit(ptr: *anyopaque, random: std.Random, origin: Vector) Particle {
+        const self: *FireEmitter = @ptrCast(@alignCast(ptr));
+        const offset = Vector.new(
+            random.float(f32) * self.radius * @cos(random.float(f32) * std.math.tau) * @cos(random.float(f32) * std.math.tau),
+            random.float(f32) * self.radius * @sin(random.float(f32) * std.math.tau),
+            random.float(f32) * self.radius * @cos(random.float(f32) * std.math.tau) * @sin(random.float(f32) * std.math.tau),
+        );
+
+        assert(self.color_fade_age <= self.age);
+        return Particle{
+            .draw_data = self.draw_data,
+            .age = self.age,
+            .pos = origin.add(offset),
+            .move_speed = Vector.new(-offset.x() * 0.5, 0, -offset.z() * 0.5),
+            .move_acceleration = Vector.new(0, random.float(f32) * self.acceleration, 0),
+            .move_damp = 0.96,
+            .scale = 0.5,
+            .scale_speed = -0.1,
+            .scale_acceleration = 0.0,
+            .scale_max = 1.0,
+            .color_initial = self.color_initial,
+            .color_final = self.color_final,
+            .color_fade_age = self.color_fade_age,
+        };
     }
 };
