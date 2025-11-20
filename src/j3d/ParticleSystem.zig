@@ -105,9 +105,16 @@ pub fn add(self: *Self, name: []const u8, emitter: ParticleEmitter, opt: AddEffe
     if (self.search_tree.contains(name)) {
         return error.NameUsed;
     }
+    if (std.mem.eql(u8, name, "_")) {
+        return error.InvalidName;
+    }
+
     const effect = try self.pool.create(self.allocator);
+    errdefer self.pool.destroy(effect);
+
     const dname = try self.allocator.dupe(u8, name);
     errdefer self.allocator.free(dname);
+
     effect.* = .{
         .system = self,
         .name = dname,
@@ -121,9 +128,14 @@ pub fn add(self: *Self, name: []const u8, emitter: ParticleEmitter, opt: AddEffe
         .burst_freq = opt.burst_freq,
         .burst_countdown = opt.burst_freq,
     };
-    errdefer effect.deinit(self.allocator);
+    errdefer effect.particles.deinit(self.allocator);
+
     self.effects.append(&effect.node);
-    try self.search_tree.put(effect.name, effect);
+    self.search_tree.putNoClobber(effect.name, effect) catch |err| {
+        self.effects.remove(&effect.node);
+        return err;
+    };
+
     self.sig_begin.emit(.{effect.name});
     return effect;
 }
@@ -139,7 +151,7 @@ pub fn remove(self: *Self, e: *Effect) void {
         self.effects.remove(&e.node);
         e.deinit(self.allocator);
         self.pool.destroy(e);
-        e.name = ""; // Deliberately set name to null str, which will be detected as dead effect
+        e.name = "_"; // Deliberately set name to special str, which will be detected as dead effect
     }
 }
 
@@ -227,8 +239,10 @@ pub const Effect = struct {
         camera: Camera,
         tri_rd: *TriangleRenderer,
     ) !void {
-        if (self.name.len == 0) {
-            return; // Warning: Although we handled dead effect here, it's best to always use `ParticleSystem.get` to get effect!!!
+        if (std.mem.eql(u8, self.name, "_")) {
+            // Warning: this is only best effort to avoid dead effect,
+            // it's best to always use `ParticleSystem.get` to get effect!!!
+            return;
         }
         for (self.particles.items) |p| {
             try p.render(csz, batch, camera, tri_rd);
@@ -237,7 +251,8 @@ pub const Effect = struct {
 
     /// If effect is over
     pub fn isOver(self: *const Effect) bool {
-        return self.effect_duration != null and self.effect_duration.? <= 0 and self.particles.items.len == 0;
+        return std.mem.eql(u8, self.name, "_") or
+            (self.effect_duration != null and self.effect_duration.? <= 0 and self.particles.items.len == 0);
     }
 };
 
@@ -420,9 +435,9 @@ pub const Particle = struct {
 };
 
 /// Interface for particle emitters
-const ParticleEmitter = struct {
-    ptr: *anyopaque = undefined,
-    vtable: *const VTable = undefined,
+pub const ParticleEmitter = struct {
+    ptr: *anyopaque,
+    vtable: *const VTable,
 
     const VTable = struct {
         emit: *const fn (ctx: *anyopaque, random: std.Random, origin: Vector) Particle,

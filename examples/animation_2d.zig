@@ -73,16 +73,13 @@ pub fn init(ctx: jok.Context) !void {
     var dcmds: [20]j2d.DrawCmd = undefined;
     for (0..dcmds.len) |i| {
         dcmds[i] = .{
-            .cmd = .{
-                .circle = .{
-                    .p = .origin,
-                    .radius = @floatFromInt(@abs(100 - @as(i32, @intCast(i)) * 10)),
-                    .color = jok.Color.rgb(@intCast(i * 50 % 255), @intCast(i * 50 % 255), 0).toInternalColor(),
-                    .num_segments = 20,
-                    .thickness = 6,
-                },
+            .circle = .{
+                .p = .origin,
+                .radius = @floatFromInt(@abs(100 - @as(i32, @intCast(i)) * 10)),
+                .color = jok.Color.rgb(@intCast(i * 50 % 255), @intCast(i * 50 % 255), 0).toInternalColor(),
+                .num_segments = 20,
+                .thickness = 6,
             },
-            .depth = 0.5,
         };
     }
     try as2.addSimple(
@@ -147,7 +144,7 @@ pub fn draw(ctx: jok.Context) !void {
         try b.pushTransform();
         defer b.popTransform();
         b.trs = j2d.AffineTransform.init().translate(pos.toArray());
-        try b.pushDrawCommand(try as2.getCurrentFrame("player_circle_bg"));
+        try b.pushDrawCommand(try as2.getCurrentFrame("player_circle_bg"), null);
     }
 
     try b.sprite(

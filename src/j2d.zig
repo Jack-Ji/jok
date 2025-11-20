@@ -53,7 +53,7 @@ pub const Batch = struct {
     is_submitted: bool = false,
     ctx: jok.Context,
     draw_list: zgui.DrawList,
-    draw_commands: std.array_list.Managed(DrawCmd),
+    draw_commands: std.array_list.Managed(internal._DrawCmd),
     trs_stack: std.array_list.Managed(AffineTransform),
     trs: AffineTransform,
     depth_sort: DepthSortMethod,
@@ -150,11 +150,11 @@ pub const Batch = struct {
         }
     }
 
-    fn ascendCompare(_: ?*anyopaque, lhs: DrawCmd, rhs: DrawCmd) bool {
+    fn ascendCompare(_: ?*anyopaque, lhs: internal._DrawCmd, rhs: internal._DrawCmd) bool {
         return lhs.compare(rhs, true);
     }
 
-    fn descendCompare(_: ?*anyopaque, lhs: DrawCmd, rhs: DrawCmd) bool {
+    fn descendCompare(_: ?*anyopaque, lhs: internal._DrawCmd, rhs: internal._DrawCmd) bool {
         return lhs.compare(rhs, false);
     }
 
@@ -169,13 +169,13 @@ pub const Batch = struct {
             switch (self.depth_sort) {
                 .none => {},
                 .back_to_forth => std.sort.pdq(
-                    DrawCmd,
+                    internal._DrawCmd,
                     self.draw_commands.items,
                     @as(?*anyopaque, null),
                     descendCompare,
                 ),
                 .forth_to_back => std.sort.pdq(
-                    DrawCmd,
+                    internal._DrawCmd,
                     self.draw_commands.items,
                     @as(?*anyopaque, null),
                     ascendCompare,
@@ -192,11 +192,11 @@ pub const Batch = struct {
                     else => {},
                 }
                 if (self.do_early_clipping) {
-                    if (self.clip_rect.intersectRect(dcmd.getRect()) != null) {
-                        dcmd.render(self.draw_list);
+                    if (self.clip_rect.intersectRect(dcmd.cmd.getRect()) != null) {
+                        dcmd.cmd.render(self.draw_list);
                     }
                 } else {
-                    dcmd.render(self.draw_list);
+                    dcmd.cmd.render(self.draw_list);
                 }
             }
         }
@@ -364,8 +364,8 @@ pub const Batch = struct {
         const size: @Vector(2, f32) = _size.mul(self.trs.getScale()).toArray();
         const pmin = pos.add(self.trs.getTranslation()).sub(size * opt.anchor_point.toArray());
         const pmax = pmin.add(size);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .image_rounded = .{
                     .texture = texture,
                     .pmin = pmin,
@@ -380,20 +380,20 @@ pub const Batch = struct {
                     .corner_bottom_right = opt.corner_bottom_right,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub fn scene(self: *Batch, s: *const Scene) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try s.render(&self.draw_commands, .{ .transform = self.trs });
+        try s.render(self, null);
     }
 
     pub fn effect(self: *Batch, e: *const ParticleSystem.Effect) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try e.render(&self.draw_commands, .{ .transform = self.trs });
+        try e.render(self);
     }
 
     pub const SpriteOption = struct {
@@ -599,8 +599,8 @@ pub const Batch = struct {
     pub fn line(self: *Batch, p1: jok.Point, p2: jok.Point, color: jok.Color, opt: LineOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .line = .{
                     .p1 = p1,
                     .p2 = p2,
@@ -608,8 +608,8 @@ pub const Batch = struct {
                     .thickness = opt.thickness,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const RectOption = struct {
@@ -623,8 +623,8 @@ pub const Batch = struct {
         const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
         const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
         const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .quad = .{
                     .p1 = p1,
                     .p2 = p2,
@@ -634,8 +634,8 @@ pub const Batch = struct {
                     .thickness = opt.thickness,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const FillRect = struct {
@@ -649,8 +649,8 @@ pub const Batch = struct {
         const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
         const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
         const c = color.toInternalColor();
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .quad_fill = .{
                     .p1 = p1,
                     .p2 = p2,
@@ -662,8 +662,8 @@ pub const Batch = struct {
                     .color4 = c,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const FillRectMultiColor = struct {
@@ -688,8 +688,8 @@ pub const Batch = struct {
         const c2 = color_top_right.toInternalColor();
         const c3 = color_bottom_right.toInternalColor();
         const c4 = color_bottom_left.toInternalColor();
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .quad_fill = .{
                     .p1 = p1,
                     .p2 = p2,
@@ -701,8 +701,8 @@ pub const Batch = struct {
                     .color4 = c4,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     /// NOTE: Rounded rectangle is always aligned with world axis
@@ -722,8 +722,8 @@ pub const Batch = struct {
         const size: @Vector(2, f32) = r.getSize().mul(self.trs.getScale()).toArray();
         const pmin = r.getPos().add(self.trs.getTranslation()).sub(size * opt.anchor_point.toArray());
         const pmax = pmin.add(size);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .rect_rounded = .{
                     .pmin = pmin,
                     .pmax = pmax,
@@ -736,8 +736,8 @@ pub const Batch = struct {
                     .corner_bottom_right = opt.corner_bottom_right,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     /// NOTE: Rounded rectangle is always aligned with world axis
@@ -756,8 +756,8 @@ pub const Batch = struct {
         const size: @Vector(2, f32) = r.getSize().mul(self.trs.getScale()).toArray();
         const pmin = r.getPos().add(self.trs.getTranslation()).sub(size * opt.anchor_point.toArray());
         const pmax = pmin.add(size);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .rect_rounded_fill = .{
                     .pmin = pmin,
                     .pmax = pmax,
@@ -769,8 +769,8 @@ pub const Batch = struct {
                     .corner_bottom_right = opt.corner_bottom_right,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const QuadOption = struct {
@@ -788,8 +788,8 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .quad = .{
                     .p1 = p1,
                     .p2 = p2,
@@ -799,8 +799,8 @@ pub const Batch = struct {
                     .thickness = opt.thickness,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const FillQuad = struct {
@@ -818,8 +818,8 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const c = color.toInternalColor();
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .quad_fill = .{
                     .p1 = p1,
                     .p2 = p2,
@@ -831,8 +831,8 @@ pub const Batch = struct {
                     .color4 = c,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const FillQuadMultiColor = struct {
@@ -856,8 +856,8 @@ pub const Batch = struct {
         const c2 = color2.toInternalColor();
         const c3 = color3.toInternalColor();
         const c4 = color4.toInternalColor();
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .quad_fill = .{
                     .p1 = p1,
                     .p2 = p2,
@@ -869,8 +869,8 @@ pub const Batch = struct {
                     .color4 = c4,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const TriangleOption = struct {
@@ -885,8 +885,8 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .triangle = .{
                     .p1 = tri.p0,
                     .p2 = tri.p1,
@@ -895,8 +895,8 @@ pub const Batch = struct {
                     .thickness = opt.thickness,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const FillTriangle = struct {
@@ -911,8 +911,8 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const c = color.toInternalColor();
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .triangle_fill = .{
                     .p1 = tri.p0,
                     .p2 = tri.p1,
@@ -922,8 +922,8 @@ pub const Batch = struct {
                     .color3 = c,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const FillTriangleMultiColor = struct {
@@ -940,8 +940,8 @@ pub const Batch = struct {
         const c1 = cs[0].toInternalColor();
         const c2 = cs[1].toInternalColor();
         const c3 = cs[2].toInternalColor();
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .triangle_fill = .{
                     .p1 = tri.p0,
                     .p2 = tri.p1,
@@ -951,8 +951,8 @@ pub const Batch = struct {
                     .color3 = c3,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const CircleOption = struct {
@@ -968,8 +968,8 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .circle = .{
                     .p = c.center,
                     .radius = c.radius,
@@ -978,8 +978,8 @@ pub const Batch = struct {
                     .num_segments = opt.num_segments,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const FillCircle = struct {
@@ -994,8 +994,8 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .circle_fill = .{
                     .p = c.center,
                     .radius = c.radius,
@@ -1003,8 +1003,8 @@ pub const Batch = struct {
                     .num_segments = opt.num_segments,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const EllipseOption = struct {
@@ -1021,8 +1021,8 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .ellipse = .{
                     .p = c.center,
                     .radius = c.radius,
@@ -1032,8 +1032,8 @@ pub const Batch = struct {
                     .num_segments = opt.num_segments,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const FillEllipse = struct {
@@ -1049,8 +1049,8 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .ellipse_fill = .{
                     .p = e.center,
                     .radius = e.radius,
@@ -1059,8 +1059,8 @@ pub const Batch = struct {
                     .num_segments = opt.num_segments,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const NgonOption = struct {
@@ -1077,8 +1077,8 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .ngon = .{
                     .p = center,
                     .radius = radius,
@@ -1087,8 +1087,8 @@ pub const Batch = struct {
                     .num_segments = num_segments,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const FillNgon = struct {
@@ -1104,8 +1104,8 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .ngon_fill = .{
                     .p = center,
                     .radius = radius,
@@ -1113,8 +1113,8 @@ pub const Batch = struct {
                     .num_segments = num_segments,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const BezierCubicOption = struct {
@@ -1133,8 +1133,8 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .bezier_cubic = .{
                     .p1 = p1,
                     .p2 = p2,
@@ -1145,8 +1145,8 @@ pub const Batch = struct {
                     .num_segments = opt.num_segments,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const BezierQuadraticOption = struct {
@@ -1164,8 +1164,8 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .bezier_quadratic = .{
                     .p1 = p1,
                     .p2 = p2,
@@ -1175,8 +1175,8 @@ pub const Batch = struct {
                     .num_segments = opt.num_segments,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const FillPoly = struct {
@@ -1190,15 +1190,15 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         if (!poly.finished) return error.PathNotFinished;
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .convex_polygon_fill = .{
                     .points = poly.points,
                     .texture = poly.texture,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     /// Probably not fast enough O(n^2), use it at your discretion
@@ -1211,16 +1211,16 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         if (!poly.finished) return error.PathNotFinished;
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .concave_polygon_fill = .{
                     .points = poly.points,
                     .transformed = poly.transformed,
                     .color = color.toInternalColor(),
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
     pub const PolylineOption = struct {
@@ -1237,8 +1237,8 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         if (!pl.finished) return error.PathNotFinished;
-        try self.pushDrawCommand(.{
-            .cmd = .{
+        try self.pushDrawCommand(
+            .{
                 .polyline = .{
                     .points = pl.points,
                     .transformed = pl.transformed,
@@ -1247,13 +1247,13 @@ pub const Batch = struct {
                     .closed = opt.closed,
                 },
             },
-            .depth = opt.depth,
-        });
+            opt.depth,
+        );
     }
 
-    pub inline fn pushDrawCommand(self: *Batch, _dcmd: DrawCmd) !void {
+    pub inline fn pushDrawCommand(self: *Batch, _dcmd: DrawCmd, depth: ?f32) !void {
         var dcmd = _dcmd;
-        switch (dcmd.cmd) {
+        switch (dcmd) {
             .quad_image => |*cmd| {
                 cmd.p1 = self.trs.transformPoint(cmd.p1);
                 cmd.p2 = self.trs.transformPoint(cmd.p2);
@@ -1342,7 +1342,10 @@ pub const Batch = struct {
                 cmd.transform = self.trs;
             },
         }
-        try self.draw_commands.append(dcmd);
+        try self.draw_commands.append(.{
+            .cmd = dcmd,
+            .depth = depth orelse 0.5,
+        });
     }
 };
 

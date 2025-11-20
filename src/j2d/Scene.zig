@@ -2,6 +2,8 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
+const Batch = jok.j2d.Batch;
+const SpriteOption = Batch.SpriteOption;
 const DrawCmd = @import("internal.zig").DrawCmd;
 const Vector = @import("Vector.zig");
 const Sprite = @import("Sprite.zig");
@@ -11,9 +13,9 @@ const Self = @This();
 /// A movable object in 2d space
 pub const Actor = struct {
     sprite: ?Sprite = null,
-    render_opt: Sprite.RenderOption,
+    render_opt: SpriteOption,
 
-    fn getRenderOptions(actor: Actor, parent_opt: Sprite.RenderOption) Sprite.RenderOption {
+    fn getRenderOptions(actor: Actor, parent_opt: SpriteOption) SpriteOption {
         return .{
             .pos = .{
                 .x = parent_opt.pos.x + actor.render_opt.pos.x,
@@ -37,7 +39,7 @@ pub const Actor = struct {
 pub const Object = struct {
     allocator: std.mem.Allocator,
     actor: Actor,
-    render_opt: Sprite.RenderOption,
+    render_opt: jok.j2d.Batch.SpriteOption,
     depth: f32,
     parent: ?*Object = null,
     children: std.array_list.Managed(*Object),
@@ -127,7 +129,7 @@ pub const Object = struct {
     }
 
     // Change object's rendering option
-    pub fn setRenderOptions(o: *Object, opt: Sprite.RenderOption) void {
+    pub fn setRenderOptions(o: *Object, opt: SpriteOption) void {
         o.actor.render_opt = opt;
         o.updateRenderOptions();
     }
@@ -152,26 +154,8 @@ pub fn destroy(self: *Self, destroy_objects: bool) void {
     self.allocator.destroy(self);
 }
 
-pub const RenderOption = struct {
-    transform: AffineTransform = AffineTransform.init(),
-    object: ?*Object = null,
-};
-pub fn render(
-    self: Self,
-    draw_commands: *std.array_list.Managed(DrawCmd),
-    opt: RenderOption,
-) !void {
-    const o = opt.object orelse self.root;
-    if (o.actor.sprite) |s| {
-        var rdopt = o.render_opt;
-        rdopt.pos = opt.transform.transformPoint(rdopt.pos);
-        rdopt.rotate_angle += opt.transform.getRotation();
-        rdopt.scale = rdopt.scale.mul(opt.transform.getScale());
-        try s.render(draw_commands, rdopt);
-    }
-
-    for (o.children.items) |c| try self.render(
-        draw_commands,
-        .{ .transform = opt.transform, .object = c },
-    );
+pub fn render(self: Self, batch: *Batch, object: ?*Object) !void {
+    const o = object orelse self.root;
+    if (o.actor.sprite) |s| try batch.sprite(s, o.render_opt);
+    for (o.children.items) |c| try self.render(batch, c);
 }

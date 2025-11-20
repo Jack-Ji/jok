@@ -1,6 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
+const j2d = jok.j2d;
 const signal = jok.utils.signal;
 const DrawCmd = @import("internal.zig").DrawCmd;
 const Vector = @import("Vector.zig");
@@ -11,10 +12,6 @@ const Self = @This();
 const EffectPool = std.heap.MemoryPool(Effect);
 const SearchMap = std.StringHashMap(*Effect);
 const default_effects_capacity = 10;
-
-pub const RenderOption = struct {
-    transform: AffineTransform = AffineTransform.init(),
-};
 
 // Memory allocator
 allocator: std.mem.Allocator,
@@ -105,9 +102,16 @@ pub fn add(self: *Self, name: []const u8, emitter: ParticleEmitter, opt: AddEffe
     if (self.search_tree.contains(name)) {
         return error.NameUsed;
     }
+    if (std.mem.eql(u8, name, "_")) {
+        return error.InvalidName;
+    }
+
     const effect = try self.pool.create(self.allocator);
+    errdefer self.pool.destroy(effect);
+
     const dname = try self.allocator.dupe(u8, name);
     errdefer self.allocator.free(dname);
+
     effect.* = .{
         .system = self,
         .name = dname,
@@ -122,9 +126,14 @@ pub fn add(self: *Self, name: []const u8, emitter: ParticleEmitter, opt: AddEffe
         .burst_countdown = opt.burst_freq,
         .depth = opt.depth,
     };
-    errdefer effect.deinit(self.allocator);
+    errdefer effect.particles.deinit(self.allocator);
+
     self.effects.append(&effect.node);
-    try self.search_tree.put(effect.name, effect);
+    self.search_tree.putNoClobber(effect.name, effect) catch |err| {
+        self.effects.remove(&effect.node);
+        return err;
+    };
+
     self.sig_begin.emit(.{effect.name});
     return effect;
 }
@@ -140,7 +149,7 @@ pub fn remove(self: *Self, e: *Effect) void {
         self.effects.remove(&e.node);
         e.deinit(self.allocator);
         self.pool.destroy(e);
-        e.name = ""; // Deliberately set name to null str, which will be detected as dead effect
+        e.name = "_"; // Deliberately set name to special str, which will be detected as dead effect
     }
 }
 
@@ -224,25 +233,32 @@ pub const Effect = struct {
     }
 
     /// Render to output
-    pub fn render(self: *const Effect, draw_commands: *std.array_list.Managed(DrawCmd), opt: RenderOption) !void {
-        if (self.name.len == 0) {
-            return; // Warning: Although we handled dead effect here, it's best to always use `ParticleSystem.get` to get effect!!!
+    pub fn render(self: *const Effect, batch: *j2d.Batch) !void {
+        if (std.mem.eql(u8, self.name, "_")) {
+            // Warning: this is only best effort to avoid dead effect,
+            // it's best to always use `ParticleSystem.get` to get effect!!!
+            return;
         }
-        for (self.particles.items) |p| {
-            try p.render(draw_commands, opt.transform, self.depth);
+        for (self.particles.items) |*p| {
+            try p.render(batch, self.depth);
         }
     }
 
     /// If effect is over
     pub fn isOver(self: *const Effect) bool {
-        return self.effect_duration != null and self.effect_duration.? <= 0 and self.particles.items.len == 0;
+        return std.mem.eql(u8, self.name, "_") or
+            (self.effect_duration != null and self.effect_duration.? <= 0 and self.particles.items.len == 0);
     }
+};
+
+pub const DrawData = union(enum) {
+    dcmd: DrawCmd,
+    sprite: Sprite,
 };
 
 /// Represent a particle
 pub const Particle = struct {
-    /// Sprite of particle
-    sprite: Sprite,
+    draw_data: DrawData,
 
     /// Life of particle
     age: f32,
@@ -265,7 +281,7 @@ pub const Particle = struct {
     scale_max: f32 = 1,
 
     /// Color changing
-    color: jok.Color = undefined,
+    color: jok.Color = .none,
     color_initial: jok.Color = .white,
     color_final: jok.Color = .white,
     color_fade_age: f32 = 0,
@@ -317,30 +333,37 @@ pub const Particle = struct {
     }
 
     /// Render to output
-    inline fn render(
-        self: Particle,
-        draw_commands: *std.array_list.Managed(DrawCmd),
-        transform: AffineTransform,
-        depth: f32,
-    ) !void {
-        try self.sprite.render(
-            draw_commands,
-            .{
-                .pos = transform.transformPoint(.{ .x = self.pos.x(), .y = self.pos.y() }),
-                .tint_color = self.color,
-                .scale = .{ .x = self.scale, .y = self.scale },
-                .rotate_angle = self.angle,
-                .anchor_point = .{ .x = 0.5, .y = 0.5 },
-                .depth = depth,
+    inline fn render(self: *Particle, batch: *j2d.Batch, depth: f32) !void {
+        switch (self.draw_data) {
+            .dcmd => |*cmd| {
+                try batch.pushTransform();
+                defer batch.popTransform();
+
+                batch.scaleAroundLocalOrigin(.{ self.scale, self.scale });
+                batch.rotateByLocalOrigin(self.angle);
+                batch.translate(.{ self.pos.x(), self.pos.y() });
+                cmd.setColor(self.color);
+                try batch.pushDrawCommand(cmd.*, depth);
             },
-        );
+            .sprite => |sp| try batch.sprite(
+                sp,
+                .{
+                    .pos = .{ .x = self.pos.x(), .y = self.pos.y() },
+                    .tint_color = self.color,
+                    .scale = .{ .x = self.scale, .y = self.scale },
+                    .rotate_angle = self.angle,
+                    .anchor_point = .{ .x = 0.5, .y = 0.5 },
+                    .depth = depth,
+                },
+            ),
+        }
     }
 };
 
 /// Interface for particle emitters
-const ParticleEmitter = struct {
-    ptr: *anyopaque = undefined,
-    vtable: *const VTable = undefined,
+pub const ParticleEmitter = struct {
+    ptr: *anyopaque,
+    vtable: *const VTable,
 
     const VTable = struct {
         emit: *const fn (ctx: *anyopaque, random: std.Random, origin: Vector) Particle,
@@ -355,7 +378,7 @@ const ParticleEmitter = struct {
 
 /// Fire Emitter
 pub const FireEmitter = struct {
-    sprite: Sprite,
+    draw_data: DrawData,
     radius: f32 = 20,
     acceleration: f32 = 150,
     age: f32 = 2,
@@ -379,7 +402,7 @@ pub const FireEmitter = struct {
 
         assert(self.color_fade_age <= self.age);
         return Particle{
-            .sprite = self.sprite,
+            .draw_data = self.draw_data,
             .age = self.age,
             .pos = origin.add(offset),
             .move_speed = Vector.new(-offset.x() * 0.6, 0),

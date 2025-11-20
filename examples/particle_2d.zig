@@ -48,10 +48,10 @@ pub fn init(ctx: jok.Context) !void {
     atlas = try font.createAtlas(ctx, 60, null, .{});
     ps = try j2d.ParticleSystem.create(ctx.allocator());
     emitter1 = j2d.ParticleSystem.FireEmitter{
-        .sprite = sheet.getSpriteByName("particle").?,
+        .draw_data = .{ .sprite = sheet.getSpriteByName("particle").? },
     };
     emitter2 = j2d.ParticleSystem.FireEmitter{
-        .sprite = atlas.getSpriteOfCodePoint('*').?,
+        .draw_data = .{ .sprite = atlas.getSpriteOfCodePoint('*').? },
     };
     e1 = try ps.add("fire1", emitter1.emitter(), .{ .origin = .{ .x = 400, .y = 300 } });
     e2 = try ps.add("fire2", emitter2.emitter(), .{ .origin = .{ .x = 200, .y = 500 } });

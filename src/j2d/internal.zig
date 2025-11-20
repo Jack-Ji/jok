@@ -187,54 +187,31 @@ pub const PolylineCmd = struct {
     transform: AffineTransform = AffineTransform.init(),
 };
 
-pub const DrawCmd = struct {
-    cmd: union(enum) {
-        quad_image: QuadImageCmd,
-        image_rounded: ImageRoundedCmd,
-        line: LineCmd,
-        rect_rounded: RectRoundedCmd,
-        rect_rounded_fill: RectFillRoundedCmd,
-        quad: QuadCmd,
-        quad_fill: QuadFillCmd,
-        triangle: TriangleCmd,
-        triangle_fill: TriangleFillCmd,
-        circle: CircleCmd,
-        circle_fill: CircleFillCmd,
-        ellipse: EllipseCmd,
-        ellipse_fill: EllipseFillCmd,
-        ngon: NgonCmd,
-        ngon_fill: NgonFillCmd,
-        convex_polygon_fill: ConvexPolyFillCmd,
-        concave_polygon_fill: ConcavePolyFillCmd,
-        bezier_cubic: BezierCubicCmd,
-        bezier_quadratic: BezierQuadraticCmd,
-        polyline: PolylineCmd,
-    },
-    depth: f32,
+pub const DrawCmd = union(enum) {
+    quad_image: QuadImageCmd,
+    image_rounded: ImageRoundedCmd,
+    line: LineCmd,
+    rect_rounded: RectRoundedCmd,
+    rect_rounded_fill: RectFillRoundedCmd,
+    quad: QuadCmd,
+    quad_fill: QuadFillCmd,
+    triangle: TriangleCmd,
+    triangle_fill: TriangleFillCmd,
+    circle: CircleCmd,
+    circle_fill: CircleFillCmd,
+    ellipse: EllipseCmd,
+    ellipse_fill: EllipseFillCmd,
+    ngon: NgonCmd,
+    ngon_fill: NgonFillCmd,
+    convex_polygon_fill: ConvexPolyFillCmd,
+    concave_polygon_fill: ConcavePolyFillCmd,
+    bezier_cubic: BezierCubicCmd,
+    bezier_quadratic: BezierQuadraticCmd,
+    polyline: PolylineCmd,
 
-    inline fn getTexture(d: DrawCmd) ?jok.Texture {
-        return switch (d.cmd) {
-            .quad_image => |cmd| cmd.texture,
-            .image_rounded => |cmd| cmd.texture,
-            .convex_polygon_fill => |cmd| cmd.texture,
-            else => null,
-        };
-    }
-
-    pub inline fn compare(d0: DrawCmd, d1: DrawCmd, ascend: bool) bool {
-        if (math.approxEqAbs(f32, d0.depth, d1.depth, 0.0001)) {
-            const tex0 = d0.getTexture();
-            const tex1 = d1.getTexture();
-            if (tex0 == null and tex1 == null) return if (ascend) d0.depth < d1.depth else d0.depth > d1.depth;
-            if (tex0 != null and tex1 != null) return @intFromPtr(tex0.?.ptr) < @intFromPtr(tex1.?.ptr);
-            return tex0 == null;
-        }
-        return if (ascend) d0.depth < d1.depth else d0.depth > d1.depth;
-    }
-
-    pub inline fn getRect(self: DrawCmd) jok.Rectangle {
+    pub inline fn getRect(d: DrawCmd) jok.Rectangle {
         var rect: jok.Rectangle = undefined;
-        switch (self.cmd) {
+        switch (d) {
             .quad_image => |c| {
                 rect.x = @min(c.p1.x, c.p2.x, c.p3.x, c.p4.x);
                 rect.y = @min(c.p1.y, c.p2.y, c.p3.y, c.p4.y);
@@ -386,8 +363,45 @@ pub const DrawCmd = struct {
         return rect;
     }
 
-    pub inline fn render(self: DrawCmd, dl: zgui.DrawList) void {
-        switch (self.cmd) {
+    pub inline fn setColor(d: *DrawCmd, color: jok.Color) void {
+        const uc = color.toInternalColor();
+        switch (d.*) {
+            .quad_image => |*c| c.tint_color = uc,
+            .image_rounded => |*c| c.tint_color = uc,
+            .line => |*c| c.color = uc,
+            .rect_rounded => |*c| c.color = uc,
+            .rect_rounded_fill => |*c| c.color = uc,
+            .quad => |*c| c.color = uc,
+            .quad_fill => |*c| {
+                c.color1 = uc;
+                c.color2 = uc;
+                c.color3 = uc;
+                c.color4 = uc;
+            },
+            .triangle => |*c| c.color = uc,
+            .triangle_fill => |*c| {
+                c.color1 = uc;
+                c.color2 = uc;
+                c.color3 = uc;
+            },
+            .circle => |*c| c.color = uc,
+            .circle_fill => |*c| c.color = uc,
+            .ellipse => |*c| c.color = uc,
+            .ellipse_fill => |*c| c.color = uc,
+            .ngon => |*c| c.color = uc,
+            .ngon_fill => |*c| c.color = uc,
+            .convex_polygon_fill => |*c| {
+                for (c.points.items) |*p| p.color = color.toColorF();
+            },
+            .concave_polygon_fill => |*c| c.color = uc,
+            .bezier_cubic => |*c| c.color = uc,
+            .bezier_quadratic => |*c| c.color = uc,
+            .polyline => |*c| c.color = uc,
+        }
+    }
+
+    pub inline fn render(d: DrawCmd, dl: zgui.DrawList) void {
+        switch (d) {
             .quad_image => |c| {
                 dl.pushTexture(c.texture.toReference());
                 defer dl.popTexture();
@@ -601,5 +615,30 @@ pub const DrawCmd = struct {
                 });
             },
         }
+    }
+};
+
+pub const _DrawCmd = struct {
+    cmd: DrawCmd,
+    depth: f32,
+
+    inline fn getTexture(d: _DrawCmd) ?jok.Texture {
+        return switch (d.cmd) {
+            .quad_image => |cmd| cmd.texture,
+            .image_rounded => |cmd| cmd.texture,
+            .convex_polygon_fill => |cmd| cmd.texture,
+            else => null,
+        };
+    }
+
+    pub inline fn compare(d0: _DrawCmd, d1: _DrawCmd, ascend: bool) bool {
+        if (math.approxEqAbs(f32, d0.depth, d1.depth, 0.0001)) {
+            const tex0 = d0.getTexture();
+            const tex1 = d1.getTexture();
+            if (tex0 == null and tex1 == null) return if (ascend) d0.depth < d1.depth else d0.depth > d1.depth;
+            if (tex0 != null and tex1 != null) return @intFromPtr(tex0.?.ptr) < @intFromPtr(tex1.?.ptr);
+            return tex0 == null;
+        }
+        return if (ascend) d0.depth < d1.depth else d0.depth > d1.depth;
     }
 };

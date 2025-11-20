@@ -205,8 +205,8 @@ pub const TimerController = struct {
 };
 
 const Timer = struct {
-    ptr: *anyopaque = undefined,
-    vtable: *const VTable = undefined,
+    ptr: *anyopaque,
+    vtable: *const VTable,
 
     const VTable = struct {
         /// destory itself

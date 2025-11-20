@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const DrawCmd = @import("internal.zig").DrawCmd;
+const internal = @import("internal.zig");
 const zgui = jok.vendor.zgui;
 const zmath = jok.vendor.zmath;
 const Self = @This();
@@ -70,7 +70,7 @@ pub const RenderOption = struct {
 /// Render to output
 pub fn render(
     self: Self,
-    draw_commands: *std.array_list.Managed(DrawCmd),
+    draw_commands: *std.array_list.Managed(internal._DrawCmd),
     opt: RenderOption,
 ) !void {
     assert(opt.scale.x >= 0 and opt.scale.y >= 0);

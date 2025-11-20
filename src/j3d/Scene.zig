@@ -3,11 +3,11 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const internal = @import("internal.zig");
-const Mesh = @import("Mesh.zig");
 const jok = @import("../jok.zig");
-const j3d = jok.j3d;
+const Batch = jok.j3d.Batch;
+const lighting = jok.j3d.lighting;
 const zmath = jok.vendor.zmath;
-const lighting = j3d.lighting;
+const Mesh = @import("Mesh.zig");
 const Self = @This();
 
 /// Represent a position in 3d space
@@ -201,7 +201,7 @@ pub fn destroy(self: *Self, destroy_objects: bool) void {
 pub const RenderOption = struct {
     lighting: ?lighting.LightingOption = null,
 };
-pub fn render(self: Self, batch: *j3d.Batch, object: ?*Object, opt: RenderOption) !void {
+pub fn render(self: Self, batch: *Batch, object: ?*Object, opt: RenderOption) !void {
     const o = object orelse self.root;
     try batch.pushTransform();
     defer batch.popTransform();
