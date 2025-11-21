@@ -439,17 +439,21 @@ pub fn renderSprite(
     camera: Camera,
     size: jok.Point,
     uv: [2]jok.Point,
-    opt: RenderSpriteOption,
+    _opt: RenderSpriteOption,
 ) !void {
     assert(size.x > 0 and size.y > 0);
-    assert(opt.scale.x >= 0 and opt.scale.y >= 0);
-    assert(opt.anchor_point.x >= 0 and opt.anchor_point.x <= 1);
-    assert(opt.anchor_point.y >= 0 and opt.anchor_point.y <= 1);
+    assert(_opt.scale.x >= 0 and _opt.scale.y >= 0);
+    assert(_opt.anchor_point.x >= 0 and _opt.anchor_point.x <= 1);
+    assert(_opt.anchor_point.y >= 0 and _opt.anchor_point.y <= 1);
     const csz_w = csz.getWidthFloat();
     const csz_h = csz.getHeightFloat();
 
-    // Only consider translation
+    // Only consider translation/scaling
     const translation = zmath.translationV(zmath.util.getTranslationVec(model));
+    const scaling = zmath.util.getScaleVec(model);
+    var opt = _opt;
+    opt.scale.x *= scaling[0];
+    opt.scale.y *= scaling[1];
 
     // Swap texture coordinates
     var uv0 = uv[0];

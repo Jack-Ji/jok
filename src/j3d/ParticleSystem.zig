@@ -415,7 +415,6 @@ pub const Particle = struct {
                     self.pos.y(),
                     self.pos.z(),
                 );
-                const scaling = zmath.util.getScaleVec(batch.trs)[0];
                 try tri_rd.renderSprite(
                     csz,
                     batch,
@@ -426,7 +425,7 @@ pub const Particle = struct {
                     .{
                         .texture = d.texture,
                         .tint_color = self.color,
-                        .scale = .{ .x = self.scale * scaling, .y = self.scale * scaling },
+                        .scale = .{ .x = self.scale, .y = self.scale },
                         .rotate_angle = self.angle,
                         .anchor_point = .{ .x = 0.5, .y = 0.5 },
                     },
