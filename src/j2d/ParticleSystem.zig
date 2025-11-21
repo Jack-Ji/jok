@@ -338,10 +338,10 @@ pub const Particle = struct {
             .dcmd => |*cmd| {
                 try batch.pushTransform();
                 defer batch.popTransform();
-
                 batch.scaleAroundLocalOrigin(.{ self.scale, self.scale });
                 batch.rotateByLocalOrigin(self.angle);
                 batch.translate(.{ self.pos.x(), self.pos.y() });
+
                 cmd.setColor(self.color);
                 try batch.pushDrawCommand(cmd.*, depth);
             },
@@ -349,9 +349,9 @@ pub const Particle = struct {
                 sp,
                 .{
                     .pos = .{ .x = self.pos.x(), .y = self.pos.y() },
-                    .tint_color = self.color,
                     .scale = .{ .x = self.scale, .y = self.scale },
                     .rotate_angle = self.angle,
+                    .tint_color = self.color,
                     .anchor_point = .{ .x = 0.5, .y = 0.5 },
                     .depth = depth,
                 },

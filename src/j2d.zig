@@ -411,7 +411,7 @@ pub const Batch = struct {
         assert(!self.is_submitted);
         const scaling = self.trs.getScale();
         try s.render(&self.draw_commands, .{
-            .pos = self.trs.transformPoint(opt.pos),
+            .pos = opt.pos.add(self.trs.getTranslation()),
             .tint_color = opt.tint_color,
             .scale = .{ .x = scaling[0] * opt.scale.x, .y = scaling[1] * opt.scale.y },
             .rotate_angle = opt.rotate_angle + self.trs.getRotation(),
@@ -1251,7 +1251,7 @@ pub const Batch = struct {
         );
     }
 
-    pub inline fn pushDrawCommand(self: *Batch, _dcmd: DrawCmd, depth: ?f32) !void {
+    pub fn pushDrawCommand(self: *Batch, _dcmd: DrawCmd, depth: ?f32) !void {
         var dcmd = _dcmd;
         switch (dcmd) {
             .quad_image => |*cmd| {
