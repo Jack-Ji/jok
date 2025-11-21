@@ -395,7 +395,7 @@ pub const Particle = struct {
                 try tri_rd.renderMesh(
                     csz,
                     batch,
-                    model,
+                    zmath.mul(model, batch.trs),
                     camera,
                     d.shape.indices,
                     d.shape.positions,
@@ -410,21 +410,23 @@ pub const Particle = struct {
                 );
             },
             .sprite => |d| {
+                const model = zmath.translation(
+                    self.pos.x(),
+                    self.pos.y(),
+                    self.pos.z(),
+                );
+                const scaling = zmath.util.getScaleVec(batch.trs)[0];
                 try tri_rd.renderSprite(
                     csz,
                     batch,
-                    zmath.translation(
-                        self.pos.x(),
-                        self.pos.y(),
-                        self.pos.z(),
-                    ),
+                    zmath.mul(model, batch.trs),
                     camera,
                     d.size,
                     d.uv,
                     .{
                         .texture = d.texture,
                         .tint_color = self.color,
-                        .scale = .{ .x = self.scale, .y = self.scale },
+                        .scale = .{ .x = self.scale * scaling, .y = self.scale * scaling },
                         .rotate_angle = self.angle,
                         .anchor_point = .{ .x = 0.5, .y = 0.5 },
                     },

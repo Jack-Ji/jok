@@ -162,6 +162,8 @@ pub fn draw(ctx: jok.Context) !void {
             .lighting = .{},
         },
     );
+
+    b.setIdentity();
     try b.effect(e1);
     if (ps.get("fire2")) |e| try b.effect(e);
 
