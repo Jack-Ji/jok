@@ -204,8 +204,7 @@ pub const RenderOption = struct {
 pub fn render(self: Self, batch: *Batch, object: ?*Object, opt: RenderOption) !void {
     const o = object orelse self.root;
     try batch.pushTransform();
-    defer batch.popTransform();
-    batch.trs = o.transform;
+    batch.trs = zmath.mul(o.transform, batch.trs);
     switch (o.actor) {
         .position => {},
         .mesh => |m| {
@@ -243,6 +242,7 @@ pub fn render(self: Self, batch: *Batch, object: ?*Object, opt: RenderOption) !v
             },
         ),
     }
+    batch.popTransform();
 
     for (o.children.items) |c| {
         try self.render(batch, c, opt);
