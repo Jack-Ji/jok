@@ -149,14 +149,14 @@ pub const NgonFillCmd = struct {
 pub const ConvexPolyFillCmd = struct {
     points: std.array_list.Managed(jok.Vertex),
     texture: ?jok.Texture,
-    transform: AffineTransform = AffineTransform.init(),
+    transform: AffineTransform = .init,
 };
 
 pub const ConcavePolyFillCmd = struct {
     points: std.array_list.Managed(jok.Point),
     transformed: std.array_list.Managed(jok.Point),
     color: u32,
-    transform: AffineTransform = AffineTransform.init(),
+    transform: AffineTransform = .init,
 };
 
 pub const BezierCubicCmd = struct {
@@ -184,7 +184,7 @@ pub const PolylineCmd = struct {
     color: u32,
     thickness: f32,
     closed: bool,
-    transform: AffineTransform = AffineTransform.init(),
+    transform: AffineTransform = .init,
 };
 
 pub const DrawCmd = union(enum) {

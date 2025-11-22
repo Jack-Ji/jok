@@ -101,7 +101,7 @@ pub const Batch = struct {
         self.draw_commands.clearRetainingCapacity();
         self.all_tex.clearRetainingCapacity();
         self.trs_stack.clearRetainingCapacity();
-        self.trs = AffineTransform.init();
+        self.trs = .init;
         self.depth_sort = opt.depth_sort;
         self.blend_mode = opt.blend_mode;
         self.do_early_clipping = opt.do_early_clipping;
@@ -252,7 +252,7 @@ pub const Batch = struct {
     }
 
     pub fn setIdentity(self: *Batch) void {
-        self.trs = AffineTransform.init();
+        self.trs = AffineTransform.init;
     }
 
     pub fn translate(self: *Batch, v: [2]f32) void {

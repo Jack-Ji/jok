@@ -57,13 +57,13 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
 pub fn update(ctx: jok.Context) !void {
     for (0..7) |i| {
         const rotation = std.math.degreesToRadians(points_angular_velocity[i] * ctx.deltaSeconds());
-        var trs = j2d.AffineTransform.init().rotateByPoint(.{
+        var trs = j2d.AffineTransform.init.rotateByPoint(.{
             .x = @floatFromInt(100 * (i + 1) + 50),
             .y = 50,
         }, rotation);
         points_row[i] = trs.transformPoint(points_row[i]);
 
-        trs = j2d.AffineTransform.init().rotateByPoint(.{
+        trs = j2d.AffineTransform.init.rotateByPoint(.{
             .x = 50,
             .y = @floatFromInt(100 * (i + 1) + 50),
         }, rotation);

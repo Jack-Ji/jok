@@ -10,27 +10,54 @@ const Sprite = @import("Sprite.zig");
 const AffineTransform = @import("AffineTransform.zig");
 const Self = @This();
 
-/// A movable object in 2d space
-pub const Actor = struct {
-    sprite: ?Sprite = null,
-    render_opt: SpriteOption,
+/// Represent a position in 2d space
+pub const Position = struct {
+    transform: AffineTransform = .init,
+};
 
-    fn getRenderOptions(actor: Actor, parent_opt: SpriteOption) SpriteOption {
-        return .{
-            .pos = .{
-                .x = parent_opt.pos.x + actor.render_opt.pos.x,
-                .y = parent_opt.pos.y + actor.render_opt.pos.y,
-            },
-            .tint_color = actor.render_opt.tint_color,
-            .scale = .{
-                .x = parent_opt.scale.x * actor.render_opt.scale.x,
-                .y = parent_opt.scale.y * actor.render_opt.scale.y,
-            },
-            .rotate_angle = parent_opt.rotate_angle + actor.render_opt.rotate_angle,
-            .anchor_point = actor.render_opt.anchor_point,
-            .flip_h = if (parent_opt.flip_h) !actor.render_opt.flip_h else actor.render_opt.flip_h,
-            .flip_v = if (parent_opt.flip_v) !actor.render_opt.flip_v else actor.render_opt.flip_v,
-            .depth = parent_opt.depth,
+/// 2D primitive
+pub const Primitive = struct {
+    dcmd: DrawCmd,
+    transform: AffineTransform = .init,
+};
+
+/// Sprite obj
+pub const SpriteObj = struct {
+    sp: Sprite,
+    transform: AffineTransform = .init,
+    tint_color: jok.Color = .white,
+    anchor_point: jok.Point = .anchor_top_left,
+    flip_h: bool = false,
+    flip_v: bool = false,
+};
+
+/// An object in 2d space
+pub const Actor = union(enum) {
+    position: Position,
+    primitive: Primitive,
+    sprite: SpriteObj,
+
+    inline fn calcTransform(actor: Actor, parent_trs: AffineTransform) AffineTransform {
+        return switch (actor) {
+            .position => |p| p.transform.mul(parent_trs),
+            .primitive => |p| p.transform.mul(parent_trs),
+            .sprite => |s| s.transform.mul(parent_trs),
+        };
+    }
+
+    inline fn setTransform(actor: *Actor, trs: AffineTransform) void {
+        return switch (actor.*) {
+            .position => |*p| p.transform = trs,
+            .primitive => |*p| p.transform = trs,
+            .sprite => |*s| s.transform = trs,
+        };
+    }
+
+    inline fn getTransform(actor: Actor) AffineTransform {
+        return switch (actor) {
+            .position => |p| p.transform,
+            .primitive => |p| p.transform,
+            .sprite => |s| s.transform,
         };
     }
 };
@@ -39,9 +66,9 @@ pub const Actor = struct {
 pub const Object = struct {
     allocator: std.mem.Allocator,
     actor: Actor,
-    render_opt: jok.j2d.Batch.SpriteOption,
+    transform: AffineTransform,
+    parent: ?*Object,
     depth: f32,
-    parent: ?*Object = null,
     children: std.array_list.Managed(*Object),
 
     /// Create an object
@@ -51,7 +78,8 @@ pub const Object = struct {
         o.* = .{
             .allocator = allocator,
             .actor = actor,
-            .render_opt = actor.render_opt,
+            .transform = actor.getTransform(),
+            .parent = null,
             .depth = depth orelse 0.5,
             .children = .init(allocator),
         };
@@ -85,7 +113,7 @@ pub const Object = struct {
 
         c.parent = o;
         try o.children.append(c);
-        c.updateRenderOptions();
+        c.updateTransforms();
     }
 
     /// Remove child
@@ -119,19 +147,21 @@ pub const Object = struct {
         }
     }
 
-    /// Update all objects' render options
-    pub fn updateRenderOptions(o: *Object) void {
-        assert(o.parent != null);
-        o.render_opt = o.actor.getRenderOptions(o.parent.?.render_opt);
-        for (o.children.items) |c| {
-            c.updateRenderOptions();
-        }
+    // Change object's transform, and update it's children accordingly
+    pub fn setTransform(o: *Object, trs: AffineTransform) void {
+        o.actor.setTransform(trs);
+        o.updateTransforms();
     }
 
-    // Change object's rendering option
-    pub fn setRenderOptions(o: *Object, opt: SpriteOption) void {
-        o.actor.render_opt = opt;
-        o.updateRenderOptions();
+    /// Update all objects' transforms
+    fn updateTransforms(o: *Object) void {
+        o.transform = if (o.parent) |p|
+            o.actor.calcTransform(p.transform)
+        else
+            o.actor.getTransform();
+        for (o.children.items) |c| {
+            c.updateTransforms();
+        }
     }
 };
 
@@ -142,10 +172,7 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
     self.allocator = allocator;
-    self.root = try Object.create(self.allocator, .{
-        .render_opt = .{ .pos = .origin },
-    }, null);
-    errdefer self.root.destroy(false);
+    self.root = try Object.create(self.allocator, .{ .position = .{} }, null);
     return self;
 }
 
@@ -156,6 +183,22 @@ pub fn destroy(self: *Self, destroy_objects: bool) void {
 
 pub fn render(self: Self, batch: *Batch, object: ?*Object) !void {
     const o = object orelse self.root;
-    if (o.actor.sprite) |s| try batch.sprite(s, o.render_opt);
+    try batch.pushTransform();
+    batch.trs = o.transform.mul(batch.trs);
+    switch (o.actor) {
+        .position => {},
+        .primitive => |p| try batch.pushDrawCommand(p.dcmd, o.depth),
+        .sprite => |s| try batch.sprite(
+            s.sp,
+            .{
+                .tint_color = s.tint_color,
+                .anchor_point = s.anchor_point,
+                .flip_h = s.flip_h,
+                .flip_v = s.flip_v,
+            },
+        ),
+    }
+    batch.popTransform();
+
     for (o.children.items) |c| try self.render(batch, c);
 }

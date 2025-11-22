@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
 const j2d = jok.j2d;
+const AffineTransform = j2d.AffineTransform;
 const physfs = jok.vendor.physfs;
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
@@ -9,6 +10,8 @@ var sheet: *j2d.SpriteSheet = undefined;
 var scene: *j2d.Scene = undefined;
 var ogre1: *j2d.Scene.Object = undefined;
 var ogre2: *j2d.Scene.Object = undefined;
+var prim: *j2d.Scene.Object = undefined;
+var orbit: *j2d.Scene.Object = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -30,19 +33,39 @@ pub fn init(ctx: jok.Context) !void {
     );
     scene = try j2d.Scene.create(ctx.allocator());
     ogre1 = try j2d.Scene.Object.create(ctx.allocator(), .{
-        .sprite = sheet.getSpriteByName("ogre").?,
-        .render_opt = .{
-            .pos = .{ .x = 400, .y = 300 },
+        .sprite = .{
+            .transform = .init,
+            .sp = sheet.getSpriteByName("ogre").?,
+            .tint_color = .red,
+            .anchor_point = .anchor_center,
         },
     }, null);
     ogre2 = try j2d.Scene.Object.create(ctx.allocator(), .{
-        .sprite = sheet.getSpriteByName("ogre").?,
-        .render_opt = .{
-            .pos = .origin,
-            .scale = .{ .x = 0.5, .y = 0.5 },
+        .sprite = .{
+            .transform = AffineTransform.init.scaleAroundOrigin(.{ 0.5, 0.5 }),
+            .sp = sheet.getSpriteByName("ogre").?,
+            .anchor_point = .anchor_center,
         },
     }, null);
-    try ogre1.addChild(ogre2);
+    prim = try j2d.Scene.Object.create(
+        ctx.allocator(),
+        .{ .primitive = .{ .dcmd = .{ .circle = .{
+            .p = .origin,
+            .color = jok.Color.white.toInternalColor(),
+            .radius = 50,
+            .thickness = 2,
+            .num_segments = 100,
+        } } } },
+        null,
+    );
+    orbit = try j2d.Scene.Object.create(
+        ctx.allocator(),
+        .{ .position = .{} },
+        null,
+    );
+    try ogre1.addChild(prim);
+    try ogre1.addChild(orbit);
+    try orbit.addChild(ogre2);
     try scene.root.addChild(ogre1);
 }
 
@@ -52,24 +75,18 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    _ = ctx;
+    ogre1.setTransform(
+        AffineTransform.init.scaleAroundOrigin(
+            .{ 4 + 2 * @cos(ctx.seconds()), 4 + 2 * @cos(ctx.seconds()) },
+        ).rotateByOrigin(ctx.seconds() / 2).translate(.{ 400, 300 }),
+    );
+    orbit.setTransform(AffineTransform.init.rotateByOrigin(ctx.seconds() * 5).translateX(50));
 }
 
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.rgb(77, 77, 77));
 
-    ogre1.setRenderOptions(.{
-        .pos = .{ .x = 400, .y = 300 },
-        .tint_color = .red,
-        .scale = .{
-            .x = 4 + 2 * @cos(ctx.seconds()),
-            .y = 4 + 2 * @sin(ctx.seconds()),
-        },
-        .rotate_angle = ctx.seconds() / 2,
-        .anchor_point = .anchor_center,
-    });
-
-    var b = try batchpool.new(.{ .depth_sort = .back_to_forth });
+    var b = try batchpool.new(.{});
     defer b.submit();
     try b.image(sheet.tex, .origin, .{});
     try b.scene(scene);

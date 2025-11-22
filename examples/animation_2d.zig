@@ -143,7 +143,7 @@ pub fn draw(ctx: jok.Context) !void {
     if (!try as2.isStopped("player_circle_bg")) {
         try b.pushTransform();
         defer b.popTransform();
-        b.trs = j2d.AffineTransform.init().translate(pos.toArray());
+        b.trs = j2d.AffineTransform.init.translate(pos.toArray());
         try b.pushDrawCommand(try as2.getCurrentFrame("player_circle_bg"), null);
     }
 

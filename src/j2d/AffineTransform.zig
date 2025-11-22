@@ -10,11 +10,7 @@ const Self = @This();
 
 mat: zmath.Mat,
 
-pub fn init() Self {
-    return .{
-        .mat = zmath.identity(),
-    };
-}
+pub const init = Self{ .mat = zmath.identity() };
 
 pub fn invert(self: Self) Self {
     return .{ .mat = zmath.inverse(self.mat) };
@@ -225,5 +221,11 @@ pub fn transformTriangle(self: Self, t: jok.Triangle) jok.Triangle {
         self.transformPoint(t.p0),
         self.transformPoint(t.p1),
         self.transformPoint(t.p2),
+    };
+}
+
+pub fn mul(m0: Self, m1: Self) Self {
+    return .{
+        .mat = zmath.mul(m0.mat, m1.mat),
     };
 }

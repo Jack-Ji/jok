@@ -17,8 +17,8 @@ pub const Position = struct {
 
 /// Represent a mesh object in 3d space
 pub const MeshObj = struct {
-    transform: zmath.Mat,
     mesh: *Mesh,
+    transform: zmath.Mat = zmath.identity(),
     cull_faces: bool = true,
     color: jok.ColorF = .white,
     texture: ?jok.Texture = null,
@@ -27,9 +27,9 @@ pub const MeshObj = struct {
 
 /// Represent a sprite in 3d space
 pub const SpriteObj = struct {
-    transform: zmath.Mat,
     size: jok.Point,
     uv: [2]jok.Point,
+    transform: zmath.Mat = zmath.identity(),
     texture: ?jok.Texture = null,
     tint_color: jok.ColorF = .white,
     scale: jok.Point = .unit,
@@ -160,8 +160,14 @@ pub const Object = struct {
         }
     }
 
+    /// Change object's transform matrix, and update it's children accordingly
+    pub fn setTransform(o: *Object, m: zmath.Mat) void {
+        o.actor.setTransform(m);
+        o.updateTransforms();
+    }
+
     /// Update all objects' transform matrix in tree
-    pub fn updateTransforms(o: *Object) void {
+    fn updateTransforms(o: *Object) void {
         o.transform = if (o.parent) |p|
             o.actor.calcTransform(p.transform)
         else
@@ -170,31 +176,21 @@ pub const Object = struct {
             c.updateTransforms();
         }
     }
-
-    /// Change object's transform matrix, and update it's children accordingly
-    pub fn setTransform(o: *Object, m: zmath.Mat) void {
-        o.actor.setTransform(m);
-        o.updateTransforms();
-    }
 };
 
 allocator: std.mem.Allocator,
-arena: std.heap.ArenaAllocator,
 root: *Object,
 
 pub fn create(allocator: std.mem.Allocator) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
     self.allocator = allocator;
-    self.arena = std.heap.ArenaAllocator.init(allocator);
-    errdefer self.arena.deinit();
     self.root = try Object.create(self.allocator, .{ .position = .{} });
     return self;
 }
 
 pub fn destroy(self: *Self, destroy_objects: bool) void {
     self.root.destroy(destroy_objects);
-    self.arena.deinit();
     self.allocator.destroy(self);
 }
 

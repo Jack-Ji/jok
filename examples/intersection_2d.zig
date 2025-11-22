@@ -53,7 +53,7 @@ pub fn draw(ctx: jok.Context) !void {
     var b = try batchpool.new(.{});
     defer b.submit();
     try b.pushTransform();
-    b.trs = j2d.AffineTransform.init().translate(offset0);
+    b.trs = j2d.AffineTransform.init.translate(offset0);
     try b.triangle(
         tri0,
         tri_color,
@@ -62,7 +62,7 @@ pub fn draw(ctx: jok.Context) !void {
     b.popTransform();
 
     try b.pushTransform();
-    b.trs = j2d.AffineTransform.init().translate(offset1);
+    b.trs = j2d.AffineTransform.init.translate(offset1);
     try b.triangle(
         tri1,
         tri_color,

@@ -51,7 +51,7 @@ pub fn draw(ctx: jok.Context) !void {
     var i: u32 = 0;
     while (i < rect_num) : (i += 1) {
         const step = @as(f32, @floatFromInt(i));
-        var transform = j2d.AffineTransform.init().scaleAroundOrigin(.{
+        var transform = j2d.AffineTransform.init.scaleAroundOrigin(.{
             math.pow(f32, scale_step, step),
             math.pow(f32, scale_step, step),
         });
