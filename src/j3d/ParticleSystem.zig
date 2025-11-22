@@ -99,14 +99,17 @@ pub const AddEffect = struct {
     gen_amount: u32 = 20,
     burst_freq: f32 = 0.1,
     depth: f32 = 0.5,
+    overwrite: bool = false,
 };
 pub fn add(self: *Self, name: []const u8, emitter: ParticleEmitter, opt: AddEffect) !*Effect {
     assert(name.len > 0);
-    if (self.search_tree.contains(name)) {
-        return error.NameUsed;
-    }
     if (std.mem.eql(u8, name, "_")) {
         return error.InvalidName;
+    }
+    if (self.search_tree.contains(name)) {
+        if (opt.overwrite) {
+            self.remove(self.search_tree.get(name).?);
+        } else return error.NameUsed;
     }
 
     const effect = try self.pool.create(self.allocator);
@@ -126,7 +129,7 @@ pub fn add(self: *Self, name: []const u8, emitter: ParticleEmitter, opt: AddEffe
         .effect_duration = opt.effect_duration,
         .gen_amount = opt.gen_amount,
         .burst_freq = opt.burst_freq,
-        .burst_countdown = opt.burst_freq,
+        .burst_countdown = 0,
     };
     errdefer effect.particles.deinit(self.allocator);
 
