@@ -60,7 +60,7 @@ pub fn init(ctx: jok.Context) !void {
     });
     atlas.destroy();
     t = try std.Io.Clock.awake.now(io);
-    saved_atlas = try font.Atlas.load(ctx, "atlas.png");
+    saved_atlas = try font.Atlas.loadFromPath(ctx, "atlas.png");
     std.debug.print("Atlas load time: {D}\n", .{
         @as(i64, @intCast(t.durationTo(try std.Io.Clock.awake.now(io)).nanoseconds)),
     });

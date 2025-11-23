@@ -31,7 +31,7 @@ pub fn init(ctx: jok.Context) !void {
     );
     try sheet1.save(ctx, "sheet1.png", .{});
 
-    sheet2 = try j2d.SpriteSheet.load(ctx, "sheet1.png");
+    sheet2 = try j2d.SpriteSheet.loadFromPath(ctx, "sheet1.png");
 
     sheet3 = try j2d.SpriteSheet.fromSinglePicture(
         ctx,

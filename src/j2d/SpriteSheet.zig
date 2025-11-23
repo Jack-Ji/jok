@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 const assert = std.debug.assert;
 const json = std.json;
 const jok = @import("../jok.zig");
+const gfx = jok.utils.gfx;
 const physfs = jok.vendor.physfs;
 const stb_rect_pack = jok.vendor.stb.rect_pack;
 const stb_image = jok.vendor.stb.image;
@@ -240,6 +241,8 @@ pub fn create(
             );
         }
     }
+
+    assert(ctx.isMainThread());
     var tex = try ctx.renderer().createTexture(
         .{ .width = width, .height = height },
         pixels,
@@ -371,29 +374,23 @@ pub fn fromPicturesInDir(
     return error.Unimplemented;
 }
 
-/// Create a very raw sheet with a single picture, initialize name tree if possible
+/// Create a very raw sheet with a single picture in memory, initialize name tree if possible
 pub const SpriteInfo = struct {
     name: []const u8,
     rect: jok.Rectangle,
 };
-pub fn fromSinglePicture(
-    ctx: jok.Context,
-    path: [:0]const u8,
-    sprites: []const SpriteInfo,
-) !*Self {
-    var tex = try ctx.renderer().createTextureFromFile(
-        ctx.allocator(),
-        path,
-        .static,
-        false,
+pub fn fromSinglePictureData(ctx: jok.Context, filepixels: gfx.FilePixels, sprites: []const SpriteInfo) !*Self {
+    assert(ctx.isMainThread());
+    var tex = try ctx.renderer().createTexture(
+        filepixels.size,
+        filepixels.pixels,
+        .{ .access = .static },
     );
     try tex.setScaleMode(.nearest);
     errdefer tex.destroy();
 
-    const info = try tex.query();
-    const tex_width = @as(f32, @floatFromInt(info.width));
-    const tex_height = @as(f32, @floatFromInt(info.height));
-
+    const tex_width = filepixels.size.getWidthFloat();
+    const tex_height = filepixels.size.getHeightFloat();
     const allocator = ctx.allocator();
     var tree = std.StringHashMap(u32).init(allocator);
     var rects = try allocator.alloc(SpriteRect, sprites.len);
@@ -418,12 +415,19 @@ pub fn fromSinglePicture(
     const self = try allocator.create(Self);
     self.* = .{
         .allocator = allocator,
-        .size = .{ .width = info.width, .height = info.height },
+        .size = filepixels.size,
         .tex = tex,
         .rects = rects,
         .search_tree = tree,
     };
     return self;
+}
+
+/// Create a very raw sheet with path to single picture, initialize name tree if possible
+pub fn fromSinglePicture(ctx: jok.Context, path: [:0]const u8, sprites: []const SpriteInfo) !*Self {
+    const pixels = try gfx.loadPixelsFromFile(ctx, path, false);
+    defer pixels.destroy();
+    return try fromSinglePictureData(ctx, pixels, sprites);
 }
 
 /// Destroy sprite-sheet
@@ -442,12 +446,7 @@ pub fn destroy(self: *Self) void {
 }
 
 /// Save sprite-sheet to jpng
-pub fn save(
-    self: Self,
-    ctx: jok.Context,
-    path: [:0]const u8,
-    opt: jok.utils.gfx.jpng.SaveOption,
-) !void {
+pub fn save(self: Self, ctx: jok.Context, path: [:0]const u8, opt: jok.utils.gfx.jpng.SaveOption) !void {
     if (self.packed_pixels == null) return error.NoPixelData;
     var arena = std.heap.ArenaAllocator.init(self.allocator);
     defer arena.deinit();
@@ -481,7 +480,7 @@ pub fn save(
     try json_root.jsonStringify(&stream);
 
     // Save to disk
-    try jok.utils.gfx.jpng.save(
+    try gfx.jpng.save(
         ctx,
         self.packed_pixels.?.data,
         self.packed_pixels.?.width,
@@ -492,8 +491,8 @@ pub fn save(
     );
 }
 
-/// Load sprite-sheet from jpng
-pub fn load(ctx: jok.Context, path: [:0]const u8) !*Self {
+/// Load sprite-sheet from jpng data in memory
+pub fn loadFromMemory(ctx: jok.Context, pixeldata: gfx.jpng.PixelData) !*Self {
     const S = struct {
         inline fn getFloat(v: json.Value) f32 {
             return switch (v) {
@@ -504,21 +503,27 @@ pub fn load(ctx: jok.Context, path: [:0]const u8) !*Self {
         }
     };
 
-    const loaded = try jok.utils.gfx.jpng.loadTexture(ctx, path, .static, false);
-    defer ctx.allocator().free(loaded.data);
-    errdefer loaded.tex.destroy();
-    if (loaded.data.len < magic_sheet_header.len + 2 or
-        !std.mem.eql(u8, &magic_sheet_header, loaded.data[0..magic_sheet_header.len]))
+    if (pixeldata.data.len < magic_sheet_header.len + 2 or
+        !std.mem.eql(u8, &magic_sheet_header, pixeldata.data[0..magic_sheet_header.len]))
     {
         return error.InvalidFormat;
     }
+
+    // Create texture
+    assert(ctx.isMainThread());
+    const tex = try ctx.renderer().createTexture(
+        pixeldata.size,
+        pixeldata.pixels,
+        .{ .access = .static },
+    );
+    errdefer tex.destroy();
 
     // Load sprites info
     const allocator = ctx.allocator();
     var parsed = try json.parseFromSlice(
         json.Value,
         allocator,
-        loaded.data[magic_sheet_header.len..],
+        pixeldata.data[magic_sheet_header.len..],
         .{},
     );
     defer parsed.deinit();
@@ -551,16 +556,22 @@ pub fn load(ctx: jok.Context, path: [:0]const u8) !*Self {
     }
 
     // Allocate and init SpriteSheet
-    const info = try loaded.tex.query();
     const ss = try allocator.create(Self);
     ss.* = Self{
         .allocator = allocator,
-        .size = .{ .width = info.width, .height = info.height },
-        .tex = loaded.tex,
+        .size = pixeldata.size,
+        .tex = tex,
         .rects = rects,
         .search_tree = search_tree,
     };
     return ss;
+}
+
+/// Load sprite-sheet from path to jpng file
+pub fn loadFromPath(ctx: jok.Context, path: [:0]const u8) !*Self {
+    const pixeldata = try gfx.jpng.loadPixels(ctx, path, false);
+    defer pixeldata.destroy();
+    return loadFromMemory(ctx, pixeldata);
 }
 
 /// Get sprite by name

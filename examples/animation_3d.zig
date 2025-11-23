@@ -58,11 +58,18 @@ pub fn init(ctx: jok.Context) !void {
         [_]f32{ 0, 0, 0 },
     );
 
+    var thread = std.Io.Threaded.init_single_threaded;
+    const io = thread.ioBasic();
+    var t = try std.Io.Clock.awake.now(io);
     mesh1 = try j3d.Mesh.fromGltf(ctx, "models/CesiumMan.glb", .{});
     mesh2 = try j3d.Mesh.fromGltf(ctx, "models/RiggedSimple.glb", .{});
     mesh3 = try j3d.Mesh.fromGltf(ctx, "models/Fox/Fox.gltf", .{});
     mesh4 = try j3d.Mesh.fromObj(ctx, "models/akira.obj", "models/akira.mtl", .{});
     mesh5 = try j3d.Mesh.fromObj(ctx, "models/prime_truckin.obj", "models/prime_truckin.mtl", .{});
+    std.debug.print("Models load time: {D}\n", .{
+        @as(i64, @intCast(t.durationTo(try std.Io.Clock.awake.now(io)).nanoseconds)),
+    });
+
     animation1_1 = try j3d.Animation.create(ctx.allocator(), mesh1.getAnimation("default").?);
     animation2_1 = try j3d.Animation.create(ctx.allocator(), mesh2.getAnimation("default").?);
     animation3_1 = try j3d.Animation.create(ctx.allocator(), mesh3.getAnimation("Walk").?);

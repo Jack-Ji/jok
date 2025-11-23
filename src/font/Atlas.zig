@@ -5,8 +5,9 @@ const json = std.json;
 const math = std.math;
 const ascii = std.ascii;
 const jok = @import("../jok.zig");
-const truetype = jok.vendor.stb.truetype;
 const Sprite = jok.j2d.Sprite;
+const gfx = jok.utils.gfx;
+const truetype = jok.vendor.stb.truetype;
 const Atlas = @This();
 
 pub const Error = error{
@@ -171,8 +172,8 @@ pub fn save(
     );
 }
 
-/// Load atlas from jpng file
-pub fn load(ctx: jok.Context, path: [:0]const u8) !*Atlas {
+/// Load atlas from jpng data in memory
+pub fn loadFromMemory(ctx: jok.Context, pixeldata: gfx.jpng.PixelData) !*Atlas {
     const S = struct {
         inline fn getFloat(v: json.Value) f32 {
             return switch (v) {
@@ -189,21 +190,27 @@ pub fn load(ctx: jok.Context, path: [:0]const u8) !*Atlas {
         }
     };
 
-    const loaded = try jok.utils.gfx.jpng.loadTexture(ctx, path, .static, false);
-    defer ctx.allocator().free(loaded.data);
-    errdefer loaded.tex.destroy();
-    if (loaded.data.len < magic_atlas_header.len + 2 or
-        !std.mem.eql(u8, &magic_atlas_header, loaded.data[0..magic_atlas_header.len]))
+    if (pixeldata.data.len < magic_atlas_header.len + 2 or
+        !std.mem.eql(u8, &magic_atlas_header, pixeldata.data[0..magic_atlas_header.len]))
     {
         return error.InvalidFormat;
     }
+
+    // Create texture
+    assert(ctx.isMainThread());
+    const tex = try ctx.renderer().createTexture(
+        pixeldata.size,
+        pixeldata.pixels,
+        .{ .access = .static },
+    );
+    errdefer tex.destroy();
 
     // Load atlas info
     const allocator = ctx.allocator();
     var parsed = try json.parseFromSlice(
         json.Value,
         allocator,
-        loaded.data[magic_atlas_header.len..],
+        pixeldata.data[magic_atlas_header.len..],
         .{},
     );
     defer parsed.deinit();
@@ -266,7 +273,7 @@ pub fn load(ctx: jok.Context, path: [:0]const u8) !*Atlas {
     const atlas = try allocator.create(Atlas);
     atlas.* = .{
         .allocator = allocator,
-        .tex = loaded.tex,
+        .tex = tex,
         .pixels = null,
         .ranges = ranges,
         .vmetric_ascent = ascent,
@@ -276,6 +283,13 @@ pub fn load(ctx: jok.Context, path: [:0]const u8) !*Atlas {
         .codepoint_search = std.AutoHashMap(u32, u32).init(allocator),
     };
     return atlas;
+}
+
+/// Load atlas from jpng file
+pub fn loadFromPath(ctx: jok.Context, path: [:0]const u8) !*Atlas {
+    const pixeldata = try gfx.jpng.loadPixels(ctx, path, false);
+    defer pixeldata.destroy();
+    return loadFromMemory(ctx, pixeldata);
 }
 
 /// Get font size used to bake the atlas
