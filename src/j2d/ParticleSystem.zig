@@ -95,7 +95,6 @@ pub const AddEffect = struct {
     effect_duration: ?f32 = null,
     gen_amount: u32 = 20,
     burst_freq: f32 = 0.1,
-    depth: f32 = 0.5,
     overwrite: bool = false,
 };
 pub fn add(self: *Self, name: []const u8, emitter: ParticleEmitter, opt: AddEffect) !*Effect {
@@ -127,7 +126,6 @@ pub fn add(self: *Self, name: []const u8, emitter: ParticleEmitter, opt: AddEffe
         .gen_amount = opt.gen_amount,
         .burst_freq = opt.burst_freq,
         .burst_countdown = 0,
-        .depth = opt.depth,
     };
     errdefer effect.particles.deinit(self.allocator);
 
@@ -191,9 +189,6 @@ pub const Effect = struct {
     /// Burst countdown
     burst_countdown: f32,
 
-    /// Depth of effect
-    depth: f32,
-
     fn deinit(self: *Effect, allocator: std.mem.Allocator) void {
         allocator.free(self.name);
         self.particles.deinit(allocator);
@@ -236,14 +231,18 @@ pub const Effect = struct {
     }
 
     /// Render to output
-    pub fn render(self: *const Effect, batch: *j2d.Batch) !void {
+    pub const RenderOption = struct {
+        draw_data: ?DrawData = null,
+        depth: f32 = 0.5,
+    };
+    pub fn render(self: *const Effect, batch: *j2d.Batch, opt: RenderOption) !void {
         if (std.mem.eql(u8, self.name, "_")) {
             // Warning: this is only best effort to avoid dead effect,
             // it's best to always use `ParticleSystem.get` to get effect!!!
             return;
         }
         for (self.particles.items) |*p| {
-            try p.render(batch, self.depth);
+            try p.render(batch, opt.draw_data, opt.depth);
         }
     }
 
@@ -336,8 +335,9 @@ pub const Particle = struct {
     }
 
     /// Render to output
-    inline fn render(self: *Particle, batch: *j2d.Batch, depth: f32) !void {
-        switch (self.draw_data) {
+    inline fn render(self: *Particle, batch: *j2d.Batch, draw_data: ?DrawData, depth: f32) !void {
+        var dd = draw_data orelse self.draw_data;
+        switch (dd) {
             .dcmd => |*cmd| {
                 try batch.pushTransform();
                 defer batch.popTransform();

@@ -390,10 +390,14 @@ pub const Batch = struct {
         try s.render(self, null);
     }
 
-    pub fn effect(self: *Batch, e: *const ParticleSystem.Effect) !void {
+    pub const EffectOption = struct {
+        draw_data: ?ParticleSystem.DrawData = null,
+        depth: f32 = 0.5,
+    };
+    pub fn effect(self: *Batch, e: *const ParticleSystem.Effect, opt: EffectOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        try e.render(self);
+        try e.render(self, .{ .draw_data = opt.draw_data, .depth = opt.depth });
     }
 
     pub const SpriteOption = struct {

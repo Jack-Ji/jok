@@ -78,8 +78,8 @@ pub fn draw(ctx: jok.Context) !void {
 
     var b = try batchpool.new(.{ .blend_mode = .additive });
     defer b.submit();
-    try b.effect(e1);
-    if (ps.get("fire2")) |e| try b.effect(e);
+    try b.effect(e1, .{});
+    if (ps.get("fire2")) |e| try b.effect(e, .{});
 }
 
 pub fn quit(ctx: jok.Context) void {
