@@ -1,6 +1,6 @@
 .{
     .name = .jok,
-    .version = "0.81.0",
+    .version = "0.81.1",
     .fingerprint = 0x8204585c92cd7f34, // Changing this has security and trust implications.
     .paths = .{
         "README.md",

@@ -85,7 +85,7 @@ pub const Renderer = struct {
     }
 
     pub const Info = struct {
-        name: [:0]const u8,
+        name: []const u8,
         vsync: i32, // https://wiki.libsdl.org/SDL3/SDL_SetRenderVSync
         max_texture_size: u32,
     };

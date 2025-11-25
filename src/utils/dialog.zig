@@ -34,7 +34,7 @@ pub const DialogOption = struct {
     run_on_main_thread: bool = true,
 };
 
-pub const DialogCallback = *const fn (userdata: ?*anyopaque, paths: [][:0]const u8) anyerror!void;
+pub const DialogCallback = *const fn (userdata: ?*anyopaque, paths: [][]const u8) anyerror!void;
 
 /// Show dialog for opening/saving files/directory
 pub fn showDialog(ctx: jok.Context, dt: DialogType, callback: DialogCallback, userdata: ?*anyopaque, opt: DialogOption) !void {
@@ -108,7 +108,7 @@ fn realCallback(_userdata: ?*anyopaque, filelist: [*c]const [*c]const u8, _: c_i
         files_num += 1;
     }
 
-    const files = real_userdata.allocator.alloc([:0]const u8, files_num) catch unreachable;
+    const files = real_userdata.allocator.alloc([]const u8, files_num) catch unreachable;
     defer real_userdata.allocator.free(files);
     path_ptr = filelist;
     for (0..files_num) |i| {
@@ -134,7 +134,7 @@ fn realCallback(_userdata: ?*anyopaque, filelist: [*c]const [*c]const u8, _: c_i
 
 const RealUserData2 = struct {
     real_userdata: *RealUserData,
-    files: [][:0]const u8,
+    files: [][]const u8,
 };
 
 // Called from main thread

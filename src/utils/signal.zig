@@ -3,44 +3,22 @@ const builtin = std.builtin;
 
 /// Signal Type
 pub fn Signal(comptime types: []const type) type {
-    var params: [types.len + 1]builtin.Type.Fn.Param = undefined;
-    params[0] = .{
-        .is_generic = false,
-        .is_noalias = false,
-        .type = ?*anyopaque,
-    };
-    for (params[1..], 0..) |*p, i| {
-        p.* = .{
-            .is_generic = false,
-            .is_noalias = false,
-            .type = types[i],
-        };
+    var params: [types.len + 1]type = undefined;
+    var attrs: [types.len + 1]builtin.Type.Fn.Param.Attributes = undefined;
+    params[0] = ?*anyopaque;
+    attrs[0] = .{};
+    for (0..types.len) |i| {
+        params[i + 1] = types[i];
+        attrs[i + 1] = .{};
     }
-    const funcType = builtin.Type{
-        .@"fn" = .{
-            .calling_convention = .auto,
-            .is_generic = false,
-            .is_var_args = false,
-            .return_type = void,
-            .params = params[1..],
-        },
-    };
-    const funcWithContextType = builtin.Type{
-        .@"fn" = .{
-            .calling_convention = .auto,
-            .is_generic = false,
-            .is_var_args = false,
-            .return_type = void,
-            .params = &params,
-        },
-    };
-    const _FuncType = @Type(funcType);
-    const _FuncWithContextType = @Type(funcWithContextType);
+
+    const _FuncType = @Fn(params[1..], attrs[1..], void, .{});
+    const _FuncWithContextType = @Fn(params[0..], attrs[0..], void, .{});
 
     return struct {
         const SignalSystem = @This();
 
-        pub const ArgsType = std.meta.Tuple(types);
+        pub const ArgsType = @Tuple(types);
         pub const FuncType = *const _FuncType; // fn (args...) void
         pub const FuncWithContextType = *const _FuncWithContextType; // fn (ctx: ?*anyopaque, args...) void
         pub const FilterFunc = *const fn (args: ArgsType) bool; // fn (args) bool

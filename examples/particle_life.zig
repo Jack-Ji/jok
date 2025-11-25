@@ -277,7 +277,7 @@ fn randomnizeSimulation() void {
     v_bb = randomRange(f32, 10, 500) * radius_variance;
 }
 
-fn saveSettings(_: ?*anyopaque, paths: [][:0]const u8) !void {
+fn saveSettings(_: ?*anyopaque, paths: [][]const u8) !void {
     if (saved_path) |p| {
         jokctx.allocator().free(p);
     }
@@ -310,7 +310,7 @@ fn saveSettings(_: ?*anyopaque, paths: [][:0]const u8) !void {
     );
 }
 
-fn loadSettings(_: ?*anyopaque, paths: [][:0]const u8) !void {
+fn loadSettings(_: ?*anyopaque, paths: [][]const u8) !void {
     const allocator = std.heap.c_allocator;
     const content = try std.fs.cwd().readFileAlloc(paths[0], allocator, .limited(1024));
     defer allocator.free(content);

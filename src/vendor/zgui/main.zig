@@ -1969,7 +1969,7 @@ pub fn comboFromEnum(
         @compileError("Error: current_item must be a pointer-to-an-enum, not a " ++ @TypeOf(EnumType));
     };
 
-    const FieldNameIndex = std.meta.Tuple(&.{ []const u8, i32 });
+    const FieldNameIndex = @Tuple(&.{ []const u8, i32 });
     comptime var item_names: [:0]const u8 = "";
     comptime var field_name_to_index_list: [enum_type_info.fields.len]FieldNameIndex = undefined;
     comptime var index_to_enum: [enum_type_info.fields.len]EnumType = undefined;

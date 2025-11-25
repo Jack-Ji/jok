@@ -556,8 +556,8 @@ pub fn FsmFromText(comptime input: []const u8) type {
         // After an input event, we'll end up in one of these states:
         var fsm = ImportFSM.init();
 
-        var state_enum_fields: []const EnumField = &[_]EnumField{};
-        var event_enum_fields: []const EnumField = &[_]EnumField{};
+        var state_enum_field_names: []const []const u8 = &.{};
+        var event_enum_field_names: []const []const u8 = &.{};
 
         var line_no: usize = 1;
         var lines = std.mem.splitAny(u8, input, "\n");
@@ -578,31 +578,25 @@ pub fn FsmFromText(comptime input: []const u8) type {
                     const to = fsm.currentState();
 
                     if (to == .startstate or to == .endstates or to == .source or to == .target) {
-                        for (state_enum_fields) |field| {
-                            if (std.mem.eql(u8, field.name, current_identifier)) {
+                        for (state_enum_field_names) |name| {
+                            if (std.mem.eql(u8, name, current_identifier)) {
                                 continue :part_loop;
                             }
                         }
 
                         if (to == .startstate) {
-                            start_state_index = state_enum_fields.len;
+                            start_state_index = state_enum_field_names.len;
                         }
 
-                        state_enum_fields = state_enum_fields ++ &[_]EnumField{.{
-                            .name = current_identifier ++ "",
-                            .value = state_enum_fields.len,
-                        }};
+                        state_enum_field_names = state_enum_field_names ++ &[_][]const u8{current_identifier ++ ""};
                     } else if (to == .event) {
-                        for (event_enum_fields) |field| {
-                            if (std.mem.eql(u8, field.name, current_identifier)) {
+                        for (event_enum_field_names) |name| {
+                            if (std.mem.eql(u8, name, current_identifier)) {
                                 continue :part_loop;
                             }
                         }
 
-                        event_enum_fields = event_enum_fields ++ &[_]EnumField{.{
-                            .name = current_identifier ++ "",
-                            .value = event_enum_fields.len,
-                        }};
+                        event_enum_field_names = event_enum_field_names ++ &[_][]const u8{current_identifier ++ ""};
                     }
                 }
             }
@@ -611,19 +605,16 @@ pub fn FsmFromText(comptime input: []const u8) type {
         }
         _ = fsm.do(.newline) catch unreachable;
 
-        const StateEnum = @Type(.{ .@"enum" = .{
-            .fields = state_enum_fields,
-            .tag_type = std.math.IntFittingRange(0, state_enum_fields.len),
-            .decls = &[_]std.builtin.Type.Declaration{},
-            .is_exhaustive = false,
-        } });
+        var state_enum_field_values: [state_enum_field_names.len]u16 = undefined;
+        for (0..state_enum_field_names.len) |i| state_enum_field_values[i] = i;
+        const StateEnum = @Enum(u16, .nonexhaustive, state_enum_field_names, &state_enum_field_values);
 
-        const EventEnum = if (event_enum_fields.len > 0) @Type(.{ .@"enum" = .{
-            .fields = event_enum_fields,
-            .tag_type = std.math.IntFittingRange(0, event_enum_fields.len),
-            .decls = &[_]std.builtin.Type.Declaration{},
-            .is_exhaustive = false,
-        } }) else null;
+        var event_enum_field_values: [event_enum_field_names.len]u16 = undefined;
+        for (0..event_enum_field_names.len) |i| event_enum_field_values[i] = i;
+        const EventEnum = if (event_enum_field_names.len > 0)
+            @Enum(u16, .nonexhaustive, event_enum_field_names, &event_enum_field_values)
+        else
+            null;
 
         return StateMachine(StateEnum, EventEnum, @as(StateEnum, @enumFromInt(start_state_index)));
     }
@@ -664,22 +655,18 @@ pub const Interface = struct {
 /// If `prefix` is an empty string, use @"0", @"1", etc to refer to the enum field.
 pub fn GenerateConsecutiveEnum(comptime prefix: []const u8, comptime element_count: usize) type {
     @setEvalBranchQuota(100_000);
-    var fields: []const EnumField = &[_]EnumField{};
+    const TagType = std.math.IntFittingRange(0, element_count);
+    var field_names: []const []const u8 = &.{};
+    var field_values: [element_count]TagType = undefined;
 
     for (0..element_count) |i| {
         var tmp_buf: [128]u8 = undefined;
-        const field_name = try std.fmt.bufPrint(&tmp_buf, "{s}{d}", .{ prefix, i });
-        fields = fields ++ &[_]EnumField{.{
-            .name = field_name ++ "",
-            .value = i,
-        }};
+        const name = try std.fmt.bufPrint(&tmp_buf, "{s}{d}", .{ prefix, i });
+        field_names = field_names ++ &[_][]const u8{name};
+        field_values[i] = i;
     }
-    return @Type(.{ .@"enum" = .{
-        .fields = fields,
-        .tag_type = std.math.IntFittingRange(0, element_count),
-        .decls = &[_]std.builtin.Type.Declaration{},
-        .is_exhaustive = false,
-    } });
+
+    return @Enum(TagType, .nonexhaustive, field_names, &field_values);
 }
 
 const expect = std.testing.expect;

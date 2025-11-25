@@ -219,7 +219,7 @@ pub const Rectangle = extern struct {
         return null;
     }
 
-    pub inline fn intersectLine(r: Rectangle, _p0: Point, _p1: Point) ?std.meta.Tuple(&.{ Point, Point }) {
+    pub inline fn intersectLine(r: Rectangle, _p0: Point, _p1: Point) ?@Tuple(&.{ Point, Point }) {
         var p0: Point = _p0;
         var p1: Point = _p1;
         if (sdl.SDL_GetRectAndLineIntersectionFloat(@ptrCast(&r), &p0.x, &p0.y, &p1.x, &p1.y)) {
@@ -387,7 +387,7 @@ pub const Triangle = extern struct {
 
     pub inline fn intersectTriangle(tri0: Triangle, tri1: Triangle) bool {
         const S = struct {
-            const Range = std.meta.Tuple(&[_]type{ f32, f32 });
+            const Range = @Tuple(&[_]type{ f32, f32 });
 
             inline fn getRange(v: zmath.Vec, tri: Triangle) Range {
                 const tm = zmath.loadMat34(&[_]f32{

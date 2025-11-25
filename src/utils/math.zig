@@ -19,7 +19,7 @@ pub inline fn smoothMap(_v: f32, from: f32, to: f32, map_from: f32, map_to: f32)
 }
 
 /// Get min and max of 3 value
-pub inline fn minAndMax(_x: anytype, _y: anytype, _z: anytype) std.meta.Tuple(&[_]type{
+pub inline fn minAndMax(_x: anytype, _y: anytype, _z: anytype) @Tuple(&[_]type{
     @TypeOf(_x, _y, _z),
     @TypeOf(_x, _y, _z),
 }) {
