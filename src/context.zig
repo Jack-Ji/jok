@@ -465,7 +465,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     if (cfg.jok_renderer_type != .software and we == .window_resized) {
                         if (self._canvas_size == null) {
                             self._canvas_texture.destroy();
-                            self._canvas_texture = self._renderer.createTarget(.{}) catch unreachable;
+                            self._canvas_texture = self._renderer.createTarget(.{
+                                .scale_mode = cfg.jok_canvas_scale_mode,
+                            }) catch unreachable;
                         }
                         self.updateCanvasTargetArea();
                     }
@@ -660,7 +662,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Init offline drawing target
             if (cfg.jok_renderer_type != .software) {
-                self._canvas_texture = try self._renderer.createTarget(.{ .size = self._canvas_size });
+                self._canvas_texture = try self._renderer.createTarget(.{
+                    .size = self._canvas_size,
+                    .scale_mode = cfg.jok_canvas_scale_mode,
+                });
                 self.updateCanvasTargetArea();
             }
 
@@ -718,17 +723,32 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 const vph: f32 = @floatFromInt(fbsize.height);
                 const rw: f32 = @floatFromInt(sz.width);
                 const rh: f32 = @floatFromInt(sz.height);
-                self._canvas_target_area = if (rw * vph < rh * vpw) jok.Rectangle{
-                    .x = (vpw - rw * vph / rh) / 2.0,
-                    .y = 0,
-                    .width = rw * vph / rh,
-                    .height = @floatFromInt(fbsize.height),
-                } else .{
-                    .x = 0,
-                    .y = (vph - rh * vpw / rw) / 2.0,
-                    .width = @floatFromInt(fbsize.width),
-                    .height = rh * vpw / rw,
-                };
+                if (cfg.jok_canvas_integer_scaling) {
+                    const scale = @floor(@min(vpw / rw, vph / rh));
+                    const width = scale * rw;
+                    const height = scale * rh;
+                    self._canvas_target_area = jok.Rectangle{
+                        .x = (vpw - width) / 2.0,
+                        .y = (vph - height) / 2.0,
+                        .width = width,
+                        .height = height,
+                    };
+                } else {
+                    self._canvas_target_area = if (rw * vph < rh * vpw)
+                        jok.Rectangle{
+                            .x = (vpw - rw * vph / rh) / 2.0,
+                            .y = 0,
+                            .width = rw * vph / rh,
+                            .height = @floatFromInt(fbsize.height),
+                        }
+                    else
+                        jok.Rectangle{
+                            .x = 0,
+                            .y = (vph - rh * vpw / rw) / 2.0,
+                            .width = @floatFromInt(fbsize.width),
+                            .height = rh * vpw / rw,
+                        };
+                }
             } else {
                 self._canvas_target_area = null;
             }
@@ -825,7 +845,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
             if (cfg.jok_renderer_type == .software) @panic("Unsupported when using software renderer!");
             self._canvas_texture.destroy();
             self._canvas_size = size;
-            self._canvas_texture = try self._renderer.createTarget(.{ .size = self._canvas_size });
+            self._canvas_texture = try self._renderer.createTarget(.{
+                .size = self._canvas_size,
+                .scale_mode = cfg.jok_canvas_scale_mode,
+            });
             self.updateCanvasTargetArea();
         }
 

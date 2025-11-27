@@ -18,8 +18,10 @@ pub const Config = struct {
     /// Clearing color of framebuffer
     jok_framebuffer_color: jok.Color = .black,
 
-    /// Canvas size (default to framebuffer's size)
-    jok_canvas_size: ?jok.Size = null,
+    /// Canvas attributes
+    jok_canvas_size: ?jok.Size = null, // Null means same as size of framebuffer
+    jok_canvas_scale_mode: jok.Texture.ScaleMode = .linear,
+    jok_canvas_integer_scaling: bool = false,
 
     /// Headless mode
     jok_headless: bool = false,
@@ -116,6 +118,8 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_renderer_type", .desc = "type of renderer" },
         .{ .name = "jok_framebuffer_color", .desc = "clearing color of framebuffer" },
         .{ .name = "jok_canvas_size", .desc = "size of canvas" },
+        .{ .name = "jok_canvas_scale_mode", .desc = "Default scaling mode for canvas" },
+        .{ .name = "jok_canvas_integer_scaling", .desc = "Use integer scaling for canvas" },
         .{ .name = "jok_headless", .desc = "headless mode" },
         .{ .name = "jok_window_title", .desc = "title of window" },
         .{ .name = "jok_window_size", .desc = "size of window" },
