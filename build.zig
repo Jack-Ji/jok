@@ -61,6 +61,7 @@ pub fn build(b: *Build) void {
         .{ .name = "conway_life", .opt = .{} },
         .{ .name = "tiled", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "2048", .opt = .{} },
+        .{ .name = "hotreload", .opt = .{ .plugin = "plugin", .support_web = false } },
         .{ .name = "generative_art_1", .opt = .{} },
         .{ .name = "generative_art_2", .opt = .{} },
         .{ .name = "generative_art_3", .opt = .{} },
@@ -74,6 +75,7 @@ pub fn build(b: *Build) void {
 }
 
 const ExampleOptions = struct {
+    plugin: ?[]const u8 = null,
     support_web: bool = true,
     preload_path: ?[]const u8 = null,
 };
@@ -107,6 +109,26 @@ fn addExample(
 
         const install_cmd = b.addInstallArtifact(exe, .{});
         b.step(name, b.fmt("compile {s}", .{name})).dependOn(&install_cmd.step);
+
+        // Create plugin
+        if (opt.plugin) |pname| {
+            const plugin_mod = b.createModule(.{
+                .root_source_file = b.path(b.fmt("examples/{s}.zig", .{pname})),
+                .target = target,
+                .optimize = optimize,
+            });
+            const plugin_lib = b.addLibrary(.{
+                .linkage = .dynamic,
+                .name = pname,
+                .root_module = plugin_mod,
+            });
+            const install_plugin = b.addInstallArtifact(
+                plugin_lib,
+                .{ .dest_dir = .{ .override = .{ .bin = {} } } },
+            );
+            b.step(pname, b.fmt("compile plugin {s}", .{pname})).dependOn(&install_plugin.step);
+            install_cmd.step.dependOn(&install_plugin.step);
+        }
 
         // Capable of running
         if (target.query.isNative()) {

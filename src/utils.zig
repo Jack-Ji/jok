@@ -29,6 +29,9 @@ pub const xml = @import("utils/xml.zig");
 /// Ported from https://github.com/cryptocode/zigfsm
 pub const fsm = @import("utils/fsm.zig");
 
+/// Plugin system
+pub const plugin = @import("utils/plugin.zig");
+
 //============================= Stolen From Old Standard Library =============================
 pub const ring = @import("utils/ring.zig"); // Generic ring data structure
 
@@ -39,4 +42,5 @@ test "all utils" {
     _ = xml;
     _ = fsm;
     _ = ring;
+    _ = plugin;
 }
