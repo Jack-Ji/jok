@@ -471,6 +471,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         }
                         self.updateCanvasTargetArea();
                     }
+                    if (cfg.jok_window_high_pixel_density and (we == .window_pixel_size_changed or we == .window_display_scale_changed)) {
+                        self.updateRenderScale();
+                    }
 
                     // Passed to game code
                     eventFn(self._ctx, we) catch |err| {
@@ -669,6 +672,11 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 self.updateCanvasTargetArea();
             }
 
+            // Init renderer's scaling
+            if (cfg.jok_window_high_pixel_density) {
+                self.updateRenderScale();
+            }
+
             if (!builtin.cpu.arch.isWasm() and !cfg.jok_headless and cfg.jok_exit_on_recv_esc) {
                 log.info("Press ESC to exit game", .{});
             }
@@ -751,6 +759,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 }
             } else {
                 self._canvas_target_area = null;
+            }
+        }
+
+        /// Update scale of renderer according to pixel density
+        inline fn updateRenderScale(self: *@This()) void {
+            const scale = sdl.SDL_GetWindowDisplayScale(self._window.ptr);
+            if (!sdl.SDL_SetRenderScale(self._renderer.ptr, scale, scale)) {
+                log.err("Change renderer's scale failed: {s}", .{sdl.SDL_GetError()});
             }
         }
 
