@@ -316,7 +316,7 @@ pub const Batch = struct {
             .tex = texture,
         };
         try s.render(&self.draw_commands, .{
-            .pos = self.trs.transformPoint(pos),
+            .pos = pos.add(self.trs.getTranslation()),
             .tint_color = opt.tint_color,
             .scale = .{ .x = scaling[0] * opt.scale.x, .y = scaling[1] * opt.scale.y },
             .rotate_angle = opt.rotate_angle + self.trs.getRotation(),
@@ -449,7 +449,7 @@ pub const Batch = struct {
             @intCast(self.ctx.cfg().jok_prebuild_atlas),
         );
         const rotation = opt.rotate_angle + self.trs.getRotation();
-        var pos = self.trs.transformPoint(opt.pos);
+        var pos = opt.pos.add(self.trs.getTranslation());
         const begin_x = pos.x;
         const scaling = opt.scale.mul(self.trs.getScale());
         const mat = zmath.mul(
