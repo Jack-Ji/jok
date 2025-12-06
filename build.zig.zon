@@ -11,8 +11,8 @@
     },
     .dependencies = .{
         .sdl = .{
-            .url = "git+https://github.com/castholm/SDL#f103a1439670c35be756d4491b296a6e3ccffaed",
-            .hash = "sdl-0.3.2+3.2.26-7uIn9BNgfwHaS0qXiSIBLkJf8Jfrh5P6gSWdQvtnvxEp",
+            .url = "git+https://github.com/castholm/SDL#2cde21ea89c7b67d6e16f7f1e2faaa6f44618ecb",
+            .hash = "sdl-0.3.3+3.2.28-7uIn9MiRfwFhqxnwBi_vCQlKr82YpwkQBVwdz2uy46S1",
         },
         .emsdk = .{
             .url = "git+https://github.com/emscripten-core/emsdk?ref=4.0.14#eff90ca04a3785f571a8095b3a42b63799cf384a",
