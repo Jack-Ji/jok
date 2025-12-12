@@ -2709,7 +2709,7 @@ pub const InputTextCallbackData = extern struct {
     }
 };
 
-pub const InputTextCallback = *const fn (data: *InputTextCallbackData) i32;
+pub const InputTextCallback = *const fn (data: *InputTextCallbackData) callconv(.c) i32;
 //--------------------------------------------------------------------------------------------------
 pub fn inputText(label: [:0]const u8, args: struct {
     buf: [:0]u8,
