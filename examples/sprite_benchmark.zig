@@ -4,7 +4,7 @@ const jok = @import("jok");
 const j2d = jok.j2d;
 const physfs = jok.vendor.physfs;
 
-pub const jok_fps_limit: jok.config.FpsLimit = .none;
+//pub const jok_fps_limit: jok.config.FpsLimit = .none;
 
 const Actor = struct {
     sprite: j2d.Sprite,

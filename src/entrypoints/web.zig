@@ -3,7 +3,7 @@ const jok = @import("jok");
 const config = jok.config;
 const game = @import("game");
 const compcheck = @import("compcheck.zig");
-const log = std.log.scoped(.jok);
+const JokContext = @import("realcontext.zig").JokContext;
 
 // Validate game object
 comptime {
@@ -14,7 +14,7 @@ comptime {
 const jok_config = config.init(game);
 
 /// Jok Context
-const Context = jok.JokContext(jok_config);
+const Context = JokContext(jok_config);
 
 const LoopFn = *const fn (args: ?*anyopaque) callconv(.c) void;
 extern fn emscripten_set_main_loop_arg(fp: LoopFn, args: ?*anyopaque, fps: c_int, simulate_infinite_loop: bool) void;
@@ -33,6 +33,8 @@ fn mainLoop(args: ?*anyopaque) callconv(.c) void {
 }
 
 pub fn main() !void {
+    const log = std.log.scoped(.jok);
+
     emscripten_run_script("document.title = \"" ++ jok_config.jok_window_title ++ "\"");
 
     var jok_ctx = try Context.create();

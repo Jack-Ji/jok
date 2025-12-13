@@ -3,6 +3,7 @@ const jok = @import("jok");
 const config = jok.config;
 const game = @import("game");
 const compcheck = @import("compcheck.zig");
+const JokContext = @import("realcontext.zig").JokContext;
 
 // Validate game object
 comptime {
@@ -21,7 +22,7 @@ pub fn main() !void {
     const log = std.log.scoped(.jok);
 
     // Init context
-    var jok_ctx = try jok.JokContext(jok_config).create();
+    var jok_ctx = try JokContext(jok_config).create();
     defer jok_ctx.destroy();
 
     // Init game object

@@ -108,7 +108,7 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
             const run_step = b.step("run", "Run game");
             run_step.dependOn(&run_cmd.step);
         } else {
-            const webapp = createWeb(
+            const webapp = createWebApp(
                     b,
                     "mygame",
                     "src/main.zig",

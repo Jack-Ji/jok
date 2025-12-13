@@ -140,7 +140,7 @@ fn addExample(
         }
         examples.dependOn(&install_cmd.step);
     } else if (opt.support_web) {
-        const webapp = createWeb(
+        const webapp = createWebApp(
             b,
             name,
             b.fmt("examples/{s}.zig", .{name}),
@@ -242,7 +242,7 @@ pub const WebOptions = struct {
 };
 
 /// Create web application (windows/linux/macos)
-pub fn createWeb(
+pub fn createWebApp(
     b: *Build,
     name: []const u8,
     game_root: []const u8,

@@ -2,8 +2,8 @@
 pub const config = @import("config.zig");
 
 /// Context of application
-pub const Context = @import("context.zig").Context;
-pub const JokContext = @import("context.zig").JokContext;
+pub const context = @import("context.zig");
+pub const Context = context.Context;
 
 /// Basic types
 const basic = @import("basic.zig");
