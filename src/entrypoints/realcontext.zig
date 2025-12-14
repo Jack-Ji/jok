@@ -760,6 +760,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const rdinfo = self._renderer.getInfo() catch unreachable;
             const ws = self._window.getSize();
             const cs = getCanvasSize(ptr);
+            const scale = sdl.SDL_GetWindowDisplayScale(self._window.ptr);
+            const fbsize = self._renderer.getOutputSize() catch unreachable;
             zgui.setNextWindowBgAlpha(.{ .alpha = 0.7 });
             zgui.setNextWindowPos(.{
                 .x = @floatFromInt(ws.width),
@@ -778,8 +780,15 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 zgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
                 zgui.text("Window Size: {d:.0}x{d:.0}", .{ ws.width, ws.height });
                 zgui.text("Renderer Type: {s}", .{cfg.jok_renderer_type.str()});
-                zgui.text("V-Sync Enabled: {}", .{rdinfo.vsync > 0});
+                zgui.text("Renderer Scale: {d:.2}", .{scale});
                 zgui.text("Canvas Size: {d:.0}x{d:.0}", .{ cs.width, cs.height });
+                zgui.text("Canvas Scale: {d:.2}", .{
+                    if (self._canvas_target_area) |a|
+                        a.width / cs.getWidthFloat()
+                    else
+                        fbsize.getWidthFloat() / cs.getWidthFloat(),
+                });
+                zgui.text("V-Sync Enabled: {}", .{rdinfo.vsync > 0});
                 zgui.separator();
                 zgui.text("Duration: {D}", .{@as(u64, @intFromFloat(self._seconds_real * 1e9))});
                 if (self._running_slow) {
