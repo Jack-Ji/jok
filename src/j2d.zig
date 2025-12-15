@@ -316,7 +316,7 @@ pub const Batch = struct {
             .tex = texture,
         };
         try s.render(&self.draw_commands, .{
-            .pos = pos.add(self.trs.getTranslation()),
+            .pos = self.trs.transformPoint(pos),
             .tint_color = opt.tint_color,
             .scale = .{ .x = scaling[0] * opt.scale.x, .y = scaling[1] * opt.scale.y },
             .rotate_angle = opt.rotate_angle + self.trs.getRotation(),
@@ -362,7 +362,7 @@ pub const Batch = struct {
             };
         };
         const size: @Vector(2, f32) = _size.mul(self.trs.getScale()).toArray();
-        const pmin = pos.add(self.trs.getTranslation()).sub(size * opt.anchor_point.toArray());
+        const pmin = self.trs.transformPoint(pos).sub(size * opt.anchor_point.toArray());
         const pmax = pmin.add(size);
         try self.pushDrawCommand(
             .{
@@ -415,7 +415,7 @@ pub const Batch = struct {
         assert(!self.is_submitted);
         const scaling = self.trs.getScale();
         try s.render(&self.draw_commands, .{
-            .pos = opt.pos.add(self.trs.getTranslation()),
+            .pos = self.trs.transformPoint(opt.pos),
             .tint_color = opt.tint_color,
             .scale = .{ .x = scaling[0] * opt.scale.x, .y = scaling[1] * opt.scale.y },
             .rotate_angle = opt.rotate_angle + self.trs.getRotation(),
@@ -449,7 +449,7 @@ pub const Batch = struct {
             @intCast(self.ctx.cfg().jok_prebuild_atlas),
         );
         const rotation = opt.rotate_angle + self.trs.getRotation();
-        var pos = opt.pos.add(self.trs.getTranslation());
+        var pos = self.trs.transformPoint(opt.pos);
         const begin_x = pos.x;
         const scaling = opt.scale.mul(self.trs.getScale());
         const mat = zmath.mul(
@@ -724,7 +724,7 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const size: @Vector(2, f32) = r.getSize().mul(self.trs.getScale()).toArray();
-        const pmin = r.getPos().add(self.trs.getTranslation()).sub(size * opt.anchor_point.toArray());
+        const pmin = self.trs.transformPoint(r.getPos()).sub(size * opt.anchor_point.toArray());
         const pmax = pmin.add(size);
         try self.pushDrawCommand(
             .{
@@ -758,7 +758,7 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const size: @Vector(2, f32) = r.getSize().mul(self.trs.getScale()).toArray();
-        const pmin = r.getPos().add(self.trs.getTranslation()).sub(size * opt.anchor_point.toArray());
+        const pmin = self.trs.transformPoint(r.getPos()).sub(size * opt.anchor_point.toArray());
         const pmax = pmin.add(size);
         try self.pushDrawCommand(
             .{

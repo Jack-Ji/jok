@@ -1,6 +1,9 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const jok = @import("jok");
 const j2d = jok.j2d;
+const font = jok.font;
+const physfs = jok.vendor.physfs;
 const zgui = jok.vendor.zgui;
 
 pub const jok_window_size = jok.config.WindowSize{
@@ -14,8 +17,13 @@ var translate: [2]f32 = .{ 0, 0 };
 var convex_poly: j2d.ConvexPoly = undefined;
 var concave_poly: j2d.ConcavePoly = undefined;
 var polyline: j2d.Polyline = undefined;
+var sheet: *j2d.SpriteSheet = undefined;
 
 pub fn init(ctx: jok.Context) !void {
+    if (!builtin.cpu.arch.isWasm()) {
+        try physfs.mount("assets", "", true);
+    }
+
     batchpool = try @TypeOf(batchpool).init(ctx);
 
     convex_poly = j2d.ConvexPoly.begin(ctx.allocator(), null);
@@ -44,6 +52,14 @@ pub fn init(ctx: jok.Context) !void {
     try polyline.point(.{ .x = 50, .y = -50 });
     try polyline.point(.{ .x = 0, .y = 30 });
     polyline.end();
+
+    sheet = try j2d.SpriteSheet.fromPicturesInDir(
+        ctx,
+        if (ctx.cfg().jok_enable_physfs) "images" else "assets/images",
+        1024,
+        1024,
+        .{},
+    );
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
@@ -359,11 +375,36 @@ pub fn draw(ctx: jok.Context) !void {
         b.translate(.{ 850, 600 });
         try b.polyline(polyline, .white, .{});
     }
+    {
+        try b.pushTransform();
+        defer b.popTransform();
+        b.translate(.{ 1000, 600 });
+        try b.line(.{ .x = -20, .y = 0 }, .{ .x = 20, .y = 0 }, .red, .{});
+        try b.line(.{ .x = 0, .y = -20 }, .{ .x = 0, .y = 20 }, .red, .{});
+        try b.sprite(sheet.getSpriteByName("ogre").?, .{
+            .pos = .{ .x = 50, .y = 0 },
+            .scale = .{ .x = 2, .y = 2 },
+            .anchor_point = .anchor_center,
+        });
+    }
+    {
+        try b.pushTransform();
+        defer b.popTransform();
+        b.translate(.{ 1150, 600 });
+        try b.line(.{ .x = -20, .y = 0 }, .{ .x = 20, .y = 0 }, .red, .{});
+        try b.line(.{ .x = 0, .y = -20 }, .{ .x = 0, .y = 20 }, .red, .{});
+        try b.text("I am Text", .{}, .{
+            .pos = .{ .x = 20, .y = 10 },
+            .align_type = .middle,
+            .ypos_type = .middle,
+        });
+    }
 }
 
 pub fn quit(ctx: jok.Context) void {
     _ = ctx;
 
+    sheet.destroy();
     convex_poly.deinit();
     concave_poly.deinit();
     polyline.deinit();
