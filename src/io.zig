@@ -49,8 +49,8 @@ pub const KeyboardEvent = struct {
 
     pub fn fromNative(native: sdl.SDL_KeyboardEvent) KeyboardEvent {
         switch (native.type) {
-            else => unreachable,
             sdl.SDL_EVENT_KEY_DOWN, sdl.SDL_EVENT_KEY_UP => {},
+            else => unreachable,
         }
         return .{
             .timestamp = native.timestamp,
@@ -147,8 +147,8 @@ pub const MouseButtonEvent = struct {
 
     pub fn fromNative(native: sdl.SDL_MouseButtonEvent, ctx: jok.Context) MouseButtonEvent {
         switch (native.type) {
-            else => unreachable,
             sdl.SDL_EVENT_MOUSE_BUTTON_DOWN, sdl.SDL_EVENT_MOUSE_BUTTON_UP => {},
+            else => unreachable,
         }
         const pos = mapPositionToCanvas(ctx, .{
             .x = native.x,
@@ -217,8 +217,8 @@ pub const JoyAxisEvent = struct {
 
     pub fn fromNative(native: sdl.SDL_JoyAxisEvent) JoyAxisEvent {
         switch (native.type) {
-            else => unreachable,
             sdl.SDL_EVENT_JOYSTICK_AXIS_MOTION => {},
+            else => unreachable,
         }
         return .{
             .timestamp = native.timestamp,
@@ -257,8 +257,8 @@ pub const JoyHatEvent = struct {
 
     pub fn fromNative(native: sdl.SDL_JoyHatEvent) JoyHatEvent {
         switch (native.type) {
-            else => unreachable,
             sdl.SDL_EVENT_JOYSTICK_HAT_MOTION => {},
+            else => unreachable,
         }
         return .{
             .timestamp = native.timestamp,
@@ -273,20 +273,21 @@ pub const JoyBallEvent = struct {
     timestamp: u64,
     joystick_id: sdl.SDL_JoystickID,
     ball: u8,
-    relative_x: i16,
-    relative_y: i16,
+    delta: jok.Point,
 
-    pub fn fromNative(native: sdl.SDL_JoyBallEvent) JoyBallEvent {
+    pub fn fromNative(native: sdl.SDL_JoyBallEvent, ctx: jok.Context) JoyBallEvent {
         switch (native.type) {
-            else => unreachable,
             sdl.SDL_EVENT_JOYSTICK_BALL_MOTION => {},
+            else => unreachable,
         }
+        const canvas_scale = getCanvasScale(ctx);
+        const delta_x = @as(f32, @floatFromInt(native.xrel)) * canvas_scale;
+        const delta_y = @as(f32, @floatFromInt(native.yrel)) * canvas_scale;
         return .{
             .timestamp = native.timestamp,
             .joystick_id = native.which,
             .ball = native.ball,
-            .relative_x = native.xrel,
-            .relative_y = native.yrel,
+            .delta = .{ .x = delta_x, .y = delta_y },
         };
     }
 };
@@ -299,8 +300,8 @@ pub const JoyButtonEvent = struct {
 
     pub fn fromNative(native: sdl.SDL_JoyButtonEvent) JoyButtonEvent {
         switch (native.type) {
-            else => unreachable,
             sdl.SDL_EVENT_JOYSTICK_BUTTON_DOWN, sdl.SDL_EVENT_JOYSTICK_BUTTON_UP => {},
+            else => unreachable,
         }
         return .{
             .timestamp = native.timestamp,
@@ -319,8 +320,8 @@ pub const GamepadAxisEvent = struct {
 
     pub fn fromNative(native: sdl.SDL_GamepadAxisEvent) GamepadAxisEvent {
         switch (native.type) {
-            else => unreachable,
             sdl.SDL_EVENT_GAMEPAD_AXIS_MOTION => {},
+            else => unreachable,
         }
         return .{
             .timestamp = native.timestamp,
@@ -347,8 +348,8 @@ pub const GamepadButtonEvent = struct {
 
     pub fn fromNative(native: sdl.SDL_GamepadButtonEvent) GamepadButtonEvent {
         switch (native.type) {
-            else => unreachable,
             sdl.SDL_EVENT_GAMEPAD_BUTTON_DOWN, sdl.SDL_EVENT_GAMEPAD_BUTTON_UP => {},
+            else => unreachable,
         }
         return .{
             .timestamp = native.timestamp,
@@ -578,7 +579,7 @@ pub const Event = union(enum) {
             sdl.SDL_EVENT_MOUSE_ADDED => Event{ .mouse_added = raw.mdevice },
             sdl.SDL_EVENT_MOUSE_REMOVED => Event{ .mouse_added = raw.mdevice },
             sdl.SDL_EVENT_JOYSTICK_AXIS_MOTION => Event{ .joy_axis_motion = JoyAxisEvent.fromNative(raw.jaxis) },
-            sdl.SDL_EVENT_JOYSTICK_BALL_MOTION => Event{ .joy_ball_motion = JoyBallEvent.fromNative(raw.jball) },
+            sdl.SDL_EVENT_JOYSTICK_BALL_MOTION => Event{ .joy_ball_motion = JoyBallEvent.fromNative(raw.jball, ctx) },
             sdl.SDL_EVENT_JOYSTICK_HAT_MOTION => Event{ .joy_hat_motion = JoyHatEvent.fromNative(raw.jhat) },
             sdl.SDL_EVENT_JOYSTICK_BUTTON_DOWN => Event{ .joy_button_down = JoyButtonEvent.fromNative(raw.jbutton) },
             sdl.SDL_EVENT_JOYSTICK_BUTTON_UP => Event{ .joy_button_up = JoyButtonEvent.fromNative(raw.jbutton) },
