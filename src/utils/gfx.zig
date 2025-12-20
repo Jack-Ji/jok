@@ -31,18 +31,16 @@ pub fn loadPixelsFromFile(ctx: jok.Context, path: [:0]const u8, flip: bool) !Fil
 
         filedata = try handle.readAllAlloc(allocator);
     } else {
-        var thread = std.Io.Threaded.init_single_threaded;
-        const io = thread.ioBasic();
         const stat = try std.Io.Dir.statPath(
             std.Io.Dir.cwd(),
-            io,
+            ctx.io(),
             std.mem.sliceTo(path, 0),
             .{ .follow_symlinks = false },
         );
         filedata = try allocator.alloc(u8, @intCast(stat.size));
         _ = try std.Io.Dir.readFile(
             std.Io.Dir.cwd(),
-            io,
+            ctx.io(),
             std.mem.sliceTo(path, 0),
             filedata,
         );

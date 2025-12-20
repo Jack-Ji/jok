@@ -34,9 +34,7 @@ pub fn init(ctx: jok.Context) !void {
     }
 
     batchpool = try @TypeOf(batchpool).init(ctx);
-    var thread = std.Io.Threaded.init_single_threaded;
-    const io = thread.ioBasic();
-    rand = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(io)).toSeconds()));
+    rand = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(ctx.io())).toSeconds()));
     plane = zmesh.Shape.initPlane(20, 20);
     sheet = try j2d.SpriteSheet.create(
         ctx,

@@ -89,9 +89,7 @@ var searched_blocks: std.DynamicBitSet = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     batchpool = try @TypeOf(batchpool).init(ctx);
-    var thread = std.Io.Threaded.init_single_threaded;
-    const io = thread.ioBasic();
-    rng = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(io)).toSeconds()));
+    rng = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(ctx.io())).toSeconds()));
     graph = Graph.init(rng.random());
     LOOP: for (0..graph_height) |i| {
         for (0..graph_width) |j| {

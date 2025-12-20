@@ -71,9 +71,7 @@ pub fn init(ctx: jok.Context) !void {
         false,
     );
 
-    var thread = std.Io.Threaded.init_single_threaded;
-    const io = thread.ioBasic();
-    var rng = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(io)).toSeconds()));
+    var rng = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(ctx.io())).toSeconds()));
     translations = .init(ctx.allocator());
     rotation_axises = .init(ctx.allocator());
     var i: u32 = 0;

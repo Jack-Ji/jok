@@ -32,9 +32,7 @@ pub fn init(ctx: jok.Context) !void {
     sps[2] = sheet.getSpriteByName("tile3").?;
     sps[3] = sheet.getSpriteByName("tile4").?;
 
-    var thread = std.Io.Threaded.init_single_threaded;
-    const io = thread.ioBasic();
-    var rng = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(io)).toSeconds()));
+    var rng = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(ctx.io())).toSeconds()));
     for (0..10) |y| {
         for (0..10) |x| {
             map[y][x] = .{

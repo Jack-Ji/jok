@@ -10,6 +10,7 @@ pub const Context = struct {
     vtable: struct {
         cfg: *const fn (ctx: *anyopaque) config.Config,
         allocator: *const fn (ctx: *anyopaque) std.mem.Allocator,
+        io: *const fn (ctx: *anyopaque) std.Io,
         seconds: *const fn (ctx: *anyopaque) f32,
         realSeconds: *const fn (ctx: *anyopaque) f64,
         deltaSeconds: *const fn (ctx: *anyopaque) f32,
@@ -39,6 +40,11 @@ pub const Context = struct {
     /// Get meomry allocator
     pub fn allocator(self: Context) std.mem.Allocator {
         return self.vtable.allocator(self.ctx);
+    }
+
+    /// Get io interface
+    pub fn io(self: Context) std.Io {
+        return self.vtable.io(self.ctx);
     }
 
     /// Get running seconds of application

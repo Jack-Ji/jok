@@ -83,9 +83,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                 defer pixels.destroy();
                 screenshot_tex = try pixels.createTexture(ctx.renderer(), .{});
 
-                var thread = std.Io.Threaded.init_single_threaded;
-                const io = thread.ioBasic();
-                screenshot_time = try std.Io.Clock.awake.now(io);
+                screenshot_time = try std.Io.Clock.awake.now(ctx.io());
 
                 try point_easing_system.add(
                     &screenshot_pos,
@@ -266,9 +264,7 @@ pub fn draw(ctx: jok.Context) !void {
     }
 
     if (screenshot_tex) |tex| {
-        var thread = std.Io.Threaded.init_single_threaded;
-        const io = thread.ioBasic();
-        const now = try std.Io.Clock.awake.now(io);
+        const now = try std.Io.Clock.awake.now(ctx.io());
         if (screenshot_time.durationTo(now).toSeconds() < 5) {
             var b = try batchpool_2d.new(.{});
             defer b.submit();

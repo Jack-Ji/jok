@@ -833,9 +833,7 @@ pub fn init(ctx: jok.Context) !void {
 
     jokctx = ctx;
     batchpool = try @TypeOf(batchpool).init(ctx);
-    var thread = std.Io.Threaded.init_single_threaded;
-    const io = thread.ioBasic();
-    rand_gen = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(io)).toSeconds()));
+    rand_gen = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(ctx.io())).toSeconds()));
     rand = rand_gen.random();
 
     try restart(ctx.allocator());

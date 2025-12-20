@@ -32,6 +32,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
         // Memory allocator
         _allocator: std.mem.Allocator = undefined,
 
+        // IO backend
+        _io_backend: std.Io.Threaded = undefined,
+
         // Main thread id
         _main_thread_id: std.Thread.Id = undefined,
 
@@ -101,6 +104,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             var self = try _allocator.create(@This());
             self.* = .{};
             self._allocator = _allocator;
+            self._io_backend = .init_single_threaded;
             self._main_thread_id = std.Thread.getCurrentId();
             self._ctx = self.context();
 
@@ -555,6 +559,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .vtable = .{
                     .cfg = getcfg,
                     .allocator = allocator,
+                    .io = getIo,
                     .seconds = seconds,
                     .realSeconds = realSeconds,
                     .deltaSeconds = deltaSeconds,
@@ -637,6 +642,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn allocator(ptr: *anyopaque) std.mem.Allocator {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._allocator;
+        }
+
+        /// Get io backend
+        fn getIo(ptr: *anyopaque) std.Io {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            return self._io_backend.ioBasic();
         }
 
         /// Get running seconds of application
