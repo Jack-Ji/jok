@@ -322,17 +322,15 @@ pub const jpng = struct {
 
             data = try handle.readAllAlloc(allocator);
         } else {
-            var thread = std.Io.Threaded.init_single_threaded;
-            const io = thread.ioBasic();
             const file = try std.Io.Dir.openFile(
                 std.Io.Dir.cwd(),
-                io,
+                ctx.io(),
                 std.mem.sliceTo(path, 0),
                 .{ .mode = .read_only },
             );
-            defer file.close(io);
+            defer file.close(ctx.io());
 
-            var reader = file.reader(io, &.{});
+            var reader = file.reader(ctx.io(), &.{});
             const size = try reader.getSize();
             data = try reader.interface.readAlloc(allocator, @intCast(size));
         }

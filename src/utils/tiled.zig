@@ -620,6 +620,7 @@ pub fn loadTMX(ctx: jok.Context, path: [:0]const u8) !*TiledMap {
         ctx.renderer(),
         allocator,
         tmap.arena.allocator(),
+        ctx.io(),
         map,
         ctx.cfg().jok_enable_physfs,
         dirname,
@@ -631,6 +632,7 @@ pub fn loadTMX(ctx: jok.Context, path: [:0]const u8) !*TiledMap {
         ctx.renderer(),
         allocator,
         tmap.arena.allocator(),
+        ctx.io(),
         map,
         ctx.cfg().jok_enable_physfs,
         dirname,
@@ -647,6 +649,7 @@ fn loadTilesets(
     rd: jok.Renderer,
     temp_allocator: std.mem.Allocator,
     arena_allocator: std.mem.Allocator,
+    io: std.Io,
     map: *const xml.Element,
     use_physfs: bool,
     dirname: []const u8,
@@ -706,7 +709,7 @@ fn loadTilesets(
                     const full_path = try std.fs.path.resolvePosix(temp_allocator, &.{ dirname, a.value });
                     defer temp_allocator.free(full_path);
 
-                    const tsx_content = try getExternalFileContent(temp_allocator, use_physfs, full_path);
+                    const tsx_content = try getExternalFileContent(temp_allocator, io, use_physfs, full_path);
                     defer temp_allocator.free(tsx_content);
 
                     external_doc = try xml.parse(temp_allocator, tsx_content);
@@ -768,7 +771,7 @@ fn loadTilesets(
                     const full_path = try std.fs.path.resolvePosix(temp_allocator, &.{ dirname, tileset_dir, a.value });
                     defer temp_allocator.free(full_path);
 
-                    const image_content = try getExternalFileContent(temp_allocator, use_physfs, full_path);
+                    const image_content = try getExternalFileContent(temp_allocator, io, use_physfs, full_path);
                     defer temp_allocator.free(image_content);
 
                     ts[tsidx].texture = try rd.createTextureFromFileData(image_content, .static, false);
@@ -831,6 +834,7 @@ fn loadLayers(
     rd: jok.Renderer,
     temp_allocator: std.mem.Allocator,
     arena_allocator: std.mem.Allocator,
+    io: std.Io,
     map: *const xml.Element,
     use_physfs: bool,
     dirname: []const u8,
@@ -1239,7 +1243,7 @@ fn loadLayers(
                     const full_path = try std.fs.path.resolvePosix(temp_allocator, &.{ dirname, a.value });
                     defer temp_allocator.free(full_path);
 
-                    const image_content = try getExternalFileContent(temp_allocator, use_physfs, full_path);
+                    const image_content = try getExternalFileContent(temp_allocator, io, use_physfs, full_path);
                     defer temp_allocator.free(image_content);
 
                     layer.image_layer.texture = try rd.createTextureFromFileData(image_content, .static, false);
@@ -1301,7 +1305,7 @@ inline fn initPropertyTree(element: *const xml.Element, allocator: std.mem.Alloc
     }
 }
 
-inline fn getExternalFileContent(allocator: std.mem.Allocator, use_physfs: bool, path: []const u8) ![]const u8 {
+inline fn getExternalFileContent(allocator: std.mem.Allocator, io: std.Io, use_physfs: bool, path: []const u8) ![]const u8 {
     const zpath = try std.fmt.allocPrintSentinel(allocator, "{s}", .{path}, 0);
     defer allocator.free(zpath);
     if (use_physfs) {
@@ -1309,8 +1313,6 @@ inline fn getExternalFileContent(allocator: std.mem.Allocator, use_physfs: bool,
         defer handle.close();
         return try handle.readAllAlloc(allocator);
     } else {
-        var thread = std.Io.Threaded.init_single_threaded;
-        const io = thread.ioBasic();
         const stat = try std.Io.Dir.statPath(
             std.Io.Dir.cwd(),
             io,

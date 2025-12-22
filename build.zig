@@ -22,13 +22,13 @@ pub fn build(b: *Build) void {
         .target = target,
         .optimize = optimize,
     });
+    root.link_libc = true;
+    root.linkLibrary(jok.artifact);
+    root.addImport("sdl", getSdlModule(b, target, optimize));
     const tests = b.addTest(.{
         .name = "all",
         .root_module = root,
     });
-    tests.linkLibC();
-    tests.linkLibrary(jok.artifact);
-    tests.root_module.addImport("sdl", getSdlModule(b, target, optimize));
     const test_step = b.step("test", "run tests");
     test_step.dependOn(&b.addRunArtifact(tests).step);
 
@@ -223,13 +223,13 @@ pub fn createDesktopApp(
             .{ .name = "game", .module = game },
         },
     });
+    root.linkLibrary(jok.artifact);
 
     // Create executable
     const exe = builder.addExecutable(.{
         .name = name,
         .root_module = root,
     });
-    exe.linkLibrary(jok.artifact);
 
     return exe;
 }
@@ -282,13 +282,13 @@ pub fn createWebApp(
             .{ .name = "game", .module = game },
         },
     });
+    root.linkLibrary(jok.artifact);
 
     // Create wasm object file
     const lib = builder.addLibrary(.{
         .name = name,
         .root_module = root,
     });
-    lib.linkLibrary(jok.artifact);
 
     // Link using emcc
     const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
