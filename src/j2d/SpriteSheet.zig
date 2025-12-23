@@ -310,14 +310,14 @@ pub fn fromPicturesInDir(
         while (it.next()) |p| {
             const fname = std.mem.sliceTo(p, 0);
             if (fname.len < 5) continue;
-            if ((opt.accept_png and std.mem.eql(u8, ".png", fname[fname.len - 4 ..])) or
-                (opt.accept_jpg and std.mem.eql(u8, ".jpg", fname[fname.len - 4 ..])))
+            if ((opt.accept_png and std.mem.endsWith(u8, fname, ".png")) or
+                (opt.accept_jpg and std.mem.endsWith(u8, fname, ".jpg")))
             {
                 try images.append(.{
                     .name = try std.fmt.allocPrint(
                         arena.allocator(),
                         "{s}",
-                        .{fname[0 .. fname.len - 4]},
+                        .{std.mem.sliceTo(fname, '.')},
                     ),
                     .image = .{
                         .file_path = try std.fmt.allocPrintSentinel(
@@ -347,14 +347,14 @@ pub fn fromPicturesInDir(
 
             const fname = std.mem.sliceTo(p.name, 0);
             if (fname.len < 5) continue;
-            if ((opt.accept_png and std.mem.eql(u8, ".png", fname[fname.len - 4 ..])) or
-                (opt.accept_jpg and std.mem.eql(u8, ".jpg", fname[fname.len - 4 ..])))
+            if ((opt.accept_png and std.mem.endsWith(u8, fname, ".png")) or
+                (opt.accept_jpg and std.mem.endsWith(u8, fname, ".jpg")))
             {
                 try images.append(.{
                     .name = try std.fmt.allocPrint(
                         arena.allocator(),
                         "{s}",
-                        .{fname[0 .. fname.len - 4]},
+                        .{std.mem.sliceTo(fname, '.')},
                     ),
                     .image = .{
                         .file_path = try std.fs.path.joinZ(arena.allocator(), &[_][]const u8{

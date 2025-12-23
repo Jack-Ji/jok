@@ -336,7 +336,7 @@ pub const jpng = struct {
         }
         defer allocator.free(data);
 
-        if (!std.mem.eql(u8, &magic, data[data.len - 7 ..])) {
+        if (!std.mem.endsWith(u8, data, &magic)) {
             return error.InvalidFootage;
         }
 
