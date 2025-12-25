@@ -22,18 +22,18 @@ pub const Window = struct {
         if (cfg.jok_renderer_type != .software) {
             _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
         }
-        var window_width: c_int = 800;
-        var window_height: c_int = 600;
         switch (cfg.jok_window_size) {
-            .maximized => _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_MAXIMIZED_BOOLEAN, true),
-            .fullscreen => _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_FULLSCREEN_BOOLEAN, true),
+            .maximized => {
+                _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_MAXIMIZED_BOOLEAN, true);
+            },
+            .fullscreen => {
+                _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_FULLSCREEN_BOOLEAN, true);
+            },
             .custom => |size| {
-                window_width = @intCast(size.width);
-                window_height = @intCast(size.height);
+                _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, @intCast(size.width));
+                _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, @intCast(size.height));
             },
         }
-        _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, @intCast(window_width));
-        _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, @intCast(window_height));
         const ptr = sdl.SDL_CreateWindowWithProperties(props);
         if (ptr == null) {
             log.err("Create window failed: {s}", .{sdl.SDL_GetError()});
