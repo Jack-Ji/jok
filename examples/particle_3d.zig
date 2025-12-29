@@ -42,13 +42,19 @@ pub fn init(ctx: jok.Context) !void {
             .{
                 .name = "white-circle",
                 .image = .{
-                    .file_path = "images/white-circle.png",
+                    .file_path = if (ctx.cfg().jok_enable_physfs)
+                        "images/white-circle.png"
+                    else
+                        "assets/images/white-circle.png",
                 },
             },
             .{
                 .name = "ogre",
                 .image = .{
-                    .file_path = "images/ogre.png",
+                    .file_path = if (ctx.cfg().jok_enable_physfs)
+                        "images/ogre.png"
+                    else
+                        "assets/images/ogre.png",
                 },
             },
         },

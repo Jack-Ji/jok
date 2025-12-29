@@ -31,15 +31,13 @@ pub fn loadPixelsFromFile(ctx: jok.Context, path: [:0]const u8, flip: bool) !Fil
 
         filedata = try handle.readAllAlloc(allocator);
     } else {
-        const stat = try std.Io.Dir.statPath(
-            std.Io.Dir.cwd(),
+        const stat = try std.Io.Dir.cwd().statFile(
             ctx.io(),
             std.mem.sliceTo(path, 0),
             .{ .follow_symlinks = false },
         );
         filedata = try allocator.alloc(u8, @intCast(stat.size));
-        _ = try std.Io.Dir.readFile(
-            std.Io.Dir.cwd(),
+        _ = try std.Io.Dir.cwd().readFile(
             ctx.io(),
             std.mem.sliceTo(path, 0),
             filedata,
@@ -288,14 +286,15 @@ pub const jpng = struct {
 
             try writeData(ctx, &handle.writer, data, opt);
         } else {
-            const file = try std.fs.cwd().openFile(
+            const file = try std.Io.Dir.cwd().openFile(
+                ctx.io(),
                 std.mem.sliceTo(path, 0),
                 .{ .mode = .write_only },
             );
-            defer file.close();
+            defer file.close(ctx.io());
 
-            var fwriter = file.writer(&.{});
-            fwriter.pos = (try file.stat()).size;
+            var fwriter = file.writer(ctx.io(), &.{});
+            fwriter.pos = (try file.stat(ctx.io())).size;
             try writeData(ctx, &fwriter.interface, data, opt);
         }
     }

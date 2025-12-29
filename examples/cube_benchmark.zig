@@ -64,9 +64,11 @@ pub fn init(ctx: jok.Context) !void {
     cube.texcoords = texcoords[0..];
     aabb = cube.computeAabb();
 
-    tex = try ctx.renderer().createTextureFromFile(
-        ctx.allocator(),
-        "images/image5.jpg",
+    tex = try ctx.loadTexture(
+        if (ctx.cfg().jok_enable_physfs)
+            "images/image5.jpg"
+        else
+            "assets/images/image5.jpg",
         .static,
         false,
     );

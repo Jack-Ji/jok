@@ -26,7 +26,10 @@ pub fn init(ctx: jok.Context) !void {
 
     atlas = try font.DebugFont.getAtlas(ctx, 16);
     music = try ctx.audioEngine().createSoundFromFile(
-        "audios/Edge-of-Ocean_Looping.mp3",
+        if (ctx.cfg().jok_enable_physfs)
+            "audios/Edge-of-Ocean_Looping.mp3"
+        else
+            "assets/audios/Edge-of-Ocean_Looping.mp3",
         .{},
     );
     music_total_length = @intFromFloat(try music.getLengthInSeconds());
@@ -34,14 +37,20 @@ pub fn init(ctx: jok.Context) !void {
     try music.start();
 
     sfx1 = try ctx.audioEngine().createSoundFromFile(
-        "audios/SynthChime9.mp3",
+        if (builtin.cpu.arch.isWasm())
+            "audios/SynthChime9.mp3"
+        else
+            "assets/audios/SynthChime9.mp3",
         .{},
     );
     sfx1.setPanMode(.pan);
     sfx1.setPan(-1);
 
     sfx2 = try ctx.audioEngine().createSoundFromFile(
-        "audios/Bells3.mp3",
+        if (builtin.cpu.arch.isWasm())
+            "audios/Bells3.mp3"
+        else
+            "assets/audios/Bells3.mp3",
         .{},
     );
     sfx2.setPanMode(.pan);

@@ -21,7 +21,7 @@ pub fn init(ctx: jok.Context) !void {
     text_draw_pos = csz.toPoint().scale(0.5);
     text_speed = j2d.Vector.new(100, 100);
     plugin = try utils.plugin.Plugin(PluginType).create(
-        ctx.allocator(),
+        ctx,
         if (builtin.target.os.tag == .windows)
             "./plugin.dll"
         else if (builtin.target.os.tag == .macos)

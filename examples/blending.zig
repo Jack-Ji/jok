@@ -48,8 +48,22 @@ pub fn init(ctx: jok.Context) !void {
     batchpool = try @TypeOf(batchpool).init(ctx);
 
     target = try ctx.renderer().createTarget(.{ .blend_mode = .blend });
-    src = try ctx.renderer().createTextureFromFile(ctx.allocator(), "images/source.png", .static, false);
-    dst = try ctx.renderer().createTextureFromFile(ctx.allocator(), "images/dest.png", .static, false);
+    src = try ctx.loadTexture(
+        if (ctx.cfg().jok_enable_physfs)
+            "images/source.png"
+        else
+            "assets/images/source.png",
+        .static,
+        false,
+    );
+    dst = try ctx.loadTexture(
+        if (ctx.cfg().jok_enable_physfs)
+            "images/dest.png"
+        else
+            "assets/images/dest.png",
+        .static,
+        false,
+    );
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {

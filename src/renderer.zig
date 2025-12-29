@@ -359,41 +359,6 @@ pub const Renderer = struct {
         );
     }
 
-    pub fn createTextureFromFile(
-        self: Renderer,
-        allocator: std.mem.Allocator,
-        image_file: [:0]const u8,
-        access: jok.Texture.Access,
-        flip: bool,
-    ) !jok.Texture {
-        if (self.cfg.jok_enable_physfs) {
-            const handle = try physfs.open(image_file, .read);
-            defer handle.close();
-
-            const filedata = try handle.readAllAlloc(allocator);
-            defer allocator.free(filedata);
-
-            return try self.createTextureFromFileData(
-                filedata,
-                access,
-                flip,
-            );
-        } else {
-            const filedata = try std.fs.cwd().readFileAlloc(
-                std.mem.sliceTo(image_file, 0),
-                allocator,
-                .limited(1 << 30),
-            );
-            defer allocator.free(filedata);
-
-            return try self.createTextureFromFileData(
-                filedata,
-                access,
-                flip,
-            );
-        }
-    }
-
     pub const TargetOption = struct {
         size: ?jok.Size = null,
         blend_mode: jok.BlendMode = .none,

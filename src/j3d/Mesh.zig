@@ -483,10 +483,11 @@ pub fn fromObj(
             break :BLK try handle.readAllAlloc(ctx.allocator());
         } else {
             const idx = std.mem.indexOfSentinel(u8, 0, obj_file_path);
-            break :BLK try std.fs.cwd().readFileAlloc(
+            break :BLK try std.Io.Dir.cwd().readFileAlloc(
+                ctx.io(),
                 obj_file_path[0..idx :0],
                 ctx.allocator(),
-                .limited(1 << 30),
+                .unlimited,
             );
         }
     };
@@ -500,10 +501,11 @@ pub fn fromObj(
                 break :BLK try handle.readAllAlloc(ctx.allocator());
             } else {
                 const idx = std.mem.indexOfSentinel(u8, 0, p);
-                break :BLK try std.fs.cwd().readFileAlloc(
+                break :BLK try std.Io.Dir.cwd().readFileAlloc(
+                    ctx.io(),
                     p[0..idx :0],
                     ctx.allocator(),
-                    .limited(1 << 30),
+                    .unlimited,
                 );
             }
         } else {
@@ -538,8 +540,7 @@ pub fn fromObj(
                     &.{ dir, uri_path },
                 );
                 defer self.allocator.free(path);
-                const tex = try ctx.renderer().createTextureFromFile(
-                    ctx.allocator(),
+                const tex = try ctx.loadTexture(
                     path,
                     .static,
                     true, // MTL texture's bottom-left is origin
@@ -828,8 +829,7 @@ fn loadNodeTree(
                                 &.{ dir, uri_path },
                             );
                             defer self.allocator.free(path);
-                            tex = try ctx.renderer().createTextureFromFile(
-                                ctx.allocator(),
+                            tex = try ctx.loadTexture(
                                 path,
                                 .static,
                                 false,

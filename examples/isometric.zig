@@ -26,7 +26,16 @@ pub fn init(ctx: jok.Context) !void {
 
     batchpool = try @TypeOf(batchpool).init(ctx);
 
-    sheet = try j2d.SpriteSheet.fromPicturesInDir(ctx, "images/iso", 1024, 1024, .{});
+    sheet = try j2d.SpriteSheet.fromPicturesInDir(
+        ctx,
+        if (ctx.cfg().jok_enable_physfs)
+            "images/iso"
+        else
+            "assets/images/iso",
+        1024,
+        1024,
+        .{},
+    );
     sps[0] = sheet.getSpriteByName("tile1").?;
     sps[1] = sheet.getSpriteByName("tile2").?;
     sps[2] = sheet.getSpriteByName("tile3").?;

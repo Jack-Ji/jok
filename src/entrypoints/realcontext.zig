@@ -433,9 +433,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const info = try self._renderer.getInfo();
 
             // Print system info
-            const writer = std.debug.lockStderrWriter(&.{}).@"0";
-            defer std.debug.unlockStdErr();
-            try writer.print(
+            std.debug.print(
                 \\System info:
                 \\    Build Mode       : {s}
                 \\    Log Level        : {s}
@@ -576,6 +574,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .getAspectRatio = getAspectRatio,
                     .supressDraw = supressDraw,
                     .isRunningSlow = isRunningSlow,
+                    .loadTexture = loadTexture,
                     .displayStats = displayStats,
                     .debugPrint = debugPrint,
                     .getDebugAtlas = getDebugAtlas,
@@ -763,6 +762,38 @@ pub fn JokContext(comptime cfg: config.Config) type {
         pub fn isRunningSlow(ptr: *anyopaque) bool {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._running_slow;
+        }
+
+        /// Load texture from path to file
+        pub fn loadTexture(ptr: *anyopaque, sub_path: [:0]const u8, access: jok.Texture.Access, flip: bool) !jok.Texture {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            if (cfg.jok_enable_physfs) {
+                const handle = try physfs.open(sub_path, .read);
+                defer handle.close();
+
+                const filedata = try handle.readAllAlloc(self._allocator);
+                defer self._allocator.free(filedata);
+
+                return try self._renderer.createTextureFromFileData(
+                    filedata,
+                    access,
+                    flip,
+                );
+            } else {
+                const filedata = try std.Io.Dir.cwd().readFileAlloc(
+                    self._io_backend.io(),
+                    std.mem.sliceTo(sub_path, 0),
+                    self._allocator,
+                    .unlimited,
+                );
+                defer self._allocator.free(filedata);
+
+                return try self._renderer.createTextureFromFileData(
+                    filedata,
+                    access,
+                    flip,
+                );
+            }
         }
 
         /// Display frame statistics

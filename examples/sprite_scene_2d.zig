@@ -26,7 +26,7 @@ pub fn init(ctx: jok.Context) !void {
     const size = ctx.getCanvasSize();
     sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
-        "images",
+        if (ctx.cfg().jok_enable_physfs) "images" else "assets/images",
         @intFromFloat(size.getWidthFloat()),
         @intFromFloat(size.getHeightFloat()),
         .{},

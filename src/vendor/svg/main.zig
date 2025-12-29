@@ -113,8 +113,7 @@ pub fn createBitmapFromFile(
 
         filedata = try handle.readAllAlloc(allocator);
     } else {
-        const stat = try std.Io.Dir.statPath(
-            std.Io.Dir.cwd(),
+        const stat = try std.Io.Dir.cwd().statFile(
             ctx.io(),
             std.mem.sliceTo(path, 0),
             .{ .follow_symlinks = false },

@@ -44,7 +44,7 @@ pub fn init(ctx: jok.Context) !void {
 
     sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
-        "images",
+        if (ctx.cfg().jok_enable_physfs) "images" else "assets/images",
         1024,
         1024,
         .{},

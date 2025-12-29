@@ -27,6 +27,7 @@ pub const Context = struct {
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
         supressDraw: *const fn (ctx: *anyopaque) void,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
+        loadTexture: *const fn (ctx: *anyopaque, sub_path: [:0]const u8, access: jok.Texture.Access, flip: bool) anyerror!jok.Texture,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
         debugPrint: *const fn (ctx: *anyopaque, text: []const u8, opt: DebugPrint) void,
         getDebugAtlas: *const fn (ctx: *anyopaque, size: u32) *font.Atlas,
@@ -125,6 +126,11 @@ pub const Context = struct {
     /// Whether game is running slow
     pub fn isRunningSlow(self: Context) bool {
         return self.vtable.isRunningSlow(self.ctx);
+    }
+
+    /// Load texture from path to file
+    pub fn loadTexture(self: Context, sub_path: [:0]const u8, access: jok.Texture.Access, flip: bool) anyerror!jok.Texture {
+        return self.vtable.loadTexture(self.ctx, sub_path, access, flip);
     }
 
     /// Display statistics

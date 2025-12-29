@@ -122,7 +122,8 @@ pub fn create(
                         defer file.close();
                         break :BLK try file.readAllAlloc(allocator);
                     } else {
-                        break :BLK try std.fs.cwd().readFileAlloc(
+                        break :BLK try std.Io.Dir.cwd().readFileAlloc(
+                            ctx.io(),
                             std.mem.sliceTo(path, 0),
                             allocator,
                             .limited(1 << 30),
@@ -336,13 +337,17 @@ pub fn fromPicturesInDir(
             .keep_packed_pixels = opt.keep_packed_pixels,
         });
     } else if (!builtin.cpu.arch.isWasm()) {
-        var dir = try std.fs.cwd().openDir(std.mem.sliceTo(dir_path, 0), .{ .iterate = true });
-        defer dir.close();
+        var dir = try std.Io.Dir.cwd().openDir(
+            ctx.io(),
+            std.mem.sliceTo(dir_path, 0),
+            .{ .iterate = true },
+        );
+        defer dir.close(ctx.io());
 
         // Collect pictures
         const dpath = std.mem.sliceTo(dir_path, 0);
         var it = dir.iterate();
-        while (try it.next()) |p| {
+        while (try it.next(ctx.io())) |p| {
             if (p.kind != .file) continue;
 
             const fname = std.mem.sliceTo(p.name, 0);

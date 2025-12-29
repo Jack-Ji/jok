@@ -59,11 +59,42 @@ pub fn init(ctx: jok.Context) !void {
     );
 
     var t = try std.Io.Clock.awake.now(ctx.io());
-    mesh1 = try j3d.Mesh.fromGltf(ctx, "models/CesiumMan.glb", .{});
-    mesh2 = try j3d.Mesh.fromGltf(ctx, "models/RiggedSimple.glb", .{});
-    mesh3 = try j3d.Mesh.fromGltf(ctx, "models/Fox/Fox.gltf", .{});
-    mesh4 = try j3d.Mesh.fromObj(ctx, "models/akira.obj", "models/akira.mtl", .{});
-    mesh5 = try j3d.Mesh.fromObj(ctx, "models/prime_truckin.obj", "models/prime_truckin.mtl", .{});
+    mesh1 = try j3d.Mesh.fromGltf(ctx, if (ctx.cfg().jok_enable_physfs)
+        "models/CesiumMan.glb"
+    else
+        "assets/models/CesiumMan.glb", .{});
+    mesh2 = try j3d.Mesh.fromGltf(ctx, if (ctx.cfg().jok_enable_physfs)
+        "models/RiggedSimple.glb"
+    else
+        "assets/models/RiggedSimple.glb", .{});
+    mesh3 = try j3d.Mesh.fromGltf(ctx, if (ctx.cfg().jok_enable_physfs)
+        "models/Fox/Fox.gltf"
+    else
+        "assets/models/Fox/Fox.gltf", .{});
+    mesh4 = try j3d.Mesh.fromObj(
+        ctx,
+        if (ctx.cfg().jok_enable_physfs)
+            "models/akira.obj"
+        else
+            "assets/models/akira.obj",
+        if (ctx.cfg().jok_enable_physfs)
+            "models/akira.mtl"
+        else
+            "assets/models/akira.mtl",
+        .{},
+    );
+    mesh5 = try j3d.Mesh.fromObj(
+        ctx,
+        if (ctx.cfg().jok_enable_physfs)
+            "models/prime_truckin.obj"
+        else
+            "assets/models/prime_truckin.obj",
+        if (ctx.cfg().jok_enable_physfs)
+            "models/prime_truckin.mtl"
+        else
+            "assets/models/prime_truckin.mtl",
+        .{},
+    );
     std.debug.print("Models load time: {D}\n", .{
         @as(i64, @intCast(t.durationTo(try std.Io.Clock.awake.now(ctx.io())).nanoseconds)),
     });

@@ -424,7 +424,8 @@ const Emscripten = struct {
     // an .emscripten file yet until the one-time setup.
     fn possibleSetup(sdk: *Sdk, step: *Build.Step) void {
         const dot_emsc_path = sdk.path(&.{".emscripten"}).getPath(sdk.builder);
-        const dot_emsc_exists = !std.meta.isError(std.fs.accessAbsolute(dot_emsc_path, .{}));
+        var single_threaded = std.Io.Threaded.init_single_threaded;
+        const dot_emsc_exists = !std.meta.isError(std.Io.Dir.accessAbsolute(single_threaded.io(), dot_emsc_path, .{}));
         if (!dot_emsc_exists) {
             const emsdk_install = sdk.createEmsdkStep();
             emsdk_install.addArgs(&.{ "install", "latest" });

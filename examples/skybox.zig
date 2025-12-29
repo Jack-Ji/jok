@@ -55,46 +55,60 @@ pub fn init(ctx: jok.Context) !void {
     cube = zmesh.Shape.initCube();
     cube.computeNormals();
     cube.texcoords = texcoords[0..];
-    tex = try ctx.renderer().createTextureFromFile(
-        ctx.allocator(),
-        "images/image5.jpg",
+    tex = try ctx.loadTexture(
+        if (ctx.cfg().jok_enable_physfs)
+            "images/image5.jpg"
+        else
+            "assets/images/image5.jpg",
         .static,
         false,
     );
 
-    skybox_textures[0] = try ctx.renderer().createTextureFromFile(
-        ctx.allocator(),
-        "images/skybox/right.jpg",
+    skybox_textures[0] = try ctx.loadTexture(
+        if (ctx.cfg().jok_enable_physfs)
+            "images/skybox/right.jpg"
+        else
+            "assets/images/skybox/right.jpg",
         .static,
         true,
     );
-    skybox_textures[1] = try ctx.renderer().createTextureFromFile(
-        ctx.allocator(),
-        "images/skybox/left.jpg",
+    skybox_textures[1] = try ctx.loadTexture(
+        if (ctx.cfg().jok_enable_physfs)
+            "images/skybox/left.jpg"
+        else
+            "assets/images/skybox/left.jpg",
         .static,
         true,
     );
-    skybox_textures[2] = try ctx.renderer().createTextureFromFile(
-        ctx.allocator(),
-        "images/skybox/top.jpg",
+    skybox_textures[2] = try ctx.loadTexture(
+        if (ctx.cfg().jok_enable_physfs)
+            "images/skybox/top.jpg"
+        else
+            "assets/images/skybox/top.jpg",
         .static,
         true,
     );
-    skybox_textures[3] = try ctx.renderer().createTextureFromFile(
-        ctx.allocator(),
-        "images/skybox/bottom.jpg",
+    skybox_textures[3] = try ctx.loadTexture(
+        if (ctx.cfg().jok_enable_physfs)
+            "images/skybox/bottom.jpg"
+        else
+            "assets/images/skybox/bottom.jpg",
         .static,
         true,
     );
-    skybox_textures[4] = try ctx.renderer().createTextureFromFile(
-        ctx.allocator(),
-        "images/skybox/front.jpg",
+    skybox_textures[4] = try ctx.loadTexture(
+        if (ctx.cfg().jok_enable_physfs)
+            "images/skybox/front.jpg"
+        else
+            "assets/images/skybox/front.jpg",
         .static,
         true,
     );
-    skybox_textures[5] = try ctx.renderer().createTextureFromFile(
-        ctx.allocator(),
-        "images/skybox/back.jpg",
+    skybox_textures[5] = try ctx.loadTexture(
+        if (ctx.cfg().jok_enable_physfs)
+            "images/skybox/back.jpg"
+        else
+            "assets/images/skybox/back.jpg",
         .static,
         true,
     );

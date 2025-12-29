@@ -20,7 +20,7 @@ pub fn init(ctx: jok.Context) !void {
 
     svg = try jok.vendor.svg.createBitmapFromFile(
         ctx,
-        "tiger.svg",
+        if (ctx.cfg().jok_enable_physfs) "tiger.svg" else "assets/tiger.svg",
         .{},
     );
 

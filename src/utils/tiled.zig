@@ -533,18 +533,11 @@ pub fn loadTMX(ctx: jok.Context, path: [:0]const u8) !*TiledMap {
         else
             "";
     } else {
-        const stat = try std.Io.Dir.statPath(
-            std.Io.Dir.cwd(),
+        data = try std.Io.Dir.cwd().readFileAlloc(
             ctx.io(),
             std.mem.sliceTo(path, 0),
-            .{ .follow_symlinks = false },
-        );
-        data = try allocator.alloc(u8, @intCast(stat.size));
-        _ = try std.Io.Dir.readFile(
-            std.Io.Dir.cwd(),
-            ctx.io(),
-            std.mem.sliceTo(path, 0),
-            data,
+            allocator,
+            .unlimited,
         );
         dirname = std.fs.path.dirname(zpath) orelse ".";
     }
@@ -1306,27 +1299,20 @@ inline fn initPropertyTree(element: *const xml.Element, allocator: std.mem.Alloc
 }
 
 inline fn getExternalFileContent(allocator: std.mem.Allocator, io: std.Io, use_physfs: bool, path: []const u8) ![]const u8 {
-    const zpath = try std.fmt.allocPrintSentinel(allocator, "{s}", .{path}, 0);
-    defer allocator.free(zpath);
     if (use_physfs) {
+        const zpath = try std.fmt.allocPrintSentinel(allocator, "{s}", .{path}, 0);
+        defer allocator.free(zpath);
+
         const handle = try physfs.open(zpath, .read);
         defer handle.close();
         return try handle.readAllAlloc(allocator);
     } else {
-        const stat = try std.Io.Dir.statPath(
-            std.Io.Dir.cwd(),
+        return try std.Io.Dir.cwd().readFileAlloc(
             io,
             std.mem.sliceTo(path, 0),
-            .{ .follow_symlinks = false },
+            allocator,
+            .unlimited,
         );
-        const filedata = try allocator.alloc(u8, @intCast(stat.size));
-        _ = try std.Io.Dir.readFile(
-            std.Io.Dir.cwd(),
-            io,
-            std.mem.sliceTo(path, 0),
-            filedata,
-        );
-        return filedata;
     }
 }
 

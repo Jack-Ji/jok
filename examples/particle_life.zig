@@ -284,9 +284,9 @@ fn saveSettings(_: ?*anyopaque, paths: [][]const u8) !void {
     saved_path = try jokctx.allocator().dupeZ(u8, paths[0]);
 
     const realpath = paths[0];
-    var f = try std.fs.cwd().createFile(realpath, .{});
-    defer f.close();
-    var fwriter = f.writer(&.{});
+    var f = try std.Io.Dir.cwd().createFile(jokctx.io(), realpath, .{});
+    defer f.close(jokctx.io());
+    var fwriter = f.writer(jokctx.io(), &.{});
 
     try fwriter.interface.print(
         "{d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5} {d:.5}",
@@ -311,8 +311,13 @@ fn saveSettings(_: ?*anyopaque, paths: [][]const u8) !void {
 }
 
 fn loadSettings(_: ?*anyopaque, paths: [][]const u8) !void {
-    const allocator = std.heap.c_allocator;
-    const content = try std.fs.cwd().readFileAlloc(paths[0], allocator, .limited(1024));
+    const allocator = jokctx.allocator();
+    const content = try std.Io.Dir.cwd().readFileAlloc(
+        jokctx.io(),
+        paths[0],
+        allocator,
+        .limited(1024),
+    );
     defer allocator.free(content);
 
     var floats = try std.array_list.Managed(f32).initCapacity(allocator, 37);

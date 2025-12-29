@@ -16,7 +16,10 @@ pub fn init(ctx: jok.Context) !void {
     }
 
     batchpool = try @TypeOf(batchpool).init(ctx);
-    map = try tiled.loadTMX(ctx, "tiled/tmx/sample_urban.tmx");
+    map = try tiled.loadTMX(ctx, if (ctx.cfg().jok_enable_physfs)
+        "tiled/tmx/sample_urban.tmx"
+    else
+        "assets/tiled/tmx/sample_urban.tmx");
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
