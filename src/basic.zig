@@ -245,6 +245,23 @@ pub const Rectangle = extern struct {
         return b.x >= r.x and b.x + b.width <= r.x + r.width and
             b.y >= r.y and b.y + b.height <= r.y + r.height;
     }
+
+    pub inline fn containsLine(r: Rectangle, p0: Point, p1: Point) bool {
+        return r.containsPoint(p0) and r.containsPoint(p1);
+    }
+
+    pub inline fn containsCircle(r: Rectangle, c: Circle) bool {
+        return r.containsRect(.{
+            .x = c.center.x - c.radius,
+            .y = c.center.y - c.radius,
+            .width = c.radius * 2,
+            .height = c.radius * 2,
+        });
+    }
+
+    pub inline fn containsTriangle(r: Rectangle, tri: Triangle) bool {
+        return r.containsPoint(tri.p0) and r.containsPoint(tri.p1) and r.containsPoint(tri.p2);
+    }
 };
 
 pub const Circle = extern struct {
