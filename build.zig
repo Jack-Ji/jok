@@ -62,6 +62,7 @@ pub fn build(b: *Build) void {
         .{ .name = "tiled", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "2048", .opt = .{} },
         .{ .name = "hotreload", .opt = .{ .plugin = "plugin", .support_web = false } },
+        .{ .name = "quadtree", .opt = .{} },
         .{ .name = "generative_art_1", .opt = .{} },
         .{ .name = "generative_art_2", .opt = .{} },
         .{ .name = "generative_art_3", .opt = .{} },

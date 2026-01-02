@@ -32,6 +32,9 @@ pub const fsm = @import("utils/fsm.zig");
 /// Plugin system
 pub const plugin = @import("utils/plugin.zig");
 
+/// Generic quad tree
+pub const quadtree = @import("utils/quadtree.zig");
+
 //============================= Stolen From Old Standard Library =============================
 pub const ring = @import("utils/ring.zig"); // Generic ring data structure
 
@@ -43,4 +46,5 @@ test "all utils" {
     _ = fsm;
     _ = ring;
     _ = plugin;
+    _ = quadtree;
 }

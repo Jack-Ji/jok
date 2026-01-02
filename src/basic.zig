@@ -92,6 +92,15 @@ pub const Size = extern struct {
         return .{ .x = @floatFromInt(s.width), .y = @floatFromInt(s.height) };
     }
 
+    pub inline fn toRect(s: Size, pos: jok.Point) jok.Rectangle {
+        return .{
+            .x = pos.x,
+            .y = pos.y,
+            .width = @floatFromInt(s.width),
+            .height = @floatFromInt(s.height),
+        };
+    }
+
     pub inline fn getWidthFloat(s: Size) f32 {
         return @as(f32, @floatFromInt(s.width));
     }

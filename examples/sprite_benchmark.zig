@@ -24,7 +24,6 @@ var batchpool: j2d.BatchPool(64, false) = undefined;
 var sheet: *j2d.SpriteSheet = undefined;
 var characters: std.array_list.Managed(Actor) = undefined;
 var rand_gen: std.Random.DefaultPrng = undefined;
-var delta_tick: f32 = 0;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -73,7 +72,6 @@ pub fn update(ctx: jok.Context) !void {
         }
     }
 
-    delta_tick = (delta_tick + ctx.deltaSeconds()) / 2;
     const size = ctx.getCanvasSize();
     for (characters.items) |*c| {
         const curpos = c.pos;
