@@ -14,23 +14,18 @@ pub fn build(b: *Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     // Add test suits
-    const jok = getJokLibrary(b, target, optimize, .{
-        .dep_name = null,
-    });
-    const root = b.createModule(.{
-        .root_source_file = b.path("src/jok.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    root.link_libc = true;
-    root.linkLibrary(jok.artifact);
-    root.addImport("sdl", getSdlModule(b, target, optimize));
-    const tests = b.addTest(.{
-        .name = "all",
-        .root_module = root,
-    });
-    const test_step = b.step("test", "run tests");
-    test_step.dependOn(&b.addRunArtifact(tests).step);
+    if (!target.result.cpu.arch.isWasm()) {
+        const tests = createTest(
+            b,
+            "all",
+            "src/jok.zig",
+            target,
+            optimize,
+            .{ .dep_name = null },
+        );
+        const test_step = b.step("test", "run tests");
+        test_step.dependOn(&b.addRunArtifact(tests).step);
+    }
 
     // Add examples
     const examples = [_]struct { name: []const u8, opt: ExampleOptions }{
@@ -233,6 +228,45 @@ pub fn createDesktopApp(
     });
 
     return exe;
+}
+
+/// Create test executable (windows/linux/macos)
+pub fn createTest(
+    b: *Build,
+    name: []const u8,
+    root_source_file: []const u8,
+    target: ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    opt: AppOptions,
+) *Build.Step.Compile {
+    assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
+    const jok = getJokLibrary(b, target, optimize, .{
+        .dep_name = opt.dep_name,
+    });
+
+    // Create module to be used for testing
+    const sdl = getSdlModule(getJokBuilder(b, opt.dep_name), target, optimize);
+    const root = b.createModule(.{
+        .root_source_file = b.path(root_source_file),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "jok", .module = jok.module },
+            .{ .name = "sdl", .module = sdl },
+        },
+    });
+    for (opt.additional_deps) |d| {
+        root.addImport(d.name, d.mod);
+    }
+    root.linkLibrary(jok.artifact);
+
+    // Create test executable
+    const test_exe = b.addTest(.{
+        .name = name,
+        .root_module = root,
+    });
+
+    return test_exe;
 }
 
 pub const WebOptions = struct {
