@@ -19,6 +19,10 @@ pub fn new(vx: f32, vy: f32) Self {
     return .{ .data = [2]f32{ vx, vy } };
 }
 
+pub fn toPoint(self: Self) jok.Point {
+    return .{ .x = self.data[0], .y = self.data[1] };
+}
+
 pub fn x(self: Self) f32 {
     return self.data[0];
 }

@@ -12,7 +12,7 @@ const maximum_obj_size = 5000;
 
 var rng: std.Random.DefaultPrng = undefined;
 var batchpool: j2d.BatchPool(64, false) = undefined;
-var qtree: *utils.quadtree.QuadTree(u32, .{}) = undefined;
+var qtree: *utils.QuadTree(u32, .{}) = undefined;
 var objs: std.ArrayList(Object) = undefined;
 var move_in_tree: bool = false;
 var do_query: bool = false;
@@ -34,7 +34,7 @@ pub fn init(ctx: jok.Context) !void {
     const now = try std.Io.Clock.awake.now(ctx.io());
     rng = std.Random.DefaultPrng.init(@intCast(now.toMilliseconds()));
     batchpool = try @TypeOf(batchpool).init(ctx);
-    qtree = try utils.quadtree.QuadTree(u32, .{}).create(ctx.allocator(), ctx.getCanvasSize().toRect(.origin));
+    qtree = try utils.QuadTree(u32, .{}).create(ctx.allocator(), ctx.getCanvasSize().toRect(.origin));
     objs = try std.ArrayList(Object).initCapacity(ctx.allocator(), 1024);
     query_size = .{ .width = 10, .height = 10 };
     query_result = try std.array_list.Managed(u32).initCapacity(ctx.allocator(), 100);

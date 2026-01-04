@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("jok.zig");
+const Vector = jok.j2d.Vector;
 const sdl = jok.vendor.sdl;
 const zmath = jok.vendor.zmath;
 const minAndMax = jok.utils.math.minAndMax;
@@ -24,6 +25,10 @@ pub const Point = extern struct {
 
     pub inline fn toArray(p: Point) [2]f32 {
         return .{ p.x, p.y };
+    }
+
+    pub inline fn toVector(p: Point) Vector {
+        return Vector.new(p.x, p.y);
     }
 
     pub inline fn toSize(p: Point) Size {
@@ -90,6 +95,15 @@ pub const Size = extern struct {
 
     pub inline fn toPoint(s: Size) Point {
         return .{ .x = @floatFromInt(s.width), .y = @floatFromInt(s.height) };
+    }
+
+    pub inline fn toRegion(s: Size, x: u32, y: u32) jok.Region {
+        return .{
+            .x = x,
+            .y = y,
+            .width = s.width,
+            .height = s.height,
+        };
     }
 
     pub inline fn toRect(s: Size, pos: jok.Point) jok.Rectangle {
@@ -306,6 +320,15 @@ pub const Circle = extern struct {
         if (cx2 <= rx1 or cx1 >= rx2) return false;
         if (cy2 <= ry1 or cy1 >= ry2) return false;
         return true;
+    }
+
+    pub inline fn getBoundingRect(c: Circle) jok.Rectangle {
+        return .{
+            .x = c.center.x - c.radius,
+            .y = c.center.y - c.radius,
+            .width = c.radius * 2,
+            .height = c.radius * 2,
+        };
     }
 };
 

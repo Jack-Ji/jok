@@ -33,18 +33,24 @@ pub const fsm = @import("utils/fsm.zig");
 pub const plugin = @import("utils/plugin.zig");
 
 /// Generic quad tree
-pub const quadtree = @import("utils/quadtree.zig");
+const quad_tree = @import("utils/quad_tree.zig");
+pub const QuadTree = quad_tree.QuadTree;
+
+/// Generic Spatial hash-table
+const spatial_hash = @import("utils/spatial_hash.zig");
+pub const SpatialHash = spatial_hash.SpatialHash;
 
 //============================= Stolen From Old Standard Library =============================
 pub const ring = @import("utils/ring.zig"); // Generic ring data structure
 
 test "all utils" {
+    _ = pathfind;
     _ = timer;
     _ = signal;
-    _ = pathfind;
     _ = xml;
     _ = fsm;
-    _ = ring;
     _ = plugin;
-    _ = quadtree;
+    _ = quad_tree;
+    _ = spatial_hash;
+    _ = ring;
 }
