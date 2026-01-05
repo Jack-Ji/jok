@@ -37,7 +37,7 @@ pub fn init(ctx: jok.Context) !void {
     try music.start();
 
     sfx1 = try ctx.audioEngine().createSoundFromFile(
-        if (builtin.cpu.arch.isWasm())
+        if (ctx.cfg().jok_enable_physfs)
             "audios/SynthChime9.mp3"
         else
             "assets/audios/SynthChime9.mp3",
@@ -47,7 +47,7 @@ pub fn init(ctx: jok.Context) !void {
     sfx1.setPan(-1);
 
     sfx2 = try ctx.audioEngine().createSoundFromFile(
-        if (builtin.cpu.arch.isWasm())
+        if (ctx.cfg().jok_enable_physfs)
             "audios/Bells3.mp3"
         else
             "assets/audios/Bells3.mp3",

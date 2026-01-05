@@ -40,9 +40,9 @@ pub fn init(ctx: jok.Context) !*audio.Engine {
 }
 
 pub fn deinit() void {
+    sdl.SDL_DestroyAudioStream(stream);
     engine.destroy();
     frames.deinit();
-    sdl.SDL_DestroyAudioStream(stream);
     audio.deinit();
 }
 
