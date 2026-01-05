@@ -94,15 +94,26 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
 
         pub fn query(self: HashTable, rect: jok.Rectangle, padding: f32, results: *std.array_list.Managed(ObjectType)) !void {
             if (self.spatial_rect.intersectRect(rect.padded(padding))) |r| {
-                var p1: jok.Point = .{ .x = r.x, .y = r.y };
-                var p2: jok.Point = .{ .x = @max(r.x, r.x + r.width - 1), .y = r.y };
-                while (self.hash(p1)) |k1| {
-                    const k2 = self.hash(p2).?;
-                    assert(k1 <= k2);
-                    for (k1..k2 + 1) |k| try results.appendSlice(self.buckets[k].items);
-                    p1.y += self.spatial_unit.getHeightFloat();
-                    p2.y = p1.y;
-                    if (p1.y > r.y + r.height) break;
+                const min_x = @as(u32, @intFromFloat(r.x - self.spatial_rect.x)) / self.spatial_unit.width;
+                const min_y = @as(u32, @intFromFloat(r.y - self.spatial_rect.y)) / self.spatial_unit.height;
+                const max_x = @as(u32, @intFromFloat(r.x - self.spatial_rect.x + r.width)) / self.spatial_unit.width;
+                const max_y = @as(u32, @intFromFloat(r.y - self.spatial_rect.y + r.height)) / self.spatial_unit.height;
+
+                const start_y = @max(0, min_y);
+                const end_y = @min(opt.size.height - 1, max_y);
+
+                const start_x = @max(0, min_x);
+                const end_x = @min(opt.size.width - 1, max_x);
+
+                var y = start_y;
+                while (y <= end_y) : (y += 1) {
+                    const row_start = y * opt.size.width + start_x;
+                    const row_end = y * opt.size.width + end_x;
+
+                    var k = row_start;
+                    while (k <= row_end) : (k += 1) {
+                        try results.appendSlice(self.buckets[k].items);
+                    }
                 }
             }
         }
