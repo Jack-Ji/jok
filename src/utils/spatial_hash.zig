@@ -92,8 +92,8 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
             }
         }
 
-        pub fn query(self: HashTable, rect: jok.Rectangle, results: *std.array_list.Managed(ObjectType)) !void {
-            if (self.spatial_rect.intersectRect(rect)) |r| {
+        pub fn query(self: HashTable, rect: jok.Rectangle, padding: f32, results: *std.array_list.Managed(ObjectType)) !void {
+            if (self.spatial_rect.intersectRect(rect.padded(padding))) |r| {
                 var p1: jok.Point = .{ .x = r.x, .y = r.y };
                 var p2: jok.Point = .{ .x = @max(r.x, r.x + r.width - 1), .y = r.y };
                 while (self.hash(p1)) |k1| {
@@ -145,7 +145,7 @@ test "put & query - single point exact cell" {
     var results = std.array_list.Managed(u32).init(testing.allocator);
     defer results.deinit();
 
-    try sh.query(.{ .x = 122, .y = 88, .width = 2, .height = 2 }, &results);
+    try sh.query(.{ .x = 122, .y = 88, .width = 2, .height = 2 }, 0, &results);
 
     try testing.expectEqual(@as(usize, 1), results.items.len);
     try testing.expectEqual(id, results.items[0]);
@@ -191,12 +191,12 @@ test "update - move between buckets" {
 
     var results_old = std.array_list.Managed(u32).init(testing.allocator);
     defer results_old.deinit();
-    try sh.query(.{ .x = 0, .y = 0, .width = 100, .height = 100 }, &results_old);
+    try sh.query(.{ .x = 0, .y = 0, .width = 100, .height = 100 }, 0, &results_old);
     try testing.expectEqual(@as(usize, 0), results_old.items.len);
 
     var results_new = std.array_list.Managed(u32).init(testing.allocator);
     defer results_new.deinit();
-    try sh.query(.{ .x = 540, .y = 240, .width = 20, .height = 20 }, &results_new);
+    try sh.query(.{ .x = 540, .y = 240, .width = 20, .height = 20 }, 0, &results_new);
 
     try testing.expectEqual(@as(usize, 1), results_new.items.len);
     try testing.expectEqual(id, results_new.items[0]);
@@ -235,7 +235,7 @@ test "remove - existing" {
 
     var results = std.array_list.Managed(u32).init(testing.allocator);
     defer results.deinit();
-    try sh.query(.{ .x = 0, .y = 0, .width = 640, .height = 360 }, &results);
+    try sh.query(.{ .x = 0, .y = 0, .width = 640, .height = 360 }, 0, &results);
 
     try testing.expectEqual(@as(usize, 0), results.items.len);
 }
@@ -257,7 +257,7 @@ test "query - large rect covering multiple rows & columns" {
     defer results.deinit();
 
     // Query covering all 4
-    try sh.query(.{ .x = 90, .y = 90, .width = 120, .height = 120 }, &results);
+    try sh.query(.{ .x = 90, .y = 90, .width = 120, .height = 120 }, 0, &results);
 
     try testing.expectEqual(@as(usize, 4), results.items.len);
 
@@ -281,7 +281,7 @@ test "clear - resets everything" {
 
     var results = std.array_list.Managed(u32).init(testing.allocator);
     defer results.deinit();
-    try sh.query(.{ .x = 0, .y = 0, .width = 640, .height = 360 }, &results);
+    try sh.query(.{ .x = 0, .y = 0, .width = 640, .height = 360 }, 0, &results);
     try testing.expectEqual(@as(usize, 0), results.items.len);
 
     // Should be able to add again

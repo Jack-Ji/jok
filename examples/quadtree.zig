@@ -74,11 +74,11 @@ pub fn update(ctx: jok.Context) !void {
         c.pos.y += c.velocity.y * ctx.deltaSeconds();
 
         if (move_in_tree) {
-            qtree.updateObject(@intCast(i), c.pos) catch |e| {
+            qtree.update(@intCast(i), c.pos) catch |e| {
                 if (e != error.NotSeeable) @panic("oops");
             };
         } else {
-            qtree.addObject(@intCast(i), c.pos) catch |e| {
+            qtree.put(@intCast(i), c.pos) catch |e| {
                 if (e != error.NotSeeable) @panic("oops");
             };
         }
@@ -99,7 +99,7 @@ pub fn draw(ctx: jok.Context) !void {
             const size = objs.items.len / 2;
             while (objs.items.len > size) {
                 _ = objs.pop();
-                qtree.removeObject(@intCast(objs.items.len));
+                qtree.remove(@intCast(objs.items.len));
             }
         }
         _ = zgui.checkbox("Move In Tree", .{ .v = &move_in_tree });
@@ -131,7 +131,7 @@ pub fn draw(ctx: jok.Context) !void {
             .width = query_size.getWidthFloat(),
             .height = query_size.getHeightFloat(),
         };
-        try qtree.query(query_rect, &query_result);
+        try qtree.query(query_rect, 0, &query_result);
     }
 
     var b = try batchpool.new(.{ .depth_sort = .back_to_forth });

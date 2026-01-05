@@ -218,6 +218,15 @@ pub const Rectangle = extern struct {
         };
     }
 
+    pub inline fn padded(r: Rectangle, padding: f32) Rectangle {
+        return .{
+            .x = r.x - padding,
+            .y = r.y - padding,
+            .width = r.width + 2 * padding,
+            .height = r.height + 2 * padding,
+        };
+    }
+
     pub inline fn isSame(r0: Rectangle, r1: Rectangle) bool {
         const tolerance = 0.000001;
         return std.math.approxEqAbs(f32, r0.x, r1.x, tolerance) and
