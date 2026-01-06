@@ -68,7 +68,7 @@ pub fn init(allocator: std.mem.Allocator) void {
         }
     }
 
-    if (PHYSFS_init(std.os.argv[0]) == 0) {
+    if (PHYSFS_init(null) == 0) {
         @panic(getLastErrorCode().toDesc());
     }
 }
