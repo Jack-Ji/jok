@@ -167,8 +167,8 @@ pub fn draw(ctx: jok.Context) !void {
             defer b.popTransform();
             b.setIdentity();
             b.scaleAroundWorldOrigin(.{
-                (1.3 + std.math.sin(ctx.seconds())),
-                (1.3 + std.math.sin(ctx.seconds())),
+                1.3 + std.math.sin(ctx.seconds()),
+                1.3 + std.math.sin(ctx.seconds()),
             });
             b.rotateByWorldOrigin(ctx.seconds());
             b.translate(.{
@@ -185,8 +185,7 @@ pub fn draw(ctx: jok.Context) !void {
             );
         }
 
-        text_draw_pos.x += text_speed.x * ctx.deltaSeconds();
-        text_draw_pos.y += text_speed.y * ctx.deltaSeconds();
+        text_draw_pos = text_draw_pos.add(text_speed.scale(ctx.deltaSeconds()));
         const atlas = try font.DebugFont.getAtlas(ctx, 50);
         try b.text(
             "Hello Jok!",

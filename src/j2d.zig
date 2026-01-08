@@ -6,6 +6,7 @@ const ascii = std.ascii;
 const unicode = std.unicode;
 const jok = @import("jok.zig");
 const font = jok.font;
+const twoFloats = jok.utils.twoFloats;
 const zgui = jok.vendor.zgui;
 const zmath = jok.vendor.zmath;
 const zmesh = jok.vendor.zmesh;
@@ -255,7 +256,7 @@ pub const Batch = struct {
         self.trs = AffineTransform.init;
     }
 
-    pub fn translate(self: *Batch, v: [2]f32) void {
+    pub fn translate(self: *Batch, v: anytype) void {
         self.trs = self.trs.translate(v);
     }
 
@@ -272,16 +273,16 @@ pub const Batch = struct {
         self.trs = self.trs.rotateByPoint(p, radian);
     }
 
-    pub fn scaleAroundWorldOrigin(self: *Batch, v: [2]f32) void {
+    pub fn scaleAroundWorldOrigin(self: *Batch, v: anytype) void {
         self.trs = self.trs.scaleAroundOrigin(v);
     }
 
-    pub fn scaleAroundLocalOrigin(self: *Batch, v: [2]f32) void {
+    pub fn scaleAroundLocalOrigin(self: *Batch, v: anytype) void {
         const t = self.trs.getTranslation();
         self.trs = self.trs.scaleAroundPoint(.{ .x = t[0], .y = t[1] }, v);
     }
 
-    pub fn scaleAroundPoint(self: *Batch, p: jok.Point, v: [2]f32) void {
+    pub fn scaleAroundPoint(self: *Batch, p: jok.Point, v: anytype) void {
         self.trs = self.trs.scaleAroundPoint(p, v);
     }
 

@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("jok.zig");
+const threeFloats = jok.utils.threeFloats;
 const zgui = jok.vendor.zgui;
 const zmath = jok.vendor.zmath;
 const zmesh = jok.vendor.zmesh;
@@ -350,8 +351,9 @@ pub const Batch = struct {
         self.trs = zmath.identity();
     }
 
-    pub fn translate(self: *Batch, v: [3]f32) void {
-        self.trs = zmath.mul(self.trs, zmath.translation(v[0], v[1], v[2]));
+    pub fn translate(self: *Batch, v: anytype) void {
+        const x, const y, const z = threeFloats(v);
+        self.trs = zmath.mul(self.trs, zmath.translation(x, y, z));
     }
 
     pub fn rotateX(self: *Batch, radian: f32) void {
@@ -366,8 +368,9 @@ pub const Batch = struct {
         self.trs = zmath.mul(self.trs, zmath.rotationZ(radian));
     }
 
-    pub fn scale(self: *Batch, v: [3]f32) void {
-        self.trs = zmath.mul(self.trs, zmath.scaling(v[0], v[1], v[2]));
+    pub fn scale(self: *Batch, v: anytype) void {
+        const x, const y, const z = threeFloats(v);
+        self.trs = zmath.mul(self.trs, zmath.scaling(x, y, z));
     }
 
     /// Get current batched data
@@ -547,16 +550,18 @@ pub const Batch = struct {
     /// Render given line
     pub fn line(
         self: *Batch,
-        _p0: [3]f32,
-        _p1: [3]f32,
+        _p0: anytype,
+        _p1: anytype,
         opt: LineOption,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         assert(opt.thickness > 0);
         assert(opt.stacks > 0);
-        const v0 = zmath.mul(zmath.f32x4(_p0[0], _p0[1], _p0[2], 1), self.trs);
-        const v1 = zmath.mul(zmath.f32x4(_p1[0], _p1[1], _p1[2], 1), self.trs);
+        const p0_x, const p0_y, const p0_z = threeFloats(_p0);
+        const p1_x, const p1_y, const p1_z = threeFloats(_p1);
+        const v0 = zmath.mul(zmath.f32x4(p0_x, p0_y, p0_z, 1), self.trs);
+        const v1 = zmath.mul(zmath.f32x4(p1_x, p1_y, p1_z, 1), self.trs);
         const perpv = zmath.normalize3(zmath.cross3(v1 - v0, self.camera.dir));
         const veps = zmath.f32x4s(opt.thickness);
         const unit = (v1 - v0) / zmath.f32x4s(@floatFromInt(opt.stacks));

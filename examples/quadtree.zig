@@ -70,8 +70,7 @@ pub fn update(ctx: jok.Context) !void {
             c.velocity.y = @abs(c.velocity.y);
         if (curpos.y > size.getHeightFloat())
             c.velocity.y = -@abs(c.velocity.y);
-        c.pos.x += c.velocity.x * ctx.deltaSeconds();
-        c.pos.y += c.velocity.y * ctx.deltaSeconds();
+        c.pos = c.pos.add(c.velocity.scale(ctx.deltaSeconds()));
 
         if (move_in_tree) {
             qtree.update(@intCast(i), c.pos) catch |e| {

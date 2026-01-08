@@ -42,8 +42,7 @@ pub fn draw(ctx: jok.Context) !void {
                 @as(f32, @floatFromInt(i)) / 4 * math.pow(f32, 3.0, @as(f32, @floatFromInt(j))),
             );
             const off = math.pow(f32, 0.4 + statechange, @as(f32, @floatFromInt(j)));
-            point.x += math.cos(angle) * off;
-            point.y += math.sin(angle) * off;
+            point = point.add(.{ math.cos(angle) * off, math.sin(angle) * off });
         }
         try polyline.point(point);
     }
