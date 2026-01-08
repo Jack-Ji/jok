@@ -22,6 +22,7 @@ pub const Window = struct {
         if (cfg.jok_renderer_type != .software) {
             _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
         }
+        var size = jok.Size{ .width = 800, .height = 600 };
         switch (cfg.jok_window_size) {
             .maximized => {
                 _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_MAXIMIZED_BOOLEAN, true);
@@ -29,11 +30,10 @@ pub const Window = struct {
             .fullscreen => {
                 _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_FULLSCREEN_BOOLEAN, true);
             },
-            .custom => |size| {
-                _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, @intCast(size.width));
-                _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, @intCast(size.height));
-            },
+            .custom => |sz| size = sz,
         }
+        _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, @intCast(size.width));
+        _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, @intCast(size.height));
         const ptr = sdl.SDL_CreateWindowWithProperties(props);
         if (ptr == null) {
             log.err("Create window failed: {s}", .{sdl.SDL_GetError()});
@@ -68,16 +68,16 @@ pub const Window = struct {
         }
 
         const window = Window{ .ptr = ptr.?, .cfg = ctx.cfg() };
-        if (cfg.jok_window_min_size) |size| {
-            try window.setMinimumSize(size);
+        if (cfg.jok_window_min_size) |sz| {
+            try window.setMinimumSize(sz);
         }
-        if (cfg.jok_window_max_size) |size| {
-            try window.setMaximumSize(size);
+        if (cfg.jok_window_max_size) |sz| {
+            try window.setMaximumSize(sz);
         }
         if (!builtin.cpu.arch.isWasm()) {
             window.setPosition(.center) catch {};
         }
-        try window.setResizable(cfg.jok_window_resizable);
+        try window.setResizable(cfg.jok_window_size != .custom or cfg.jok_window_resizable);
         try window.setAlwaysOnTop(cfg.jok_window_always_on_top);
 
         return window;

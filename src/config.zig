@@ -59,7 +59,7 @@ pub const Config = struct {
 pub const WindowSize = union(enum) {
     maximized,
     fullscreen,
-    custom: struct { width: u32, height: u32 },
+    custom: jok.Size,
 };
 
 /// Renderer type
