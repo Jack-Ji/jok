@@ -10,10 +10,6 @@ pub const Window = struct {
 
     pub fn init(ctx: jok.Context) !Window {
         const cfg = ctx.cfg();
-        if (cfg.jok_window_ime_ui) {
-            _ = sdl.SDL_SetHint(sdl.SDL_HINT_IME_IMPLEMENTED_UI, "1");
-        }
-
         const props = sdl.SDL_CreateProperties();
         _ = sdl.SDL_SetStringProperty(props, sdl.SDL_PROP_WINDOW_CREATE_TITLE_STRING, cfg.jok_window_title);
         _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, cfg.jok_headless);
@@ -196,6 +192,31 @@ pub const Window = struct {
     pub fn setRelativeMouseMode(self: Window, on: bool) !void {
         if (!sdl.SDL_SetWindowRelativeMouseMode(self.ptr, on)) {
             log.err("Toggle relative mouse mode failed: {s}", .{sdl.SDL_GetError()});
+            return error.SdlError;
+        }
+    }
+
+    pub fn startTextInput(self: Window) !void {
+        if (!sdl.SDL_StartTextInput(self.ptr)) {
+            log.err("Start text input failed: {s}", .{sdl.SDL_GetError()});
+            return error.SdlError;
+        }
+    }
+
+    pub fn stopTextInput(self: Window) !void {
+        if (!sdl.SDL_StopTextInput(self.ptr)) {
+            log.err("Stop text input failed: {s}", .{sdl.SDL_GetError()});
+            return error.SdlError;
+        }
+    }
+
+    pub fn isTextInputActive(self: Window) bool {
+        return sdl.SDL_TextInputActive(self.ptr);
+    }
+
+    pub fn setTextInputArea(self: Window, rect: ?jok.Region, offset_x: u32) !void {
+        if (!sdl.SDL_TextInputActive(self.ptr, &rect orelse null, @intCast(offset_x))) {
+            log.err("Set text input area failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }

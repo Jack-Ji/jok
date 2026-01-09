@@ -486,6 +486,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
             if (cfg.jok_headless) {
                 _ = sdl.SDL_SetHint(sdl.SDL_HINT_VIDEO_DRIVER, "offscreen");
             }
+            if (!cfg.jok_window_ime_ui) {
+                _ = sdl.SDL_SetHint(sdl.SDL_HINT_IME_IMPLEMENTED_UI, "composition,candidates");
+            }
 
             // Initialize custom memory allocator
             MemAdapter.init(self._allocator);
