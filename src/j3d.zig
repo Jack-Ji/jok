@@ -7,6 +7,8 @@ const threeFloats = jok.utils.threeFloats;
 const zgui = jok.vendor.zgui;
 const zmath = jok.vendor.zmath;
 const zmesh = jok.vendor.zmesh;
+const PixelShader = @import("shader.zig").PixelShader;
+const log = std.log.scoped(.jok);
 
 const TriangleRenderer = @import("j3d/TriangleRenderer.zig");
 const SkyboxRenderer = @import("j3d/SkyboxRenderer.zig");
@@ -36,6 +38,7 @@ pub const BatchOption = struct {
     clip_rect: ?jok.Rectangle = null,
     offscreen_target: ?jok.Texture = null,
     offscreen_clear_color: ?jok.ColorF = null,
+    shader: ?*PixelShader = null,
 };
 
 pub const TriangleSort = union(enum(u8)) {
@@ -70,6 +73,7 @@ pub const Batch = struct {
     blend_mode: jok.BlendMode,
     offscreen_target: ?jok.Texture,
     offscreen_clear_color: ?jok.ColorF,
+    shader: ?*PixelShader,
 
     fn init(_ctx: jok.Context) Batch {
         const allocator = _ctx.allocator();
@@ -91,6 +95,7 @@ pub const Batch = struct {
             .blend_mode = .blend,
             .offscreen_target = null,
             .offscreen_clear_color = null,
+            .shader = null,
         };
     }
 
@@ -172,6 +177,7 @@ pub const Batch = struct {
         self.blend_mode = opt.blend_mode;
         self.offscreen_target = opt.offscreen_target;
         self.offscreen_clear_color = opt.offscreen_clear_color;
+        self.shader = opt.shader;
         if (self.offscreen_target) |t| {
             const info = t.query() catch unreachable;
             if (info.access != .target) {
@@ -271,6 +277,14 @@ pub const Batch = struct {
         defer if (self.offscreen_target != null) {
             rd.setTarget(old_target) catch unreachable;
         };
+
+        // Apply custom shader
+        if (self.shader) |s| {
+            rd.setShader(s) catch |err| {
+                log.err("Apply custom shader failed: {s}", .{@errorName(err)});
+            };
+        }
+        defer if (self.shader != null) rd.setShader(null) catch unreachable;
 
         if (self.wireframe_color != null) {
             zgui.sdl.renderDrawList(self.ctx, self.draw_list);

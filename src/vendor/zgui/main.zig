@@ -4164,7 +4164,7 @@ pub const DrawCmd = extern struct {
     user_callback_data_offset: c_int,
 };
 
-pub const DrawCallback = *const fn (*const anyopaque, *const DrawCmd) callconv(.c) void;
+pub const DrawCallback = *const fn (*anyopaque, *const anyopaque) callconv(.c) void;
 
 pub const getWindowDrawList = zguiGetWindowDrawList;
 pub const getBackgroundDrawList = zguiGetBackgroundDrawList;

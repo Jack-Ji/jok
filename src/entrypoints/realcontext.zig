@@ -426,10 +426,34 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         }
                     }
                 };
+
+                fn fmtGraphics(rd: jok.Renderer) FormatGraphics {
+                    return .{ .rd = rd };
+                }
+
+                const FormatGraphics = struct {
+                    rd: jok.Renderer,
+
+                    pub fn format(fcontext: FormatGraphics, writer: *std.Io.Writer) std.Io.Writer.Error!void {
+                        const info = try fcontext.rd.getInfo();
+                        try writer.writeAll(info.name);
+                        if (fcontext.rd.isShaderSupported(null)) {
+                            try writer.writeAll(" (");
+                            var supported: usize = 0;
+                            for ([_]jok.PixelShader.ShaderFormat{ .spirv, .dxbc, .dxil, .msl, .metallib }) |f| {
+                                if (fcontext.rd.isShaderSupported(f)) {
+                                    if (supported > 0) try writer.writeAll(" ");
+                                    try writer.writeAll(@tagName(f));
+                                    supported += 1;
+                                }
+                            }
+                            try writer.writeAll(")");
+                        }
+                    }
+                };
             };
 
             const target = builtin.target;
-            const ram_size = sdl.SDL_GetSystemRAM();
             const info = try self._renderer.getInfo();
 
             // Print system info
@@ -446,7 +470,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 \\    App Dir          : {s} 
                 \\    Audio Drivers    : {f}
                 \\    Video Drivers    : {f}
-                \\    Graphics API     : {s}
+                \\    Graphics API     : {f}
                 \\    Vertical Sync    : {d}
                 \\    Max Texture Size : {d}
                 \\
@@ -462,7 +486,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     sdl.SDL_MINOR_VERSION,
                     sdl.SDL_MICRO_VERSION,
                     @tagName(target.os.tag),
-                    ram_size,
+                    sdl.SDL_GetSystemRAM(),
                     physfs.getBaseDir(),
                     S.fmtSdlDrivers(
                         sdl.SDL_GetCurrentAudioDriver().?,
@@ -474,7 +498,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         sdl.SDL_GetNumVideoDrivers(),
                         sdl.SDL_GetVideoDriver,
                     ),
-                    info.name,
+                    S.fmtGraphics(self._renderer),
                     info.vsync,
                     info.max_texture_size,
                 },

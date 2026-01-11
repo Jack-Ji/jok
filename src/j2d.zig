@@ -10,6 +10,7 @@ const twoFloats = jok.utils.twoFloats;
 const zgui = jok.vendor.zgui;
 const zmath = jok.vendor.zmath;
 const zmesh = jok.vendor.zmesh;
+const PixelShader = @import("shader.zig").PixelShader;
 const log = std.log.scoped(.jok);
 
 const internal = @import("j2d/internal.zig");
@@ -42,6 +43,7 @@ pub const BatchOption = struct {
     do_early_clipping: bool = false,
     offscreen_target: ?jok.Texture = null,
     offscreen_clear_color: ?jok.Color = null,
+    shader: ?*PixelShader = null,
 };
 
 const invalid_batch_id = std.math.maxInt(usize);
@@ -63,6 +65,7 @@ pub const Batch = struct {
     do_early_clipping: bool,
     offscreen_target: ?jok.Texture,
     offscreen_clear_color: ?jok.Color,
+    shader: ?*PixelShader,
     all_tex: std.AutoHashMap(*anyopaque, bool),
 
     fn init(_ctx: jok.Context) Batch {
@@ -77,6 +80,7 @@ pub const Batch = struct {
             .do_early_clipping = false,
             .offscreen_target = null,
             .offscreen_clear_color = null,
+            .shader = null,
             .all_tex = .init(_ctx.allocator()),
         };
     }
@@ -100,21 +104,10 @@ pub const Batch = struct {
         defer self.is_submitted = false;
 
         self.draw_commands.clearRetainingCapacity();
-        self.all_tex.clearRetainingCapacity();
         self.trs_stack.clearRetainingCapacity();
         self.trs = .init;
         self.depth_sort = opt.depth_sort;
         self.blend_mode = opt.blend_mode;
-        self.do_early_clipping = opt.do_early_clipping;
-        self.offscreen_target = opt.offscreen_target;
-        self.offscreen_clear_color = opt.offscreen_clear_color;
-        if (self.offscreen_target) |t| {
-            const info = t.query() catch unreachable;
-            if (info.access != .target) {
-                @panic("Given texture isn't suitable for offscreen rendering!");
-            }
-        }
-
         self.clip_rect = opt.clip_rect orelse BLK: {
             if (opt.offscreen_target) |tex| {
                 const info = tex.query() catch unreachable;
@@ -133,6 +126,18 @@ pub const Batch = struct {
                 .height = csz.getHeightFloat(),
             };
         };
+        self.do_early_clipping = opt.do_early_clipping;
+        self.offscreen_target = opt.offscreen_target;
+        self.offscreen_clear_color = opt.offscreen_clear_color;
+        self.shader = opt.shader;
+        self.all_tex.clearRetainingCapacity();
+        if (self.offscreen_target) |t| {
+            const info = t.query() catch unreachable;
+            if (info.access != .target) {
+                @panic("Given texture isn't suitable for offscreen rendering!");
+            }
+        }
+
         self.draw_list.reset();
         self.draw_list.pushClipRect(.{
             .pmin = .{ self.clip_rect.x, self.clip_rect.y },
@@ -224,7 +229,16 @@ pub const Batch = struct {
         };
 
         // Submit draw command
-        zgui.sdl.renderDrawList(self.ctx, self.draw_list);
+        if (self.shader) |s| {
+            // Apply custom shader
+            rd.setShader(s) catch |err| {
+                log.err("Apply custom shader failed: {s}", .{@errorName(err)});
+            };
+            defer rd.setShader(null) catch unreachable;
+            zgui.sdl.renderDrawList(self.ctx, self.draw_list);
+        } else {
+            zgui.sdl.renderDrawList(self.ctx, self.draw_list);
+        }
     }
 
     /// Submit batch, issue draw calls, and reclaim itself

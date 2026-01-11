@@ -81,12 +81,8 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
     defer rd.setClipRegion(if (clip_enabled) old_clip else null) catch unreachable;
 
     const commands = dl.getCmdBufferData()[0..@as(u32, @intCast(dl.getCmdBufferLength()))];
-    const vs_ptr = dl.getVertexBufferData();
-    const vs_count = dl.getVertexBufferLength();
-    const is_ptr = dl.getIndexBufferData();
-
-    for (commands) |cmd| {
-        if (cmd.user_callback != null or cmd.elem_count == 0) continue;
+    for (commands) |*cmd| {
+        if (cmd.elem_count == 0) continue;
 
         // Apply clip region
         var clip_region: jok.Region = undefined;
@@ -94,38 +90,51 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
         clip_region.y = @intFromFloat(std.math.clamp(cmd.clip_rect[1], 0.0, csz.getHeightFloat()));
         clip_region.width = @intFromFloat(@min(@as(f32, @floatFromInt(csz.width - clip_region.x)), cmd.clip_rect[2] - cmd.clip_rect[0]));
         clip_region.height = @intFromFloat(@min(@as(f32, @floatFromInt(csz.height - clip_region.y)), cmd.clip_rect[3] - cmd.clip_rect[1]));
-        if (clip_region.width == 0 or clip_region.height == 0) continue;
+        if (clip_region.width == 0 or clip_region.height == 0) return;
         rd.setClipRegion(clip_region) catch unreachable;
 
-        // Convert colors
-        // https://github.com/libsdl-org/SDL/issues/9009
-        const vptr: [*]gui.DrawVert = vs_ptr + @as(usize, cmd.vtx_offset);
-        const vcount: usize = @intCast(@as(u32, @intCast(vs_count)) - cmd.vtx_offset);
-        fcolors.ensureTotalCapacity(vcount) catch unreachable;
-        fcolors.clearRetainingCapacity();
-        var i: usize = 0;
-        while (i < vcount) : (i += 1) {
-            fcolors.appendAssumeCapacity(jok.ColorF.fromInternalColor(vptr[i].color));
+        if (cmd.user_callback) |cb| {
+            cb(dl, cmd);
+            continue;
         }
-
-        // Bind texture and draw
-        var indices: []u32 = undefined;
-        indices.ptr = @ptrCast(is_ptr + cmd.idx_offset);
-        indices.len = @intCast(cmd.elem_count);
-        rd.drawTrianglesRaw(
-            if (@intFromEnum(cmd.texture_ref.tex_id) != 0) .{
-                .ptr = @ptrFromInt(@as(usize, @intCast(@intFromEnum(cmd.texture_ref.tex_id)))),
-            } else null,
-            @ptrFromInt(@intFromPtr(vptr) + @offsetOf(gui.DrawVert, "pos")),
-            @sizeOf(gui.DrawVert),
-            fcolors.items.ptr,
-            @sizeOf(jok.ColorF),
-            @ptrFromInt(@intFromPtr(vptr) + @offsetOf(gui.DrawVert, "uv")),
-            @sizeOf(gui.DrawVert),
-            vcount,
-            indices,
-        ) catch unreachable;
+        renderCommand(ctx, dl, cmd);
     }
+}
+
+pub inline fn renderCommand(ctx: jok.Context, dl: gui.DrawList, cmd: *const gui.DrawCmd) void {
+    const rd = ctx.renderer();
+    const vs_ptr = dl.getVertexBufferData();
+    const vs_count = dl.getVertexBufferLength();
+    const is_ptr = dl.getIndexBufferData();
+
+    // Convert colors
+    // https://github.com/libsdl-org/SDL/issues/9009
+    const vptr: [*]gui.DrawVert = vs_ptr + @as(usize, cmd.vtx_offset);
+    const vcount: usize = @intCast(@as(u32, @intCast(vs_count)) - cmd.vtx_offset);
+    fcolors.ensureTotalCapacity(vcount) catch unreachable;
+    fcolors.clearRetainingCapacity();
+    var i: usize = 0;
+    while (i < vcount) : (i += 1) {
+        fcolors.appendAssumeCapacity(jok.ColorF.fromInternalColor(vptr[i].color));
+    }
+
+    // Bind texture and draw
+    var indices: []u32 = undefined;
+    indices.ptr = @ptrCast(is_ptr + cmd.idx_offset);
+    indices.len = @intCast(cmd.elem_count);
+    rd.drawTrianglesRaw(
+        if (@intFromEnum(cmd.texture_ref.tex_id) != 0) .{
+            .ptr = @ptrFromInt(@as(usize, @intCast(@intFromEnum(cmd.texture_ref.tex_id)))),
+        } else null,
+        @ptrFromInt(@intFromPtr(vptr) + @offsetOf(gui.DrawVert, "pos")),
+        @sizeOf(gui.DrawVert),
+        fcolors.items.ptr,
+        @sizeOf(jok.ColorF),
+        @ptrFromInt(@intFromPtr(vptr) + @offsetOf(gui.DrawVert, "uv")),
+        @sizeOf(gui.DrawVert),
+        vcount,
+        indices,
+    ) catch unreachable;
 }
 
 // These functions are defined in `imgui_impl_sdl3.cpp` and 'imgui_impl_sdlrenderer3.cpp`

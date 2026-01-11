@@ -2,10 +2,9 @@ const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
 const sdl = jok.vendor.sdl;
-const physfs = jok.vendor.physfs;
 const stb = jok.vendor.stb;
-
 const log = std.log.scoped(.jok);
+const PixelShader = @import("shader.zig").PixelShader;
 
 pub const Error = error{
     TextureTooLarge,
@@ -41,16 +40,17 @@ pub const DcStats = struct {
 
 pub const Renderer = struct {
     ptr: *sdl.SDL_Renderer,
+    gpu: ?*sdl.SDL_GPUDevice,
     cfg: jok.config.Config,
     dc: *DcStats,
 
     pub fn init(ctx: jok.Context) !Renderer {
         const cfg = ctx.cfg();
-        const ptr = BLK: {
-            switch (cfg.jok_renderer_type) {
+        const renderer: ?*sdl.SDL_Renderer, const gpu: ?*sdl.SDL_GPUDevice =
+            BLK: switch (cfg.jok_renderer_type) {
                 .software => {
                     const surface = sdl.SDL_GetWindowSurface(ctx.window().ptr);
-                    break :BLK sdl.SDL_CreateSoftwareRenderer(surface);
+                    break :BLK .{ sdl.SDL_CreateSoftwareRenderer(surface), null };
                 },
                 .accelerated => {
                     const props = sdl.SDL_CreateProperties();
@@ -58,20 +58,32 @@ pub const Renderer = struct {
                     if (cfg.jok_fps_limit == .auto) {
                         _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_RENDERER_CREATE_PRESENT_VSYNC_NUMBER, 1);
                     }
-                    break :BLK sdl.SDL_CreateRendererWithProperties(props);
+                    const rd = sdl.SDL_CreateRendererWithProperties(props);
+                    if (rd == null) continue :BLK .software; // Fallback to software
+                    break :BLK .{ rd.?, null };
                 },
                 .gpu => {
-                    @panic("not yet");
+                    const gpu = sdl.SDL_CreateGPUDevice(
+                        sdl.SDL_GPU_SHADERFORMAT_SPIRV |
+                            sdl.SDL_GPU_SHADERFORMAT_DXBC |
+                            sdl.SDL_GPU_SHADERFORMAT_DXIL |
+                            sdl.SDL_GPU_SHADERFORMAT_MSL |
+                            sdl.SDL_GPU_SHADERFORMAT_METALLIB,
+                        false,
+                        null,
+                    );
+                    if (gpu == null) continue :BLK .accelerated; // Fallback to accelerated
+                    break :BLK .{ sdl.SDL_CreateGPURenderer(gpu, ctx.window().ptr), gpu };
                 },
-            }
-        };
-        if (ptr == null) {
+            };
+        if (renderer == null) {
             log.err("Create renderer failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
 
         var rd = Renderer{
-            .ptr = ptr.?,
+            .ptr = renderer.?,
+            .gpu = gpu,
             .cfg = cfg,
             .dc = DcStats.create(ctx.allocator()),
         };
@@ -82,6 +94,7 @@ pub const Renderer = struct {
     pub fn destroy(self: Renderer) void {
         self.dc.destroy();
         sdl.SDL_DestroyRenderer(self.ptr);
+        if (self.gpu) |d| sdl.SDL_DestroyGPUDevice(d);
     }
 
     pub const Info = struct {
@@ -426,5 +439,19 @@ pub const Renderer = struct {
             .width = @intCast(rect.w),
             .height = @intCast(rect.h),
         };
+    }
+
+    pub fn isShaderSupported(self: Renderer, format: ?PixelShader.ShaderFormat) bool {
+        if (self.gpu == null) return false;
+        if (format == null) return true;
+        const supported_formats = sdl.SDL_GetGPUShaderFormats(self.gpu.?);
+        return (supported_formats & @intFromEnum(format.?)) != 0;
+    }
+
+    pub fn setShader(self: Renderer, shader: ?*PixelShader) !void {
+        if (!sdl.SDL_SetGPURenderState(self.ptr, if (shader) |s| s.state else null)) {
+            log.err("Set shader failed: {s}", .{sdl.SDL_GetError()});
+            return error.SdlError;
+        }
     }
 };

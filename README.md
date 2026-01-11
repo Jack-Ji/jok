@@ -29,6 +29,7 @@ A minimal 2d/3d game framework for zig.
 * 3D sprite/billboard rendering
 * 3D particle system
 * 3D scene management
+* Pixel shader support
 * TrueType support, atlas generation/save/load (including kerning table for basic Latin)
 * SVG loading/rendering
 * Sound/Music playing/mixing
@@ -179,7 +180,7 @@ With so many tools, engines and computing resources at hand, however, gamedev is
 **Jok** is an offort trying to bring the joy back, it's being developed in the spirit of retro-machines of
 1990s (especially PS1), which implies following limitations:
 
-* Custom vertex/fragment shader is not possible
+* Custom vertex/~~fragment~~ shader is not possible
 * Only support [affine texture mapping](https://en.wikipedia.org/wiki/Texture_mapping#Affine_texture_mapping)
 * No [depth buffer](https://en.wikipedia.org/wiki/Z-buffering)
 

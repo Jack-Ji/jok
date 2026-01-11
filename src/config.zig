@@ -13,7 +13,7 @@ pub const Config = struct {
     jok_enable_physfs: bool = true,
 
     /// Type of renderer
-    jok_renderer_type: RendererType = .accelerated,
+    jok_renderer_type: RendererType = .gpu,
 
     /// Clearing color of framebuffer
     jok_framebuffer_color: jok.Color = .black,

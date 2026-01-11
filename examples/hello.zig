@@ -12,6 +12,7 @@ const zmesh = jok.vendor.zmesh;
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 1280, .height = 720 },
 };
+pub const jok_renderer_type = jok.config.RendererType.gpu;
 
 var batchpool_2d: j2d.BatchPool(64, false) = undefined;
 var batchpool_3d: j3d.BatchPool(64, false) = undefined;

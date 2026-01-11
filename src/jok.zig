@@ -28,6 +28,9 @@ pub const Event = io.Event;
 /// Graphics Renderer
 pub const Renderer = @import("renderer.zig").Renderer;
 
+/// Pixel Shader
+pub const PixelShader = @import("shader.zig").PixelShader;
+
 /// Graphics Texture
 pub const Texture = @import("texture.zig").Texture;
 
