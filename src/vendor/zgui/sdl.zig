@@ -2,6 +2,7 @@ const std = @import("std");
 const jok = @import("../../jok.zig");
 const sdl = jok.vendor.sdl;
 const gui = @import("main.zig");
+const log = std.log.scoped(.jok);
 
 var fcolors: std.array_list.Managed(jok.ColorF) = undefined;
 
@@ -68,7 +69,6 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
     if (dl.getCmdBufferLength() <= 0) return;
 
     const rd = ctx.renderer();
-    const csz = ctx.getCanvasSize();
 
     // Restore viewport
     const viewport_set = rd.isViewportSet();
@@ -82,36 +82,35 @@ pub fn renderDrawList(ctx: jok.Context, dl: gui.DrawList) void {
 
     const commands = dl.getCmdBufferData()[0..@as(u32, @intCast(dl.getCmdBufferLength()))];
     for (commands) |*cmd| {
-        if (cmd.elem_count == 0) continue;
-
-        // Apply clip region
-        var clip_region: jok.Region = undefined;
-        clip_region.x = @intFromFloat(std.math.clamp(cmd.clip_rect[0], 0.0, csz.getWidthFloat()));
-        clip_region.y = @intFromFloat(std.math.clamp(cmd.clip_rect[1], 0.0, csz.getHeightFloat()));
-        clip_region.width = @intFromFloat(@min(@as(f32, @floatFromInt(csz.width - clip_region.x)), cmd.clip_rect[2] - cmd.clip_rect[0]));
-        clip_region.height = @intFromFloat(@min(@as(f32, @floatFromInt(csz.height - clip_region.y)), cmd.clip_rect[3] - cmd.clip_rect[1]));
-        if (clip_region.width == 0 or clip_region.height == 0) return;
-        rd.setClipRegion(clip_region) catch unreachable;
-
-        if (cmd.user_callback) |cb| {
-            cb(dl, cmd);
-            continue;
-        }
+        if (cmd.user_callback != null or cmd.elem_count == 0) continue;
         renderCommand(ctx, dl, cmd);
     }
 }
 
-pub inline fn renderCommand(ctx: jok.Context, dl: gui.DrawList, cmd: *const gui.DrawCmd) void {
+inline fn renderCommand(ctx: jok.Context, dl: gui.DrawList, cmd: *const gui.DrawCmd) void {
     const rd = ctx.renderer();
+    const csz = ctx.getCanvasSize();
     const vs_ptr = dl.getVertexBufferData();
     const vs_count = dl.getVertexBufferLength();
     const is_ptr = dl.getIndexBufferData();
+
+    // Apply clip region
+    var clip_region: jok.Region = undefined;
+    clip_region.x = @intFromFloat(std.math.clamp(cmd.clip_rect[0], 0.0, csz.getWidthFloat()));
+    clip_region.y = @intFromFloat(std.math.clamp(cmd.clip_rect[1], 0.0, csz.getHeightFloat()));
+    clip_region.width = @intFromFloat(@min(@as(f32, @floatFromInt(csz.width - clip_region.x)), cmd.clip_rect[2] - cmd.clip_rect[0]));
+    clip_region.height = @intFromFloat(@min(@as(f32, @floatFromInt(csz.height - clip_region.y)), cmd.clip_rect[3] - cmd.clip_rect[1]));
+    if (clip_region.width == 0 or clip_region.height == 0) return;
+    rd.setClipRegion(clip_region) catch {};
 
     // Convert colors
     // https://github.com/libsdl-org/SDL/issues/9009
     const vptr: [*]gui.DrawVert = vs_ptr + @as(usize, cmd.vtx_offset);
     const vcount: usize = @intCast(@as(u32, @intCast(vs_count)) - cmd.vtx_offset);
-    fcolors.ensureTotalCapacity(vcount) catch unreachable;
+    fcolors.ensureTotalCapacity(vcount) catch |err| {
+        log.err("Allocate memory for internal colors array failed: {s}", .{@errorName(err)});
+        return;
+    };
     fcolors.clearRetainingCapacity();
     var i: usize = 0;
     while (i < vcount) : (i += 1) {
@@ -134,7 +133,10 @@ pub inline fn renderCommand(ctx: jok.Context, dl: gui.DrawList, cmd: *const gui.
         @sizeOf(gui.DrawVert),
         vcount,
         indices,
-    ) catch unreachable;
+    ) catch |err| {
+        log.err("Render triangles failed: {s}", .{@errorName(err)});
+        return;
+    };
 }
 
 // These functions are defined in `imgui_impl_sdl3.cpp` and 'imgui_impl_sdlrenderer3.cpp`

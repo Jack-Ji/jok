@@ -3,11 +3,11 @@ const builtin = @import("builtin");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("jok.zig");
+const PixelShader = jok.PixelShader;
 const threeFloats = jok.utils.threeFloats;
 const zgui = jok.vendor.zgui;
 const zmath = jok.vendor.zmath;
 const zmesh = jok.vendor.zmesh;
-const PixelShader = @import("shader.zig").PixelShader;
 const log = std.log.scoped(.jok);
 
 const TriangleRenderer = @import("j3d/TriangleRenderer.zig");

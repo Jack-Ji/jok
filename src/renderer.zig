@@ -4,12 +4,14 @@ const jok = @import("jok.zig");
 const sdl = jok.vendor.sdl;
 const stb = jok.vendor.stb;
 const log = std.log.scoped(.jok);
-const PixelShader = @import("shader.zig").PixelShader;
 
 pub const Error = error{
     TextureTooLarge,
     LoadImageError,
     EncodeTextureFailed,
+    NotSupported,
+    InvalidFormat,
+    InvalidStruct,
 };
 
 // Draw call statistics
@@ -127,7 +129,7 @@ pub const Renderer = struct {
     pub fn clear(self: Renderer, color: jok.Color) !void {
         const old_color = try self.getColor();
         try self.setColor(color);
-        defer self.setColor(old_color) catch unreachable;
+        defer self.setColor(old_color) catch {};
         if (!sdl.SDL_RenderClear(self.ptr)) {
             log.err("Clear renderer failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
@@ -441,16 +443,115 @@ pub const Renderer = struct {
         };
     }
 
-    pub fn isShaderSupported(self: Renderer, format: ?PixelShader.ShaderFormat) bool {
+    pub fn isShaderSupported(self: Renderer, format: ?ShaderFormat) bool {
         if (self.gpu == null) return false;
         if (format == null) return true;
         const supported_formats = sdl.SDL_GetGPUShaderFormats(self.gpu.?);
         return (supported_formats & @intFromEnum(format.?)) != 0;
     }
 
+    pub const ShaderOption = struct {
+        entrypoint: [:0]const u8 = "main",
+        format: ShaderFormat = .spirv,
+    };
+    pub fn createShader(self: Renderer, allocator: std.mem.Allocator, byte_code: []const u8, opt: ShaderOption) !*PixelShader {
+        if (self.gpu == null) {
+            log.err("Current renderer doesn't support custom shader", .{});
+            return error.NotSupported;
+        }
+
+        if (!self.isShaderSupported(opt.format)) {
+            const supported_formats = sdl.SDL_GetGPUShaderFormats(self.gpu.?);
+            log.err("Shader format unsupported, consider other supported formats: 0b{b}", .{supported_formats});
+            return error.InvalidFormat;
+        }
+
+        const shader = try allocator.create(PixelShader);
+        errdefer allocator.destroy(shader);
+
+        const gpu_shader = sdl.SDL_CreateGPUShader(self.gpu.?, &.{
+            .code_size = byte_code.len,
+            .code = @ptrCast(byte_code.ptr),
+            .entrypoint = opt.entrypoint,
+            .format = @intFromEnum(opt.format),
+            .stage = sdl.SDL_GPU_SHADERSTAGE_FRAGMENT,
+            .num_samplers = 1,
+            .num_uniform_buffers = 1,
+        });
+        if (gpu_shader == null) {
+            log.err("Create shader failed: {s}", .{sdl.SDL_GetError()});
+            return error.SdlError;
+        }
+        errdefer sdl.SDL_ReleaseGPUShader(self.gpu.?, gpu_shader.?);
+
+        var info = sdl.SDL_GPURenderStateCreateInfo{
+            .fragment_shader = gpu_shader.?,
+        };
+        const state = sdl.SDL_CreateGPURenderState(self.ptr, &info);
+        if (state == null) {
+            log.err("Create render state failed: {s}", .{sdl.SDL_GetError()});
+            return error.SdlError;
+        }
+
+        shader.* = .{
+            .ptr = gpu_shader.?,
+            .state = state.?,
+            .rd = self,
+            .allocator = allocator,
+        };
+        return shader;
+    }
+
     pub fn setShader(self: Renderer, shader: ?*PixelShader) !void {
         if (!sdl.SDL_SetGPURenderState(self.ptr, if (shader) |s| s.state else null)) {
             log.err("Set shader failed: {s}", .{sdl.SDL_GetError()});
+            return error.SdlError;
+        }
+    }
+};
+
+pub const ShaderFormat = enum(u32) {
+    spirv = sdl.SDL_GPU_SHADERFORMAT_SPIRV,
+    dxbc = sdl.SDL_GPU_SHADERFORMAT_DXBC,
+    dxil = sdl.SDL_GPU_SHADERFORMAT_DXIL,
+    msl = sdl.SDL_GPU_SHADERFORMAT_MSL,
+    metallib = sdl.SDL_GPU_SHADERFORMAT_METALLIB,
+};
+
+pub const PixelShader = struct {
+    ptr: *sdl.SDL_GPUShader,
+    state: *sdl.SDL_GPURenderState,
+    rd: Renderer,
+    allocator: std.mem.Allocator,
+
+    pub fn destroy(self: *PixelShader) void {
+        sdl.SDL_DestroyGPURenderState(self.state);
+        sdl.SDL_ReleaseGPUShader(self.rd.gpu.?, self.ptr);
+        self.allocator.destroy(self);
+    }
+
+    pub fn setUniform(self: *PixelShader, slot_index: u32, data: anytype) !void {
+        const type_info = @typeInfo(@TypeOf(data));
+        switch (type_info) {
+            .@"struct" => |s| {
+                if (s.layout == .auto) {
+                    log.err("Struct for uniform data must have defined layout (extern or packed)", .{});
+                    return error.InvalidStruct;
+                }
+                if (@sizeOf(data) % 16 != 0) {
+                    log.err("Struct for uniform data be multiple of 16 bytes, as demanded by std140", .{});
+                    return error.InvalidStruct;
+                }
+            },
+            else => {},
+        }
+        if (!sdl.SDL_SetGPURenderStateFragmentUniforms(
+            self.state,
+            slot_index,
+            @ptrCast(&data),
+            @sizeOf(@TypeOf(data)),
+        )) {
+            log.err("Set uniform data failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }

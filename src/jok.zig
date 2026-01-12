@@ -26,10 +26,12 @@ pub const io = @import("io.zig");
 pub const Event = io.Event;
 
 /// Graphics Renderer
-pub const Renderer = @import("renderer.zig").Renderer;
+const rd = @import("renderer.zig");
+pub const Renderer = rd.Renderer;
 
 /// Pixel Shader
-pub const PixelShader = @import("shader.zig").PixelShader;
+pub const ShaderFormat = rd.ShaderFormat;
+pub const PixelShader = rd.PixelShader;
 
 /// Graphics Texture
 pub const Texture = @import("texture.zig").Texture;

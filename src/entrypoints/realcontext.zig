@@ -440,7 +440,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         if (fcontext.rd.isShaderSupported(null)) {
                             try writer.writeAll(" (");
                             var supported: usize = 0;
-                            for ([_]jok.PixelShader.ShaderFormat{ .spirv, .dxbc, .dxil, .msl, .metallib }) |f| {
+                            for ([_]jok.ShaderFormat{ .spirv, .dxbc, .dxil, .msl, .metallib }) |f| {
                                 if (fcontext.rd.isShaderSupported(f)) {
                                     if (supported > 0) try writer.writeAll(" ");
                                     try writer.writeAll(@tagName(f));

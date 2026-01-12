@@ -6,11 +6,11 @@ const ascii = std.ascii;
 const unicode = std.unicode;
 const jok = @import("jok.zig");
 const font = jok.font;
+const PixelShader = jok.PixelShader;
 const twoFloats = jok.utils.twoFloats;
 const zgui = jok.vendor.zgui;
 const zmath = jok.vendor.zmath;
 const zmesh = jok.vendor.zmesh;
-const PixelShader = @import("shader.zig").PixelShader;
 const log = std.log.scoped(.jok);
 
 const internal = @import("j2d/internal.zig");
