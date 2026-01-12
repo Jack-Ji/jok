@@ -38,7 +38,7 @@ pub const BatchOption = struct {
     clip_rect: ?jok.Rectangle = null,
     offscreen_target: ?jok.Texture = null,
     offscreen_clear_color: ?jok.ColorF = null,
-    shader: ?*PixelShader = null,
+    shader: ?PixelShader = null,
 };
 
 pub const TriangleSort = union(enum(u8)) {
@@ -73,7 +73,7 @@ pub const Batch = struct {
     blend_mode: jok.BlendMode,
     offscreen_target: ?jok.Texture,
     offscreen_clear_color: ?jok.ColorF,
-    shader: ?*PixelShader,
+    shader: ?PixelShader,
 
     fn init(_ctx: jok.Context) Batch {
         const allocator = _ctx.allocator();

@@ -42,6 +42,9 @@ pub const Config = struct {
     jok_exit_on_recv_esc: bool = true,
     jok_exit_on_recv_quit: bool = true,
 
+    /// Kill application on catching errors from callbacks
+    jok_kill_on_error: bool = builtin.mode == .Debug,
+
     /// Whether detect memory-leak on shutdown
     jok_check_memory_leak: bool = builtin.mode == .Debug,
 
@@ -134,6 +137,7 @@ pub fn init(comptime game: anytype) Config {
         .{ .name = "jok_window_high_pixel_density", .desc = "whether window is aware of high-pixel display" },
         .{ .name = "jok_exit_on_recv_esc", .desc = "whether exit game when esc is pressed" },
         .{ .name = "jok_exit_on_recv_quit", .desc = "whether exit game when getting quit event" },
+        .{ .name = "jok_kill_on_error", .desc = "whether kill application when user callbacks returned error" },
         .{ .name = "jok_check_memory_leak", .desc = "whether detect memory-leak on shutdown" },
         .{ .name = "jok_imgui_ini_file", .desc = "whether let imgui load/save ini file" },
         .{ .name = "jok_prebuild_atlas", .desc = "whether prebuild atlas for debug font" },

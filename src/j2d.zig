@@ -43,7 +43,7 @@ pub const BatchOption = struct {
     do_early_clipping: bool = false,
     offscreen_target: ?jok.Texture = null,
     offscreen_clear_color: ?jok.Color = null,
-    shader: ?*PixelShader = null,
+    shader: ?PixelShader = null,
 };
 
 const invalid_batch_id = std.math.maxInt(usize);
@@ -65,7 +65,7 @@ pub const Batch = struct {
     do_early_clipping: bool,
     offscreen_target: ?jok.Texture,
     offscreen_clear_color: ?jok.Color,
-    shader: ?*PixelShader,
+    shader: ?PixelShader,
     all_tex: std.AutoHashMap(*anyopaque, bool),
 
     fn init(_ctx: jok.Context) Batch {

@@ -3,6 +3,12 @@
 
 cbuffer Context : register(b0, space3) {
     float2 resolution;
+	float scan_line_amount; // Range 0-1
+	float warp_amount; // Range 0-1
+	float vignette_amount; // Range 0-1
+	float vignette_intensity; // Range 0-1
+	float grille_amount; // Range 0-1
+	float brightness_boost; // Range 1-2
 };
 
 Texture2D u_texture : register(t0, space2);
@@ -18,14 +24,6 @@ struct PSOutput {
 };
 
 static const float PI = 3.14159265f;
-
-// These could be turned into uniforms if you wanted to tweak them
-static const float scan_line_amount = 0.5; // Range 0-1
-static const float warp_amount = 0.05; // Range 0-1
-static const float vignette_amount = 0.5; // Range 0-1
-static const float vignette_intensity = 0.3; // Range 0-1
-static const float grille_amount = 0.05; // Range 0-1
-static const float brightness_boost = 1.2; // Range 1-2
 
 PSOutput main(PSInput input) {
     PSOutput output;

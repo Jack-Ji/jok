@@ -1,4 +1,5 @@
 const std = @import("std");
+const bulitin = @import("builtin");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
 const sdl = jok.vendor.sdl;
@@ -12,6 +13,7 @@ pub const Error = error{
     NotSupported,
     InvalidFormat,
     InvalidStruct,
+    InvalidData,
 };
 
 // Draw call statistics
@@ -71,7 +73,7 @@ pub const Renderer = struct {
                             sdl.SDL_GPU_SHADERFORMAT_DXIL |
                             sdl.SDL_GPU_SHADERFORMAT_MSL |
                             sdl.SDL_GPU_SHADERFORMAT_METALLIB,
-                        false,
+                        bulitin.mode == .Debug,
                         null,
                     );
                     if (gpu == null) continue :BLK .accelerated; // Fallback to accelerated
@@ -450,30 +452,23 @@ pub const Renderer = struct {
         return (supported_formats & @intFromEnum(format.?)) != 0;
     }
 
-    pub const ShaderOption = struct {
-        entrypoint: [:0]const u8 = "main",
-        format: ShaderFormat = .spirv,
-    };
-    pub fn createShader(self: Renderer, allocator: std.mem.Allocator, byte_code: []const u8, opt: ShaderOption) !*PixelShader {
+    pub fn createShader(self: Renderer, byte_code: []const u8, entrypoint: ?[:0]const u8, format: ShaderFormat) !PixelShader {
         if (self.gpu == null) {
             log.err("Current renderer doesn't support custom shader", .{});
             return error.NotSupported;
         }
 
-        if (!self.isShaderSupported(opt.format)) {
+        if (!self.isShaderSupported(format)) {
             const supported_formats = sdl.SDL_GetGPUShaderFormats(self.gpu.?);
             log.err("Shader format unsupported, consider other supported formats: 0b{b}", .{supported_formats});
             return error.InvalidFormat;
         }
 
-        const shader = try allocator.create(PixelShader);
-        errdefer allocator.destroy(shader);
-
         const gpu_shader = sdl.SDL_CreateGPUShader(self.gpu.?, &.{
             .code_size = byte_code.len,
             .code = @ptrCast(byte_code.ptr),
-            .entrypoint = opt.entrypoint,
-            .format = @intFromEnum(opt.format),
+            .entrypoint = entrypoint orelse "main",
+            .format = @intFromEnum(format),
             .stage = sdl.SDL_GPU_SHADERSTAGE_FRAGMENT,
             .num_samplers = 1,
             .num_uniform_buffers = 1,
@@ -493,16 +488,14 @@ pub const Renderer = struct {
             return error.SdlError;
         }
 
-        shader.* = .{
+        return .{
             .ptr = gpu_shader.?,
+            .gpu = self.gpu.?,
             .state = state.?,
-            .rd = self,
-            .allocator = allocator,
         };
-        return shader;
     }
 
-    pub fn setShader(self: Renderer, shader: ?*PixelShader) !void {
+    pub fn setShader(self: Renderer, shader: ?PixelShader) !void {
         if (!sdl.SDL_SetGPURenderState(self.ptr, if (shader) |s| s.state else null)) {
             log.err("Set shader failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
@@ -520,28 +513,31 @@ pub const ShaderFormat = enum(u32) {
 
 pub const PixelShader = struct {
     ptr: *sdl.SDL_GPUShader,
+    gpu: *sdl.SDL_GPUDevice,
     state: *sdl.SDL_GPURenderState,
-    rd: Renderer,
-    allocator: std.mem.Allocator,
 
-    pub fn destroy(self: *PixelShader) void {
+    pub fn destroy(self: PixelShader) void {
         sdl.SDL_DestroyGPURenderState(self.state);
-        sdl.SDL_ReleaseGPUShader(self.rd.gpu.?, self.ptr);
-        self.allocator.destroy(self);
+        sdl.SDL_ReleaseGPUShader(self.gpu, self.ptr);
     }
 
-    pub fn setUniform(self: *PixelShader, slot_index: u32, data: anytype) !void {
-        const type_info = @typeInfo(@TypeOf(data));
+    pub fn setUniform(self: PixelShader, slot_index: u32, data: anytype) !void {
+        const T = @TypeOf(data);
+        const type_info = @typeInfo(T);
         switch (type_info) {
             .@"struct" => |s| {
                 if (s.layout == .auto) {
                     log.err("Struct for uniform data must have defined layout (extern or packed)", .{});
                     return error.InvalidStruct;
                 }
-                if (@sizeOf(data) % 16 != 0) {
-                    log.err("Struct for uniform data be multiple of 16 bytes, as demanded by std140", .{});
+                if (@sizeOf((T)) % 16 != 0) {
+                    log.err("Struct for uniform data be multiple of 16 bytes, as demanded by std140, given size is {d}", .{@sizeOf(T)});
                     return error.InvalidStruct;
                 }
+            },
+            .pointer => {
+                log.err("Pointer isn't acceptable as uniform data", .{});
+                return error.InvalidData;
             },
             else => {},
         }

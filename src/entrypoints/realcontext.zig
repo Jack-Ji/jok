@@ -13,6 +13,10 @@ const zaudio = jok.vendor.zaudio;
 const zmesh = jok.vendor.zmesh;
 const log = std.log.scoped(.jok);
 
+const Error = error{
+    UnrecognizableShaderFormat,
+};
+
 /// Context generator
 pub fn JokContext(comptime cfg: config.Config) type {
     const DebugAllocatorType = std.heap.DebugAllocator(.{
@@ -49,6 +53,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         // Renderer instance
         _renderer: jok.Renderer = undefined,
+
+        // Post effect
+        _post_effect: ?jok.PixelShader = null,
 
         // Rendering target
         _canvas_texture: jok.Texture = undefined,
@@ -285,20 +292,29 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     self._renderer.setTarget(self._canvas_texture) catch unreachable;
                 }
                 defer if (cfg.jok_renderer_type != .software) {
+                    if (self._post_effect) |s| self._renderer.setShader(s) catch |err| {
+                        log.err("Set post effect failed: {s}", .{@errorName(err)});
+                    };
+                    defer if (self._post_effect != null) self._renderer.setShader(null) catch unreachable;
+
                     self._renderer.setTarget(null) catch unreachable;
                     self._renderer.drawTexture(
                         self._canvas_texture,
                         null,
                         self._canvas_target_area,
-                    ) catch unreachable;
+                    ) catch |err| {
+                        log.err("Draw canvas to screen failed: {s}", .{@errorName(err)});
+                    };
                 };
 
                 drawFn(self._ctx) catch |err| {
                     log.err("Got error in `draw`: {s}", .{@errorName(err)});
                     if (@errorReturnTrace()) |trace| {
                         std.debug.dumpStackTrace(trace);
-                        kill(self);
-                        return;
+                        if (cfg.jok_kill_on_error) {
+                            kill(self);
+                            return;
+                        }
                     }
                 };
             }
@@ -339,8 +355,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
                         log.err("Got error in `event`: {s}", .{@errorName(err)});
                         if (@errorReturnTrace()) |trace| {
                             std.debug.dumpStackTrace(trace);
-                            kill(self);
-                            return;
+                            if (cfg.jok_kill_on_error) {
+                                kill(self);
+                                return;
+                            }
                         }
                     };
                 }
@@ -362,8 +380,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 log.err("Got error in `update`: {s}", .{@errorName(err)});
                 if (@errorReturnTrace()) |trace| {
                     std.debug.dumpStackTrace(trace);
-                    kill(self);
-                    return;
+                    if (cfg.jok_kill_on_error) {
+                        kill(self);
+                        return;
+                    }
                 }
             };
         }
@@ -602,6 +622,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .supressDraw = supressDraw,
                     .isRunningSlow = isRunningSlow,
                     .loadTexture = loadTexture,
+                    .loadShader = loadShader,
+                    .setPostEffect = setPostEffect,
                     .displayStats = displayStats,
                     .debugPrint = debugPrint,
                     .getDebugAtlas = getDebugAtlas,
@@ -821,6 +843,54 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     flip,
                 );
             }
+        }
+
+        /// Load shader from path to file
+        pub fn loadShader(ptr: *anyopaque, sub_path: [:0]const u8, entrypoint: ?[:0]const u8, _format: ?jok.ShaderFormat) !jok.PixelShader {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            const format: jok.ShaderFormat = _format orelse blk: {
+                const path = std.mem.sliceTo(sub_path, 0);
+                if (std.mem.endsWith(u8, path, ".spv")) break :blk .spirv;
+                if (std.mem.endsWith(u8, path, ".cso")) break :blk .dxbc;
+                if (std.mem.endsWith(u8, path, ".dxil")) break :blk .dxil;
+                if (std.mem.endsWith(u8, path, ".msl")) break :blk .msl;
+                if (std.mem.endsWith(u8, path, ".metal")) break :blk .msl;
+                if (std.mem.endsWith(u8, path, ".metallib")) break :blk .metallib;
+                return error.UnrecognizableShaderFormat;
+            };
+            if (cfg.jok_enable_physfs) {
+                const handle = try physfs.open(sub_path, .read);
+                defer handle.close();
+
+                const filedata = try handle.readAllAlloc(self._allocator);
+                defer self._allocator.free(filedata);
+
+                return try self._renderer.createShader(
+                    filedata,
+                    entrypoint,
+                    format,
+                );
+            } else {
+                const filedata = try std.Io.Dir.cwd().readFileAlloc(
+                    self._io_backend.io(),
+                    std.mem.sliceTo(sub_path, 0),
+                    self._allocator,
+                    .unlimited,
+                );
+                defer self._allocator.free(filedata);
+
+                return try self._renderer.createShader(
+                    filedata,
+                    entrypoint,
+                    format,
+                );
+            }
+        }
+
+        /// Set post effect shader
+        pub fn setPostEffect(ptr: *anyopaque, shader: ?jok.PixelShader) void {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            self._post_effect = shader;
         }
 
         /// Display frame statistics

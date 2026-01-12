@@ -28,6 +28,8 @@ pub const Context = struct {
         supressDraw: *const fn (ctx: *anyopaque) void,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
         loadTexture: *const fn (ctx: *anyopaque, sub_path: [:0]const u8, access: jok.Texture.Access, flip: bool) anyerror!jok.Texture,
+        loadShader: *const fn (ctx: *anyopaque, sub_path: [:0]const u8, entrypoint: ?[:0]const u8, format: ?jok.ShaderFormat) anyerror!jok.PixelShader,
+        setPostEffect: *const fn (ctx: *anyopaque, shader: ?jok.PixelShader) void,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
         debugPrint: *const fn (ctx: *anyopaque, text: []const u8, opt: DebugPrint) void,
         getDebugAtlas: *const fn (ctx: *anyopaque, size: u32) *font.Atlas,
@@ -131,6 +133,16 @@ pub const Context = struct {
     /// Load texture from path to file
     pub fn loadTexture(self: Context, sub_path: [:0]const u8, access: jok.Texture.Access, flip: bool) anyerror!jok.Texture {
         return self.vtable.loadTexture(self.ctx, sub_path, access, flip);
+    }
+
+    /// Load shader from path to file
+    pub fn loadShader(self: Context, sub_path: [:0]const u8, entrypoint: ?[:0]const u8, format: ?jok.ShaderFormat) anyerror!jok.PixelShader {
+        return self.vtable.loadShader(self.ctx, sub_path, entrypoint, format);
+    }
+
+    /// Set post effect shader
+    pub fn setPostEffect(self: Context, shader: ?jok.PixelShader) void {
+        return self.vtable.setPostEffect(self.ctx, shader);
     }
 
     /// Display statistics
