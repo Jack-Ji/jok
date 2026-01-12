@@ -536,10 +536,12 @@ pub const PixelShader = struct {
                 }
             },
             .pointer => {
-                log.err("Pointer isn't acceptable as uniform data", .{});
+                log.err("Pointer type isn't acceptable as uniform data", .{});
                 return error.InvalidData;
             },
-            else => {},
+            else => {
+                // You'are on your own here
+            },
         }
         if (!sdl.SDL_SetGPURenderStateFragmentUniforms(
             self.state,

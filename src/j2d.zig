@@ -164,8 +164,7 @@ pub const Batch = struct {
         return lhs.compare(rhs, false);
     }
 
-    /// Submit batch, issue draw calls, don't reclaim itself
-    pub fn submitWithoutReclaim(self: *Batch) void {
+    inline fn _submitWithoutReclaim(self: *Batch) !void {
         assert(self.id != invalid_batch_id);
         assert(self.ctx.isMainThread());
 
@@ -190,10 +189,10 @@ pub const Batch = struct {
 
             for (self.draw_commands.items) |dcmd| {
                 switch (dcmd.cmd) {
-                    .quad_image => |c| self.all_tex.put(c.texture.ptr, true) catch unreachable,
-                    .image_rounded => |c| self.all_tex.put(c.texture.ptr, true) catch unreachable,
+                    .quad_image => |c| try self.all_tex.put(c.texture.ptr, true),
+                    .image_rounded => |c| try self.all_tex.put(c.texture.ptr, true),
                     .convex_polygon_fill => |c| {
-                        if (c.texture) |tex| self.all_tex.put(tex.ptr, true) catch unreachable;
+                        if (c.texture) |tex| try self.all_tex.put(tex.ptr, true);
                     },
                     else => {},
                 }
@@ -209,23 +208,23 @@ pub const Batch = struct {
 
         // Apply blend mode to renderer and textures
         const rd = self.ctx.renderer();
-        const old_blend = rd.getBlendMode() catch unreachable;
-        defer rd.setBlendMode(old_blend) catch unreachable;
-        rd.setBlendMode(self.blend_mode) catch unreachable;
+        const old_blend = try rd.getBlendMode();
+        defer rd.setBlendMode(old_blend) catch {};
+        try rd.setBlendMode(self.blend_mode);
         var it = self.all_tex.keyIterator();
         while (it.next()) |k| {
             const tex = jok.Texture{ .ptr = @ptrCast(@alignCast(k.*)) };
-            tex.setBlendMode(self.blend_mode) catch unreachable;
+            try tex.setBlendMode(self.blend_mode);
         }
 
         // Apply offscreen target if given
         const old_target = rd.getTarget();
         if (self.offscreen_target) |t| {
-            rd.setTarget(t) catch unreachable;
-            if (self.offscreen_clear_color) |c| rd.clear(c) catch unreachable;
+            try rd.setTarget(t);
+            if (self.offscreen_clear_color) |c| try rd.clear(c);
         }
         defer if (self.offscreen_target != null) {
-            rd.setTarget(old_target) catch unreachable;
+            rd.setTarget(old_target) catch {};
         };
 
         // Submit draw command
@@ -234,17 +233,26 @@ pub const Batch = struct {
             rd.setShader(s) catch |err| {
                 log.err("Apply custom shader failed: {s}", .{@errorName(err)});
             };
-            defer rd.setShader(null) catch unreachable;
+            defer rd.setShader(null) catch {};
             zgui.sdl.renderDrawList(self.ctx, self.draw_list);
         } else {
             zgui.sdl.renderDrawList(self.ctx, self.draw_list);
         }
     }
 
+    /// Submit batch, issue draw calls, don't reclaim itself
+    pub fn submitWithoutReclaim(self: *Batch) void {
+        self._submitWithoutReclaim() catch |err| {
+            log.err("Submit batch failed: {s}", .{@errorName(err)});
+        };
+    }
+
     /// Submit batch, issue draw calls, and reclaim itself
     pub fn submit(self: *Batch) void {
         defer self.reclaimer.reclaim(self);
-        self.submitWithoutReclaim();
+        self._submitWithoutReclaim() catch |err| {
+            log.err("Submit batch failed: {s}", .{@errorName(err)});
+        };
     }
 
     /// Reclaim itself without drawing
