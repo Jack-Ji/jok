@@ -58,12 +58,13 @@ pub fn build(b: *Build) void {
         .{ .name = "2048", .opt = .{} },
         .{ .name = "hotreload", .opt = .{ .plugin = "plugin", .support_web = false } },
         .{ .name = "quadtree", .opt = .{} },
+        .{ .name = "post_effect", .opt = .{ .support_web = false } },
+        .{ .name = "shaders", .opt = .{ .support_web = false } },
         .{ .name = "generative_art_1", .opt = .{} },
         .{ .name = "generative_art_2", .opt = .{} },
         .{ .name = "generative_art_3", .opt = .{} },
         .{ .name = "generative_art_4", .opt = .{} },
         .{ .name = "generative_art_5", .opt = .{} },
-        .{ .name = "post_effect", .opt = .{ .support_web = false } },
     };
     const build_examples = b.step("examples", "compile and install all examples");
     for (examples) |ex| addExample(b, ex.name, target, optimize, build_examples, ex.opt);
@@ -388,8 +389,6 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
         em.possibleSetup(&lib.step);
 
         // Add the Emscripten system include seach path
-        libmod.addCMacro("__WINT_TYPE__", "unsigned int");
-        jokmod.addCMacro("__WINT_TYPE__", "unsigned int");
         libmod.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
         jokmod.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
     } else {
@@ -428,7 +427,6 @@ fn getSdlModule(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode)
         em.possibleSetup(&tc.step);
 
         // Add the Emscripten system include seach path
-        tc.defineCMacro("__WINT_TYPE__", "unsigned int");
         tc.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
     }
     return tc.createModule();
@@ -505,7 +503,6 @@ const Emscripten = struct {
         emcc.addArg("-sINITIAL_MEMORY=128mb");
         emcc.addArg("-sALLOW_MEMORY_GROWTH=1");
         emcc.addArg("-sMAXIMUM_MEMORY=2gb");
-        emcc.addArg("-sERROR_ON_UNDEFINED_SYMBOLS=0");
         if (opt.shell_file_path) |p| emcc.addPrefixedFileArg("--shell-file=", p);
         if (opt.preload_path) |p| {
             emcc.addArg("--preload-file");
