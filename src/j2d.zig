@@ -278,8 +278,8 @@ pub const Batch = struct {
         self.trs = AffineTransform.init;
     }
 
-    pub fn translate(self: *Batch, v: anytype) void {
-        self.trs = self.trs.translate(v);
+    pub fn translate(self: *Batch, two_floats: anytype) void {
+        self.trs = self.trs.translate(two_floats);
     }
 
     pub fn rotateByWorldOrigin(self: *Batch, radian: f32) void {
@@ -295,17 +295,17 @@ pub const Batch = struct {
         self.trs = self.trs.rotateByPoint(p, radian);
     }
 
-    pub fn scaleAroundWorldOrigin(self: *Batch, v: anytype) void {
-        self.trs = self.trs.scaleAroundOrigin(v);
+    pub fn scaleAroundWorldOrigin(self: *Batch, two_floats: anytype) void {
+        self.trs = self.trs.scaleAroundOrigin(two_floats);
     }
 
-    pub fn scaleAroundLocalOrigin(self: *Batch, v: anytype) void {
+    pub fn scaleAroundLocalOrigin(self: *Batch, two_floats: anytype) void {
         const t = self.trs.getTranslation();
-        self.trs = self.trs.scaleAroundPoint(.{ .x = t[0], .y = t[1] }, v);
+        self.trs = self.trs.scaleAroundPoint(.{ .x = t[0], .y = t[1] }, two_floats);
     }
 
-    pub fn scaleAroundPoint(self: *Batch, p: jok.Point, v: anytype) void {
-        self.trs = self.trs.scaleAroundPoint(p, v);
+    pub fn scaleAroundPoint(self: *Batch, p: jok.Point, two_floats: anytype) void {
+        self.trs = self.trs.scaleAroundPoint(p, two_floats);
     }
 
     pub const ImageOption = struct {

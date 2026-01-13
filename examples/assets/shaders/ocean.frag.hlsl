@@ -128,25 +128,25 @@ float3x3 createRotationMatrixAxisAngle(float3 axis, float angle)
 
 float3 getRay(float2 fragCoord)
 {
-    // 1. Calculate UVs
-    float2 uv = (fragCoord * 2.0 - resolution) / resolution.y;
+	// 1. Calculate UVs
+	float2 uv = (fragCoord * 2.0 - resolution) / resolution.y;
 
-    // 2. FLIP THE Y-AXIS HERE
-    uv.y = -uv.y;
+	// 2. FLIP THE Y-AXIS HERE
+	uv.y = -uv.y;
 
-    float3 proj = normalize(float3(uv.x, uv.y, 1.5));
+	float3 proj = normalize(float3(uv.x, uv.y, 1.5));
 
-    // Simple mouse look
-    float mx = (NormalizedMouse.x - 0.5) * 2.0 * 3.14159 * 0.6;
+	// Simple mouse look
+	float mx = (NormalizedMouse.x - 0.5) * 2.0 * 3.14159 * 0.6;
 
-    // Note: You may also need to invert your mouse Y logic
-    // if the camera movement feels inverted.
-    float my = (NormalizedMouse.y - 0.5) * 2.0 * 1.2 + 0.4;
+	// Note: You may also need to invert your mouse Y logic
+	// if the camera movement feels inverted.
+	float my = (NormalizedMouse.y - 0.5) * 2.0 * 1.2 + 0.4;
 
-    float3x3 rotY = createRotationMatrixAxisAngle(float3(0,1,0), mx);
-    float3x3 rotX = createRotationMatrixAxisAngle(float3(1,0,0), my);
+	float3x3 rotY = createRotationMatrixAxisAngle(float3(0,1,0), mx);
+	float3x3 rotX = createRotationMatrixAxisAngle(float3(1,0,0), my);
 
-    return mul(rotX, mul(rotY, proj));
+	return mul(rotX, mul(rotY, proj));
 }
 
 // ──────────────────────────────────────────────

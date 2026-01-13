@@ -47,24 +47,24 @@ pub const Point = extern struct {
         return math.radiansToDegrees(math.atan2(p.y, p.x));
     }
 
-    pub inline fn add(p0: Point, v: anytype) Point {
-        const x, const y = twoFloats(v);
+    pub inline fn add(p0: Point, two_floats: anytype) Point {
+        const x, const y = twoFloats(two_floats);
         return .{
             .x = p0.x + x,
             .y = p0.y + y,
         };
     }
 
-    pub inline fn sub(p0: Point, v: anytype) Point {
-        const x, const y = twoFloats(v);
+    pub inline fn sub(p0: Point, two_floats: anytype) Point {
+        const x, const y = twoFloats(two_floats);
         return .{
             .x = p0.x - x,
             .y = p0.y - y,
         };
     }
 
-    pub inline fn mul(p0: Point, v: anytype) Point {
-        const x, const y = twoFloats(v);
+    pub inline fn mul(p0: Point, two_floats: anytype) Point {
+        const x, const y = twoFloats(two_floats);
         return .{
             .x = p0.x * x,
             .y = p0.y * y,
@@ -204,8 +204,8 @@ pub const Rectangle = extern struct {
         return .{ .x = r.x + r.width * 0.5, .y = r.y + r.height * 0.5 };
     }
 
-    pub inline fn translate(r: Rectangle, v: anytype) Rectangle {
-        const x, const y = twoFloats(v);
+    pub inline fn translate(r: Rectangle, two_floats: anytype) Rectangle {
+        const x, const y = twoFloats(two_floats);
         return .{
             .x = r.x + x,
             .y = r.y + y,
@@ -214,8 +214,8 @@ pub const Rectangle = extern struct {
         };
     }
 
-    pub inline fn scale(r: Rectangle, v: anytype) Rectangle {
-        const x, const y = twoFloats(v);
+    pub inline fn scale(r: Rectangle, two_floats: anytype) Rectangle {
+        const x, const y = twoFloats(two_floats);
         return .{
             .x = r.x,
             .y = r.y,
@@ -306,9 +306,9 @@ pub const Circle = extern struct {
     center: Point = .origin,
     radius: f32 = 1,
 
-    pub inline fn translate(c: Circle, v: anytype) Circle {
+    pub inline fn translate(c: Circle, two_floats: anytype) Circle {
         return .{
-            .center = c.center.add(v),
+            .center = c.center.add(two_floats),
             .radius = c.radius,
         };
     }
@@ -351,9 +351,9 @@ pub const Ellipse = struct {
     center: Point = .origin,
     radius: Point = .unit,
 
-    pub inline fn translate(e: Ellipse, v: anytype) Ellipse {
+    pub inline fn translate(e: Ellipse, two_floats: anytype) Ellipse {
         return .{
-            .center = e.center.add(v),
+            .center = e.center.add(two_floats),
             .radius = e.radius,
         };
     }
@@ -392,11 +392,11 @@ pub const Triangle = extern struct {
     p1: Point,
     p2: Point,
 
-    pub inline fn translate(tri: Triangle, v: anytype) Triangle {
+    pub inline fn translate(tri: Triangle, two_floats: anytype) Triangle {
         return .{
-            .p0 = tri.p0.add(v),
-            .p1 = tri.p1.add(v),
-            .p2 = tri.p2.add(v),
+            .p0 = tri.p0.add(two_floats),
+            .p1 = tri.p1.add(two_floats),
+            .p2 = tri.p2.add(two_floats),
         };
     }
 
