@@ -150,7 +150,7 @@ const Chunk = struct {
                     };
                     return .{
                         .sprite = tile.getSprite(),
-                        .pos = pos_in_layer.add(it.layer.offset.toArray()),
+                        .pos = pos_in_layer.add(it.layer.offset),
                         .tint_color = it.layer.tint_color,
                         .flip_h = gid.flipH(),
                         .flip_v = gid.flipV(),
@@ -328,7 +328,7 @@ const ObjectGroup = struct {
 
         try b.pushTransform();
         defer b.popTransform();
-        b.trs = b.trs.translate(self.offset.toArray());
+        b.trs = b.trs.translate(self.offset);
 
         for (self.objects) |o| {
             if (!o.visible) continue;
@@ -864,8 +864,8 @@ fn loadLayers(
             self.parallax = .unit;
             self.tint_color = .white;
             for (self.groups.items) |g| {
-                self.offset = self.offset.add(g.offset.toArray());
-                self.parallax = self.parallax.mul(g.parallax.toArray());
+                self.offset = self.offset.add(g.offset);
+                self.parallax = self.parallax.mul(g.parallax);
                 self.tint_color = self.tint_color.mod(g.tint_color);
             }
         }

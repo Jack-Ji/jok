@@ -9,7 +9,6 @@ const log = std.log.scoped(.jok);
 pub const Error = error{
     TextureTooLarge,
     LoadImageError,
-    EncodeTextureFailed,
     NotSupported,
     InvalidFormat,
     InvalidStruct,
@@ -459,8 +458,15 @@ pub const Renderer = struct {
         }
 
         if (!self.isShaderSupported(format)) {
-            const supported_formats = sdl.SDL_GetGPUShaderFormats(self.gpu.?);
-            log.err("Shader format unsupported, consider other supported formats: 0b{b}", .{supported_formats});
+            var supported: [5]ShaderFormat = undefined;
+            var size: usize = 0;
+            for ([_]ShaderFormat{ .spirv, .dxbc, .dxil, .msl, .metallib }) |f| {
+                if (self.isShaderSupported(f)) {
+                    supported[size] = f;
+                    size += 1;
+                }
+            }
+            log.err("Shader format unsupported, consider other supported formats: {any}", .{supported[0..size]});
             return error.InvalidFormat;
         }
 
@@ -531,7 +537,7 @@ pub const PixelShader = struct {
                     return error.InvalidStruct;
                 }
                 if (@sizeOf((T)) % 16 != 0) {
-                    log.err("Struct for uniform data be multiple of 16 bytes, as demanded by std140, given size is {d}", .{@sizeOf(T)});
+                    log.err("Struct for uniform data must be multiple of 16 bytes (demanded by std140), given size is {d}", .{@sizeOf(T)});
                     return error.InvalidStruct;
                 }
             },

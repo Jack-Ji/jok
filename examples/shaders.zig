@@ -67,9 +67,9 @@ pub fn init(ctx: jok.Context) !void {
     shader_default = try ctx.loadShader(
         if (ctx.cfg().jok_enable_physfs)
             switch (builtin.os.tag) {
-                .windows => "shaders/default.dxil",
-                .macos => "shaders/default.msl",
                 .linux => "shaders/default.spv",
+                .macos => "shaders/default.msl",
+                .windows => "shaders/default.dxil",
                 else => unreachable,
             }
         else switch (builtin.os.tag) {
