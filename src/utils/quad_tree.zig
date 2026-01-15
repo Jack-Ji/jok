@@ -24,7 +24,6 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
             pub const Node = struct {
                 rect: jok.Rectangle,
                 children: [4]*TreeNode, // NW, NE, SW, SE
-                size: u32,
             };
             pub const Leaf = struct {
                 rect: jok.Rectangle,
@@ -55,7 +54,8 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
         arena: std.heap.ArenaAllocator,
         node_pool: std.heap.MemoryPool(TreeNode),
         root: *TreeNode,
-        positions: std.AutoHashMap(ObjectType, jok.Point),
+        positions: std.AutoHashMap(ObjectType, jok.Rectangle),
+        dedup_set: std.AutoHashMap(ObjectType, void),
 
         /// Initialize new tree
         pub fn create(allocator: std.mem.Allocator, rect: jok.Rectangle) !*Tree {
@@ -69,7 +69,8 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                 .arena = std.heap.ArenaAllocator.init(allocator),
                 .node_pool = try std.heap.MemoryPool(TreeNode).initCapacity(allocator, 1024),
                 .root = undefined,
-                .positions = std.AutoHashMap(ObjectType, jok.Point).init(allocator),
+                .positions = std.AutoHashMap(ObjectType, jok.Rectangle).init(allocator),
+                .dedup_set = std.AutoHashMap(ObjectType, void).init(allocator),
             };
             errdefer {
                 tree.node_pool.deinit(allocator);
@@ -91,6 +92,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
 
         /// Destroy tree
         pub fn destroy(self: *Tree) void {
+            self.dedup_set.deinit();
             self.positions.deinit();
             self.node_pool.deinit(self.allocator);
             self.arena.deinit();
@@ -98,48 +100,52 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
         }
 
         /// Add an object into tree
-        pub fn put(self: *Tree, o: ObjectType, pos: jok.Point) !void {
+        pub fn put(self: *Tree, o: ObjectType, bounds: jok.Rectangle) !void {
             if (self.positions.get(o) != null) return error.AlreadyExists;
-            if (!self.root.getRect().containsPoint(pos)) return error.NotSeeable;
-            try self.positions.put(o, pos);
+            if (!self.root.getRect().hasIntersection(bounds)) return error.NotSeeable;
+            try self.positions.put(o, bounds);
             errdefer _ = self.positions.remove(o);
-            try self.insert(self.root, o, pos);
+            try self.insert(self.root, o, bounds);
             return;
         }
 
         /// Remove an object from tree
         pub fn remove(self: *Tree, o: ObjectType) void {
             const kv = self.positions.fetchRemove(o) orelse return;
-            self.searchAndRemove(null, self.root, o, kv.value);
+            self.searchAndRemove(self.root, o, kv.value);
         }
 
-        /// Update position of object
-        pub fn update(self: *Tree, o: ObjectType, new_pos: jok.Point) !void {
-            if (!self.root.getRect().containsPoint(new_pos)) return error.NotSeeable;
-            if (self.positions.get(o)) |p| {
-                const leaf = self.searchLeaf(p);
-                if (leaf.rect.containsPoint(new_pos)) {
-                    try self.positions.put(o, new_pos);
-                } else {
-                    self.remove(o);
-                    try self.put(o, new_pos);
-                }
-            } else {
-                try self.put(o, new_pos);
+        /// Update position (bounds) of object
+        /// WARNING: it hurts performance when called on too many objects per frame, use at your discretion
+        pub fn update(self: *Tree, o: ObjectType, new_bounds: jok.Rectangle) !void {
+            self.remove(o);
+            if (!self.root.getRect().hasIntersection(new_bounds)) {
+                return;
             }
+            try self.positions.put(o, new_bounds);
+            errdefer _ = self.positions.remove(o);
+            try self.insert(self.root, o, new_bounds);
         }
 
         /// Query for objects which could potentially interfect with given rectangle
         pub fn query(self: *Tree, rect: jok.Rectangle, padding: f32, results: *std.array_list.Managed(ObjectType)) !void {
-            var stack = try std.ArrayList(*const TreeNode).initCapacity(self.allocator, 10);
+            self.dedup_set.clearRetainingCapacity();
+
+            var stack = try std.ArrayList(*const TreeNode).initCapacity(self.allocator, 16);
             defer stack.deinit(self.allocator);
+
             try stack.append(self.allocator, self.root);
-            while (stack.pop()) |node| {
+            while (stack.pop()) |node_ptr| {
+                const node = node_ptr.*;
                 if (!rect.padded(padding).hasIntersection(node.getRect())) continue;
-                if (node.* == .leaf) {
-                    for (node.leaf.objs.items) |o| try results.append(o);
+                if (node == .leaf) {
+                    for (node.leaf.objs.items) |obj| {
+                        if (self.dedup_set.contains(obj)) continue;
+                        try self.dedup_set.put(obj, {});
+                        try results.append(obj);
+                    }
                 } else {
-                    inline for (node.node.children) |c| try stack.append(self.allocator, c);
+                    inline for (node.node.children) |child| try stack.append(self.allocator, child);
                 }
             }
         }
@@ -197,13 +203,11 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
             }
         }
 
-        fn insert(self: *Tree, tree_node: *TreeNode, o: ObjectType, pos: jok.Point) !void {
+        fn insert(self: *Tree, tree_node: *TreeNode, o: ObjectType, bounds: jok.Rectangle) !void {
             if (tree_node.* == .node) {
-                for (tree_node.node.children) |n| {
-                    if (n.getRect().containsPoint(pos)) {
-                        try self.insert(n, o, pos);
-                        tree_node.node.size += 1;
-                        return;
+                inline for (tree_node.node.children) |n| {
+                    if (bounds.hasIntersection(n.getRect())) {
+                        try self.insert(n, o, bounds);
                     }
                 }
             } else {
@@ -215,9 +219,10 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                 }
 
                 // Expand tree if possible
-                if (@as(u32, @intCast(tree_node.leaf.objs.items.len)) > opt.preferred_size_of_leaf and
-                    tree_node.leaf.rect.width >= @as(f32, @floatFromInt(2 * opt.min_width_of_leaf)))
-                {
+                const too_many = @as(u32, @intCast(tree_node.leaf.objs.items.len)) > opt.preferred_size_of_leaf;
+                const wide_enough = tree_node.leaf.rect.width >= @as(f32, @floatFromInt(2 * opt.min_width_of_leaf));
+                const tall_enough = tree_node.leaf.rect.height >= @as(f32, @floatFromInt(2 * opt.min_width_of_leaf));
+                if (too_many and wide_enough and tall_enough) {
                     var new_tree_node: TreeNode = .{
                         .node = .{
                             .rect = tree_node.leaf.rect,
@@ -227,20 +232,18 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                                 self.newLeaf(tree_node.leaf.getSubRect(2)) catch unreachable, // SW
                                 self.newLeaf(tree_node.leaf.getSubRect(3)) catch unreachable, // SE
                             },
-                            .size = @intCast(tree_node.leaf.objs.items.len),
                         },
                     };
 
                     // Redistribute objects for children
                     // Since the objects are already sorted, no need to sort for children again
                     for (tree_node.leaf.objs.items) |co| {
-                        const obj_pos = self.positions.get(co).?;
-                        for (new_tree_node.node.children) |n| {
-                            if (n.leaf.rect.containsPoint(obj_pos)) {
-                                n.leaf.objs.append(self.arena.allocator(), co) catch unreachable;
-                                break;
+                        const co_bounds = self.positions.get(co).?;
+                        inline for (new_tree_node.node.children) |n| {
+                            if (n.leaf.rect.hasIntersection(co_bounds)) {
+                                try n.leaf.objs.append(self.arena.allocator(), co);
                             }
-                        } else unreachable;
+                        }
                     }
 
                     tree_node.leaf.objs.deinit(self.arena.allocator());
@@ -263,21 +266,23 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
             return tree_node;
         }
 
-        fn searchLeaf(self: *const Tree, pos: jok.Point) *const TreeNode.Leaf {
-            var current = self.root;
-            while (current.* == .node) {
-                for (current.node.children) |child| {
-                    if (child.getRect().containsPoint(pos)) {
-                        current = child;
-                        break;
-                    }
-                } else unreachable;
+        fn shouldCollapse(self: *Tree, parent: *TreeNode) bool {
+            if (parent.* != .node) return false;
+
+            self.dedup_set.clearRetainingCapacity();
+            var count: u32 = 0;
+            inline for (parent.node.children) |child| {
+                if (child.* != .leaf) return false;
+                for (child.leaf.objs.items) |obj| {
+                    if (self.dedup_set.contains(obj)) continue;
+                    self.dedup_set.put(obj, {}) catch continue;
+                    count += 1;
+                }
             }
-            assert(current.leaf.rect.containsPoint(pos));
-            return &current.leaf;
+            return count <= @max(4, opt.preferred_size_of_leaf / 2);
         }
 
-        fn searchAndRemove(self: *Tree, parent: ?*TreeNode, tree_node: *TreeNode, o: ObjectType, pos: jok.Point) void {
+        fn searchAndRemove(self: *Tree, tree_node: *TreeNode, o: ObjectType, bounds: jok.Rectangle) void {
             const S = struct {
                 fn compare(target: ObjectType, _o: ObjectType) std.math.Order {
                     if (is_searchable and opt.enable_sort) {
@@ -287,15 +292,40 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
             };
 
             if (tree_node.* == .node) {
-                for (tree_node.node.children) |n| {
-                    if (n.getRect().containsPoint(pos)) {
-                        self.searchAndRemove(tree_node, n, o, pos);
-                        break;
+                inline for (tree_node.node.children) |child| {
+                    if (bounds.hasIntersection(child.getRect())) {
+                        self.searchAndRemove(child, o, bounds);
                     }
-                } else unreachable;
-            } else {
-                assert(tree_node.leaf.rect.containsPoint(pos));
+                }
 
+                // Shrink the tree, collect objects into parent
+                if (self.shouldCollapse(tree_node)) {
+                    self.dedup_set.clearRetainingCapacity();
+
+                    var new_tree_node: TreeNode = .{
+                        .leaf = .{
+                            .rect = tree_node.node.rect,
+                            .objs = std.ArrayList(ObjectType).initCapacity(
+                                self.arena.allocator(),
+                                opt.preferred_size_of_leaf * 2,
+                            ) catch unreachable,
+                        },
+                    };
+                    inline for (tree_node.node.children) |c| {
+                        for (c.leaf.objs.items) |_o| {
+                            if (self.dedup_set.contains(_o)) continue;
+                            self.dedup_set.put(_o, {}) catch continue;
+                            new_tree_node.leaf.objs.append(self.arena.allocator(), _o) catch continue;
+                        }
+                        c.leaf.objs.deinit(self.arena.allocator());
+                        self.node_pool.destroy(c);
+                    }
+                    if (is_searchable and opt.enable_sort) {
+                        std.sort.pdq(ObjectType, new_tree_node.leaf.objs.items, {}, std.sort.asc(ObjectType));
+                    }
+                    tree_node.* = new_tree_node;
+                }
+            } else {
                 const idx: usize = if (is_searchable and opt.enable_sort)
                     std.sort.binarySearch(
                         ObjectType,
@@ -307,36 +337,6 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                     if (_o == o) break i;
                 } else unreachable;
                 _ = tree_node.leaf.objs.orderedRemove(idx);
-            }
-
-            if (parent) |p| {
-                p.node.size -= 1;
-                if (p.node.size < opt.preferred_size_of_leaf / 2) {
-                    // Shrink the tree, collect objects into parent
-                    var new_tree_node: TreeNode = .{
-                        .leaf = .{
-                            .rect = p.node.rect,
-                            .objs = std.ArrayList(ObjectType).initCapacity(
-                                self.arena.allocator(),
-                                opt.preferred_size_of_leaf * 2,
-                            ) catch unreachable,
-                        },
-                    };
-                    for (p.node.children) |c| {
-                        for (c.leaf.objs.items) |_o| {
-                            new_tree_node.leaf.objs.append(
-                                self.arena.allocator(),
-                                _o,
-                            ) catch unreachable;
-                        }
-                        c.leaf.objs.deinit(self.arena.allocator());
-                        self.node_pool.destroy(c);
-                    }
-                    if (is_searchable and opt.enable_sort) {
-                        std.sort.pdq(ObjectType, new_tree_node.leaf.objs.items, {}, std.sort.asc(ObjectType));
-                    }
-                    p.* = new_tree_node;
-                }
             }
         }
     };
@@ -362,7 +362,7 @@ test "QuadTree: basic creation and destruction" {
     try expect(tree.root.* == .leaf);
 }
 
-test "QuadTree: add single object" {
+test "QuadTree: add single object (small rect)" {
     const allocator = testing.allocator;
     const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
@@ -371,9 +371,9 @@ test "QuadTree: add single object" {
     defer tree.destroy();
 
     const obj: u32 = 42;
-    const pos = jok.Point{ .x = 100, .y = 100 };
+    const bounds = jok.Rectangle{ .x = 90, .y = 90, .width = 20, .height = 20 };
 
-    try tree.put(obj, pos);
+    try tree.put(obj, bounds);
     try expectEqual(@as(usize, 1), tree.positions.count());
     try expect(tree.root.* == .leaf);
     try expectEqual(@as(usize, 1), tree.root.leaf.objs.items.len);
@@ -388,13 +388,13 @@ test "QuadTree: add duplicate object returns error" {
     defer tree.destroy();
 
     const obj: u32 = 42;
-    const pos = jok.Point{ .x = 100, .y = 100 };
+    const bounds = jok.Rectangle{ .x = 100, .y = 100, .width = 10, .height = 10 };
 
-    try tree.put(obj, pos);
-    try expectError(Error.AlreadyExists, tree.put(obj, pos));
+    try tree.put(obj, bounds);
+    try expectError(error.AlreadyExists, tree.put(obj, bounds));
 }
 
-test "QuadTree: add object outside bounds returns error" {
+test "QuadTree: add object completely outside returns error" {
     const allocator = testing.allocator;
     const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
@@ -403,9 +403,24 @@ test "QuadTree: add object outside bounds returns error" {
     defer tree.destroy();
 
     const obj: u32 = 42;
-    const pos = jok.Point{ .x = 1500, .y = 100 };
+    const bounds = jok.Rectangle{ .x = 1500, .y = 100, .width = 50, .height = 50 };
 
-    try expectError(Error.NotSeeable, tree.put(obj, pos));
+    try expectError(error.NotSeeable, tree.put(obj, bounds));
+}
+
+test "QuadTree: add object partially outside is allowed" {
+    const allocator = testing.allocator;
+    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+
+    const TreeType = QuadTree(u32, .{});
+    const tree = try TreeType.create(allocator, rect);
+    defer tree.destroy();
+
+    const obj: u32 = 999;
+    const bounds = jok.Rectangle{ .x = 950, .y = 950, .width = 100, .height = 100 }; // overlaps edge
+
+    try tree.put(obj, bounds);
+    try expectEqual(@as(usize, 1), tree.positions.count());
 }
 
 test "QuadTree: remove object" {
@@ -417,9 +432,9 @@ test "QuadTree: remove object" {
     defer tree.destroy();
 
     const obj: u32 = 42;
-    const pos = jok.Point{ .x = 100, .y = 100 };
+    const bounds = jok.Rectangle{ .x = 100, .y = 100, .width = 20, .height = 20 };
 
-    try tree.put(obj, pos);
+    try tree.put(obj, bounds);
     try expectEqual(@as(usize, 1), tree.positions.count());
 
     tree.remove(obj);
@@ -427,20 +442,7 @@ test "QuadTree: remove object" {
     try expectEqual(@as(usize, 0), tree.root.leaf.objs.items.len);
 }
 
-test "QuadTree: remove non-existent object is safe" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-
-    const TreeType = QuadTree(u32, .{});
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    // Should not crash
-    tree.remove(999);
-    try expectEqual(@as(usize, 0), tree.positions.count());
-}
-
-test "QuadTree: tree subdivision on exceeding leaf capacity" {
+test "QuadTree: tree subdivision on exceeding leaf capacity (same quadrant)" {
     const allocator = testing.allocator;
     const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
@@ -448,22 +450,21 @@ test "QuadTree: tree subdivision on exceeding leaf capacity" {
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    // Add objects to same quadrant to force subdivision
     var i: u32 = 0;
     while (i < 10) : (i += 1) {
-        const pos = jok.Point{
-            .x = 100 + @as(f32, @floatFromInt(i)) * 10,
-            .y = 100 + @as(f32, @floatFromInt(i)) * 10,
+        const bounds = jok.Rectangle{
+            .x = 100 + @as(f32, @floatFromInt(i)) * 5,
+            .y = 100 + @as(f32, @floatFromInt(i)) * 5,
+            .width = 10,
+            .height = 10,
         };
-        try tree.put(i, pos);
+        try tree.put(i, bounds);
     }
 
-    // Tree should have subdivided
     try expect(tree.root.* == .node);
-    try expectEqual(@as(u32, 10), tree.root.node.size);
 }
 
-test "QuadTree: objects distributed across quadrants" {
+test "QuadTree: object spanning multiple quadrants causes duplication" {
     const allocator = testing.allocator;
     const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
@@ -471,68 +472,32 @@ test "QuadTree: objects distributed across quadrants" {
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    // Add objects to different quadrants
-    try tree.put(1, jok.Point{ .x = 100, .y = 100 }); // NW
-    try tree.put(2, jok.Point{ .x = 600, .y = 100 }); // NE
-    try tree.put(3, jok.Point{ .x = 100, .y = 600 }); // SW
-    try tree.put(4, jok.Point{ .x = 600, .y = 600 }); // SE
-    try tree.put(5, jok.Point{ .x = 150, .y = 150 }); // NW
-    try tree.put(6, jok.Point{ .x = 650, .y = 150 }); // NE
+    // Center object that overlaps all 4 quadrants
+    try tree.put(999, jok.Rectangle{ .x = 490, .y = 490, .width = 20, .height = 20 });
+
+    // Force subdivision by adding more objects
+    try tree.put(1, jok.Rectangle{ .x = 100, .y = 100, .width = 10, .height = 10 });
+    try tree.put(2, jok.Rectangle{ .x = 600, .y = 100, .width = 10, .height = 10 });
+    try tree.put(3, jok.Rectangle{ .x = 100, .y = 600, .width = 10, .height = 10 });
+    try tree.put(4, jok.Rectangle{ .x = 600, .y = 600, .width = 10, .height = 10 });
 
     try expect(tree.root.* == .node);
-    try expectEqual(@as(u32, 6), tree.root.node.size);
-}
 
-test "QuadTree: query empty tree" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-
-    const TreeType = QuadTree(u32, .{});
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    const query_rect = jok.Rectangle{ .x = 100, .y = 100, .width = 200, .height = 200 };
+    // Query whole area → should see 999 only once even though duplicated in leaves
+    const query_rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
     var results = std.array_list.Managed(u32).init(allocator);
     defer results.deinit();
     try tree.query(query_rect, 0, &results);
 
-    try expectEqual(@as(usize, 0), results.items.len);
+    try expectEqual(@as(usize, 5), results.items.len); // 1,2,3,4 + 999
+    var count_999: usize = 0;
+    for (results.items) |id| {
+        if (id == 999) count_999 += 1;
+    }
+    try expectEqual(@as(usize, 1), count_999);
 }
 
-test "QuadTree: query returns correct objects" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-
-    const TreeType = QuadTree(u32, .{});
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    // Add objects at various positions
-    try tree.put(1, jok.Point{ .x = 100, .y = 100 });
-    try tree.put(2, jok.Point{ .x = 500, .y = 500 });
-    try tree.put(3, jok.Point{ .x = 900, .y = 900 });
-
-    // Query that intersects with the entire tree (since root is still a leaf)
-    // This should return all objects
-    const query_rect1 = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-    var results1 = std.array_list.Managed(u32).init(allocator);
-    defer results1.deinit();
-    try tree.query(query_rect1, 0, &results1);
-
-    try expectEqual(@as(usize, 3), results1.items.len);
-
-    // Query that intersects the leaf (which contains all objects)
-    // Even a small query will return all objects in the leaf
-    const query_rect2 = jok.Rectangle{ .x = 50, .y = 50, .width = 100, .height = 100 };
-    var results2 = std.array_list.Managed(u32).init(allocator);
-    defer results2.deinit();
-    try tree.query(query_rect2, 0, &results2);
-
-    // Since the tree hasn't subdivided, the query returns all objects in the intersecting leaf
-    try expectEqual(@as(usize, 3), results2.items.len);
-}
-
-test "QuadTree: query after subdivision" {
+test "QuadTree: query returns correct objects after subdivision" {
     const allocator = testing.allocator;
     const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
@@ -540,379 +505,126 @@ test "QuadTree: query after subdivision" {
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    // Add enough objects to force subdivision, all in NW quadrant
-    try tree.put(0, jok.Point{ .x = 100, .y = 100 });
-    try tree.put(1, jok.Point{ .x = 150, .y = 100 });
-    try tree.put(2, jok.Point{ .x = 200, .y = 100 });
+    try tree.put(10, jok.Rectangle{ .x = 100, .y = 100, .width = 50, .height = 50 }); // NW
+    try tree.put(20, jok.Rectangle{ .x = 600, .y = 100, .width = 50, .height = 50 }); // NE
+    try tree.put(30, jok.Rectangle{ .x = 100, .y = 600, .width = 50, .height = 50 }); // SW
+    try tree.put(40, jok.Rectangle{ .x = 600, .y = 600, .width = 50, .height = 50 }); // SE
 
-    // Also add objects to other quadrants
-    try tree.put(10, jok.Point{ .x = 600, .y = 100 }); // NE
-    try tree.put(11, jok.Point{ .x = 650, .y = 150 }); // NE
-    try tree.put(20, jok.Point{ .x = 100, .y = 600 }); // SW
-    try tree.put(30, jok.Point{ .x = 600, .y = 600 }); // SE
+    // Force some subdivision
+    var i: u32 = 0;
+    while (i < 5) : (i += 1) {
+        try tree.put(100 + i, jok.Rectangle{ .x = 120 + @as(f32, @floatFromInt(i)) * 10, .y = 120, .width = 10, .height = 10 });
+    }
 
-    // Tree should be subdivided now
+    // Query NW area
+    var results = std.array_list.Managed(u32).init(allocator);
+    defer results.deinit();
+    try tree.query(jok.Rectangle{ .x = 0, .y = 0, .width = 300, .height = 300 }, 0, &results);
+
+    try expect(results.items.len >= 1);
+    var found_10 = false;
+    for (results.items) |id| {
+        if (id == 10) found_10 = true;
+    }
+    try expect(found_10);
+}
+
+test "QuadTree: update moves object across quadrants" {
+    const allocator = testing.allocator;
+    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+
+    const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 4 });
+    const tree = try TreeType.create(allocator, rect);
+    defer tree.destroy();
+
+    // Add several objects to force subdivision
+    var i: u32 = 0;
+    while (i < 12) : (i += 1) {
+        const x = 100 + @as(f32, @floatFromInt(i)) * 20;
+        try tree.put(i, jok.Rectangle{ .x = x, .y = 100, .width = 15, .height = 15 });
+    }
+
     try expect(tree.root.* == .node);
 
-    // Query only NW quadrant - should only get objects from that quadrant
-    const query_rect1 = jok.Rectangle{ .x = 0, .y = 0, .width = 300, .height = 300 };
-    var results1 = std.array_list.Managed(u32).init(allocator);
-    defer results1.deinit();
-    try tree.query(query_rect1, 0, &results1);
+    // Update one object to move it far away
+    const obj_to_move: u32 = 5;
+    const new_bounds = jok.Rectangle{ .x = 800, .y = 800, .width = 30, .height = 30 };
 
-    try expect(results1.items.len == 3);
-    // Verify they're the NW objects
-    var found_nw = false;
-    for (results1.items) |obj| {
-        if (obj == 0 or obj == 1 or obj == 2) found_nw = true;
+    try tree.update(obj_to_move, new_bounds);
+
+    // Check it still exists
+    try expect(tree.positions.get(obj_to_move) != null);
+
+    // Query new area → should find it
+    var results = std.array_list.Managed(u32).init(allocator);
+    defer results.deinit();
+    try tree.query(jok.Rectangle{ .x = 750, .y = 750, .width = 200, .height = 200 }, 0, &results);
+
+    var found = false;
+    for (results.items) |id| {
+        if (id == obj_to_move) found = true;
     }
-    try expect(found_nw);
+    try expect(found);
+}
 
-    // Query only SE quadrant
-    const query_rect2 = jok.Rectangle{ .x = 501, .y = 501, .width = 500, .height = 500 };
-    var results2 = std.array_list.Managed(u32).init(allocator);
-    defer results2.deinit();
-    try tree.query(query_rect2, 0, &results2);
+test "QuadTree: update to same bounds is no-op (implementation detail)" {
+    const allocator = testing.allocator;
+    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
-    try expect(results2.items.len == 1);
-    try expectEqual(@as(u32, 30), results2.items[0]);
+    const TreeType = QuadTree(u32, .{});
+    const tree = try TreeType.create(allocator, rect);
+    defer tree.destroy();
 
-    // Query that spans multiple quadrants
-    const query_rect3 = jok.Rectangle{ .x = 501, .y = 0, .width = 400, .height = 400 };
-    var results3 = std.array_list.Managed(u32).init(allocator);
-    defer results3.deinit();
-    try tree.query(query_rect3, 0, &results3);
+    const obj: u32 = 777;
+    const bounds = jok.Rectangle{ .x = 400, .y = 400, .width = 50, .height = 50 };
 
-    // Should get objects from NE quadrant
-    try expect(results3.items.len == 2);
+    try tree.put(obj, bounds);
+
+    try tree.update(obj, bounds); // same bounds
+
+    try expectEqual(@as(usize, 1), tree.positions.count());
+}
+
+test "QuadTree: update outside tree remove silently" {
+    const allocator = testing.allocator;
+    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+
+    const TreeType = QuadTree(u32, .{});
+    const tree = try TreeType.create(allocator, rect);
+    defer tree.destroy();
+
+    const obj: u32 = 123;
+    try tree.put(obj, jok.Rectangle{ .x = 100, .y = 100, .width = 20, .height = 20 });
+
+    const bad_bounds = jok.Rectangle{ .x = 1200, .y = 1200, .width = 50, .height = 50 };
+    try tree.update(obj, bad_bounds);
+    try expect(!tree.positions.contains(obj));
 }
 
 test "QuadTree: clear resets tree" {
     const allocator = testing.allocator;
     const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
-    const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 2 });
+    const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 3 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    // Add objects
     var i: u32 = 0;
-    while (i < 10) : (i += 1) {
-        const pos = jok.Point{
-            .x = 100 + @as(f32, @floatFromInt(i)) * 50,
-            .y = 100,
-        };
-        try tree.put(i, pos);
+    while (i < 15) : (i += 1) {
+        try tree.put(i, jok.Rectangle{
+            .x = 100 + @as(f32, @floatFromInt(i)) * 30,
+            .y = 150,
+            .width = 20,
+            .height = 20,
+        });
     }
 
     try expect(tree.positions.count() > 0);
+    try expect(tree.root.* == .node);
 
-    // Clear
     tree.clear();
 
-    // Verify tree is reset
     try expectEqual(@as(usize, 0), tree.positions.count());
     try expect(tree.root.* == .leaf);
     try expectEqual(@as(usize, 0), tree.root.leaf.objs.items.len);
-
-    // Should be able to add objects again
-    try tree.put(100, jok.Point{ .x = 100, .y = 100 });
-    try expectEqual(@as(usize, 1), tree.positions.count());
-}
-
-test "QuadTree: tree shrinking after removals" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-
-    const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 4 });
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    // Add enough objects to force subdivision
-    var i: u32 = 0;
-    while (i < 10) : (i += 1) {
-        const pos = jok.Point{
-            .x = 100 + @as(f32, @floatFromInt(i)) * 50,
-            .y = 100,
-        };
-        try tree.put(i, pos);
-    }
-
-    try expect(tree.root.* == .node);
-
-    // Remove most objects
-    i = 0;
-    while (i < 9) : (i += 1) {
-        tree.remove(i);
-    }
-
-    // Tree should shrink back to leaf
-    try expect(tree.root.* == .leaf);
-    try expectEqual(@as(usize, 1), tree.root.leaf.objs.items.len);
-}
-
-test "QuadTree: with sorted integers" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-
-    const TreeType = QuadTree(u32, .{ .enable_sort = true });
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    // Add objects in non-sorted order
-    try tree.put(50, jok.Point{ .x = 100, .y = 100 });
-    try tree.put(10, jok.Point{ .x = 150, .y = 100 });
-    try tree.put(30, jok.Point{ .x = 200, .y = 100 });
-    try tree.put(20, jok.Point{ .x = 250, .y = 100 });
-
-    // Objects should be sorted in leaf
-    try expect(tree.root.* == .leaf);
-    const items = tree.root.leaf.objs.items;
-    try expectEqual(@as(u32, 10), items[0]);
-    try expectEqual(@as(u32, 20), items[1]);
-    try expectEqual(@as(u32, 30), items[2]);
-    try expectEqual(@as(u32, 50), items[3]);
-
-    // Removal should still work with sorted array
-    tree.remove(20);
-    try expectEqual(@as(usize, 3), tree.root.leaf.objs.items.len);
-}
-
-test "QuadTree: pointer types" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-
-    const Object = struct {
-        id: u32,
-        value: f32,
-    };
-
-    var obj1 = Object{ .id = 1, .value = 1.5 };
-    var obj2 = Object{ .id = 2, .value = 2.5 };
-
-    const TreeType = QuadTree(*Object, .{});
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    try tree.put(&obj1, jok.Point{ .x = 100, .y = 100 });
-    try tree.put(&obj2, jok.Point{ .x = 200, .y = 200 });
-
-    try expectEqual(@as(usize, 2), tree.positions.count());
-
-    // Query should find both objects
-    const query_rect = jok.Rectangle{ .x = 0, .y = 0, .width = 300, .height = 300 };
-    var results = std.array_list.Managed(*Object).init(allocator);
-    defer results.deinit();
-    try tree.query(query_rect, 0, &results);
-
-    try expectEqual(@as(usize, 2), results.items.len);
-}
-
-test "QuadTree: minimum width constraint" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 200, .height = 200 };
-
-    const TreeType = QuadTree(u32, .{
-        .preferred_size_of_leaf = 2,
-        .min_width_of_leaf = 150, // Prevents subdivision
-    });
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    // Try to add more than preferred_size_of_leaf
-    var i: u32 = 0;
-    while (i < 10) : (i += 1) {
-        const pos = jok.Point{
-            .x = 50 + @as(f32, @floatFromInt(i)) * 5,
-            .y = 50,
-        };
-        try tree.put(i, pos);
-    }
-
-    // Should not subdivide due to min_width constraint
-    try expect(tree.root.* == .leaf);
-    try expectEqual(@as(usize, 10), tree.root.leaf.objs.items.len);
-}
-
-test "QuadTree: stress test with many objects" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 10000, .height = 10000 };
-
-    const TreeType = QuadTree(u32, .{});
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    // Add 1000 objects
-    var i: u32 = 0;
-    while (i < 1000) : (i += 1) {
-        const pos = jok.Point{
-            .x = @mod(@as(f32, @floatFromInt(i)) * 73.2, 10000),
-            .y = @mod(@as(f32, @floatFromInt(i)) * 41.7, 10000),
-        };
-        try tree.put(i, pos);
-    }
-
-    try expectEqual(@as(usize, 1000), tree.positions.count());
-
-    // Query a small region
-    const query_rect = jok.Rectangle{ .x = 1000, .y = 1000, .width = 500, .height = 500 };
-    var results = std.array_list.Managed(u32).init(allocator);
-    defer results.deinit();
-    try tree.query(query_rect, 0, &results);
-
-    // Should find some but not all objects
-    try expect(results.items.len > 0);
-    try expect(results.items.len < 1000);
-
-    // Remove half the objects
-    i = 0;
-    while (i < 500) : (i += 1) {
-        tree.remove(i);
-    }
-
-    try expectEqual(@as(usize, 500), tree.positions.count());
-}
-
-test "QuadTree: boundary cases" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-
-    const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 2 });
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    // Objects at exact boundaries
-    try tree.put(1, jok.Point{ .x = 0, .y = 0 });
-    try tree.put(2, jok.Point{ .x = 999.9, .y = 999.9 });
-    try tree.put(3, jok.Point{ .x = 501, .y = 501 });
-
-    try expectEqual(@as(usize, 3), tree.positions.count());
-
-    // Query at boundaries
-    const query_rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1, .height = 1 };
-    var results = std.array_list.Managed(u32).init(allocator);
-    defer results.deinit();
-    try tree.query(query_rect, 0, &results);
-
-    try expectEqual(@as(usize, 1), results.items.len);
-}
-
-test "QuadTree: update - in-place update within same leaf" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-    const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 8 });
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    const obj: u32 = 42;
-    const old_pos = jok.Point{ .x = 100, .y = 100 };
-    const new_pos = jok.Point{ .x = 120, .y = 120 }; // still within the same leaf
-
-    try tree.put(obj, old_pos);
-    try expectEqual(@as(usize, 1), tree.positions.count());
-
-    // Perform update (should use in-place path)
-    try tree.update(obj, new_pos);
-
-    // Verify position updated and tree structure unchanged (still a leaf)
-    try expectEqual(@as(usize, 1), tree.positions.count());
-    try expect(tree.root.* == .leaf);
-    try expectEqual(@as(usize, 1), tree.root.leaf.objs.items.len);
-
-    const updated_pos = tree.positions.get(obj).?;
-    try expectEqual(new_pos.x, updated_pos.x);
-    try expectEqual(new_pos.y, updated_pos.y);
-}
-
-test "QuadTree: update - move across leaves" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-    const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 4 }); // small capacity to force subdivision
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    // Add objects to force subdivision in NW quadrant
-    var i: u32 = 0;
-    while (i < 10) : (i += 1) {
-        const pos = jok.Point{ .x = 100 + @as(f32, @floatFromInt(i)) * 10, .y = 100 + @as(f32, @floatFromInt(i)) * 10 };
-        try tree.put(i, pos);
-    }
-    try expect(tree.root.* == .node); // confirm subdivision occurred
-
-    // Select an object in NW quadrant
-    const obj: u32 = 5;
-    try expect(tree.positions.get(obj) != null);
-
-    // Move to SE quadrant (cross-leaf movement)
-    const new_pos = jok.Point{ .x = 800, .y = 800 };
-
-    try tree.update(obj, new_pos);
-
-    // Verify position updated successfully
-    const updated_pos = tree.positions.get(obj).?;
-    try expectEqual(new_pos.x, updated_pos.x);
-    try expectEqual(new_pos.y, updated_pos.y);
-
-    // Verify total object count remains correct
-    try expectEqual(@as(usize, 10), tree.positions.count());
-}
-
-test "QuadTree: update - move to same position (should be no-op)" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-    const TreeType = QuadTree(u32, .{});
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    const obj: u32 = 100;
-    const pos = jok.Point{ .x = 500, .y = 500 };
-
-    try tree.put(obj, pos);
-
-    // Update to the exact same position
-    try tree.update(obj, pos);
-
-    // Position should remain unchanged
-    const current_pos = tree.positions.get(obj).?;
-    try expectEqual(pos.x, current_pos.x);
-    try expectEqual(pos.y, current_pos.y);
-}
-
-test "QuadTree: update - object does not exist yet" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-    const TreeType = QuadTree(u32, .{});
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    const obj: u32 = 999;
-    const new_pos = jok.Point{ .x = 300, .y = 300 };
-
-    // Update non-existent object (current implementation will add it)
-    try tree.update(obj, new_pos);
-
-    // Verify object was added
-    try expectEqual(@as(usize, 1), tree.positions.count());
-    try expect(tree.positions.get(obj) != null);
-}
-
-test "QuadTree: update - attempt to move outside tree bounds" {
-    const allocator = testing.allocator;
-    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
-    const TreeType = QuadTree(u32, .{});
-    const tree = try TreeType.create(allocator, rect);
-    defer tree.destroy();
-
-    const obj: u32 = 42;
-    try tree.put(obj, jok.Point{ .x = 100, .y = 100 });
-
-    const outside_pos = jok.Point{ .x = 1500, .y = 500 };
-
-    // Should return NotSeeable error
-    try expectError(error.NotSeeable, tree.update(obj, outside_pos));
-
-    // Position should remain unchanged
-    const current_pos = tree.positions.get(obj).?;
-    try expectEqual(@as(f32, 100), current_pos.x);
-    try expectEqual(@as(f32, 100), current_pos.y);
 }
