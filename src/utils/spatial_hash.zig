@@ -83,14 +83,8 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
                 return self.put(obj, new_bounds);
             }
 
-            // Fast path: if new bounds still fully contained in old cells
-            const old_bounds = old_bounds_opt.?;
-            if (old_bounds.containsRect(new_bounds)) {
-                self.positions.put(obj, new_bounds) catch unreachable;
-                return;
-            }
-
             // Full update needed
+            const old_bounds = old_bounds_opt.?;
             try self.fillIntersectingCells(old_bounds);
             for (self.temp_cells.items) |cell_idx| {
                 const bucket = &self.buckets[cell_idx];

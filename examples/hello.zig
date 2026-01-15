@@ -89,7 +89,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                 try point_easing_system.add(
                     &screenshot_pos,
                     easing.getEasingFn(.in_out_circ),
-                    easing.easePoint,
+                    easing.easePointLinearly,
                     1,
                     .origin,
                     .{ .x = csz.getWidthFloat() * 0.75, .y = 0 },
@@ -98,7 +98,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                 try point_easing_system.add(
                     &screenshot_size,
                     easing.getEasingFn(.out_bounce),
-                    easing.easePoint,
+                    easing.easePointLinearly,
                     1,
                     csz.toPoint(),
                     csz.toPoint().scale(0.2),
@@ -107,7 +107,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                 try color_easing_system.add(
                     &screenshot_tint_color,
                     easing.getEasingFn(.in_out_quad),
-                    easing.easeColorF,
+                    easing.easeColorFLinearly,
                     1,
                     .none,
                     .white,

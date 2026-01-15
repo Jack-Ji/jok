@@ -290,27 +290,27 @@ pub fn easePointLinearly(t: f32, from: jok.Point, to: jok.Point, data: ?*anyopaq
     };
 }
 
-pub fn easeColorLinearly(t: f32, _from: jok.Color, _to: jok.Color, _: ?*anyopaque) jok.Color {
+pub fn easeColorLinearly(t: f32, _from: jok.Color, _to: jok.Color, data: ?*anyopaque) jok.Color {
     const es = EaseVectorLinearly(4, u8);
     const from = @Vector(4, u8){ _from.r, _from.g, _from.b, _from.a };
     const to = @Vector(4, u8){ _to.r, _to.g, _to.b, _to.a };
-    const c = es.ease(t, from, to);
+    const c = es.ease(t, from, to, data);
     return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
 }
 
-pub fn easeColorFLinearly(t: f32, _from: jok.ColorF, _to: jok.ColorF, _: ?*anyopaque) jok.ColorF {
+pub fn easeColorFLinearly(t: f32, _from: jok.ColorF, _to: jok.ColorF, data: ?*anyopaque) jok.ColorF {
     const es = EaseVectorLinearly(4, f32);
     const from = @Vector(4, f32){ _from.r, _from.g, _from.b, _from.a };
     const to = @Vector(4, f32){ _to.r, _to.g, _to.b, _to.a };
-    const c = es.ease(t, from, to);
+    const c = es.ease(t, from, to, data);
     return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
 }
 
-pub fn easeArrayLinearly(t: f32, comptime N: usize, _from: [N]f32, _to: [N]f32, _: ?*anyopaque) [N]f32 {
+pub fn easeArrayLinearly(t: f32, comptime N: usize, _from: [N]f32, _to: [N]f32, data: ?*anyopaque) [N]f32 {
     const es = EaseVectorLinearly(N, f32);
     const from: @Vector(N, f32) = _from;
     const to: @Vector(N, f32) = _to;
-    return es.ease(t, from, to);
+    return es.ease(t, from, to, data);
 }
 
 ///////////////////////////////////////////////////////////////////////
