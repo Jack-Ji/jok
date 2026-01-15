@@ -30,7 +30,7 @@ const EasingBlock = struct {
         try es.add(
             &self.pos,
             easing.getEasingFn(@enumFromInt(@as(u8, @intCast(self.id)))),
-            easing.easePoint,
+            easing.easePointLinearly,
             2,
             .{
                 .x = 150,
