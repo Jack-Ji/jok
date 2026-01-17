@@ -23,17 +23,8 @@ const Object = struct {
     pos: jok.Point,
     velocity: jok.Point,
 
-    fn getBounds(o: Object) jok.Rectangle {
-        return .{
-            .x = o.pos.x - 16,
-            .y = o.pos.y - 16,
-            .width = 32,
-            .height = 32,
-        };
-    }
-
     fn draw(o: Object, b: *j2d.Batch, color: ?jok.Color) !void {
-        try b.rectFilled(o.getBounds(), color orelse .blue, .{});
+        try b.circleFilled(.{ .center = o.pos, .radius = 5 }, color orelse .blue, .{});
     }
 };
 
@@ -82,9 +73,11 @@ pub fn update(ctx: jok.Context) !void {
         c.pos = c.pos.add(c.velocity.scale(ctx.deltaSeconds()));
 
         if (move_in_tree) {
-            try qtree.update(@intCast(i), c.getBounds());
+            qtree.update(@intCast(i), c.pos) catch |e| {
+                if (e != error.NotSeeable) @panic("oops");
+            };
         } else {
-            qtree.put(@intCast(i), c.getBounds()) catch |e| {
+            qtree.put(@intCast(i), c.pos) catch |e| {
                 if (e != error.NotSeeable) @panic("oops");
             };
         }

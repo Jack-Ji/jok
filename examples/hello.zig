@@ -107,7 +107,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
                 try color_easing_system.add(
                     &screenshot_tint_color,
                     easing.getEasingFn(.in_out_quad),
-                    easing.easeColorFLinearly,
+                    easing.easeColorfLinearly,
                     1,
                     .none,
                     .white,

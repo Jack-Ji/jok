@@ -298,7 +298,7 @@ pub fn easeColorLinearly(t: f32, _from: jok.Color, _to: jok.Color, data: ?*anyop
     return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
 }
 
-pub fn easeColorFLinearly(t: f32, _from: jok.ColorF, _to: jok.ColorF, data: ?*anyopaque) jok.ColorF {
+pub fn easeColorfLinearly(t: f32, _from: jok.ColorF, _to: jok.ColorF, data: ?*anyopaque) jok.ColorF {
     const es = EaseVectorLinearly(4, f32);
     const from = @Vector(4, f32){ _from.r, _from.g, _from.b, _from.a };
     const to = @Vector(4, f32){ _to.r, _to.g, _to.b, _to.a };

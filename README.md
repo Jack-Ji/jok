@@ -40,7 +40,7 @@ A minimal 2d/3d game framework for zig.
 * Windows
 * Linux
 * MacOS
-* WebAssembly
+* ~~WebAssembly~~ (not yet)
 
 TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem` with `.Windows` in your build script.
 
@@ -109,7 +109,7 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
             const run_step = b.step("run", "Run game");
             run_step.dependOn(&run_cmd.step);
         } else {
-            const webapp = createWebApp(
+            const webapp = jok.createWebApp(
                     b,
                     "mygame",
                     "src/main.zig",
