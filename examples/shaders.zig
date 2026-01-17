@@ -11,15 +11,10 @@ pub const jok_window_size = jok.config.WindowSize.maximized;
 var batchpool_2d: j2d.BatchPool(64, false) = undefined;
 var image: jok.Texture = undefined;
 var shader_param: ShaderParam = undefined;
-var shader_default: jok.PixelShader = undefined;
-var shader_chromaticberration: jok.PixelShader = undefined;
-var shader_dissolve: jok.PixelShader = undefined;
-var shader_lighting: jok.PixelShader = undefined;
-var shader_water: jok.PixelShader = undefined;
-var shader_ocean: jok.PixelShader = undefined;
+var shaders: [@typeInfo(ShaderChoice).@"enum".fields.len]jok.PixelShader = undefined;
 var shader_choice: ShaderChoice = .default;
 
-const ShaderChoice = enum {
+const ShaderChoice = enum(u8) {
     default,
     chromaticberration,
     dissolve,
@@ -27,15 +22,27 @@ const ShaderChoice = enum {
     water,
     ocean,
 
-    fn getShader(s: ShaderChoice) jok.PixelShader {
-        return switch (s) {
-            .default => shader_default,
-            .chromaticberration => shader_chromaticberration,
-            .dissolve => shader_dissolve,
-            .lighting => shader_lighting,
-            .water => shader_water,
-            .ocean => shader_ocean,
+    fn getPath(s: ShaderChoice, cfg: jok.config.Config) [:0]const u8 {
+        const prefix = if (cfg.jok_enable_physfs) "shaders/" else "assets/shaders/";
+        const name = switch (s) {
+            .default => "default",
+            .chromaticberration => "chromaticberration",
+            .dissolve => "dissolve",
+            .lighting => "lighting",
+            .water => "water",
+            .ocean => "ocean",
         };
+        const suffix = switch (builtin.os.tag) {
+            .linux => ".spv",
+            .windows => ".dxil",
+            .macos => ".msl",
+            else => unreachable,
+        };
+        return zgui.formatZ("{s}{s}{s}", .{ prefix, name, suffix });
+    }
+
+    fn getShader(s: ShaderChoice) jok.PixelShader {
+        return shaders[@intFromEnum(s)];
     }
 };
 
@@ -64,113 +71,15 @@ pub fn init(ctx: jok.Context) !void {
     const info = try image.query();
     try ctx.setCanvasSize(.{ .width = info.width, .height = info.height });
 
-    shader_default = try ctx.loadShader(
-        if (ctx.cfg().jok_enable_physfs)
-            switch (builtin.os.tag) {
-                .linux => "shaders/default.spv",
-                .macos => "shaders/default.msl",
-                .windows => "shaders/default.dxil",
-                else => unreachable,
-            }
-        else switch (builtin.os.tag) {
-            .windows => "assets/shaders/default.dxil",
-            .macos => "assets/shaders/default.msl",
-            .linux => "assets/shaders/default.spv",
-            else => unreachable,
-        },
-        null,
-        null,
-    );
-
-    shader_chromaticberration = try ctx.loadShader(
-        if (ctx.cfg().jok_enable_physfs)
-            switch (builtin.os.tag) {
-                .windows => "shaders/chromaticberration.dxil",
-                .macos => "shaders/chromaticberration.msl",
-                .linux => "shaders/chromaticberration.spv",
-                else => unreachable,
-            }
-        else switch (builtin.os.tag) {
-            .windows => "assets/shaders/chromaticberration.dxil",
-            .macos => "assets/shaders/chromaticberration.msl",
-            .linux => "assets/shaders/chromaticberration.spv",
-            else => unreachable,
-        },
-        null,
-        null,
-    );
-
-    shader_dissolve = try ctx.loadShader(
-        if (ctx.cfg().jok_enable_physfs)
-            switch (builtin.os.tag) {
-                .windows => "shaders/dissolve.dxil",
-                .macos => "shaders/dissolve.msl",
-                .linux => "shaders/dissolve.spv",
-                else => unreachable,
-            }
-        else switch (builtin.os.tag) {
-            .windows => "assets/shaders/dissolve.dxil",
-            .macos => "assets/shaders/dissolve.msl",
-            .linux => "assets/shaders/dissolve.spv",
-            else => unreachable,
-        },
-        null,
-        null,
-    );
-
-    shader_lighting = try ctx.loadShader(
-        if (ctx.cfg().jok_enable_physfs)
-            switch (builtin.os.tag) {
-                .windows => "shaders/lighting.dxil",
-                .macos => "shaders/lighting.msl",
-                .linux => "shaders/lighting.spv",
-                else => unreachable,
-            }
-        else switch (builtin.os.tag) {
-            .windows => "assets/shaders/lighting.dxil",
-            .macos => "assets/shaders/lighting.msl",
-            .linux => "assets/shaders/lighting.spv",
-            else => unreachable,
-        },
-        null,
-        null,
-    );
-
-    shader_water = try ctx.loadShader(
-        if (ctx.cfg().jok_enable_physfs)
-            switch (builtin.os.tag) {
-                .windows => "shaders/water.dxil",
-                .macos => "shaders/water.msl",
-                .linux => "shaders/water.spv",
-                else => unreachable,
-            }
-        else switch (builtin.os.tag) {
-            .windows => "assets/shaders/water.dxil",
-            .macos => "assets/shaders/water.msl",
-            .linux => "assets/shaders/water.spv",
-            else => unreachable,
-        },
-        null,
-        null,
-    );
-
-    shader_ocean = try ctx.loadShader(
-        if (ctx.cfg().jok_enable_physfs)
-            switch (builtin.os.tag) {
-                .windows => "shaders/ocean.dxil",
-                .macos => "shaders/ocean.msl",
-                .linux => "shaders/ocean.spv",
-                else => unreachable,
-            }
-        else switch (builtin.os.tag) {
-            .windows => "assets/shaders/ocean.dxil",
-            .macos => "assets/shaders/ocean.msl",
-            .linux => "assets/shaders/ocean.spv",
-            else => unreachable,
-        },
-        null,
-        null,
-    );
+    const type_info = @typeInfo(ShaderChoice);
+    for (0..type_info.@"enum".fields.len) |i| {
+        const shader_type: ShaderChoice = @enumFromInt(i);
+        shaders[i] = try ctx.loadShader(
+            shader_type.getPath(ctx.cfg()),
+            null,
+            null,
+        );
+    }
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {
@@ -209,11 +118,7 @@ pub fn draw(ctx: jok.Context) !void {
 pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
-    shader_default.destroy();
-    shader_chromaticberration.destroy();
-    shader_dissolve.destroy();
-    shader_lighting.destroy();
-    shader_water.destroy();
+    for (shaders) |s| s.destroy();
     image.destroy();
     batchpool_2d.deinit();
 }
