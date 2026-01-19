@@ -25,52 +25,52 @@ pub fn init(allocator: std.mem.Allocator, opt: InitOption) Self {
     assert(opt.plane_stacks > 0);
     return .{
         .box_planes = .{
-            BLK: {
+            blk: {
                 // right side
                 var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
                 shape.scale(2, 2, 0);
                 shape.rotate(math.pi * 0.5, 0, 1, 0);
                 shape.translate(1.0, -1.0, 1.0);
-                break :BLK shape;
+                break :blk shape;
             },
-            BLK: {
+            blk: {
                 // left side
                 var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
                 shape.scale(2, 2, 0);
                 shape.rotate(-math.pi * 0.5, 0, 1, 0);
                 shape.translate(-1.0, -1.0, -1.0);
-                break :BLK shape;
+                break :blk shape;
             },
-            BLK: {
+            blk: {
                 // top side
                 var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
                 shape.scale(2, 2, 0);
                 shape.rotate(-math.pi * 0.5, 1, 0, 0);
                 shape.translate(-1.0, 1.0, 1.0);
-                break :BLK shape;
+                break :blk shape;
             },
-            BLK: {
+            blk: {
                 // bottom side
                 var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
                 shape.scale(2, 2, 0);
                 shape.rotate(math.pi * 0.5, 1, 0, 0);
                 shape.translate(-1.0, -1.0, -1.0);
-                break :BLK shape;
+                break :blk shape;
             },
-            BLK: {
+            blk: {
                 // front side
                 var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
                 shape.scale(2, 2, 0);
                 shape.translate(-1.0, -1.0, 1.0);
-                break :BLK shape;
+                break :blk shape;
             },
-            BLK: {
+            blk: {
                 // back side
                 var shape = zmesh.Shape.initPlane(opt.plane_slices, opt.plane_stacks);
                 shape.scale(2, 2, 0);
                 shape.rotate(math.pi, 0, 1, 0);
                 shape.translate(1.0, -1.0, -1.0);
-                break :BLK shape;
+                break :blk shape;
             },
         },
         .clip_vertices = .init(allocator),

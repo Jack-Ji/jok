@@ -529,11 +529,11 @@ pub inline fn getVerticesOfCodePoint(
     const pxpos = &xpos;
     const pypos = &ypos;
 
-    const idx = self.codepoint_search.get(codepoint) orelse BLK: {
+    const idx = self.codepoint_search.get(codepoint) orelse blk: {
         for (self.ranges, 0..) |range, idx| {
             if (codepoint < range.codepoint_begin or codepoint > range.codepoint_end) continue;
             self.codepoint_search.put(codepoint, @intCast(idx)) catch unreachable;
-            break :BLK @as(u32, @intCast(idx));
+            break :blk @as(u32, @intCast(idx));
         } else {
             return null;
         }

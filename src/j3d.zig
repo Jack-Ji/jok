@@ -135,16 +135,16 @@ pub const Batch = struct {
                 .pmin = .{ r.x, r.y },
                 .pmax = .{ r.x + r.width, r.y + r.height },
             }
-        else BLK: {
+        else blk: {
             if (opt.offscreen_target) |tex| {
                 const info = tex.query() catch unreachable;
-                break :BLK .{
+                break :blk .{
                     .pmin = .{ 0, 0 },
                     .pmax = .{ @floatFromInt(info.width), @floatFromInt(info.height) },
                 };
             }
             const csz = self.ctx.getCanvasSize();
-            break :BLK .{
+            break :blk .{
                 .pmin = .{ 0, 0 },
                 .pmax = .{ @floatFromInt(csz.width), @floatFromInt(csz.height) },
             };
@@ -160,8 +160,8 @@ pub const Batch = struct {
         self.depths.clearRetainingCapacity();
         self.textures.clearRetainingCapacity();
         self.all_tex.clearAndFree();
-        self.camera = opt.camera orelse BLK: {
-            break :BLK Camera.fromPositionAndTarget(
+        self.camera = opt.camera orelse blk: {
+            break :blk Camera.fromPositionAndTarget(
                 .{
                     .perspective = .{
                         .fov = math.pi / 4.0,

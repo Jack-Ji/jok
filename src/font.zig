@@ -34,7 +34,7 @@ pub const DebugFont = struct {
     }
 
     pub fn getAtlas(ctx: jok.Context, font_size: u32) !*Atlas {
-        return atlases.get(font_size) orelse BLK: {
+        return atlases.get(font_size) orelse blk: {
             const a = try font.createAtlas(
                 ctx,
                 font_size,
@@ -42,7 +42,7 @@ pub const DebugFont = struct {
                 .{},
             );
             try atlases.put(font_size, a);
-            break :BLK a;
+            break :blk a;
         };
     }
 };

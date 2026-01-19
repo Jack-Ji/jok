@@ -109,7 +109,7 @@ pub fn render(
                     ch.samples[0]
                 else if (opt.playtime >= ch.timesteps[ch.timesteps.len - 1])
                     ch.samples[ch.timesteps.len - 1]
-                else BLK: {
+                else blk: {
                     var index: usize = 0;
                     for (ch.timesteps) |t| {
                         if (opt.playtime < t) {
@@ -124,9 +124,9 @@ pub fn render(
                             const v1 = ch.samples[index + 1];
                             const t = (opt.playtime - ch.timesteps[index]) /
                                 (ch.timesteps[index + 1] - ch.timesteps[index]);
-                            break :BLK zmath.lerp(v0, v1, t);
+                            break :blk zmath.lerp(v0, v1, t);
                         },
-                        .step => break :BLK ch.samples[index],
+                        .step => break :blk ch.samples[index],
                         else => unreachable,
                     }
                 };
@@ -145,7 +145,7 @@ pub fn render(
                         ch.samples[0]
                     else if (opt.playtime >= ch.timesteps[ch.timesteps.len - 1])
                         ch.samples[ch.timesteps.len - 1]
-                    else BLK: {
+                    else blk: {
                         var index: usize = 0;
                         for (ch.timesteps) |t| {
                             if (opt.playtime < t) {
@@ -160,9 +160,9 @@ pub fn render(
                                 const v1 = @as(zmath.Quat, ch.samples[index + 1]);
                                 const t = (opt.playtime - ch.timesteps[index]) /
                                     (ch.timesteps[index + 1] - ch.timesteps[index]);
-                                break :BLK zmath.slerp(v0, v1, t);
+                                break :blk zmath.slerp(v0, v1, t);
                             },
-                            .step => break :BLK ch.samples[index],
+                            .step => break :blk ch.samples[index],
                             else => unreachable,
                         }
                     },
@@ -180,7 +180,7 @@ pub fn render(
                     ch.samples[0]
                 else if (opt.playtime >= ch.timesteps[ch.timesteps.len - 1])
                     ch.samples[ch.timesteps.len - 1]
-                else BLK: {
+                else blk: {
                     var index: usize = 0;
                     for (ch.timesteps) |t| {
                         if (opt.playtime < t) {
@@ -195,9 +195,9 @@ pub fn render(
                             const v1 = ch.samples[index + 1];
                             const t = (opt.playtime - ch.timesteps[index]) /
                                 (ch.timesteps[index + 1] - ch.timesteps[index]);
-                            break :BLK zmath.lerp(v0, v1, t);
+                            break :blk zmath.lerp(v0, v1, t);
                         },
-                        .step => break :BLK ch.samples[index],
+                        .step => break :blk ch.samples[index],
                         else => @panic("unrechable"),
                     }
                 };

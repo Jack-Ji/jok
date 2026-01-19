@@ -1094,10 +1094,10 @@ const MemAdapter = struct {
         mem_mutex.lock();
         defer mem_mutex.unlock();
 
-        const old_mem = if (maybe_ptr) |ptr| BLK: {
+        const old_mem = if (maybe_ptr) |ptr| blk: {
             const kv = mem_allocations.fetchRemove(@intFromPtr(ptr)).?;
             const old_size = kv.value;
-            break :BLK @as([*]align(mem_alignment.toByteUnits()) u8, @ptrCast(@alignCast(ptr)))[0..old_size];
+            break :blk @as([*]align(mem_alignment.toByteUnits()) u8, @ptrCast(@alignCast(ptr)))[0..old_size];
         } else null;
 
         const new_mem = if (old_mem) |m| mem_allocator.realloc(

@@ -272,7 +272,7 @@ pub fn renderMesh(
         }
 
         // Clip triangles behind camera
-        const tri_world_normals: ?[3]zmath.Vec = if (normals) |ns| BLK: {
+        const tri_world_normals: ?[3]zmath.Vec = if (normals) |ns| blk: {
             const n0 = zmath.f32x4(ns[idx0][0], ns[idx0][1], ns[idx0][2], 0);
             const n1 = zmath.f32x4(ns[idx1][0], ns[idx1][1], ns[idx1][2], 0);
             const n2 = zmath.f32x4(ns[idx2][0], ns[idx2][1], ns[idx2][2], 0);
@@ -294,7 +294,7 @@ pub fn renderMesh(
             world_n0[3] = 0;
             world_n1[3] = 0;
             world_n2[3] = 0;
-            break :BLK .{
+            break :blk .{
                 zmath.normalize3(world_n0),
                 zmath.normalize3(world_n1),
                 zmath.normalize3(world_n2),
@@ -370,23 +370,23 @@ pub fn renderMesh(
                 const c0_diffuse = if (colors) |_| self.clip_colors.items[idx0] else opt.color;
                 const c1_diffuse = if (colors) |_| self.clip_colors.items[idx1] else opt.color;
                 const c2_diffuse = if (colors) |_| self.clip_colors.items[idx2] else opt.color;
-                c0 = if (normals != null and opt.lighting != null) BLK: {
+                c0 = if (normals != null and opt.lighting != null) blk: {
                     const n0 = self.world_normals.items[idx0];
                     const p = opt.lighting.?;
                     const calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
-                    break :BLK calc(c0_diffuse, camera.position, world_v0, n0, p);
+                    break :blk calc(c0_diffuse, camera.position, world_v0, n0, p);
                 } else c0_diffuse;
-                c1 = if (normals != null and opt.lighting != null) BLK: {
+                c1 = if (normals != null and opt.lighting != null) blk: {
                     const n1 = self.world_normals.items[idx1];
                     const p = opt.lighting.?;
                     const calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
-                    break :BLK calc(c1_diffuse, camera.position, world_v1, n1, p);
+                    break :blk calc(c1_diffuse, camera.position, world_v1, n1, p);
                 } else c1_diffuse;
-                c2 = if (normals != null and opt.lighting != null) BLK: {
+                c2 = if (normals != null and opt.lighting != null) blk: {
                     const n2 = self.world_normals.items[idx2];
                     const p = opt.lighting.?;
                     const calc = if (p.light_calc_fn) |f| f else &lighting.calcLightColor;
-                    break :BLK calc(c2_diffuse, camera.position, world_v2, n2, p);
+                    break :blk calc(c2_diffuse, camera.position, world_v2, n2, p);
                 } else c2_diffuse;
             },
             .flat => {
@@ -396,7 +396,7 @@ pub fn renderMesh(
                     .b = (self.clip_colors.items[idx0].b + self.clip_colors.items[idx1].b + self.clip_colors.items[idx2].b) / 3.0,
                     .a = (self.clip_colors.items[idx0].a + self.clip_colors.items[idx1].a + self.clip_colors.items[idx2].a) / 3.0,
                 } else opt.color;
-                c0 = if (opt.lighting) |lt| BLK: {
+                c0 = if (opt.lighting) |lt| blk: {
                     var center = (world_v0 + world_v1 + world_v2) / zmath.f32x4s(3);
                     center[3] = 1.0;
                     var normal = zmath.normalize3(switch (opt.front_face) {
@@ -405,7 +405,7 @@ pub fn renderMesh(
                     });
                     normal[3] = 0;
                     const calc = if (lt.light_calc_fn) |f| f else &lighting.calcLightColor;
-                    break :BLK calc(c0_diffuse, camera.position, center, normal, lt);
+                    break :blk calc(c0_diffuse, camera.position, center, normal, lt);
                 } else c0_diffuse;
                 c1 = c0;
                 c2 = c0;

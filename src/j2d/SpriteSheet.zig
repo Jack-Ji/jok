@@ -116,13 +116,13 @@ pub fn create(
                 var image_width: c_int = undefined;
                 var image_height: c_int = undefined;
                 var image_channels: c_int = undefined;
-                const filedata = BLK: {
+                const filedata = blk: {
                     if (ctx.cfg().jok_enable_physfs) {
                         const file = try physfs.open(path, .read);
                         defer file.close();
-                        break :BLK try file.readAllAlloc(allocator);
+                        break :blk try file.readAllAlloc(allocator);
                     } else {
-                        break :BLK try std.Io.Dir.cwd().readFileAlloc(
+                        break :blk try std.Io.Dir.cwd().readFileAlloc(
                             ctx.io(),
                             std.mem.sliceTo(path, 0),
                             allocator,

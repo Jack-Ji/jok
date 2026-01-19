@@ -269,12 +269,12 @@ pub fn EaseVectorLinearly(comptime N: u32, comptime T: type) type {
             return switch (T) {
                 f32 => @mulAdd(Vec, to - from, @as(Vec, @splat(t)), from),
                 f64 => @mulAdd(Vec, to - from, @as(Vec, @splat(@as(f64, @floatCast(t)))), from),
-                c_int, i8, i16, i32, i64, u8, u16, u32, u64 => BLK: {
+                c_int, i8, i16, i32, i64, u8, u16, u32, u64 => blk: {
                     const VecN = @Vector(N, f64);
                     const from_f64 = convert(T, f64, from);
                     const to_f64 = convert(T, f64, to);
                     const result_f64 = @mulAdd(VecN, to_f64 - from_f64, @as(VecN, @splat(@as(f64, t))), from_f64);
-                    break :BLK convert(f64, T, result_f64);
+                    break :blk convert(f64, T, result_f64);
                 },
                 else => unreachable,
             };

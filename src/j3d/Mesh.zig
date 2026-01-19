@@ -476,14 +476,14 @@ pub fn fromObj(
     mtl_file_path: ?[:0]const u8,
     opt: ObjOption,
 ) !*Self {
-    const obj_file_data = BLK: {
+    const obj_file_data = blk: {
         if (ctx.cfg().jok_enable_physfs) {
             const handle = try physfs.open(obj_file_path, .read);
             defer handle.close();
-            break :BLK try handle.readAllAlloc(ctx.allocator());
+            break :blk try handle.readAllAlloc(ctx.allocator());
         } else {
             const idx = std.mem.indexOfSentinel(u8, 0, obj_file_path);
-            break :BLK try std.Io.Dir.cwd().readFileAlloc(
+            break :blk try std.Io.Dir.cwd().readFileAlloc(
                 ctx.io(),
                 obj_file_path[0..idx :0],
                 ctx.allocator(),
@@ -493,15 +493,15 @@ pub fn fromObj(
     };
     defer ctx.allocator().free(obj_file_data);
 
-    const mtl_file_data = BLK: {
+    const mtl_file_data = blk: {
         if (mtl_file_path) |p| {
             if (ctx.cfg().jok_enable_physfs) {
                 const handle = try physfs.open(p, .read);
                 defer handle.close();
-                break :BLK try handle.readAllAlloc(ctx.allocator());
+                break :blk try handle.readAllAlloc(ctx.allocator());
             } else {
                 const idx = std.mem.indexOfSentinel(u8, 0, p);
-                break :BLK try std.Io.Dir.cwd().readFileAlloc(
+                break :blk try std.Io.Dir.cwd().readFileAlloc(
                     ctx.io(),
                     p[0..idx :0],
                     ctx.allocator(),
@@ -509,7 +509,7 @@ pub fn fromObj(
                 );
             }
         } else {
-            break :BLK null;
+            break :blk null;
         }
     };
     defer if (mtl_file_data) |d| ctx.allocator().free(d);
@@ -667,7 +667,7 @@ pub fn fromGltf(ctx: jok.Context, file_path: [:0]const u8, opt: GltfOption) !*Se
     var filedata: ?[]const u8 = null;
     defer if (filedata) |d| ctx.allocator().free(d);
 
-    const data = BLK: {
+    const data = blk: {
         if (ctx.cfg().jok_enable_physfs) {
             const handle = try physfs.open(file_path, .read);
             defer handle.close();
@@ -682,11 +682,11 @@ pub fn fromGltf(ctx: jok.Context, file_path: [:0]const u8, opt: GltfOption) !*Se
             filedata = try handle.readAllAlloc(ctx.allocator());
             const data = try zmesh.io.zcgltf.bindings.parse(options, filedata.?);
             try zmesh.io.zcgltf.bindings.loadBuffers(options, data, file_path);
-            break :BLK data;
+            break :blk data;
         } else {
             const idx = std.mem.indexOfSentinel(u8, 0, file_path);
             const data = try zmesh.io.parseAndLoadFile(file_path[0..idx :0]);
-            break :BLK data;
+            break :blk data;
         }
     };
     defer zmesh.io.freeData(data);

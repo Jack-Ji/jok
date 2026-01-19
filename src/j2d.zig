@@ -108,10 +108,10 @@ pub const Batch = struct {
         self.trs = .init;
         self.depth_sort = opt.depth_sort;
         self.blend_mode = opt.blend_mode;
-        self.clip_rect = opt.clip_rect orelse BLK: {
+        self.clip_rect = opt.clip_rect orelse blk: {
             if (opt.offscreen_target) |tex| {
                 const info = tex.query() catch unreachable;
-                break :BLK .{
+                break :blk .{
                     .x = 0,
                     .y = 0,
                     .width = @floatFromInt(info.width),
@@ -119,7 +119,7 @@ pub const Batch = struct {
                 };
             }
             const csz = self.ctx.getCanvasSize();
-            break :BLK .{
+            break :blk .{
                 .x = 0,
                 .y = 0,
                 .width = csz.getWidthFloat(),
@@ -324,9 +324,9 @@ pub const Batch = struct {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const scaling = self.trs.getScale();
-        const size = opt.size orelse BLK: {
+        const size = opt.size orelse blk: {
             const info = try texture.query();
-            break :BLK jok.Size{
+            break :blk jok.Size{
                 .width = info.width,
                 .height = info.height,
             };
@@ -377,9 +377,9 @@ pub const Batch = struct {
         if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
         const _size: jok.Point = if (opt.size) |sz|
             sz.toPoint()
-        else BLK: {
+        else blk: {
             const info = try texture.query();
-            break :BLK .{
+            break :blk .{
                 .x = @floatFromInt(info.width),
                 .y = @floatFromInt(info.height),
             };

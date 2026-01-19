@@ -50,20 +50,15 @@ pub const Renderer = struct {
     pub fn init(ctx: jok.Context) !Renderer {
         const cfg = ctx.cfg();
         const renderer: ?*sdl.SDL_Renderer, const gpu: ?*sdl.SDL_GPUDevice =
-            BLK: switch (cfg.jok_renderer_type) {
+            blk: switch (cfg.jok_renderer_type) {
                 .software => {
                     const surface = sdl.SDL_GetWindowSurface(ctx.window().ptr);
-                    break :BLK .{ sdl.SDL_CreateSoftwareRenderer(surface), null };
+                    break :blk .{ sdl.SDL_CreateSoftwareRenderer(surface).?, null };
                 },
                 .accelerated => {
-                    const props = sdl.SDL_CreateProperties();
-                    _ = sdl.SDL_SetPointerProperty(props, sdl.SDL_PROP_RENDERER_CREATE_WINDOW_POINTER, ctx.window().ptr);
-                    if (cfg.jok_fps_limit == .auto) {
-                        _ = sdl.SDL_SetNumberProperty(props, sdl.SDL_PROP_RENDERER_CREATE_PRESENT_VSYNC_NUMBER, 1);
-                    }
-                    const rd = sdl.SDL_CreateRendererWithProperties(props);
-                    if (rd == null) continue :BLK .software; // Fallback to software
-                    break :BLK .{ rd.?, null };
+                    const rd = sdl.SDL_CreateRenderer(ctx.window().ptr, null);
+                    if (rd == null) continue :blk .software; // Fallback to software
+                    break :blk .{ rd.?, null };
                 },
                 .gpu => {
                     const gpu = sdl.SDL_CreateGPUDevice(
@@ -75,8 +70,10 @@ pub const Renderer = struct {
                         bulitin.mode == .Debug,
                         null,
                     );
-                    if (gpu == null) continue :BLK .accelerated; // Fallback to accelerated
-                    break :BLK .{ sdl.SDL_CreateGPURenderer(gpu, ctx.window().ptr), gpu };
+                    if (gpu == null) continue :blk .accelerated; // Fallback to accelerated
+                    const rd = sdl.SDL_CreateGPURenderer(gpu, ctx.window().ptr);
+                    if (rd == null) continue :blk .accelerated; // Fallback to accelerated
+                    break :blk .{ rd.?, gpu.? };
                 },
             };
         if (renderer == null) {
@@ -91,6 +88,7 @@ pub const Renderer = struct {
             .dc = DcStats.create(ctx.allocator()),
         };
         try rd.setBlendMode(.blend);
+        if (cfg.jok_fps_limit == .auto) try rd.setVsync(1);
         return rd;
     }
 
@@ -382,9 +380,9 @@ pub const Renderer = struct {
     };
     pub fn createTarget(self: Renderer, opt: TargetOption) !jok.Texture {
         if (self.cfg.jok_renderer_type == .software) @panic("Unsupported when using software renderer!");
-        const size = opt.size orelse BLK: {
+        const size = opt.size orelse blk: {
             const sz = try self.getOutputSize();
-            break :BLK sz;
+            break :blk sz;
         };
         return try self.createTexture(size, null, .{
             .access = .target,
@@ -423,9 +421,9 @@ pub const Renderer = struct {
     pub fn getPixels(self: Renderer, region: ?jok.Region) !PixelData {
         const rect: sdl.SDL_Rect = if (region) |r|
             @bitCast(r)
-        else BLK: {
+        else blk: {
             const sz = try self.getOutputSize();
-            break :BLK .{
+            break :blk .{
                 .x = 0,
                 .y = 0,
                 .w = @intCast(sz.width),
