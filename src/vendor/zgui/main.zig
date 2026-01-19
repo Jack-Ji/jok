@@ -1529,7 +1529,7 @@ pub fn getCursorScreenPos() [2]f32 {
     return pos;
 }
 pub fn setCursorScreenPos(screen_pos: [2]f32) void {
-    zguiSetCursorPos(screen_pos[0], screen_pos[1]);
+    zguiSetCursorScreenPos(screen_pos[0], screen_pos[1]);
 }
 extern fn zguiGetCursorStartPos(pos: *[2]f32) void;
 extern fn zguiGetCursorScreenPos(pos: *[2]f32) void;
