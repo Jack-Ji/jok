@@ -69,7 +69,7 @@ pub fn init(allocator: std.mem.Allocator, args: std.process.Args) void {
         }
     }
 
-    if (PHYSFS_init(args.vector[0]) == 0) {
+    if (PHYSFS_init(if (builtin.cpu.arch.isWasm()) args.vector[0] else null) == 0) {
         @panic(getLastErrorCode().toDesc());
     }
 }
