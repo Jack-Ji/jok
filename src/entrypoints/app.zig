@@ -18,11 +18,11 @@ pub const std_options: std.Options = .{
     .log_level = jok_config.jok_log_level,
 };
 
-pub fn main() !void {
+pub fn main(minimal: std.process.Init.Minimal) !void {
     const log = std.log.scoped(.jok);
 
     // Init context
-    var jok_ctx = try JokContext(jok_config).create();
+    var jok_ctx = try JokContext(jok_config).create(minimal.args);
     defer jok_ctx.destroy();
 
     // Init game object

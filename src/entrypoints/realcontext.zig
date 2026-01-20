@@ -101,7 +101,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _recent_draw_costs: CostDataType = undefined,
         _recent_total_costs: CostDataType = undefined,
 
-        pub fn create() !*@This() {
+        pub fn create(args: std.process.Args) !*@This() {
             var _allocator = if (builtin.cpu.arch.isWasm())
                 std.heap.c_allocator
             else if (cfg.jok_check_memory_leak)
@@ -116,7 +116,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._ctx = self.context();
 
             // Init PhysicsFS
-            physfs.init(self._allocator);
+            physfs.init(self._allocator, args);
             if (builtin.cpu.arch.isWasm()) {
                 try physfs.mount("/", "", true);
             }
@@ -477,7 +477,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             const info = try self._renderer.getInfo();
 
             // Print system info
-            std.debug.print(
+            log.info(
                 \\System info:
                 \\    Build Mode       : {s}
                 \\    Log Level        : {s}
@@ -918,8 +918,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
             })) {
                 zgui.text("Optimize Mode: {s}", .{@tagName(builtin.mode)});
                 zgui.text("Window Size: {d:.0}x{d:.0}", .{ ws.width, ws.height });
-                zgui.text("Renderer Type: {s}", .{cfg.jok_renderer_type.str()});
-                zgui.text("Renderer Scale: {d:.2}", .{scale});
+                zgui.text("Graphics API: {s}", .{rdinfo.name});
+                zgui.text("Render Scale: {d:.2}", .{scale});
                 zgui.text("Canvas Size: {d:.0}x{d:.0}", .{ cs.width, cs.height });
                 zgui.text("Canvas Scale: {d:.2}", .{
                     if (self._canvas_target_area) |a|

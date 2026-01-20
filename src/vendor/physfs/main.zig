@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("../../jok.zig");
 const assert = std.debug.assert;
+const log = std.log.scoped(.jok);
 
 //------------------------------------------------------------------------------
 // Error info
@@ -51,7 +52,7 @@ pub fn getLastErrorCode() ErrorCode {
 /// This must be called before any other PhysicsFS function.
 /// This should be called prior to any attempts to change your process's
 /// current working directory.
-pub fn init(allocator: std.mem.Allocator) void {
+pub fn init(allocator: std.mem.Allocator, args: std.process.Args) void {
     assert(mem_allocator == null);
     mem_allocator = allocator;
 
@@ -68,7 +69,7 @@ pub fn init(allocator: std.mem.Allocator) void {
         }
     }
 
-    if (PHYSFS_init(null) == 0) {
+    if (PHYSFS_init(args.vector[0]) == 0) {
         @panic(getLastErrorCode().toDesc());
     }
 }

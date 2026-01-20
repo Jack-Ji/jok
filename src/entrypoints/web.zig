@@ -32,12 +32,12 @@ fn mainLoop(args: ?*anyopaque) callconv(.c) void {
     }
 }
 
-pub fn main() !void {
+pub fn main(minimal: std.process.Init.Minimal) !void {
     const log = std.log.scoped(.jok);
 
     emscripten_run_script("document.title = \"" ++ jok_config.jok_window_title ++ "\"");
 
-    var jok_ctx = try Context.create();
+    var jok_ctx = try Context.create(minimal.args);
     game.init(jok_ctx.context()) catch |err| {
         log.err("Init game failed: {}", .{err});
         if (@errorReturnTrace()) |trace| {
