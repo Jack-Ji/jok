@@ -491,6 +491,7 @@ pub const Batch = struct {
                     .ypos_type = opt.ypos_type,
                     .align_type = opt.align_type,
                     .align_width = opt.align_width,
+                    .auto_hyphen = opt.auto_hyphen,
                     .kerning = opt.kerning,
                     .scale = scaling,
                 },

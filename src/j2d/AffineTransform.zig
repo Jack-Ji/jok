@@ -12,6 +12,7 @@ const Self = @This();
 mat: zmath.Mat,
 
 pub const init = Self{ .mat = zmath.identity() };
+pub const identity = Self{ .mat = zmath.identity() };
 
 pub fn invert(self: Self) Self {
     return .{ .mat = zmath.inverse(self.mat) };

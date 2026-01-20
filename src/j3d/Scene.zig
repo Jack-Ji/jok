@@ -51,25 +51,19 @@ pub const Actor = union(enum) {
 
     inline fn calcTransform(actor: Actor, parent_m: zmath.Mat) zmath.Mat {
         return switch (actor) {
-            .position => |p| zmath.mul(p.transform, parent_m),
-            .mesh => |m| zmath.mul(m.transform, parent_m),
-            .sprite => |s| zmath.mul(s.transform, parent_m),
+            inline else => |a| zmath.mul(a.transform, parent_m),
         };
     }
 
     inline fn setTransform(actor: *Actor, _m: zmath.Mat) void {
         return switch (actor.*) {
-            .position => |*p| p.transform = _m,
-            .mesh => |*m| m.transform = _m,
-            .sprite => |*s| s.transform = _m,
+            inline else => |*a| a.transform = _m,
         };
     }
 
     inline fn getTransform(actor: Actor) zmath.Mat {
         return switch (actor) {
-            .position => |p| p.transform,
-            .mesh => |m| m.transform,
-            .sprite => |s| s.transform,
+            inline else => |a| a.transform,
         };
     }
 };

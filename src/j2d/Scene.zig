@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
@@ -8,6 +9,8 @@ const DrawCmd = @import("internal.zig").DrawCmd;
 const Vector = @import("Vector.zig");
 const Sprite = @import("Sprite.zig");
 const AffineTransform = @import("AffineTransform.zig");
+const Atlas = jok.font.Atlas;
+const log = std.log.scoped(.jok);
 const Self = @This();
 
 /// Represent a position in 2d space
@@ -31,34 +34,83 @@ pub const SpriteObj = struct {
     flip_v: bool = false,
 };
 
+/// Text
+pub const Text = struct {
+    content: []const u8,
+    atlas: *Atlas,
+    transform: AffineTransform = .init,
+    ypos_type: Atlas.YPosType = .top,
+    align_type: Atlas.AlignType = .left,
+    align_width: ?u32 = null,
+    auto_hyphen: bool = false,
+    kerning: bool = false,
+    tint_color: jok.Color = .white,
+    scale: jok.Point = .unit,
+};
+
 /// An object in 2d space
 pub const Actor = union(enum) {
     position: Position,
     primitive: Primitive,
     sprite: SpriteObj,
+    text: Text,
 
     inline fn calcTransform(actor: Actor, parent_trs: AffineTransform) AffineTransform {
         return switch (actor) {
-            .position => |p| p.transform.mul(parent_trs),
-            .primitive => |p| p.transform.mul(parent_trs),
-            .sprite => |s| s.transform.mul(parent_trs),
+            inline else => |a| a.transform.mul(parent_trs),
         };
     }
 
     inline fn setTransform(actor: *Actor, trs: AffineTransform) void {
         return switch (actor.*) {
-            .position => |*p| p.transform = trs,
-            .primitive => |*p| p.transform = trs,
-            .sprite => |*s| s.transform = trs,
+            inline else => |*a| a.transform = trs,
         };
     }
 
     inline fn getTransform(actor: Actor) AffineTransform {
         return switch (actor) {
-            .position => |p| p.transform,
-            .primitive => |p| p.transform,
-            .sprite => |s| s.transform,
+            inline else => |a| a.transform,
         };
+    }
+
+    inline fn getTransformedBounds(actor: Actor, trs: AffineTransform) jok.Rectangle {
+        switch (actor) {
+            .position => {
+                const translation = trs.getTranslation();
+                return .{
+                    .x = translation[0],
+                    .y = translation[1],
+                    .width = 1,
+                    .height = 1,
+                };
+            },
+            .primitive => |a| {
+                return trs.transformRectangle(a.dcmd.getRect());
+            },
+            .sprite => |a| {
+                const rect = jok.Rectangle{
+                    .x = -a.anchor_point.x * a.sp.width,
+                    .y = -a.anchor_point.y * a.sp.height,
+                    .width = a.sp.width,
+                    .height = a.sp.height,
+                };
+                return trs.transformRectangle(rect);
+            },
+            .text => |a| {
+                return a.atlas.getBoundingBox(
+                    a.content,
+                    trs.transformPoint(.origin),
+                    .{
+                        .ypos_type = a.ypos_type,
+                        .align_type = a.align_type,
+                        .align_width = a.align_width,
+                        .auto_hyphen = a.auto_hyphen,
+                        .kerning = a.kerning,
+                        .scale = a.scale.mul(trs.getScale()),
+                    },
+                ) catch unreachable;
+            },
+        }
     }
 };
 
@@ -83,6 +135,10 @@ pub const Object = struct {
             .depth = depth orelse 0.5,
             .children = .init(allocator),
         };
+        if (actor == .text) {
+            // Clone the text
+            o.actor.text.content = try allocator.dupe(u8, actor.text.content);
+        }
         return o;
     }
 
@@ -93,6 +149,9 @@ pub const Object = struct {
         }
         o.removeSelf();
         o.children.deinit();
+        if (o.actor == .text) {
+            o.allocator.free(o.actor.text.content);
+        }
         o.allocator.destroy(o);
     }
 
@@ -153,6 +212,23 @@ pub const Object = struct {
         o.updateTransforms();
     }
 
+    // Get object's bounding box after transformed
+    // NOTE: rotation isn't considered, only return axis-aligned rectangle
+    pub fn getTransformedBounds(o: Object, _trs: AffineTransform) jok.Rectangle {
+        const trs = o.transform.mul(_trs);
+        if (builtin.mode == .Debug) {
+            if (!std.math.approxEqAbs(
+                f32,
+                trs.getRotation(),
+                0,
+                std.math.floatEps(f32),
+            )) {
+                log.warn("j2d.Scene.Object.getTransformedBounds is called on rotated object!", .{});
+            }
+        }
+        return o.actor.getTransformedBounds(trs);
+    }
+
     /// Update all objects' transforms
     fn updateTransforms(o: *Object) void {
         o.transform = if (o.parent) |p|
@@ -197,6 +273,16 @@ pub fn render(self: Self, batch: *Batch, object: ?*Object) !void {
                 .flip_v = s.flip_v,
             },
         ),
+        .text => |t| try batch.text("{s}", .{t.content}, .{
+            .atlas = t.atlas,
+            .ypos_type = t.ypos_type,
+            .align_type = t.align_type,
+            .align_width = t.align_width,
+            .auto_hyphen = t.auto_hyphen,
+            .kerning = t.kerning,
+            .tint_color = t.tint_color,
+            .scale = t.scale,
+        }),
     }
     batch.popTransform();
 

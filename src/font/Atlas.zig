@@ -319,11 +319,11 @@ pub const BoxType = enum { aligned, drawed };
 
 /// BBox parameters
 pub const BBox = struct {
+    box_type: BoxType = .aligned,
     ypos_type: YPosType = .top,
     align_type: AlignType = .left,
     align_width: ?u32 = null,
     auto_hyphen: bool = false,
-    box_type: BoxType = .aligned,
     kerning: bool = false,
     scale: jok.Point = .unit,
 };
@@ -335,7 +335,7 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
         .top => 0,
         .bottom => -self.getFontSizeInPixels(),
         .middle => -self.getFontSizeInPixels() * 0.5,
-    };
+    } * opt.scale.y;
     const align_width = if (opt.align_width) |w| @as(f32, @floatFromInt(w)) else math.inf(f32);
     var pos = _pos;
     var rect = jok.Rectangle{

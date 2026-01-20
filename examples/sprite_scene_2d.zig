@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
 const j2d = jok.j2d;
+const font = jok.font;
 const AffineTransform = j2d.AffineTransform;
 const physfs = jok.vendor.physfs;
 
@@ -10,6 +11,7 @@ var sheet: *j2d.SpriteSheet = undefined;
 var scene: *j2d.Scene = undefined;
 var ogre1: *j2d.Scene.Object = undefined;
 var ogre2: *j2d.Scene.Object = undefined;
+var text: *j2d.Scene.Object = undefined;
 var prim: *j2d.Scene.Object = undefined;
 var orbit: *j2d.Scene.Object = undefined;
 
@@ -52,7 +54,7 @@ pub fn init(ctx: jok.Context) !void {
         .{ .primitive = .{ .dcmd = .{ .circle = .{
             .p = .origin,
             .color = jok.Color.white.toInternalColor(),
-            .radius = 50,
+            .radius = 200,
             .thickness = 2,
             .num_segments = 100,
         } } } },
@@ -63,9 +65,21 @@ pub fn init(ctx: jok.Context) !void {
         .{ .position = .{} },
         null,
     );
-    try ogre1.addChild(prim);
-    try ogre1.addChild(orbit);
+    text = try j2d.Scene.Object.create(ctx.allocator(), .{
+        .text = .{
+            .content = "Ogre is here!",
+            .atlas = try font.DebugFont.getAtlas(ctx, 16),
+            .transform = AffineTransform.identity.translate(.{ 20, 20 }),
+            .ypos_type = .bottom,
+            .tint_color = .white,
+            .align_width = 50,
+            .scale = jok.Point.unit.scale(0.5),
+        },
+    }, null);
+    try ogre1.addChild(text);
+    try prim.addChild(orbit);
     try orbit.addChild(ogre2);
+    try scene.root.addChild(prim);
     try scene.root.addChild(ogre1);
 }
 
@@ -75,12 +89,18 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
+    scene.root.setTransform(AffineTransform.init.translate(.{ 400, 300 }));
     ogre1.setTransform(
         AffineTransform.init.scaleAroundOrigin(
             .{ 4 + 2 * @cos(ctx.seconds()), 4 + 2 * @cos(ctx.seconds()) },
-        ).rotateByOrigin(ctx.seconds() / 2).translate(.{ 400, 300 }),
+        ),
     );
-    orbit.setTransform(AffineTransform.init.rotateByOrigin(ctx.seconds() * 5).translateX(50));
+    prim.setTransform(
+        AffineTransform.init.rotateByOrigin(ctx.seconds()),
+    );
+    orbit.setTransform(
+        AffineTransform.init.scaleAroundOrigin(.{ 4, 4 }).rotateByOrigin(ctx.seconds() * 5).translateX(200),
+    );
 }
 
 pub fn draw(ctx: jok.Context) !void {
@@ -90,6 +110,8 @@ pub fn draw(ctx: jok.Context) !void {
     defer b.submit();
     try b.image(sheet.tex, .origin, .{});
     try b.scene(scene);
+    try b.rect(ogre1.getTransformedBounds(.identity), .black, .{});
+    try b.rect(text.getTransformedBounds(.identity), .black, .{});
 }
 
 pub fn quit(ctx: jok.Context) void {
