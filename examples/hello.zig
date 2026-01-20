@@ -125,7 +125,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
 
 pub fn update(ctx: jok.Context) !void {
     if (jok.io.getKeyboardState().isPressed(.f5)) {
-        ctx.supressDraw();
+        ctx.suppressDraw();
     }
     point_easing_system.update(ctx.deltaSeconds());
     color_easing_system.update(ctx.deltaSeconds());

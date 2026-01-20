@@ -25,7 +25,7 @@ pub const Context = struct {
         setCanvasSize: *const fn (ctx: *anyopaque, size: ?jok.Size) anyerror!void,
         getCanvasArea: *const fn (ctx: *anyopaque) jok.Rectangle,
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
-        supressDraw: *const fn (ctx: *anyopaque) void,
+        suppressDraw: *const fn (ctx: *anyopaque) void,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
         loadTexture: *const fn (ctx: *anyopaque, sub_path: [:0]const u8, access: jok.Texture.Access, flip: bool) anyerror!jok.Texture,
         loadShader: *const fn (ctx: *anyopaque, sub_path: [:0]const u8, entrypoint: ?[:0]const u8, format: ?jok.ShaderFormat) anyerror!jok.PixelShader,
@@ -121,8 +121,8 @@ pub const Context = struct {
     }
 
     /// Supress drawcall of current frame
-    pub fn supressDraw(self: Context) void {
-        return self.vtable.supressDraw(self.ctx);
+    pub fn suppressDraw(self: Context) void {
+        return self.vtable.suppressDraw(self.ctx);
     }
 
     /// Whether game is running slow

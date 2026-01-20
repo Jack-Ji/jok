@@ -62,8 +62,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
         _canvas_size: ?jok.Size = cfg.jok_canvas_size,
         _canvas_target_area: ?jok.Rectangle = null,
 
-        // Drawcall supress
-        _supress_draw: bool = false,
+        // Drawcall suppress
+        _suppress_draw: bool = false,
 
         // Audio Engine
         _audio_engine: *zaudio.Engine = undefined,
@@ -142,7 +142,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
             // Misc.
             self._pc_freq = sdl.SDL_GetPerformanceFrequency();
-            self._pc_max_accumulated = self._pc_freq / 2;
+            self._pc_max_accumulated = self._pc_freq / 4;
             self._pc_last = sdl.SDL_GetPerformanceCounter();
             self._recent_update_costs = try CostDataType.init(self._allocator, max_costs_num);
             self._recent_draw_costs = try CostDataType.init(self._allocator, max_costs_num);
@@ -229,8 +229,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     step_count += 1;
                     self._pc_accumulated -= pc_threshold;
                     self._delta_seconds = fps_delta_seconds;
-                    self._seconds += self._delta_seconds;
-                    self._seconds_real += self._delta_seconds;
+                    self._seconds += fps_delta_seconds;
+                    self._seconds_real += fps_delta_seconds;
 
                     self._update(updateFn);
                 }
@@ -241,9 +241,6 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 if (self._running_slow) {
                     if (self._frame_lag == 0) {
                         self._running_slow = false;
-                    } else if (self._frame_lag > 10) {
-                        // Supress rendering, give `update` chance to catch up
-                        self._supress_draw = true;
                     }
                 } else if (self._frame_lag >= 5) {
                     // Consider game running slow when lagging more than 5 frames
@@ -267,8 +264,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
 
             // Do rendering
-            if (self._supress_draw) {
-                self._supress_draw = false;
+            if (self._suppress_draw) {
+                self._suppress_draw = false;
             } else {
                 const pc_begin = sdl.SDL_GetPerformanceCounter();
                 defer if (cfg.jok_detailed_frame_stats) {
@@ -619,7 +616,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .setCanvasSize = setCanvasSize,
                     .getCanvasArea = getCanvasArea,
                     .getAspectRatio = getAspectRatio,
-                    .supressDraw = supressDraw,
+                    .suppressDraw = suppressDraw,
                     .isRunningSlow = isRunningSlow,
                     .loadTexture = loadTexture,
                     .loadShader = loadShader,
@@ -801,10 +798,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
             return @as(f32, @floatFromInt(size.width)) / @as(f32, @floatFromInt(size.height));
         }
 
-        /// Supress drawcall of current frame
-        pub fn supressDraw(ptr: *anyopaque) void {
+        /// Suppress drawcall of current frame
+        pub fn suppressDraw(ptr: *anyopaque) void {
             const self: *@This() = @ptrCast(@alignCast(ptr));
-            self._supress_draw = true;
+            self._suppress_draw = true;
         }
 
         /// Indicating game loop is running too slow
