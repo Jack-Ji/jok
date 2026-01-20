@@ -24,7 +24,11 @@ pub const Window = struct {
                 _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_MAXIMIZED_BOOLEAN, true);
             },
             .fullscreen => {
-                _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_FULLSCREEN_BOOLEAN, true);
+                if (builtin.cpu.arch.isWasm()) {
+                    // TODO no property is provided yet
+                } else {
+                    _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_FULLSCREEN_BOOLEAN, true);
+                }
             },
             .custom => |sz| size = sz,
         }
@@ -176,9 +180,17 @@ pub const Window = struct {
 
     pub fn setFullscreen(self: Window, on: bool) !void {
         if (self.cfg.jok_renderer_type == .software) return;
-        if (!sdl.SDL_SetWindowFullscreen(self.ptr, on)) {
-            log.err("Toggle fullscreen failed: {s}", .{sdl.SDL_GetError()});
-            return error.SdlError;
+        const minor_version = sdl.SDL_VERSIONNUM_MINOR(sdl.SDL_GetVersion());
+        if (builtin.cpu.arch.isWasm() and minor_version >= 4) {
+            if (!sdl.SDL_SetWindowFillDocument(self.ptr, on)) {
+                log.err("Toggle fullscreen failed: {s}", .{sdl.SDL_GetError()});
+                return error.SdlError;
+            }
+        } else {
+            if (!sdl.SDL_SetWindowFullscreen(self.ptr, on)) {
+                log.err("Toggle fullscreen failed: {s}", .{sdl.SDL_GetError()});
+                return error.SdlError;
+            }
         }
     }
 

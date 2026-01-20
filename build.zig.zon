@@ -15,8 +15,8 @@
             .hash = "sdl-0.4.0+3.4.0-SDL--u6yowGyvoiJ5qkFm_T1-MpmvnHShh2q2mTZf1fo",
         },
         .emsdk = .{
-            .url = "git+https://github.com/emscripten-core/emsdk?ref=4.0.14#eff90ca04a3785f571a8095b3a42b63799cf384a",
-            .hash = "N-V-__8AAMGsDwC6L1OfDgzRF1zFI2t-CaR0sVhEm8pmrpxm",
+            .url = "git+https://github.com/emscripten-core/emsdk?ref=4.0.23#c0bb220cb6e6f4e0fabb6f6db9efd53390ef5e56",
+            .hash = "N-V-__8AAHQFEABC8QdfXNl_LRxXIKI8ELtz4eZ9Yht7K6m2",
         },
     },
 }
