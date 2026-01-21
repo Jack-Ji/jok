@@ -576,6 +576,7 @@ pub const Batch = struct {
                 last_codepoint = codepoint;
                 last_size = size;
                 if (size == 1 and codepoint == '\n') {
+                    last_codepoint = 0;
                     wrapped = true;
                     continue;
                 }
