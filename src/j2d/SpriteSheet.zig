@@ -1,3 +1,19 @@
+//! Sprite sheet packing and management.
+//!
+//! This module provides sprite sheet (texture atlas) functionality for
+//! efficiently packing multiple images into a single texture.
+//!
+//! Features:
+//! - Automatic rectangle packing using stb_rect_pack
+//! - Multiple image source types (file paths, file data, raw pixels)
+//! - Named sprite lookup
+//! - Serialization/deserialization to custom binary format
+//! - Optional pixel data retention for further processing
+//! - Configurable gap between sprites
+//!
+//! Sprite sheets reduce draw calls and improve rendering performance by
+//! combining many small textures into one large texture.
+
 const std = @import("std");
 const builtin = @import("builtin");
 const assert = std.debug.assert;
@@ -10,27 +26,34 @@ const stb_image = jok.vendor.stb.image;
 const Sprite = @import("Sprite.zig");
 const Self = @This();
 
+/// Sprite sheet errors
 pub const Error = error{
+    /// Texture size is too small to fit all sprites
     TextureNotLargeEnough,
+    /// Invalid file or data format
     InvalidFormat,
+    /// No pixel data available
     NoPixelData,
+    /// Feature not yet implemented
     Unimplemented,
 };
 
 const max_sheet_data_size = 1 << 23;
 const magic_sheet_header = [_]u8{ 's', 'h', 'e', 'e', 't', '@', 'j', 'o', 'k' };
 
-/// Image pixels
-/// Only support sdl.SDL_PIXELFORMAT_RGBA32
+/// Raw image pixel data
+/// Only supports SDL_PIXELFORMAT_RGBA32 format
 pub const ImagePixels = struct {
     data: []const u8,
     width: u32,
     height: u32,
 };
 
-/// Image data source
+/// Image data source for sprite sheet packing
 pub const ImageSource = struct {
+    /// Name identifier for this sprite
     name: []const u8,
+    /// Image data (from file path, file data, or raw pixels)
     image: union(enum) {
         file_path: [:0]const u8,
         file_data: []const u8,
@@ -38,42 +61,47 @@ pub const ImageSource = struct {
     },
 };
 
-/// Sprite rectangle
+/// Sprite rectangle with texture coordinates and dimensions
 pub const SpriteRect = struct {
-    // Texture coordinate of top-left
+    /// Texture coordinate of top-left corner (U)
     s0: f32,
+    /// Texture coordinate of top-left corner (V)
     t0: f32,
 
-    // Texture coordinate of bottom-right
+    /// Texture coordinate of bottom-right corner (U)
     s1: f32,
+    /// Texture coordinate of bottom-right corner (V)
     t1: f32,
 
-    // Size of sprite
+    /// Width of sprite in pixels
     width: f32,
+    /// Height of sprite in pixels
     height: f32,
 };
 
-// Used allocator
+/// Memory allocator
 allocator: std.mem.Allocator,
 
-// Size of sheet
+/// Size of the sprite sheet texture
 size: jok.Size,
 
-// Packed pixels
+/// Packed pixel data (optional, only if keep_packed_pixels is true)
 packed_pixels: ?ImagePixels = null,
 
-// Packed texture
+/// The packed texture atlas
 tex: jok.Texture,
 
-// Sprite rectangles
+/// Array of sprite rectangles (one per source image)
 rects: []SpriteRect,
 
-// Sprite search-tree
+/// Name-to-index lookup map for sprites
 search_tree: std.StringHashMap(u32),
 
-/// Create sprite-sheet
+/// Options for creating a sprite sheet
 pub const CreateSheetOption = struct {
+    /// Gap between sprites in pixels (prevents bleeding)
     gap: u32 = 1,
+    /// Keep packed pixel data in memory after creating texture
     keep_packed_pixels: bool = false,
 };
 pub fn create(

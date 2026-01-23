@@ -1,3 +1,15 @@
+//! Texture management.
+//!
+//! This module provides texture creation, manipulation, and rendering functionality.
+//! Textures are the primary way to display images and graphics in the jok engine.
+//!
+//! Features:
+//! - Multiple access modes (static, streaming, target)
+//! - Pixel-level manipulation for streaming textures
+//! - Blend mode and scale mode control
+//! - Integration with zgui for UI rendering
+//! - Efficient texture updates
+
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
@@ -6,23 +18,39 @@ const zgui = jok.vendor.zgui;
 
 const log = std.log.scoped(.jok);
 
+/// Texture wrapper providing access to SDL texture functionality.
+///
+/// Textures can be used for rendering images, as render targets, or for
+/// dynamic pixel manipulation depending on their access mode.
 pub const Texture = struct {
+    /// Texture access pattern.
     pub const Access = enum(sdl.SDL_TextureAccess) {
+        /// Changes rarely, not lockable
         static = sdl.SDL_TEXTUREACCESS_STATIC,
+        /// Changes frequently, lockable for pixel access
         streaming = sdl.SDL_TEXTUREACCESS_STREAMING,
+        /// Can be used as a render target
         target = sdl.SDL_TEXTUREACCESS_TARGET,
     };
+
+    /// Texture scaling filter mode.
     pub const ScaleMode = enum(sdl.SDL_ScaleMode) {
+        /// Nearest-neighbor filtering (pixelated)
         nearest = sdl.SDL_SCALEMODE_NEAREST,
+        /// Linear filtering (smooth)
         linear = sdl.SDL_SCALEMODE_LINEAR,
     };
 
     ptr: [*c]sdl.SDL_Texture,
 
+    /// Destroy the texture and free associated resources.
     pub fn destroy(self: Texture) void {
         sdl.SDL_DestroyTexture(self.ptr);
     }
 
+    /// Convert texture to zgui texture reference for UI rendering.
+    ///
+    /// Returns: Texture reference usable with zgui
     pub fn toReference(self: Texture) zgui.TextureRef {
         return .{
             .tex_data = null,
@@ -30,12 +58,21 @@ pub const Texture = struct {
         };
     }
 
+    /// Texture information.
     pub const Info = struct {
+        /// Texture width in pixels
         width: u32,
+        /// Texture height in pixels
         height: u32,
+        /// Pixel format
         format: u32,
+        /// Access pattern
         access: Access,
     };
+
+    /// Query texture properties.
+    ///
+    /// Returns: Texture information including size and format
     pub fn query(self: Texture) !Info {
         const props = sdl.SDL_GetTextureProperties(self.ptr);
         return Info{
@@ -46,7 +83,14 @@ pub const Texture = struct {
         };
     }
 
-    // This is a fairly slow function, intended for use with static textures that do not change often.
+    /// Update texture pixels (slow method for static textures).
+    ///
+    /// This is a fairly slow function, intended for use with static textures
+    /// that do not change often. For frequent updates, use streaming textures
+    /// with createPixelData/update instead.
+    ///
+    /// Parameters:
+    ///   pixels: Pixel data in RGBA32 format (must match texture size)
     pub fn updateSlow(self: Texture, pixels: []const u8) !void {
         const info = try self.query();
         assert(pixels.len == info.width * info.height * 4);
@@ -93,7 +137,10 @@ pub const Texture = struct {
         }
     }
 
-    /// Pixels meant to be written to textures
+    /// Pixel data buffer for writing to streaming textures.
+    ///
+    /// Provides efficient pixel-level access for dynamic texture updates.
+    /// Must be used with streaming textures only.
     pub const PixelData = struct {
         allocator: std.mem.Allocator,
         region: ?jok.Region,

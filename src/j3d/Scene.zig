@@ -1,4 +1,16 @@
-/// Scene management (Clone of three.js's scene. Learn detail from https://threejs.org/manual/#en/scenegraph)
+//! Scene graph management for hierarchical 3D rendering.
+//!
+//! This module provides a scene graph system inspired by three.js, allowing
+//! hierarchical organization of 3D objects with parent-child relationships.
+//!
+//! Features:
+//! - Hierarchical transformations (parent transforms affect children)
+//! - Multiple object types (positions, meshes, sprites)
+//! - Transform inheritance through the scene graph
+//! - Efficient batch rendering
+//!
+//! Learn more at: https://threejs.org/manual/#en/scenegraph
+
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;

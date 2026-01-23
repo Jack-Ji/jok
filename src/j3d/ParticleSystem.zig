@@ -1,4 +1,18 @@
-/// Particle system
+//! 3D particle system for visual effects.
+//!
+//! This module provides a particle effect system for creating dynamic
+//! visual effects like fire, smoke, explosions, magic spells, etc.
+//!
+//! Features:
+//! - Particle emission with configurable rates
+//! - Lifetime management
+//! - Velocity and acceleration
+//! - Color and size animation over lifetime
+//! - Multiple concurrent effects
+//! - Signal-based event system (begin/end notifications)
+//!
+//! The system uses an object pool for efficient particle allocation.
+
 const std = @import("std");
 const assert = std.debug.assert;
 const Vector = @import("Vector.zig");

@@ -1,3 +1,9 @@
+//! Sprite representation for 2D rendering.
+//!
+//! A sprite is a rectangular region of a texture with associated UV coordinates.
+//! Sprites can be rendered with transformations (position, rotation, scale),
+//! flipping, tinting, and anchor point positioning.
+
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
@@ -6,18 +12,29 @@ const zgui = jok.vendor.zgui;
 const zmath = jok.vendor.zmath;
 const Self = @This();
 
-// Size of sprite
+/// Width of the sprite in pixels
 width: f32,
+
+/// Height of the sprite in pixels
 height: f32,
 
-// Tex-coords of sprite
+/// Top-left UV coordinate (0,0 to 1,1)
 uv0: jok.Point,
+
+/// Bottom-right UV coordinate (0,0 to 1,1)
 uv1: jok.Point,
 
-// Reference to texture
+/// Reference to the texture containing this sprite
 tex: jok.Texture,
 
-/// Get sub-sprite by offsets/size
+/// Extract a sub-sprite from this sprite by specifying an offset and size.
+/// Useful for extracting individual frames from a sprite sheet.
+/// Parameters:
+///   - offset_x: X offset in pixels from the sprite's origin
+///   - offset_y: Y offset in pixels from the sprite's origin
+///   - width: Width of the sub-sprite in pixels
+///   - height: Height of the sub-sprite in pixels
+/// Returns: A new sprite representing the sub-region
 pub fn getSubSprite(
     self: Self,
     offset_x: f32,
@@ -44,30 +61,38 @@ pub fn getSubSprite(
     };
 }
 
-/// Sprite's drawing params
+/// Options for rendering a sprite
 pub const RenderOption = struct {
+    /// Position to render at
     pos: jok.Point,
 
-    /// Tint color
+    /// Tint color applied to the sprite
     tint_color: jok.Color = .white,
 
-    /// Scale of width/height
+    /// Scale factors for width and height
     scale: jok.Point = .unit,
 
-    /// Rotation around anchor-point
+    /// Rotation angle in radians around the anchor point
     rotate_angle: f32 = 0,
 
-    /// Anchor-point of sprite, around which rotation and translation is calculated
+    /// Anchor point for rotation and positioning (0,0 = top-left, 0.5,0.5 = center, 1,1 = bottom-right)
     anchor_point: jok.Point = .origin,
 
-    /// Horizontal/vertial flipping
+    /// Flip horizontally
     flip_h: bool = false,
+
+    /// Flip vertically
     flip_v: bool = false,
 
+    /// Depth value for sorting (0.0 = back, 1.0 = front)
     depth: f32 = 0.5,
 };
 
-/// Render to output
+/// Render the sprite to a draw command list.
+/// This is typically called internally by the batch system.
+/// Parameters:
+///   - draw_commands: List to append the draw command to
+///   - opt: Rendering options
 pub fn render(
     self: Self,
     draw_commands: *std.array_list.Managed(internal._DrawCmd),

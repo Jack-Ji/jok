@@ -1,4 +1,16 @@
-/// 3d triangle renderer
+//! Low-level 3D triangle rasterization and rendering.
+//!
+//! This module handles the core triangle rendering pipeline including:
+//! - 3D to 2D projection
+//! - View frustum clipping
+//! - Backface culling
+//! - Texture mapping
+//! - Lighting calculations (Gouraud and flat shading)
+//! - Skeletal animation vertex transformation
+//!
+//! This is the workhorse renderer used by meshes, sprites, and other
+//! 3D primitives to convert geometry into screen-space triangles.
+
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
@@ -13,16 +25,21 @@ const Mesh = @import("Mesh.zig");
 const Animation = @import("Animation.zig");
 const Self = @This();
 
+/// Triangle winding order for front-face determination
 pub const FrontFace = enum(i32) {
     cw,
     ccw,
 };
 
+/// Shading method for lighting calculations
 pub const ShadingMethod = enum(i32) {
+    /// Gouraud shading: interpolate vertex colors across triangle
     gouraud,
+    /// Flat shading: use single color for entire triangle
     flat,
 };
 
+/// Skeletal animation data for vertex skinning
 pub const SkeletonAnimation = struct {
     anim: *Animation,
     skin: *Mesh.Skin,
@@ -30,63 +47,68 @@ pub const SkeletonAnimation = struct {
     weights: []const [4]f32,
 };
 
+/// Options for rendering mesh geometry
 pub const RenderMeshOption = struct {
-    /// AABB excluding detection
+    /// AABB for frustum culling (optional)
     aabb: ?[6]f32 = null,
 
-    /// Eliminate CCW triangles
+    /// Enable backface culling
     cull_faces: bool = true,
+    /// Triangle winding order
     front_face: FrontFace = .cw,
 
-    /// Uniform material color
+    /// Base material color
     color: jok.ColorF = .white,
 
-    /// Shading style
+    /// Shading method
     shading_method: ShadingMethod = .gouraud,
 
-    /// Binded texture
+    /// Texture to apply
     texture: ?jok.Texture = null,
 
-    /// Lighting effect (only apply to sprites with explicit direction)
+    /// Lighting configuration
     lighting: ?lighting.LightingOption = null,
 
-    /// Skeleton animation
+    /// Skeletal animation (optional)
     animation: ?SkeletonAnimation = null,
 };
 
+/// Options for rendering 3D sprites (billboards)
 pub const RenderSpriteOption = struct {
-    /// Binded texture
+    /// Texture to apply
     texture: ?jok.Texture = null,
 
     /// Tint color
     tint_color: jok.ColorF = .white,
 
-    /// Shading style
+    /// Shading method
     shading_method: ShadingMethod = .gouraud,
 
-    /// Scale of width/height
+    /// Scale factors for width/height
     scale: jok.Point = .unit,
 
-    /// Rotation around anchor-point
+    /// Rotation angle around anchor point (radians)
     rotate_angle: f32 = 0,
 
-    /// Anchor-point of sprite, around which rotation and translation is calculated
+    /// Anchor point for rotation and positioning
     anchor_point: jok.Point = .origin,
 
-    /// Horizontal/vertial flipping
+    /// Flip horizontally
     flip_h: bool = false,
+
+    /// Flip vertically
     flip_v: bool = false,
 
-    /// Facing direction (always face to camera by default)
+    /// Facing direction (null = always face camera)
     facing_dir: ?[3]f32 = null,
 
-    /// Fixed size (only apply to sprites facing camera)
+    /// Keep constant screen size regardless of distance
     fixed_size: bool = false,
 
-    /// Lighting effect (only apply to sprites with explicit direction)
+    /// Lighting (only applies when facing_dir is set)
     lighting: ?lighting.LightingOption = null,
 
-    /// Tessellation level (only apply to sprites with explicit direction)
+    /// Tessellation level for curved sprites (only with facing_dir)
     tessellation_level: u8 = 0,
 };
 

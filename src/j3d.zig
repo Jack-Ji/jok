@@ -1,3 +1,21 @@
+//! 3D rendering module for the Jok game engine.
+//!
+//! This module provides a comprehensive 3D rendering system with:
+//! - Triangle-based mesh rendering with various shading methods
+//! - Camera system with perspective and orthographic projections
+//! - Lighting support (ambient, directional, point lights)
+//! - Texture mapping and vertex coloring
+//! - Skybox rendering
+//! - 3D transformations (translate, rotate, scale)
+//! - Triangle sorting for proper transparency
+//! - Wireframe rendering
+//! - Animation system
+//! - Particle effects
+//! - Scene graph management
+//!
+//! The rendering pipeline projects 3D geometry to 2D screen space and
+//! rasterizes triangles with optional lighting, texturing, and shading.
+
 const std = @import("std");
 const builtin = @import("builtin");
 const assert = std.debug.assert;
@@ -12,47 +30,93 @@ const log = std.log.scoped(.jok);
 
 const TriangleRenderer = @import("j3d/TriangleRenderer.zig");
 const SkyboxRenderer = @import("j3d/SkyboxRenderer.zig");
+
+/// Shading method for rendering triangles
 pub const ShadingMethod = TriangleRenderer.ShadingMethod;
+
+/// Lighting configuration options
 pub const LightingOption = lighting.LightingOption;
+
+/// 3D mesh representation
 pub const Mesh = @import("j3d/Mesh.zig");
+
+/// Animation system for skeletal/vertex animations
 pub const Animation = @import("j3d/Animation.zig");
+
+/// Lighting utilities and types
 pub const lighting = @import("j3d/lighting.zig");
+
+/// Particle system for 3D effects
 pub const ParticleSystem = @import("j3d/ParticleSystem.zig");
+
+/// 3D camera with perspective and orthographic projections
 pub const Camera = @import("j3d/Camera.zig");
+
+/// Scene graph for hierarchical 3D rendering
 pub const Scene = @import("j3d/Scene.zig");
+
+/// 3D vector mathematics
 pub const Vector = @import("j3d/Vector.zig");
 
+/// Options for rendering 3D geometry
 pub const RenderOption = struct {
+    /// Enable backface culling
     cull_faces: bool = true,
+    /// Base color tint
     color: jok.ColorF = .white,
+    /// Shading method (flat, gouraud, etc.)
     shading_method: ShadingMethod = .gouraud,
+    /// Optional texture to apply
     texture: ?jok.Texture = null,
+    /// Optional lighting configuration
     lighting: ?LightingOption = null,
 };
 
+/// Configuration options for creating a 3D rendering batch
 pub const BatchOption = struct {
+    /// Camera for view/projection (defaults to basic perspective camera)
     camera: ?Camera = null,
+    /// If set, render wireframe instead of filled triangles
     wireframe_color: ?jok.ColorF = null,
+    /// Triangle sorting method for transparency
     triangle_sort: TriangleSort = .none,
+    /// Blending mode for rendering
     blend_mode: jok.BlendMode = .blend,
+    /// Optional clipping rectangle
     clip_rect: ?jok.Rectangle = null,
+    /// Optional offscreen render target
     offscreen_target: ?jok.Texture = null,
+    /// Clear color for offscreen target
     offscreen_clear_color: ?jok.ColorF = null,
+    /// Optional custom pixel shader
     shader: ?PixelShader = null,
 };
 
+/// Method for sorting triangles by depth
 pub const TriangleSort = union(enum(u8)) {
-    // Send to gpu directly, use it when objects are ordered manually
+    /// No sorting - render in submission order (fastest, use when objects are pre-sorted)
     none,
 
-    // Sort by average depth, use it when you are lazy (might hog cpu)
+    /// Sort by average depth - slower but handles transparency (use when order matters)
     simple,
 };
 
 const invalid_batch_id = std.math.maxInt(usize);
 
+/// 3D rendering batch for accumulating and submitting draw commands.
+///
+/// A Batch manages 3D rendering state including camera, transformations,
+/// and geometry. It projects 3D triangles to 2D screen space and handles
+/// depth sorting, lighting, and texturing.
+///
+/// Usage:
+/// 1. Obtain a batch from a BatchPool using `pool.new(options)`
+/// 2. Set up transformations and issue draw commands (mesh, shape, line, etc.)
+/// 3. Submit the batch with `batch.submit()` or `batch.submitWithoutReclaim()`
+/// 4. The batch is automatically reclaimed to the pool after submission
+///
+/// Note: All fields are private and should not be accessed directly.
 pub const Batch = struct {
-    /// All fields are private, DON'T use it directly.
     id: usize = invalid_batch_id,
     reclaimer: BatchReclaimer = undefined,
     is_submitted: bool = false,

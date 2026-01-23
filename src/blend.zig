@@ -1,47 +1,77 @@
+//! Blend mode definitions for graphics rendering.
+//!
+//! This module provides various blending modes for compositing graphics.
+//! Includes standard blend modes (none, alpha blend, additive, etc.) and
+//! Porter-Duff compositing operations for advanced blending effects.
+//!
+//! Note: Porter-Duff modes may not be supported on all platforms.
+//! See: https://ssp.impulsetrain.com/porterduff.html
+
 const jok = @import("jok.zig");
 const sdl = jok.vendor.sdl;
 
+/// Blend mode for graphics rendering operations.
+/// Defines how source and destination colors are combined.
 pub const BlendMode = enum {
-    /// no blending
-    /// dstRGBA = srcRGBA
+    /// No blending - source replaces destination
+    /// Formula: dstRGBA = srcRGBA
     none,
 
-    /// alpha blending
-    /// dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
-    /// dstA = srcA + (dstA * (1-srcA))
+    /// Alpha blending - standard transparency blending
+    /// Formula:
+    /// - dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
+    /// - dstA = srcA + (dstA * (1-srcA))
     blend,
 
-    /// additive blending
-    /// dstRGB = (srcRGB * srcA) + dstRGB
-    /// dstA = dstA
+    /// Additive blending - adds source to destination (brightens)
+    /// Formula:
+    /// - dstRGB = (srcRGB * srcA) + dstRGB
+    /// - dstA = dstA
     additive,
 
-    /// color modulate
-    /// dstRGB = srcRGB * dstRGB
-    /// dstA = dstA
+    /// Color modulate - multiplies source and destination
+    /// Formula:
+    /// - dstRGB = srcRGB * dstRGB
+    /// - dstA = dstA
     modulate,
 
-    /// color multiply
-    /// dstRGB = (srcRGB * dstRGB) + (dstRGB * (1-srcA))
-    /// dstA = dstA
+    /// Color multiply - modulate with alpha consideration
+    /// Formula:
+    /// - dstRGB = (srcRGB * dstRGB) + (dstRGB * (1-srcA))
+    /// - dstA = dstA
     multiply,
 
-    ///------------------------------------------------------------------------------
-    /// Porter Duff compositing, might not supported on certain platform
-    /// https://ssp.impulsetrain.com/porterduff.html
     //------------------------------------------------------------------------------
+    // Porter-Duff compositing operations
+    // May not be supported on all platforms
+    // See: https://ssp.impulsetrain.com/porterduff.html
+    //------------------------------------------------------------------------------
+
+    /// Porter-Duff: Source
     pd_src,
+    /// Porter-Duff: Source Atop
     pd_src_atop,
+    /// Porter-Duff: Source Over
     pd_src_over,
+    /// Porter-Duff: Source In
     pd_src_in,
+    /// Porter-Duff: Source Out
     pd_src_out,
+    /// Porter-Duff: Destination
     pd_dst,
+    /// Porter-Duff: Destination Atop
     pd_dst_atop,
+    /// Porter-Duff: Destination Over
     pd_dst_over,
+    /// Porter-Duff: Destination In
     pd_dst_in,
+    /// Porter-Duff: Destination Out
     pd_dst_out,
+    /// Porter-Duff: XOR
     pd_xor,
+    /// Porter-Duff: Lighter
     pd_lighter,
+    /// Porter-Duff: Clear
     pd_clear,
 
     var _init: bool = false;
@@ -59,6 +89,7 @@ pub const BlendMode = enum {
     var _pd_lighter: c_uint = undefined;
     var _pd_clear: c_uint = undefined;
 
+    /// Initialize Porter-Duff blend modes (called automatically)
     inline fn init() void {
         _pd_src = sdl.SDL_ComposeCustomBlendMode(
             sdl.SDL_BLENDFACTOR_ONE,
@@ -166,6 +197,7 @@ pub const BlendMode = enum {
         );
     }
 
+    /// Convert from SDL's native blend mode to jok BlendMode
     pub fn fromNative(mode: sdl.SDL_BlendMode) @This() {
         if (!_init) {
             init();
@@ -196,6 +228,7 @@ pub const BlendMode = enum {
         }
     }
 
+    /// Convert from jok BlendMode to SDL's native blend mode
     pub fn toNative(self: @This()) sdl.SDL_BlendMode {
         if (!_init) {
             init();

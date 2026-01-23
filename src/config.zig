@@ -1,76 +1,110 @@
+//! Game configuration system for the jok engine.
+//!
+//! This module provides compile-time configuration for game applications.
+//! Configuration options are specified as public declarations in the game module
+//! with names starting with "jok_". The engine validates these options at compile time.
+//!
+//! Example usage:
+//! ```zig
+//! pub const jok_window_title = "My Game";
+//! pub const jok_window_size = jok.config.WindowSize{ .custom = .{ .width = 1280, .height = 720 } };
+//! pub const jok_fps_limit = jok.config.FpsLimit{ .manual = 60 };
+//! ```
+
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok.zig");
 
+/// Main configuration structure for the jok engine.
+/// All fields have sensible defaults and can be overridden by the game module.
 pub const Config = struct {
     /// Logging level
     jok_log_level: std.log.Level = std.log.default_level,
 
-    /// FPS limiting
+    /// FPS limiting mode
     jok_fps_limit: FpsLimit = .{ .manual = 60 },
 
-    /// Assets accessing method
+    /// Assets accessing method (use PhysicsFS for virtual file system)
     jok_enable_physfs: bool = true,
 
-    /// Type of renderer
+    /// Type of renderer (software, accelerated, or GPU with shaders)
     jok_renderer_type: RendererType = if (builtin.cpu.arch.isWasm()) .accelerated else .gpu,
 
-    /// Clearing color of framebuffer
+    /// Clearing color of framebuffer (background color)
     jok_framebuffer_color: jok.Color = .black,
 
-    /// Canvas attributes
-    jok_canvas_size: ?jok.Size = null, // Null means same as size of framebuffer
+    /// Canvas size (null means same as framebuffer size)
+    jok_canvas_size: ?jok.Size = null,
+    /// Canvas texture scaling mode
     jok_canvas_scale_mode: jok.Texture.ScaleMode = .linear,
+    /// Use integer scaling for pixel-perfect rendering
     jok_canvas_integer_scaling: bool = false,
 
-    /// Headless mode
+    /// Headless mode (no window, for servers/testing)
     jok_headless: bool = false,
 
-    /// Window attributes
+    /// Window title
     jok_window_title: [:0]const u8 = "mygame",
+    /// Initial window size
     jok_window_size: WindowSize = .{ .custom = .{ .width = 800, .height = 600 } },
+    /// Minimum window size (null = no limit)
     jok_window_min_size: ?jok.Size = null,
+    /// Maximum window size (null = no limit)
     jok_window_max_size: ?jok.Size = null,
+    /// Allow window resizing
     jok_window_resizable: bool = false,
+    /// Remove window borders
     jok_window_borderless: bool = false,
+    /// Keep window on top of other windows
     jok_window_always_on_top: bool = false,
+    /// Show IME (Input Method Editor) UI for text input
     jok_window_ime_ui: bool = false,
+    /// Mouse cursor behavior mode
     jok_window_mouse_mode: MouseMode = .normal,
+    /// Enable high DPI support for retina/4K displays
     jok_window_high_pixel_density: bool = true,
 
-    /// Exit event processing
+    /// Exit game when ESC key is pressed
     jok_exit_on_recv_esc: bool = true,
+    /// Exit game when receiving quit event (window close button)
     jok_exit_on_recv_quit: bool = true,
 
-    /// Kill application on catching errors from callbacks
+    /// Kill application on catching errors from callbacks (enabled in debug mode)
     jok_kill_on_error: bool = builtin.mode == .Debug,
 
-    /// Whether detect memory-leak on shutdown
+    /// Detect memory leaks on shutdown (enabled in debug mode)
     jok_check_memory_leak: bool = builtin.mode == .Debug,
 
-    /// Whether let imgui load/save ini file
+    /// Allow ImGui to load/save ini file for UI state persistence
     jok_imgui_ini_file: bool = false,
 
-    /// Prebuild atlas for debug font
+    /// Prebuild atlas size for debug font (in pixels)
     jok_prebuild_atlas: u32 = 16,
 
-    /// Whether enable detailed frame statistics
+    /// Enable detailed frame statistics collection
     jok_detailed_frame_stats: bool = true,
 };
 
-/// Initial size of window
+/// Initial size and mode of the game window.
 pub const WindowSize = union(enum) {
+    /// Start maximized
     maximized,
+    /// Start in fullscreen mode
     fullscreen,
+    /// Custom window size
     custom: jok.Size,
 };
 
-/// Renderer type
+/// Renderer backend type.
 pub const RendererType = enum {
-    software, // software renderer, many limitations, created with SDL_CreateSoftwareRenderer
-    accelerated, // accelerated renderer, created with SDL_CreateRenderer
-    gpu, // accelerated renderer with shader support, created with SDL_CreateGPURenderer
+    /// Software renderer (CPU-based, many limitations)
+    software,
+    /// Hardware-accelerated renderer (GPU-based, no shader support)
+    accelerated,
+    /// GPU renderer with full shader support (recommended)
+    gpu,
 
+    /// Get string representation of renderer type
     pub inline fn str(self: @This()) []const u8 {
         return switch (self) {
             .software => "software",
@@ -80,12 +114,17 @@ pub const RendererType = enum {
     }
 };
 
-/// Graphics flushing method
+/// FPS (frames per second) limiting mode.
+/// Controls how the engine regulates frame rate.
 pub const FpsLimit = union(enum) {
-    none, // No limit, draw as fast as we can
-    auto, // Capped by vsync automatically
-    manual: u32, // Capped to given fps, fixed time step
+    /// No limit - render as fast as possible (may cause high CPU/GPU usage)
+    none,
+    /// Automatic - use VSync to cap frame rate to display refresh rate
+    auto,
+    /// Manual - cap to specified FPS with fixed time step
+    manual: u32,
 
+    /// Get string representation of FPS limit mode
     pub inline fn str(self: @This()) []const u8 {
         return switch (self) {
             .none => "none",
@@ -95,22 +134,28 @@ pub const FpsLimit = union(enum) {
     }
 };
 
-/// Mouse mode
+/// Mouse cursor behavior mode.
+/// Controls cursor visibility and capture in different window states.
 pub const MouseMode = enum {
-    // Fullscreen: hide cursor, relative mode
-    // Windowed: show cursor
+    /// Normal mode:
+    /// - Fullscreen: hide cursor, enable relative mode (FPS-style)
+    /// - Windowed: show cursor
     normal,
 
-    // Fullscreen: hide cursor
-    // Windowed: hide cursor
+    /// Hide in window mode:
+    /// - Fullscreen: hide cursor
+    /// - Windowed: hide cursor
     hide_in_window,
 
-    // Fullscreen: hide cursor, relative mode
-    // Windowed: hide cursor, relative mode
+    /// Always hide mode:
+    /// - Fullscreen: hide cursor, enable relative mode
+    /// - Windowed: hide cursor, enable relative mode
     hide_always,
 };
 
-/// Validate and init setup configurations
+/// Validate and initialize configuration from game module.
+/// This function is called at compile time to extract configuration options
+/// from the game module and validate their types.
 pub fn init(comptime game: anytype) Config {
     @setEvalBranchQuota(10000);
 

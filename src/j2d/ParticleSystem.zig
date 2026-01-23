@@ -1,3 +1,20 @@
+//! 2D particle system for visual effects.
+//!
+//! This module provides a particle effect system for creating dynamic
+//! 2D visual effects like explosions, fire, smoke, sparkles, rain, etc.
+//!
+//! Features:
+//! - Particle emission with configurable rates and bursts
+//! - Lifetime and fade management
+//! - Velocity, acceleration, and gravity
+//! - Color and size animation over particle lifetime
+//! - Multiple concurrent effects with names
+//! - Signal-based event system (begin/end notifications)
+//! - Object pooling for efficient memory management
+//!
+//! The system manages multiple named effects and automatically cleans up
+//! expired particles.
+
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
@@ -13,23 +30,25 @@ const EffectPool = std.heap.MemoryPool(Effect);
 const SearchMap = std.StringHashMap(*Effect);
 const default_effects_capacity = 10;
 
-// Memory allocator
+/// Memory allocator
 allocator: std.mem.Allocator,
 
-// Default random generator
+/// Default random number generator
 rng: std.Random.DefaultPrng,
 
-// Effect pool, for fast allocation
+/// Effect pool for fast allocation
 pool: EffectPool,
 
-// Particle effects
+/// Active particle effects
 effects: std.DoublyLinkedList,
 
-// Hashmap for searching effects
+/// Hashmap for searching effects by name
 search_tree: SearchMap,
 
-// Signal begin/end of effect
+/// Signal emitted when an effect begins
 sig_begin: *signal.Signal(&.{[]const u8}),
+
+/// Signal emitted when an effect ends
 sig_end: *signal.Signal(&.{[]const u8}),
 
 /// Create particle effect system/manager
@@ -63,7 +82,8 @@ pub fn destroy(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-/// Update system
+/// Update all active particle effects
+/// Call this every frame with the time elapsed since last frame
 pub fn update(self: *Self, delta_time: f32) void {
     var node = self.effects.first;
     while (node) |n| {
@@ -74,7 +94,7 @@ pub fn update(self: *Self, delta_time: f32) void {
     }
 }
 
-/// Clear all effects
+/// Remove all active particle effects
 pub fn clear(self: *Self) void {
     var node = self.effects.first;
     while (node) |n| {
@@ -87,14 +107,21 @@ pub fn clear(self: *Self) void {
     self.search_tree.clearRetainingCapacity();
 }
 
-/// Add effect
+/// Options for adding a new particle effect
 pub const AddEffect = struct {
+    /// Custom random number generator (uses system default if null)
     random: ?std.Random = null,
+    /// Origin point for particle emission
     origin: jok.Point = .origin,
+    /// Maximum number of particles in this effect
     max_particle_num: u32 = 1000,
+    /// Total duration of effect (null = infinite)
     effect_duration: ?f32 = null,
+    /// Number of particles to generate per burst
     gen_amount: u32 = 20,
+    /// Time between particle bursts (seconds)
     burst_freq: f32 = 0.1,
+    /// Overwrite existing effect with same name
     overwrite: bool = false,
 };
 pub fn add(self: *Self, name: []const u8, emitter: ParticleEmitter, opt: AddEffect) !*Effect {

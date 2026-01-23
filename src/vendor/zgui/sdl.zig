@@ -6,6 +6,10 @@ const log = std.log.scoped(.jok);
 
 var fcolors: std.array_list.Managed(jok.ColorF) = undefined;
 
+/// Initialize zgui with SDL backend.
+///
+/// **WARNING: This function is automatically called by jok.Context during initialization.**
+/// **DO NOT call this function directly from game code.**
 pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     fcolors = @TypeOf(fcolors).init(ctx.allocator());
     gui.init(ctx.allocator());
@@ -33,6 +37,10 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     gui.plot.init();
 }
 
+/// Deinitialize zgui and cleanup resources.
+///
+/// **WARNING: This function is automatically called by jok.Context during cleanup.**
+/// **DO NOT call this function directly from game code.**
 pub fn deinit() void {
     gui.plot.deinit();
     ImGui_ImplSDLRenderer3_Shutdown();

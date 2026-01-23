@@ -1,13 +1,41 @@
+//! Window management.
+//!
+//! This module provides window creation and management functionality through SDL3.
+//! It handles window properties like size, position, fullscreen mode, and various
+//! window states.
+//!
+//! Features:
+//! - Window creation with customizable properties
+//! - Fullscreen and windowed modes
+//! - Window resizing and positioning
+//! - Mouse mode control (normal, hidden, relative)
+//! - Text input management
+//! - High DPI support
+
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok.zig");
 const sdl = jok.vendor.sdl;
 const log = std.log.scoped(.jok);
 
+/// Window wrapper providing access to SDL window functionality.
+///
+/// Manages a single application window with support for various display modes,
+/// input handling, and window state management.
 pub const Window = struct {
     ptr: *sdl.SDL_Window,
     cfg: jok.config.Config,
 
+    /// Initialize a new window from context configuration.
+    ///
+    /// **WARNING: This function is automatically called by jok.Context during initialization.**
+    /// **DO NOT call this function directly from game code.**
+    /// The window is accessible via `ctx.window()` after context creation.
+    ///
+    /// Creates and configures a window based on the settings in the provided context.
+    /// Handles platform-specific initialization including WebAssembly support.
+    ///
+    /// Returns: Initialized window or error if creation fails
     pub fn init(ctx: jok.Context) !Window {
         const cfg = ctx.cfg();
         const props = sdl.SDL_CreateProperties();
@@ -83,10 +111,15 @@ pub const Window = struct {
         return window;
     }
 
+    /// Destroy the window and free associated resources.
+    ///
+    /// **WARNING: This function is automatically called by jok.Context during cleanup.**
+    /// **DO NOT call this function directly from game code.**
     pub fn destroy(self: Window) void {
         sdl.SDL_DestroyWindow(self.ptr);
     }
 
+    /// Maximize the window.
     pub fn maximize(self: Window) !void {
         if (!sdl.SDL_MaximizeWindow(self.ptr)) {
             log.err("Minimum window failed: {s}", .{sdl.SDL_GetError()});
@@ -94,6 +127,7 @@ pub const Window = struct {
         }
     }
 
+    /// Minimize the window.
     pub fn minimize(self: Window) !void {
         if (!sdl.SDL_MinimizeWindow(self.ptr)) {
             log.err("Minimize window failed: {s}", .{sdl.SDL_GetError()});
@@ -101,6 +135,9 @@ pub const Window = struct {
         }
     }
 
+    /// Get the current size of the window.
+    ///
+    /// Returns: Window size in pixels
     pub fn getSize(self: Window) jok.Size {
         var width: c_int = undefined;
         var height: c_int = undefined;
@@ -111,6 +148,10 @@ pub const Window = struct {
         };
     }
 
+    /// Set the size of the window.
+    ///
+    /// Parameters:
+    ///   s: New window size in pixels
     pub fn setSize(self: Window, s: jok.Size) !void {
         if (!sdl.SDL_SetWindowSize(self.ptr, @intCast(s.width), @intCast(s.height))) {
             log.err("Set size failed: {s}", .{sdl.SDL_GetError()});
@@ -118,6 +159,10 @@ pub const Window = struct {
         }
     }
 
+    /// Set the minimum size of the window.
+    ///
+    /// Parameters:
+    ///   s: Minimum window size in pixels
     pub fn setMinimumSize(self: Window, s: jok.Size) !void {
         if (!sdl.SDL_SetWindowMinimumSize(self.ptr, @intCast(s.width), @intCast(s.height))) {
             log.err("Set maximum size failed: {s}", .{sdl.SDL_GetError()});
@@ -125,6 +170,10 @@ pub const Window = struct {
         }
     }
 
+    /// Set the maximum size of the window.
+    ///
+    /// Parameters:
+    ///   s: Maximum window size in pixels
     pub fn setMaximumSize(self: Window, s: jok.Size) !void {
         if (!sdl.SDL_SetWindowMinimumSize(self.ptr, @intCast(s.width), @intCast(s.height))) {
             log.err("Set minimum size failed: {s}", .{sdl.SDL_GetError()});
@@ -132,6 +181,12 @@ pub const Window = struct {
         }
     }
 
+    /// Set whether the window is resizable.
+    ///
+    /// Note: Not supported for software renderer.
+    ///
+    /// Parameters:
+    ///   resizable: True to allow resizing, false to disable
     pub fn setResizable(self: Window, resizable: bool) !void {
         if (self.cfg.jok_renderer_type == .software) return;
         if (!sdl.SDL_SetWindowResizable(self.ptr, resizable)) {
@@ -140,6 +195,9 @@ pub const Window = struct {
         }
     }
 
+    /// Get the current position of the window.
+    ///
+    /// Returns: Window position in screen coordinates
     pub fn getPosition(self: Window) jok.Point {
         var x: c_int = undefined;
         var y: c_int = undefined;
@@ -150,10 +208,18 @@ pub const Window = struct {
         };
     }
 
+    /// Window position specification.
     pub const WindowPos = union(enum) {
+        /// Center the window on screen
         center,
+        /// Custom position in screen coordinates
         custom: jok.Point,
     };
+
+    /// Set the position of the window.
+    ///
+    /// Parameters:
+    ///   pos: Window position (centered or custom coordinates)
     pub fn setPosition(self: Window, pos: WindowPos) !void {
         if (!switch (pos) {
             .center => sdl.SDL_SetWindowPosition(self.ptr, sdl.SDL_WINDOWPOS_CENTERED, sdl.SDL_WINDOWPOS_CENTERED),
@@ -164,6 +230,10 @@ pub const Window = struct {
         }
     }
 
+    /// Set the window title.
+    ///
+    /// Parameters:
+    ///   title: New window title (null-terminated string)
     pub fn setTitle(self: Window, title: [:0]const u8) !void {
         if (!sdl.SDL_SetWindowTitle(self.ptr, title)) {
             log.err("Set title failed: {s}", .{sdl.SDL_GetError()});
@@ -171,6 +241,10 @@ pub const Window = struct {
         }
     }
 
+    /// Set window visibility.
+    ///
+    /// Parameters:
+    ///   visible: True to show window, false to hide
     pub fn setVisible(self: Window, visible: bool) !void {
         if (!if (visible) sdl.SDL_ShowWindow(self.ptr) else sdl.SDL_HideWindow(self.ptr)) {
             log.err("Toggle visibility failed: {s}", .{sdl.SDL_GetError()});
@@ -178,6 +252,13 @@ pub const Window = struct {
         }
     }
 
+    /// Set fullscreen mode.
+    ///
+    /// Note: Not supported for software renderer.
+    /// On WebAssembly (SDL 3.4+), uses document fill mode.
+    ///
+    /// Parameters:
+    ///   on: True to enable fullscreen, false to disable
     pub fn setFullscreen(self: Window, on: bool) !void {
         if (self.cfg.jok_renderer_type == .software) return;
         const minor_version = sdl.SDL_VERSIONNUM_MINOR(sdl.SDL_GetVersion());
@@ -194,6 +275,10 @@ pub const Window = struct {
         }
     }
 
+    /// Set whether window stays on top of other windows.
+    ///
+    /// Parameters:
+    ///   on: True to keep window on top, false for normal behavior
     pub fn setAlwaysOnTop(self: Window, on: bool) !void {
         if (!sdl.SDL_SetWindowAlwaysOnTop(self.ptr, on)) {
             log.err("Toggle always-on-top failed: {s}", .{sdl.SDL_GetError()});
@@ -201,6 +286,13 @@ pub const Window = struct {
         }
     }
 
+    /// Set relative mouse mode for the window.
+    ///
+    /// In relative mode, the cursor is hidden and mouse motion generates
+    /// relative movement events without cursor position constraints.
+    ///
+    /// Parameters:
+    ///   on: True to enable relative mode, false to disable
     pub fn setRelativeMouseMode(self: Window, on: bool) !void {
         if (!sdl.SDL_SetWindowRelativeMouseMode(self.ptr, on)) {
             log.err("Toggle relative mouse mode failed: {s}", .{sdl.SDL_GetError()});
@@ -208,6 +300,9 @@ pub const Window = struct {
         }
     }
 
+    /// Start text input for the window.
+    ///
+    /// Enables text input events and shows the on-screen keyboard on mobile platforms.
     pub fn startTextInput(self: Window) !void {
         if (!sdl.SDL_StartTextInput(self.ptr)) {
             log.err("Start text input failed: {s}", .{sdl.SDL_GetError()});
@@ -215,6 +310,9 @@ pub const Window = struct {
         }
     }
 
+    /// Stop text input for the window.
+    ///
+    /// Disables text input events and hides the on-screen keyboard on mobile platforms.
     pub fn stopTextInput(self: Window) !void {
         if (!sdl.SDL_StopTextInput(self.ptr)) {
             log.err("Stop text input failed: {s}", .{sdl.SDL_GetError()});
@@ -222,10 +320,18 @@ pub const Window = struct {
         }
     }
 
+    /// Check if text input is currently active.
+    ///
+    /// Returns: True if text input is active, false otherwise
     pub fn isTextInputActive(self: Window) bool {
         return sdl.SDL_TextInputActive(self.ptr);
     }
 
+    /// Set the text input area for IME composition.
+    ///
+    /// Parameters:
+    ///   rect: Input area rectangle (null for default)
+    ///   offset_x: Horizontal offset for the composition window
     pub fn setTextInputArea(self: Window, rect: ?jok.Region, offset_x: u32) !void {
         if (!sdl.SDL_TextInputActive(self.ptr, &rect orelse null, @intCast(offset_x))) {
             log.err("Set text input area failed: {s}", .{sdl.SDL_GetError()});

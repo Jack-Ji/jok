@@ -1,18 +1,31 @@
-/// Common types related to lighting
+//! Lighting system for 3D rendering.
+//!
+//! This module provides lighting calculations for 3D scenes including:
+//! - Directional lights (sun-like, parallel rays)
+//! - Point lights (omnidirectional, with attenuation)
+//! - Spot lights (cone-shaped, with falloff)
+//! - Phong/Blinn-Phong shading model
+//! - Ambient, diffuse, and specular components
+//!
+//! The lighting calculations use the Blinn-Phong reflection model for
+//! realistic light-material interactions.
+
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
 const zmath = jok.vendor.zmath;
 
-/// Lighting options
+/// Light source types and their parameters
 pub const Light = union(enum) {
+    /// Directional light (like the sun) with parallel rays
     directional: struct {
         ambient: zmath.Vec = zmath.f32x4s(0.1),
         diffuse: zmath.Vec = zmath.f32x4s(0.8),
         specular: zmath.Vec = zmath.f32x4s(0.5),
         direction: zmath.Vec = zmath.f32x4(0, -1, -1, 0),
     },
+    /// Point light with omnidirectional emission and distance attenuation
     point: struct {
         ambient: zmath.Vec = zmath.f32x4s(0.1),
         diffuse: zmath.Vec = zmath.f32x4s(0.8),
@@ -22,6 +35,7 @@ pub const Light = union(enum) {
         attenuation_linear: f32 = 0.5,
         attenuation_quadratic: f32 = 0.3,
     },
+    /// Spot light with cone-shaped emission and angular falloff
     spot: struct {
         ambient: zmath.Vec = zmath.f32x4s(0.1),
         diffuse: zmath.Vec = zmath.f32x4s(0.9),
@@ -36,13 +50,21 @@ pub const Light = union(enum) {
     },
 };
 
+/// Lighting configuration for rendering
 pub const LightingOption = struct {
+    /// Maximum number of lights supported
     const max_light_num = 32;
+
+    /// Array of light sources
     lights: [max_light_num]Light = [_]Light{.{ .directional = .{} }} ** max_light_num,
+
+    /// Number of active lights
     lights_num: u32 = 1,
+
+    /// Material shininess factor (higher = more focused specular highlights)
     shininess: f32 = 4,
 
-    // Calculate color of light source
+    /// Optional custom lighting calculation function
     light_calc_fn: ?*const fn (
         material_color: jok.ColorF,
         eye_pos: zmath.Vec,
@@ -52,7 +74,8 @@ pub const LightingOption = struct {
     ) jok.ColorF = null,
 };
 
-/// Calculate tint color of vertex according to lighting paramters
+/// Calculate the final color of a vertex with lighting applied
+/// Uses the Blinn-Phong shading model with ambient, diffuse, and specular components
 pub fn calcLightColor(
     material_color: jok.ColorF,
     eye_pos: zmath.Vec,

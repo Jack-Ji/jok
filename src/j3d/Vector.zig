@@ -1,4 +1,13 @@
-/// 3d vector
+//! 3D vector mathematics module.
+//!
+//! This module provides a 3D vector type with common vector operations including:
+//! - Basic arithmetic (add, subtract, multiply, scale)
+//! - Vector operations (dot product, cross product, normalization)
+//! - Geometric calculations (length, distance, angle)
+//! - Interpolation and component-wise operations
+//!
+//! The vector uses SIMD operations internally for performance.
+
 const std = @import("std");
 const math = std.math;
 const expectEqual = std.testing.expectEqual;
@@ -6,29 +15,42 @@ const jok = @import("../jok.zig");
 const Vec = @Vector(3, f32);
 const Self = @This();
 
+/// Internal SIMD vector data
 data: Vec,
 
+/// Zero vector (0, 0, 0)
 pub const zero = set(0);
+/// Unit vector (1, 1, 1)
 pub const one = set(1);
+/// Forward direction (0, 0, 1)
 pub const forward = new(0, 0, 1);
+/// Backward direction (0, 0, -1)
 pub const back = new(0, 0, -1);
+/// Up direction (0, 1, 0)
 pub const up = new(0, 1, 0);
+/// Down direction (0, -1, 0)
 pub const down = new(0, -1, 0);
+/// Left direction (-1, 0, 0)
 pub const left = new(-1, 0, 0);
+/// Right direction (1, 0, 0)
 pub const right = new(1, 0, 0);
 
+/// Create a new vector from three components
 pub fn new(vx: f32, vy: f32, vz: f32) Self {
     return .{ .data = [3]f32{ vx, vy, vz } };
 }
 
+/// Get the X component
 pub fn x(self: Self) f32 {
     return self.data[0];
 }
 
+/// Get the Y component
 pub fn y(self: Self) f32 {
     return self.data[1];
 }
 
+/// Get the Z component
 pub fn z(self: Self) f32 {
     return self.data[2];
 }
@@ -55,30 +77,31 @@ pub fn toArray(self: Self) [3]f32 {
     return self.data;
 }
 
-/// Return the angle (in degrees) between two vectors.
+/// Calculate the angle (in degrees) between two vectors
 pub fn getAngleDegreeBetween(first_vector: Self, second_vector: Self) f32 {
     return std.math.radiansToDegrees(first_vector.getAngleBetween(second_vector));
 }
 
-/// Return the angle between two vectors.
+/// Calculate the angle (in radians) between two vectors
 pub fn getAngleBetween(first_vector: Self, second_vector: Self) f32 {
     const dot_product = dot(norm(first_vector), norm(second_vector));
     return math.acos(dot_product);
 }
 
-/// Return the length (magnitude) of given vector.
-/// √[x^2 + y^2 + z^2 ...]
+/// Calculate the length (magnitude) of the vector
+/// Formula: √(x² + y² + z²)
 pub fn length(self: Self) f32 {
     return @sqrt(self.dot(self));
 }
 
-/// Return the distance between two points.
-/// √[(x1 - x2)^2 + (y1 - y2)^2 + (z1 - z2)^2 ...]
+/// Calculate the distance between two points
+/// Formula: √((x1 - x2)² + (y1 - y2)² + (z1 - z2)²)
 pub fn distance(first_vector: Self, second_vector: Self) f32 {
     return length(first_vector.sub(second_vector));
 }
 
-/// Construct new normalized vector from a given one.
+/// Create a normalized (unit length) vector from this vector
+/// Returns the original vector if its length is zero
 pub fn norm(self: Self) Self {
     const l = self.length();
     if (l == 0) {
@@ -88,54 +111,55 @@ pub fn norm(self: Self) Self {
     return .{ .data = result };
 }
 
-/// Return true if two vectors are equals.
+/// Check if two vectors are equal
 pub fn eql(first_vector: Self, second_vector: Self) bool {
     return @reduce(.And, first_vector.data == second_vector.data);
 }
 
-/// Substraction between two given vector.
+/// Subtract one vector from another
 pub fn sub(first_vector: Self, second_vector: Self) Self {
     const result = first_vector.data - second_vector.data;
     return .{ .data = result };
 }
 
-/// Addition betwen two given vector.
+/// Add two vectors together
 pub fn add(first_vector: Self, second_vector: Self) Self {
     const result = first_vector.data + second_vector.data;
     return .{ .data = result };
 }
 
-/// Component wise multiplication betwen two given vector.
+/// Component-wise multiplication of two vectors
 pub fn mul(first_vector: Self, second_vector: Self) Self {
     const result = first_vector.data * second_vector.data;
     return .{ .data = result };
 }
 
-/// Construct vector from the max components in two vectors
+/// Create a vector from the maximum components of two vectors
 pub fn max(first_vector: Self, second_vector: Self) Self {
     const result = @max(first_vector.data, second_vector.data);
     return .{ .data = result };
 }
 
-/// Construct vector from the min components in two vectors
+/// Create a vector from the minimum components of two vectors
 pub fn min(first_vector: Self, second_vector: Self) Self {
     const result = @min(first_vector.data, second_vector.data);
     return .{ .data = result };
 }
 
-/// Construct new vector after multiplying each components by a given scalar
+/// Multiply each component by a scalar value
 pub fn scale(self: Self, scalar: f32) Self {
     const result = self.data * @as(Vec, @splat(scalar));
     return .{ .data = result };
 }
 
-/// Return the dot product between two given vector.
-/// (x1 * x2) + (y1 * y2) + (z1 * z2) ...
+/// Calculate the dot product of two vectors
+/// Formula: (x1 * x2) + (y1 * y2) + (z1 * z2)
 pub fn dot(first_vector: Self, second_vector: Self) f32 {
     return @reduce(.Add, first_vector.data * second_vector.data);
 }
 
-/// Linear interpolation between two vectors
+/// Perform linear interpolation between two vectors
+/// t=0 returns first_vector, t=1 returns second_vector
 pub fn lerp(first_vector: Self, second_vector: Self, t: f32) Self {
     const from = first_vector.data;
     const to = second_vector.data;
@@ -144,7 +168,8 @@ pub fn lerp(first_vector: Self, second_vector: Self, t: f32) Self {
     return .{ .data = result };
 }
 
-/// Construct the cross product (as vector) from two vectors.
+/// Calculate the cross product of two vectors
+/// Returns a vector perpendicular to both input vectors
 pub fn cross(first_vector: Self, second_vector: Self) Self {
     const x1 = first_vector.x();
     const y1 = first_vector.y();

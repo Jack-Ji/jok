@@ -1,4 +1,12 @@
-/// Skybox renderer
+//! Skybox rendering for 3D environments.
+//!
+//! This module renders a skybox (background environment) using six textures
+//! arranged as a cube around the camera. The skybox creates the illusion of
+//! a distant environment (sky, mountains, space, etc.) that doesn't move
+//! with camera translation.
+//!
+//! Texture order: right, left, top, bottom, front, back
+
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
@@ -9,15 +17,18 @@ const zmesh = jok.vendor.zmesh;
 const Camera = j3d.Camera;
 const Self = @This();
 
-// Box shape: right/left/top/bottom/front/back
+/// Six plane meshes forming the skybox cube (right/left/top/bottom/front/back)
 box_planes: [6]zmesh.Shape,
 
-// Temporary storage for clipping
+/// Temporary storage for view frustum clipping
 clip_vertices: std.array_list.Managed(zmath.Vec),
 clip_texcoords: std.array_list.Managed(jok.Point),
 
+/// Initialization options for skybox
 const InitOption = struct {
+    /// Subdivisions along each plane edge
     plane_slices: i32 = 10,
+    /// Subdivisions perpendicular to plane edge
     plane_stacks: i32 = 10,
 };
 pub fn init(allocator: std.mem.Allocator, opt: InitOption) Self {

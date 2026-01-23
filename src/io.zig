@@ -1,8 +1,28 @@
+//! Input/Output and event system.
+//!
+//! This module provides comprehensive input handling and event management for the
+//! jok engine. It wraps SDL3's event system with a more ergonomic Zig API.
+//!
+//! Supported input devices and events:
+//! - Keyboard (key presses, text input, modifiers)
+//! - Mouse (motion, buttons, wheel)
+//! - Gamepad (buttons, axes, triggers)
+//! - Joystick (axes, buttons, hats, balls)
+//! - Touch (fingers, gestures, pinch)
+//! - Pen/Stylus (pressure, tilt, buttons)
+//! - Window events (resize, focus, etc.)
+//! - System events (quit, low memory, etc.)
+//! - Custom user events
+//!
+//! The event system uses a tagged union design that makes it easy to handle
+//! different event types with Zig's switch statements.
+
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
 const sdl = jok.vendor.sdl;
 
+/// Keyboard modifier bit flags.
 pub const KeyModifierBit = enum(u16) {
     left_shift = sdl.SDL_KMOD_LSHIFT,
     right_shift = sdl.SDL_KMOD_RSHIFT,
@@ -22,22 +42,40 @@ pub const KeyModifierBit = enum(u16) {
     ///scroll lock (= previous value sdl.KMOD_RESERVED)
     scroll_lock = sdl.SDL_KMOD_SCROLL,
 };
+
+/// Set of keyboard modifier flags.
+///
+/// Tracks which modifier keys (Shift, Ctrl, Alt, etc.) are currently pressed.
 pub const KeyModifierSet = struct {
     storage: u16,
 
+    /// Create from native SDL modifier state.
     pub fn fromNative(native: u16) KeyModifierSet {
         return .{ .storage = native };
     }
+
+    /// Check if a modifier is active.
+    ///
+    /// Parameters:
+    ///   modifier: Modifier bit to check
+    ///
+    /// Returns: True if the modifier is pressed
     pub fn get(self: KeyModifierSet, modifier: KeyModifierBit) bool {
         return (self.storage & @intFromEnum(modifier)) != 0;
     }
+
+    /// Set a modifier as active.
     pub fn set(self: *KeyModifierSet, modifier: KeyModifierBit) void {
         self.storage |= @intFromEnum(modifier);
     }
+
+    /// Clear a modifier (set as inactive).
     pub fn clear(self: *KeyModifierSet, modifier: KeyModifierBit) void {
         self.storage &= ~@intFromEnum(modifier);
     }
 };
+
+/// Keyboard key press/release event.
 pub const KeyboardEvent = struct {
     timestamp: u64,
     window_id: u32,
@@ -408,6 +446,7 @@ pub const Event = union(enum) {
     pub const PenMotionEvent = sdl.SDL_PenMotionEvent;
     pub const CameraDeviceEvent = sdl.SDL_CameraDeviceEvent;
     pub const RenderEvent = sdl.SDL_RenderEvent;
+    pub const PinchFingerEvent = sdl.SDL_PinchFingerEvent;
 
     quit: QuitEvent,
     terminating: CommonEvent,
@@ -425,6 +464,7 @@ pub const Event = union(enum) {
     display_desktop_mode_changed: DisplayEvent,
     display_current_mode_changed: DisplayEvent,
     display_content_scale_changed: DisplayEvent,
+    display_usable_bounds_changed: DisplayEvent,
     window_shown: WindowEvent,
     window_hidden: WindowEvent,
     window_exposed: WindowEvent,
@@ -458,6 +498,8 @@ pub const Event = union(enum) {
     keyboard_added: KeyboardDeviceEvent,
     keyboard_removed: KeyboardDeviceEvent,
     text_editing_candidates: TextEditingCandidatesEvent,
+    screen_keyboard_shown: CommonEvent,
+    screen_keyboard_hidden: CommonEvent,
     mouse_motion: MouseMotionEvent,
     mouse_button_down: MouseButtonEvent,
     mouse_button_up: MouseButtonEvent,
@@ -489,6 +531,9 @@ pub const Event = union(enum) {
     finger_up: TouchFingerEvent,
     finger_motion: TouchFingerEvent,
     finger_canceled: TouchFingerEvent,
+    pinch_begin: PinchFingerEvent,
+    pinch_update: PinchFingerEvent,
+    pinch_end: PinchFingerEvent,
     clip_board_update: ClipboardEvent,
     drop_file: DropEvent,
     drop_text: DropEvent,
@@ -539,6 +584,7 @@ pub const Event = union(enum) {
             sdl.SDL_EVENT_DISPLAY_DESKTOP_MODE_CHANGED => Event{ .display_desktop_mode_changed = raw.display },
             sdl.SDL_EVENT_DISPLAY_CURRENT_MODE_CHANGED => Event{ .display_current_mode_changed = raw.display },
             sdl.SDL_EVENT_DISPLAY_CONTENT_SCALE_CHANGED => Event{ .display_content_scale_changed = raw.display },
+            sdl.SDL_EVENT_DISPLAY_USABLE_BOUNDS_CHANGED => Event{ .display_usable_bounds_changed = raw.display },
             sdl.SDL_EVENT_WINDOW_SHOWN => Event{ .window_shown = raw.window },
             sdl.SDL_EVENT_WINDOW_HIDDEN => Event{ .window_hidden = raw.window },
             sdl.SDL_EVENT_WINDOW_EXPOSED => Event{ .window_exposed = raw.window },
@@ -572,12 +618,14 @@ pub const Event = union(enum) {
             sdl.SDL_EVENT_KEYBOARD_ADDED => Event{ .keyboard_added = raw.kdevice },
             sdl.SDL_EVENT_KEYBOARD_REMOVED => Event{ .keyboard_removed = raw.kdevice },
             sdl.SDL_EVENT_TEXT_EDITING_CANDIDATES => Event{ .text_editing_candidates = raw.edit_candidates },
+            sdl.SDL_EVENT_SCREEN_KEYBOARD_SHOWN => Event{ .screen_keyboard_shown = raw.common },
+            sdl.SDL_EVENT_SCREEN_KEYBOARD_HIDDEN => Event{ .screen_keyboard_hidden = raw.common },
             sdl.SDL_EVENT_MOUSE_MOTION => Event{ .mouse_motion = MouseMotionEvent.fromNative(raw.motion, ctx) },
             sdl.SDL_EVENT_MOUSE_BUTTON_DOWN => Event{ .mouse_button_down = MouseButtonEvent.fromNative(raw.button, ctx) },
             sdl.SDL_EVENT_MOUSE_BUTTON_UP => Event{ .mouse_button_up = MouseButtonEvent.fromNative(raw.button, ctx) },
             sdl.SDL_EVENT_MOUSE_WHEEL => Event{ .mouse_wheel = MouseWheelEvent.fromNative(raw.wheel) },
             sdl.SDL_EVENT_MOUSE_ADDED => Event{ .mouse_added = raw.mdevice },
-            sdl.SDL_EVENT_MOUSE_REMOVED => Event{ .mouse_added = raw.mdevice },
+            sdl.SDL_EVENT_MOUSE_REMOVED => Event{ .mouse_removed = raw.mdevice },
             sdl.SDL_EVENT_JOYSTICK_AXIS_MOTION => Event{ .joy_axis_motion = JoyAxisEvent.fromNative(raw.jaxis) },
             sdl.SDL_EVENT_JOYSTICK_BALL_MOTION => Event{ .joy_ball_motion = JoyBallEvent.fromNative(raw.jball, ctx) },
             sdl.SDL_EVENT_JOYSTICK_HAT_MOTION => Event{ .joy_hat_motion = JoyHatEvent.fromNative(raw.jhat) },
@@ -603,6 +651,9 @@ pub const Event = union(enum) {
             sdl.SDL_EVENT_FINGER_UP => Event{ .finger_up = raw.tfinger },
             sdl.SDL_EVENT_FINGER_MOTION => Event{ .finger_motion = raw.tfinger },
             sdl.SDL_EVENT_FINGER_CANCELED => Event{ .finger_canceled = raw.tfinger },
+            sdl.SDL_EVENT_PINCH_BEGIN => Event{ .pinch_begin = raw.pinch },
+            sdl.SDL_EVENT_PINCH_UPDATE => Event{ .pinch_update = raw.pinch },
+            sdl.SDL_EVENT_PINCH_END => Event{ .pinch_end = raw.pinch },
             sdl.SDL_EVENT_CLIPBOARD_UPDATE => Event{ .clip_board_update = raw.clipboard },
             sdl.SDL_EVENT_DROP_FILE => Event{ .drop_file = raw.drop },
             sdl.SDL_EVENT_DROP_TEXT => Event{ .drop_text = raw.drop },

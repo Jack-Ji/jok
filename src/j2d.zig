@@ -1,3 +1,21 @@
+//! 2D rendering module for the Jok game engine.
+//!
+//! This module provides a comprehensive 2D rendering system with batched drawing,
+//! transformations, sprites, animations, particles, and various primitive shapes.
+//!
+//! Key features:
+//! - Batched rendering for optimal performance
+//! - Affine transformations (translate, rotate, scale)
+//! - Sprite and sprite sheet support
+//! - Animation system
+//! - Particle effects
+//! - Scene graph management
+//! - Text rendering with font atlases
+//! - Primitive shapes (lines, rectangles, circles, polygons, bezier curves)
+//! - Depth sorting and blending modes
+//! - Offscreen rendering support
+//! - Custom shader support
+
 const std = @import("std");
 const builtin = @import("builtin");
 const assert = std.debug.assert;
@@ -14,43 +32,86 @@ const zmesh = jok.vendor.zmesh;
 const log = std.log.scoped(.jok);
 
 const internal = @import("j2d/internal.zig");
+
+/// Internal draw command representation
 pub const DrawCmd = internal.DrawCmd;
+
+/// 2D affine transformation matrix for translation, rotation, and scaling
 pub const AffineTransform = @import("j2d/AffineTransform.zig");
+
+/// Sprite representation with texture and UV coordinates
 pub const Sprite = @import("j2d/Sprite.zig");
+
+/// Sprite sheet manager for handling texture atlases
 pub const SpriteSheet = @import("j2d/SpriteSheet.zig");
+
+/// Particle system for visual effects
 pub const ParticleSystem = @import("j2d/ParticleSystem.zig");
+
+/// Animation system for sprite-based animations
 pub const AnimationSystem = @import("j2d/AnimationSystem.zig").AnimationSystem;
+
+/// Scene graph for hierarchical rendering
 pub const Scene = @import("j2d/Scene.zig");
+
+/// 2D vector utilities
 pub const Vector = @import("j2d/Vector.zig");
 
+/// Errors that can occur during 2D rendering operations
 pub const Error = error{
+    /// Path was not finished before attempting to render
     PathNotFinished,
+    /// Batch pool has no available batches
     TooManyBatches,
+    /// Attempted to render an unsupported Unicode codepoint
     UnsupportedCodepoint,
 };
 
+/// Method for sorting draw commands by depth
 pub const DepthSortMethod = enum {
+    /// No depth sorting (render in submission order)
     none,
+    /// Sort from back to front (painters algorithm)
     back_to_forth,
+    /// Sort from front to back (early depth rejection)
     forth_to_back,
 };
 
+/// Configuration options for creating a rendering batch
 pub const BatchOption = struct {
+    /// Depth sorting method for draw commands
     depth_sort: DepthSortMethod = .none,
+    /// Blending mode for rendering
     blend_mode: jok.BlendMode = .blend,
+    /// Enable antialiasing for lines and shapes
     antialiased: bool = true,
+    /// Optional clipping rectangle (defaults to full canvas)
     clip_rect: ?jok.Rectangle = null,
+    /// Perform early clipping to skip drawing off-screen objects
     do_early_clipping: bool = false,
+    /// Optional offscreen render target
     offscreen_target: ?jok.Texture = null,
+    /// Clear color for offscreen target (if specified)
     offscreen_clear_color: ?jok.Color = null,
+    /// Optional custom pixel shader
     shader: ?PixelShader = null,
 };
 
 const invalid_batch_id = std.math.maxInt(usize);
 
-/// Batched rendering job, managed by BatchPool
+/// Batched rendering job, managed by BatchPool.
+///
+/// A Batch accumulates draw commands and submits them efficiently to the GPU.
+/// Batches support transformations, depth sorting, blending, and various rendering options.
+///
+/// Usage:
+/// 1. Obtain a batch from a BatchPool using `pool.new(options)`
+/// 2. Issue draw commands (image, sprite, text, shapes, etc.)
+/// 3. Submit the batch with `batch.submit()` or `batch.submitWithoutReclaim()`
+/// 4. The batch is automatically reclaimed to the pool after submission
+///
+/// Note: All fields are private and should not be accessed directly.
 pub const Batch = struct {
-    /// All fields are private, DON'T use it directly.
     id: usize = invalid_batch_id,
     reclaimer: BatchReclaimer = undefined,
     is_submitted: bool = false,
@@ -92,13 +153,19 @@ pub const Batch = struct {
         self.all_tex.deinit();
     }
 
+    /// Recycle internal memory allocations without deallocating.
+    /// This can improve performance by reusing allocated memory.
     pub fn recycleMemory(self: *Batch) void {
         self.draw_list.clearMemory();
         self.draw_commands.clearAndFree();
         self.all_tex.clearAndFree();
     }
 
-    /// Reinitialize batch, abandon all commands, no reclaiming
+    /// Reinitialize batch with new options, abandoning all previous commands.
+    /// Does not reclaim the batch to the pool.
+    ///
+    /// Parameters:
+    ///   - opt: New batch configuration options
     pub fn reset(self: *Batch, opt: BatchOption) void {
         assert(self.id != invalid_batch_id);
         defer self.is_submitted = false;
@@ -240,14 +307,18 @@ pub const Batch = struct {
         }
     }
 
-    /// Submit batch, issue draw calls, don't reclaim itself
+    /// Submit batch and issue draw calls without reclaiming the batch.
+    /// Use this when you want to reuse the batch for multiple submissions.
+    /// Errors are logged but not propagated.
     pub fn submitWithoutReclaim(self: *Batch) void {
         self._submitWithoutReclaim() catch |err| {
             log.err("Submit batch failed: {s}", .{@errorName(err)});
         };
     }
 
-    /// Submit batch, issue draw calls, and reclaim itself
+    /// Submit batch, issue draw calls, and reclaim the batch to the pool.
+    /// This is the standard way to finish using a batch.
+    /// Errors are logged but not propagated.
     pub fn submit(self: *Batch) void {
         defer self.reclaimer.reclaim(self);
         self._submitWithoutReclaim() catch |err| {
@@ -255,18 +326,24 @@ pub const Batch = struct {
         };
     }
 
-    /// Reclaim itself without drawing
+    /// Reclaim the batch to the pool without drawing.
+    /// Use this to cancel a batch without rendering its contents.
     pub fn abort(self: *Batch) void {
         assert(self.id != invalid_batch_id);
         self.reclaimer.reclaim(self);
     }
 
+    /// Push the current transformation onto the stack.
+    /// Use this to save the current transformation state before making changes.
+    /// Must be balanced with popTransform().
     pub fn pushTransform(self: *Batch) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         try self.trs_stack.append(self.trs);
     }
 
+    /// Pop the transformation from the stack, restoring the previous state.
+    /// Must be balanced with a prior pushTransform() call.
     pub fn popTransform(self: *Batch) void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -274,52 +351,95 @@ pub const Batch = struct {
         self.trs = self.trs_stack.pop().?;
     }
 
+    /// Reset the transformation to identity (no translation, rotation, or scaling).
     pub fn setIdentity(self: *Batch) void {
         self.trs = AffineTransform.init;
     }
 
+    /// Translate (move) subsequent draw commands by the given offset.
+    /// Parameters:
+    ///   - two_floats: Translation offset as {x, y} or .{x, y}
     pub fn translate(self: *Batch, two_floats: anytype) void {
         self.trs = self.trs.translate(two_floats);
     }
 
+    /// Rotate subsequent draw commands around the world origin (0, 0).
+    /// Parameters:
+    ///   - radian: Rotation angle in radians
     pub fn rotateByWorldOrigin(self: *Batch, radian: f32) void {
         self.trs = self.trs.rotateByOrigin(radian);
     }
 
+    /// Rotate subsequent draw commands around the current local origin.
+    /// The local origin is the current translation position.
+    /// Parameters:
+    ///   - radian: Rotation angle in radians
     pub fn rotateByLocalOrigin(self: *Batch, radian: f32) void {
         const t = self.trs.getTranslation();
         self.trs = self.trs.rotateByPoint(.{ .x = t[0], .y = t[1] }, radian);
     }
 
+    /// Rotate subsequent draw commands around a specific point.
+    /// Parameters:
+    ///   - p: Center point of rotation
+    ///   - radian: Rotation angle in radians
     pub fn rotateByPoint(self: *Batch, p: jok.Point, radian: f32) void {
         self.trs = self.trs.rotateByPoint(p, radian);
     }
 
+    /// Scale subsequent draw commands around the world origin (0, 0).
+    /// Parameters:
+    ///   - two_floats: Scale factors as {x, y} or .{x, y}
     pub fn scaleAroundWorldOrigin(self: *Batch, two_floats: anytype) void {
         self.trs = self.trs.scaleAroundOrigin(two_floats);
     }
 
+    /// Scale subsequent draw commands around the current local origin.
+    /// The local origin is the current translation position.
+    /// Parameters:
+    ///   - two_floats: Scale factors as {x, y} or .{x, y}
     pub fn scaleAroundLocalOrigin(self: *Batch, two_floats: anytype) void {
         const t = self.trs.getTranslation();
         self.trs = self.trs.scaleAroundPoint(.{ .x = t[0], .y = t[1] }, two_floats);
     }
 
+    /// Scale subsequent draw commands around a specific point.
+    /// Parameters:
+    ///   - p: Center point of scaling
+    ///   - two_floats: Scale factors as {x, y} or .{x, y}
     pub fn scaleAroundPoint(self: *Batch, p: jok.Point, two_floats: anytype) void {
         self.trs = self.trs.scaleAroundPoint(p, two_floats);
     }
 
+    /// Options for drawing images
     pub const ImageOption = struct {
+        /// Optional size override (defaults to texture size)
         size: ?jok.Size = null,
+        /// Top-left UV coordinate (0,0 to 1,1)
         uv0: jok.Point = .origin,
+        /// Bottom-right UV coordinate (0,0 to 1,1)
         uv1: jok.Point = .unit,
+        /// Tint color applied to the image
         tint_color: jok.Color = .white,
+        /// Scale factor
         scale: jok.Point = .unit,
+        /// Rotation angle in radians
         rotate_angle: f32 = 0,
+        /// Anchor point for positioning (0,0 = top-left, 0.5,0.5 = center, 1,1 = bottom-right)
         anchor_point: jok.Point = .anchor_top_left,
+        /// Flip horizontally
         flip_h: bool = false,
+        /// Flip vertically
         flip_v: bool = false,
+        /// Depth value for sorting (0.0 = back, 1.0 = front)
         depth: f32 = 0.5,
     };
+
+    /// Draw a textured image.
+    /// Parameters:
+    ///   - texture: The texture to draw
+    ///   - pos: Position to draw at
+    ///   - opt: Drawing options
     pub fn image(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -350,7 +470,8 @@ pub const Batch = struct {
         });
     }
 
-    /// NOTE: Rounded image is always aligned with axis of world
+    /// Options for drawing rounded images.
+    /// NOTE: Rounded images are always aligned with the world axis (no rotation).
     pub const ImageRoundedOption = struct {
         size: ?jok.Size = null,
         uv0: jok.Point = .origin,
@@ -366,6 +487,12 @@ pub const Batch = struct {
         corner_bottom_right: bool = true,
         depth: f32 = 0.5,
     };
+    /// Draw an image with rounded corners.
+    /// NOTE: Rounded images are always aligned with the world axis (no rotation).
+    /// Parameters:
+    ///   - texture: The texture to draw
+    ///   - pos: Position to draw at
+    ///   - opt: Drawing options including rounding and corner flags
     pub fn imageRounded(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -407,32 +534,57 @@ pub const Batch = struct {
         );
     }
 
+    /// Render a scene graph.
+    /// Parameters:
+    ///   - s: The scene to render
     pub fn scene(self: *Batch, s: *const Scene) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         try s.render(self, null);
     }
 
+    /// Options for rendering particle effects
     pub const EffectOption = struct {
+        /// Optional custom draw data
         draw_data: ?ParticleSystem.DrawData = null,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Render a particle effect.
+    /// Parameters:
+    ///   - e: The particle effect to render
+    ///   - opt: Rendering options
     pub fn effect(self: *Batch, e: *const ParticleSystem.Effect, opt: EffectOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         try e.render(self, .{ .draw_data = opt.draw_data, .depth = opt.depth });
     }
 
+    /// Options for drawing sprites
     pub const SpriteOption = struct {
+        /// Position to draw at
         pos: jok.Point = .origin,
+        /// Tint color
         tint_color: jok.Color = .white,
+        /// Scale factor
         scale: jok.Point = .unit,
+        /// Rotation angle in radians
         rotate_angle: f32 = 0,
+        /// Anchor point for positioning
         anchor_point: jok.Point = .anchor_top_left,
+        /// Flip horizontally
         flip_h: bool = false,
+        /// Flip vertically
         flip_v: bool = false,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a sprite.
+    /// Parameters:
+    ///   - s: The sprite to draw
+    ///   - opt: Drawing options
     pub fn sprite(self: *Batch, s: Sprite, opt: SpriteOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -449,20 +601,40 @@ pub const Batch = struct {
         });
     }
 
+    /// Options for text rendering
     pub const TextOption = struct {
+        /// Position to draw at
         pos: jok.Point = .origin,
+        /// Font atlas to use (defaults to debug atlas)
         atlas: ?*font.Atlas = null,
+        /// Ignore unsupported characters instead of erroring
         ignore_unexist: bool = true,
+        /// Vertical positioning type
         ypos_type: font.Atlas.YPosType = .top,
+        /// Text alignment
         align_type: font.Atlas.AlignType = .left,
+        /// Width for text wrapping (null = no wrapping)
         align_width: ?u32 = null,
+        /// Automatically add hyphens when wrapping
         auto_hyphen: bool = false,
+        /// Enable kerning adjustments
         kerning: bool = false,
+        /// Text color
         tint_color: jok.Color = .white,
+        /// Scale factor
         scale: jok.Point = .unit,
+        /// Rotation angle in radians
         rotate_angle: f32 = 0,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw formatted text.
+    /// Supports newlines, text wrapping, alignment, and kerning.
+    /// Parameters:
+    ///   - fmt: Format string (comptime)
+    ///   - args: Format arguments
+    ///   - opt: Text rendering options
     pub fn text(self: *Batch, comptime fmt: []const u8, args: anytype, opt: TextOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -1378,11 +1550,24 @@ pub const Batch = struct {
     }
 };
 
+/// Convex polygon builder for filled polygon rendering.
+/// Convex polygons can be rendered efficiently and support texturing.
+///
+/// Usage:
+/// 1. Create with `ConvexPoly.begin(allocator, texture)`
+/// 2. Add vertices with `point()` or `npoints()`
+/// 3. Call `end()` to finish the polygon
+/// 4. Render with `batch.convexPolyFilled(poly, options)`
+/// 5. Clean up with `deinit()`
 pub const ConvexPoly = struct {
     texture: ?jok.Texture,
     points: std.array_list.Managed(jok.Vertex),
     finished: bool = false,
 
+    /// Begin building a convex polygon.
+    /// Parameters:
+    ///   - allocator: Memory allocator
+    ///   - texture: Optional texture for the polygon
     pub fn begin(allocator: std.mem.Allocator, texture: ?jok.Texture) ConvexPoly {
         return .{
             .texture = texture,
@@ -1390,39 +1575,63 @@ pub const ConvexPoly = struct {
         };
     }
 
+    /// Finish building the polygon. Must be called before rendering.
     pub fn end(self: *ConvexPoly) void {
         self.finished = true;
     }
 
+    /// Clean up resources.
     pub fn deinit(self: *ConvexPoly) void {
         self.points.deinit();
         self.* = undefined;
     }
 
+    /// Reset the polygon for reuse.
+    /// Parameters:
+    ///   - texture: New texture for the polygon
     pub fn reset(self: *ConvexPoly, texture: ?jok.Texture) void {
         self.texture = texture;
         self.points.clearRetainingCapacity();
         self.finished = false;
     }
 
+    /// Add a single vertex to the polygon.
+    /// Parameters:
+    ///   - p: Vertex with position, color, and UV coordinates
     pub fn point(self: *ConvexPoly, p: jok.Vertex) !void {
         assert(!self.finished);
         try self.points.append(p);
     }
 
+    /// Add multiple vertices to the polygon.
+    /// Parameters:
+    ///   - ps: Slice of vertices to add
     pub fn npoints(self: *ConvexPoly, ps: []jok.Vertex) !void {
         assert(!self.finished);
         try self.points.appendSlice(ps);
     }
 };
 
+/// Alias for ConcavePoly (same as Polyline)
 pub const ConcavePoly = Polyline;
 
+/// Polyline builder for drawing connected line segments or concave polygons.
+/// Can be used for both open polylines and closed concave polygons.
+///
+/// Usage:
+/// 1. Create with `Polyline.begin(allocator)`
+/// 2. Add points with `point()` or `npoints()`
+/// 3. Call `end()` to finish
+/// 4. Render with `batch.polyline()` or `batch.concavePolyFilled()`
+/// 5. Clean up with `deinit()`
 pub const Polyline = struct {
     points: std.array_list.Managed(jok.Point),
     transformed: std.array_list.Managed(jok.Point),
     finished: bool = false,
 
+    /// Begin building a polyline.
+    /// Parameters:
+    ///   - allocator: Memory allocator
     pub fn begin(allocator: std.mem.Allocator) Polyline {
         return .{
             .points = .init(allocator),
@@ -1430,17 +1639,22 @@ pub const Polyline = struct {
         };
     }
 
+    /// Finish building the polyline. Must be called before rendering.
     pub fn end(self: *Polyline) void {
         self.transformed.appendNTimes(.origin, self.points.items.len) catch unreachable;
         self.finished = true;
     }
 
+    /// Clean up resources.
     pub fn deinit(self: *Polyline) void {
         self.points.deinit();
         self.transformed.deinit();
         self.* = undefined;
     }
 
+    /// Reset the polyline for reuse.
+    /// Parameters:
+    ///   - cleardata: If true, clear existing points; if false, keep them
     pub fn reset(self: *Polyline, cleardata: bool) void {
         if (cleardata) {
             self.points.clearRetainingCapacity();
@@ -1449,17 +1663,39 @@ pub const Polyline = struct {
         self.finished = false;
     }
 
+    /// Add a single point to the polyline.
+    /// Parameters:
+    ///   - p: Point to add
     pub fn point(self: *Polyline, p: jok.Point) !void {
         assert(!self.finished);
         try self.points.append(p);
     }
 
+    /// Add multiple points to the polyline.
+    /// Parameters:
+    ///   - ps: Slice of points to add
     pub fn npoints(self: *Polyline, ps: []jok.Point) !void {
         assert(!self.finished);
         try self.points.appendSlice(ps);
     }
 };
 
+/// Object pool for managing rendering batches.
+/// Provides efficient allocation and reuse of batch objects.
+///
+/// Parameters:
+///   - pool_size: Maximum number of batches in the pool
+///   - thread_safe: Whether to use thread-safe synchronization
+///
+/// Usage:
+/// ```zig
+/// var pool = try BatchPool(32, false).init(ctx);
+/// defer pool.deinit();
+///
+/// var batch = try pool.new(.{});
+/// // ... use batch ...
+/// batch.submit(); // automatically reclaimed
+/// ```
 pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
     const AllocSet = std.StaticBitSet(pool_size);
     const mutex_init = if (thread_safe and !builtin.single_threaded)
@@ -1473,6 +1709,9 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
         batches: []Batch,
         mutex: @TypeOf(mutex_init),
 
+        /// Initialize the batch pool.
+        /// Parameters:
+        ///   - _ctx: Game context
         pub fn init(_ctx: jok.Context) !@This() {
             const bs = try _ctx.allocator().alloc(Batch, pool_size);
             for (bs) |*b| {
@@ -1486,6 +1725,7 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
             };
         }
 
+        /// Clean up the batch pool and all its batches.
         pub fn deinit(self: *@This()) void {
             for (self.batches) |*b| b.deinit();
             self.ctx.allocator().free(self.batches);
@@ -1520,8 +1760,8 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
         }
 
         /// Recycle all internally reserved memories.
-        ///
-        /// NOTE: should only be used when no batch is being used.
+        /// This can improve performance by reusing allocated memory.
+        /// NOTE: Should only be called when no batch is currently in use.
         pub fn recycleMemory(self: @This()) void {
             self.mutex.lock();
             defer self.mutex.unlock();
@@ -1529,7 +1769,12 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
             for (self.batches) |*b| b.recycleMemory();
         }
 
-        /// Allocate and initialize new batch
+        /// Allocate and initialize a new batch from the pool.
+        /// The batch is automatically reclaimed when submitted or aborted.
+        /// Parameters:
+        ///   - opt: Batch configuration options
+        /// Returns: A pointer to the allocated batch
+        /// Errors: TooManyBatches if the pool is exhausted
         pub fn new(self: *@This(), opt: BatchOption) !*Batch {
             var b = try self.allocBatch();
             b.reset(opt);

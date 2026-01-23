@@ -1,3 +1,21 @@
+//! Graphics renderer management.
+//!
+//! This module provides the rendering subsystem for the jok engine, supporting
+//! multiple rendering backends (software, accelerated, GPU) through SDL3.
+//!
+//! Features:
+//! - Multiple renderer types (software, accelerated, GPU)
+//! - Texture creation and management
+//! - Geometry rendering (triangles, sprites)
+//! - Render targets and framebuffers
+//! - Custom shader support (GPU backend only)
+//! - Viewport and clipping
+//! - Blend modes and color modulation
+//! - Draw call statistics tracking
+//!
+//! The renderer automatically falls back to simpler backends if the requested
+//! backend is not available (GPU -> accelerated -> software).
+
 const std = @import("std");
 const bulitin = @import("builtin");
 const assert = std.debug.assert;
@@ -6,21 +24,32 @@ const sdl = jok.vendor.sdl;
 const stb = jok.vendor.stb;
 const log = std.log.scoped(.jok);
 
+/// Renderer-specific errors.
 pub const Error = error{
+    /// Texture dimensions exceed hardware limits
     TextureTooLarge,
+    /// Failed to load image data
     LoadImageError,
+    /// Feature not supported by current renderer
     NotSupported,
+    /// Invalid shader format
     InvalidFormat,
+    /// Invalid struct layout for uniform data
     InvalidStruct,
+    /// Invalid data type for operation
     InvalidData,
 };
 
-// Draw call statistics
+/// Draw call statistics tracker.
+///
+/// Tracks rendering performance metrics including draw call count
+/// and triangle count per frame.
 pub const DcStats = struct {
     allocator: std.mem.Allocator,
     drawcall_count: u32,
     triangle_count: u32,
 
+    /// Create a new statistics tracker.
     pub fn create(allocator: std.mem.Allocator) *DcStats {
         const dc = allocator.create(DcStats) catch unreachable;
         dc.* = .{
@@ -31,22 +60,40 @@ pub const DcStats = struct {
         return dc;
     }
 
+    /// Destroy the statistics tracker.
     pub fn destroy(self: *DcStats) void {
         self.allocator.destroy(self);
     }
 
+    /// Reset statistics counters to zero.
     pub fn clear(self: *DcStats) void {
         self.drawcall_count = 0;
         self.triangle_count = 0;
     }
 };
 
+/// Graphics renderer.
+///
+/// Manages the rendering pipeline and provides methods for drawing
+/// textures, geometry, and managing render state. Supports multiple
+/// backends with automatic fallback.
 pub const Renderer = struct {
     ptr: *sdl.SDL_Renderer,
     gpu: ?*sdl.SDL_GPUDevice,
     cfg: jok.config.Config,
     dc: *DcStats,
 
+    /// Initialize renderer from context configuration.
+    ///
+    /// **WARNING: This function is automatically called by jok.Context during initialization.**
+    /// **DO NOT call this function directly from game code.**
+    /// The renderer is accessible via `ctx.renderer()` after context creation.
+    ///
+    /// Creates a renderer with the backend specified in the configuration.
+    /// Automatically falls back to simpler backends if the requested one
+    /// is unavailable (GPU -> accelerated -> software).
+    ///
+    /// Returns: Initialized renderer or error if all backends fail
     pub fn init(ctx: jok.Context) !Renderer {
         const cfg = ctx.cfg();
         const renderer: ?*sdl.SDL_Renderer, const gpu: ?*sdl.SDL_GPUDevice =
@@ -92,17 +139,29 @@ pub const Renderer = struct {
         return rd;
     }
 
+    /// Destroy the renderer and free associated resources.
+    ///
+    /// **WARNING: This function is automatically called by jok.Context during cleanup.**
+    /// **DO NOT call this function directly from game code.**
     pub fn destroy(self: Renderer) void {
         self.dc.destroy();
         sdl.SDL_DestroyRenderer(self.ptr);
         if (self.gpu) |d| sdl.SDL_DestroyGPUDevice(d);
     }
 
+    /// Renderer information.
     pub const Info = struct {
+        /// Renderer backend name
         name: []const u8,
-        vsync: i32, // https://wiki.libsdl.org/SDL3/SDL_SetRenderVSync
+        /// VSync mode (see SDL_SetRenderVSync)
+        vsync: i32,
+        /// Maximum texture size supported
         max_texture_size: u32,
     };
+
+    /// Get renderer information and capabilities.
+    ///
+    /// Returns: Renderer info including backend name and limits
     pub fn getInfo(self: Renderer) !Info {
         const props = sdl.SDL_GetRendererProperties(self.ptr);
         return .{
@@ -112,6 +171,9 @@ pub const Renderer = struct {
         };
     }
 
+    /// Get the output size of the renderer's framebuffer.
+    ///
+    /// Returns: Framebuffer size in pixels
     pub fn getOutputSize(self: Renderer) !jok.Size {
         var width_pixels: c_int = undefined;
         var height_pixels: c_int = undefined;
@@ -125,6 +187,10 @@ pub const Renderer = struct {
         };
     }
 
+    /// Clear the current render target with a color.
+    ///
+    /// Parameters:
+    ///   color: Color to clear with
     pub fn clear(self: Renderer, color: jok.Color) !void {
         const old_color = try self.getColor();
         try self.setColor(color);
@@ -135,6 +201,9 @@ pub const Renderer = struct {
         }
     }
 
+    /// Present the rendered frame to the screen.
+    ///
+    /// Swaps buffers and displays the rendered content.
     pub fn present(self: Renderer) void {
         if (!sdl.SDL_RenderPresent(self.ptr)) {
             log.err("Renderer present failed: {s}", .{sdl.SDL_GetError()});
@@ -307,11 +376,24 @@ pub const Renderer = struct {
         self.dc.triangle_count += @as(u32, @intCast(indices.len)) / 3;
     }
 
+    /// Options for texture creation.
     pub const TextureOption = struct {
+        /// Texture access pattern
         access: jok.Texture.Access = .static,
+        /// Blend mode for rendering
         blend_mode: jok.BlendMode = .blend,
+        /// Scaling filter mode
         scale_mode: jok.Texture.ScaleMode = .linear,
     };
+
+    /// Create a new texture.
+    ///
+    /// Parameters:
+    ///   size: Texture dimensions
+    ///   pixels: Optional initial pixel data (RGBA32 format)
+    ///   opt: Texture creation options
+    ///
+    /// Returns: Created texture or error if creation fails
     pub fn createTexture(self: Renderer, size: jok.Size, pixels: ?[]const u8, opt: TextureOption) !jok.Texture {
         if (self.cfg.jok_renderer_type != .software) {
             const rdinfo = try self.getInfo();

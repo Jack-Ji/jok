@@ -1,10 +1,33 @@
+//! Application context management.
+//!
+//! This module provides the Context type, which serves as the central interface
+//! for accessing all engine functionality. The Context uses a vtable-based design
+//! to provide a stable API while allowing different implementations.
+//!
+//! The Context provides access to:
+//! - Configuration and setup
+//! - Memory allocation
+//! - I/O and event handling
+//! - Timing and performance metrics
+//! - Window and renderer management
+//! - Resource loading (textures, shaders)
+//! - Audio engine
+//! - Debug utilities
+
 const std = @import("std");
 const jok = @import("jok.zig");
 const config = jok.config;
 const font = jok.font;
 const zaudio = jok.vendor.zaudio;
 
-/// Application context
+/// Application context providing access to all engine functionality.
+///
+/// This is the primary interface for interacting with the jok engine.
+/// It uses a vtable pattern to provide a stable API across different
+/// implementations and allows for easy mocking in tests.
+///
+/// The context is typically passed to all game callbacks (init, update, draw)
+/// and provides access to all engine subsystems.
 pub const Context = struct {
     ctx: *anyopaque,
     vtable: struct {
@@ -40,7 +63,7 @@ pub const Context = struct {
         return self.vtable.cfg(self.ctx);
     }
 
-    /// Get meomry allocator
+    /// Get memory allocator
     pub fn allocator(self: Context) std.mem.Allocator {
         return self.vtable.allocator(self.ctx);
     }
@@ -120,7 +143,7 @@ pub const Context = struct {
         return self.vtable.getAspectRatio(self.ctx);
     }
 
-    /// Supress drawcall of current frame
+    /// Suppress drawcall of current frame
     pub fn suppressDraw(self: Context) void {
         return self.vtable.suppressDraw(self.ctx);
     }
@@ -161,14 +184,27 @@ pub const Context = struct {
     }
 };
 
+/// Options for displaying performance statistics.
+///
+/// Controls the appearance and behavior of the debug statistics overlay
+/// that shows FPS, frame time, and other performance metrics.
 pub const DisplayStats = struct {
+    /// Whether the stats window can be moved by dragging
     movable: bool = false,
+    /// Whether the stats window can be collapsed
     collapsible: bool = false,
+    /// Width of the stats window in pixels
     width: f32 = 250,
+    /// How long to display stats (in seconds)
     duration: u32 = 15,
 };
 
+/// Options for debug text printing.
+///
+/// Controls the appearance of debug text rendered to the screen.
 pub const DebugPrint = struct {
+    /// Position to render the text
     pos: jok.Point = .origin,
+    /// Color of the text
     color: jok.Color = .white,
 };

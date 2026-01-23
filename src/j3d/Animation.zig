@@ -1,3 +1,14 @@
+//! 3D skeletal animation system.
+//!
+//! This module provides skeletal animation playback for GLTF models with:
+//! - Keyframe interpolation (linear, step, cubic spline)
+//! - Transform animation (translation, rotation, scale)
+//! - Animation blending and transitions
+//! - Skinned mesh deformation
+//!
+//! Animations are loaded from GLTF files and can be played back with
+//! smooth transitions between different animation states.
+
 const std = @import("std");
 const math = std.math;
 const assert = std.debug.assert;
@@ -12,11 +23,13 @@ const lighting = @import("lighting.zig");
 const Mesh = @import("Mesh.zig");
 const Self = @This();
 
+/// Animation transition parameters for blending between animations
 pub const Transition = struct {
     from: *const Self,
     progress: f32,
 };
 
+/// Rendering options for animated meshes
 pub const RenderOption = struct {
     texture: ?jok.Texture = null,
     color: jok.ColorF = .white,

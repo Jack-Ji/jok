@@ -1,3 +1,9 @@
+//! TrueType font loading and management.
+//!
+//! This file implements the Font type which wraps stb_truetype functionality
+//! for loading and using TrueType fonts. It provides methods for creating font
+//! atlases with customizable glyph ranges.
+
 const std = @import("std");
 const assert = std.debug.assert;
 const Atlas = @import("Atlas.zig");
@@ -8,23 +14,33 @@ const codepoint_ranges = @import("codepoint_ranges.zig");
 const log = std.log.scoped(.jok);
 const Font = @This();
 
+/// Font-specific errors.
 pub const Error = error{
+    /// Not enough space in atlas for all glyphs
     NoEnoughSpace,
 };
 
-// Accept 20M font file at most
+/// Maximum font file size (20MB)
 const max_font_size = 20 * (1 << 20);
 
-// Memory allocator
+/// Memory allocator
 allocator: std.mem.Allocator,
 
-// Font file's data
+/// Font file's data (owned if loaded from file, null if using external data)
 font_data: ?[]const u8,
 
-// Internal font information
+/// Internal font information from stb_truetype
 font_info: truetype.stbtt_fontinfo,
 
-/// Create Font instance with truetype file
+/// Create Font instance from TrueType file.
+///
+/// Loads a TrueType font from the filesystem (or PhysFS if enabled).
+///
+/// Parameters:
+///   ctx: Application context
+///   path: Path to the TrueType font file
+///
+/// Returns: Allocated Font instance
 pub fn create(ctx: jok.Context, path: [:0]const u8) !*Font {
     const allocator = ctx.allocator();
     var self = try allocator.create(Font);
@@ -63,8 +79,16 @@ pub fn create(ctx: jok.Context, path: [:0]const u8) !*Font {
     return self;
 }
 
-/// Create Font instance with truetype data
-/// WARNING: font data must be valid as long as Font instance
+/// Create Font instance from TrueType data in memory.
+///
+/// WARNING: The font data must remain valid for the lifetime of the Font instance.
+/// The Font does not take ownership of the data.
+///
+/// Parameters:
+///   allocator: Memory allocator
+///   data: TrueType font data (must remain valid)
+///
+/// Returns: Allocated Font instance
 pub fn fromTrueTypeData(allocator: std.mem.Allocator, data: []const u8) !*Font {
     var self = try allocator.create(Font);
     self.allocator = allocator;
@@ -81,6 +105,7 @@ pub fn fromTrueTypeData(allocator: std.mem.Allocator, data: []const u8) !*Font {
     return self;
 }
 
+/// Destroy the font and free associated resources.
 pub fn destroy(self: *Font) void {
     if (self.font_data) |data| {
         self.allocator.free(data);
@@ -88,10 +113,26 @@ pub fn destroy(self: *Font) void {
     self.allocator.destroy(self);
 }
 
+/// Options for atlas creation.
 pub const AtlasOption = struct {
+    /// Atlas texture size
     size: jok.Size = .{ .width = 2048, .height = 2048 },
+    /// Whether to keep pixel data after atlas creation (for saving)
     keep_pixels: bool = false,
 };
+
+/// Create a font atlas with specified glyphs.
+///
+/// Generates a texture atlas containing the specified codepoint ranges
+/// rendered at the given font size.
+///
+/// Parameters:
+///   ctx: Application context
+///   font_size: Font size in pixels
+///   _cp_ranges: Codepoint ranges to include (null for default range)
+///   opt: Atlas creation options
+///
+/// Returns: Allocated Atlas instance
 pub fn createAtlas(
     self: Font,
     ctx: jok.Context,

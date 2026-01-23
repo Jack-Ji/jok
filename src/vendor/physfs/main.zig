@@ -52,6 +52,9 @@ pub fn getLastErrorCode() ErrorCode {
 /// This must be called before any other PhysicsFS function.
 /// This should be called prior to any attempts to change your process's
 /// current working directory.
+///
+/// **WARNING: This function is automatically called by jok.Context during initialization.**
+/// **DO NOT call this function directly from game code.**
 pub fn init(allocator: std.mem.Allocator, args: std.process.Args) void {
     assert(mem_allocator == null);
     mem_allocator = allocator;
@@ -76,6 +79,9 @@ pub fn init(allocator: std.mem.Allocator, args: std.process.Args) void {
 
 /// This closes any files opened via physfs, blanks the search/write paths,
 /// frees memory, and invalidates all of your file handles.
+///
+/// **WARNING: This function is automatically called by jok.Context during cleanup.**
+/// **DO NOT call this function directly from game code.**
 pub fn deinit() void {
     if (PHYSFS_deinit() == 0) {
         @panic(getLastErrorCode().toDesc());

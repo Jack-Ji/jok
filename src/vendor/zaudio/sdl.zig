@@ -8,6 +8,11 @@ var engine: *audio.Engine = undefined;
 var frames: std.array_list.Managed(u8) = undefined;
 var stream: *sdl.SDL_AudioStream = undefined;
 
+/// Initialize zaudio with SDL backend.
+///
+/// **WARNING: This function is automatically called by jok.Context during initialization.**
+/// **DO NOT call this function directly from game code.**
+/// The audio engine is accessible via `ctx.audioEngine()` after context creation.
 pub fn init(ctx: jok.Context) !*audio.Engine {
     audio.init(ctx.allocator());
 
@@ -39,6 +44,10 @@ pub fn init(ctx: jok.Context) !*audio.Engine {
     return engine;
 }
 
+/// Deinitialize zaudio and cleanup resources.
+///
+/// **WARNING: This function is automatically called by jok.Context during cleanup.**
+/// **DO NOT call this function directly from game code.**
 pub fn deinit() void {
     sdl.SDL_DestroyAudioStream(stream);
     engine.destroy();

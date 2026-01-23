@@ -1,4 +1,15 @@
-/// 3d camera
+//! 3D camera system for view and projection transformations.
+//!
+//! This module provides a camera implementation supporting:
+//! - Perspective and orthographic projections
+//! - Position and orientation control
+//! - Camera movement and rotation
+//! - View frustum management
+//! - Screen-space coordinate calculations
+//! - Visibility testing
+//!
+//! The camera uses Euler angles (pitch, yaw, roll) for orientation.
+
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
@@ -8,14 +19,16 @@ const zmath = jok.vendor.zmath;
 const internal = @import("internal.zig");
 const Self = @This();
 
-/// Params for viewing frustrum
+/// View frustum parameters for projection
 pub const ViewFrustrum = union(enum) {
+    /// Orthographic projection (parallel lines stay parallel)
     orthographic: struct {
         width: f32,
         height: f32,
         near: f32,
         far: f32,
     },
+    /// Perspective projection (simulates human eye perspective)
     perspective: struct {
         fov: f32,
         aspect_ratio: f32,
@@ -24,6 +37,7 @@ pub const ViewFrustrum = union(enum) {
     },
 };
 
+/// Camera movement directions
 const MoveDirection = enum {
     forward,
     backward,
@@ -33,29 +47,33 @@ const MoveDirection = enum {
     down,
 };
 
+/// World up vector (Y-axis)
 const world_up = zmath.f32x4(0, 1, 0, 0);
 
-// Viewing frustrum
+/// Viewing frustum configuration
 frustrum: ViewFrustrum = undefined,
 
-// Position of camera
+/// Camera position in world space
 position: zmath.Vec = undefined,
 
-// Direction of camera
+/// Camera forward direction vector
 dir: zmath.Vec = undefined,
 
-// Up of camera
+/// Camera up direction vector
 up: zmath.Vec = undefined,
 
-// Right of camera
+/// Camera right direction vector
 right: zmath.Vec = undefined,
 
-// Euler angle of camera
+/// Euler angle: rotation around X-axis (radians)
 pitch: f32 = undefined,
+/// Euler angle: rotation around Y-axis (radians)
 yaw: f32 = undefined,
+/// Euler angle: rotation around Z-axis (radians)
 roll: f32 = undefined,
 
-/// Create a camera using position and target
+/// Create a camera from position and target point
+/// The camera will look at the target from the given position
 pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: [3]f32, target: [3]f32) Self {
     var camera: Self = .{};
     camera.frustrum = frustrum;
@@ -85,7 +103,8 @@ pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: [3]f32, target: [3]f32
     return camera;
 }
 
-/// Create a 3d camera using position and euler angle (in radian)
+/// Create a camera from position and Euler angles
+/// Angles are specified in radians
 pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: [3]f32, pitch: f32, yaw: f32) Self {
     var camera: Self = .{};
     camera.frustrum = frustrum;
@@ -97,7 +116,7 @@ pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: [3]f32, pitch: f3
     return camera;
 }
 
-/// Get camera's own transform
+/// Get the camera's transformation matrix
 pub fn getTransform(self: Self) zmath.Mat {
     return zmath.mul(zmath.mul(
         zmath.rotationX(self.pitch),
@@ -105,7 +124,7 @@ pub fn getTransform(self: Self) zmath.Mat {
     ), zmath.translationV(self.position));
 }
 
-/// Get projection matrix
+/// Get the projection matrix based on frustum settings
 pub fn getProjectMatrix(self: Self) zmath.Mat {
     return switch (self.frustrum) {
         .orthographic => |param| zmath.orthographicLh(
@@ -123,17 +142,17 @@ pub fn getProjectMatrix(self: Self) zmath.Mat {
     };
 }
 
-/// Get view matrix
+/// Get the view matrix for transforming world space to camera space
 pub fn getViewMatrix(self: Self) zmath.Mat {
     return zmath.lookToLh(self.position, self.dir, world_up);
 }
 
-/// Get projection*view matrix
+/// Get the combined view-projection matrix
 pub fn getViewProjectMatrix(self: Self) zmath.Mat {
     return zmath.mul(self.getViewMatrix(), self.getProjectMatrix());
 }
 
-/// Get view distances
+/// Get the near and far clipping plane distances
 pub fn getViewRange(self: Self) [2]f32 {
     return switch (self.frustrum) {
         .orthographic => |p| [2]f32{ p.near, p.far },
@@ -141,7 +160,7 @@ pub fn getViewRange(self: Self) [2]f32 {
     };
 }
 
-/// Move camera
+/// Move the camera in a specified direction by a given distance
 pub fn moveBy(self: *Self, direction: MoveDirection, distance: f32) void {
     const movement = switch (direction) {
         .forward => self.dir * zmath.splat(zmath.Vec, distance),
@@ -154,14 +173,15 @@ pub fn moveBy(self: *Self, direction: MoveDirection, distance: f32) void {
     self.position = self.position + movement;
 }
 
-/// Rotate camera around axises (in radians)
+/// Rotate the camera by delta angles (in radians)
 pub fn rotateBy(self: *Self, delta_pitch: f32, delta_yaw: f32) void {
     self.pitch += delta_pitch;
     self.yaw += delta_yaw;
     self.updateVectors();
 }
 
-/// Change zoom relatively (by radian)
+/// Change the field of view by a delta value (in radians)
+/// Only applies to perspective cameras
 pub fn zoomBy(self: *Self, delta: f32) void {
     if (self.frustrum == .orthographic) return;
     self.frustrum.perspective.fov = math.clamp(
@@ -171,7 +191,8 @@ pub fn zoomBy(self: *Self, delta: f32) void {
     );
 }
 
-/// Rotate camera around given point (in radians)
+/// Rotate the camera around a point (orbit camera)
+/// Angles are specified in radians
 pub fn rotateAroundBy(self: *Self, point: ?[3]f32, delta_angle_h: f32, delta_angle_v: f32) void {
     const center = if (point) |p|
         zmath.f32x4(p[0], p[1], p[2], 1)
@@ -203,7 +224,7 @@ pub fn rotateAroundBy(self: *Self, point: ?[3]f32, delta_angle_h: f32, delta_ang
     );
 }
 
-/// Update vectors: direction/right/up
+/// Update camera direction vectors based on Euler angles
 fn updateVectors(self: *Self) void {
     self.pitch = math.clamp(
         self.pitch,
@@ -220,7 +241,8 @@ fn updateVectors(self: *Self) void {
     self.up = zmath.normalize3(zmath.cross3(self.dir, self.right));
 }
 
-/// Get screen position of given coordinate
+/// Calculate the screen position of a 3D coordinate
+/// Returns 2D screen coordinates
 pub fn calcScreenPosition(
     self: Self,
     ctx: jok.Context,
@@ -247,7 +269,7 @@ pub fn calcScreenPosition(
     return .{ .x = screen[0], .y = screen[1] };
 }
 
-/// Test visibility of aabb
+/// Test if an axis-aligned bounding box is visible to the camera
 pub fn isVisible(self: Self, model: zmath.Mat, aabb: [6]f32) bool {
     const mvp = zmath.mul(model, self.getViewProjectMatrix());
     const width = aabb[3] - aabb[0];
@@ -271,8 +293,9 @@ pub fn isVisible(self: Self, model: zmath.Mat, aabb: [6]f32) bool {
     });
 }
 
-/// Get position of ray test target
-/// NOTE: assuming screen position is relative to top-left corner of viewport
+/// Calculate the 3D position for ray casting from screen coordinates
+/// Used for mouse picking and interaction
+/// Screen position should be relative to the top-left corner of the viewport
 pub fn calcRayTestTarget(
     self: Self,
     ctx: jok.Context,

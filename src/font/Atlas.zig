@@ -1,3 +1,9 @@
+//! Font atlas for efficient text rendering.
+//!
+//! This file implements the Atlas type which manages a texture containing
+//! pre-rendered glyphs. It provides methods for text layout, rendering,
+//! and atlas serialization.
+
 const std = @import("std");
 const assert = std.debug.assert;
 const unicode = std.unicode;
@@ -10,30 +16,50 @@ const gfx = jok.utils.gfx;
 const truetype = jok.vendor.stb.truetype;
 const Atlas = @This();
 
+/// Atlas-specific errors.
 pub const Error = error{
+    /// Invalid atlas file format
     InvalidFormat,
+    /// No pixel data available (required for saving)
     NoPixelData,
 };
 
+/// Maximum atlas data size for serialization (64MB)
 const max_atlas_data_size = 1 << 26;
+
+/// Magic header for atlas files
 const magic_atlas_header = [_]u8{ 'a', 't', 'l', 'a', 's', '@', 'j', 'o', 'k' };
 
+/// Character range in the atlas.
 pub const CharRange = struct {
+    /// First codepoint in range
     codepoint_begin: u32,
+    /// Last codepoint in range (inclusive)
     codepoint_end: u32,
+    /// Packed character data from stb_truetype
     packedchar: []truetype.stbtt_packedchar,
 };
 
+/// Memory allocator
 allocator: std.mem.Allocator,
+/// Atlas texture
 tex: jok.Texture,
+/// Optional pixel data (kept if AtlasOption.keep_pixels was true)
 pixels: ?[]const u8,
+/// Character ranges in the atlas
 ranges: []CharRange,
+/// Vertical metric: ascent
 vmetric_ascent: f32,
+/// Vertical metric: descent
 vmetric_descent: f32,
+/// Vertical metric: line gap
 vmetric_line_gap: f32,
+/// Kerning table for character pairs
 kerning_table: std.AutoHashMap(u64, f32),
+/// Fast codepoint lookup
 codepoint_search: std.AutoHashMap(u32, u32),
 
+/// Destroy the atlas and free associated resources.
 pub fn destroy(self: *Atlas) void {
     self.tex.destroy();
     if (self.pixels) |px| self.allocator.free(px);

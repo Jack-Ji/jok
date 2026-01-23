@@ -1,4 +1,21 @@
-/// mesh data imported from zmesh.Shape and model file
+//! 3D mesh loading and rendering.
+//!
+//! This module provides mesh data structures and loaders for:
+//! - zmesh.Shape (procedural geometry)
+//! - GLTF/GLB model files (with animations and skinning)
+//! - OBJ model files (with MTL materials)
+//!
+//! Features:
+//! - Hierarchical node structure (scene graph)
+//! - Skeletal animation support
+//! - Texture mapping
+//! - Material properties
+//! - AABB (axis-aligned bounding box) calculation
+//! - Multiple submeshes per model
+//!
+//! The mesh system supports both static and animated 3D models with
+//! full material and texture support.
+
 const std = @import("std");
 const math = std.math;
 const assert = std.debug.assert;
@@ -15,18 +32,22 @@ const Camera = @import("Camera.zig");
 const lighting = @import("lighting.zig");
 const Self = @This();
 
+/// Mesh-related errors
 pub const Error = error{
     InvalidFormat,
     InvalidAnimation,
-    TooManyMaterial, // Only support single material (diffuse map)
+    /// Only single material (diffuse map) is supported
+    TooManyMaterial,
 };
 
+/// Mesh file format
 const Format = enum {
     shape,
     gltf,
     obj,
 };
 
+/// Rendering options for meshes
 pub const RenderOption = struct {
     texture: ?jok.Texture = null,
     color: jok.ColorF = .white,
