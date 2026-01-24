@@ -3,6 +3,8 @@
 # jok
 A minimal 2d/3d game framework for zig.
 
+**Documentation:** https://jack-ji.github.io/jok
+
 ## What you need?
 * [Zig Compiler](https://ziglang.org/download/) (Master branch always targets latest zig, use tagged release if you wanna stick to stable version)
 * Any code editor you like
@@ -128,6 +130,47 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     }
     ```
 
+3. (Optional) Using pre-built SDL3 libraries
+
+    By default, jok builds SDL3 from source. However, you can use pre-built SDL3 libraries, by passing build options:
+
+    ```bash
+    zig build -Dsdl-lib-path=/path/to/sdl3/lib -Dsdl-include-path=/path/to/sdl3/include
+    ```
+
+    Where:
+    - `sdl-lib-path`: Directory containing the SDL3 library (e.g., `libSDL3.so`, `libSDL3.a`, `SDL3.dll`, or `libSDL3.dylib`)
+    - `sdl-include-path`: Directory containing SDL3 headers (should have `SDL3/SDL.h` inside)
+
+    **Using in your build.zig:**
+
+    You can also pass SDL3 paths programmatically in your build script for desktop applications:
+    ```zig
+    pub fn build(b: *std.Build) void {
+        const target = b.standardTargetOptions(.{});
+        const optimize = b.standardOptimizeOption(.{});
+
+        // Get SDL paths from build options
+        const sdl_lib_path = b.option([]const u8, "sdl-lib-path", "Path to SDL3 lib");
+        const sdl_include_path = b.option([]const u8, "sdl-include-path", "Path to SDL3 include");
+
+        const exe = jok.createDesktopApp(
+            b,
+            "mygame",
+            "src/main.zig",
+            target,
+            optimize,
+            .{
+                .sdl_lib_path = sdl_lib_path,
+                .sdl_include_path = sdl_include_path,
+            },
+        );
+        // ... rest of build script
+    }
+    ```
+
+    **Note:** Web builds (WASM) always use Emscripten's SDL3 port and do not support custom SDL3 paths.
+
 4. Write some code!
 
     You may import and use jok now, here's skeleton of your `src/main.zig`:
@@ -165,8 +208,8 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     * draw - render your screen here (60 fps by default)
     * quit - do something before game is closed
 
-    You can customize some setup settings (window width/height, fps, debug level etc), by 
-    defining some public constants using predefined names (they're all prefixed with`jok_`).
+    You can customize some setup settings (window width/height, fps, debug level etc), by
+    defining some public constants using predefined names (they're all prefixed with `jok_`).
     Checkout [`src/config.zig`](https://github.com/Jack-Ji/jok/blob/main/src/config.zig).
     Most of which are still modifiable at runtime.
     
@@ -177,7 +220,7 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
 **Jok** is short for **joke**, which is about how overly-complicated modern graphics programming has become.
 People are gradually forgetting lots of computing techniques used to deliver amazing games on simple machines.
 With so many tools, engines and computing resources at hand, however, gamedev is not as fun as it used to be. 
-**Jok** is an offort trying to bring the joy back, it's being developed in the spirit of retro-machines of
+**Jok** is an effort trying to bring the joy back, it's being developed in the spirit of retro-machines of
 1990s (especially PS1), which implies following limitations:
 
 * Custom vertex/~~fragment~~ shader is not possible

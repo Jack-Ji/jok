@@ -12,6 +12,8 @@ pub fn build(b: *Build) void {
 
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const sdl_lib_path = b.option([]const u8, "sdl-lib-path", "Path to pre-built SDL3 library directory");
+    const sdl_include_path = b.option([]const u8, "sdl-include-path", "Path to SDL3 include directory (contains SDL3/SDL.h)");
 
     // Add test suits
     if (!target.result.cpu.arch.isWasm()) {
@@ -21,7 +23,11 @@ pub fn build(b: *Build) void {
             "src/jok.zig",
             target,
             optimize,
-            .{ .dep_name = null },
+            .{
+                .dep_name = null,
+                .sdl_lib_path = sdl_lib_path,
+                .sdl_include_path = sdl_include_path,
+            },
         );
         const test_step = b.step("test", "run tests");
         test_step.dependOn(&b.addRunArtifact(tests).step);
@@ -67,9 +73,9 @@ pub fn build(b: *Build) void {
         .{ .name = "generative_art_5", .opt = .{} },
     };
     const build_examples = b.step("examples", "compile and install all examples");
-    for (examples) |ex| addExample(b, ex.name, target, optimize, build_examples, ex.opt);
+    for (examples) |ex| addExample(b, ex.name, target, optimize, build_examples, ex.opt, sdl_lib_path, sdl_include_path);
 
-    setupDocs(b, target, optimize);
+    setupDocs(b, target, optimize, sdl_lib_path, sdl_include_path);
 }
 
 const ExampleOptions = struct {
@@ -86,6 +92,8 @@ fn addExample(
     optimize: std.builtin.OptimizeMode,
     examples: *Build.Step,
     opt: ExampleOptions,
+    sdl_lib_path: ?[]const u8,
+    sdl_include_path: ?[]const u8,
 ) void {
     if (!target.result.cpu.arch.isWasm()) {
         const assets_install = b.addInstallDirectory(.{
@@ -102,6 +110,8 @@ fn addExample(
             optimize,
             .{
                 .dep_name = null,
+                .sdl_lib_path = sdl_lib_path,
+                .sdl_include_path = sdl_include_path,
             },
         );
 
@@ -156,9 +166,11 @@ fn addExample(
 }
 
 /// Generate docs of framework
-fn setupDocs(b: *std.Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
+fn setupDocs(b: *std.Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, sdl_lib_path: ?[]const u8, sdl_include_path: ?[]const u8) void {
     const jok = getJokLibrary(b, target, optimize, .{
         .dep_name = null,
+        .sdl_lib_path = sdl_lib_path,
+        .sdl_include_path = sdl_include_path,
     });
     const lib = b.addLibrary(.{
         .root_module = jok.module,
@@ -181,6 +193,8 @@ pub const Dependency = struct {
 pub const AppOptions = struct {
     dep_name: ?[]const u8 = "jok",
     additional_deps: []const Dependency = &.{},
+    sdl_lib_path: ?[]const u8 = null,
+    sdl_include_path: ?[]const u8 = null,
 };
 
 /// Create desktop application (windows/linux/macos)
@@ -195,6 +209,8 @@ pub fn createDesktopApp(
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
     const jok = getJokLibrary(b, target, optimize, .{
         .dep_name = opt.dep_name,
+        .sdl_lib_path = opt.sdl_lib_path,
+        .sdl_include_path = opt.sdl_include_path,
     });
 
     // Create game module
@@ -244,10 +260,12 @@ pub fn createTest(
     assert(target.result.os.tag == .windows or target.result.os.tag == .linux or target.result.os.tag == .macos);
     const jok = getJokLibrary(b, target, optimize, .{
         .dep_name = opt.dep_name,
+        .sdl_lib_path = opt.sdl_lib_path,
+        .sdl_include_path = opt.sdl_include_path,
     });
 
     // Create module to be used for testing
-    const sdl = getSdlModule(getJokBuilder(b, opt.dep_name), target, optimize);
+    const sdl = getSdlModule(getJokBuilder(b, opt.dep_name), target, optimize, opt.sdl_include_path);
     const root = b.createModule(.{
         .root_source_file = b.path(root_source_file),
         .target = target,
@@ -351,6 +369,8 @@ pub fn createWebApp(
 // Create jok library
 pub const JokOptions = struct {
     dep_name: ?[]const u8 = "jok",
+    sdl_lib_path: ?[]const u8 = null,
+    sdl_include_path: ?[]const u8 = null,
 };
 fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) struct {
     module: *Build.Module,
@@ -362,14 +382,14 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
         .target = target,
         .optimize = optimize,
     });
-    jokmod.addImport("sdl", getSdlModule(builder, target, optimize));
+    jokmod.addImport("sdl", getSdlModule(builder, target, optimize, opt.sdl_include_path));
 
     const libmod = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
         .target = target,
         .optimize = optimize,
     });
-    libmod.addImport("sdl", getSdlModule(builder, target, optimize));
+    libmod.addImport("sdl", getSdlModule(builder, target, optimize, opt.sdl_include_path));
     @import("src/vendor/physfs/build.zig").inject(libmod);
     @import("src/vendor/stb/build.zig").inject(libmod);
     @import("src/vendor/svg/build.zig").inject(libmod);
@@ -400,9 +420,17 @@ fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
             .root_module = libmod,
         });
 
-        const sdl_dep = builder.dependency("sdl", .{ .target = target, .optimize = optimize });
-        const sdl_lib = sdl_dep.artifact("SDL3");
-        libmod.linkLibrary(sdl_lib);
+        // Use pre-built SDL3 if paths are provided, otherwise build from source
+        if (opt.sdl_lib_path) |lib_path| {
+            // Link against pre-built SDL3 library
+            libmod.addLibraryPath(.{ .cwd_relative = lib_path });
+            libmod.linkSystemLibrary("SDL3", .{});
+        } else {
+            // Build SDL3 from source
+            const sdl_dep = builder.dependency("sdl", .{ .target = target, .optimize = optimize });
+            const sdl_lib = sdl_dep.artifact("SDL3");
+            libmod.linkLibrary(sdl_lib);
+        }
     }
 
     return .{ .module = jokmod, .artifact = lib };
@@ -414,15 +442,30 @@ fn getJokBuilder(b: *Build, dep_name: ?[]const u8) *Build {
 }
 
 // Get module for SDL3 headers
-fn getSdlModule(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode) *Build.Module {
-    const sdl_dep = b.dependency("sdl", .{});
-    const tc = b.addTranslateC(.{
-        .root_source_file = sdl_dep.path("include/SDL3/SDL.h"),
-        .target = target,
-        .optimize = optimize,
-    });
-    tc.addIncludePath(sdl_dep.path("include"));
-    tc.defineCMacro("SDL_DISABLE_OLD_NAMES", null);
+fn getSdlModule(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode, sdl_include_path: ?[]const u8) *Build.Module {
+    // Use custom SDL3 headers if provided, otherwise use dependency
+    const tc = if (sdl_include_path) |inc_path| blk: {
+        const header_path = b.pathJoin(&.{ inc_path, "SDL3", "SDL.h" });
+        const translate = b.addTranslateC(.{
+            .root_source_file = .{ .cwd_relative = header_path },
+            .target = target,
+            .optimize = optimize,
+        });
+        translate.addIncludePath(.{ .cwd_relative = inc_path });
+        translate.defineCMacro("SDL_DISABLE_OLD_NAMES", null);
+        break :blk translate;
+    } else blk: {
+        const sdl_dep = b.dependency("sdl", .{});
+        const translate = b.addTranslateC(.{
+            .root_source_file = sdl_dep.path("include/SDL3/SDL.h"),
+            .target = target,
+            .optimize = optimize,
+        });
+        translate.addIncludePath(sdl_dep.path("include"));
+        translate.defineCMacro("SDL_DISABLE_OLD_NAMES", null);
+        break :blk translate;
+    };
+
     if (target.result.cpu.arch.isWasm()) {
         // Setup emscripten when necessary
         const em = Emscripten.init(b, b.dependency("emsdk", .{}));
