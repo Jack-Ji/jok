@@ -1335,7 +1335,7 @@ pub const JoystickList = struct {
 };
 
 pub fn getJoysticks() ?JoystickList {
-    var num: u32 = undefined;
+    var num: u32 = 0;
     const joysticks = sdl.SDL_GetJoysticks(&num);
     if (joysticks == null) {
         return null;

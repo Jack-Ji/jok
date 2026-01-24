@@ -767,7 +767,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         /// Set size of canvas (null means same as current framebuffer)
         fn setCanvasSize(ptr: *anyopaque, size: ?jok.Size) !void {
-            assert(size == null or (size.?.width > 0 and size.?.width > 0));
+            assert(size == null or (size.?.width > 0 and size.?.height > 0));
             const self: *@This() = @ptrCast(@alignCast(ptr));
             if (cfg.jok_renderer_type == .software) @panic("Unsupported when using software renderer!");
             self._canvas_texture.destroy();
@@ -927,13 +927,16 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 zgui.text("V-Sync Enabled: {}", .{rdinfo.vsync > 0});
                 zgui.separator();
                 zgui.text("Duration: {D}", .{@as(u64, @intFromFloat(self._seconds_real * 1e9))});
+
+                const cpu_time = if (self._fps > 0.0) 1000.0 / self._fps else 0.0;
                 if (self._running_slow) {
                     zgui.textColored(.{ 1, 0, 0, 1 }, "FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
-                    zgui.textColored(.{ 1, 0, 0, 1 }, "CPU: {d:.1}ms", .{1000.0 / self._fps});
+                    zgui.textColored(.{ 1, 0, 0, 1 }, "CPU: {d:.1}ms", .{cpu_time});
                 } else {
                     zgui.text("FPS: {d:.1} {s}", .{ self._fps, cfg.jok_fps_limit.str() });
-                    zgui.text("CPU: {d:.1}ms", .{1000.0 / self._fps});
+                    zgui.text("CPU: {d:.1}ms", .{cpu_time});
                 }
+
                 if (builtin.mode == .Debug) {
                     zgui.text("Memory: {Bi:.3}", .{debug_allocator.total_requested_bytes});
                 }

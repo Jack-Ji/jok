@@ -133,6 +133,7 @@ const Chunk = struct {
         idx: ?usize,
 
         fn next(it: *Iterator) ?RenderSprite {
+            assert(it.rect.width > 0 and it.rect.height > 0);
             while (true) {
                 if (it.idx) |i| {
                     defer it.idx = it.nextIdx();

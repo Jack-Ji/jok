@@ -17,7 +17,7 @@
 //! backend is not available (GPU -> accelerated -> software).
 
 const std = @import("std");
-const bulitin = @import("builtin");
+const builtin = @import("builtin");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
 const sdl = jok.vendor.sdl;
@@ -114,7 +114,7 @@ pub const Renderer = struct {
                             sdl.SDL_GPU_SHADERFORMAT_DXIL |
                             sdl.SDL_GPU_SHADERFORMAT_MSL |
                             sdl.SDL_GPU_SHADERFORMAT_METALLIB,
-                        bulitin.mode == .Debug,
+                        builtin.mode == .Debug,
                         null,
                     );
                     if (gpu == null) continue :blk .accelerated; // Fallback to accelerated

@@ -14,6 +14,8 @@ pub const SpatialOption = struct {
 };
 
 pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
+    assert(opt.size.width > 0 and opt.size.height > 0);
+
     return struct {
         const HashTable = @This();
 

@@ -42,6 +42,7 @@ pub fn getSubSprite(
     width: f32,
     height: f32,
 ) Self {
+    assert(self.width > 0 and self.height > 0);
     assert(offset_x >= 0 and offset_x < self.width);
     assert(offset_y >= 0 and offset_y < self.height);
     assert(width > 0 and width <= self.width - offset_x);

@@ -111,9 +111,7 @@ pub fn create(
     height: u32,
     opt: CreateSheetOption,
 ) !*Self {
-    if (sources.len == 0) {
-        @panic("ZERO image sources are given! Probably something is wrong.");
-    }
+    assert(sources.len > 0);
     const ImageData = struct {
         is_file: bool,
         pixels: ImagePixels,
