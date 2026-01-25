@@ -4,12 +4,13 @@ const jok = @import("jok");
 const j2d = jok.j2d;
 const physfs = jok.vendor.physfs;
 
-pub const jok_fps_limit: jok.config.FpsLimit = .none;
-
 const Actor = struct {
     sprite: j2d.Sprite,
     pos: jok.Point,
     velocity: jok.Point,
+    rot: f32,
+    rot_speed: f32,
+    tint_color: jok.Color,
 };
 
 const names = [_][]const u8{
@@ -40,11 +41,11 @@ pub fn init(ctx: jok.Context) !void {
     sheet = try j2d.SpriteSheet.fromPicturesInDir(
         ctx,
         if (ctx.cfg().jok_enable_physfs) "images" else "assets/images",
-        @intFromFloat(csz.getWidthFloat()),
-        @intFromFloat(csz.getHeightFloat()),
+        csz.width,
+        csz.height,
         .{},
     );
-    characters = try .initCapacity(ctx.allocator(), 1000000);
+    characters = try .initCapacity(ctx.allocator(), 50000);
     rand_gen = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(ctx.io())).toSeconds()));
 }
 
@@ -55,19 +56,26 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
 
 pub fn update(ctx: jok.Context) !void {
     const mouse = jok.io.getMouseState(ctx);
-    if (mouse.buttons.isPressed(.left)) {
+    if (mouse.buttons.isPressed(.left) and characters.items.len != characters.capacity) {
         var rd = rand_gen.random();
         var i: u32 = 0;
-        while (i < 10) : (i += 1) {
+        while (i < 100) : (i += 1) {
             const angle = rd.float(f32) * 2 * std.math.pi;
             const select = rd.intRangeLessThan(u32, 0, names.len);
             try characters.append(.{
                 .sprite = sheet.getSpriteByName(names[select]).?,
                 .pos = mouse.pos,
                 .velocity = .{
-                    .x = 300 * @cos(angle),
-                    .y = 300 * @sin(angle),
+                    .x = rd.float(f32) * 300 * @cos(angle),
+                    .y = rd.float(f32) * 300 * @sin(angle),
                 },
+                .rot = 0,
+                .rot_speed = rd.float(f32) * 2 * std.math.pi,
+                .tint_color = .rgb(
+                    rd.uintLessThan(u8, 255),
+                    rd.uintLessThan(u8, 255),
+                    rd.uintLessThan(u8, 255),
+                ),
             });
         }
     }
@@ -84,6 +92,7 @@ pub fn update(ctx: jok.Context) !void {
         if (curpos.y > size.getHeightFloat())
             c.velocity.y = -@abs(c.velocity.y);
         c.pos = c.pos.add(c.velocity.scale(ctx.deltaSeconds()));
+        c.rot += c.rot_speed * ctx.deltaSeconds();
     }
 }
 
@@ -97,6 +106,8 @@ pub fn draw(ctx: jok.Context) !void {
         try b.sprite(c.sprite, .{
             .pos = c.pos,
             .anchor_point = .anchor_center,
+            .rotate_angle = c.rot,
+            .tint_color = c.tint_color,
         });
     }
     try b.text(

@@ -106,15 +106,28 @@ pub fn render(
     var uv1 = self.uv1;
     if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
     if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
-    const m_scale = zmath.scaling(self.width * opt.scale.x, self.height * opt.scale.y, 1);
-    const m_rotate = zmath.rotationZ(opt.rotate_angle);
-    const m_translate = zmath.translation(opt.pos.x, opt.pos.y, 0);
-    const m_transform = zmath.mul(zmath.mul(m_scale, m_rotate), m_translate);
+    const m_transform = blk: {
+        const m_translate = zmath.translation(opt.pos.x, opt.pos.y, 0);
+        if (opt.scale.isSame(.unit)) {
+            if (opt.rotate_angle == 0) {
+                break :blk m_translate;
+            } else {
+                break :blk zmath.mul(zmath.rotationZ(opt.rotate_angle), m_translate);
+            }
+        } else {
+            const m_scale = zmath.scaling(opt.scale.x, opt.scale.y, 1);
+            if (opt.rotate_angle == 0) {
+                break :blk zmath.mul(m_scale, m_translate);
+            } else {
+                break :blk zmath.mul(m_scale, zmath.mul(zmath.rotationZ(opt.rotate_angle), m_translate));
+            }
+        }
+    };
     const basic_coords = zmath.loadMat(&[_]f32{
-        -opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // Left top
-        1 - opt.anchor_point.x, -opt.anchor_point.y, 0, 1, // Right top
-        1 - opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // Right bottom
-        -opt.anchor_point.x, 1 - opt.anchor_point.y, 0, 1, // Left bottom
+        -opt.anchor_point.x * self.width, -opt.anchor_point.y * self.height, 0, 1, // Left top
+        (1 - opt.anchor_point.x) * self.width, -opt.anchor_point.y * self.height, 0, 1, // Right top
+        (1 - opt.anchor_point.x) * self.width, (1 - opt.anchor_point.y) * self.height, 0, 1, // Right bottom
+        -opt.anchor_point.x * self.width, (1 - opt.anchor_point.y) * self.height, 0, 1, // Left bottom
     });
     const trasformed_coords = zmath.mul(basic_coords, m_transform);
     try draw_commands.append(.{
