@@ -37,6 +37,7 @@ pub const left = new(-1, 0);
 pub const right = new(1, 0);
 
 /// Construct a new vector from x and y components.
+///
 /// Parameters:
 ///   - vx: X component
 ///   - vy: Y component
@@ -60,6 +61,7 @@ pub fn y(self: Self) f32 {
 }
 
 /// Create a vector with all components set to the same value.
+///
 /// Parameters:
 ///   - val: Value for both X and Y components
 pub fn set(val: f32) Self {
@@ -73,6 +75,7 @@ pub fn negate(self: Self) Self {
 }
 
 /// Construct a vector from a slice of floats.
+///
 /// Parameters:
 ///   - slice: Slice containing at least 2 floats
 pub fn fromSlice(slice: []const f32) Self {
@@ -86,6 +89,7 @@ pub fn toArray(self: Self) [2]f32 {
 }
 
 /// Calculate the angle in degrees between two vectors.
+///
 /// Parameters:
 ///   - first_vector: First vector
 ///   - second_vector: Second vector
@@ -95,6 +99,7 @@ pub fn getAngleDegreeBetween(first_vector: Self, second_vector: Self) f32 {
 }
 
 /// Calculate the angle in radians between two vectors.
+///
 /// Parameters:
 ///   - first_vector: First vector
 ///   - second_vector: Second vector
@@ -112,6 +117,7 @@ pub fn length(self: Self) f32 {
 
 /// Calculate the distance between two points.
 /// Formula: √((x1-x2)² + (y1-y2)²)
+///
 /// Parameters:
 ///   - first_vector: First point
 ///   - second_vector: Second point
@@ -132,6 +138,7 @@ pub fn norm(self: Self) Self {
 }
 
 /// Check if two vectors are equal.
+///
 /// Parameters:
 ///   - first_vector: First vector
 ///   - second_vector: Second vector
@@ -140,6 +147,7 @@ pub fn eql(first_vector: Self, second_vector: Self) bool {
 }
 
 /// Subtract one vector from another.
+///
 /// Parameters:
 ///   - first_vector: Vector to subtract from
 ///   - second_vector: Vector to subtract
@@ -149,6 +157,7 @@ pub fn sub(first_vector: Self, second_vector: Self) Self {
 }
 
 /// Add two vectors together.
+///
 /// Parameters:
 ///   - first_vector: First vector
 ///   - second_vector: Second vector
@@ -158,6 +167,7 @@ pub fn add(first_vector: Self, second_vector: Self) Self {
 }
 
 /// Component-wise multiplication of two vectors.
+///
 /// Parameters:
 ///   - first_vector: First vector
 ///   - second_vector: Second vector
@@ -167,6 +177,7 @@ pub fn mul(first_vector: Self, second_vector: Self) Self {
 }
 
 /// Create a vector from the maximum components of two vectors.
+///
 /// Parameters:
 ///   - first_vector: First vector
 ///   - second_vector: Second vector
@@ -176,6 +187,7 @@ pub fn max(first_vector: Self, second_vector: Self) Self {
 }
 
 /// Create a vector from the minimum components of two vectors.
+///
 /// Parameters:
 ///   - first_vector: First vector
 ///   - second_vector: Second vector
@@ -186,6 +198,7 @@ pub fn min(first_vector: Self, second_vector: Self) Self {
 
 /// Scale the vector by a scalar value.
 /// Multiplies each component by the scalar.
+///
 /// Parameters:
 ///   - scalar: Value to multiply by
 pub fn scale(self: Self, scalar: f32) Self {
@@ -195,6 +208,7 @@ pub fn scale(self: Self, scalar: f32) Self {
 
 /// Calculate the dot product of two vectors.
 /// Formula: (x1 * x2) + (y1 * y2)
+///
 /// Parameters:
 ///   - first_vector: First vector
 ///   - second_vector: Second vector
@@ -203,6 +217,7 @@ pub fn dot(first_vector: Self, second_vector: Self) f32 {
 }
 
 /// Linear interpolation between two vectors.
+///
 /// Parameters:
 ///   - first_vector: Start vector (t=0)
 ///   - second_vector: End vector (t=1)

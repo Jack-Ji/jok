@@ -420,12 +420,17 @@ pub const Batch = struct {
         self.reclaimer.reclaim(self);
     }
 
+    /// Push the current transformation onto the stack.
+    /// Use this to save the current transformation state before making changes.
+    /// Must be balanced with popTransform().
     pub fn pushTransform(self: *Batch) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         try self.trs_stack.append(self.trs);
     }
 
+    /// Pop the transformation from the stack, restoring the previous state.
+    /// Must be balanced with a prior pushTransform() call.
     pub fn popTransform(self: *Batch) void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -433,27 +438,48 @@ pub const Batch = struct {
         self.trs = self.trs_stack.pop().?;
     }
 
+    /// Reset the transformation to identity (no translation, rotation, or scaling).
     pub fn setIdentity(self: *Batch) void {
         self.trs = zmath.identity();
     }
 
+    /// Translate (move) subsequent objects by the given offset.
+    ///
+    /// Parameters:
+    ///   - three_floats: Translation offset as .{x, y, z}
     pub fn translate(self: *Batch, three_floats: anytype) void {
         const x, const y, const z = threeFloats(three_floats);
         self.trs = zmath.mul(self.trs, zmath.translation(x, y, z));
     }
 
+    /// Rotate subsequent objects around X-axis by given angle
+    ///
+    /// Parameters:
+    ///   - radian: Rotate angle around X-axis
     pub fn rotateX(self: *Batch, radian: f32) void {
         self.trs = zmath.mul(self.trs, zmath.rotationX(radian));
     }
 
+    /// Rotate subsequent objects around Y-axis by given angle
+    ///
+    /// Parameters:
+    ///   - radian: Rotate angle around Y-axis
     pub fn rotateY(self: *Batch, radian: f32) void {
         self.trs = zmath.mul(self.trs, zmath.rotationY(radian));
     }
 
+    /// Rotate subsequent objects around Z-axis by given angle
+    ///
+    /// Parameters:
+    ///   - radian: Rotate angle around Z-axis
     pub fn rotateZ(self: *Batch, radian: f32) void {
         self.trs = zmath.mul(self.trs, zmath.rotationZ(radian));
     }
 
+    /// Scale subsequent objects by given factors
+    ///
+    /// Parameters:
+    ///   - three_floats: Scaling factors as .{x, y, z}
     pub fn scale(self: *Batch, three_floats: anytype) void {
         const x, const y, const z = threeFloats(three_floats);
         self.trs = zmath.mul(self.trs, zmath.scaling(x, y, z));
@@ -881,6 +907,10 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
         batches: []Batch,
         mutex: @TypeOf(mutex_init),
 
+        /// Initialize the batch pool.
+        ///
+        /// Parameters:
+        ///   - _ctx: Game context
         pub fn init(_ctx: jok.Context) !@This() {
             const bs = try _ctx.allocator().alloc(Batch, pool_size);
             for (bs) |*b| {
@@ -894,6 +924,7 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
             };
         }
 
+        /// Clean up the batch pool and all its batches.
         pub fn deinit(self: *@This()) void {
             for (self.batches) |*b| b.deinit();
             self.ctx.allocator().free(self.batches);
@@ -937,7 +968,13 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
             for (self.batches) |*b| b.recycleMemory();
         }
 
-        /// Allocate and initialize new batch
+        /// Allocate and initialize a new batch from the pool.
+        /// The batch is automatically reclaimed when submitted or aborted.
+        ///
+        /// Parameters:
+        ///   - opt: Batch configuration options
+        ///
+        /// Returns: A pointer to the allocated batch
         pub fn new(self: *@This(), opt: BatchOption) !*Batch {
             var b = try self.allocBatch();
             b.reset(opt);

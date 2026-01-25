@@ -3350,14 +3350,9 @@ test "zmath.acos32" {
 }
 
 pub fn modAngle32(in_angle: f32) f32 {
-    const angle = in_angle + math.pi;
-    var temp: f32 = @abs(angle);
-    temp = temp - (2.0 * math.pi * @as(f32, @floatFromInt(@as(i32, @intFromFloat(temp / math.pi)))));
-    temp = temp - math.pi;
-    if (angle < 0.0) {
-        temp = -temp;
-    }
-    return temp;
+    var a = @mod(in_angle + math.pi, 2 * math.pi);
+    if (a < 0) a += 2 * math.pi; // make sure [0, 2π)
+    return a - math.pi; // now [-π, π]
 }
 
 pub fn cmulSoa(re0: anytype, im0: anytype, re1: anytype, im1: anytype) [2]@TypeOf(re0, im0, re1, im1) {

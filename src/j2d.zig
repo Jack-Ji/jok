@@ -39,6 +39,9 @@ pub const DrawCmd = internal.DrawCmd;
 /// 2D affine transformation matrix for translation, rotation, and scaling
 pub const AffineTransform = @import("j2d/AffineTransform.zig");
 
+/// Camera for controlling what you see in screen
+pub const Camera = @import("j2d/Camera.zig");
+
 /// Sprite representation with texture and UV coordinates
 pub const Sprite = @import("j2d/Sprite.zig");
 
@@ -357,13 +360,15 @@ pub const Batch = struct {
     }
 
     /// Translate (move) subsequent draw commands by the given offset.
+    ///
     /// Parameters:
-    ///   - two_floats: Translation offset as {x, y} or .{x, y}
+    ///   - two_floats: Translation offset as .{x, y}
     pub fn translate(self: *Batch, two_floats: anytype) void {
         self.trs = self.trs.translate(two_floats);
     }
 
     /// Rotate subsequent draw commands around the world origin (0, 0).
+    ///
     /// Parameters:
     ///   - radian: Rotation angle in radians
     pub fn rotateByWorldOrigin(self: *Batch, radian: f32) void {
@@ -372,6 +377,7 @@ pub const Batch = struct {
 
     /// Rotate subsequent draw commands around the current local origin.
     /// The local origin is the current translation position.
+    ///
     /// Parameters:
     ///   - radian: Rotation angle in radians
     pub fn rotateByLocalOrigin(self: *Batch, radian: f32) void {
@@ -380,6 +386,7 @@ pub const Batch = struct {
     }
 
     /// Rotate subsequent draw commands around a specific point.
+    ///
     /// Parameters:
     ///   - p: Center point of rotation
     ///   - radian: Rotation angle in radians
@@ -388,25 +395,28 @@ pub const Batch = struct {
     }
 
     /// Scale subsequent draw commands around the world origin (0, 0).
+    ///
     /// Parameters:
-    ///   - two_floats: Scale factors as {x, y} or .{x, y}
+    ///   - two_floats: Scale factors as .{x, y}
     pub fn scaleAroundWorldOrigin(self: *Batch, two_floats: anytype) void {
         self.trs = self.trs.scaleAroundOrigin(two_floats);
     }
 
     /// Scale subsequent draw commands around the current local origin.
     /// The local origin is the current translation position.
+    ///
     /// Parameters:
-    ///   - two_floats: Scale factors as {x, y} or .{x, y}
+    ///   - two_floats: Scale factors as .{x, y}
     pub fn scaleAroundLocalOrigin(self: *Batch, two_floats: anytype) void {
         const t = self.trs.getTranslation();
         self.trs = self.trs.scaleAroundPoint(.{ .x = t[0], .y = t[1] }, two_floats);
     }
 
     /// Scale subsequent draw commands around a specific point.
+    ///
     /// Parameters:
     ///   - p: Center point of scaling
-    ///   - two_floats: Scale factors as {x, y} or .{x, y}
+    ///   - two_floats: Scale factors as .{x, y}
     pub fn scaleAroundPoint(self: *Batch, p: jok.Point, two_floats: anytype) void {
         self.trs = self.trs.scaleAroundPoint(p, two_floats);
     }
@@ -436,6 +446,7 @@ pub const Batch = struct {
     };
 
     /// Draw a textured image.
+    ///
     /// Parameters:
     ///   - texture: The texture to draw
     ///   - pos: Position to draw at
@@ -489,6 +500,7 @@ pub const Batch = struct {
     };
     /// Draw an image with rounded corners.
     /// NOTE: Rounded images are always aligned with the world axis (no rotation).
+    ///
     /// Parameters:
     ///   - texture: The texture to draw
     ///   - pos: Position to draw at
@@ -535,6 +547,7 @@ pub const Batch = struct {
     }
 
     /// Render a scene graph.
+    ///
     /// Parameters:
     ///   - s: The scene to render
     pub fn scene(self: *Batch, s: *const Scene) !void {
@@ -552,6 +565,7 @@ pub const Batch = struct {
     };
 
     /// Render a particle effect.
+    ///
     /// Parameters:
     ///   - e: The particle effect to render
     ///   - opt: Rendering options
@@ -582,6 +596,7 @@ pub const Batch = struct {
     };
 
     /// Draw a sprite.
+    ///
     /// Parameters:
     ///   - s: The sprite to draw
     ///   - opt: Drawing options
@@ -631,6 +646,7 @@ pub const Batch = struct {
 
     /// Draw formatted text.
     /// Supports newlines, text wrapping, alignment, and kerning.
+    ///
     /// Parameters:
     ///   - fmt: Format string (comptime)
     ///   - args: Format arguments
@@ -1565,6 +1581,7 @@ pub const ConvexPoly = struct {
     finished: bool = false,
 
     /// Begin building a convex polygon.
+    ///
     /// Parameters:
     ///   - allocator: Memory allocator
     ///   - texture: Optional texture for the polygon
@@ -1587,6 +1604,7 @@ pub const ConvexPoly = struct {
     }
 
     /// Reset the polygon for reuse.
+    ///
     /// Parameters:
     ///   - texture: New texture for the polygon
     pub fn reset(self: *ConvexPoly, texture: ?jok.Texture) void {
@@ -1596,6 +1614,7 @@ pub const ConvexPoly = struct {
     }
 
     /// Add a single vertex to the polygon.
+    ///
     /// Parameters:
     ///   - p: Vertex with position, color, and UV coordinates
     pub fn point(self: *ConvexPoly, p: jok.Vertex) !void {
@@ -1604,6 +1623,7 @@ pub const ConvexPoly = struct {
     }
 
     /// Add multiple vertices to the polygon.
+    ///
     /// Parameters:
     ///   - ps: Slice of vertices to add
     pub fn npoints(self: *ConvexPoly, ps: []jok.Vertex) !void {
@@ -1630,6 +1650,7 @@ pub const Polyline = struct {
     finished: bool = false,
 
     /// Begin building a polyline.
+    ///
     /// Parameters:
     ///   - allocator: Memory allocator
     pub fn begin(allocator: std.mem.Allocator) Polyline {
@@ -1653,6 +1674,7 @@ pub const Polyline = struct {
     }
 
     /// Reset the polyline for reuse.
+    ///
     /// Parameters:
     ///   - cleardata: If true, clear existing points; if false, keep them
     pub fn reset(self: *Polyline, cleardata: bool) void {
@@ -1664,6 +1686,7 @@ pub const Polyline = struct {
     }
 
     /// Add a single point to the polyline.
+    ///
     /// Parameters:
     ///   - p: Point to add
     pub fn point(self: *Polyline, p: jok.Point) !void {
@@ -1672,6 +1695,7 @@ pub const Polyline = struct {
     }
 
     /// Add multiple points to the polyline.
+    ///
     /// Parameters:
     ///   - ps: Slice of points to add
     pub fn npoints(self: *Polyline, ps: []jok.Point) !void {
@@ -1710,6 +1734,7 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
         mutex: @TypeOf(mutex_init),
 
         /// Initialize the batch pool.
+        ///
         /// Parameters:
         ///   - _ctx: Game context
         pub fn init(_ctx: jok.Context) !@This() {
@@ -1760,7 +1785,7 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
         }
 
         /// Recycle all internally reserved memories.
-        /// This can improve performance by reusing allocated memory.
+        ///
         /// NOTE: Should only be called when no batch is currently in use.
         pub fn recycleMemory(self: @This()) void {
             self.mutex.lock();
@@ -1771,10 +1796,11 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
 
         /// Allocate and initialize a new batch from the pool.
         /// The batch is automatically reclaimed when submitted or aborted.
+        ///
         /// Parameters:
         ///   - opt: Batch configuration options
+        ///
         /// Returns: A pointer to the allocated batch
-        /// Errors: TooManyBatches if the pool is exhausted
         pub fn new(self: *@This(), opt: BatchOption) !*Batch {
             var b = try self.allocBatch();
             b.reset(opt);

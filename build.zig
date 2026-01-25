@@ -47,6 +47,7 @@ pub fn build(b: *Build) void {
         .{ .name = "animation_2d", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "animation_3d", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "primitive_2d", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "camera_2d", .opt = .{} },
         .{ .name = "meshes_and_lighting", .opt = .{} },
         .{ .name = "intersection_2d", .opt = .{} },
         .{ .name = "solar_system", .opt = .{} },
