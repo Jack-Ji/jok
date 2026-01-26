@@ -72,6 +72,7 @@ pub fn build(b: *Build) void {
         .{ .name = "generative_art_3", .opt = .{} },
         .{ .name = "generative_art_4", .opt = .{} },
         .{ .name = "generative_art_5", .opt = .{} },
+        .{ .name = "websocket_demo", .opt = .{} },
     };
     const build_examples = b.step("examples", "compile and install all examples");
     for (examples) |ex| addExample(b, ex.name, target, optimize, build_examples, ex.opt, sdl_lib_path, sdl_include_path);
@@ -357,7 +358,12 @@ pub fn createWebApp(
         else
             builder.path("src/entrypoints/shell.html"),
         .preload_path = opt.preload_path,
-        .extra_args = &.{"-sSTACK_SIZE=4MB"},
+        .extra_args = &.{
+            "-sSTACK_SIZE=4MB",
+            b.fmt("--js-library={s}", .{builder.path("src/entrypoints/websocket.js").getPath(b)}),
+            "-sEXPORTED_RUNTIME_METHODS=ccall,cwrap",
+            "-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_jok_websocket_on_open,_jok_websocket_on_message,_jok_websocket_on_error,_jok_websocket_on_close",
+        },
     });
 
     // Special run step to run the build result via emrun

@@ -8,6 +8,7 @@
 //! - Texture and shader support
 //! - Font rendering and text layout
 //! - Input handling (keyboard, mouse, gamepad)
+//! - Websocket client (only for webassembly)
 //! - Utility functions for common game development tasks
 //!
 //! ## Quick Start
@@ -107,11 +108,9 @@ pub const io = @import("io.zig");
 /// Use pattern matching to handle different event types.
 pub const Event = io.Event;
 
-/// Low-level graphics rendering interface.
-const rd = @import("renderer.zig");
-
 /// GPU renderer for drawing primitives and textures.
 /// Most users should use j2d or j3d instead of this low-level API.
+const rd = @import("renderer.zig");
 pub const Renderer = rd.Renderer;
 
 /// Shader format specification (GLSL, SPIR-V, etc.).
@@ -141,6 +140,10 @@ pub const j3d = @import("j3d.zig");
 /// Font loading and text rendering.
 /// Supports TrueType fonts with various rendering options.
 pub const font = @import("font.zig");
+
+/// WebSocket client for network communication.
+/// Provides WebSocket support for WebAssembly platforms.
+pub const WebSocket = @import("websocket.zig").WebSocket;
 
 /// Miscellaneous utility functions and data structures.
 /// Includes math helpers, data structures, and other common utilities.

@@ -10,6 +10,12 @@ comptime {
     compcheck.doAppCheck(game);
 }
 
+// Force websocket exports to be included for wasm builds
+// This ensures the callback functions are available even if the game doesn't use WebSocket
+comptime {
+    _ = jok.WebSocket;
+}
+
 /// Jok configuration
 const jok_config = config.init(game);
 

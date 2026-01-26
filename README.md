@@ -35,6 +35,7 @@ A minimal 2d/3d game framework for zig.
 * TrueType support, atlas generation/save/load (including kerning table for basic Latin)
 * SVG loading/rendering
 * Sound/Music playing/mixing
+* WebSocket client (webassembly platform)
 * Tiled editor support (tmx/tsx loading/rendering)
 * Misc powerful utils, such as easing/timer/signal/fsm/plugin system
 
