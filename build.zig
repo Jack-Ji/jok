@@ -63,7 +63,7 @@ pub fn build(b: *Build) void {
         .{ .name = "conway_life", .opt = .{} },
         .{ .name = "tiled", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "2048", .opt = .{} },
-        .{ .name = "hotreload", .opt = .{ .plugin = "plugin", .support_web = false } },
+        .{ .name = "hotreload", .opt = .{ .plugin = "plugin" } },
         .{ .name = "quadtree", .opt = .{} },
         .{ .name = "post_effect", .opt = .{ .support_web = false } },
         .{ .name = "shaders", .opt = .{ .support_web = false } },

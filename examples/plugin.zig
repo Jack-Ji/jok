@@ -1,8 +1,8 @@
 const std = @import("std");
 
 pub const PluginType = struct {
-    whoAreYou: *const fn () callconv(.c) [*c]const u8,
-    howFast: *const fn () callconv(.c) f32,
+    whoAreYou: *const fn () callconv(.c) [*c]const u8 = whoAreYou,
+    howFast: *const fn () callconv(.c) f32 = howFast,
 };
 
 export fn whoAreYou() [*c]const u8 {

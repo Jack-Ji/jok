@@ -1,19 +1,61 @@
+//! Generic quad tree for efficient spatial partitioning and collision detection.
+//!
+//! A quad tree is a tree data structure where each internal node has exactly four children.
+//! It's used to partition 2D space by recursively subdividing it into four quadrants.
+//!
+//! Features:
+//! - Efficient spatial queries (find objects in a region)
+//! - Dynamic insertion and removal of objects
+//! - Automatic subdivision when capacity is exceeded
+//! - Optional sorting for deterministic iteration
+//! - Configurable leaf size and minimum dimensions
+//!
+//! Use cases:
+//! - Broad-phase collision detection
+//! - Spatial indexing for large numbers of objects
+//! - Frustum culling
+//! - Nearest neighbor searches
+//!
+//! Example usage:
+//! ```zig
+//! const MyQuadTree = QuadTree(u32, .{
+//!     .preferred_size_of_leaf = 8,
+//!     .min_width_of_leaf = 64,
+//! });
+//!
+//! var tree = try MyQuadTree.create(allocator, .{
+//!     .x = 0, .y = 0, .width = 1024, .height = 1024
+//! });
+//! defer tree.destroy();
+//!
+//! try tree.add(object_id, position);
+//! var results = std.array_list.Managed(u32).init(allocator);
+//! try tree.query(search_rect, &results);
+//! ```
+
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const j2d = jok.j2d;
 
+/// Errors that can occur during quad tree operations
 pub const Error = error{
+    /// Object already exists in the tree
     AlreadyExists,
+    /// Object position is outside the tree bounds
     NotSeeable,
 };
 
+/// Configuration options for quad tree behavior
 pub const TreeOption = struct {
     preferred_size_of_leaf: u32 = 8, // Maximum number of objects within a leaf
     min_width_of_leaf: u32 = 64, // Minimum width of rectangle
     enable_sort: bool = false, // Do quick sort if possible
 };
 
+/// Generic quad tree data structure
+/// ObjectType: Type of objects to store (must be int or single-item pointer)
+/// opt: Configuration options for tree behavior
 pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
     const type_info = @typeInfo(ObjectType);
     const is_searchable = type_info == .int or (type_info == .pointer and type_info.pointer.size == .one);

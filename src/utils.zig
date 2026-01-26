@@ -1,27 +1,45 @@
+//! Utility module for the Jok game engine.
+//!
+//! This module provides a collection of utility functions and data structures
+//! to support common game development tasks.
+//!
+//! Key features:
+//! - Graphics utilities (image loading, encoding, custom PNG format)
+//! - Math utilities (mapping, line intersection, isometric transforms)
+//! - Pathfinding algorithms (A* and Dijkstra)
+//! - Easing functions for smooth animations
+//! - Timer system for scheduling callbacks
+//! - Dialog system for file/directory selection
+//! - Signal/slot pattern for event handling
+//! - Tiled map editor support
+//! - Plugin system with hot-reloading
+//! - Spatial data structures (QuadTree, SpatialHash)
+//! - FSM (Finite State Machine) management
+
 const jok = @import("jok.zig");
 
-/// Graphics utils
+/// Graphics utilities for image loading, saving, and custom PNG format with embedded data
 pub const gfx = @import("utils/gfx.zig");
 
-/// Math utils
+/// Math utilities for mapping, line intersection, and coordinate transformations
 pub const math = @import("utils/math.zig");
 
-/// Path-finding utils
+/// Pathfinding algorithms (A*, Dijkstra) for graph-based navigation
 pub const pathfind = @import("utils/pathfind.zig");
 
-/// Easing utils
+/// Easing functions for smooth animations and transitions (based on easings.net)
 pub const easing = @import("utils/easing.zig");
 
-/// Timer utils
+/// Timer system for scheduling asynchronous callbacks with precise timing control
 pub const timer = @import("utils/timer.zig");
 
-/// Dialog utils
+/// Dialog system for native file/directory selection dialogs
 pub const dialog = @import("utils/dialog.zig");
 
-/// Signal utils
+/// Signal/slot pattern implementation for event-driven programming
 pub const signal = @import("utils/signal.zig");
 
-/// Tile map support
+/// Tiled map editor support for loading and rendering TMX format maps
 pub const tiled = @import("utils/tiled.zig");
 
 /// XML processing
@@ -31,14 +49,14 @@ pub const xml = @import("utils/xml.zig");
 /// Ported from https://github.com/cryptocode/zigfsm
 pub const fsm = @import("utils/fsm.zig");
 
-/// Plugin system
+/// Plugin system with hot-reloading support for dynamic library loading
 pub const plugin = @import("utils/plugin.zig");
 
-/// Generic quad tree
+/// Generic quad tree for efficient spatial partitioning and collision detection
 const quad_tree = @import("utils/quad_tree.zig");
 pub const QuadTree = quad_tree.QuadTree;
 
-/// Generic Spatial hash-table
+/// Generic spatial hash table for fast spatial queries and broad-phase collision detection
 const spatial_hash = @import("utils/spatial_hash.zig");
 pub const SpatialHash = spatial_hash.SpatialHash;
 
@@ -46,6 +64,7 @@ pub const SpatialHash = spatial_hash.SpatialHash;
 pub const ring = @import("utils/ring.zig");
 
 /// Misc utils
+/// Convert various types (structs, arrays, vectors) to a 2-element f32 array
 pub inline fn twoFloats(v: anytype) [2]f32 {
     if (@TypeOf(v) == jok.j2d.Vector) return v.data;
     return switch (@typeInfo(@TypeOf(v))) {
@@ -69,6 +88,7 @@ pub inline fn twoFloats(v: anytype) [2]f32 {
     };
 }
 
+/// Convert various types (structs, arrays, vectors) to a 3-element f32 array
 pub inline fn threeFloats(v: anytype) [3]f32 {
     if (@TypeOf(v) == jok.j3d.Vector) return v.data;
     return switch (@typeInfo(@TypeOf(v))) {

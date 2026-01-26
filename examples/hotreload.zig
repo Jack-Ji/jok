@@ -22,12 +22,17 @@ pub fn init(ctx: jok.Context) !void {
     text_speed = j2d.Vector.new(100, 100);
     plugin = try utils.plugin.Plugin(PluginType).create(
         ctx,
-        if (builtin.target.os.tag == .windows)
-            "./plugin.dll"
-        else if (builtin.target.os.tag == .macos)
-            "./libplugin.dylib"
+        if (builtin.cpu.arch.isWasm())
+            .static
         else
-            "./libplugin.so",
+            .{
+                .dynamic = if (builtin.target.os.tag == .windows)
+                    "./plugin.dll"
+                else if (builtin.target.os.tag == .macos)
+                    "./libplugin.dylib"
+                else
+                    "./libplugin.so",
+            },
     );
 }
 
@@ -43,7 +48,7 @@ pub fn update(ctx: jok.Context) !void {
 }
 
 pub fn draw(ctx: jok.Context) !void {
-    try ctx.renderer().clear(.none);
+    try ctx.renderer().clear(.black);
     const csz = ctx.getCanvasSize();
 
     const whoami = std.mem.sliceTo(plugin.fptrs.whoAreYou(), 0);

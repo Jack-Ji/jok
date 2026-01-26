@@ -1,14 +1,51 @@
+//! Plugin system with hot-reloading support for dynamic library loading.
+//!
+//! This module provides a plugin system that allows loading and hot-reloading
+//! of dynamic libraries at runtime. Useful for rapid development and modding support.
+//!
+//! Features:
+//! - Load plugins from dynamic libraries (.so, .dll, .dylib)
+//! - Hot-reload plugins when source files change
+//! - Static plugin support for WASM and other platforms
+//! - Type-safe function pointer management
+//! - Automatic version tracking
+//!
+//! Requirements:
+//! - Plugin struct must contain only function pointers
+//! - All functions must use C calling convention
+//!
+//! Example usage:
+//! ```zig
+//! const MyPlugin = struct {
+//!     init: *const fn() callconv(.c) void,
+//!     update: *const fn(f32) callconv(.c) void,
+//!     deinit: *const fn() callconv(.c) void,
+//! };
+//!
+//! var plugin = try Plugin(MyPlugin).create(ctx, .{ .dynamic = "libmyplugin.so" });
+//! defer plugin.destroy();
+//!
+//! // In your update loop:
+//! try plugin.checkAndReload(); // Hot-reload if file changed
+//! plugin.fptrs.update(delta_time);
+//! ```
+
 const std = @import("std");
+const builtin = @import("builtin");
 const DynLib = std.DynLib;
 const log = std.log.scoped(.jok);
 const jok = @import("../jok.zig");
 
 const loaded_plugins_path = "./loaded_plugins/";
 
+/// Errors that can occur during plugin operations
 const Error = error{
+    /// Failed to lookup API function in plugin
     LookupApiFailed,
 };
 
+/// Generic plugin loader with hot-reload support
+/// StructType: A struct containing only function pointers with C calling convention
 pub fn Plugin(comptime StructType: type) type {
     const info = @typeInfo(StructType);
     if (info != .@"struct") @panic("Only accept struct type!");
@@ -27,46 +64,76 @@ pub fn Plugin(comptime StructType: type) type {
         const Self = @This();
 
         ctx: jok.Context,
+        type: Type,
         fptrs: StructType, // Directly used by app
         lib: DynLib,
         origin_path: []const u8,
         last_modify_time: std.Io.Timestamp,
         version: u32,
 
-        pub fn create(ctx: jok.Context, path: []const u8) !*Self {
-            // Initialize plugin path
-            const allocator = ctx.allocator();
-            const plugin_path = getPluginPath(allocator, path);
-            defer allocator.free(plugin_path);
-            try std.Io.Dir.cwd().deleteTree(ctx.io(), plugin_path);
-            try std.Io.Dir.cwd().createDirPath(ctx.io(), plugin_path);
+        pub const Type = enum { dynamic, static };
+        pub const Source = union(Type) {
+            dynamic: []const u8,
+            static: void,
+        };
 
-            // Clone original path
-            const origin_path = try allocator.dupe(u8, path);
-            errdefer allocator.free(origin_path);
+        /// Create a plugin with given source
+        pub fn create(ctx: jok.Context, source: Source) !*Self {
+            if (!builtin.cpu.arch.isWasm() and source == .dynamic) {
+                // Load dynamic library
+                const allocator = ctx.allocator();
+                const path = source.dynamic;
+                const plugin_path = getPluginPath(allocator, path);
+                defer allocator.free(plugin_path);
+                try std.Io.Dir.cwd().deleteTree(ctx.io(), plugin_path);
+                try std.Io.Dir.cwd().createDirPath(ctx.io(), plugin_path);
 
-            const self = try allocator.create(Self);
-            errdefer allocator.destroy(self);
-            const loaded = try loadLibrary(ctx, origin_path, 1);
-            self.* = .{
-                .ctx = ctx,
-                .fptrs = loaded.fptrs,
-                .lib = loaded.lib,
-                .origin_path = origin_path,
-                .last_modify_time = loaded.last_modify_time,
-                .version = 1,
-            };
-            return self;
+                // Clone original path
+                const origin_path = try allocator.dupe(u8, path);
+                errdefer allocator.free(origin_path);
+
+                const self = try allocator.create(Self);
+                errdefer allocator.destroy(self);
+                const loaded = try loadLibrary(ctx, origin_path, 1);
+                self.* = .{
+                    .ctx = ctx,
+                    .type = .dynamic,
+                    .fptrs = loaded.fptrs,
+                    .lib = loaded.lib,
+                    .origin_path = origin_path,
+                    .last_modify_time = loaded.last_modify_time,
+                    .version = 1,
+                };
+                return self;
+            } else {
+                // Statically initialize plugin struct
+                const allocator = ctx.allocator();
+                const self = try allocator.create(Self);
+                self.* = .{
+                    .ctx = ctx,
+                    .type = .static,
+                    .fptrs = .{},
+                    .lib = undefined,
+                    .origin_path = undefined,
+                    .last_modify_time = undefined,
+                    .version = 1,
+                };
+                return self;
+            }
         }
 
+        /// Destroy plugin
         pub fn destroy(self: *Self) void {
-            self.lib.close();
-            self.ctx.allocator().free(self.origin_path);
+            if (!builtin.cpu.arch.isWasm() and self.type == .dynamic) {
+                self.lib.close();
+                self.ctx.allocator().free(self.origin_path);
+            }
             self.ctx.allocator().destroy(self);
         }
 
         /// Check mtime of plugin, reload if it's more update
         pub fn checkAndReload(self: *Self) !void {
+            if (self.type == .static) return;
             const stat = std.Io.Dir.cwd().statFile(self.ctx.io(), self.origin_path, .{}) catch |e| {
                 log.err("Check library {s} failed: {}", .{ self.origin_path, e });
                 return e;
@@ -78,6 +145,8 @@ pub fn Plugin(comptime StructType: type) type {
 
         /// Manually reload plugin
         pub fn forceReload(self: *Self) !void {
+            if (builtin.cpu.arch.isWasm() or self.type == .static) return;
+
             const loaded = loadLibrary(self.ctx, self.origin_path, self.version + 1) catch |e| {
                 log.err("Reload library {s} failed: {}", .{ self.origin_path, e });
                 return e;

@@ -1,26 +1,46 @@
+//! Graphics utilities for image loading, saving, and custom PNG format.
+//!
+//! This module provides utilities for working with image files, including:
+//! - Loading image files into memory (RGBA format)
+//! - Saving pixels to various image formats (PNG, BMP, TGA, JPG)
+//! - Custom JPNG format: PNG files with embedded custom data
+//!
+//! The JPNG format allows storing arbitrary data alongside PNG images,
+//! useful for embedding metadata, level data, or other game-specific information.
+
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const physfs = jok.vendor.physfs;
 const stb = jok.vendor.stb;
 
+/// Errors that can occur during graphics operations
 pub const Error = error{
+    /// Failed to encode texture to file format
     EncodeTextureFailed,
+    /// Invalid JPNG file footer
     InvalidFootage,
+    /// CRC checksum mismatch in JPNG custom data
     InvalidChecksum,
+    /// Custom data exceeds maximum size (64MB)
     CustomDataTooBig,
 };
 
-/// Decode image file's pixels into memory (always RGBA format)
+/// Decoded image file pixels in memory (always RGBA format)
 pub const FilePixels = struct {
     allocator: std.mem.Allocator,
     pixels: []const u8, // RGBA data
     size: jok.Size,
 
+    /// Free the allocated pixel data
     pub fn destroy(self: FilePixels) void {
         self.allocator.free(self.pixels);
     }
 };
+
+/// Load image file pixels into memory
+/// Supports common formats: PNG, JPG, BMP, TGA, etc.
+/// Returns pixels in RGBA format regardless of source format
 pub fn loadPixelsFromFile(ctx: jok.Context, path: [:0]const u8, flip: bool) !FilePixels {
     const allocator = ctx.allocator();
 
@@ -77,14 +97,22 @@ pub fn loadPixelsFromFile(ctx: jok.Context, path: [:0]const u8, flip: bool) !Fil
     };
 }
 
-/// Save texture into encoded format (png/bmp/tga/jpg) on disk
+/// Options for encoding images to various file formats
 pub const EncodingOption = struct {
+    /// Output image format
     format: enum { png, bmp, tga, jpg } = .png,
+    /// PNG compression level (1-9, higher = smaller file but slower)
     png_compress_level: u8 = 8,
+    /// Enable RLE compression for TGA format
     tga_rle_compress: bool = true,
+    /// JPEG quality (1-100, higher = better quality but larger file)
     jpg_quality: u8 = 75, // Between 1 and 100
+    /// Flip image vertically when writing
     flip_on_write: bool = false,
 };
+
+/// Save pixel data to an encoded image file
+/// Pixels must be in RGBA format with 4 bytes per pixel
 pub fn savePixelsToFile(
     ctx: jok.Context,
     pixels: []const u8,

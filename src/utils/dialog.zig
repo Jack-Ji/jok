@@ -1,3 +1,42 @@
+//! Native file/directory dialog system.
+//!
+//! This module provides cross-platform file and directory selection dialogs
+//! using SDL3's native dialog support.
+//!
+//! Supported platforms: Windows, Linux, macOS
+//!
+//! Features:
+//! - Open file/directory dialogs
+//! - Save file dialogs
+//! - File type filters
+//! - Multiple file selection
+//! - Asynchronous callbacks
+//! - Main thread or background execution
+//!
+//! Example usage:
+//! ```zig
+//! fn onFileSelected(userdata: ?*anyopaque, paths: [][]const u8) !void {
+//!     for (paths) |path| {
+//!         std.debug.print("Selected: {s}\n", .{path});
+//!     }
+//! }
+//!
+//! try showDialog(
+//!     ctx,
+//!     .open_file,
+//!     onFileSelected,
+//!     null,
+//!     .{
+//!         .title = "Select an image",
+//!         .filters = &.{
+//!             .{ .name = "PNG images", .pattern = "png" },
+//!             .{ .name = "All files", .pattern = "*" },
+//!         },
+//!         .allow_many = true,
+//!     },
+//! );
+//! ```
+
 const std = @import("std");
 const builtin = @import("builtin");
 const assert = std.debug.assert;
@@ -5,25 +44,28 @@ const jok = @import("../jok.zig");
 const sdl = jok.vendor.sdl;
 const log = std.log.scoped(.jok);
 
-/// Dialog types
+/// Types of file dialogs
 pub const DialogType = enum(c_int) {
+    /// Open an existing file
     open_file = sdl.SDL_FILEDIALOG_OPENFILE,
+    /// Open a directory
     open_dir = sdl.SDL_FILEDIALOG_OPENFOLDER,
+    /// Save to a file (may not exist yet)
     save_file = sdl.SDL_FILEDIALOG_SAVEFILE,
 };
 
-/// An entry for filters for file dialogs.
-/// e.g.
-///    { .name = "PNG images",  .pattern = "png" }
-///    { .name = "JPEG images", .pattern = "jpg;jpeg" }
-///    { .name = "All images",  .pattern = "png;jpg;jpeg" }
-///    { .name = "All files",   .pattern = "*" }
+/// File filter entry for dialog file type filtering
+/// Examples:
+///   .{ .name = "PNG images",  .pattern = "png" }
+///   .{ .name = "JPEG images", .pattern = "jpg;jpeg" }
+///   .{ .name = "All images",  .pattern = "png;jpg;jpeg" }
+///   .{ .name = "All files",   .pattern = "*" }
 pub const DialogFilter = extern struct {
     name: [*c]const u8,
     pattern: [*c]const u8,
 };
 
-/// Dialog options
+/// Options for configuring file dialogs
 pub const DialogOption = struct {
     title: ?[:0]const u8 = null,
     accept_label: ?[:0]const u8 = null,
@@ -34,9 +76,12 @@ pub const DialogOption = struct {
     run_on_main_thread: bool = true,
 };
 
+/// Callback function type for dialog results
+/// Called with user data and array of selected file paths
 pub const DialogCallback = *const fn (userdata: ?*anyopaque, paths: [][]const u8) anyerror!void;
 
-/// Show dialog for opening/saving files/directory
+/// Show a file/directory dialog
+/// The callback will be invoked asynchronously when the user makes a selection
 pub fn showDialog(ctx: jok.Context, dt: DialogType, callback: DialogCallback, userdata: ?*anyopaque, opt: DialogOption) !void {
     if (builtin.os.tag != .windows and builtin.os.tag != .linux and builtin.os.tag != .macos) {
         @panic("Unsupported platform");

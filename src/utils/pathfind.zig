@@ -1,3 +1,20 @@
+//! Pathfinding algorithms for graph-based navigation.
+//!
+//! This module provides A* and Dijkstra pathfinding algorithms that work
+//! with any graph structure implementing the required interface.
+//!
+//! Graph Interface Requirements:
+//! Your graph struct must implement:
+//! - `iterateNeigh(id: usize) Iterator` - Returns iterator for neighbor nodes
+//! - `gcost(from: usize, to: usize) usize` - Returns actual cost between nodes
+//! - `hcost(from: usize, to: usize) usize` - Returns heuristic cost estimate
+//!
+//! The Iterator must have a `next() ?usize` method.
+//!
+//! Algorithm Selection:
+//! - For Dijkstra: Return 0 from hcost (no heuristic)
+//! - For A*: Return distance estimate from hcost (e.g., Manhattan, Euclidean)
+
 const std = @import("std");
 const math = std.math;
 
@@ -38,7 +55,11 @@ inline fn verifyGraphStruct(graph: anytype) void {
     }
 }
 
-/// Calculate Dijkstra/A* path, depending on how `graph` implements `hcost`
+/// Calculate shortest path using Dijkstra or A* algorithm
+/// Returns null if no path exists, otherwise returns path from 'from' to 'to'
+/// The algorithm used depends on the hcost implementation:
+/// - hcost returns 0: Dijkstra's algorithm (guaranteed shortest path)
+/// - hcost returns estimate: A* algorithm (faster but requires good heuristic)
 pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, to: usize) !?std.array_list.Managed(usize) {
     verifyGraphStruct(graph);
 

@@ -1,3 +1,31 @@
+//! Tiled map editor support for loading and rendering TMX format maps.
+//!
+//! This module provides support for loading tile maps created with the Tiled Map Editor.
+//! See: https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
+//!
+//! Features:
+//! - Load TMX format tile maps
+//! - Support for orthogonal and isometric orientations
+//! - Tile layers with various encodings
+//! - Tilesets with texture atlases
+//! - Custom properties on tiles, layers, and objects
+//! - Object layers
+//!
+//! Current limitations:
+//! - Isometric orientation is TODO
+//! - Some advanced TMX features may not be supported
+//!
+//! Example usage:
+//! ```zig
+//! var map = try TiledMap.load(ctx, "assets/level1.tmx");
+//! defer map.deinit();
+//!
+//! // Render the map
+//! for (map.layers) |layer| {
+//!     // Render tiles from layer
+//! }
+//! ```
+
 /// Tiled Editor
 /// https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
 const std = @import("std");

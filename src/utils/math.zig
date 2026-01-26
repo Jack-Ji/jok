@@ -1,16 +1,29 @@
+//! Math utilities for game development.
+//!
+//! This module provides mathematical functions commonly used in games:
+//! - Value mapping (linear and smooth)
+//! - Line intersection testing
+//! - Isometric coordinate transformations
+//!
+//! These utilities complement the standard library's math functions
+//! with game-specific operations.
+
 const std = @import("std");
 const jok = @import("../jok.zig");
 const assert = std.debug.assert;
 const math = std.math;
 const zmath = jok.vendor.zmath;
 
-/// Linearly map `v` from [from, to] to [map_from, map_to]
+/// Linearly map value `v` from range [from, to] to range [map_from, map_to]
+/// The input value is clamped to the source range
 pub inline fn linearMap(_v: f32, from: f32, to: f32, map_from: f32, map_to: f32) f32 {
     const v = if (from < to) math.clamp(_v, from, to) else math.clamp(_v, to, from);
     return map_from + (map_to - map_from) * (v - from) / (to - from);
 }
 
-/// Smoothly map from [from, to] to [map_from, map_to], checkout link https://en.wikipedia.org/wiki/Smoothstep
+/// Smoothly map value from range [from, to] to range [map_from, map_to]
+/// Uses smoothstep interpolation (3x^2 - 2x^3) for smooth transitions
+/// See: https://en.wikipedia.org/wiki/Smoothstep
 pub inline fn smoothMap(_v: f32, from: f32, to: f32, map_from: f32, map_to: f32) f32 {
     const v = if (from < to) math.clamp(_v, from, to) else math.clamp(_v, to, from);
     var step = (v - from) / (to - from);
@@ -18,7 +31,8 @@ pub inline fn smoothMap(_v: f32, from: f32, to: f32, map_from: f32, map_to: f32)
     return map_from + (map_to - map_from) * step;
 }
 
-/// Get min and max of 3 value
+/// Get minimum and maximum of three values
+/// Returns a tuple of (min, max)
 pub inline fn minAndMax(_x: anytype, _y: anytype, _z: anytype) @Tuple(&[_]type{
     @TypeOf(_x, _y, _z),
     @TypeOf(_x, _y, _z),
@@ -32,7 +46,8 @@ pub inline fn minAndMax(_x: anytype, _y: anytype, _z: anytype) @Tuple(&[_]type{
     return .{ x, z };
 }
 
-/// Test whether two line intersect
+/// Test whether two line segments intersect
+/// Each line is defined by two points
 pub inline fn areLinesIntersect(line0: [2]jok.Point, line1: [2]jok.Point) bool {
     if (@max(line0[0].x, line0[1].x) < @min(line1[0].x, line1[1].x) or
         @min(line0[0].x, line0[1].x) > @max(line1[0].x, line1[1].x) or
@@ -52,16 +67,22 @@ pub inline fn areLinesIntersect(line0: [2]jok.Point, line1: [2]jok.Point) bool {
         zmath.dot3(zmath.cross3(v1, v1_v0_0), zmath.cross3(v1, v1_v0_1))[0] <= 0;
 }
 
-/// Transform coordinate between isometric space and screen space
+/// Transform coordinates between isometric space and screen space
+/// Useful for isometric tile-based games
 pub const IsometricTransform = struct {
     tile_width: f32,
     iso_to_screen: zmath.Mat,
     screen_to_iso: zmath.Mat,
 
+    /// Options for configuring isometric transformation
     pub const IsometricOption = struct {
+        /// Offset to apply in screen space
         xy_offset: jok.Point = .origin,
+        /// Scale factor for tile size
         scale: f32 = 1.0,
     };
+
+    /// Initialize isometric transformation with given tile size and options
     pub fn init(tile_size: jok.Size, opt: IsometricOption) @This() {
         assert(tile_size.width > 0 and tile_size.height > 0);
         const w = tile_size.getWidthFloat() * opt.scale;
@@ -79,11 +100,14 @@ pub const IsometricTransform = struct {
         };
     }
 
+    /// Transform a point from isometric space to screen space
+    /// zoffset: Additional vertical offset (useful for height/depth)
     pub fn transformToScreen(self: @This(), p: jok.Point, zoffset: f32) jok.Point {
         const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.iso_to_screen);
         return .{ .x = v[0], .y = v[1] - zoffset };
     }
 
+    /// Transform a point from screen space to isometric space
     pub fn transformToIso(self: @This(), p: jok.Point) jok.Point {
         const v = zmath.mul(
             zmath.f32x4(p.x - self.tile_width * 0.5, p.y, 0, 1),

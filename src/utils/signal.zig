@@ -1,7 +1,36 @@
+//! Signal/slot pattern implementation for event-driven programming.
+//!
+//! This module provides a type-safe signal/slot system similar to Qt's signals,
+//! allowing decoupled communication between components.
+//!
+//! Features:
+//! - Type-safe signal emissions and connections
+//! - Support for multiple subscribers
+//! - Optional context (userdata) for callbacks
+//! - Pre-bound arguments
+//! - Conditional filtering of signals
+//! - One-shot connections
+//! - Automatic cleanup of disconnected slots
+//!
+//! Example usage:
+//! ```zig
+//! const MySignal = Signal(&.{ u32, []const u8 });
+//! var sig = try MySignal.create(allocator);
+//! defer sig.destroy();
+//!
+//! fn onEvent(value: u32, message: []const u8) void {
+//!     std.debug.print("Event: {} - {s}\n", .{value, message});
+//! }
+//!
+//! _ = try sig.connect(onEvent, .{});
+//! sig.emit(.{ 42, "Hello" });
+//! ```
+
 const std = @import("std");
 const builtin = std.builtin;
 
-/// Signal Type
+/// Create a signal type with the given parameter types
+/// Returns a struct type that can emit signals with those parameters
 pub fn Signal(comptime types: []const type) type {
     var params: [types.len + 1]type = undefined;
     var attrs: [types.len + 1]builtin.Type.Fn.Param.Attributes = undefined;
@@ -18,19 +47,26 @@ pub fn Signal(comptime types: []const type) type {
     return struct {
         const SignalSystem = @This();
 
+        /// Tuple type containing all signal arguments
         pub const ArgsType = @Tuple(types);
+        /// Function type without context: fn(args...) void
         pub const FuncType = *const _FuncType; // fn (args...) void
+        /// Function type with context: fn(ctx: ?*anyopaque, args...) void
         pub const FuncWithContextType = *const _FuncWithContextType; // fn (ctx: ?*anyopaque, args...) void
+        /// Filter function to conditionally process signals
         pub const FilterFunc = *const fn (args: ArgsType) bool; // fn (args) bool
+        /// Options for connecting a slot to the signal
         pub const ConnectOption = struct {
             args: ?ArgsType = null, // Pre-bound arguments
             filter: ?FilterFunc = null, // Filter args of signals, only take effect when args isn't pre-bound
             once: bool = false, // Only triggered once
         };
+        /// Handle for managing a signal connection
         pub const Connection = struct {
             sig: *SignalSystem,
             id: u64,
 
+            /// Disconnect this connection from the signal
             pub fn disconnect(self: @This()) void {
                 for (self.sig.connected.items) |*s| {
                     if (s.id == self.id and s.sf != null) {
@@ -58,6 +94,7 @@ pub fn Signal(comptime types: []const type) type {
         connected: std.ArrayList(Slot),
         id_alloc: u64,
 
+        /// Create a new signal
         pub fn create(allocator: std.mem.Allocator) !*@This() {
             const s = try allocator.create(@This());
             s.* = .{
@@ -68,11 +105,14 @@ pub fn Signal(comptime types: []const type) type {
             return s;
         }
 
+        /// Destroy the signal and free resources
         pub fn destroy(self: *@This()) void {
             self.connected.deinit(self.allocator);
             self.allocator.destroy(self);
         }
 
+        /// Connect a function to this signal
+        /// Returns a Connection handle that can be used to disconnect later
         pub fn connect(self: *@This(), fp: FuncType, opt: ConnectOption) !Connection {
             const id = self.id_alloc;
             try self.connected.append(self.allocator, .{
@@ -87,6 +127,8 @@ pub fn Signal(comptime types: []const type) type {
             return .{ .sig = self, .id = id };
         }
 
+        /// Connect a function with context (userdata) to this signal
+        /// The context will be passed as the first argument to the callback
         pub fn connectWithContext(self: *@This(), fp: FuncWithContextType, ctx: ?*anyopaque, opt: ConnectOption) !Connection {
             const id = self.id_alloc;
             try self.connected.append(self.allocator, .{
@@ -101,10 +143,13 @@ pub fn Signal(comptime types: []const type) type {
             return .{ .sig = self, .id = id };
         }
 
+        /// Clear all connections from this signal
         pub fn clear(self: *@This()) void {
             self.connected.clearRetainingCapacity();
         }
 
+        /// Emit the signal with the given arguments
+        /// All connected slots will be invoked with these arguments
         pub fn emit(self: *@This(), args: ArgsType) void {
             var count = self.connected.items.len;
             var idx: usize = 0;

@@ -1,18 +1,66 @@
+//! Generic spatial hash table for fast spatial queries and broad-phase collision detection.
+//!
+//! A spatial hash divides space into a uniform grid of cells. Objects are placed into
+//! cells based on their position, allowing for very fast spatial queries.
+//!
+//! Features:
+//! - O(1) insertion, removal, and update
+//! - Fast spatial queries for nearby objects
+//! - Fixed memory footprint (no dynamic subdivision)
+//! - Simple and predictable performance
+//!
+//! Advantages over quad trees:
+//! - Simpler implementation
+//! - More predictable performance
+//! - Better for uniformly distributed objects
+//! - No tree rebalancing needed
+//!
+//! Use cases:
+//! - Broad-phase collision detection for many objects
+//! - Spatial indexing for uniform distributions
+//! - Grid-based games
+//! - Particle systems
+//!
+//! Example usage:
+//! ```zig
+//! const MySpatialHash = SpatialHash(u32, .{
+//!     .size = .{ .width = 10, .height = 10 },
+//! });
+//!
+//! var hash = try MySpatialHash.create(allocator, .{
+//!     .x = 0, .y = 0, .width = 1000, .height = 1000
+//! });
+//! defer hash.destroy();
+//!
+//! try hash.put(object_id, position);
+//! try hash.update(object_id, new_position);
+//! var results = std.array_list.Managed(u32).init(allocator);
+//! try hash.query(search_rect, 0, &results);
+//! ```
+
 const std = @import("std");
 const assert = std.debug.assert;
 const testing = std.testing;
 const jok = @import("../jok.zig");
 
+/// Errors that can occur during spatial hash operations
 pub const Error = error{
+    /// Spatial region dimensions don't divide evenly by grid size
     InvalidRect,
+    /// Object already exists in the hash
     AlreadyExists,
+    /// Object position is outside the spatial bounds
     NotSeeable,
 };
 
+/// Configuration options for spatial hash
 pub const SpatialOption = struct {
     size: jok.Size = .{ .width = 10, .height = 10 },
 };
 
+/// Generic spatial hash table data structure
+/// ObjectType: Type of objects to store
+/// opt: Configuration options (grid dimensions)
 pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
     assert(opt.size.width > 0 and opt.size.height > 0);
 

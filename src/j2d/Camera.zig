@@ -19,7 +19,7 @@ screen: jok.Rectangle,
 orig: jok.Rectangle,
 rect: jok.Rectangle,
 
-/// Rotation of camera (in radians)
+/// Rotation of camera (in radians, clock-wise)
 rotation: f32,
 
 /// Create a new camera.

@@ -1,3 +1,34 @@
+//! Easing system for smooth animations and transitions.
+//!
+//! This module provides a comprehensive easing system with:
+//! - 40+ easing functions (linear, sine, quad, cubic, etc.)
+//! - Generic easing system for any value type
+//! - Built-in support for scalars, vectors, points, and colors
+//! - Signal notifications when easing completes
+//! - Wait time and finish callbacks
+//!
+//! Easing functions are based on https://easings.net
+//!
+//! Example usage:
+//! ```zig
+//! var system = try EasingSystem(f32).create(allocator);
+//! defer system.destroy();
+//!
+//! var value: f32 = 0;
+//! try system.add(
+//!     &value,
+//!     getEasingFn(.in_out_cubic),
+//!     EaseScalarLinearly(f32).ease,
+//!     2.0, // duration in seconds
+//!     null, // from (null = current value)
+//!     100.0, // to
+//!     .{}, // options
+//! );
+//!
+//! // In your update loop:
+//! system.update(delta_time);
+//! ```
+
 /// Easing System
 /// https://easings.net
 const std = @import("std");
@@ -6,6 +37,8 @@ const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const signal = @import("signal.zig");
 
+/// Available easing function types
+/// See https://easings.net for visual demonstrations
 pub const EasingType = enum(u8) {
     linear,
     in_sin,
@@ -45,8 +78,11 @@ const DummyMutex = struct {
     fn unlock(_: *DummyMutex) void {}
 };
 
+/// Generic easing system for animating values of any type
+/// T: The type of value to animate (e.g., f32, jok.Point, jok.Color)
 pub fn EasingSystem(comptime T: type) type {
     return struct {
+        /// Represents a single easing animation
         pub const EasingValue = struct {
             node: std.DoublyLinkedList.Node = .{},
             state: VarState,
@@ -62,11 +98,14 @@ pub fn EasingSystem(comptime T: type) type {
             finish: ?Finish,
             data: ?*anyopaque,
         };
+        /// Callback invoked when easing completes
         pub const Finish = struct {
             callback: *const fn (EasingValue, data2: ?*anyopaque) void,
             data: ?*anyopaque = null,
         };
+        /// Signal emitted when an easing animation completes
         pub const EasingSignal = signal.Signal(&.{*const EasingValue});
+        /// Function that applies easing interpolation between two values
         pub const EasingApplyFn = *const fn (t: f32, from: T, to: T, data: ?*anyopaque) T;
         const VarState = enum {
             new,
@@ -83,6 +122,7 @@ pub fn EasingSystem(comptime T: type) type {
         search_tree: EasingSearchMap,
         sig: *EasingSignal, // Notify finished easing job
 
+        /// Create a new easing system
         pub fn create(allocator: std.mem.Allocator) !*Self {
             const self = try allocator.create(Self);
             self.* = .{
@@ -95,6 +135,7 @@ pub fn EasingSystem(comptime T: type) type {
             return self;
         }
 
+        /// Destroy the easing system and free all resources
         pub fn destroy(self: *Self) void {
             self.pool.deinit(self.allocator);
             self.search_tree.deinit();
@@ -102,6 +143,8 @@ pub fn EasingSystem(comptime T: type) type {
             self.allocator.destroy(self);
         }
 
+        /// Update all active easing animations
+        /// Call this every frame with delta time in seconds
         pub fn update(self: *Self, _delta_time: f32) void {
             if (self.vars.len() == 0) return;
 
@@ -163,11 +206,14 @@ pub fn EasingSystem(comptime T: type) type {
             }
         }
 
+        /// Options for adding a new easing animation
         pub const AddOption = struct {
             wait_time: f32 = 0,
             finish: ?Finish = null,
             data: ?*anyopaque = null,
         };
+        /// Add a new easing animation for a value
+        /// If the value is already being eased, the old animation is removed
         pub fn add(
             self: *Self,
             v: *T,
@@ -204,10 +250,13 @@ pub fn EasingSystem(comptime T: type) type {
             self.vars.append(&ev.node);
         }
 
+        /// Check if a value is currently being eased
         pub fn has(self: *Self, v: *const T) bool {
             return self.search_tree.get(v) != null;
         }
 
+        /// Remove an easing animation for a value
+        /// Safe to call even if the value is not being eased
         pub fn remove(self: *Self, v: *const T) void {
             if (self.search_tree.fetchRemove(v)) |kv| {
                 // Q: Why not remove node from list immediately?
@@ -218,6 +267,7 @@ pub fn EasingSystem(comptime T: type) type {
             }
         }
 
+        /// Clear all easing animations
         pub fn clear(self: *Self) void {
             _ = self.pool.reset(self.allocator, .retain_capacity);
             self.search_tree.clearRetainingCapacity();
@@ -226,6 +276,7 @@ pub fn EasingSystem(comptime T: type) type {
     };
 }
 
+/// Linear interpolation for scalar types (f32, f64, integers)
 pub fn EaseScalarLinearly(comptime T: type) type {
     return struct {
         pub fn ease(t: f32, from: T, to: T, _: ?*anyopaque) T {
@@ -240,6 +291,7 @@ pub fn EaseScalarLinearly(comptime T: type) type {
     };
 }
 
+/// Linear interpolation for vector types
 pub fn EaseVectorLinearly(comptime N: u32, comptime T: type) type {
     const Vec = @Vector(N, T);
 
@@ -282,6 +334,7 @@ pub fn EaseVectorLinearly(comptime N: u32, comptime T: type) type {
     };
 }
 
+/// Linear interpolation for jok.Point
 pub fn easePointLinearly(t: f32, from: jok.Point, to: jok.Point, data: ?*anyopaque) jok.Point {
     const es = EaseScalarLinearly(f32);
     return .{
@@ -290,6 +343,7 @@ pub fn easePointLinearly(t: f32, from: jok.Point, to: jok.Point, data: ?*anyopaq
     };
 }
 
+/// Linear interpolation for jok.Color (u8 RGBA)
 pub fn easeColorLinearly(t: f32, _from: jok.Color, _to: jok.Color, data: ?*anyopaque) jok.Color {
     const es = EaseVectorLinearly(4, u8);
     const from = @Vector(4, u8){ _from.r, _from.g, _from.b, _from.a };
@@ -298,6 +352,7 @@ pub fn easeColorLinearly(t: f32, _from: jok.Color, _to: jok.Color, data: ?*anyop
     return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
 }
 
+/// Linear interpolation for jok.ColorF (f32 RGBA)
 pub fn easeColorfLinearly(t: f32, _from: jok.ColorF, _to: jok.ColorF, data: ?*anyopaque) jok.ColorF {
     const es = EaseVectorLinearly(4, f32);
     const from = @Vector(4, f32){ _from.r, _from.g, _from.b, _from.a };
@@ -306,6 +361,7 @@ pub fn easeColorfLinearly(t: f32, _from: jok.ColorF, _to: jok.ColorF, data: ?*an
     return .{ .r = c[0], .g = c[1], .b = c[2], .a = c[3] };
 }
 
+/// Linear interpolation for fixed-size f32 arrays
 pub fn easeArrayLinearly(t: f32, comptime N: usize, _from: [N]f32, _to: [N]f32, data: ?*anyopaque) [N]f32 {
     const es = EaseVectorLinearly(N, f32);
     const from: @Vector(N, f32) = _from;
@@ -315,12 +371,15 @@ pub fn easeArrayLinearly(t: f32, comptime N: usize, _from: [N]f32, _to: [N]f32, 
 
 ///////////////////////////////////////////////////////////////////////
 ///
-/// Different kinds of easing functions (t goes from 0 to 1)
+/// Easing functions (t goes from 0 to 1)
+/// Based on https://easings.net
 ///
 ///////////////////////////////////////////////////////////////////////
 
+/// Function pointer type for easing functions
 pub const EasingFn = *const fn (f32) f32;
 
+/// Get an easing function by type
 pub fn getEasingFn(t: EasingType) EasingFn {
     return switch (t) {
         .linear => linear,
@@ -357,10 +416,12 @@ pub fn getEasingFn(t: EasingType) EasingFn {
     };
 }
 
+/// Linear easing (no easing, constant rate)
 pub fn linear(t: f32) f32 {
     return t;
 }
 
+/// Sinusoidal easing functions
 pub const sin = struct {
     pub fn in(t: f32) f32 {
         return 1 - math.cos((t * math.pi) / 2);
