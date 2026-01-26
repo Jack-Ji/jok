@@ -115,7 +115,7 @@ pub fn draw(ctx: jok.Context) !void {
 
         // Draw camera rectangle
         const transformed = b.trs.transformRectangle(camera.rect);
-        b.rotateByPoint(transformed.getCenter(), -camera.rotation);
+        b.rotateByPoint(transformed.getCenter(), camera.rotation);
         try b.rect(camera.rect, .black, .{});
         try b.line(
             camera.rect.getCenter().sub(.{ 100, 0 }),

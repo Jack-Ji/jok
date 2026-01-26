@@ -73,8 +73,8 @@ pub fn translateBy(self: *Camera, two_floats: anytype) void {
     // If camera is rotated, transform the offset to world space
     if (self.rotation != 0) {
         const offset = utils.twoFloats(two_floats);
-        const cos = @cos(-self.rotation);
-        const sin = @sin(-self.rotation);
+        const cos = @cos(self.rotation);
+        const sin = @sin(self.rotation);
         const rotated_x = offset[0] * cos - offset[1] * sin;
         const rotated_y = offset[0] * sin + offset[1] * cos;
         self.rect = self.rect.translate(.{ rotated_x, rotated_y });
@@ -109,7 +109,7 @@ pub fn translateTo(self: *Camera, two_floats: anytype) void {
 ///   - radian: Rotation angle in radians
 ///
 pub fn rotateBy(self: *Camera, radian: f32) void {
-    self.rotation = zmath.modAngle(self.rotation - radian);
+    self.rotation = zmath.modAngle(self.rotation + radian);
 }
 
 /// Rotate the camera to give angle, around it's center point
@@ -117,7 +117,7 @@ pub fn rotateBy(self: *Camera, radian: f32) void {
 /// Parameters:
 ///   - radian: Rotation angle in radians
 pub fn rotateTo(self: *Camera, radian: f32) void {
-    self.rotation = zmath.modAngle(-radian);
+    self.rotation = zmath.modAngle(radian);
 }
 
 /// Scale the camera by given factor, around it's center point
@@ -150,7 +150,7 @@ pub fn getTransform(self: Camera) AffineTransform {
         });
     }
     if (self.rotation != 0) {
-        trs = trs.rotateByPoint(rect_center, self.rotation);
+        trs = trs.rotateByPoint(rect_center, -self.rotation);
     }
     trs = trs.translate(screen_center.sub(rect_center));
     return trs;
