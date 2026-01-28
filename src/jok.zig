@@ -49,6 +49,7 @@
 //! - `j3d`: High-level 3D rendering API (meshes, cameras, lighting)
 //! - `font`: Font loading and text rendering
 //! - `utils`: Utility functions and data structures
+//! - `WebSocket`: Websocket client (only for webassembly)
 
 /// Game configuration options.
 /// Use this to set window properties, FPS limits, and other application settings.
@@ -141,8 +142,8 @@ pub const j3d = @import("j3d.zig");
 /// Supports TrueType fonts with various rendering options.
 pub const font = @import("font.zig");
 
-/// WebSocket client for network communication.
-/// Provides WebSocket support for WebAssembly platforms.
+/// Websocket client for network communication.
+/// Provides Websocket support for WebAssembly platforms.
 pub const WebSocket = @import("websocket.zig").WebSocket;
 
 /// Miscellaneous utility functions and data structures.

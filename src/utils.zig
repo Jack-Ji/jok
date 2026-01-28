@@ -15,6 +15,7 @@
 //! - Plugin system with hot-reloading
 //! - Spatial data structures (QuadTree, SpatialHash)
 //! - FSM (Finite State Machine) management
+//! - Counter-Strike style console
 
 const jok = @import("jok.zig");
 
@@ -62,6 +63,9 @@ pub const SpatialHash = spatial_hash.SpatialHash;
 
 /// Generic ring data structure (stolen from old standard library)
 pub const ring = @import("utils/ring.zig");
+
+/// Console system for debugging and command input (Counter-Strike style)
+pub const Console = @import("utils/Console.zig");
 
 /// Misc utils
 /// Convert various types (structs, arrays, vectors) to a 2-element f32 array

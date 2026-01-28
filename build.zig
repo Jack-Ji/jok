@@ -37,6 +37,7 @@ pub fn build(b: *Build) void {
     const examples = [_]struct { name: []const u8, opt: ExampleOptions }{
         .{ .name = "hello", .opt = .{} },
         .{ .name = "zgui_demo", .opt = .{} },
+        .{ .name = "console_demo", .opt = .{} },
         .{ .name = "sprite_benchmark", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "cube_benchmark", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "sprite_sheet", .opt = .{ .preload_path = "examples/assets" } },
@@ -298,7 +299,7 @@ pub const WebOptions = struct {
     preload_path: ?[]const u8 = null,
 };
 
-/// Create web application (windows/linux/macos)
+/// Create web application
 pub fn createWebApp(
     b: *Build,
     name: []const u8,
