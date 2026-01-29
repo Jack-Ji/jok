@@ -160,74 +160,128 @@ pub fn init(comptime game: anytype) Config {
     @setEvalBranchQuota(10000);
 
     var cfg = Config{};
-    const options = [_]struct { name: []const u8, desc: []const u8 }{
-        .{ .name = "jok_log_level", .desc = "logging level" },
-        .{ .name = "jok_fps_limit", .desc = "fps limit setting" },
-        .{ .name = "jok_enable_physfs", .desc = "whether use physfs to access game assets" },
-        .{ .name = "jok_renderer_type", .desc = "type of renderer" },
-        .{ .name = "jok_framebuffer_color", .desc = "clearing color of framebuffer" },
-        .{ .name = "jok_canvas_size", .desc = "size of canvas" },
-        .{ .name = "jok_canvas_scale_mode", .desc = "Default scaling mode for canvas" },
-        .{ .name = "jok_canvas_integer_scaling", .desc = "Use integer scaling for canvas" },
-        .{ .name = "jok_headless", .desc = "headless mode" },
-        .{ .name = "jok_window_title", .desc = "title of window" },
-        .{ .name = "jok_window_size", .desc = "size of window" },
-        .{ .name = "jok_window_min_size", .desc = "minimum size of window" },
-        .{ .name = "jok_window_max_size", .desc = "maximum size of window" },
-        .{ .name = "jok_window_resizable", .desc = "whether window is resizable" },
-        .{ .name = "jok_window_borderless", .desc = "whether window is borderless" },
-        .{ .name = "jok_window_ime_ui", .desc = "whether show ime ui" },
-        .{ .name = "jok_window_always_on_top", .desc = "whether window is locked to most front layer" },
-        .{ .name = "jok_window_mouse_mode", .desc = "mouse mode setting" },
-        .{ .name = "jok_window_high_pixel_density", .desc = "whether window is aware of high-pixel display" },
-        .{ .name = "jok_exit_on_recv_esc", .desc = "whether exit game when esc is pressed" },
-        .{ .name = "jok_exit_on_recv_quit", .desc = "whether exit game when getting quit event" },
-        .{ .name = "jok_kill_on_error", .desc = "whether kill application when user callbacks returned error" },
-        .{ .name = "jok_check_memory_leak", .desc = "whether detect memory-leak on shutdown" },
-        .{ .name = "jok_imgui_ini_file", .desc = "whether let imgui load/save ini file" },
-        .{ .name = "jok_prebuild_atlas", .desc = "whether prebuild atlas for debug font" },
-        .{ .name = "jok_detailed_frame_stats", .desc = "whether enable detailed frame statistics" },
-    };
     const game_struct = @typeInfo(game).@"struct";
-    for (game_struct.decls) |f| {
-        if (!std.mem.startsWith(u8, f.name, "jok_")) {
+
+    // First pass: validate all jok_ declarations exist in Config
+    for (game_struct.decls) |game_decl| {
+        if (!std.mem.startsWith(u8, game_decl.name, "jok_")) {
             continue;
         }
-        for (options) |o| {
-            if (std.meta.fieldIndex(Config, f.name) == null) continue;
 
-            const CfgFieldType = @TypeOf(@field(cfg, f.name));
-            const GameFieldType = @TypeOf(@field(game, f.name));
-            const cfg_type = @typeInfo(CfgFieldType);
-            const game_type = @typeInfo(GameFieldType);
-            if (std.mem.eql(u8, o.name, f.name)) {
-                if (CfgFieldType == GameFieldType or
-                    (cfg_type == .int and game_type == .comptime_int) or
-                    (cfg_type == .optional and cfg_type.optional.child == GameFieldType) or
-                    (cfg_type == .@"union" and cfg_type.@"union".tag_type == GameFieldType))
-                {
-                    @field(cfg, f.name) = @field(game, o.name);
-                } else {
-                    @compileError("Validation of setup options failed, invalid type for option `" ++
-                        f.name ++ "`, expecting " ++ @typeName(CfgFieldType) ++ ", get " ++ @typeName(GameFieldType));
-                }
+        // Check if this field exists in Config
+        var found = false;
+        inline for (@typeInfo(Config).@"struct".fields) |cfg_field| {
+            if (std.mem.eql(u8, cfg_field.name, game_decl.name)) {
+                found = true;
                 break;
             }
-        } else {
-            var buf: [2048]u8 = undefined;
-            var off: usize = 0;
-            var bs = std.fmt.bufPrint(&buf, "Validation of setup options failed, invalid option name: `" ++ f.name ++ "`", .{}) catch unreachable;
-            off += bs.len;
-            bs = std.fmt.bufPrint(buf[off..], "\nSupported options:", .{}) catch unreachable;
-            off += bs.len;
-            inline for (options) |o| {
-                bs = std.fmt.bufPrint(buf[off..], "\n\t" ++ o.name ++
-                    " (" ++ @typeName(@TypeOf(@field(cfg, o.name))) ++ "): " ++ o.desc ++ ".", .{}) catch unreachable;
-                off += bs.len;
+        }
+
+        if (!found) {
+            // Build error message listing all supported options
+            @compileError("Validation of setup options failed, invalid option name: `" ++ game_decl.name ++ "`\n" ++
+                "Supported options:\n" ++
+                buildSupportedOptionsList());
+        }
+    }
+
+    // Second pass: assign values
+    inline for (@typeInfo(Config).@"struct".fields) |cfg_field| {
+        if (@hasDecl(game, cfg_field.name)) {
+            const CfgFieldType = cfg_field.type;
+            const GameFieldType = @TypeOf(@field(game, cfg_field.name));
+            const cfg_type = @typeInfo(CfgFieldType);
+            const game_type = @typeInfo(GameFieldType);
+
+            if (CfgFieldType == GameFieldType or
+                (cfg_type == .int and game_type == .comptime_int) or
+                (cfg_type == .optional and cfg_type.optional.child == GameFieldType) or
+                (cfg_type == .@"union" and cfg_type.@"union".tag_type == GameFieldType))
+            {
+                @field(cfg, cfg_field.name) = @field(game, cfg_field.name);
+            } else {
+                @compileError("Invalid type for option `" ++
+                    cfg_field.name ++ "`: expecting " ++ @typeName(CfgFieldType) ++ ", got " ++ @typeName(GameFieldType));
             }
-            @compileError(buf[0..off]);
         }
     }
 
     return cfg;
+}
+
+fn buildSupportedOptionsList() []const u8 {
+    comptime {
+        // Verify all fields have descriptions
+        for (@typeInfo(Config).@"struct".fields) |field| {
+            const desc = getFieldDescription(field.name);
+            if (std.mem.eql(u8, desc, "unknown option")) {
+                @compileError("Missing description for config option: " ++ field.name ++
+                    ". Please add it to getFieldDescription() function.");
+            }
+        }
+
+        var list: []const u8 = "";
+        for (@typeInfo(Config).@"struct".fields) |field| {
+            const desc = getFieldDescription(field.name);
+            list = list ++ "\t" ++ field.name ++ ": " ++ desc ++ "\n";
+        }
+        return list;
+    }
+}
+
+fn getFieldDescription(comptime field_name: []const u8) []const u8 {
+    return if (std.mem.eql(u8, field_name, "jok_log_level"))
+        "logging level"
+    else if (std.mem.eql(u8, field_name, "jok_fps_limit"))
+        "fps limit setting"
+    else if (std.mem.eql(u8, field_name, "jok_enable_physfs"))
+        "whether use physfs to access game assets"
+    else if (std.mem.eql(u8, field_name, "jok_renderer_type"))
+        "type of renderer"
+    else if (std.mem.eql(u8, field_name, "jok_framebuffer_color"))
+        "clearing color of framebuffer"
+    else if (std.mem.eql(u8, field_name, "jok_canvas_size"))
+        "size of canvas"
+    else if (std.mem.eql(u8, field_name, "jok_canvas_scale_mode"))
+        "Default scaling mode for canvas"
+    else if (std.mem.eql(u8, field_name, "jok_canvas_integer_scaling"))
+        "Use integer scaling for canvas"
+    else if (std.mem.eql(u8, field_name, "jok_headless"))
+        "headless mode"
+    else if (std.mem.eql(u8, field_name, "jok_window_title"))
+        "title of window"
+    else if (std.mem.eql(u8, field_name, "jok_window_size"))
+        "size of window"
+    else if (std.mem.eql(u8, field_name, "jok_window_min_size"))
+        "minimum size of window"
+    else if (std.mem.eql(u8, field_name, "jok_window_max_size"))
+        "maximum size of window"
+    else if (std.mem.eql(u8, field_name, "jok_window_resizable"))
+        "whether window is resizable"
+    else if (std.mem.eql(u8, field_name, "jok_window_borderless"))
+        "whether window is borderless"
+    else if (std.mem.eql(u8, field_name, "jok_window_ime_ui"))
+        "whether show ime ui"
+    else if (std.mem.eql(u8, field_name, "jok_window_always_on_top"))
+        "whether window is locked to most front layer"
+    else if (std.mem.eql(u8, field_name, "jok_window_mouse_mode"))
+        "mouse mode setting"
+    else if (std.mem.eql(u8, field_name, "jok_window_high_pixel_density"))
+        "whether window is aware of high-pixel display"
+    else if (std.mem.eql(u8, field_name, "jok_exit_on_recv_esc"))
+        "whether exit game when esc is pressed"
+    else if (std.mem.eql(u8, field_name, "jok_exit_on_recv_quit"))
+        "whether exit game when getting quit event"
+    else if (std.mem.eql(u8, field_name, "jok_kill_on_error"))
+        "whether kill application when user callbacks returned error"
+    else if (std.mem.eql(u8, field_name, "jok_check_memory_leak"))
+        "whether detect memory-leak on shutdown"
+    else if (std.mem.eql(u8, field_name, "jok_imgui_ini_file"))
+        "whether let imgui load/save ini file"
+    else if (std.mem.eql(u8, field_name, "jok_prebuild_atlas"))
+        "whether prebuild atlas for debug font"
+    else if (std.mem.eql(u8, field_name, "jok_detailed_frame_stats"))
+        "whether enable detailed frame statistics"
+    else
+        "unknown option";
 }
