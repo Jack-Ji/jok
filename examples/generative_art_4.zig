@@ -66,7 +66,7 @@ pub fn init(ctx: jok.Context) !void {
     @memset(indices[0..screen_width], 0);
     pixeldata = try doomfire.createPixelData(ctx.allocator(), null);
 
-    rng = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(ctx.io())).toSeconds()));
+    rng = std.Random.DefaultPrng.init(@intCast(std.Io.Clock.awake.now(ctx.io()).toSeconds()));
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {

@@ -25,8 +25,9 @@ pub const DrawVert = extern struct {
 };
 //--------------------------------------------------------------------------------------------------
 
-pub fn init(allocator: std.mem.Allocator) void {
+pub fn init(allocator: std.mem.Allocator, _io: std.Io) void {
     if (zguiGetCurrentContext() == null) {
+        mem_io = _io;
         mem_allocator = allocator;
         mem_allocations = std.AutoHashMap(usize, usize).init(allocator);
         mem_allocations.?.ensureTotalCapacity(32) catch @panic("zgui: out of memory");
@@ -97,14 +98,15 @@ extern fn zguiDestroyContext(ctx: ?Context) void;
 extern fn zguiGetCurrentContext() ?Context;
 extern fn zguiSetCurrentContext(ctx: ?Context) void;
 //--------------------------------------------------------------------------------------------------
+var mem_io: std.Io = undefined;
 var mem_allocator: ?std.mem.Allocator = null;
 var mem_allocations: ?std.AutoHashMap(usize, usize) = null;
-var mem_mutex: std.Thread.Mutex = .{};
+var mem_mutex: std.Io.Mutex = .init;
 const mem_alignment: std.mem.Alignment = .@"16";
 
 fn zguiMemAlloc(size: usize, _: ?*anyopaque) callconv(.c) ?*anyopaque {
-    mem_mutex.lock();
-    defer mem_mutex.unlock();
+    mem_mutex.lockUncancelable(mem_io);
+    defer mem_mutex.unlock(mem_io);
 
     const mem = mem_allocator.?.alignedAlloc(
         u8,
@@ -119,8 +121,8 @@ fn zguiMemAlloc(size: usize, _: ?*anyopaque) callconv(.c) ?*anyopaque {
 
 fn zguiMemFree(maybe_ptr: ?*anyopaque, _: ?*anyopaque) callconv(.c) void {
     if (maybe_ptr) |ptr| {
-        mem_mutex.lock();
-        defer mem_mutex.unlock();
+        mem_mutex.lockUncancelable(mem_io);
+        defer mem_mutex.unlock(mem_io);
 
         if (mem_allocations != null) {
             if (mem_allocations.?.fetchRemove(@intFromPtr(ptr))) |kv| {

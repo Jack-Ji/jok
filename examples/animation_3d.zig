@@ -58,7 +58,7 @@ pub fn init(ctx: jok.Context) !void {
         [_]f32{ 0, 0, 0 },
     );
 
-    var t = try std.Io.Clock.awake.now(ctx.io());
+    var t = std.Io.Clock.awake.now(ctx.io());
     mesh1 = try j3d.Mesh.fromGltf(
         ctx,
         if (ctx.cfg().jok_enable_physfs)
@@ -96,7 +96,7 @@ pub fn init(ctx: jok.Context) !void {
         .{},
     );
     std.debug.print("Models load time: {D}\n", .{
-        @as(i64, @intCast(t.durationTo(try std.Io.Clock.awake.now(ctx.io())).nanoseconds)),
+        @as(i64, @intCast(t.durationTo(std.Io.Clock.awake.now(ctx.io())).nanoseconds)),
     });
 
     animation1_1 = try j3d.Animation.create(ctx.allocator(), mesh1.getAnimation("default").?);

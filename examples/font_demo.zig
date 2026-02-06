@@ -51,16 +51,16 @@ pub fn init(ctx: jok.Context) !void {
         .{ .keep_pixels = true },
     );
 
-    var t = try std.Io.Clock.awake.now(ctx.io());
+    var t = std.Io.Clock.awake.now(ctx.io());
     try atlas.save(ctx, "atlas.png", .{});
     std.debug.print("Atlas save time: {D}\n", .{
-        @as(i64, @intCast(t.durationTo(try std.Io.Clock.awake.now(ctx.io())).nanoseconds)),
+        @as(i64, @intCast(t.durationTo(std.Io.Clock.awake.now(ctx.io())).nanoseconds)),
     });
     atlas.destroy();
-    t = try std.Io.Clock.awake.now(ctx.io());
+    t = std.Io.Clock.awake.now(ctx.io());
     saved_atlas = try font.Atlas.loadFromPath(ctx, "atlas.png");
     std.debug.print("Atlas load time: {D}\n", .{
-        @as(i64, @intCast(t.durationTo(try std.Io.Clock.awake.now(ctx.io())).nanoseconds)),
+        @as(i64, @intCast(t.durationTo(std.Io.Clock.awake.now(ctx.io())).nanoseconds)),
     });
 }
 

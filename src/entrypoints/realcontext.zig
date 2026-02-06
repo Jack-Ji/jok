@@ -116,7 +116,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._ctx = self.context();
 
             // Init PhysicsFS
-            physfs.init(self._allocator, args);
+            physfs.init(self._ctx, args);
             if (builtin.cpu.arch.isWasm()) {
                 try physfs.mount("/", "", true);
             }
@@ -131,7 +131,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._audio_engine = try zaudio.sdl.init(self._ctx);
 
             // Init zmesh
-            zmesh.init(self._allocator);
+            zmesh.init(self._ctx);
 
             // Init builtin debug font
             try font.DebugFont.init(self._allocator);
@@ -532,7 +532,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             }
 
             // Initialize custom memory allocator
-            MemAdapter.init(self._allocator);
+            MemAdapter.init(self._allocator, self._io_backend.io());
             if (!sdl.SDL_SetMemoryFunctions(
                 MemAdapter.alloc,
                 MemAdapter.calloc,
@@ -1049,12 +1049,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
 ///////////////////// Custom Memory Allocator for SDL /////////////////////
 const MemAdapter = struct {
+    var mem_io: std.Io = undefined;
     var mem_allocator: std.mem.Allocator = undefined;
     var mem_allocations: std.AutoHashMap(usize, usize) = undefined;
-    var mem_mutex: std.Thread.Mutex = .{};
+    var mem_mutex: std.Io.Mutex = .init;
     const mem_alignment: std.mem.Alignment = .@"16";
 
-    fn init(allocator: std.mem.Allocator) void {
+    fn init(allocator: std.mem.Allocator, _io: std.Io) void {
+        mem_io = _io;
         mem_allocator = allocator;
         mem_allocations = std.AutoHashMap(usize, usize).init(allocator);
         mem_allocations.ensureTotalCapacity(1024) catch @panic("out of memory");
@@ -1070,8 +1072,8 @@ const MemAdapter = struct {
     }
 
     fn alloc(size: usize) callconv(.c) ?*anyopaque {
-        mem_mutex.lock();
-        defer mem_mutex.unlock();
+        mem_mutex.lockUncancelable(mem_io);
+        defer mem_mutex.unlock(mem_io);
 
         const mem = mem_allocator.alignedAlloc(
             u8,
@@ -1091,8 +1093,8 @@ const MemAdapter = struct {
     }
 
     fn realloc(maybe_ptr: ?*anyopaque, size: usize) callconv(.c) ?*anyopaque {
-        mem_mutex.lock();
-        defer mem_mutex.unlock();
+        mem_mutex.lockUncancelable(mem_io);
+        defer mem_mutex.unlock(mem_io);
 
         const old_mem = if (maybe_ptr) |ptr| blk: {
             const kv = mem_allocations.fetchRemove(@intFromPtr(ptr)).?;
@@ -1116,8 +1118,8 @@ const MemAdapter = struct {
 
     fn free(maybe_ptr: ?*anyopaque) callconv(.c) void {
         if (maybe_ptr) |ptr| {
-            mem_mutex.lock();
-            defer mem_mutex.unlock();
+            mem_mutex.lockUncancelable(mem_io);
+            defer mem_mutex.unlock(mem_io);
 
             if (mem_allocations.fetchRemove(@intFromPtr(ptr))) |kv| {
                 const size = kv.value;

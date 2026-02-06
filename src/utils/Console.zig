@@ -188,7 +188,7 @@ pub fn hide(self: *Console) void {
 /// Add a log message to the console
 pub fn log(self: *Console, level: LogLevel, comptime fmt: []const u8, args: anytype) !void {
     // Get current timestamp using io.Clock
-    const timestamp = try std.Io.Clock.real.now(self.ctx.io());
+    const timestamp = std.Io.Clock.real.now(self.ctx.io());
     const timestamp_s: i64 = @intCast(@divFloor(timestamp.nanoseconds, std.time.ns_per_s));
 
     const epoch_seconds = std.time.epoch.EpochSeconds{ .secs = @intCast(timestamp_s) };

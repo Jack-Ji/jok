@@ -6,8 +6,9 @@ pub const sdl = @import("sdl.zig");
 // Misc
 //
 //--------------------------------------------------------------------------------------------------
-pub fn init(allocator: std.mem.Allocator) void {
+pub fn init(allocator: std.mem.Allocator, io: std.Io) void {
     assert(mem_allocator == null);
+    mem_io = io;
     mem_allocator = allocator;
     mem_allocations = std.AutoHashMap(usize, usize).init(allocator);
     mem_allocations.?.ensureTotalCapacity(16) catch @panic("zaudio: out of memory");
@@ -2479,16 +2480,17 @@ pub const Fence = opaque {
 // Memory
 //
 //--------------------------------------------------------------------------------------------------
+var mem_io: std.Io = undefined;
 var mem_allocator: ?std.mem.Allocator = null;
 var mem_allocations: ?std.AutoHashMap(usize, usize) = null;
-var mem_mutex: std.Thread.Mutex = .{};
+var mem_mutex: std.Io.Mutex = .init;
 const mem_alignment: std.mem.Alignment = .@"16";
 
 extern var zaudioMallocPtr: ?*const fn (size: usize, _: ?*anyopaque) callconv(.c) ?*anyopaque;
 
 fn zaudioMalloc(size: usize, _: ?*anyopaque) callconv(.c) ?*anyopaque {
-    mem_mutex.lock();
-    defer mem_mutex.unlock();
+    mem_mutex.lockUncancelable(mem_io);
+    defer mem_mutex.unlock(mem_io);
 
     const mem = mem_allocator.?.alignedAlloc(
         u8,
@@ -2504,8 +2506,8 @@ fn zaudioMalloc(size: usize, _: ?*anyopaque) callconv(.c) ?*anyopaque {
 extern var zaudioReallocPtr: ?*const fn (ptr: ?*anyopaque, size: usize, _: ?*anyopaque) callconv(.c) ?*anyopaque;
 
 fn zaudioRealloc(ptr: ?*anyopaque, size: usize, _: ?*anyopaque) callconv(.c) ?*anyopaque {
-    mem_mutex.lock();
-    defer mem_mutex.unlock();
+    mem_mutex.lockUncancelable(mem_io);
+    defer mem_mutex.unlock(mem_io);
 
     const old_size = if (ptr != null) mem_allocations.?.get(@intFromPtr(ptr.?)).? else 0;
     const old_mem = if (old_size > 0)
@@ -2529,8 +2531,8 @@ extern var zaudioFreePtr: ?*const fn (maybe_ptr: ?*anyopaque, _: ?*anyopaque) ca
 
 fn zaudioFree(maybe_ptr: ?*anyopaque, _: ?*anyopaque) callconv(.c) void {
     if (maybe_ptr) |ptr| {
-        mem_mutex.lock();
-        defer mem_mutex.unlock();
+        mem_mutex.lockUncancelable(mem_io);
+        defer mem_mutex.unlock(mem_io);
 
         const size = mem_allocations.?.fetchRemove(@intFromPtr(ptr)).?.value;
         const mem = @as([*]align(mem_alignment.toByteUnits()) u8, @ptrCast(@alignCast(ptr)))[0..size];

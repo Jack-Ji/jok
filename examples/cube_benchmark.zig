@@ -73,7 +73,7 @@ pub fn init(ctx: jok.Context) !void {
         false,
     );
 
-    var rng = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(ctx.io())).toSeconds()));
+    var rng = std.Random.DefaultPrng.init(@intCast(std.Io.Clock.awake.now(ctx.io()).toSeconds()));
     translations = .init(ctx.allocator());
     rotation_axises = .init(ctx.allocator());
     var i: u32 = 0;

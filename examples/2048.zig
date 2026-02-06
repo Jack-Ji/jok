@@ -162,7 +162,7 @@ pub fn init(ctx: jok.Context) !void {
     try physfs.setWriteDir(physfs.getBaseDir());
 
     batchpool = try @TypeOf(batchpool).init(ctx);
-    rng = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(ctx.io())).toSeconds()));
+    rng = std.Random.DefaultPrng.init(@intCast(std.Io.Clock.awake.now(ctx.io()).toSeconds()));
     resetGame();
 }
 

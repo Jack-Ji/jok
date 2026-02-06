@@ -13,7 +13,7 @@ pub fn init(ctx: jok.Context) !void {
     map = .{ .x = 0, .y = 0, .width = 3000, .height = 3000 };
     camera = j2d.Camera.init(ctx, csz.toPoint().scale(0.5), csz.width, csz.height);
 
-    var rng = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.now(.awake, ctx.io())).toMilliseconds()));
+    var rng = std.Random.DefaultPrng.init(@intCast(std.Io.Clock.now(.awake, ctx.io()).toMilliseconds()));
     for (0..100) |_| {
         try rects.append(ctx.allocator(), .{
             .x = @floatFromInt(rng.random().uintLessThan(u32, 2900)),

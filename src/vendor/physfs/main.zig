@@ -55,9 +55,10 @@ pub fn getLastErrorCode() ErrorCode {
 ///
 /// **WARNING: This function is automatically called by jok.Context during initialization.**
 /// **DO NOT call this function directly from game code.**
-pub fn init(allocator: std.mem.Allocator, args: std.process.Args) void {
+pub fn init(ctx: jok.Context, args: std.process.Args) void {
     assert(mem_allocator == null);
-    mem_allocator = allocator;
+    mem_io = ctx.io();
+    mem_allocator = ctx.allocator();
 
     if (!builtin.cpu.arch.isWasm()) {
         physfs_allocator = .{
@@ -535,9 +536,10 @@ pub const File = struct {
 // Custom memory allocator implementation (private)
 //------------------------------------------------------------------------------
 var physfs_allocator: MemAllocator = undefined;
+var mem_io: std.Io = undefined;
 var mem_allocator: ?std.mem.Allocator = null;
 var mem_allocations: std.AutoHashMap(usize, usize) = undefined;
-var mem_mutex: std.Thread.Mutex = .{};
+var mem_mutex: std.Io.Mutex = .init;
 const mem_alignment: std.mem.Alignment = .@"16";
 
 fn memInit() callconv(.c) c_int {
@@ -554,8 +556,8 @@ fn memDeinit() callconv(.c) void {
 
 fn memAlloc(size: usize) callconv(.c) ?*anyopaque {
     assert(mem_allocator != null);
-    mem_mutex.lock();
-    defer mem_mutex.unlock();
+    mem_mutex.lockUncancelable(mem_io);
+    defer mem_mutex.unlock(mem_io);
 
     const mem = mem_allocator.?.alignedAlloc(
         u8,
@@ -570,8 +572,8 @@ fn memAlloc(size: usize) callconv(.c) ?*anyopaque {
 
 fn memRealloc(ptr: ?*anyopaque, size: usize) callconv(.c) ?*anyopaque {
     assert(mem_allocator != null);
-    mem_mutex.lock();
-    defer mem_mutex.unlock();
+    mem_mutex.lockUncancelable(mem_io);
+    defer mem_mutex.unlock(mem_io);
 
     var mem: []u8 = undefined;
     if (mem_allocations.fetchRemove(@intFromPtr(ptr))) |kv| {
@@ -593,8 +595,8 @@ fn memFree(ptr: ?*anyopaque) callconv(.c) void {
     if (ptr == null) return;
 
     assert(mem_allocator != null);
-    mem_mutex.lock();
-    defer mem_mutex.unlock();
+    mem_mutex.lockUncancelable(mem_io);
+    defer mem_mutex.unlock(mem_io);
 
     const size = mem_allocations.fetchRemove(@intFromPtr(ptr)).?.value;
     const mem = @as([*]align(mem_alignment.toByteUnits()) u8, @ptrCast(@alignCast(ptr)))[0..size];

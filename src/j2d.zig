@@ -1723,7 +1723,7 @@ pub const Polyline = struct {
 pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
     const AllocSet = std.StaticBitSet(pool_size);
     const mutex_init = if (thread_safe and !builtin.single_threaded)
-        std.Thread.Mutex{}
+        std.Io.Mutex.init
     else
         DummyMutex{};
 
@@ -1757,8 +1757,8 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
         }
 
         fn allocBatch(self: *@This()) !*Batch {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            self.mutex.lockUncancelable(self.ctx.io());
+            defer self.mutex.unlock(self.ctx.io());
             if (self.alloc_set.count() == 0) {
                 return error.TooManyBatches;
             }
@@ -1777,8 +1777,8 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
         fn reclaim(ptr: *anyopaque, b: *Batch) void {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             assert(&self.batches[b.id] == b);
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            self.mutex.lockUncancelable(self.ctx.io());
+            defer self.mutex.unlock(self.ctx.io());
             self.alloc_set.set(b.id);
             b.id = invalid_batch_id;
             b.reclaimer = undefined;
@@ -1788,8 +1788,8 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
         ///
         /// NOTE: Should only be called when no batch is currently in use.
         pub fn recycleMemory(self: @This()) void {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            self.mutex.lockUncancelable(self.ctx.io());
+            defer self.mutex.unlock(self.ctx.io());
             assert(self.alloc_set.count() == pool_size);
             for (self.batches) |*b| b.recycleMemory();
         }
@@ -1810,8 +1810,8 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
 }
 
 const DummyMutex = struct {
-    fn lock(_: *DummyMutex) void {}
-    fn unlock(_: *DummyMutex) void {}
+    fn lockUncancelable(_: *DummyMutex, _: std.Io) void {}
+    fn unlock(_: *DummyMutex, _: std.Io) void {}
 };
 
 const BatchReclaimer = struct {

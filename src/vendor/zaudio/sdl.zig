@@ -14,7 +14,7 @@ var stream: *sdl.SDL_AudioStream = undefined;
 /// **DO NOT call this function directly from game code.**
 /// The audio engine is accessible via `ctx.audioEngine()` after context creation.
 pub fn init(ctx: jok.Context) !*audio.Engine {
-    audio.init(ctx.allocator());
+    audio.init(ctx.allocator(), ctx.io());
 
     // Create engine
     var engine_cfg = audio.Engine.Config.init();

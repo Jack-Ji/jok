@@ -46,7 +46,7 @@ pub fn init(ctx: jok.Context) !void {
         .{},
     );
     characters = try .initCapacity(ctx.allocator(), 50000);
-    rand_gen = std.Random.DefaultPrng.init(@intCast((try std.Io.Clock.awake.now(ctx.io())).toSeconds()));
+    rand_gen = std.Random.DefaultPrng.init(@intCast(std.Io.Clock.awake.now(ctx.io()).toSeconds()));
 }
 
 pub fn event(ctx: jok.Context, e: jok.Event) !void {

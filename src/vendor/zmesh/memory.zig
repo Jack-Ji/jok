@@ -1,8 +1,9 @@
 const std = @import("std");
 
-pub fn init(alloc: std.mem.Allocator) void {
+pub fn init(alloc: std.mem.Allocator, io: std.Io) void {
     std.debug.assert(mem_allocator == null and mem_allocations == null);
 
+    mem_io = io;
     mem_allocator = alloc;
     mem_allocations = std.AutoHashMap(usize, usize).init(alloc);
     mem_allocations.?.ensureTotalCapacity(32) catch unreachable;
@@ -28,16 +29,17 @@ extern fn meshopt_setAllocator(
     deallocate: FreeFn,
 ) void;
 
+var mem_io: std.Io = undefined;
 var mem_allocator: ?std.mem.Allocator = null;
 var mem_allocations: ?std.AutoHashMap(usize, usize) = null;
-var mem_mutex: std.Thread.Mutex = .{};
+var mem_mutex: std.Io.Mutex = .init;
 const mem_alignment: std.mem.Alignment = .@"16";
 
 extern var zmeshMallocPtr: ?*const fn (size: usize) callconv(.c) ?*anyopaque;
 
 pub fn zmeshMalloc(size: usize) callconv(.c) ?*anyopaque {
-    mem_mutex.lock();
-    defer mem_mutex.unlock();
+    mem_mutex.lockUncancelable(mem_io);
+    defer mem_mutex.unlock(mem_io);
 
     const mem = mem_allocator.?.alignedAlloc(
         u8,
@@ -69,8 +71,8 @@ pub fn zmeshAllocUser(user: ?*anyopaque, size: usize) callconv(.c) ?*anyopaque {
 extern var zmeshReallocPtr: ?*const fn (ptr: ?*anyopaque, size: usize) callconv(.c) ?*anyopaque;
 
 fn zmeshRealloc(ptr: ?*anyopaque, size: usize) callconv(.c) ?*anyopaque {
-    mem_mutex.lock();
-    defer mem_mutex.unlock();
+    mem_mutex.lockUncancelable(mem_io);
+    defer mem_mutex.unlock(mem_io);
 
     const old_size = if (ptr != null) mem_allocations.?.get(@intFromPtr(ptr.?)).? else 0;
 
@@ -95,8 +97,8 @@ extern var zmeshFreePtr: ?*const fn (maybe_ptr: ?*anyopaque) callconv(.c) void;
 
 fn zmeshFree(maybe_ptr: ?*anyopaque) callconv(.c) void {
     if (maybe_ptr) |ptr| {
-        mem_mutex.lock();
-        defer mem_mutex.unlock();
+        mem_mutex.lockUncancelable(mem_io);
+        defer mem_mutex.unlock(mem_io);
 
         const size = mem_allocations.?.fetchRemove(@intFromPtr(ptr)).?.value;
         const mem = @as([*]align(mem_alignment.toByteUnits()) u8, @ptrCast(@alignCast(ptr)))[0..size];

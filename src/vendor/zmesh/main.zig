@@ -1,4 +1,5 @@
 const std = @import("std");
+const jok = @import("../../jok.zig");
 
 pub const Shape = @import("Shape.zig");
 pub const io = @import("io.zig");
@@ -10,8 +11,8 @@ pub const mem = @import("memory.zig");
 ///
 /// **WARNING: This function is automatically called by jok.Context during initialization.**
 /// **DO NOT call this function directly from game code.**
-pub fn init(alloc: std.mem.Allocator) void {
-    mem.init(alloc);
+pub fn init(ctx: jok.Context) void {
+    mem.init(ctx.allocator(), ctx.io());
 }
 
 /// Deinitialize zmesh and cleanup resources.

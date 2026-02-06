@@ -12,7 +12,7 @@ var fcolors: std.array_list.Managed(jok.ColorF) = undefined;
 /// **DO NOT call this function directly from game code.**
 pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     fcolors = @TypeOf(fcolors).init(ctx.allocator());
-    gui.init(ctx.allocator());
+    gui.init(ctx.allocator(), ctx.io());
 
     const window = ctx.window();
     const renderer = ctx.renderer();

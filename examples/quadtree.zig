@@ -31,7 +31,7 @@ const Object = struct {
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
-    const now = try std.Io.Clock.awake.now(ctx.io());
+    const now = std.Io.Clock.awake.now(ctx.io());
     rng = std.Random.DefaultPrng.init(@intCast(now.toMilliseconds()));
     batchpool = try @TypeOf(batchpool).init(ctx);
     qtree = try utils.QuadTree(u32, .{}).create(ctx.allocator(), ctx.getCanvasSize().toRect(.origin));
