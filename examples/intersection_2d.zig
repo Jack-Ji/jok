@@ -43,8 +43,8 @@ pub fn draw(ctx: jok.Context) !void {
     }
     var rect_color = jok.Color.white;
     var rect_thickness = @as(f32, 1);
-    const rect0 = tri0.translate(offset0).boundingRect();
-    const rect1 = tri1.translate(offset1).boundingRect();
+    const rect0 = tri0.translate(offset0).getBoundingRect();
+    const rect1 = tri1.translate(offset1).getBoundingRect();
     if (rect0.hasIntersection(rect1)) {
         rect_color = .red;
         rect_thickness = 3;

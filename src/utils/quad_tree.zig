@@ -9,6 +9,8 @@
 //! - Automatic subdivision when capacity is exceeded
 //! - Optional sorting for deterministic iteration
 //! - Configurable leaf size and minimum dimensions
+//! - Optional collision sizes for precise filtering (size + position => rect)
+//! - Sized objects may span multiple leaves, which adds bookkeeping cost
 //!
 //! Use cases:
 //! - Broad-phase collision detection
@@ -28,9 +30,10 @@
 //! });
 //! defer tree.destroy();
 //!
-//! try tree.add(object_id, position);
+//! try tree.put(object_id, position, .{});
 //! var results = std.array_list.Managed(u32).init(allocator);
-//! try tree.query(search_rect, &results);
+//! try tree.query(search_rect, 0, &results, .{});
+//! try tree.query(search_rect, 0, &results, .{ .precise = true });
 //! ```
 
 const std = @import("std");
@@ -51,6 +54,18 @@ pub const TreeOption = struct {
     preferred_size_of_leaf: u32 = 8, // Maximum number of objects within a leaf
     min_width_of_leaf: u32 = 64, // Minimum width of rectangle
     enable_sort: bool = false, // Do quick sort if possible
+};
+
+/// Options for put operation
+pub const PutOption = struct {
+    /// Optional collision size (size + pos => rect)
+    size: ?jok.Size = null,
+};
+
+/// Options for query operation
+pub const QueryOption = struct {
+    /// Enable precise filtering by sizes (default: false)
+    precise: bool = false,
 };
 
 /// Generic quad tree data structure
@@ -98,6 +113,8 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
         node_pool: std.heap.MemoryPool(TreeNode),
         root: *TreeNode,
         positions: std.AutoHashMap(ObjectType, jok.Point),
+        sizes: std.AutoHashMap(ObjectType, jok.Size),
+        leaves: std.AutoHashMap(ObjectType, std.ArrayList(*TreeNode.Leaf)),
 
         /// Initialize new tree
         pub fn create(allocator: std.mem.Allocator, rect: jok.Rectangle) !*Tree {
@@ -112,10 +129,14 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                 .node_pool = try std.heap.MemoryPool(TreeNode).initCapacity(allocator, 1024),
                 .root = undefined,
                 .positions = std.AutoHashMap(ObjectType, jok.Point).init(allocator),
+                .sizes = std.AutoHashMap(ObjectType, jok.Size).init(allocator),
+                .leaves = std.AutoHashMap(ObjectType, std.ArrayList(*TreeNode.Leaf)).init(allocator),
             };
             errdefer {
                 tree.node_pool.deinit(allocator);
                 tree.arena.deinit();
+                tree.sizes.deinit();
+                tree.leaves.deinit();
             }
 
             tree.root = try tree.node_pool.create(allocator);
@@ -133,68 +154,273 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
 
         /// Destroy tree
         pub fn destroy(self: *Tree) void {
+            // Clean up leaf lists
+            var it = self.leaves.iterator();
+            while (it.next()) |entry| {
+                entry.value_ptr.deinit(self.allocator);
+            }
+
             self.positions.deinit();
+            self.sizes.deinit();
+            self.leaves.deinit();
             self.node_pool.deinit(self.allocator);
             self.arena.deinit();
             self.allocator.destroy(self);
         }
 
         /// Add an object into tree
-        pub fn put(self: *Tree, o: ObjectType, pos: jok.Point) !void {
+        pub fn put(self: *Tree, o: ObjectType, pos: jok.Point, put_opt: PutOption) !void {
             if (self.positions.get(o) != null) return error.AlreadyExists;
-            if (!self.root.getRect().containsPoint(pos)) return error.NotSeeable;
-            try self.positions.put(o, pos);
-            errdefer _ = self.positions.remove(o);
-            try self.insert(self.root, o, pos);
-            return;
+
+            if (put_opt.size) |size| {
+                // Add object with collision size
+                // Calculate bounding rectangle
+                const w = size.getWidthFloat();
+                const h = size.getHeightFloat();
+                const rect: jok.Rectangle = .{
+                    .x = pos.x - w * 0.5,
+                    .y = pos.y - h * 0.5,
+                    .width = w,
+                    .height = h,
+                };
+
+                if (!self.root.getRect().hasIntersection(rect)) return error.NotSeeable;
+
+                // Find all leaves that intersect the rectangle
+                var leaf_list = try std.ArrayList(*TreeNode.Leaf).initCapacity(self.allocator, 4);
+                errdefer leaf_list.deinit(self.allocator);
+                try self.findIntersectingLeaves(self.root, rect, &leaf_list);
+
+                if (leaf_list.items.len == 0) {
+                    leaf_list.deinit(self.allocator);
+                    return error.NotSeeable;
+                }
+
+                // Insert into all intersecting leaves
+                try self.positions.put(o, pos);
+                errdefer _ = self.positions.remove(o);
+
+                for (leaf_list.items) |leaf| {
+                    try leaf.objs.append(self.arena.allocator(), o);
+                    if (is_searchable and opt.enable_sort) {
+                        std.sort.pdq(ObjectType, leaf.objs.items, {}, std.sort.asc(ObjectType));
+                    }
+                }
+
+                // Store leaf list and size
+                try self.leaves.put(o, leaf_list);
+                self.sizes.put(o, size) catch unreachable;
+
+                // Check if any of the leaves need subdivision
+                // We need to find the parent nodes and trigger subdivision
+                try self.checkAndSubdivideForSizedObject(self.root, null, rect);
+            } else {
+                // Add object without size (point-based)
+                if (!self.root.getRect().containsPoint(pos)) return error.NotSeeable;
+                try self.positions.put(o, pos);
+                errdefer _ = self.positions.remove(o);
+                try self.insert(self.root, o, pos);
+            }
         }
 
         /// Remove an object from tree
         pub fn remove(self: *Tree, o: ObjectType) void {
+            _ = self.sizes.remove(o);
             const kv = self.positions.fetchRemove(o) orelse return;
-            self.searchAndRemove(null, self.root, o, kv.value);
+
+            // Check if object has tracked leaves (sized object)
+            if (self.leaves.fetchRemove(o)) |leaf_kv| {
+                // Remove from all tracked leaves
+                for (leaf_kv.value.items) |leaf| {
+                    const idx: usize = if (is_searchable and opt.enable_sort)
+                        std.sort.binarySearch(
+                            ObjectType,
+                            leaf.objs.items,
+                            o,
+                            struct {
+                                fn compare(target: ObjectType, _o: ObjectType) std.math.Order {
+                                    return if (target == _o) .eq else if (target > _o) .gt else .lt;
+                                }
+                            }.compare,
+                        ).?
+                    else for (leaf.objs.items, 0..) |_o, i| {
+                        if (_o == o) break i;
+                    } else unreachable;
+                    _ = leaf.objs.orderedRemove(idx);
+                }
+                // Clean up leaf list
+                var leaves_list = leaf_kv.value;
+                leaves_list.deinit(self.allocator);
+            } else {
+                // Non-sized object: use existing searchAndRemove logic
+                self.searchAndRemove(null, self.root, o, kv.value);
+            }
         }
 
         /// Update position of object
         pub fn update(self: *Tree, o: ObjectType, new_pos: jok.Point) !void {
-            if (!self.root.getRect().containsPoint(new_pos)) {
-                self.remove(o);
-                return;
-            }
             if (self.positions.get(o)) |p| {
-                const leaf = self.searchLeaf(p);
-                if (leaf.rect.containsPoint(new_pos)) {
+                // Check if object has size
+                if (self.sizes.get(o)) |size| {
+                    // Sized object: recalculate overlapping leaves
+                    const w = size.getWidthFloat();
+                    const h = size.getHeightFloat();
+                    const rect: jok.Rectangle = .{
+                        .x = new_pos.x - w * 0.5,
+                        .y = new_pos.y - h * 0.5,
+                        .width = w,
+                        .height = h,
+                    };
+
+                    if (!self.root.getRect().hasIntersection(rect)) {
+                        self.remove(o);
+                        return;
+                    }
+
+                    // Find new intersecting leaves
+                    var new_leaf_list = try std.ArrayList(*TreeNode.Leaf).initCapacity(self.allocator, 4);
+                    errdefer new_leaf_list.deinit(self.allocator);
+                    try self.findIntersectingLeaves(self.root, rect, &new_leaf_list);
+
+                    if (new_leaf_list.items.len == 0) {
+                        new_leaf_list.deinit(self.allocator);
+                        self.remove(o);
+                        return;
+                    }
+
+                    // Remove from old leaves based on previous position/size to avoid stale pointers
+                    const old_w = size.getWidthFloat();
+                    const old_h = size.getHeightFloat();
+                    const old_rect: jok.Rectangle = .{
+                        .x = p.x - old_w * 0.5,
+                        .y = p.y - old_h * 0.5,
+                        .width = old_w,
+                        .height = old_h,
+                    };
+                    var old_leaf_list = try std.ArrayList(*TreeNode.Leaf).initCapacity(self.allocator, 4);
+                    defer old_leaf_list.deinit(self.allocator);
+                    try self.findIntersectingLeaves(self.root, old_rect, &old_leaf_list);
+                    for (old_leaf_list.items) |leaf| {
+                        const idx: usize = if (is_searchable and opt.enable_sort)
+                            std.sort.binarySearch(
+                                ObjectType,
+                                leaf.objs.items,
+                                o,
+                                struct {
+                                    fn compare(target: ObjectType, _o: ObjectType) std.math.Order {
+                                        return if (target == _o) .eq else if (target > _o) .gt else .lt;
+                                    }
+                                }.compare,
+                            ).?
+                        else for (leaf.objs.items, 0..) |_o, i| {
+                            if (_o == o) break i;
+                        } else unreachable;
+                        _ = leaf.objs.orderedRemove(idx);
+                    }
+
+                    // Add to new leaves
+                    for (new_leaf_list.items) |leaf| {
+                        try leaf.objs.append(self.arena.allocator(), o);
+                        if (is_searchable and opt.enable_sort) {
+                            std.sort.pdq(ObjectType, leaf.objs.items, {}, std.sort.asc(ObjectType));
+                        }
+                    }
+
+                    // Clean up old leaf list and update
+                    if (self.leaves.fetchRemove(o)) |kv| {
+                        var old_list = kv.value;
+                        old_list.deinit(self.allocator);
+                    }
+                    try self.leaves.put(o, new_leaf_list);
                     try self.positions.put(o, new_pos);
                 } else {
-                    self.remove(o);
-                    try self.put(o, new_pos);
+                    // Non-sized object: use existing logic
+                    if (!self.root.getRect().containsPoint(new_pos)) {
+                        self.remove(o);
+                        return;
+                    }
+
+                    const leaf = self.searchLeaf(p);
+                    if (leaf.rect.containsPoint(new_pos)) {
+                        try self.positions.put(o, new_pos);
+                    } else {
+                        self.remove(o);
+                        try self.put(o, new_pos, .{});
+                    }
                 }
             } else {
-                try self.put(o, new_pos);
+                if (!self.root.getRect().containsPoint(new_pos)) return;
+                try self.put(o, new_pos, .{});
             }
         }
 
+        /// Update position and replace the attached collision size (size + pos => rect).
         /// Query for objects which could potentially interfect with given rectangle
-        pub fn query(self: *Tree, rect: jok.Rectangle, padding: f32, results: *std.array_list.Managed(ObjectType)) !void {
+        pub fn query(self: *Tree, rect: jok.Rectangle, padding: f32, results: *std.array_list.Managed(ObjectType), query_opt: QueryOption) !void {
+            const padded = rect.padded(padding);
+            const start_len = results.items.len;
+
+            // Create hash set for deduplication
+            var seen = std.AutoHashMap(ObjectType, void).init(self.allocator);
+            defer seen.deinit();
+
             var stack = try std.ArrayList(*const TreeNode).initCapacity(self.allocator, 10);
             defer stack.deinit(self.allocator);
             try stack.append(self.allocator, self.root);
             while (stack.pop()) |node| {
-                if (!rect.padded(padding).hasIntersection(node.getRect())) continue;
+                if (!padded.hasIntersection(node.getRect())) continue;
                 if (node.* == .leaf) {
-                    for (node.leaf.objs.items) |o| try results.append(o);
+                    for (node.leaf.objs.items) |o| {
+                        if (!seen.contains(o)) {
+                            try seen.put(o, {});
+                            try results.append(o);
+                        }
+                    }
                 } else {
                     inline for (node.node.children) |c| try stack.append(self.allocator, c);
                 }
+            }
+
+            // Apply precise filtering if requested
+            if (query_opt.precise) {
+                var write_idx = start_len;
+                var read_idx = start_len;
+                while (read_idx < results.items.len) : (read_idx += 1) {
+                    const obj = results.items[read_idx];
+                    if (self.positions.get(obj)) |p| {
+                        if (self.sizes.get(obj)) |size| {
+                            const w = size.getWidthFloat();
+                            const h = size.getHeightFloat();
+                            const orect: jok.Rectangle = .{
+                                .x = p.x - w * 0.5,
+                                .y = p.y - h * 0.5,
+                                .width = w,
+                                .height = h,
+                            };
+                            if (!orect.hasIntersection(padded)) continue;
+                        } else if (!padded.containsPoint(p)) continue;
+                    } else unreachable; // Object must exist in positions since we just queried it
+                    results.items[write_idx] = obj;
+                    write_idx += 1;
+                }
+                results.items.len = write_idx;
             }
         }
 
         /// Clear the map
         pub fn clear(self: *Tree) void {
+            // Clean up leaf lists
+            var it = self.leaves.iterator();
+            while (it.next()) |entry| {
+                entry.value_ptr.deinit(self.allocator);
+            }
+
             const rect = self.root.getRect();
             _ = self.node_pool.reset(self.allocator, .retain_capacity);
             _ = self.arena.reset(.retain_capacity);
             self.positions.clearRetainingCapacity();
+            self.sizes.clearRetainingCapacity();
+            self.leaves.clearRetainingCapacity();
 
             const new_root = self.node_pool.create(self.allocator) catch unreachable;
             new_root.* = .{
@@ -263,33 +489,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                 if (@as(u32, @intCast(tree_node.leaf.objs.items.len)) > opt.preferred_size_of_leaf and
                     tree_node.leaf.rect.width >= @as(f32, @floatFromInt(2 * opt.min_width_of_leaf)))
                 {
-                    var new_tree_node: TreeNode = .{
-                        .node = .{
-                            .rect = tree_node.leaf.rect,
-                            .children = .{
-                                self.newLeaf(tree_node.leaf.getSubRect(0)) catch unreachable, // NW
-                                self.newLeaf(tree_node.leaf.getSubRect(1)) catch unreachable, // NE
-                                self.newLeaf(tree_node.leaf.getSubRect(2)) catch unreachable, // SW
-                                self.newLeaf(tree_node.leaf.getSubRect(3)) catch unreachable, // SE
-                            },
-                            .size = @intCast(tree_node.leaf.objs.items.len),
-                        },
-                    };
-
-                    // Redistribute objects for children
-                    // Since the objects are already sorted, no need to sort for children again
-                    for (tree_node.leaf.objs.items) |co| {
-                        const obj_pos = self.positions.get(co).?;
-                        for (new_tree_node.node.children) |n| {
-                            if (n.leaf.rect.containsPoint(obj_pos)) {
-                                n.leaf.objs.append(self.arena.allocator(), co) catch unreachable;
-                                break;
-                            }
-                        } else unreachable;
-                    }
-
-                    tree_node.leaf.objs.deinit(self.arena.allocator());
-                    tree_node.* = new_tree_node;
+                    try self.subdivideLeaf(tree_node, null);
                 }
             }
         }
@@ -320,6 +520,146 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
             }
             assert(current.leaf.rect.containsPoint(pos));
             return &current.leaf;
+        }
+
+        /// Find all leaves that intersect with the given rectangle
+        fn findIntersectingLeaves(self: *Tree, node: *TreeNode, rect: jok.Rectangle, results: *std.ArrayList(*TreeNode.Leaf)) !void {
+            if (!node.getRect().hasIntersection(rect)) return;
+
+            if (node.* == .leaf) {
+                try results.append(self.allocator, &node.leaf);
+            } else {
+                for (node.node.children) |child| {
+                    try self.findIntersectingLeaves(child, rect, results);
+                }
+            }
+        }
+
+        /// Check if leaves intersecting with the given rectangle need subdivision
+        /// This is called after inserting a sized object to trigger subdivision
+        fn checkAndSubdivideForSizedObject(self: *Tree, node: *TreeNode, parent: ?*TreeNode, rect: jok.Rectangle) !void {
+            if (!node.getRect().hasIntersection(rect)) return;
+
+            if (node.* == .leaf) {
+                // Check if this leaf needs subdivision
+                if (@as(u32, @intCast(node.leaf.objs.items.len)) > opt.preferred_size_of_leaf and
+                    node.leaf.rect.width >= @as(f32, @floatFromInt(2 * opt.min_width_of_leaf)))
+                {
+                    // Subdivide this leaf
+                    try self.subdivideLeaf(node, parent);
+                }
+            } else {
+                // Recursively check children
+                for (node.node.children) |child| {
+                    try self.checkAndSubdivideForSizedObject(child, node, rect);
+                }
+            }
+        }
+
+        /// Subdivide a leaf node into 4 children
+        fn subdivideLeaf(self: *Tree, tree_node: *TreeNode, parent: ?*TreeNode) !void {
+            assert(tree_node.* == .leaf);
+
+            // Store pointer to old leaf before we replace it
+            const old_leaf_ptr = &tree_node.leaf;
+            var point_count: u32 = 0;
+
+            var new_tree_node: TreeNode = .{
+                .node = .{
+                    .rect = tree_node.leaf.rect,
+                    .children = .{
+                        try self.newLeaf(tree_node.leaf.getSubRect(0)), // NW
+                        try self.newLeaf(tree_node.leaf.getSubRect(1)), // NE
+                        try self.newLeaf(tree_node.leaf.getSubRect(2)), // SW
+                        try self.newLeaf(tree_node.leaf.getSubRect(3)), // SE
+                    },
+                    .size = 0,
+                },
+            };
+
+            // Redistribute objects for children
+            for (tree_node.leaf.objs.items) |co| {
+                const obj_pos = self.positions.get(co).?;
+
+                // Check if this is a sized object
+                if (self.sizes.get(co)) |size| {
+                    // Sized object: find all intersecting child leaves and add to each
+                    const w = size.getWidthFloat();
+                    const h = size.getHeightFloat();
+                    const obj_rect = jok.Rectangle{
+                        .x = obj_pos.x - w * 0.5,
+                        .y = obj_pos.y - h * 0.5,
+                        .width = w,
+                        .height = h,
+                    };
+
+                    for (new_tree_node.node.children) |n| {
+                        if (n.leaf.rect.hasIntersection(obj_rect)) {
+                            n.leaf.objs.append(self.arena.allocator(), co) catch unreachable;
+                        }
+                    }
+                } else {
+                    // Non-sized object: use point-based placement
+                    for (new_tree_node.node.children) |n| {
+                        if (n.leaf.rect.containsPoint(obj_pos)) {
+                            n.leaf.objs.append(self.arena.allocator(), co) catch unreachable;
+                            break;
+                        }
+                    } else unreachable;
+                    point_count += 1;
+                }
+            }
+
+            new_tree_node.node.size = point_count;
+            tree_node.leaf.objs.deinit(self.arena.allocator());
+            tree_node.* = new_tree_node;
+
+            // Update ALL objects in the leaves map that reference the old leaf
+            // This must be done after tree_node.* = new_tree_node because old_leaf_ptr is now invalid
+            var leaves_iter = self.leaves.iterator();
+            while (leaves_iter.next()) |entry| {
+                const obj = entry.key_ptr.*;
+                const leaf_list = entry.value_ptr;
+
+                // Check if this object's leaf list contains the old leaf pointer
+                var found_idx: ?usize = null;
+                for (leaf_list.items, 0..) |leaf_ptr, idx| {
+                    if (leaf_ptr == old_leaf_ptr) {
+                        found_idx = idx;
+                        break;
+                    }
+                }
+
+                if (found_idx) |idx| {
+                    // Remove the old leaf pointer
+                    _ = leaf_list.swapRemove(idx);
+
+                    // Add new leaf pointers based on object's position and size
+                    const obj_pos = self.positions.get(obj).?;
+                    const size = self.sizes.get(obj).?;
+                    const w = size.getWidthFloat();
+                    const h = size.getHeightFloat();
+                    const obj_rect = jok.Rectangle{
+                        .x = obj_pos.x - w * 0.5,
+                        .y = obj_pos.y - h * 0.5,
+                        .width = w,
+                        .height = h,
+                    };
+
+                    for (new_tree_node.node.children) |n| {
+                        if (n.leaf.rect.hasIntersection(obj_rect)) {
+                            leaf_list.append(self.allocator, &n.leaf) catch unreachable;
+                        }
+                    }
+                }
+            }
+
+            // Update parent's size if it exists
+            if (parent) |p| {
+                if (p.* == .node) {
+                    // Parent size is already correct, no need to update
+                }
+            }
         }
 
         fn searchAndRemove(self: *Tree, parent: ?*TreeNode, tree_node: *TreeNode, o: ObjectType, pos: jok.Point) void {
@@ -358,30 +698,86 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                 p.node.size -= 1;
                 if (p.node.size < opt.preferred_size_of_leaf / 2) {
                     // Shrink the tree, collect objects into parent
+                    const parent_rect = p.node.rect;
+                    var objs = std.ArrayList(ObjectType).initCapacity(
+                        self.arena.allocator(),
+                        opt.preferred_size_of_leaf * 2,
+                    ) catch unreachable;
+                    var seen = std.AutoHashMap(ObjectType, void).init(self.allocator);
+                    defer seen.deinit();
+
+                    var sized_to_update = std.AutoHashMap(ObjectType, void).init(self.allocator);
+                    defer sized_to_update.deinit();
+
+                    // Remove subtree leaf pointers from sized-object leaf lists
+                    var leaves_iter = self.leaves.iterator();
+                    while (leaves_iter.next()) |entry| {
+                        const obj = entry.key_ptr.*;
+                        var leaf_list = entry.value_ptr;
+                        var removed = false;
+                        var i: usize = 0;
+                        while (i < leaf_list.items.len) {
+                            const leaf_ptr = leaf_list.items[i];
+                            if (parent_rect.containsRect(leaf_ptr.rect)) {
+                                _ = leaf_list.swapRemove(i);
+                                removed = true;
+                                continue;
+                            }
+                            i += 1;
+                        }
+                        if (removed) {
+                            sized_to_update.put(obj, {}) catch unreachable;
+                        }
+                    }
+
+                    // Collect unique objects from subtree and destroy children
+                    for (p.node.children) |c| {
+                        self.collectAndDestroy(c, &objs, &seen);
+                    }
+
                     var new_tree_node: TreeNode = .{
                         .leaf = .{
-                            .rect = p.node.rect,
-                            .objs = std.ArrayList(ObjectType).initCapacity(
-                                self.arena.allocator(),
-                                opt.preferred_size_of_leaf * 2,
-                            ) catch unreachable,
+                            .rect = parent_rect,
+                            .objs = objs,
                         },
                     };
-                    for (p.node.children) |c| {
-                        for (c.leaf.objs.items) |_o| {
-                            new_tree_node.leaf.objs.append(
-                                self.arena.allocator(),
-                                _o,
-                            ) catch unreachable;
-                        }
-                        c.leaf.objs.deinit(self.arena.allocator());
-                        self.node_pool.destroy(c);
-                    }
                     if (is_searchable and opt.enable_sort) {
                         std.sort.pdq(ObjectType, new_tree_node.leaf.objs.items, {}, std.sort.asc(ObjectType));
                     }
                     p.* = new_tree_node;
+
+                    // Update sized-object leaf lists to point at the new parent leaf
+                    var sized_it = sized_to_update.iterator();
+                    while (sized_it.next()) |entry| {
+                        const obj = entry.key_ptr.*;
+                        if (self.leaves.getEntry(obj)) |leaf_entry| {
+                            leaf_entry.value_ptr.append(self.allocator, &p.leaf) catch unreachable;
+                        } else unreachable;
+                    }
                 }
+            }
+        }
+
+        fn collectAndDestroy(
+            self: *Tree,
+            node: *TreeNode,
+            objs: *std.ArrayList(ObjectType),
+            seen: *std.AutoHashMap(ObjectType, void),
+        ) void {
+            if (node.* == .leaf) {
+                for (node.leaf.objs.items) |o| {
+                    if (!seen.contains(o)) {
+                        seen.put(o, {}) catch unreachable;
+                        objs.append(self.arena.allocator(), o) catch unreachable;
+                    }
+                }
+                node.leaf.objs.deinit(self.arena.allocator());
+                self.node_pool.destroy(node);
+            } else {
+                for (node.node.children) |c| {
+                    self.collectAndDestroy(c, objs, seen);
+                }
+                self.node_pool.destroy(node);
             }
         }
     };
@@ -418,7 +814,7 @@ test "QuadTree: add single object" {
     const obj: u32 = 42;
     const pos = jok.Point{ .x = 100, .y = 100 };
 
-    try tree.put(obj, pos);
+    try tree.put(obj, pos, .{});
     try expectEqual(@as(usize, 1), tree.positions.count());
     try expect(tree.root.* == .leaf);
     try expectEqual(@as(usize, 1), tree.root.leaf.objs.items.len);
@@ -435,8 +831,8 @@ test "QuadTree: add duplicate object returns error" {
     const obj: u32 = 42;
     const pos = jok.Point{ .x = 100, .y = 100 };
 
-    try tree.put(obj, pos);
-    try expectError(Error.AlreadyExists, tree.put(obj, pos));
+    try tree.put(obj, pos, .{});
+    try expectError(Error.AlreadyExists, tree.put(obj, pos, .{}));
 }
 
 test "QuadTree: add object outside bounds returns error" {
@@ -450,7 +846,7 @@ test "QuadTree: add object outside bounds returns error" {
     const obj: u32 = 42;
     const pos = jok.Point{ .x = 1500, .y = 100 };
 
-    try expectError(Error.NotSeeable, tree.put(obj, pos));
+    try expectError(Error.NotSeeable, tree.put(obj, pos, .{}));
 }
 
 test "QuadTree: remove object" {
@@ -464,7 +860,7 @@ test "QuadTree: remove object" {
     const obj: u32 = 42;
     const pos = jok.Point{ .x = 100, .y = 100 };
 
-    try tree.put(obj, pos);
+    try tree.put(obj, pos, .{});
     try expectEqual(@as(usize, 1), tree.positions.count());
 
     tree.remove(obj);
@@ -500,7 +896,7 @@ test "QuadTree: tree subdivision on exceeding leaf capacity" {
             .x = 100 + @as(f32, @floatFromInt(i)) * 10,
             .y = 100 + @as(f32, @floatFromInt(i)) * 10,
         };
-        try tree.put(i, pos);
+        try tree.put(i, pos, .{});
     }
 
     // Tree should have subdivided
@@ -517,12 +913,12 @@ test "QuadTree: objects distributed across quadrants" {
     defer tree.destroy();
 
     // Add objects to different quadrants
-    try tree.put(1, jok.Point{ .x = 100, .y = 100 }); // NW
-    try tree.put(2, jok.Point{ .x = 600, .y = 100 }); // NE
-    try tree.put(3, jok.Point{ .x = 100, .y = 600 }); // SW
-    try tree.put(4, jok.Point{ .x = 600, .y = 600 }); // SE
-    try tree.put(5, jok.Point{ .x = 150, .y = 150 }); // NW
-    try tree.put(6, jok.Point{ .x = 650, .y = 150 }); // NE
+    try tree.put(1, jok.Point{ .x = 100, .y = 100 }, .{}); // NW
+    try tree.put(2, jok.Point{ .x = 600, .y = 100 }, .{}); // NE
+    try tree.put(3, jok.Point{ .x = 100, .y = 600 }, .{}); // SW
+    try tree.put(4, jok.Point{ .x = 600, .y = 600 }, .{}); // SE
+    try tree.put(5, jok.Point{ .x = 150, .y = 150 }, .{}); // NW
+    try tree.put(6, jok.Point{ .x = 650, .y = 150 }, .{}); // NE
 
     try expect(tree.root.* == .node);
     try expectEqual(@as(u32, 6), tree.root.node.size);
@@ -539,7 +935,7 @@ test "QuadTree: query empty tree" {
     const query_rect = jok.Rectangle{ .x = 100, .y = 100, .width = 200, .height = 200 };
     var results = std.array_list.Managed(u32).init(allocator);
     defer results.deinit();
-    try tree.query(query_rect, 0, &results);
+    try tree.query(query_rect, 0, &results, .{});
 
     try expectEqual(@as(usize, 0), results.items.len);
 }
@@ -553,16 +949,16 @@ test "QuadTree: query returns correct objects" {
     defer tree.destroy();
 
     // Add objects at various positions
-    try tree.put(1, jok.Point{ .x = 100, .y = 100 });
-    try tree.put(2, jok.Point{ .x = 500, .y = 500 });
-    try tree.put(3, jok.Point{ .x = 900, .y = 900 });
+    try tree.put(1, jok.Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(2, jok.Point{ .x = 500, .y = 500 }, .{});
+    try tree.put(3, jok.Point{ .x = 900, .y = 900 }, .{});
 
     // Query that intersects with the entire tree (since root is still a leaf)
     // This should return all objects
     const query_rect1 = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
     var results1 = std.array_list.Managed(u32).init(allocator);
     defer results1.deinit();
-    try tree.query(query_rect1, 0, &results1);
+    try tree.query(query_rect1, 0, &results1, .{});
 
     try expectEqual(@as(usize, 3), results1.items.len);
 
@@ -571,7 +967,7 @@ test "QuadTree: query returns correct objects" {
     const query_rect2 = jok.Rectangle{ .x = 50, .y = 50, .width = 100, .height = 100 };
     var results2 = std.array_list.Managed(u32).init(allocator);
     defer results2.deinit();
-    try tree.query(query_rect2, 0, &results2);
+    try tree.query(query_rect2, 0, &results2, .{});
 
     // Since the tree hasn't subdivided, the query returns all objects in the intersecting leaf
     try expectEqual(@as(usize, 3), results2.items.len);
@@ -586,15 +982,15 @@ test "QuadTree: query after subdivision" {
     defer tree.destroy();
 
     // Add enough objects to force subdivision, all in NW quadrant
-    try tree.put(0, jok.Point{ .x = 100, .y = 100 });
-    try tree.put(1, jok.Point{ .x = 150, .y = 100 });
-    try tree.put(2, jok.Point{ .x = 200, .y = 100 });
+    try tree.put(0, jok.Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(1, jok.Point{ .x = 150, .y = 100 }, .{});
+    try tree.put(2, jok.Point{ .x = 200, .y = 100 }, .{});
 
     // Also add objects to other quadrants
-    try tree.put(10, jok.Point{ .x = 600, .y = 100 }); // NE
-    try tree.put(11, jok.Point{ .x = 650, .y = 150 }); // NE
-    try tree.put(20, jok.Point{ .x = 100, .y = 600 }); // SW
-    try tree.put(30, jok.Point{ .x = 600, .y = 600 }); // SE
+    try tree.put(10, jok.Point{ .x = 600, .y = 100 }, .{}); // NE
+    try tree.put(11, jok.Point{ .x = 650, .y = 150 }, .{}); // NE
+    try tree.put(20, jok.Point{ .x = 100, .y = 600 }, .{}); // SW
+    try tree.put(30, jok.Point{ .x = 600, .y = 600 }, .{}); // SE
 
     // Tree should be subdivided now
     try expect(tree.root.* == .node);
@@ -603,7 +999,7 @@ test "QuadTree: query after subdivision" {
     const query_rect1 = jok.Rectangle{ .x = 0, .y = 0, .width = 300, .height = 300 };
     var results1 = std.array_list.Managed(u32).init(allocator);
     defer results1.deinit();
-    try tree.query(query_rect1, 0, &results1);
+    try tree.query(query_rect1, 0, &results1, .{});
 
     try expect(results1.items.len == 3);
     // Verify they're the NW objects
@@ -617,7 +1013,7 @@ test "QuadTree: query after subdivision" {
     const query_rect2 = jok.Rectangle{ .x = 501, .y = 501, .width = 500, .height = 500 };
     var results2 = std.array_list.Managed(u32).init(allocator);
     defer results2.deinit();
-    try tree.query(query_rect2, 0, &results2);
+    try tree.query(query_rect2, 0, &results2, .{});
 
     try expect(results2.items.len == 1);
     try expectEqual(@as(u32, 30), results2.items[0]);
@@ -626,7 +1022,7 @@ test "QuadTree: query after subdivision" {
     const query_rect3 = jok.Rectangle{ .x = 501, .y = 0, .width = 400, .height = 400 };
     var results3 = std.array_list.Managed(u32).init(allocator);
     defer results3.deinit();
-    try tree.query(query_rect3, 0, &results3);
+    try tree.query(query_rect3, 0, &results3, .{});
 
     // Should get objects from NE quadrant
     try expect(results3.items.len == 2);
@@ -647,7 +1043,7 @@ test "QuadTree: clear resets tree" {
             .x = 100 + @as(f32, @floatFromInt(i)) * 50,
             .y = 100,
         };
-        try tree.put(i, pos);
+        try tree.put(i, pos, .{});
     }
 
     try expect(tree.positions.count() > 0);
@@ -661,7 +1057,7 @@ test "QuadTree: clear resets tree" {
     try expectEqual(@as(usize, 0), tree.root.leaf.objs.items.len);
 
     // Should be able to add objects again
-    try tree.put(100, jok.Point{ .x = 100, .y = 100 });
+    try tree.put(100, jok.Point{ .x = 100, .y = 100 }, .{});
     try expectEqual(@as(usize, 1), tree.positions.count());
 }
 
@@ -680,7 +1076,7 @@ test "QuadTree: tree shrinking after removals" {
             .x = 100 + @as(f32, @floatFromInt(i)) * 50,
             .y = 100,
         };
-        try tree.put(i, pos);
+        try tree.put(i, pos, .{});
     }
 
     try expect(tree.root.* == .node);
@@ -696,6 +1092,79 @@ test "QuadTree: tree shrinking after removals" {
     try expectEqual(@as(usize, 1), tree.root.leaf.objs.items.len);
 }
 
+test "QuadTree: sized objects survive shrink" {
+    const allocator = testing.allocator;
+    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+
+    const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 4 });
+    const tree = try TreeType.create(allocator, rect);
+    defer tree.destroy();
+
+    // Add a sized object spanning multiple leaves
+    try tree.put(999, jok.Point{ .x = 200, .y = 200 }, .{ .size = .{ .width = 300, .height = 300 } });
+
+    // Add enough point objects to force subdivision
+    var i: u32 = 0;
+    while (i < 5) : (i += 1) {
+        const pos = jok.Point{
+            .x = 100 + @as(f32, @floatFromInt(i)) * 10,
+            .y = 100,
+        };
+        try tree.put(i, pos, .{});
+    }
+    try expect(tree.root.* == .node);
+
+    // Remove point objects to force shrink
+    i = 0;
+    while (i < 5) : (i += 1) {
+        tree.remove(i);
+    }
+    try expect(tree.root.* == .leaf);
+
+    // Sized object should remain valid and updatable
+    try tree.update(999, jok.Point{ .x = 250, .y = 250 });
+    try expect(tree.positions.get(999) != null);
+
+    tree.remove(999);
+    try expect(tree.positions.get(999) == null);
+}
+
+test "QuadTree: sized objects survive repeated subdivide/shrink" {
+    const allocator = testing.allocator;
+    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+
+    const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 4 });
+    const tree = try TreeType.create(allocator, rect);
+    defer tree.destroy();
+
+    try tree.put(1000, jok.Point{ .x = 250, .y = 250 }, .{ .size = .{ .width = 300, .height = 300 } });
+
+    var cycle: u32 = 0;
+    while (cycle < 3) : (cycle += 1) {
+        var i: u32 = 0;
+        while (i < 6) : (i += 1) {
+            const pos = jok.Point{
+                .x = 100 + @as(f32, @floatFromInt(i)) * 10,
+                .y = 100 + @as(f32, @floatFromInt(i)) * 10,
+            };
+            try tree.put(i, pos, .{});
+        }
+        try expect(tree.root.* == .node);
+
+        i = 0;
+        while (i < 6) : (i += 1) {
+            tree.remove(i);
+        }
+        try expect(tree.root.* == .leaf);
+
+        try tree.update(1000, jok.Point{ .x = 260 + @as(f32, @floatFromInt(cycle)) * 5, .y = 260 });
+        try expect(tree.positions.get(1000) != null);
+    }
+
+    tree.remove(1000);
+    try expect(tree.positions.get(1000) == null);
+}
+
 test "QuadTree: with sorted integers" {
     const allocator = testing.allocator;
     const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
@@ -705,10 +1174,10 @@ test "QuadTree: with sorted integers" {
     defer tree.destroy();
 
     // Add objects in non-sorted order
-    try tree.put(50, jok.Point{ .x = 100, .y = 100 });
-    try tree.put(10, jok.Point{ .x = 150, .y = 100 });
-    try tree.put(30, jok.Point{ .x = 200, .y = 100 });
-    try tree.put(20, jok.Point{ .x = 250, .y = 100 });
+    try tree.put(50, jok.Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(10, jok.Point{ .x = 150, .y = 100 }, .{});
+    try tree.put(30, jok.Point{ .x = 200, .y = 100 }, .{});
+    try tree.put(20, jok.Point{ .x = 250, .y = 100 }, .{});
 
     // Objects should be sorted in leaf
     try expect(tree.root.* == .leaf);
@@ -739,8 +1208,8 @@ test "QuadTree: pointer types" {
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    try tree.put(&obj1, jok.Point{ .x = 100, .y = 100 });
-    try tree.put(&obj2, jok.Point{ .x = 200, .y = 200 });
+    try tree.put(&obj1, jok.Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(&obj2, jok.Point{ .x = 200, .y = 200 }, .{});
 
     try expectEqual(@as(usize, 2), tree.positions.count());
 
@@ -748,7 +1217,7 @@ test "QuadTree: pointer types" {
     const query_rect = jok.Rectangle{ .x = 0, .y = 0, .width = 300, .height = 300 };
     var results = std.array_list.Managed(*Object).init(allocator);
     defer results.deinit();
-    try tree.query(query_rect, 0, &results);
+    try tree.query(query_rect, 0, &results, .{});
 
     try expectEqual(@as(usize, 2), results.items.len);
 }
@@ -771,7 +1240,7 @@ test "QuadTree: minimum width constraint" {
             .x = 50 + @as(f32, @floatFromInt(i)) * 5,
             .y = 50,
         };
-        try tree.put(i, pos);
+        try tree.put(i, pos, .{});
     }
 
     // Should not subdivide due to min_width constraint
@@ -794,7 +1263,7 @@ test "QuadTree: stress test with many objects" {
             .x = @mod(@as(f32, @floatFromInt(i)) * 73.2, 10000),
             .y = @mod(@as(f32, @floatFromInt(i)) * 41.7, 10000),
         };
-        try tree.put(i, pos);
+        try tree.put(i, pos, .{});
     }
 
     try expectEqual(@as(usize, 1000), tree.positions.count());
@@ -803,7 +1272,7 @@ test "QuadTree: stress test with many objects" {
     const query_rect = jok.Rectangle{ .x = 1000, .y = 1000, .width = 500, .height = 500 };
     var results = std.array_list.Managed(u32).init(allocator);
     defer results.deinit();
-    try tree.query(query_rect, 0, &results);
+    try tree.query(query_rect, 0, &results, .{});
 
     // Should find some but not all objects
     try expect(results.items.len > 0);
@@ -827,9 +1296,9 @@ test "QuadTree: boundary cases" {
     defer tree.destroy();
 
     // Objects at exact boundaries
-    try tree.put(1, jok.Point{ .x = 0, .y = 0 });
-    try tree.put(2, jok.Point{ .x = 999.9, .y = 999.9 });
-    try tree.put(3, jok.Point{ .x = 501, .y = 501 });
+    try tree.put(1, jok.Point{ .x = 0, .y = 0 }, .{});
+    try tree.put(2, jok.Point{ .x = 999.9, .y = 999.9 }, .{});
+    try tree.put(3, jok.Point{ .x = 501, .y = 501 }, .{});
 
     try expectEqual(@as(usize, 3), tree.positions.count());
 
@@ -837,7 +1306,7 @@ test "QuadTree: boundary cases" {
     const query_rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1, .height = 1 };
     var results = std.array_list.Managed(u32).init(allocator);
     defer results.deinit();
-    try tree.query(query_rect, 0, &results);
+    try tree.query(query_rect, 0, &results, .{});
 
     try expectEqual(@as(usize, 1), results.items.len);
 }
@@ -853,7 +1322,7 @@ test "QuadTree: update - in-place update within same leaf" {
     const old_pos = jok.Point{ .x = 100, .y = 100 };
     const new_pos = jok.Point{ .x = 120, .y = 120 }; // still within the same leaf
 
-    try tree.put(obj, old_pos);
+    try tree.put(obj, old_pos, .{});
     try expectEqual(@as(usize, 1), tree.positions.count());
 
     // Perform update (should use in-place path)
@@ -880,7 +1349,7 @@ test "QuadTree: update - move across leaves" {
     var i: u32 = 0;
     while (i < 10) : (i += 1) {
         const pos = jok.Point{ .x = 100 + @as(f32, @floatFromInt(i)) * 10, .y = 100 + @as(f32, @floatFromInt(i)) * 10 };
-        try tree.put(i, pos);
+        try tree.put(i, pos, .{});
     }
     try expect(tree.root.* == .node); // confirm subdivision occurred
 
@@ -912,7 +1381,7 @@ test "QuadTree: update - move to same position (should be no-op)" {
     const obj: u32 = 100;
     const pos = jok.Point{ .x = 500, .y = 500 };
 
-    try tree.put(obj, pos);
+    try tree.put(obj, pos, .{});
 
     // Update to the exact same position
     try tree.update(obj, pos);
@@ -949,11 +1418,67 @@ test "QuadTree: update - attempt to move outside tree bounds" {
     defer tree.destroy();
 
     const obj: u32 = 42;
-    try tree.put(obj, jok.Point{ .x = 100, .y = 100 });
+    try tree.put(obj, jok.Point{ .x = 100, .y = 100 }, .{});
 
     const outside_pos = jok.Point{ .x = 1500, .y = 500 };
 
     // Should remove the obj
     try tree.update(obj, outside_pos);
     try expectEqual(null, tree.positions.get(obj));
+}
+
+test "QuadTree: query with precise option - filters by attached size" {
+    const allocator = testing.allocator;
+    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const TreeType = QuadTree(u32, .{});
+    const tree = try TreeType.create(allocator, rect);
+    defer tree.destroy();
+
+    try tree.put(1, .{ .x = 2.5, .y = 2.5 }, .{ .size = .{ .width = 5, .height = 5 } });
+    try tree.put(2, .{ .x = 60, .y = 10 }, .{}); // Same leaf, outside query rect
+
+    var results = std.array_list.Managed(u32).init(allocator);
+    defer results.deinit();
+
+    try tree.query(.{ .x = 0, .y = 0, .width = 5, .height = 5 }, 0, &results, .{ .precise = true });
+
+    try expectEqual(@as(usize, 1), results.items.len);
+    try expectEqual(@as(u32, 1), results.items[0]);
+}
+
+test "QuadTree: update with size - size override and stable across move" {
+    const allocator = testing.allocator;
+    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const TreeType = QuadTree(u32, .{});
+    const tree = try TreeType.create(allocator, rect);
+    defer tree.destroy();
+
+    const size = jok.Size{ .width = 10, .height = 10 };
+    try tree.put(1, .{ .x = 45, .y = 45 }, .{ .size = size });
+
+    try tree.update(1, .{ .x = 60, .y = 55 });
+    try expect(tree.sizes.get(1).?.isSame(.{ .width = 10, .height = 10 }));
+
+    try tree.update(1, .{ .x = 70, .y = 60 });
+    tree.sizes.put(1, .{ .width = 3, .height = 4 }) catch unreachable;
+    try expect(tree.sizes.get(1).?.isSame(.{ .width = 3, .height = 4 }));
+}
+
+test "QuadTree: query with precise option - falls back to position for objects without size" {
+    const allocator = testing.allocator;
+    const rect = jok.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const TreeType = QuadTree(u32, .{});
+    const tree = try TreeType.create(allocator, rect);
+    defer tree.destroy();
+
+    try tree.put(1, .{ .x = 10, .y = 10 }, .{});
+    try tree.put(2, .{ .x = 100, .y = 100 }, .{});
+
+    var results = std.array_list.Managed(u32).init(allocator);
+    defer results.deinit();
+
+    try tree.query(.{ .x = 0, .y = 0, .width = 20, .height = 20 }, 0, &results, .{ .precise = true });
+
+    try expectEqual(@as(usize, 1), results.items.len);
+    try expectEqual(@as(u32, 1), results.items[0]);
 }

@@ -263,7 +263,7 @@ pub fn inverseTransformPoint(self: Self, p: jok.Point) jok.Point {
 /// Transform a rectangle using this transformation.
 pub fn transformRectangle(self: Self, r: jok.Rectangle) jok.Rectangle {
     const pos = self.transformPoint(r.getPos());
-    const size = r.getSize().mul(self.getScale());
+    const size = r.getSizeF().mul(self.getScale());
     return .{ .x = pos.x, .y = pos.y, .width = size.x, .height = size.y };
 }
 

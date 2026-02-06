@@ -936,7 +936,7 @@ pub const Batch = struct {
     pub fn rectRounded(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const size: @Vector(2, f32) = r.getSize().mul(self.trs.getScale()).toArray();
+        const size: @Vector(2, f32) = r.getSizeF().mul(self.trs.getScale()).toArray();
         const pmin = self.trs.transformPoint(r.getPos()).sub(size * opt.anchor_point.toArray());
         const pmax = pmin.add(size);
         try self.pushDrawCommand(
@@ -970,7 +970,7 @@ pub const Batch = struct {
     pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const size: @Vector(2, f32) = r.getSize().mul(self.trs.getScale()).toArray();
+        const size: @Vector(2, f32) = r.getSizeF().mul(self.trs.getScale()).toArray();
         const pmin = self.trs.transformPoint(r.getPos()).sub(size * opt.anchor_point.toArray());
         const pmax = pmin.add(size);
         try self.pushDrawCommand(

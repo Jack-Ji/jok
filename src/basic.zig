@@ -244,7 +244,7 @@ pub const Rectangle = extern struct {
     }
 
     /// Get size as Point
-    pub inline fn getSize(r: Rectangle) jok.Point {
+    pub inline fn getSizeF(r: Rectangle) jok.Point {
         return .{ .x = r.width, .y = r.height };
     }
 
@@ -514,7 +514,7 @@ pub const Triangle = extern struct {
     }
 
     /// Get axis-aligned bounding rectangle
-    pub inline fn boundingRect(tri: Triangle) Rectangle {
+    pub inline fn getBoundingRect(tri: Triangle) Rectangle {
         const min_max_x = minAndMax(tri.p0.x, tri.p1.x, tri.p2.x);
         const min_max_y = minAndMax(tri.p0.y, tri.p1.y, tri.p2.y);
         return .{
@@ -592,22 +592,68 @@ pub const Triangle = extern struct {
         return true;
     }
 
-    /// Check if triangle intersects with a rectangle
+    /// Check if triangle intersects with a rectangle using Separating Axis Theorem (SAT).
+    /// Tests 5 potential separating axes: 2 from rectangle (x,y axes) and 3 from triangle edges.
     pub inline fn intersectRect(tri: Triangle, r: Rectangle) bool {
+        // Early exit: check bounding box intersection first
+        const tri_rect = tri.getBoundingRect();
+        if (tri_rect.x >= r.x + r.width or tri_rect.x + tri_rect.width <= r.x or
+            tri_rect.y >= r.y + r.height or tri_rect.y + tri_rect.height <= r.y)
+        {
+            return false;
+        }
+
+        // Check if any triangle vertex is inside the rectangle
         if (r.containsPoint(tri.p0) or r.containsPoint(tri.p1) or r.containsPoint(tri.p2)) {
             return true;
         }
-        if (tri.boundingRect().intersectRect(r) == null) {
-            return false;
-        }
-        if (tri.intersectTriangle(
-            .{ .p0 = r.getTopLeft(), .p1 = r.getTopRight(), .p2 = r.getBottomLeft() },
-        ) or tri.intersectTriangle(
-            .{ .p0 = r.getTopLeft(), .p1 = r.getTopRight(), .p2 = r.getBottomRight() },
-        )) {
+
+        // Check if any rectangle corner is inside the triangle
+        if (tri.containsPoint(r.getTopLeft()) or tri.containsPoint(r.getTopRight()) or
+            tri.containsPoint(r.getBottomLeft()) or tri.containsPoint(r.getBottomRight()))
+        {
             return true;
         }
-        return false;
+
+        // SAT: Test triangle edge normals as separating axes
+        // For each edge, project both shapes onto the edge's normal and check for overlap
+        const edges = [_][2]Point{
+            .{ tri.p0, tri.p1 },
+            .{ tri.p1, tri.p2 },
+            .{ tri.p2, tri.p0 },
+        };
+
+        for (edges) |edge| {
+            // Edge normal (perpendicular to edge)
+            const nx = edge[1].y - edge[0].y;
+            const ny = edge[0].x - edge[1].x;
+
+            // Project triangle vertices onto normal
+            const t0 = tri.p0.x * nx + tri.p0.y * ny;
+            const t1 = tri.p1.x * nx + tri.p1.y * ny;
+            const t2 = tri.p2.x * nx + tri.p2.y * ny;
+            const tri_min = @min(t0, @min(t1, t2));
+            const tri_max = @max(t0, @max(t1, t2));
+
+            // Project rectangle corners onto normal
+            const rx1 = r.x;
+            const ry1 = r.y;
+            const rx2 = r.x + r.width;
+            const ry2 = r.y + r.height;
+            const r0 = rx1 * nx + ry1 * ny;
+            const r1 = rx2 * nx + ry1 * ny;
+            const r2 = rx1 * nx + ry2 * ny;
+            const r3 = rx2 * nx + ry2 * ny;
+            const rect_min = @min(r0, @min(r1, @min(r2, r3)));
+            const rect_max = @max(r0, @max(r1, @max(r2, r3)));
+
+            // Check for separation on this axis
+            if (tri_max <= rect_min or rect_max <= tri_min) {
+                return false;
+            }
+        }
+
+        return true;
     }
 };
 
@@ -1000,7 +1046,7 @@ test "basic" {
         const rect = Rectangle{ .x = 0.0, .y = 0.0, .width = 10.0, .height = 20.0 };
         try expectEqual(rect.toRegion(), Region{ .x = 0, .y = 0, .width = 10, .height = 20 });
         try expectEqual(rect.getPos(), Point{ .x = 0.0, .y = 0.0 });
-        try expectEqual(rect.getSize(), Point{ .x = 10.0, .y = 20.0 });
+        try expectEqual(rect.getSizeF(), Point{ .x = 10.0, .y = 20.0 });
         try expectEqual(rect.getTopLeft(), Point{ .x = 0.0, .y = 0.0 });
         try expectEqual(rect.getTopRight(), Point{ .x = 10.0, .y = 0.0 });
         try expectEqual(rect.getBottomLeft(), Point{ .x = 0.0, .y = 20.0 });
@@ -1054,7 +1100,7 @@ test "basic" {
             .p2 = .{ .x = 3.0, .y = 4.0 },
         });
         try expectApproxEqAbs(tri.area(), 6.0, 0.000001);
-        try expectEqual(tri.boundingRect(), Rectangle{ .x = 0.0, .y = 0.0, .width = 4.0, .height = 3.0 });
+        try expectEqual(tri.getBoundingRect(), Rectangle{ .x = 0.0, .y = 0.0, .width = 4.0, .height = 3.0 });
         const bc = tri.barycentricCoord(.{ .x = 2.0, .y = 1.0 });
         try expectApproxEqAbs(bc[0], 1.0 / 3.0, 0.000001);
         try expectApproxEqAbs(bc[1], 1.0 / 3.0, 0.000001);
