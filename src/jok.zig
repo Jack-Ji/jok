@@ -51,6 +51,13 @@
 //! - `utils`: Utility functions and data structures
 //! - `WebSocket`: Websocket client (only for webassembly)
 
+const basic = @import("basic.zig");
+const window = @import("window.zig");
+const renderer = @import("renderer.zig");
+const texture = @import("texture.zig");
+const blend = @import("blend.zig");
+const websocket = @import("websocket.zig");
+
 /// Game configuration options.
 /// Use this to set window properties, FPS limits, and other application settings.
 pub const config = @import("config.zig");
@@ -63,9 +70,6 @@ pub const context = @import("context.zig");
 /// Main application context type.
 /// Provides access to window, renderer, input, and other subsystems.
 pub const Context = context.Context;
-
-/// Fundamental geometric and color types used throughout the framework.
-const basic = @import("basic.zig");
 
 /// 2D point with x and y coordinates.
 pub const Point = basic.Point;
@@ -99,7 +103,7 @@ pub const Vertex = basic.Vertex;
 
 /// Window management interface.
 /// Provides control over window properties like size, title, fullscreen mode, etc.
-pub const Window = @import("window.zig").Window;
+pub const Window = window.Window;
 
 /// Input/Output system for handling events.
 /// Includes keyboard, mouse, touch, gamepad, and window events.
@@ -111,22 +115,21 @@ pub const Event = io.Event;
 
 /// GPU renderer for drawing primitives and textures.
 /// Most users should use j2d or j3d instead of this low-level API.
-const rd = @import("renderer.zig");
-pub const Renderer = rd.Renderer;
+pub const Renderer = renderer.Renderer;
 
 /// Shader format specification (GLSL, SPIR-V, etc.).
-pub const ShaderFormat = rd.ShaderFormat;
+pub const ShaderFormat = renderer.ShaderFormat;
 
 /// Custom pixel shader for advanced rendering effects.
-pub const PixelShader = rd.PixelShader;
+pub const PixelShader = renderer.PixelShader;
 
 /// Texture management for loading and using images.
 /// Supports common formats like PNG, JPG, BMP, etc.
-pub const Texture = @import("texture.zig").Texture;
+pub const Texture = texture.Texture;
 
 /// Blend mode for controlling how colors are combined during rendering.
 /// Includes common modes like alpha blending, additive, multiply, etc.
-pub const BlendMode = @import("blend.zig").BlendMode;
+pub const BlendMode = blend.BlendMode;
 
 /// High-level 2D rendering API.
 /// Provides convenient functions for drawing sprites, shapes, text, and more.
@@ -144,7 +147,7 @@ pub const font = @import("font.zig");
 
 /// Websocket client for network communication.
 /// Provides Websocket support for WebAssembly platforms.
-pub const WebSocket = @import("websocket.zig").WebSocket;
+pub const WebSocket = websocket.WebSocket;
 
 /// Miscellaneous utility functions and data structures.
 /// Includes math helpers, data structures, and other common utilities.

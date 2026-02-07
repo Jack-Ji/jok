@@ -57,20 +57,27 @@ pub const Error = error{
     NotSeeable,
 };
 
-/// Configuration options for spatial hash
+/// Configuration options for spatial hash grid dimensions.
 pub const SpatialOption = struct {
+    /// Number of grid cells along each axis (not pixel size).
+    /// The spatial region passed to `create` must be evenly divisible by these values.
+    /// Each cell will be `region.width / size.width` by `region.height / size.height` pixels.
     size: jok.Size = .{ .width = 10, .height = 10 },
 };
 
-/// Options for put operation
+/// Options for the `put` operation.
 pub const PutOption = struct {
-    /// Optional collision size (size + pos => rect)
+    /// Optional collision size centered on the object's position.
+    /// When set, the object occupies a rectangle of this size and may span multiple cells.
+    /// When null, the object is treated as a dimensionless point in a single cell.
     size: ?jok.Size = null,
 };
 
-/// Options for query operation
+/// Options for the `query` operation.
 pub const QueryOption = struct {
-    /// Enable precise filtering by sizes (default: false)
+    /// When true, results are post-filtered against actual object geometry.
+    /// Point objects must lie inside the query rect; sized objects must intersect it.
+    /// When false (default), all objects in overlapping cells are returned.
     precise: bool = false,
 };
 
@@ -108,6 +115,9 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
         spatial_rect: jok.Rectangle,
         spatial_unit: jok.Size,
 
+        /// Allocate and initialize a spatial hash over the given region.
+        /// The region dimensions must be evenly divisible by the grid size.
+        /// Returns error.InvalidRect if they are not.
         pub fn create(allocator: std.mem.Allocator, rect: jok.Region) !*HashTable {
             assert(rect.area() > 0);
 
@@ -134,6 +144,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
             return sh;
         }
 
+        /// Free all memory owned by the spatial hash, including the hash itself.
         pub fn destroy(self: *HashTable) void {
             // Clean up multi-bucket lists in entries
             var it = self.positions.iterator();
@@ -147,6 +158,9 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
             self.allocator.destroy(self);
         }
 
+        /// Insert an object at the given position.
+        /// Returns error.AlreadyExists if the object ID is already present.
+        /// Returns error.NotSeeable if the position is outside the spatial bounds.
         pub fn put(self: *HashTable, obj: u32, pos: jok.Point, put_opt: PutOption) !void {
             if (self.positions.get(obj) != null) return error.AlreadyExists;
 
@@ -188,6 +202,9 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
             }
         }
 
+        /// Move an existing object to a new position, updating its bucket membership.
+        /// If the object moves outside the spatial bounds, it is removed.
+        /// If the object does not exist and the position is in bounds, it is inserted as a point.
         pub fn update(self: *HashTable, obj: u32, pos: jok.Point) !void {
             if (self.positions.get(obj)) |entry| {
                 // Check if object has size
@@ -293,8 +310,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
             }
         }
 
-        /// Update position and replace the attached collision size (size + pos => rect).
-        /// If the object moves outside bounds, it is removed.
+        /// Remove an object from the spatial hash. No-op if the object does not exist.
         pub fn remove(self: *HashTable, obj: u32) void {
             if (self.positions.fetchRemove(obj)) |kv| {
                 // Remove from all buckets
@@ -325,6 +341,9 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
             _ = self.sizes.remove(obj);
         }
 
+        /// Find all objects whose cells overlap the given rectangle (expanded by `padding`).
+        /// Results are appended to `results`; the caller owns the list.
+        /// Pass `QueryOption{ .precise = true }` to post-filter against actual object geometry.
         pub fn query(self: HashTable, rect: jok.Rectangle, padding: f32, results: *std.array_list.Managed(ObjectType), query_opt: QueryOption) !void {
             const padded = rect.padded(padding);
             const start_len = results.items.len;
@@ -418,6 +437,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
         }
 
         /// Draw spatial hash grid on screen
+        /// Options for debug-drawing the spatial hash grid.
         pub const DrawOption = struct {
             query: ?jok.Rectangle = null,
             rect_color: jok.Color = .black,
@@ -426,6 +446,8 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
             depth: f32 = 0.5,
         };
 
+        /// Draw the spatial hash grid for debugging. Non-empty cells are outlined;
+        /// cells intersecting the optional query rectangle are highlighted.
         pub fn draw(self: HashTable, b: *j2d.Batch, draw_opt: DrawOption) !void {
             // Draw grid cells
             var y: u32 = 0;
@@ -789,4 +811,333 @@ test "sized object spans multiple buckets" {
     try sh.query(.{ .x = 0, .y = 0, .width = 20, .height = 20 }, 0, &results, .{});
     try testing.expectEqual(@as(usize, 1), results.items.len);
     try testing.expectEqual(@as(u32, 1), results.items[0]);
+}
+
+test "SpatialHash: query with padding expands search area" {
+    var sh = try SpatialHash(u32, .{ .size = .{ .width = 20, .height = 20 } }).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    try sh.put(1, .{ .x = 10, .y = 10 }, .{});
+    try sh.put(2, .{ .x = 150, .y = 150 }, .{});
+
+    // Without padding, small query should only find object 1
+    var results1 = std.array_list.Managed(u32).init(testing.allocator);
+    defer results1.deinit();
+    try sh.query(.{ .x = 0, .y = 0, .width = 30, .height = 30 }, 0, &results1, .{});
+    try testing.expectEqual(@as(usize, 1), results1.items.len);
+    try testing.expectEqual(@as(u32, 1), results1.items[0]);
+
+    // With large padding, should also find object 2
+    var results2 = std.array_list.Managed(u32).init(testing.allocator);
+    defer results2.deinit();
+    try sh.query(.{ .x = 0, .y = 0, .width = 30, .height = 30 }, 130, &results2, .{});
+    var found_2 = false;
+    for (results2.items) |o| {
+        if (o == 2) found_2 = true;
+    }
+    try testing.expect(found_2);
+}
+
+test "SpatialHash: remove from multi-object bucket" {
+    var sh = try SpatialHash(u32, .{ .size = .{ .width = 100, .height = 100 } }).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    // Put three objects in the same cell
+    try sh.put(1, .{ .x = 5, .y = 5 }, .{});
+    try sh.put(2, .{ .x = 10, .y = 10 }, .{});
+    try sh.put(3, .{ .x = 15, .y = 15 }, .{});
+
+    // Remove the middle one
+    sh.remove(2);
+
+    var results = std.array_list.Managed(u32).init(testing.allocator);
+    defer results.deinit();
+    try sh.query(.{ .x = 0, .y = 0, .width = 50, .height = 50 }, 0, &results, .{});
+
+    // Should have objects 1 and 3 but not 2
+    try testing.expectEqual(@as(usize, 2), results.items.len);
+    for (results.items) |o| {
+        try testing.expect(o != 2);
+    }
+}
+
+test "SpatialHash: remove last object from single bucket" {
+    var sh = try SpatialHash(u32, .{ .size = .{ .width = 50, .height = 50 } }).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    try sh.put(1, .{ .x = 10, .y = 10 }, .{});
+    sh.remove(1);
+
+    var results = std.array_list.Managed(u32).init(testing.allocator);
+    defer results.deinit();
+    try sh.query(.{ .x = 0, .y = 0, .width = 200, .height = 200 }, 0, &results, .{});
+    try testing.expectEqual(@as(usize, 0), results.items.len);
+}
+
+test "SpatialHash: clear resets all state" {
+    var sh = try SpatialHash(u32, .{ .size = .{ .width = 20, .height = 20 } }).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    try sh.put(1, .{ .x = 10, .y = 10 }, .{});
+    try sh.put(2, .{ .x = 50, .y = 50 }, .{ .size = .{ .width = 30, .height = 30 } });
+    try sh.put(3, .{ .x = 100, .y = 100 }, .{});
+
+    sh.clear();
+
+    try testing.expectEqual(@as(usize, 0), sh.positions.count());
+    try testing.expectEqual(@as(usize, 0), sh.sizes.count());
+
+    // Query should return nothing
+    var results = std.array_list.Managed(u32).init(testing.allocator);
+    defer results.deinit();
+    try sh.query(.{ .x = 0, .y = 0, .width = 200, .height = 200 }, 0, &results, .{});
+    try testing.expectEqual(@as(usize, 0), results.items.len);
+
+    // Re-add after clear should work
+    try sh.put(10, .{ .x = 30, .y = 30 }, .{});
+    try sh.query(.{ .x = 0, .y = 0, .width = 200, .height = 200 }, 0, &results, .{});
+    try testing.expectEqual(@as(usize, 1), results.items.len);
+}
+
+test "SpatialHash: put-remove-put cycles" {
+    var sh = try SpatialHash(u32, .{ .size = .{ .width = 20, .height = 20 } }).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    var cycle: u32 = 0;
+    while (cycle < 5) : (cycle += 1) {
+        var i: u32 = 0;
+        while (i < 8) : (i += 1) {
+            const pos = jok.Point{
+                .x = @as(f32, @floatFromInt(i)) * 20 + 5,
+                .y = @as(f32, @floatFromInt(cycle)) * 20 + 5,
+            };
+            try sh.put(i + cycle * 100, pos, .{});
+        }
+
+        i = 0;
+        while (i < 8) : (i += 1) {
+            sh.remove(i + cycle * 100);
+        }
+
+        try testing.expectEqual(@as(usize, 0), sh.positions.count());
+    }
+}
+
+test "SpatialHash: sized object deduplication across cells" {
+    var sh = try SpatialHash(u32, .{ .size = .{ .width = 10, .height = 10 } }).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 100, .height = 100 },
+    );
+    defer sh.destroy();
+
+    // Object spanning multiple cells
+    try sh.put(1, .{ .x = 10, .y = 10 }, .{ .size = .{ .width = 25, .height = 25 } });
+
+    // Query covering all cells the object spans
+    var results = std.array_list.Managed(u32).init(testing.allocator);
+    defer results.deinit();
+    try sh.query(.{ .x = 0, .y = 0, .width = 40, .height = 40 }, 0, &results, .{});
+
+    // Object should appear exactly once
+    var count: usize = 0;
+    for (results.items) |o| {
+        if (o == 1) count += 1;
+    }
+    try testing.expectEqual(@as(usize, 1), count);
+}
+
+test "SpatialHash: precise query filters objects not actually intersecting" {
+    // Use 1x1 grid so everything is in one cell
+    var sh = try SpatialHash(u32, .{ .size = .{ .width = 1, .height = 1 } }).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    // Two objects in the same (only) cell
+    try sh.put(1, .{ .x = 5, .y = 5 }, .{ .size = .{ .width = 10, .height = 10 } });
+    try sh.put(2, .{ .x = 90, .y = 90 }, .{});
+
+    // Without precise, both are in same cell so both returned
+    var results_broad = std.array_list.Managed(u32).init(testing.allocator);
+    defer results_broad.deinit();
+    try sh.query(.{ .x = 80, .y = 80, .width = 20, .height = 20 }, 0, &results_broad, .{});
+    try testing.expectEqual(@as(usize, 2), results_broad.items.len);
+
+    // With precise, only object 2 (point at 90,90) should match
+    var results_precise = std.array_list.Managed(u32).init(testing.allocator);
+    defer results_precise.deinit();
+    try sh.query(.{ .x = 80, .y = 80, .width = 20, .height = 20 }, 0, &results_precise, .{ .precise = true });
+    try testing.expectEqual(@as(usize, 1), results_precise.items.len);
+    try testing.expectEqual(@as(u32, 2), results_precise.items[0]);
+}
+
+test "SpatialHash: update moves object between cells" {
+    var sh = try SpatialHash(u32, .{ .size = .{ .width = 20, .height = 20 } }).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    try sh.put(1, .{ .x = 5, .y = 5 }, .{});
+
+    // Move to a different cell
+    try sh.update(1, .{ .x = 150, .y = 150 });
+
+    // Should NOT be in old cell
+    var results_old = std.array_list.Managed(u32).init(testing.allocator);
+    defer results_old.deinit();
+    try sh.query(.{ .x = 0, .y = 0, .width = 20, .height = 20 }, 0, &results_old, .{ .precise = true });
+    try testing.expectEqual(@as(usize, 0), results_old.items.len);
+
+    // Should be in new cell
+    var results_new = std.array_list.Managed(u32).init(testing.allocator);
+    defer results_new.deinit();
+    try sh.query(.{ .x = 140, .y = 140, .width = 20, .height = 20 }, 0, &results_new, .{ .precise = true });
+    try testing.expectEqual(@as(usize, 1), results_new.items.len);
+    try testing.expectEqual(@as(u32, 1), results_new.items[0]);
+}
+
+test "SpatialHash: update sized object preserves size" {
+    var sh = try SpatialHash(u32, .{ .size = .{ .width = 20, .height = 20 } }).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    try sh.put(1, .{ .x = 10, .y = 10 }, .{ .size = .{ .width = 30, .height = 30 } });
+
+    // Update position
+    try sh.update(1, .{ .x = 100, .y = 100 });
+
+    // Size should be preserved
+    const size = sh.sizes.get(1).?;
+    try testing.expect(size.isSame(.{ .width = 30, .height = 30 }));
+
+    // Should be queryable at new position with its size
+    var results = std.array_list.Managed(u32).init(testing.allocator);
+    defer results.deinit();
+    try sh.query(.{ .x = 90, .y = 90, .width = 50, .height = 50 }, 0, &results, .{ .precise = true });
+    try testing.expectEqual(@as(usize, 1), results.items.len);
+    try testing.expectEqual(@as(u32, 1), results.items[0]);
+}
+
+test "SpatialHash: query appends to existing results" {
+    var sh = try SpatialHash(u32, .{}).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    try sh.put(1, .{ .x = 10, .y = 10 }, .{});
+
+    var results = std.array_list.Managed(u32).init(testing.allocator);
+    defer results.deinit();
+
+    // Pre-populate
+    try results.append(999);
+
+    try sh.query(.{ .x = 0, .y = 0, .width = 50, .height = 50 }, 0, &results, .{});
+
+    try testing.expectEqual(@as(usize, 2), results.items.len);
+    try testing.expectEqual(@as(u32, 999), results.items[0]);
+    try testing.expectEqual(@as(u32, 1), results.items[1]);
+}
+
+test "SpatialHash: non-zero origin" {
+    var sh = try SpatialHash(u32, .{ .size = .{ .width = 20, .height = 20 } }).create(
+        testing.allocator,
+        .{ .x = 100, .y = 100, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    try sh.put(1, .{ .x = 110, .y = 110 }, .{});
+    try sh.put(2, .{ .x = 250, .y = 250 }, .{});
+
+    var results = std.array_list.Managed(u32).init(testing.allocator);
+    defer results.deinit();
+    try sh.query(.{ .x = 100, .y = 100, .width = 30, .height = 30 }, 0, &results, .{});
+    try testing.expectEqual(@as(usize, 1), results.items.len);
+    try testing.expectEqual(@as(u32, 1), results.items[0]);
+}
+
+test "SpatialHash: query empty hash returns nothing" {
+    var sh = try SpatialHash(u32, .{}).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    var results = std.array_list.Managed(u32).init(testing.allocator);
+    defer results.deinit();
+    try sh.query(.{ .x = 0, .y = 0, .width = 200, .height = 200 }, 0, &results, .{});
+    try testing.expectEqual(@as(usize, 0), results.items.len);
+}
+
+test "SpatialHash: remove non-existent object is no-op" {
+    var sh = try SpatialHash(u32, .{}).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    try sh.put(1, .{ .x = 10, .y = 10 }, .{});
+
+    // Remove something that doesn't exist - should not crash
+    sh.remove(999);
+
+    // Original object should still be there
+    var results = std.array_list.Managed(u32).init(testing.allocator);
+    defer results.deinit();
+    try sh.query(.{ .x = 0, .y = 0, .width = 50, .height = 50 }, 0, &results, .{});
+    try testing.expectEqual(@as(usize, 1), results.items.len);
+    try testing.expectEqual(@as(u32, 1), results.items[0]);
+}
+
+test "SpatialHash: many objects in same cell" {
+    var sh = try SpatialHash(u32, .{ .size = .{ .width = 200, .height = 200 } }).create(
+        testing.allocator,
+        .{ .x = 0, .y = 0, .width = 200, .height = 200 },
+    );
+    defer sh.destroy();
+
+    // All objects in the same cell
+    var i: u32 = 0;
+    while (i < 20) : (i += 1) {
+        const pos = jok.Point{
+            .x = @as(f32, @floatFromInt(i)) * 5 + 1,
+            .y = @as(f32, @floatFromInt(i)) * 5 + 1,
+        };
+        try sh.put(i, pos, .{});
+    }
+
+    var results = std.array_list.Managed(u32).init(testing.allocator);
+    defer results.deinit();
+    try sh.query(.{ .x = 0, .y = 0, .width = 200, .height = 200 }, 0, &results, .{});
+    try testing.expectEqual(@as(usize, 20), results.items.len);
+
+    // Remove every other one
+    i = 0;
+    while (i < 20) : (i += 2) {
+        sh.remove(i);
+    }
+
+    results.clearRetainingCapacity();
+    try sh.query(.{ .x = 0, .y = 0, .width = 200, .height = 200 }, 0, &results, .{});
+    try testing.expectEqual(@as(usize, 10), results.items.len);
 }

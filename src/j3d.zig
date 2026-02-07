@@ -175,6 +175,8 @@ pub const Batch = struct {
         zgui.destroyDrawList(self.draw_list);
     }
 
+    /// Release all internally allocated memory, reducing the batch's footprint.
+    /// Only call when the batch is not in active use.
     pub fn recycleMemory(self: *Batch) void {
         self.indices.clearAndFree();
         self.vertices.clearAndFree();
@@ -653,13 +655,17 @@ pub const Batch = struct {
         );
     }
 
+    /// Options for drawing 3D lines.
     pub const LineOption = struct {
+        /// Line color
         color: jok.ColorF = .white,
+        /// Line thickness in world units
         thickness: f32 = 0.1,
+        /// Number of segments along the line length
         stacks: u32 = 10,
     };
 
-    /// Render given line
+    /// Draw a 3D line between two points.
     pub fn line(
         self: *Batch,
         _p0: [3]f32,
@@ -704,13 +710,17 @@ pub const Batch = struct {
         }
     }
 
+    /// Options for drawing 3D triangles.
     pub const TriangleOption = struct {
+        /// Rendering options (shading, texture, lighting, etc.)
         rdopt: RenderOption = .{},
+        /// Optional axis-aligned bounding box for frustum culling
         aabb: ?[6]f32,
+        /// If true, draw filled; if false, draw wireframe
         fill: bool = true,
     };
 
-    /// Render given triangle
+    /// Draw a single 3D triangle.
     pub fn triangle(
         self: *Batch,
         pos: [3][3]f32,
@@ -760,7 +770,7 @@ pub const Batch = struct {
         }
     }
 
-    /// Render multiple triangles
+    /// Draw multiple 3D triangles from indexed vertex data.
     pub fn triangles(
         self: *Batch,
         indices: []const u32,
@@ -880,12 +890,14 @@ pub const Batch = struct {
     }
 };
 
+/// A snapshot of batched vertex/index data that can be replayed later.
 pub const RenderBatch = struct {
     indices: std.array_list.Managed(u32),
     vertices: std.array_list.Managed(jok.Vertex),
     depths: std.array_list.Managed(f32),
     textures: std.array_list.Managed(?jok.Texture),
 
+    /// Free all owned memory.
     pub fn deinit(batch: RenderBatch) void {
         batch.indices.deinit();
         batch.vertices.deinit();
@@ -894,6 +906,8 @@ pub const RenderBatch = struct {
     }
 };
 
+/// Fixed-size pool of reusable 3D rendering batches.
+/// Optionally thread-safe when `thread_safe` is true.
 pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
     const AllocSet = std.StaticBitSet(pool_size);
     const mutex_init = if (thread_safe and !builtin.single_threaded)

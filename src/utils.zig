@@ -88,7 +88,7 @@ pub inline fn twoFloats(v: anytype) [2]f32 {
             .{ v[0], v[1] }
         else
             @compileError("Expected @Vector(2,f32)"),
-        else => @compileError("Unsupported type for threeFloats: " ++ @typeName(@TypeOf(v))),
+        else => @compileError("Unsupported type for twoFloats: " ++ @typeName(@TypeOf(v))),
     };
 }
 

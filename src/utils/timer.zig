@@ -257,7 +257,7 @@ const Timer = struct {
     vtable: *const VTable,
 
     const VTable = struct {
-        /// destory itself
+        /// destroy itself
         destroySelf: *const fn (ctx: *anyopaque) void,
 
         /// Get interval of timer

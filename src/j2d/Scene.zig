@@ -18,13 +18,13 @@ pub const Position = struct {
     transform: AffineTransform = .init,
 };
 
-/// 2D primitive
+/// A 2D draw primitive in the scene graph.
 pub const Primitive = struct {
     dcmd: DrawCmd,
     transform: AffineTransform = .init,
 };
 
-/// Sprite obj
+/// A 2D sprite object in the scene graph.
 pub const SpriteObj = struct {
     sp: Sprite,
     transform: AffineTransform = .init,
@@ -34,7 +34,7 @@ pub const SpriteObj = struct {
     flip_v: bool = false,
 };
 
-/// Text
+/// A 2D text object in the scene graph.
 pub const Text = struct {
     content: []const u8,
     atlas: *Atlas,
@@ -206,14 +206,14 @@ pub const Object = struct {
         }
     }
 
-    // Change object's transform, and update it's children accordingly
+    /// Change object's transform, and update its children accordingly.
     pub fn setTransform(o: *Object, trs: AffineTransform) void {
         o.actor.setTransform(trs);
         o.updateTransforms();
     }
 
-    // Get object's bounding box after transformed
-    // NOTE: rotation isn't considered, only return axis-aligned rectangle
+    /// Get the axis-aligned bounding box of this object after applying transforms.
+    /// NOTE: Rotation is not considered; only returns an axis-aligned rectangle.
     pub fn getTransformedBounds(o: Object, _trs: AffineTransform) jok.Rectangle {
         const trs = o.transform.mul(_trs);
         if (builtin.mode == .Debug) {
@@ -244,6 +244,7 @@ pub const Object = struct {
 allocator: std.mem.Allocator,
 root: *Object,
 
+/// Create a new 2D scene with an empty root object.
 pub fn create(allocator: std.mem.Allocator) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
@@ -252,11 +253,13 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
     return self;
 }
 
+/// Destroy the scene. If `destroy_objects` is true, recursively destroy all objects.
 pub fn destroy(self: *Self, destroy_objects: bool) void {
     self.root.destroy(destroy_objects);
     self.allocator.destroy(self);
 }
 
+/// Render the scene (or a subtree starting at `object`) into the given batch.
 pub fn render(self: Self, batch: *Batch, object: ?*Object) !void {
     const o = object orelse self.root;
     try batch.pushTransform();

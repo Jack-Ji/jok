@@ -122,7 +122,7 @@ pub const Window = struct {
     /// Maximize the window.
     pub fn maximize(self: Window) !void {
         if (!sdl.SDL_MaximizeWindow(self.ptr)) {
-            log.err("Minimum window failed: {s}", .{sdl.SDL_GetError()});
+            log.err("Maximize window failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
@@ -165,7 +165,7 @@ pub const Window = struct {
     ///   s: Minimum window size in pixels
     pub fn setMinimumSize(self: Window, s: jok.Size) !void {
         if (!sdl.SDL_SetWindowMinimumSize(self.ptr, @intCast(s.width), @intCast(s.height))) {
-            log.err("Set maximum size failed: {s}", .{sdl.SDL_GetError()});
+            log.err("Set minimum size failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
@@ -175,8 +175,8 @@ pub const Window = struct {
     /// Parameters:
     ///   s: Maximum window size in pixels
     pub fn setMaximumSize(self: Window, s: jok.Size) !void {
-        if (!sdl.SDL_SetWindowMinimumSize(self.ptr, @intCast(s.width), @intCast(s.height))) {
-            log.err("Set minimum size failed: {s}", .{sdl.SDL_GetError()});
+        if (!sdl.SDL_SetWindowMaximumSize(self.ptr, @intCast(s.width), @intCast(s.height))) {
+            log.err("Set maximum size failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }
     }
@@ -333,7 +333,7 @@ pub const Window = struct {
     ///   rect: Input area rectangle (null for default)
     ///   offset_x: Horizontal offset for the composition window
     pub fn setTextInputArea(self: Window, rect: ?jok.Region, offset_x: u32) !void {
-        if (!sdl.SDL_TextInputActive(self.ptr, &rect orelse null, @intCast(offset_x))) {
+        if (!sdl.SDL_SetTextInputArea(self.ptr, if (rect) |*r| r else null, @intCast(offset_x))) {
             log.err("Set text input area failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
         }

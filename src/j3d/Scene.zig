@@ -166,7 +166,7 @@ pub const Object = struct {
         }
     }
 
-    /// Change object's transform matrix, and update it's children accordingly
+    /// Change object's transform matrix, and update its children accordingly
     pub fn setTransform(o: *Object, m: zmath.Mat) void {
         o.actor.setTransform(m);
         o.updateTransforms();
@@ -187,6 +187,7 @@ pub const Object = struct {
 allocator: std.mem.Allocator,
 root: *Object,
 
+/// Create a new scene with an empty root object.
 pub fn create(allocator: std.mem.Allocator) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
@@ -195,14 +196,19 @@ pub fn create(allocator: std.mem.Allocator) !*Self {
     return self;
 }
 
+/// Destroy the scene. If `destroy_objects` is true, recursively destroy all objects.
 pub fn destroy(self: *Self, destroy_objects: bool) void {
     self.root.destroy(destroy_objects);
     self.allocator.destroy(self);
 }
 
+/// Options for rendering the scene.
 pub const RenderOption = struct {
+    /// Optional lighting applied to all objects (unless individually disabled)
     lighting: ?lighting.LightingOption = null,
 };
+
+/// Render the scene (or a subtree starting at `object`) into the given batch.
 pub fn render(self: Self, batch: *Batch, object: ?*Object, opt: RenderOption) !void {
     const o = object orelse self.root;
     try batch.pushTransform();

@@ -701,7 +701,7 @@ pub fn registerEvents(num: u32) !u32 {
 }
 
 /// push a new user event in the event queue. Safe for concurrent use.
-/// `ev_type` must be a value returned by `registerEvent`.
+/// `ev_type` must be a value returned by `registerEvents`.
 pub fn pushEvent(ev_type: u32, code: i32, data1: ?*anyopaque, data2: ?*anyopaque) !void {
     var sdl_ev = sdl.SDL_Event{
         .user = .{
@@ -1342,7 +1342,7 @@ pub fn getJoysticks() ?JoystickList {
     }
     var js = JoystickList{};
     js.ids.ptr = @ptrCast(joysticks);
-    js.idx.len = @intCast(num);
+    js.ids.len = @intCast(num);
     return js;
 }
 
@@ -1388,7 +1388,7 @@ pub const Gamepad = struct {
     }
 
     pub const Button = enum(sdl.SDL_GamepadButton) {
-        sourth = sdl.SDL_GAMEPAD_BUTTON_SOUTH,
+        south = sdl.SDL_GAMEPAD_BUTTON_SOUTH,
         east = sdl.SDL_GAMEPAD_BUTTON_EAST,
         west = sdl.SDL_GAMEPAD_BUTTON_WEST,
         north = sdl.SDL_GAMEPAD_BUTTON_NORTH,

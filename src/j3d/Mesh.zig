@@ -41,7 +41,7 @@ pub const Error = error{
 };
 
 /// Mesh file format
-const Format = enum {
+pub const Format = enum {
     shape,
     gltf,
     obj,
@@ -56,9 +56,12 @@ pub const RenderOption = struct {
     lighting: ?lighting.LightingOption = null,
 };
 
-pub const GltfNode = zmesh.io.zcgltf.bindings.Node;
+// Raw GLTF node type from the zcgltf library.
+const GltfNode = zmesh.io.zcgltf.bindings.Node;
+
+/// A node in the mesh's scene graph hierarchy, containing transform, submeshes, and children.
 pub const Node = struct {
-    pub const SubMesh = struct {
+    const SubMesh = struct {
         mesh: *Self,
         indices: std.array_list.Managed(u32),
         positions: std.array_list.Managed([3]f32),
@@ -85,8 +88,10 @@ pub const Node = struct {
             };
         }
 
-        /// Push attributes data
-        pub fn appendAttributes(
+        // Append vertex attribute data (positions, normals, colors, texcoords, etc.) to this submesh.
+        // All optional attribute slices, if provided, must have the same length as `positions`.
+        // Indices must be a multiple of 3 (triangles).
+        fn appendAttributes(
             self: *SubMesh,
             indices: []const u32,
             positions: []const [3]f32,
@@ -126,8 +131,8 @@ pub const Node = struct {
             if (weights) |ws| try self.weights.appendSlice(ws);
         }
 
-        /// Compute AABB of mesh
-        pub fn computeAabb(self: *SubMesh) void {
+        // Compute AABB of mesh
+        fn computeAabb(self: *SubMesh) void {
             var aabb_min = Vector.new(
                 self.positions.items[0][0],
                 self.positions.items[0][1],
@@ -149,15 +154,15 @@ pub const Node = struct {
             };
         }
 
-        /// Remap texture coordinates to new range
-        pub fn remapTexcoords(self: *SubMesh, uv0: jok.Point, uv1: jok.Point) void {
+        // Remap texture coordinates to new range
+        fn remapTexcoords(self: *SubMesh, uv0: jok.Point, uv1: jok.Point) void {
             for (self.texcoords.items) |*ts| {
                 ts[0] = jok.utils.math.linearMap(ts[0], 0, 1, uv0.x, uv1.x);
                 ts[1] = jok.utils.math.linearMap(ts[1], 0, 1, uv0.y, uv1.y);
             }
         }
 
-        /// Get texture
+        // Get the texture assigned to this submesh, if any.
         pub fn getTexture(self: *const SubMesh) ?jok.Texture {
             return self.mesh.textures.get(self.tex_id);
         }
@@ -307,9 +312,14 @@ pub const Node = struct {
     }
 };
 
-pub const GltfAnimation = zmesh.io.zcgltf.bindings.Animation;
-pub const GltfAnimationPathType = zmesh.io.zcgltf.bindings.AnimationPathType;
-pub const GltfInterpolationType = zmesh.io.zcgltf.bindings.InterpolationType;
+// Raw GLTF animation type from the zcgltf library.
+const GltfAnimation = zmesh.io.zcgltf.bindings.Animation;
+// Raw GLTF animation path type (scale, rotation, translation).
+const GltfAnimationPathType = zmesh.io.zcgltf.bindings.AnimationPathType;
+// Raw GLTF interpolation type (linear, step, cubic_spline).
+const GltfInterpolationType = zmesh.io.zcgltf.bindings.InterpolationType;
+
+/// A skeletal or transform animation loaded from a GLTF file.
 pub const Animation = struct {
     const Channel = struct {
         node: *Node,
@@ -396,12 +406,16 @@ pub const Animation = struct {
         return if (anim.channels.items.len == 0) null else anim;
     }
 
+    /// Return whether this animation targets skeleton joints.
     pub fn isSkeletonAnimation(anim: Animation) bool {
         return anim.channels.items[0].node.is_joint;
     }
 };
 
-pub const GltfSkin = zmesh.io.zcgltf.bindings.Skin;
+// Raw GLTF skin type from the zcgltf library.
+const GltfSkin = zmesh.io.zcgltf.bindings.Skin;
+
+/// Skeletal skin data: inverse bind matrices and joint nodes.
 pub const Skin = struct {
     inverse_matrices: []zmath.Mat,
     nodes: []*Node,
@@ -434,6 +448,7 @@ skins_map: std.AutoHashMap(*const GltfSkin, *Skin),
 own_textures: bool,
 format: Format,
 
+/// Allocate a new Mesh with the given number of submeshes and format.
 pub fn create(allocator: std.mem.Allocator, mesh_count: usize, format: Format) !*Self {
     var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
@@ -455,6 +470,7 @@ pub const ShapeOption = struct {
     tex: ?jok.Texture = null,
     uvs: ?[2]jok.Point = null,
 };
+/// Create a mesh from a zmesh.Shape primitive.
 pub fn fromShape(
     allocator: std.mem.Allocator,
     shape: zmesh.Shape,
@@ -491,6 +507,7 @@ pub const ObjOption = struct {
     tex: ?jok.Texture = null,
     uvs: ?[2]jok.Point = null,
 };
+/// Create a mesh from a Wavefront OBJ model file.
 pub fn fromObj(
     ctx: jok.Context,
     obj_file_path: [:0]const u8,
@@ -684,6 +701,7 @@ pub const GltfOption = struct {
     tex: ?jok.Texture = null,
     uvs: ?[2]jok.Point = null,
 };
+/// Create a mesh from a GLTF model file.
 pub fn fromGltf(ctx: jok.Context, file_path: [:0]const u8, opt: GltfOption) !*Self {
     var filedata: ?[]const u8 = null;
     defer if (filedata) |d| ctx.allocator().free(d);
@@ -752,6 +770,7 @@ pub fn fromGltf(ctx: jok.Context, file_path: [:0]const u8, opt: GltfOption) !*Se
     return self;
 }
 
+/// Destroy the mesh and free all associated resources (nodes, textures if owned, arena).
 pub fn destroy(self: *Self) void {
     if (self.own_textures) {
         var it = self.textures.iterator();
@@ -763,6 +782,8 @@ pub fn destroy(self: *Self) void {
     self.allocator.destroy(self);
 }
 
+/// Render the mesh hierarchy into the given 3D batch.
+/// Automatically converts to right-handed coordinates for GLTF/OBJ models.
 pub fn render(
     self: *const Self,
     csz: jok.Size,
@@ -785,6 +806,7 @@ pub fn render(
     );
 }
 
+/// Get a named animation. If the name is "default" and there is exactly one animation, returns it.
 pub inline fn getAnimation(self: Self, name: []const u8) ?*Animation {
     var anim = self.animations.getPtr(name);
     if (anim == null) {

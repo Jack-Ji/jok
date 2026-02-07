@@ -143,7 +143,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
             }
         },
         .window_resized => {
-            camera.frustrum = j3d.Camera.ViewFrustrum{
+            camera.frustum = j3d.Camera.ViewFrustum{
                 .perspective = .{
                     .fov = std.math.degreesToRadians(70),
                     .aspect_ratio = ctx.getAspectRatio(),

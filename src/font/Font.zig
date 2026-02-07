@@ -249,6 +249,7 @@ pub fn createAtlas(
     return atlas;
 }
 
+/// Return the kerning advance between two codepoints, in pixels.
 pub fn getKerningInPixels(self: Font, font_size: f32, cp1: u32, cp2: u32) f32 {
     const kern_scale = truetype.stbtt_ScaleForPixelHeight(&self.font_info, font_size);
     return @as(f32, @floatFromInt(
@@ -256,6 +257,7 @@ pub fn getKerningInPixels(self: Font, font_size: f32, cp1: u32, cp2: u32) f32 {
     )) * kern_scale;
 }
 
+/// Return vertical metrics (ascent, descent, line gap) scaled to the given font size.
 pub fn getVMetrics(self: Font, font_size: u32) struct {
     ascent: f32,
     descent: f32,
@@ -278,11 +280,13 @@ pub fn getVMetrics(self: Font, font_size: u32) struct {
     };
 }
 
+/// Find the glyph index for a Unicode codepoint, or null if not found.
 pub fn findGlyphIndex(self: Font, cp: u32) ?u32 {
     const idx = truetype.stbtt_FindGlyphIndex(&self.font_info, @intCast(cp));
     return if (idx == 0) null else @intCast(idx);
 }
 
+/// Metrics for a single glyph including advance width, bearing, and bounding box.
 pub const GlyphMetrics = struct {
     // For detailed description of font metrics, read follwing page:
     // https://freetype.org/freetype2/docs/glyphs/glyphs-3.html
@@ -396,6 +400,7 @@ pub const GlyphMetrics = struct {
     }
 };
 
+/// Return metrics for a glyph at the given font size.
 pub fn getGlyphMetrics(self: Font, glyph_index: u32, font_size: u32) GlyphMetrics {
     const vmetrics = self.getVMetrics(font_size);
     const scale = truetype.stbtt_ScaleForPixelHeight(&self.font_info, @floatFromInt(font_size));
@@ -436,6 +441,7 @@ pub fn getGlyphMetrics(self: Font, glyph_index: u32, font_size: u32) GlyphMetric
     };
 }
 
+/// A rasterized glyph bitmap.
 pub const GlyphBitmap = struct {
     allocator: std.mem.Allocator,
     bitmap: []u8,
@@ -453,6 +459,7 @@ pub const GlyphBitmap = struct {
     }
 };
 
+/// Rasterize a glyph into a bitmap at the given font size.
 pub fn createGlyphBitmap(self: Font, allocator: std.mem.Allocator, glyph_index: u32, font_size: u32) !GlyphBitmap {
     const scale = truetype.stbtt_ScaleForPixelHeight(&self.font_info, @floatFromInt(font_size));
     var x0: c_int = undefined;

@@ -466,7 +466,7 @@ pub const ParticleEmitter = struct {
     }
 };
 
-/////////////////////////// Bulitin Particle Emitters ///////////////////////////
+/////////////////////////// Builtin Particle Emitters ///////////////////////////
 
 /// Fire Emitter
 pub const FireEmitter = struct {

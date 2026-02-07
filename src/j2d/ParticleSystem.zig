@@ -124,6 +124,7 @@ pub const AddEffect = struct {
     /// Overwrite existing effect with same name
     overwrite: bool = false,
 };
+/// Add a named particle effect to the system.
 pub fn add(self: *Self, name: []const u8, emitter: ParticleEmitter, opt: AddEffect) !*Effect {
     assert(name.len > 0);
     if (std.mem.eql(u8, name, "_")) {
@@ -166,10 +167,12 @@ pub fn add(self: *Self, name: []const u8, emitter: ParticleEmitter, opt: AddEffe
     return effect;
 }
 
+/// Look up an active effect by name.
 pub fn get(self: *Self, name: []const u8) ?*Effect {
     return self.search_tree.get(name);
 }
 
+/// Remove an active effect from the system.
 pub fn remove(self: *Self, e: *Effect) void {
     assert(e.system == self);
     if (self.search_tree.remove(e.name)) {
@@ -280,6 +283,7 @@ pub const Effect = struct {
     }
 };
 
+/// Draw data for rendering a particle (either a raw draw command or a sprite).
 pub const DrawData = union(enum) {
     dcmd: DrawCmd,
     sprite: Sprite,

@@ -465,6 +465,7 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
     return scaled_rect;
 }
 
+/// Options for appending draw data from a UTF-8 string.
 pub const AppendOption = struct {
     ypos_type: YPosType = .top,
     box_type: BoxType = .aligned,

@@ -20,7 +20,7 @@ const internal = @import("internal.zig");
 const Self = @This();
 
 /// View frustum parameters for projection
-pub const ViewFrustrum = union(enum) {
+pub const ViewFrustum = union(enum) {
     /// Orthographic projection (parallel lines stay parallel)
     orthographic: struct {
         width: f32,
@@ -51,7 +51,7 @@ const MoveDirection = enum {
 const world_up = zmath.f32x4(0, 1, 0, 0);
 
 /// Viewing frustum configuration
-frustrum: ViewFrustrum = undefined,
+frustum: ViewFrustum = undefined,
 
 /// Camera position in world space
 position: zmath.Vec = undefined,
@@ -74,9 +74,9 @@ roll: f32 = undefined,
 
 /// Create a camera from position and target point
 /// The camera will look at the target from the given position
-pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: [3]f32, target: [3]f32) Self {
+pub fn fromPositionAndTarget(frustum: ViewFrustum, pos: [3]f32, target: [3]f32) Self {
     var camera: Self = .{};
-    camera.frustrum = frustrum;
+    camera.frustum = frustum;
     camera.position = zmath.f32x4(pos[0], pos[1], pos[2], 1.0);
     camera.dir = zmath.normalize3(zmath.f32x4(target[0], target[1], target[2], 1.0) - camera.position);
     camera.right = zmath.normalize3(zmath.cross3(world_up, camera.dir));
@@ -105,9 +105,9 @@ pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: [3]f32, target: [3]f32
 
 /// Create a camera from position and Euler angles
 /// Angles are specified in radians
-pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: [3]f32, pitch: f32, yaw: f32) Self {
+pub fn fromPositionAndEulerAngles(frustum: ViewFrustum, pos: [3]f32, pitch: f32, yaw: f32) Self {
     var camera: Self = .{};
-    camera.frustrum = frustrum;
+    camera.frustum = frustum;
     camera.position = zmath.f32x4(pos[0], pos[1], pos[2], 1.0);
     camera.pitch = pitch;
     camera.yaw = yaw;
@@ -126,7 +126,7 @@ pub fn getTransform(self: Self) zmath.Mat {
 
 /// Get the projection matrix based on frustum settings
 pub fn getProjectMatrix(self: Self) zmath.Mat {
-    return switch (self.frustrum) {
+    return switch (self.frustum) {
         .orthographic => |param| zmath.orthographicLh(
             param.width,
             param.height,
@@ -154,7 +154,7 @@ pub fn getViewProjectMatrix(self: Self) zmath.Mat {
 
 /// Get the near and far clipping plane distances
 pub fn getViewRange(self: Self) [2]f32 {
-    return switch (self.frustrum) {
+    return switch (self.frustum) {
         .orthographic => |p| [2]f32{ p.near, p.far },
         .perspective => |p| [2]f32{ p.near, p.far },
     };
@@ -183,9 +183,9 @@ pub fn rotateBy(self: *Self, delta_pitch: f32, delta_yaw: f32) void {
 /// Change the field of view by a delta value (in radians)
 /// Only applies to perspective cameras
 pub fn zoomBy(self: *Self, delta: f32) void {
-    if (self.frustrum == .orthographic) return;
-    self.frustrum.perspective.fov = math.clamp(
-        self.frustrum.perspective.fov + delta,
+    if (self.frustum == .orthographic) return;
+    self.frustum.perspective.fov = math.clamp(
+        self.frustum.perspective.fov + delta,
         math.pi * 0.05,
         math.pi * 0.95,
     );
@@ -218,7 +218,7 @@ pub fn rotateAroundBy(self: *Self, point: ?[3]f32, delta_angle_h: f32, delta_ang
         transform,
     ) + center;
     self.* = fromPositionAndTarget(
-        self.frustrum,
+        self.frustum,
         .{ new_pos[0], new_pos[1], new_pos[2] },
         point orelse .{ 0, 0, 0 },
     );
@@ -303,13 +303,12 @@ pub fn calcRayTestTarget(
     screen_y: f32,
     _test_distance: ?f32,
 ) zmath.Vec {
-    assert(self.frustrum == .perspective);
     const far_plane = _test_distance orelse 10000.0;
     const ray_forward = self.dir * far_plane;
     const csz = ctx.getCanvasSize();
-    switch (self.frustrum) {
+    switch (self.frustum) {
         .orthographic => |p| {
-            const hor = self.right * zmath.splat(zmath.Vec, csz.x);
+            const hor = self.right * zmath.splat(zmath.Vec, p.width);
             const vertical = self.up * zmath.splat(zmath.Vec, p.height);
 
             const ray_to_center = self.position + ray_forward;

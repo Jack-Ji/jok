@@ -4,7 +4,7 @@ const jok = @import("../jok.zig");
 const zmath = jok.vendor.zmath;
 
 /// Test whether an OBB (oriented AABB) is outside of clipping space.
-/// Algorithm description: We simply test whether all vertices is
+/// Algorithm description: We simply test whether all vertices are
 /// outside of clipping space, the method will report some very close
 /// OBBs as inside, but it's fast.
 pub inline fn isOBBOutside(obb: []const zmath.Vec) bool {
@@ -72,7 +72,7 @@ pub inline fn isOBBOutside(obb: []const zmath.Vec) bool {
 }
 
 /// Test whether a triangle is outside of NDC.
-/// Using Seperating Axis Therom (aka SAT) algorithm. There are 13 axes
+/// Using Separating Axis Theorem (aka SAT) algorithm. There are 13 axes
 /// that must be considered for projection:
 /// 1. Nine axes given by the cross products of combination of edges from both
 /// 2. Three face normals from the AABB
@@ -140,7 +140,7 @@ pub inline fn isTriangleOutside(v0: zmath.Vec, v1: zmath.Vec, v2: zmath.Vec) boo
     return @abs(zmath.dot3(plane_n, v0)[0]) > r;
 }
 
-/// Clip triangle in homogeneous space, against panel w=0.0001
+/// Clip triangle in homogeneous space, against plane w=0.0001
 /// We are conceptually clipping away stuff behind camera
 pub inline fn clipTriangle(
     tri_world_positions: []const zmath.Vec,

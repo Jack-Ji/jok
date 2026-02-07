@@ -221,7 +221,7 @@ pub fn renderMesh(
         })) return;
     }
 
-    // Some early testing and W-pannel clipping
+    // Some early testing and W-panel clipping
     const ensure_size = indices.len * 2;
     self.clear();
     try self.clip_vertices.ensureTotalCapacityPrecise(ensure_size);
@@ -439,7 +439,7 @@ pub fn renderMesh(
         const t1 = if (texcoords) |_| self.clip_texcoords.items[idx1] else undefined;
         const t2 = if (texcoords) |_| self.clip_texcoords.items[idx2] else undefined;
 
-        // Render to ouput
+        // Render to output
         try batch.pushTriangles(
             &.{ 0, 1, 2 },
             &[_]jok.Vertex{
@@ -483,7 +483,7 @@ pub fn renderSprite(
     if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
     if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
 
-    // Transform coordinate and render to ouput
+    // Transform coordinate and render to output
     if (opt.facing_dir) |dir| {
         // Create suitable model matrix
         const forward_dir = zmath.f32x4(0.0, 0.0, 1.0, 0.0);
@@ -646,7 +646,7 @@ pub fn renderSprite(
         const d2 = positions_screen[2][2];
         const d3 = positions_screen[3][2];
 
-        // Render to ouput
+        // Render to output
         try batch.pushTriangles(
             &.{ 0, 1, 2, 0, 2, 3 },
             &[_]jok.Vertex{

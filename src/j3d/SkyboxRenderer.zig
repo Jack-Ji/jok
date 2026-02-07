@@ -120,7 +120,7 @@ pub fn render(
         self.clip_vertices.clearRetainingCapacity();
         self.clip_texcoords.clearRetainingCapacity();
 
-        // Do W-pannel clipping
+        // Do W-panel clipping
         const ensure_size = plane.indices.len * 2;
         try self.clip_vertices.ensureTotalCapacityPrecise(ensure_size);
         try self.clip_texcoords.ensureTotalCapacityPrecise(ensure_size);
@@ -202,7 +202,7 @@ pub fn render(
     }
 }
 
-/// Clip triangle in homogeneous space, against panel w=0.00001
+/// Clip triangle in homogeneous space, against plane w=0.00001
 /// We are conceptually clipping away stuff behind camera
 inline fn clipTriangle(self: *Self, clip_positions: []const zmath.Vec, texcoords: []const jok.Point) void {
     const clip_plane_w = 0.0001;

@@ -210,7 +210,7 @@ pub const Renderer = struct {
         }
     }
 
-    // https://wiki.libsdl.org/SDL3/SDL_SetRenderVSync
+    /// Set vertical sync mode (0 = disabled, 1 = enabled, -1 = adaptive).
     pub fn setVsync(self: Renderer, vsync: i32) !void {
         if (!sdl.SDL_SetRenderVSync(self.ptr, vsync)) {
             log.err("Set vsync mode to {d} failed: {s}", .{ vsync, sdl.SDL_GetError() });
@@ -218,10 +218,12 @@ pub const Renderer = struct {
         }
     }
 
+    /// Return true if a custom viewport is currently set.
     pub fn isViewportSet(self: Renderer) bool {
         return sdl.SDL_RenderViewportSet(self.ptr);
     }
 
+    /// Get the current rendering viewport region.
     pub fn getViewport(self: Renderer) !jok.Region {
         var rect: sdl.SDL_Rect = undefined;
         if (!sdl.SDL_GetRenderViewport(self.ptr, &rect)) {
@@ -231,6 +233,7 @@ pub const Renderer = struct {
         return @bitCast(rect);
     }
 
+    /// Set the rendering viewport region, or null to use the entire target.
     pub fn setViewport(self: Renderer, region: ?jok.Region) !void {
         if (!sdl.SDL_SetRenderViewport(
             self.ptr,
@@ -241,10 +244,12 @@ pub const Renderer = struct {
         }
     }
 
+    /// Return true if clipping is currently enabled.
     pub fn isClipEnabled(self: Renderer) bool {
         return sdl.SDL_RenderClipEnabled(self.ptr);
     }
 
+    /// Get the current clip rectangle.
     pub fn getClipRegion(self: Renderer) !jok.Region {
         var rect: sdl.SDL_Rect = undefined;
         if (!sdl.SDL_GetRenderClipRect(self.ptr, &rect)) {
@@ -254,6 +259,7 @@ pub const Renderer = struct {
         return @bitCast(rect);
     }
 
+    /// Set the clip rectangle, or null to disable clipping.
     pub fn setClipRegion(self: Renderer, clip_region: ?jok.Region) !void {
         if (!sdl.SDL_SetRenderClipRect(
             self.ptr,
@@ -264,6 +270,7 @@ pub const Renderer = struct {
         }
     }
 
+    /// Get the current blend mode.
     pub fn getBlendMode(self: Renderer) !jok.BlendMode {
         var blend_mode: sdl.SDL_BlendMode = undefined;
         if (!sdl.SDL_GetRenderDrawBlendMode(self.ptr, &blend_mode)) {
@@ -273,6 +280,7 @@ pub const Renderer = struct {
         return jok.BlendMode.fromNative(blend_mode);
     }
 
+    /// Set the blend mode used for drawing operations.
     pub fn setBlendMode(self: Renderer, blend_mode: jok.BlendMode) !void {
         if (!sdl.SDL_SetRenderDrawBlendMode(self.ptr, blend_mode.toNative())) {
             log.err("Set renderer's blend mode to {s} failed: {s}", .{ @tagName(blend_mode), sdl.SDL_GetError() });
@@ -280,6 +288,7 @@ pub const Renderer = struct {
         }
     }
 
+    /// Get the current draw color.
     pub fn getColor(self: Renderer) !jok.Color {
         var color: sdl.SDL_Color = undefined;
         if (!sdl.SDL_GetRenderDrawColor(self.ptr, &color.r, &color.g, &color.b, &color.a)) {
@@ -289,6 +298,7 @@ pub const Renderer = struct {
         return @bitCast(color);
     }
 
+    /// Set the color used for drawing operations.
     pub fn setColor(self: Renderer, color: jok.Color) !void {
         if (!sdl.SDL_SetRenderDrawColor(self.ptr, color.r, color.g, color.b, color.a)) {
             log.err("Set renderer's color failed: {s}", .{sdl.SDL_GetError()});
@@ -296,6 +306,7 @@ pub const Renderer = struct {
         }
     }
 
+    /// Get the current render target, or null if rendering to the screen.
     pub fn getTarget(self: Renderer) ?jok.Texture {
         const ptr = sdl.SDL_GetRenderTarget(self.ptr);
         if (ptr != null) {
@@ -304,6 +315,7 @@ pub const Renderer = struct {
         return null;
     }
 
+    /// Set the render target texture, or null to render to the screen.
     pub fn setTarget(self: Renderer, tex: ?jok.Texture) !void {
         if (!sdl.SDL_SetRenderTarget(self.ptr, if (tex) |t| t.ptr else null)) {
             log.err("Set renderer's target failed: {s}", .{sdl.SDL_GetError()});
@@ -311,6 +323,7 @@ pub const Renderer = struct {
         }
     }
 
+    /// Copy a texture (or a portion of it) to the render target.
     pub fn drawTexture(self: Renderer, tex: jok.Texture, src: ?jok.Rectangle, dst: ?jok.Rectangle) !void {
         if (!sdl.SDL_RenderTexture(
             self.ptr,
@@ -324,6 +337,7 @@ pub const Renderer = struct {
         self.dc.drawcall_count += 1;
     }
 
+    /// Draw textured/colored triangles from vertex and optional index data.
     pub fn drawTriangles(self: Renderer, tex: ?jok.Texture, vs: []const jok.Vertex, indices: ?[]const u32) !void {
         if (!sdl.SDL_RenderGeometry(
             self.ptr,
@@ -343,6 +357,7 @@ pub const Renderer = struct {
             @as(u32, @intCast(vs.len)) / 3;
     }
 
+    /// Draw triangles from raw interleaved vertex attribute arrays.
     pub fn drawTrianglesRaw(
         self: Renderer,
         tex: ?jok.Texture,
@@ -420,6 +435,7 @@ pub const Renderer = struct {
         return tex;
     }
 
+    /// Create a texture from in-memory image file data (PNG, JPG, etc.).
     pub fn createTextureFromFileData(
         self: Renderer,
         file_data: []const u8,
@@ -455,11 +471,13 @@ pub const Renderer = struct {
         );
     }
 
+    /// Options for creating an offscreen render target.
     pub const TargetOption = struct {
         size: ?jok.Size = null,
         blend_mode: jok.BlendMode = .none,
         scale_mode: jok.Texture.ScaleMode = .linear,
     };
+    /// Create an offscreen render target texture. Not supported with software renderer.
     pub fn createTarget(self: Renderer, opt: TargetOption) !jok.Texture {
         if (self.cfg.jok_renderer_type == .software) @panic("Unsupported when using software renderer!");
         const size = opt.size orelse blk: {
@@ -473,16 +491,18 @@ pub const Renderer = struct {
         });
     }
 
-    /// Readonly pixels of previous rendered result
+    /// Read-only pixel data captured from the render target.
     pub const PixelData = struct {
         surface: [*c]sdl.SDL_Surface,
         width: u32,
         height: u32,
 
+        /// Free the underlying surface.
         pub inline fn destroy(px: @This()) void {
             sdl.SDL_DestroySurface(px.surface);
         }
 
+        /// Read the color of a single pixel at (x, y).
         pub inline fn getPixel(px: @This(), x: u32, y: u32) jok.Color {
             assert(x < px.width);
             assert(y < px.height);
@@ -491,6 +511,7 @@ pub const Renderer = struct {
             return c;
         }
 
+        /// Create a texture from this pixel data.
         pub inline fn createTexture(px: @This(), rd: Renderer, opt: TextureOption) !jok.Texture {
             const tex = jok.Texture{
                 .ptr = sdl.SDL_CreateTextureFromSurface(rd.ptr, px.surface),
@@ -500,6 +521,7 @@ pub const Renderer = struct {
             return tex;
         }
     };
+    /// Read pixels from the current render target (or screen if no target is set).
     pub fn getPixels(self: Renderer, region: ?jok.Region) !PixelData {
         const rect: sdl.SDL_Rect = if (region) |r|
             @bitCast(r)
@@ -524,6 +546,7 @@ pub const Renderer = struct {
         };
     }
 
+    /// Check if custom shaders are supported, optionally for a specific format.
     pub fn isShaderSupported(self: Renderer, format: ?ShaderFormat) bool {
         if (self.gpu == null) return false;
         if (format == null) return true;
@@ -531,6 +554,7 @@ pub const Renderer = struct {
         return (supported_formats & @intFromEnum(format.?)) != 0;
     }
 
+    /// Create a pixel shader from compiled bytecode. Requires GPU renderer.
     pub fn createShader(self: Renderer, byte_code: []const u8, entrypoint: ?[:0]const u8, format: ShaderFormat) !PixelShader {
         if (self.gpu == null) {
             log.err("Current renderer doesn't support custom shader", .{});
@@ -581,6 +605,7 @@ pub const Renderer = struct {
         };
     }
 
+    /// Set the active pixel shader, or null to use the default pipeline.
     pub fn setShader(self: Renderer, shader: ?PixelShader) !void {
         if (!sdl.SDL_SetGPURenderState(self.ptr, if (shader) |s| s.state else null)) {
             log.err("Set shader failed: {s}", .{sdl.SDL_GetError()});
@@ -589,6 +614,7 @@ pub const Renderer = struct {
     }
 };
 
+/// GPU shader bytecode format.
 pub const ShaderFormat = enum(u32) {
     spirv = sdl.SDL_GPU_SHADERFORMAT_SPIRV,
     dxbc = sdl.SDL_GPU_SHADERFORMAT_DXBC,
@@ -597,16 +623,19 @@ pub const ShaderFormat = enum(u32) {
     metallib = sdl.SDL_GPU_SHADERFORMAT_METALLIB,
 };
 
+/// Compiled pixel shader handle for custom fragment shading.
 pub const PixelShader = struct {
     ptr: *sdl.SDL_GPUShader,
     gpu: *sdl.SDL_GPUDevice,
     state: *sdl.SDL_GPURenderState,
 
+    /// Release the shader and its GPU resources.
     pub fn destroy(self: PixelShader) void {
         sdl.SDL_DestroyGPURenderState(self.state);
         sdl.SDL_ReleaseGPUShader(self.gpu, self.ptr);
     }
 
+    /// Set uniform data for a shader slot. Struct data must have extern/packed layout and size aligned to 16 bytes.
     pub fn setUniform(self: PixelShader, slot_index: u32, data: anytype) !void {
         const T = @TypeOf(data);
         const type_info = @typeInfo(T);

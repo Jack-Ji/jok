@@ -75,9 +75,9 @@ pub const DepthSortMethod = enum {
     /// No depth sorting (render in submission order)
     none,
     /// Sort from back to front (painters algorithm)
-    back_to_forth,
+    back_to_front,
     /// Sort from front to back (early depth rejection)
-    forth_to_back,
+    front_to_back,
 };
 
 /// Configuration options for creating a rendering batch
@@ -243,13 +243,13 @@ pub const Batch = struct {
         if (!self.is_submitted) {
             switch (self.depth_sort) {
                 .none => {},
-                .back_to_forth => std.sort.pdq(
+                .back_to_front => std.sort.pdq(
                     internal._DrawCmd,
                     self.draw_commands.items,
                     @as(?*anyopaque, null),
                     descendCompare,
                 ),
-                .forth_to_back => std.sort.pdq(
+                .front_to_back => std.sort.pdq(
                     internal._DrawCmd,
                     self.draw_commands.items,
                     @as(?*anyopaque, null),
@@ -809,10 +809,15 @@ pub const Batch = struct {
         }
     }
 
+    /// Options for drawing lines.
     pub const LineOption = struct {
+        /// Line width in pixels
         thickness: f32 = 1.0,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a line between two points.
     pub fn line(self: *Batch, p1: jok.Point, p2: jok.Point, color: jok.Color, opt: LineOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -829,10 +834,15 @@ pub const Batch = struct {
         );
     }
 
+    /// Options for drawing rectangle outlines.
     pub const RectOption = struct {
+        /// Line width in pixels
         thickness: f32 = 1.0,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a rectangle outline.
     pub fn rect(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -855,10 +865,14 @@ pub const Batch = struct {
         );
     }
 
-    pub const FillRect = struct {
+    /// Options for drawing filled rectangles.
+    pub const RectFilledOption = struct {
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
-    pub fn rectFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRect) !void {
+
+    /// Draw a filled rectangle with a single color.
+    pub fn rectFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectFilledOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const p1 = jok.Point{ .x = r.x, .y = r.y };
@@ -883,9 +897,13 @@ pub const Batch = struct {
         );
     }
 
-    pub const FillRectMultiColor = struct {
+    /// Options for drawing multi-color filled rectangles.
+    pub const RectFilledMultiColorOption = struct {
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a filled rectangle with a different color at each corner (gradient).
     pub fn rectFilledMultiColor(
         self: *Batch,
         r: jok.Rectangle,
@@ -893,7 +911,7 @@ pub const Batch = struct {
         color_top_right: jok.Color,
         color_bottom_right: jok.Color,
         color_bottom_left: jok.Color,
-        opt: FillRectMultiColor,
+        opt: RectFilledMultiColorOption,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -922,7 +940,8 @@ pub const Batch = struct {
         );
     }
 
-    /// NOTE: Rounded rectangle is always aligned with world axis
+    /// Options for drawing rounded rectangle outlines.
+    /// NOTE: Rounded rectangles are always axis-aligned (no rotation).
     pub const RectRoundedOption = struct {
         anchor_point: jok.Point = .anchor_top_left,
         thickness: f32 = 1.0,
@@ -933,6 +952,7 @@ pub const Batch = struct {
         corner_bottom_right: bool = true,
         depth: f32 = 0.5,
     };
+    /// Draw a rounded rectangle outline.
     pub fn rectRounded(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -957,8 +977,9 @@ pub const Batch = struct {
         );
     }
 
-    /// NOTE: Rounded rectangle is always aligned with world axis
-    pub const FillRectRounded = struct {
+    /// Options for drawing filled rounded rectangles.
+    /// NOTE: Rounded rectangles are always axis-aligned (no rotation).
+    pub const RectRoundedFilledOption = struct {
         anchor_point: jok.Point = .anchor_top_left,
         rounding: f32 = 4,
         corner_top_left: bool = true,
@@ -967,7 +988,8 @@ pub const Batch = struct {
         corner_bottom_right: bool = true,
         depth: f32 = 0.5,
     };
-    pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: FillRectRounded) !void {
+    /// Draw a filled rounded rectangle.
+    pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedFilledOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const size: @Vector(2, f32) = r.getSizeF().mul(self.trs.getScale()).toArray();
@@ -990,10 +1012,15 @@ pub const Batch = struct {
         );
     }
 
+    /// Options for drawing quadrilateral outlines.
     pub const QuadOption = struct {
+        /// Line width in pixels
         thickness: f32 = 1.0,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a quadrilateral outline from four points.
     pub fn quad(
         self: *Batch,
         p1: jok.Point,
@@ -1020,9 +1047,13 @@ pub const Batch = struct {
         );
     }
 
-    pub const FillQuad = struct {
+    /// Options for drawing filled quadrilaterals.
+    pub const QuadFilledOption = struct {
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a filled quadrilateral with a single color.
     pub fn quadFilled(
         self: *Batch,
         p1: jok.Point,
@@ -1030,7 +1061,7 @@ pub const Batch = struct {
         p3: jok.Point,
         p4: jok.Point,
         color: jok.Color,
-        opt: FillQuad,
+        opt: QuadFilledOption,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -1052,9 +1083,13 @@ pub const Batch = struct {
         );
     }
 
-    pub const FillQuadMultiColor = struct {
+    /// Options for drawing multi-color filled quadrilaterals.
+    pub const QuadFilledMultiColorOption = struct {
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a filled quadrilateral with a different color at each vertex.
     pub fn quadFilledMultiColor(
         self: *Batch,
         p1: jok.Point,
@@ -1065,7 +1100,7 @@ pub const Batch = struct {
         color2: jok.Color,
         color3: jok.Color,
         color4: jok.Color,
-        opt: FillQuadMultiColor,
+        opt: QuadFilledMultiColorOption,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -1090,10 +1125,15 @@ pub const Batch = struct {
         );
     }
 
+    /// Options for drawing triangle outlines.
     pub const TriangleOption = struct {
+        /// Line width in pixels
         thickness: f32 = 1.0,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a triangle outline.
     pub fn triangle(
         self: *Batch,
         tri: jok.Triangle,
@@ -1116,14 +1156,18 @@ pub const Batch = struct {
         );
     }
 
-    pub const FillTriangle = struct {
+    /// Options for drawing filled triangles.
+    pub const TriangleFilledOption = struct {
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a filled triangle with a single color.
     pub fn triangleFilled(
         self: *Batch,
         tri: jok.Triangle,
         color: jok.Color,
-        opt: FillTriangle,
+        opt: TriangleFilledOption,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -1143,14 +1187,18 @@ pub const Batch = struct {
         );
     }
 
-    pub const FillTriangleMultiColor = struct {
+    /// Options for drawing multi-color filled triangles.
+    pub const TriangleFilledMultiColorOption = struct {
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a filled triangle with a different color at each vertex.
     pub fn triangleFilledMultiColor(
         self: *Batch,
         tri: jok.Triangle,
         cs: [3]jok.Color,
-        opt: FillTriangleMultiColor,
+        opt: TriangleFilledMultiColorOption,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -1172,11 +1220,17 @@ pub const Batch = struct {
         );
     }
 
+    /// Options for drawing circle outlines.
     pub const CircleOption = struct {
+        /// Line width in pixels
         thickness: f32 = 1.0,
+        /// Number of segments (0 = auto)
         num_segments: u32 = 0,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a circle outline.
     pub fn circle(
         self: *Batch,
         c: jok.Circle,
@@ -1199,15 +1253,20 @@ pub const Batch = struct {
         );
     }
 
-    pub const FillCircle = struct {
+    /// Options for drawing filled circles.
+    pub const CircleFilledOption = struct {
+        /// Number of segments (0 = auto)
         num_segments: u32 = 0,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a filled circle.
     pub fn circleFilled(
         self: *Batch,
         c: jok.Circle,
         color: jok.Color,
-        opt: FillCircle,
+        opt: CircleFilledOption,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -1224,12 +1283,19 @@ pub const Batch = struct {
         );
     }
 
+    /// Options for drawing ellipse outlines.
     pub const EllipseOption = struct {
+        /// Rotation angle in radians
         rotate_angle: f32 = 0,
+        /// Line width in pixels
         thickness: f32 = 1.0,
+        /// Number of segments (0 = auto)
         num_segments: u32 = 0,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw an ellipse outline.
     pub fn ellipse(
         self: *Batch,
         c: jok.Ellipse,
@@ -1253,16 +1319,22 @@ pub const Batch = struct {
         );
     }
 
-    pub const FillEllipse = struct {
+    /// Options for drawing filled ellipses.
+    pub const EllipseFilledOption = struct {
+        /// Rotation angle in radians
         rotate_angle: f32 = 0,
+        /// Number of segments (0 = auto)
         num_segments: u32 = 0,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a filled ellipse.
     pub fn ellipseFilled(
         self: *Batch,
         e: jok.Ellipse,
         color: jok.Color,
-        opt: FillEllipse,
+        opt: EllipseFilledOption,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -1280,10 +1352,15 @@ pub const Batch = struct {
         );
     }
 
+    /// Options for drawing regular polygon (n-gon) outlines.
     pub const NgonOption = struct {
+        /// Line width in pixels
         thickness: f32 = 1.0,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a regular polygon (n-gon) outline.
     pub fn ngon(
         self: *Batch,
         center: jok.Point,
@@ -1308,16 +1385,20 @@ pub const Batch = struct {
         );
     }
 
-    pub const FillNgon = struct {
+    /// Options for drawing filled regular polygons (n-gons).
+    pub const NgonFilledOption = struct {
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a filled regular polygon (n-gon).
     pub fn ngonFilled(
         self: *Batch,
         center: jok.Point,
         radius: f32,
         color: jok.Color,
         num_segments: u32,
-        opt: FillNgon,
+        opt: NgonFilledOption,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -1334,11 +1415,17 @@ pub const Batch = struct {
         );
     }
 
+    /// Options for drawing cubic bezier curves.
     pub const BezierCubicOption = struct {
+        /// Line width in pixels
         thickness: f32 = 1.0,
+        /// Number of segments (0 = auto)
         num_segments: u32 = 0,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a cubic bezier curve through four control points.
     pub fn bezierCubic(
         self: *Batch,
         p1: jok.Point,
@@ -1366,11 +1453,17 @@ pub const Batch = struct {
         );
     }
 
+    /// Options for drawing quadratic bezier curves.
     pub const BezierQuadraticOption = struct {
+        /// Line width in pixels
         thickness: f32 = 1.0,
+        /// Number of segments (0 = auto)
         num_segments: u32 = 0,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a quadratic bezier curve through three control points.
     pub fn bezierQuadratic(
         self: *Batch,
         p1: jok.Point,
@@ -1396,13 +1489,17 @@ pub const Batch = struct {
         );
     }
 
-    pub const FillPoly = struct {
+    /// Options for drawing filled polygons.
+    pub const PolyFilledOption = struct {
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a filled convex polygon. The polygon must be finished (end() called).
     pub fn convexPolyFilled(
         self: *Batch,
         poly: ConvexPoly,
-        opt: FillPoly,
+        opt: PolyFilledOption,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -1418,12 +1515,13 @@ pub const Batch = struct {
         );
     }
 
-    /// Probably not fast enough O(n^2), use it at your discretion
+    /// Draw a filled concave polygon. O(n^2) complexity — use sparingly.
+    /// The polygon must be finished (end() called).
     pub fn concavePolyFilled(
         self: *Batch,
         poly: ConcavePoly,
         color: jok.Color,
-        opt: FillPoly,
+        opt: PolyFilledOption,
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
@@ -1440,11 +1538,17 @@ pub const Batch = struct {
         );
     }
 
+    /// Options for drawing polylines.
     pub const PolylineOption = struct {
+        /// Line width in pixels
         thickness: f32 = 1.0,
+        /// If true, connect the last point back to the first
         closed: bool = false,
+        /// Depth value for sorting
         depth: f32 = 0.5,
     };
+
+    /// Draw a polyline (connected line segments). The polyline must be finished (end() called).
     pub fn polyline(
         self: *Batch,
         pl: Polyline,
@@ -1468,6 +1572,7 @@ pub const Batch = struct {
         );
     }
 
+    /// Push a raw draw command with the current transformation applied.
     pub fn pushDrawCommand(self: *Batch, _dcmd: DrawCmd, depth: ?f32) !void {
         var dcmd = _dcmd;
         switch (dcmd) {
@@ -1632,7 +1737,7 @@ pub const ConvexPoly = struct {
     }
 };
 
-/// Alias for ConcavePoly (same as Polyline)
+/// Alias for Polyline (ConcavePoly is the same as Polyline)
 pub const ConcavePoly = Polyline;
 
 /// Polyline builder for drawing connected line segments or concave polygons.

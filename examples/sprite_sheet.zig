@@ -58,7 +58,7 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.rgb(77, 77, 77));
 
     const sprite = sheet2.getSpriteByName("ogre").?;
-    var b = try batchpool.new(.{ .depth_sort = .back_to_forth });
+    var b = try batchpool.new(.{ .depth_sort = .back_to_front });
     defer b.submit();
     try b.image(sheet2.tex, .origin, .{ .depth = 1 });
     try b.sprite(sprite, .{

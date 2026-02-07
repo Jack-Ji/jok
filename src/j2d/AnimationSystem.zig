@@ -1,18 +1,26 @@
+//! Generic sprite animation system.
+//!
+//! Manages named animations with per-frame durations, looping, reversing,
+//! wait delays, play ranges, and signal-based notifications for begin/end/step events.
+
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const internal = @import("internal.zig");
 const Sprite = @import("Sprite.zig");
 
+/// Animation system errors.
 pub const Error = error{
     NameUsed,
     NameNotExist,
 };
 
+/// Create an animation system parameterized on the frame data type.
 pub fn AnimationSystem(comptime FrameDataType: type) type {
     return struct {
         const Self = @This();
 
+        /// A single animation frame: data payload and display duration.
         pub const Frame = struct {
             data: FrameDataType,
             duration: f32,
@@ -49,6 +57,7 @@ pub fn AnimationSystem(comptime FrameDataType: type) type {
         sig_end: *AnimEndSignal,
         sig_stepping: *FrameSteppingSignal,
 
+        /// Create the animation system.
         pub fn create(allocator: std.mem.Allocator) !*Self {
             const self = try allocator.create(Self);
             self.* = .{
@@ -74,6 +83,7 @@ pub fn AnimationSystem(comptime FrameDataType: type) type {
             self.allocator.destroy(self);
         }
 
+        /// Options for adding an animation.
         pub const AnimOption = struct {
             wait_time: f32 = 0,
             loop: bool = false,
@@ -275,7 +285,7 @@ pub fn AnimationSystem(comptime FrameDataType: type) type {
             return error.NameNotExist;
         }
 
-        // Set animation's play range (inclusive)
+        /// Set the inclusive play range for an animation.
         pub fn setRange(self: *Self, name: []const u8, _begin: ?u32, _end: ?u32) !void {
             if (self.animations.getPtr(name)) |anim| {
                 const begin = _begin orelse 0;
@@ -315,6 +325,7 @@ pub fn AnimationSystem(comptime FrameDataType: type) type {
                 allocator.free(anim.frames);
             }
 
+            /// Reset the animation to its initial state with an optional wait time.
             pub fn reset(anim: *Animation, wait_time: f32) void {
                 anim.wait_time = wait_time;
                 anim.play_index = null;
@@ -323,6 +334,7 @@ pub fn AnimationSystem(comptime FrameDataType: type) type {
                 anim.is_stopped = false;
             }
 
+            /// Return the frame data for the current play position.
             pub fn getCurrentFrame(anim: Animation) FrameDataType {
                 return anim.frames[anim.play_index orelse if (anim.reverse) anim.range_end else anim.range_begin].data;
             }

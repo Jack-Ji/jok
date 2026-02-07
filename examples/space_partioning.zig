@@ -261,7 +261,7 @@ pub fn draw(ctx: jok.Context) !void {
         try partition.query(query_rect.?, 0, &query_result, precise_query);
     }
 
-    var b = try batchpool.new(.{ .depth_sort = .back_to_forth });
+    var b = try batchpool.new(.{ .depth_sort = .back_to_front });
     defer b.submit();
     try partition.draw(b, query_rect);
     for (objs.items, 0..) |o, i| {

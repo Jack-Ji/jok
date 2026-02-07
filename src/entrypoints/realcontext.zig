@@ -683,7 +683,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             return self._cfg;
         }
 
-        /// Get meomry allocator
+        /// Get memory allocator
         fn allocator(ptr: *anyopaque) std.mem.Allocator {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._allocator;
