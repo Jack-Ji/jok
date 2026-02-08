@@ -112,6 +112,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self.* = .{};
             self._allocator = _allocator;
             self._io_backend = .init_single_threaded;
+            self._io_backend.allocator = _allocator;
             self._main_thread_id = std.Thread.getCurrentId();
             self._ctx = self.context();
 
@@ -692,7 +693,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Get io backend
         fn getIo(ptr: *anyopaque) std.Io {
             const self: *@This() = @ptrCast(@alignCast(ptr));
-            return self._io_backend.ioBasic();
+            return self._io_backend.io();
         }
 
         /// Get running seconds of application
