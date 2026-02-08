@@ -52,11 +52,7 @@
 //! - `WebSocket`: Websocket client (only for webassembly)
 
 const basic = @import("basic.zig");
-const window = @import("window.zig");
 const renderer = @import("renderer.zig");
-const texture = @import("texture.zig");
-const blend = @import("blend.zig");
-const websocket = @import("websocket.zig");
 
 /// Game configuration options.
 /// Use this to set window properties, FPS limits, and other application settings.
@@ -103,7 +99,7 @@ pub const Vertex = basic.Vertex;
 
 /// Window management interface.
 /// Provides control over window properties like size, title, fullscreen mode, etc.
-pub const Window = window.Window;
+pub const Window = @import("window.zig").Window;
 
 /// Input/Output system for handling events.
 /// Includes keyboard, mouse, touch, gamepad, and window events.
@@ -125,11 +121,11 @@ pub const PixelShader = renderer.PixelShader;
 
 /// Texture management for loading and using images.
 /// Supports common formats like PNG, JPG, BMP, etc.
-pub const Texture = texture.Texture;
+pub const Texture = @import("texture.zig").Texture;
 
 /// Blend mode for controlling how colors are combined during rendering.
 /// Includes common modes like alpha blending, additive, multiply, etc.
-pub const BlendMode = blend.BlendMode;
+pub const BlendMode = @import("blend.zig").BlendMode;
 
 /// High-level 2D rendering API.
 /// Provides convenient functions for drawing sprites, shapes, text, and more.
@@ -147,7 +143,7 @@ pub const font = @import("font.zig");
 
 /// Websocket client for network communication.
 /// Provides Websocket support for WebAssembly platforms.
-pub const WebSocket = websocket.WebSocket;
+pub const WebSocket = @import("websocket.zig").WebSocket;
 
 /// Miscellaneous utility functions and data structures.
 /// Includes math helpers, data structures, and other common utilities.

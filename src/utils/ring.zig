@@ -181,7 +181,7 @@ pub fn Ring(comptime T: type) type {
             const part2_len = length - part1_len;
             @memcpy(dest[0..part1_len], self.data[data_start..part1_data_end]);
             @memcpy(dest[part1_len..length], self.data[0..part2_len]);
-            self.write_index = if (self.write_index >= self.data.len) self.write_index - length else data_start;
+            self.write_index = self.mask2(self.write_index + 2 * self.data.len - length);
         }
 
         /// Returns `true` if the ring buffer is empty and `false` otherwise.
@@ -230,4 +230,52 @@ pub fn Ring(comptime T: type) type {
             return self.sliceAt(self.write_index + self.data.len - length, length);
         }
     };
+}
+
+test "ring: readLastAssumeLength maintains length with wraparound write_index" {
+    const testing = std.testing;
+    const allocator = testing.allocator;
+
+    var ring = try Ring(u8).init(allocator, 8);
+    defer ring.deinit(allocator);
+
+    // Fill buffer to capacity.
+    var i: u8 = 0;
+    while (i < 8) : (i += 1) {
+        ring.writeAssumeCapacity(i);
+    }
+
+    // Advance read index a bit.
+    _ = ring.readAssumeLength();
+    _ = ring.readAssumeLength();
+    _ = ring.readAssumeLength();
+
+    // Write more data to move write_index into the second half.
+    ring.writeAssumeCapacity(8);
+    ring.writeAssumeCapacity(9);
+    ring.writeAssumeCapacity(10);
+
+    // Consume data to push read_index into the second half.
+    _ = ring.readAssumeLength();
+    _ = ring.readAssumeLength();
+    _ = ring.readAssumeLength();
+    _ = ring.readAssumeLength();
+    _ = ring.readAssumeLength();
+    _ = ring.readAssumeLength();
+
+    // Write enough to wrap write_index into the first half.
+    ring.writeAssumeCapacity(11);
+    ring.writeAssumeCapacity(12);
+    ring.writeAssumeCapacity(13);
+    ring.writeAssumeCapacity(14);
+    ring.writeAssumeCapacity(15);
+    ring.writeAssumeCapacity(16);
+
+    // Sanity: buffer is full before removing from the end.
+    try testing.expectEqual(@as(usize, 8), ring.len());
+
+    // Remove last 2 items and ensure length decreases correctly.
+    var tmp: [2]u8 = undefined;
+    ring.readLastAssumeLength(&tmp, 2);
+    try testing.expectEqual(@as(usize, 6), ring.len());
 }

@@ -161,7 +161,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
         /// Insert an object at the given position.
         /// Returns error.AlreadyExists if the object ID is already present.
         /// Returns error.NotSeeable if the position is outside the spatial bounds.
-        pub fn put(self: *HashTable, obj: u32, pos: jok.Point, put_opt: PutOption) !void {
+        pub fn put(self: *HashTable, obj: ObjectType, pos: jok.Point, put_opt: PutOption) !void {
             if (self.positions.get(obj) != null) return error.AlreadyExists;
 
             if (put_opt.size) |size| {
@@ -205,7 +205,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
         /// Move an existing object to a new position, updating its bucket membership.
         /// If the object moves outside the spatial bounds, it is removed.
         /// If the object does not exist and the position is in bounds, it is inserted as a point.
-        pub fn update(self: *HashTable, obj: u32, pos: jok.Point) !void {
+        pub fn update(self: *HashTable, obj: ObjectType, pos: jok.Point) !void {
             if (self.positions.get(obj)) |entry| {
                 // Check if object has size
                 if (self.sizes.get(obj)) |size| {
@@ -311,7 +311,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
         }
 
         /// Remove an object from the spatial hash. No-op if the object does not exist.
-        pub fn remove(self: *HashTable, obj: u32) void {
+        pub fn remove(self: *HashTable, obj: ObjectType) void {
             if (self.positions.fetchRemove(obj)) |kv| {
                 // Remove from all buckets
                 switch (kv.value.buckets) {

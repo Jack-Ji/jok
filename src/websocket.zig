@@ -1,7 +1,7 @@
 //! WebSocket client implementation for jok framework.
 //!
-//! This module provides WebSocket support for both WebAssembly and native platforms.
-//! For WebAssembly, it uses the browser's native WebSocket API via JavaScript interop.
+//! This module provides WebSocket support for WebAssembly, it uses the browser's
+//! native WebSocket API via JavaScript interop.
 //!
 //! The WebSocket operates in binary mode (binaryType = 'arraybuffer'), which is the
 //! standard for game development as it provides better performance and efficiency for
