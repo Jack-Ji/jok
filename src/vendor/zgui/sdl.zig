@@ -5,6 +5,7 @@ const gui = @import("main.zig");
 const log = std.log.scoped(.jok);
 
 var fcolors: std.array_list.Managed(jok.ColorF) = undefined;
+var fallback_texture: jok.Texture = undefined;
 
 /// Initialize zgui with SDL backend.
 ///
@@ -35,6 +36,15 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
     gui.io.setConfigFlags(.{ .no_mouse_cursor_change = true });
 
     gui.plot.init();
+
+    // Ensure a non-null texture is available for draw calls that don't specify one.
+    // This avoids missing sampler bindings when custom shaders are active.
+    const white_px = [_]u8{ 0xFF, 0xFF, 0xFF, 0xFF };
+    fallback_texture = ctx.renderer().createTexture(
+        .{ .width = 1, .height = 1 },
+        &white_px,
+        .{ .access = .static },
+    ) catch @panic("Create fallback texture failed!");
 }
 
 /// Deinitialize zgui and cleanup resources.
@@ -42,6 +52,7 @@ pub fn init(ctx: jok.Context, enable_ini_file: bool) void {
 /// **WARNING: This function is automatically called by jok.Context during cleanup.**
 /// **DO NOT call this function directly from game code.**
 pub fn deinit() void {
+    fallback_texture.destroy();
     gui.plot.deinit();
     ImGui_ImplSDLRenderer3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
@@ -129,10 +140,12 @@ inline fn renderCommand(ctx: jok.Context, dl: gui.DrawList, cmd: *const gui.Draw
     var indices: []u32 = undefined;
     indices.ptr = @ptrCast(is_ptr + cmd.idx_offset);
     indices.len = @intCast(cmd.elem_count);
+    const texture: ?jok.Texture = if (@intFromEnum(cmd.texture_ref.tex_id) != 0)
+        .{ .ptr = @ptrFromInt(@as(usize, @intCast(@intFromEnum(cmd.texture_ref.tex_id)))) }
+    else
+        fallback_texture;
     rd.drawTrianglesRaw(
-        if (@intFromEnum(cmd.texture_ref.tex_id) != 0) .{
-            .ptr = @ptrFromInt(@as(usize, @intCast(@intFromEnum(cmd.texture_ref.tex_id)))),
-        } else null,
+        texture,
         @ptrFromInt(@intFromPtr(vptr) + @offsetOf(gui.DrawVert, "pos")),
         @sizeOf(gui.DrawVert),
         fcolors.items.ptr,
