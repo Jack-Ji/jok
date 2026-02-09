@@ -88,6 +88,12 @@ pub const Ellipse = basic.Ellipse;
 /// Triangle defined by three vertices.
 pub const Triangle = basic.Triangle;
 
+/// Line segment defined by two endpoints.
+pub const Line = basic.Line;
+
+/// Ray defined by an origin point and a direction vector.
+pub const Ray = basic.Ray;
+
 /// RGBA color with 8-bit integer components (0-255).
 pub const Color = basic.Color;
 

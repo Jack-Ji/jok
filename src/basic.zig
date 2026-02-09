@@ -13,6 +13,8 @@
 //! - Circle: Circle defined by center and radius
 //! - Ellipse: Ellipse defined by center and radii
 //! - Triangle: Triangle defined by three points
+//! - Line: Line segment defined by two endpoints
+//! - Ray: Ray defined by origin and direction
 //! - Color: 8-bit RGBA color
 //! - ColorF: Floating-point RGBA color
 //! - Vertex: Vertex with position, color, and texture coordinates
@@ -401,33 +403,6 @@ pub const Circle = extern struct {
         };
     }
 
-    /// Check if circle contains a point
-    pub inline fn containsPoint(c: Circle, p: Point) bool {
-        const v: @Vector(2, f32) = .{ c.center.x - p.x, c.center.y - p.y };
-        return @reduce(.Add, v * v) < c.radius * c.radius;
-    }
-
-    /// Check if this circle intersects with another circle
-    pub inline fn intersectCircle(c0: Circle, c1: Circle) bool {
-        const r = c0.radius + c1.radius;
-        return c0.center.distance2(c1.center) < r * r;
-    }
-
-    /// Check if circle intersects with a rectangle
-    pub inline fn intersectRect(c: Circle, r: Rectangle) bool {
-        const cx1 = c.center.x - c.radius;
-        const cx2 = c.center.x + c.radius;
-        const cy1 = c.center.y - c.radius;
-        const cy2 = c.center.y + c.radius;
-        const rx1 = r.x;
-        const rx2 = r.x + r.width;
-        const ry1 = r.y;
-        const ry2 = r.y + r.height;
-        if (cx2 <= rx1 or cx1 >= rx2) return false;
-        if (cy2 <= ry1 or cy1 >= ry2) return false;
-        return true;
-    }
-
     /// Get the bounding rectangle that fully contains this circle
     pub inline fn getBoundingRect(c: Circle) jok.Rectangle {
         return .{
@@ -437,10 +412,54 @@ pub const Circle = extern struct {
             .height = c.radius * 2,
         };
     }
+
+    /// Check if circle contains a point
+    pub inline fn containsPoint(c: Circle, p: Point) bool {
+        const v: @Vector(2, f32) = .{ c.center.x - p.x, c.center.y - p.y };
+        return @reduce(.Add, v * v) < c.radius * c.radius;
+    }
+
+    /// Check if this circle intersects with another circle
+    pub inline fn intersectCircle(c0: Circle, c1: Circle) bool {
+        const r = c0.radius + c1.radius;
+        return c0.center.distance2(c1.center) <= r * r;
+    }
+
+    /// Check if circle intersects with a rectangle using closest-point algorithm
+    pub inline fn intersectRect(c: Circle, r: Rectangle) bool {
+        // Find the closest point on the rectangle to the circle center
+        const closest_x = math.clamp(c.center.x, r.x, r.x + r.width);
+        const closest_y = math.clamp(c.center.y, r.y, r.y + r.height);
+        const dx = c.center.x - closest_x;
+        const dy = c.center.y - closest_y;
+        return dx * dx + dy * dy <= c.radius * c.radius;
+    }
+
+    /// Check if circle intersects with a line segment using closest-point algorithm
+    pub inline fn intersectLine(c: Circle, l: Line) bool {
+        return l.intersectCircle(c);
+    }
+
+    /// Check if circle intersects with a triangle.
+    /// Tests circle against each triangle edge and checks if center is inside triangle.
+    pub inline fn intersectTriangle(c: Circle, tri: Triangle) bool {
+        // If the circle center is inside the triangle, they intersect
+        if (tri.containsPoint(c.center)) return true;
+        // Check if any triangle edge intersects the circle
+        const edges = [3]Line{
+            .{ .p0 = tri.p0, .p1 = tri.p1 },
+            .{ .p0 = tri.p1, .p1 = tri.p2 },
+            .{ .p0 = tri.p2, .p1 = tri.p0 },
+        };
+        for (edges) |edge| {
+            if (edge.intersectCircle(c)) return true;
+        }
+        return false;
+    }
 };
 
 /// Ellipse defined by center point and radii (x and y).
-/// Uses focal point method for containment testing.
+/// Supports containment testing and focal point calculations.
 pub const Ellipse = struct {
     center: Point = .origin,
     /// Radii in x and y directions
@@ -451,6 +470,16 @@ pub const Ellipse = struct {
         return .{
             .center = e.center.add(two_floats),
             .radius = e.radius,
+        };
+    }
+
+    /// Get the bounding rectangle that fully contains this ellipse
+    pub inline fn getBoundingRect(e: Ellipse) jok.Rectangle {
+        return .{
+            .x = e.center.x - e.radius.x,
+            .y = e.center.y - e.radius.y,
+            .width = e.radius.x * 2,
+            .height = e.radius.y * 2,
         };
     }
 
@@ -467,22 +496,12 @@ pub const Ellipse = struct {
         return @sqrt(e.getFocalRadius2());
     }
 
-    /// Check if ellipse contains a point using focal point method
+    /// Check if ellipse contains a point using normalized form:
+    /// (dx/rx)^2 + (dy/ry)^2 < 1
     pub inline fn containsPoint(e: Ellipse, p: Point) bool {
-        const fr = e.getFocalRadius();
-        var d1: f32 = undefined;
-        var d2: f32 = undefined;
-        var a: f32 = undefined;
-        if (e.radius.x > e.radius.y) {
-            d1 = @sqrt((p.x - fr) * (p.x - fr) + p.y * p.y);
-            d2 = @sqrt((p.x + fr) * (p.x + fr) + p.y * p.y);
-            a = e.radius.x;
-        } else {
-            d1 = @sqrt((p.y - fr) * (p.y - fr) + p.x * p.x);
-            d2 = @sqrt((p.y + fr) * (p.y + fr) + p.x * p.x);
-            a = e.radius.y;
-        }
-        return d1 + d2 <= 2 * a;
+        const dx = (p.x - e.center.x) / e.radius.x;
+        const dy = (p.y - e.center.y) / e.radius.y;
+        return dx * dx + dy * dy < 1;
     }
 };
 
@@ -537,7 +556,11 @@ pub const Triangle = extern struct {
         const dot02 = zmath.dot2(v0, v2)[0];
         const dot11 = zmath.dot2(v1, v1)[0];
         const dot12 = zmath.dot2(v1, v2)[0];
-        const inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01);
+        const denom = dot00 * dot11 - dot01 * dot01;
+        if (@abs(denom) <= 1e-12) {
+            return .{ -1, -1, -1 };
+        }
+        const inv_denom = 1.0 / denom;
         const u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
         const v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
         return .{ u, v, 1 - u - v };
@@ -545,12 +568,14 @@ pub const Triangle = extern struct {
 
     /// Test whether a point is in triangle using barycentric coordinates
     pub inline fn containsPoint(tri: Triangle, point: Point) bool {
+        if (tri.isDegenerate()) return false;
         const p = tri.barycentricCoord(point);
-        return p[0] >= 0 and p[1] >= 0 and p[2] >= 0;
+        return p[0] > 0 and p[1] > 0 and p[2] > 0;
     }
 
     /// Check if this triangle fully contains another triangle
     pub inline fn containsTriangle(tri0: Triangle, tri1: Triangle) bool {
+        if (tri0.isDegenerate() or tri1.isDegenerate()) return false;
         return tri0.containsPoint(tri1.p0) and
             tri0.containsPoint(tri1.p1) and
             tri0.containsPoint(tri1.p2);
@@ -558,6 +583,7 @@ pub const Triangle = extern struct {
 
     /// Check if this triangle intersects with another triangle using Separating Axis Theorem (SAT)
     pub inline fn intersectTriangle(tri0: Triangle, tri1: Triangle) bool {
+        if (tri0.isDegenerate() or tri1.isDegenerate()) return false;
         const S = struct {
             const Range = @Tuple(&[_]type{ f32, f32 });
 
@@ -575,6 +601,10 @@ pub const Triangle = extern struct {
                 return r0[0] >= r1[1] or r0[1] <= r1[0];
             }
         };
+
+        if (tri0.getBoundingRect().intersectRect(tri1.getBoundingRect()) == null) {
+            return false;
+        }
 
         const v0 = zmath.f32x4(tri0.p0.y - tri0.p1.y, tri0.p1.x - tri0.p0.x, 0, 0);
         const v1 = zmath.f32x4(tri0.p0.y - tri0.p2.y, tri0.p2.x - tri0.p0.x, 0, 0);
@@ -595,6 +625,7 @@ pub const Triangle = extern struct {
     /// Check if triangle intersects with a rectangle using Separating Axis Theorem (SAT).
     /// Tests 5 potential separating axes: 2 from rectangle (x,y axes) and 3 from triangle edges.
     pub inline fn intersectRect(tri: Triangle, r: Rectangle) bool {
+        if (tri.isDegenerate()) return false;
         // Early exit: check bounding box intersection first
         const tri_rect = tri.getBoundingRect();
         if (tri_rect.x >= r.x + r.width or tri_rect.x + tri_rect.width <= r.x or
@@ -654,6 +685,253 @@ pub const Triangle = extern struct {
         }
 
         return true;
+    }
+
+    inline fn isDegenerate(tri: Triangle) bool {
+        const ax = tri.p1.x - tri.p0.x;
+        const ay = tri.p1.y - tri.p0.y;
+        const bx = tri.p2.x - tri.p0.x;
+        const by = tri.p2.y - tri.p0.y;
+        const area2 = ax * by - ay * bx;
+        return @abs(area2) <= 1e-8;
+    }
+};
+
+/// Line segment defined by two endpoints.
+pub const Line = extern struct {
+    p0: Point,
+    p1: Point,
+
+    /// Translate line by offset. Accepts Point, tuple, or array.
+    pub inline fn translate(l: Line, two_floats: anytype) Line {
+        return .{
+            .p0 = l.p0.add(two_floats),
+            .p1 = l.p1.add(two_floats),
+        };
+    }
+
+    /// Get the direction vector (normalized) from p0 to p1
+    pub inline fn direction(l: Line) Point {
+        return l.p1.sub(l.p0).toVector().norm().toPoint();
+    }
+
+    /// Get the squared length of the line segment
+    pub inline fn length2(l: Line) f32 {
+        return l.p0.distance2(l.p1);
+    }
+
+    /// Get the length of the line segment
+    pub inline fn length(l: Line) f32 {
+        return l.p0.distance(l.p1);
+    }
+
+    /// Get the midpoint of the line segment
+    pub inline fn midpoint(l: Line) Point {
+        return .{
+            .x = (l.p0.x + l.p1.x) * 0.5,
+            .y = (l.p0.y + l.p1.y) * 0.5,
+        };
+    }
+
+    /// Interpolate along the line segment. t=0 returns p0, t=1 returns p1.
+    pub inline fn lerp(l: Line, t: f32) Point {
+        return .{
+            .x = l.p0.x + (l.p1.x - l.p0.x) * t,
+            .y = l.p0.y + (l.p1.y - l.p0.y) * t,
+        };
+    }
+
+    /// Get the closest point on this line segment to a given point.
+    /// Returns the parameter t (clamped to [0,1]) and the closest point.
+    pub inline fn closestPoint(l: Line, p: Point) struct { t: f32, point: Point } {
+        const dx = l.p1.x - l.p0.x;
+        const dy = l.p1.y - l.p0.y;
+        const len2 = dx * dx + dy * dy;
+        if (len2 == 0) return .{ .t = 0, .point = l.p0 };
+        const t = math.clamp(((p.x - l.p0.x) * dx + (p.y - l.p0.y) * dy) / len2, 0, 1);
+        return .{ .t = t, .point = l.lerp(t) };
+    }
+
+    /// Get the bounding rectangle that fully contains this line
+    pub inline fn getBoundingRect(l: Line) jok.Rectangle {
+        const min_x = @min(l.p0.x, l.p1.x);
+        const min_y = @min(l.p0.y, l.p1.y);
+        const max_x = @max(l.p0.x, l.p1.x);
+        const max_y = @max(l.p0.y, l.p1.y);
+        return .{
+            .x = min_x,
+            .y = min_y,
+            .width = max_x - min_x,
+            .height = max_y - min_y,
+        };
+    }
+
+    /// Check if this line segment intersects another line segment.
+    /// Returns the intersection point if they intersect, null otherwise.
+    pub inline fn intersectLine(l0: Line, l1: Line) ?Point {
+        const d0x = l0.p1.x - l0.p0.x;
+        const d0y = l0.p1.y - l0.p0.y;
+        const d1x = l1.p1.x - l1.p0.x;
+        const d1y = l1.p1.y - l1.p0.y;
+        const denom = d0x * d1y - d0y * d1x;
+        if (@abs(denom) < 1e-10) return null; // parallel or coincident
+        const dx = l1.p0.x - l0.p0.x;
+        const dy = l1.p0.y - l0.p0.y;
+        const t = (dx * d1y - dy * d1x) / denom;
+        const u = (dx * d0y - dy * d0x) / denom;
+        if (t >= 0 and t <= 1 and u >= 0 and u <= 1) {
+            return l0.lerp(t);
+        }
+        return null;
+    }
+
+    /// Check if this line segment intersects a circle.
+    /// Uses closest-point-on-segment approach.
+    pub inline fn intersectCircle(l: Line, c: Circle) bool {
+        const cp = l.closestPoint(c.center);
+        return cp.point.distance2(c.center) <= c.radius * c.radius;
+    }
+
+    /// Check if this line segment intersects a rectangle.
+    pub inline fn intersectRect(l: Line, r: Rectangle) bool {
+        return r.intersectLine(l.p0, l.p1) != null;
+    }
+
+    /// Check if this line segment intersects a triangle.
+    /// Tests intersection against each triangle edge.
+    pub inline fn intersectTriangle(l: Line, tri: Triangle) bool {
+        const edges = [3]Line{
+            .{ .p0 = tri.p0, .p1 = tri.p1 },
+            .{ .p0 = tri.p1, .p1 = tri.p2 },
+            .{ .p0 = tri.p2, .p1 = tri.p0 },
+        };
+        for (edges) |edge| {
+            if (l.intersectLine(edge) != null) return true;
+        }
+        // Also check if the line is fully inside the triangle
+        return tri.containsPoint(l.p0);
+    }
+};
+
+/// Ray defined by an origin point and a direction vector.
+pub const Ray = struct {
+    origin: Point,
+    dir: Point,
+
+    /// Result of a ray intersection test.
+    /// Contains the ray parameter, intersection point, and surface normal.
+    pub const Hit = struct {
+        /// Ray parameter at intersection (distance along ray direction)
+        t: f32,
+        /// The intersection point
+        point: Point,
+        /// Surface normal at the intersection point (unit vector)
+        normal: Point,
+    };
+
+    /// Create a ray from two points (origin and a point the ray passes through)
+    pub inline fn fromPoints(p0: Point, p1: Point) Ray {
+        assert(!p0.isSame(p1));
+        return .{
+            .origin = p0,
+            .dir = p1.sub(p0).toVector().norm().toPoint(),
+        };
+    }
+
+    /// Get a point along the ray at parameter t. Returns origin + dir * t.
+    pub inline fn at(r: Ray, t: f32) Point {
+        return r.origin.add(r.dir.scale(t));
+    }
+
+    pub inline fn raycast(r: Ray, target: anytype) ?Hit {
+        return switch (@TypeOf(target)) {
+            Line => r.raycastLine(target),
+            Circle => r.raycastCircle(target),
+            Rectangle => r.raycastRect(target),
+            else => unreachable,
+        };
+    }
+
+    /// Cast this ray against a line segment.
+    /// Returns a Hit if the ray intersects the segment, null otherwise.
+    inline fn raycastLine(r: Ray, l: Line) ?Hit {
+        assert(r.dir.x != 0 or r.dir.y != 0);
+        const dx = l.p1.x - l.p0.x;
+        const dy = l.p1.y - l.p0.y;
+        const denom = r.dir.x * dy - r.dir.y * dx;
+        if (@abs(denom) < 1e-10) return null;
+        const ox = l.p0.x - r.origin.x;
+        const oy = l.p0.y - r.origin.y;
+        const t = (ox * dy - oy * dx) / denom;
+        const u = (ox * r.dir.y - oy * r.dir.x) / denom;
+        if (t >= 0 and u >= 0 and u <= 1) {
+            // Normal is perpendicular to the line segment, facing the ray origin
+            var nx = -dy;
+            var ny = dx;
+            const len = @sqrt(nx * nx + ny * ny);
+            if (len > 0) {
+                nx /= len;
+                ny /= len;
+            }
+            // Ensure normal faces toward ray origin
+            if (nx * r.dir.x + ny * r.dir.y > 0) {
+                nx = -nx;
+                ny = -ny;
+            }
+            return .{
+                .t = t,
+                .point = r.at(t),
+                .normal = .{ .x = nx, .y = ny },
+            };
+        }
+        return null;
+    }
+
+    /// Cast this ray against a circle.
+    /// Returns the nearest Hit if the ray intersects the circle, null otherwise.
+    inline fn raycastCircle(r: Ray, c: Circle) ?Hit {
+        assert(r.dir.x != 0 or r.dir.y != 0);
+        const ox = r.origin.x - c.center.x;
+        const oy = r.origin.y - c.center.y;
+        const a = r.dir.x * r.dir.x + r.dir.y * r.dir.y;
+        const b = 2 * (ox * r.dir.x + oy * r.dir.y);
+        const cc = ox * ox + oy * oy - c.radius * c.radius;
+        const disc = b * b - 4 * a * cc;
+        if (disc < 0) return null;
+        const sqrt_disc = @sqrt(disc);
+        const t0 = (-b - sqrt_disc) / (2 * a);
+        const t1 = (-b + sqrt_disc) / (2 * a);
+        const t = if (t0 >= 0) t0 else if (t1 >= 0) t1 else return null;
+        const p = r.at(t);
+        var nx = p.x - c.center.x;
+        var ny = p.y - c.center.y;
+        const len = @sqrt(nx * nx + ny * ny);
+        if (len > 0) {
+            nx /= len;
+            ny /= len;
+        }
+        return .{ .t = t, .point = p, .normal = .{ .x = nx, .y = ny } };
+    }
+
+    /// Cast this ray against a rectangle.
+    /// Returns the nearest Hit if the ray intersects the rectangle, null otherwise.
+    inline fn raycastRect(r: Ray, rect: Rectangle) ?Hit {
+        assert(r.dir.x != 0 or r.dir.y != 0);
+        const edges = [4]Line{
+            .{ .p0 = rect.getTopLeft(), .p1 = rect.getTopRight() },
+            .{ .p0 = rect.getTopRight(), .p1 = rect.getBottomRight() },
+            .{ .p0 = rect.getBottomRight(), .p1 = rect.getBottomLeft() },
+            .{ .p0 = rect.getBottomLeft(), .p1 = rect.getTopLeft() },
+        };
+        var best: ?Hit = null;
+        for (edges) |edge| {
+            if (r.raycastLine(edge)) |hit| {
+                if (best == null or hit.t < best.?.t) {
+                    best = hit;
+                }
+            }
+        }
+        return best;
     }
 };
 
@@ -1041,7 +1319,7 @@ test "basic" {
         try expectEqual(r.area(), 375);
     }
 
-    // Rectangle tests (skipping SDL-dependent functions for unit test safety)
+    // Rectangle tests
     {
         const rect = Rectangle{ .x = 0.0, .y = 0.0, .width = 10.0, .height = 20.0 };
         try expectEqual(rect.toRegion(), Region{ .x = 0, .y = 0, .width = 10, .height = 20 });
@@ -1061,6 +1339,65 @@ test "basic" {
         const inner = Rectangle{ .x = 1.0, .y = 1.0, .width = 5.0, .height = 5.0 };
         try expect(rect.containsRect(inner));
         try expect(!rect.containsRect(.{ .x = -1.0, .y = 0.0, .width = 11.0, .height = 20.0 }));
+
+        // padded
+        const padded = rect.padded(2.0);
+        try expect(padded.isSame(.{ .x = -2.0, .y = -2.0, .width = 14.0, .height = 24.0 }));
+
+        // containsLine
+        try expect(rect.containsLine(.{ .x = 1.0, .y = 1.0 }, .{ .x = 5.0, .y = 5.0 }));
+        try expect(!rect.containsLine(.{ .x = -1.0, .y = 0.0 }, .{ .x = 5.0, .y = 5.0 }));
+
+        // containsCircle
+        try expect(rect.containsCircle(.{ .center = .{ .x = 5.0, .y = 10.0 }, .radius = 2.0 }));
+        try expect(!rect.containsCircle(.{ .center = .{ .x = 0.0, .y = 0.0 }, .radius = 5.0 }));
+
+        // containsTriangle
+        try expect(rect.containsTriangle(.{
+            .p0 = .{ .x = 1.0, .y = 1.0 },
+            .p1 = .{ .x = 5.0, .y = 1.0 },
+            .p2 = .{ .x = 3.0, .y = 5.0 },
+        }));
+        try expect(!rect.containsTriangle(.{
+            .p0 = .{ .x = -1.0, .y = -1.0 },
+            .p1 = .{ .x = 5.0, .y = 1.0 },
+            .p2 = .{ .x = 3.0, .y = 5.0 },
+        }));
+
+        // SDL-dependent: hasIntersection
+        try expect(rect.hasIntersection(.{ .x = 5.0, .y = 5.0, .width = 10.0, .height = 10.0 }));
+        try expect(!rect.hasIntersection(.{ .x = 20.0, .y = 20.0, .width = 5.0, .height = 5.0 }));
+
+        // SDL-dependent: intersectRect
+        const isect = rect.intersectRect(.{ .x = 5.0, .y = 10.0, .width = 20.0, .height = 30.0 });
+        try expect(isect != null);
+        try expect(isect.?.isSame(.{ .x = 5.0, .y = 10.0, .width = 5.0, .height = 10.0 }));
+        try expect(rect.intersectRect(.{ .x = 20.0, .y = 20.0, .width = 5.0, .height = 5.0 }) == null);
+
+        // SDL-dependent: intersectLine
+        const line_isect = rect.intersectLine(.{ .x = -5.0, .y = 10.0 }, .{ .x = 20.0, .y = 10.0 });
+        try expect(line_isect != null);
+        const clipped_p0, const clipped_p1 = line_isect.?;
+        try expectApproxEqAbs(clipped_p0.x, 0.0, 0.000001);
+        try expectApproxEqAbs(clipped_p1.x, 10.0, 0.000001);
+        // line fully outside
+        try expect(rect.intersectLine(.{ .x = -5.0, .y = -5.0 }, .{ .x = -1.0, .y = -5.0 }) == null);
+
+        // SDL-dependent: intersectCircle (via Rectangle)
+        try expect(rect.intersectCircle(.{ .center = .{ .x = 5.0, .y = 10.0 }, .radius = 1.0 }));
+        try expect(!rect.intersectCircle(.{ .center = .{ .x = 50.0, .y = 50.0 }, .radius = 1.0 }));
+
+        // SDL-dependent: intersectTriangle (via Rectangle)
+        try expect(rect.intersectTriangle(.{
+            .p0 = .{ .x = 5.0, .y = 5.0 },
+            .p1 = .{ .x = 15.0, .y = 5.0 },
+            .p2 = .{ .x = 10.0, .y = 15.0 },
+        }));
+        try expect(!rect.intersectTriangle(.{
+            .p0 = .{ .x = 50.0, .y = 50.0 },
+            .p1 = .{ .x = 55.0, .y = 50.0 },
+            .p2 = .{ .x = 52.0, .y = 55.0 },
+        }));
     }
 
     // Circle tests
@@ -1075,6 +1412,35 @@ test "basic" {
         const rect = Rectangle{ .x = -3.0, .y = -3.0, .width = 6.0, .height = 6.0 };
         try expect(c.intersectRect(rect));
         try expect(!c.intersectRect(.{ .x = 6.0, .y = 0.0, .width = 1.0, .height = 1.0 }));
+
+        // getBoundingRect
+        try expect(c.getBoundingRect().isSame(.{ .x = -5.0, .y = -5.0, .width = 10.0, .height = 10.0 }));
+
+        // intersectLine
+        const line_through = Line{ .p0 = .{ .x = -10.0, .y = 0.0 }, .p1 = .{ .x = 10.0, .y = 0.0 } };
+        try expect(c.intersectLine(line_through));
+        try expect(!c.intersectLine(.{ .p0 = .{ .x = -10.0, .y = 10.0 }, .p1 = .{ .x = 10.0, .y = 10.0 } }));
+
+        // intersectTriangle
+        const tri_overlap = Triangle{
+            .p0 = .{ .x = 3.0, .y = -3.0 },
+            .p1 = .{ .x = 10.0, .y = -3.0 },
+            .p2 = .{ .x = 6.0, .y = 3.0 },
+        };
+        try expect(c.intersectTriangle(tri_overlap));
+        // triangle fully outside
+        try expect(!c.intersectTriangle(.{
+            .p0 = .{ .x = 10.0, .y = 10.0 },
+            .p1 = .{ .x = 12.0, .y = 10.0 },
+            .p2 = .{ .x = 11.0, .y = 12.0 },
+        }));
+        // circle center inside triangle
+        const big_tri = Triangle{
+            .p0 = .{ .x = -10.0, .y = -10.0 },
+            .p1 = .{ .x = 10.0, .y = -10.0 },
+            .p2 = .{ .x = 0.0, .y = 10.0 },
+        };
+        try expect(c.intersectTriangle(big_tri));
     }
 
     // Ellipse tests
@@ -1132,5 +1498,549 @@ test "basic" {
         const rect = Rectangle{ .x = -1.0, .y = -1.0, .width = 6.0, .height = 6.0 };
         try expect(tri.intersectRect(rect));
         try expect(!tri.intersectRect(.{ .x = 5.0, .y = -1.0, .width = 1.0, .height = 6.0 }));
+    }
+
+    // Line tests
+    {
+        const l = Line{ .p0 = .{ .x = 0.0, .y = 0.0 }, .p1 = .{ .x = 4.0, .y = 0.0 } };
+        try expectEqual(l.translate(.{ 1.0, 2.0 }), Line{ .p0 = .{ .x = 1.0, .y = 2.0 }, .p1 = .{ .x = 5.0, .y = 2.0 } });
+        try expectEqual(l.direction(), Point{ .x = 1.0, .y = 0.0 });
+        try expectApproxEqAbs(l.length2(), 16.0, 0.000001);
+        try expectApproxEqAbs(l.length(), 4.0, 0.000001);
+        try expectEqual(l.midpoint(), Point{ .x = 2.0, .y = 0.0 });
+        try expectEqual(l.lerp(0.0), Point{ .x = 0.0, .y = 0.0 });
+        try expectEqual(l.lerp(1.0), Point{ .x = 4.0, .y = 0.0 });
+        try expectEqual(l.lerp(0.5), Point{ .x = 2.0, .y = 0.0 });
+
+        // closestPoint
+        const cp = l.closestPoint(.{ .x = 2.0, .y = 3.0 });
+        try expectApproxEqAbs(cp.t, 0.5, 0.000001);
+        try expectApproxEqAbs(cp.point.x, 2.0, 0.000001);
+        try expectApproxEqAbs(cp.point.y, 0.0, 0.000001);
+        // closestPoint clamped to p0
+        const cp0 = l.closestPoint(.{ .x = -5.0, .y = 0.0 });
+        try expectApproxEqAbs(cp0.t, 0.0, 0.000001);
+        // closestPoint clamped to p1
+        const cp1 = l.closestPoint(.{ .x = 10.0, .y = 0.0 });
+        try expectApproxEqAbs(cp1.t, 1.0, 0.000001);
+        // closestPoint on zero-length line
+        const zero_line = Line{ .p0 = .{ .x = 1.0, .y = 1.0 }, .p1 = .{ .x = 1.0, .y = 1.0 } };
+        const cpz = zero_line.closestPoint(.{ .x = 5.0, .y = 5.0 });
+        try expectApproxEqAbs(cpz.t, 0.0, 0.000001);
+
+        // getBoundingRect
+        try expect(l.getBoundingRect().isSame(.{ .x = 0.0, .y = 0.0, .width = 4.0, .height = 0.0 }));
+        const diag = Line{ .p0 = .{ .x = 1.0, .y = 3.0 }, .p1 = .{ .x = 5.0, .y = 1.0 } };
+        try expect(diag.getBoundingRect().isSame(.{ .x = 1.0, .y = 1.0, .width = 4.0, .height = 2.0 }));
+
+        // intersectLine
+        const l2 = Line{ .p0 = .{ .x = 2.0, .y = -2.0 }, .p1 = .{ .x = 2.0, .y = 2.0 } };
+        const isect = l.intersectLine(l2);
+        try expect(isect != null);
+        try expectApproxEqAbs(isect.?.x, 2.0, 0.000001);
+        try expectApproxEqAbs(isect.?.y, 0.0, 0.000001);
+        // parallel lines don't intersect
+        const l3 = Line{ .p0 = .{ .x = 0.0, .y = 1.0 }, .p1 = .{ .x = 4.0, .y = 1.0 } };
+        try expect(l.intersectLine(l3) == null);
+        // non-overlapping segments don't intersect
+        const l4 = Line{ .p0 = .{ .x = 2.0, .y = 1.0 }, .p1 = .{ .x = 2.0, .y = 5.0 } };
+        try expect(l.intersectLine(l4) == null);
+
+        // intersectCircle
+        const c = Circle{ .center = .{ .x = 2.0, .y = 1.0 }, .radius = 2.0 };
+        try expect(l.intersectCircle(c));
+        try expect(!l.intersectCircle(.{ .center = .{ .x = 2.0, .y = 10.0 }, .radius = 1.0 }));
+
+        // intersectRect
+        try expect(l.intersectRect(.{ .x = 1.0, .y = -1.0, .width = 2.0, .height = 2.0 }));
+        try expect(!l.intersectRect(.{ .x = 1.0, .y = 5.0, .width = 2.0, .height = 2.0 }));
+
+        // intersectTriangle
+        const tri = Triangle{
+            .p0 = .{ .x = 1.0, .y = -1.0 },
+            .p1 = .{ .x = 3.0, .y = -1.0 },
+            .p2 = .{ .x = 2.0, .y = 1.0 },
+        };
+        try expect(l.intersectTriangle(tri));
+        try expect(!l.intersectTriangle(.{
+            .p0 = .{ .x = 10.0, .y = 10.0 },
+            .p1 = .{ .x = 12.0, .y = 10.0 },
+            .p2 = .{ .x = 11.0, .y = 12.0 },
+        }));
+        // line fully inside triangle
+        const big_tri = Triangle{
+            .p0 = .{ .x = -10.0, .y = -10.0 },
+            .p1 = .{ .x = 10.0, .y = -10.0 },
+            .p2 = .{ .x = 0.0, .y = 10.0 },
+        };
+        try expect(l.intersectTriangle(big_tri));
+    }
+
+    // Ray tests
+    {
+        const r = Ray{ .origin = .{ .x = 0.0, .y = 0.0 }, .dir = .{ .x = 1.0, .y = 0.0 } };
+
+        // fromPoints
+        const r2 = Ray.fromPoints(.{ .x = 1.0, .y = 2.0 }, .{ .x = 3.0, .y = 4.0 });
+        try expectApproxEqAbs(r2.origin.x, 1.0, 0.000001);
+        try expectApproxEqAbs(r2.origin.y, 2.0, 0.000001);
+        try expectApproxEqAbs(r2.dir.x, 0.70710678, 0.000001);
+        try expectApproxEqAbs(r2.dir.y, 0.70710678, 0.000001);
+
+        // at
+        try expectEqual(r.at(0.0), Point{ .x = 0.0, .y = 0.0 });
+        try expectEqual(r.at(5.0), Point{ .x = 5.0, .y = 0.0 });
+
+        // intersectLine
+        const seg = Line{ .p0 = .{ .x = 3.0, .y = -2.0 }, .p1 = .{ .x = 3.0, .y = 2.0 } };
+        const hit = r.raycast(seg);
+        try expect(hit != null);
+        try expectApproxEqAbs(hit.?.t, 3.0, 0.000001);
+        try expectApproxEqAbs(hit.?.point.x, 3.0, 0.000001);
+        try expectApproxEqAbs(hit.?.point.y, 0.0, 0.000001);
+        // normal should face toward ray origin (negative x direction)
+        try expectApproxEqAbs(hit.?.normal.x, -1.0, 0.000001);
+        try expectApproxEqAbs(hit.?.normal.y, 0.0, 0.000001);
+        // ray misses segment behind it
+        const seg_behind = Line{ .p0 = .{ .x = -3.0, .y = -2.0 }, .p1 = .{ .x = -3.0, .y = 2.0 } };
+        try expect(r.raycast(seg_behind) == null);
+        // parallel ray and segment
+        const seg_par = Line{ .p0 = .{ .x = 0.0, .y = 1.0 }, .p1 = .{ .x = 5.0, .y = 1.0 } };
+        try expect(r.raycast(seg_par) == null);
+
+        // intersectCircle
+        const c = Circle{ .center = .{ .x = 5.0, .y = 0.0 }, .radius = 1.0 };
+        const chit = r.raycast(c);
+        try expect(chit != null);
+        try expectApproxEqAbs(chit.?.t, 4.0, 0.000001);
+        try expectApproxEqAbs(chit.?.point.x, 4.0, 0.000001);
+        try expectApproxEqAbs(chit.?.point.y, 0.0, 0.000001);
+        // normal at hit point should point toward ray origin
+        try expectApproxEqAbs(chit.?.normal.x, -1.0, 0.000001);
+        try expectApproxEqAbs(chit.?.normal.y, 0.0, 0.000001);
+        // ray misses circle
+        try expect(r.raycast(Circle{ .center = .{ .x = 5.0, .y = 10.0 }, .radius = 1.0 }) == null);
+        // ray origin inside circle - should still hit (exit point)
+        const c_around = Circle{ .center = .{ .x = 0.0, .y = 0.0 }, .radius = 2.0 };
+        const chit2 = r.raycast(c_around);
+        try expect(chit2 != null);
+        try expectApproxEqAbs(chit2.?.t, 2.0, 0.000001);
+
+        // raycast Rectangle
+        const rect = Rectangle{ .x = 3.0, .y = -1.0, .width = 2.0, .height = 2.0 };
+        const rhit = r.raycast(rect);
+        try expect(rhit != null);
+        try expectApproxEqAbs(rhit.?.t, 3.0, 0.000001);
+        try expectApproxEqAbs(rhit.?.point.x, 3.0, 0.000001);
+        try expectApproxEqAbs(rhit.?.point.y, 0.0, 0.000001);
+        try expectApproxEqAbs(rhit.?.normal.x, -1.0, 0.000001);
+        try expectApproxEqAbs(rhit.?.normal.y, 0.0, 0.000001);
+        // ray misses rectangle
+        try expect(r.raycast(Rectangle{ .x = 3.0, .y = 5.0, .width = 2.0, .height = 2.0 }) == null);
+        // ray origin inside rectangle
+        @setEvalBranchQuota(2000);
+        const inner_rect = Rectangle{ .x = -1.0, .y = -1.0, .width = 4.0, .height = 2.0 };
+        const rhit2 = r.raycast(inner_rect);
+        try expect(rhit2 != null);
+        try expectApproxEqAbs(rhit2.?.point.x, 3.0, 0.000001);
+    }
+
+    // Point: toVector round-trip
+    {
+        const p = Point{ .x = 3.5, .y = -2.0 };
+        const v = p.toVector();
+        const back = v.toPoint();
+        try expect(p.isSame(back));
+    }
+
+    // Point: add/sub/mul with Point argument (not just tuple)
+    {
+        const a = Point{ .x = 1.0, .y = 2.0 };
+        const b = Point{ .x = 3.0, .y = 4.0 };
+        try expectEqual(a.add(b), Point{ .x = 4.0, .y = 6.0 });
+        try expectEqual(a.sub(b), Point{ .x = -2.0, .y = -2.0 });
+        try expectEqual(a.mul(b), Point{ .x = 3.0, .y = 8.0 });
+        // with array
+        try expectEqual(a.add([2]f32{ 3.0, 4.0 }), Point{ .x = 4.0, .y = 6.0 });
+    }
+
+    // Point.isSame: x matches but y differs
+    {
+        const a = Point{ .x = 1.0, .y = 2.0 };
+        try expect(!a.isSame(.{ .x = 1.0, .y = 2.1 }));
+        // negative coordinates
+        try expect((Point{ .x = -1.0, .y = -2.0 }).isSame(.{ .x = -1.0, .y = -2.0 }));
+    }
+
+    // Size: toRegion, toRect
+    {
+        const s = Size{ .width = 10, .height = 20 };
+        const reg = s.toRegion(5, 15);
+        try expectEqual(reg, Region{ .x = 5, .y = 15, .width = 10, .height = 20 });
+        const rect = s.toRect(.{ .x = 1.5, .y = 2.5 });
+        try expect(rect.isSame(.{ .x = 1.5, .y = 2.5, .width = 10.0, .height = 20.0 }));
+    }
+
+    // Size.isSame: width differs but height matches
+    {
+        const s = Size{ .width = 10, .height = 20 };
+        try expect(!s.isSame(.{ .width = 11, .height = 20 }));
+    }
+
+    // Region.isSame: each field differs individually
+    {
+        const r = Region{ .x = 5, .y = 10, .width = 15, .height = 25 };
+        try expect(!r.isSame(.{ .x = 6, .y = 10, .width = 15, .height = 25 }));
+        try expect(!r.isSame(.{ .x = 5, .y = 11, .width = 15, .height = 25 }));
+        try expect(!r.isSame(.{ .x = 5, .y = 10, .width = 16, .height = 25 }));
+    }
+
+    // Rectangle.isSame: false case and near-tolerance
+    {
+        const r = Rectangle{ .x = 1.0, .y = 2.0, .width = 3.0, .height = 4.0 };
+        try expect(!r.isSame(.{ .x = 1.1, .y = 2.0, .width = 3.0, .height = 4.0 }));
+        // near tolerance - should still be same
+        try expect(r.isSame(.{ .x = 1.0000005, .y = 2.0, .width = 3.0, .height = 4.0 }));
+    }
+
+    // Rectangle.containsPoint: point on top-left edge (inclusive)
+    {
+        const rect = Rectangle{ .x = 0.0, .y = 0.0, .width = 10.0, .height = 20.0 };
+        try expect(rect.containsPoint(.{ .x = 0.0, .y = 0.0 })); // top-left corner (>= check)
+        try expect(!rect.containsPoint(.{ .x = 10.0, .y = 0.0 })); // right edge (< check)
+        try expect(!rect.containsPoint(.{ .x = 0.0, .y = 20.0 })); // bottom edge (< check)
+        try expect(rect.containsPoint(.{ .x = 0.0, .y = 19.999 })); // just inside bottom
+    }
+
+    // Rectangle.translate/scale with Point argument
+    {
+        const rect = Rectangle{ .x = 1.0, .y = 2.0, .width = 3.0, .height = 4.0 };
+        try expectEqual(rect.translate(Point{ .x = 5.0, .y = 6.0 }), Rectangle{ .x = 6.0, .y = 8.0, .width = 3.0, .height = 4.0 });
+        try expectEqual(rect.scale(Point{ .x = 2.0, .y = 3.0 }), Rectangle{ .x = 1.0, .y = 2.0, .width = 6.0, .height = 12.0 });
+    }
+
+    // Rectangle.intersectRect: one fully inside another
+    {
+        const outer = Rectangle{ .x = 0.0, .y = 0.0, .width = 10.0, .height = 10.0 };
+        const inner = Rectangle{ .x = 2.0, .y = 2.0, .width = 3.0, .height = 3.0 };
+        const isect = outer.intersectRect(inner);
+        try expect(isect != null);
+        try expect(isect.?.isSame(inner));
+    }
+
+    // Circle.containsPoint: point exactly on boundary (should be false, uses <)
+    {
+        const c = Circle{ .center = .{ .x = 0.0, .y = 0.0 }, .radius = 5.0 };
+        try expect(!c.containsPoint(.{ .x = 5.0, .y = 0.0 }));
+        try expect(!c.containsPoint(.{ .x = 0.0, .y = 5.0 }));
+        // just inside
+        try expect(c.containsPoint(.{ .x = 4.999, .y = 0.0 }));
+    }
+
+    // Circle.intersectCircle: exactly touching (distance == r0+r1, uses <=)
+    {
+        const c0 = Circle{ .center = .{ .x = 0.0, .y = 0.0 }, .radius = 3.0 };
+        const c1 = Circle{ .center = .{ .x = 5.0, .y = 0.0 }, .radius = 2.0 };
+        try expect(c0.intersectCircle(c1)); // exactly touching
+        // one circle fully inside another
+        const c_inner = Circle{ .center = .{ .x = 1.0, .y = 0.0 }, .radius = 1.0 };
+        try expect(c0.intersectCircle(c_inner));
+    }
+
+    // Circle.intersectRect: circle fully inside rectangle
+    {
+        const c = Circle{ .center = .{ .x = 5.0, .y = 5.0 }, .radius = 1.0 };
+        try expect(c.intersectRect(.{ .x = 0.0, .y = 0.0, .width = 10.0, .height = 10.0 }));
+    }
+
+    // Ellipse.getBoundingRect
+    {
+        const e = Ellipse{ .center = .{ .x = 3.0, .y = 4.0 }, .radius = .{ .x = 5.0, .y = 2.0 } };
+        try expect(e.getBoundingRect().isSame(.{ .x = -2.0, .y = 2.0, .width = 10.0, .height = 4.0 }));
+    }
+
+    // Ellipse.getFocalRadius: ry > rx branch
+    {
+        const e = Ellipse{ .center = .origin, .radius = .{ .x = 3.0, .y = 5.0 } };
+        try expectApproxEqAbs(e.getFocalRadius2(), 16.0, 0.000001); // 25 - 9
+        try expectApproxEqAbs(e.getFocalRadius(), 4.0, 0.000001);
+    }
+
+    // Ellipse.getFocalRadius: equal radii (circle, focal radius = 0)
+    {
+        const e = Ellipse{ .center = .origin, .radius = .{ .x = 3.0, .y = 3.0 } };
+        try expectApproxEqAbs(e.getFocalRadius2(), 0.0, 0.000001);
+        try expectApproxEqAbs(e.getFocalRadius(), 0.0, 0.000001);
+    }
+
+    // Ellipse.containsPoint: along y-axis, on boundary
+    {
+        const e = Ellipse{ .center = .origin, .radius = .{ .x = 5.0, .y = 3.0 } };
+        try expect(e.containsPoint(.{ .x = 0.0, .y = 2.0 })); // inside along y
+        try expect(!e.containsPoint(.{ .x = 0.0, .y = 3.0 })); // on boundary (uses <)
+    }
+
+    // Triangle.barycentricCoord: vertex and outside point
+    {
+        const tri = Triangle{
+            .p0 = .{ .x = 0.0, .y = 0.0 },
+            .p1 = .{ .x = 4.0, .y = 0.0 },
+            .p2 = .{ .x = 2.0, .y = 3.0 },
+        };
+        // at vertex p1: u=0, v=1, w=0
+        const bc1 = tri.barycentricCoord(tri.p1);
+        try expectApproxEqAbs(bc1[1], 1.0, 0.001);
+        try expectApproxEqAbs(bc1[0], 0.0, 0.001);
+        try expectApproxEqAbs(bc1[2], 0.0, 0.001);
+        // outside point: at least one negative
+        const bc_out = tri.barycentricCoord(.{ .x = -1.0, .y = -1.0 });
+        try expect(bc_out[0] < 0 or bc_out[1] < 0 or bc_out[2] < 0);
+    }
+
+    // Triangle.containsPoint: point on edge (should be false, uses > 0)
+    {
+        const tri = Triangle{
+            .p0 = .{ .x = 0.0, .y = 0.0 },
+            .p1 = .{ .x = 4.0, .y = 0.0 },
+            .p2 = .{ .x = 2.0, .y = 3.0 },
+        };
+        try expect(!tri.containsPoint(.{ .x = 2.0, .y = 0.0 })); // midpoint of edge p0-p1
+        try expect(!tri.containsPoint(tri.p0)); // vertex
+    }
+
+    // Triangle.intersectTriangle: one fully inside another
+    {
+        const big = Triangle{
+            .p0 = .{ .x = 0.0, .y = 0.0 },
+            .p1 = .{ .x = 10.0, .y = 0.0 },
+            .p2 = .{ .x = 5.0, .y = 10.0 },
+        };
+        const small = Triangle{
+            .p0 = .{ .x = 4.0, .y = 1.0 },
+            .p1 = .{ .x = 6.0, .y = 1.0 },
+            .p2 = .{ .x = 5.0, .y = 3.0 },
+        };
+        try expect(big.intersectTriangle(small));
+    }
+
+    // Triangle.intersectRect: rect fully inside triangle
+    {
+        const tri = Triangle{
+            .p0 = .{ .x = 0.0, .y = 0.0 },
+            .p1 = .{ .x = 20.0, .y = 0.0 },
+            .p2 = .{ .x = 10.0, .y = 20.0 },
+        };
+        try expect(tri.intersectRect(.{ .x = 8.0, .y = 2.0, .width = 4.0, .height = 4.0 }));
+    }
+
+    // Line.direction: vertical and diagonal
+    {
+        const vert = Line{ .p0 = .{ .x = 0.0, .y = 0.0 }, .p1 = .{ .x = 0.0, .y = 5.0 } };
+        try expect(vert.direction().isSame(.{ .x = 0.0, .y = 1.0 }));
+        const diag = Line{ .p0 = .{ .x = 0.0, .y = 0.0 }, .p1 = .{ .x = 1.0, .y = 1.0 } };
+        const d = diag.direction();
+        const inv_sqrt2 = 1.0 / @sqrt(2.0);
+        try expectApproxEqAbs(d.x, inv_sqrt2, 0.000001);
+        try expectApproxEqAbs(d.y, inv_sqrt2, 0.000001);
+    }
+
+    // Line.intersectLine: T-intersection (endpoint touching midpoint)
+    {
+        const l0 = Line{ .p0 = .{ .x = 0.0, .y = 0.0 }, .p1 = .{ .x = 4.0, .y = 0.0 } };
+        const l1 = Line{ .p0 = .{ .x = 2.0, .y = -2.0 }, .p1 = .{ .x = 2.0, .y = 0.0 } };
+        const isect = l0.intersectLine(l1);
+        try expect(isect != null);
+        try expectApproxEqAbs(isect.?.x, 2.0, 0.000001);
+        try expectApproxEqAbs(isect.?.y, 0.0, 0.000001);
+    }
+
+    // Ray.raycast(Line): ray hitting endpoint of segment
+    {
+        const r = Ray{ .origin = .{ .x = 0.0, .y = 0.0 }, .dir = .{ .x = 1.0, .y = 0.0 } };
+        const seg = Line{ .p0 = .{ .x = 5.0, .y = -1.0 }, .p1 = .{ .x = 5.0, .y = 0.0 } };
+        const hit = r.raycast(seg);
+        try expect(hit != null);
+        try expectApproxEqAbs(hit.?.t, 5.0, 0.000001);
+    }
+
+    // Color tests
+    {
+        // rgb / rgba constructors
+        const c = Color.rgb(255, 128, 0);
+        try expectEqual(c.r, 255);
+        try expectEqual(c.g, 128);
+        try expectEqual(c.b, 0);
+        try expectEqual(c.a, 255);
+        const ca = Color.rgba(10, 20, 30, 40);
+        try expectEqual(ca.r, 10);
+        try expectEqual(ca.g, 20);
+        try expectEqual(ca.b, 30);
+        try expectEqual(ca.a, 40);
+
+        // Color <-> ColorF round-trip
+        const cf = c.toColorF();
+        try expectApproxEqAbs(cf.r, 1.0, 0.004);
+        try expectApproxEqAbs(cf.g, 128.0 / 255.0, 0.004);
+        try expectApproxEqAbs(cf.b, 0.0, 0.004);
+        try expectApproxEqAbs(cf.a, 1.0, 0.004);
+        const back = Color.fromColorF(cf);
+        try expectEqual(back.r, 255);
+        try expectEqual(back.g, 128);
+        try expectEqual(back.b, 0);
+        try expectEqual(back.a, 255);
+
+        // fromInternalColor / toInternalColor round-trip (ABGR)
+        const internal: u32 = 0xAA_BB_CC_DD; // a=0xAA, b=0xBB, g=0xCC, r=0xDD
+        const from_int = Color.fromInternalColor(internal);
+        try expectEqual(from_int.r, 0xDD);
+        try expectEqual(from_int.g, 0xCC);
+        try expectEqual(from_int.b, 0xBB);
+        try expectEqual(from_int.a, 0xAA);
+        try expectEqual(from_int.toInternalColor(), internal);
+
+        // lerp
+        const c0 = Color.rgb(0, 0, 0);
+        const c1 = Color.rgb(255, 255, 255);
+        const mid = c0.lerp(c1, 0.5);
+        // Should be approximately 128 for each channel
+        try expect(mid.r >= 126 and mid.r <= 129);
+        try expect(mid.g >= 126 and mid.g <= 129);
+        try expect(mid.b >= 126 and mid.b <= 129);
+        // lerp at boundaries
+        const at0 = c0.lerp(c1, 0.0);
+        try expectEqual(at0.r, 0);
+        try expectEqual(at0.g, 0);
+        try expectEqual(at0.b, 0);
+        const at1 = c0.lerp(c1, 1.0);
+        try expectEqual(at1.r, 255);
+        try expectEqual(at1.g, 255);
+        try expectEqual(at1.b, 255);
+
+        // mod
+        const white = Color.rgb(255, 255, 255);
+        const half = Color.rgba(128, 128, 128, 255);
+        const modded = white.mod(half);
+        // 255/255 * 128/255 * 255 ≈ 128
+        try expect(modded.r >= 126 and modded.r <= 129);
+
+        // parse: RGB (3 chars)
+        const p3 = try Color.parse("F00");
+        try expectEqual(p3.r, 0xFF);
+        try expectEqual(p3.g, 0x00);
+        try expectEqual(p3.b, 0x00);
+        try expectEqual(p3.a, 255);
+
+        // parse: #RGB (4 chars with #)
+        const p4h = try Color.parse("#0F0");
+        try expectEqual(p4h.g, 0xFF);
+
+        // parse: RGBA (4 chars)
+        const p4 = try Color.parse("F00F");
+        try expectEqual(p4.r, 0xFF);
+        try expectEqual(p4.a, 0xFF);
+
+        // parse: #RGBA (5 chars)
+        const p5 = try Color.parse("#F00F");
+        try expectEqual(p5.r, 0xFF);
+        try expectEqual(p5.a, 0xFF);
+
+        // parse: RRGGBB (6 chars)
+        const p6 = try Color.parse("FF8000");
+        try expectEqual(p6.r, 0xFF);
+        try expectEqual(p6.g, 0x80);
+        try expectEqual(p6.b, 0x00);
+        try expectEqual(p6.a, 255);
+
+        // parse: #RRGGBB (7 chars)
+        const p7 = try Color.parse("#FF8000");
+        try expectEqual(p7.r, 0xFF);
+        try expectEqual(p7.g, 0x80);
+
+        // parse: RRGGBBAA (8 chars)
+        const p8 = try Color.parse("FF800080");
+        try expectEqual(p8.r, 0xFF);
+        try expectEqual(p8.g, 0x80);
+        try expectEqual(p8.b, 0x00);
+        try expectEqual(p8.a, 0x80);
+
+        // parse: #RRGGBBAA (9 chars)
+        const p9 = try Color.parse("#FF800080");
+        try expectEqual(p9.a, 0x80);
+
+        // parse: invalid format
+        try expect(Color.parse("XY") == error.UnknownFormat);
+        try expect(Color.parse("ZZZZZZ") == error.InvalidCharacter);
+    }
+
+    // ColorF tests
+    {
+        // rgb / rgba constructors
+        const cf = ColorF.rgb(0.5, 0.25, 0.75);
+        try expectApproxEqAbs(cf.r, 0.5, 0.000001);
+        try expectApproxEqAbs(cf.g, 0.25, 0.000001);
+        try expectApproxEqAbs(cf.b, 0.75, 0.000001);
+        try expectApproxEqAbs(cf.a, 1.0, 0.000001);
+        const cfa = ColorF.rgba(0.1, 0.2, 0.3, 0.4);
+        try expectApproxEqAbs(cfa.a, 0.4, 0.000001);
+
+        // fromColor / toColor round-trip
+        const c = Color.rgba(100, 150, 200, 250);
+        const cf2 = ColorF.fromColor(c);
+        try expectApproxEqAbs(cf2.r, 100.0 / 255.0, 0.004);
+        try expectApproxEqAbs(cf2.g, 150.0 / 255.0, 0.004);
+        const back = cf2.toColor();
+        try expectEqual(back.r, 100);
+        try expectEqual(back.g, 150);
+        try expectEqual(back.b, 200);
+        try expectEqual(back.a, 250);
+
+        // fromInternalColor / toInternalColor round-trip
+        const internal: u32 = 0xFF_00_80_40; // a=0xFF, b=0x00, g=0x80, r=0x40
+        const from_int = ColorF.fromInternalColor(internal);
+        try expectApproxEqAbs(from_int.r, @as(f32, 0x40) / 255.0, 0.004);
+        try expectApproxEqAbs(from_int.g, @as(f32, 0x80) / 255.0, 0.004);
+        try expectEqual(from_int.toInternalColor(), internal);
+
+        // lerp
+        const black = ColorF.rgb(0, 0, 0);
+        const white = ColorF.rgb(1, 1, 1);
+        const mid = black.lerp(white, 0.5);
+        try expectApproxEqAbs(mid.r, 0.5, 0.000001);
+        try expectApproxEqAbs(mid.g, 0.5, 0.000001);
+        try expectApproxEqAbs(mid.b, 0.5, 0.000001);
+        try expectApproxEqAbs(mid.a, 1.0, 0.000001);
+        // lerp at t=0 and t=1
+        const at0 = black.lerp(white, 0.0);
+        try expectApproxEqAbs(at0.r, 0.0, 0.000001);
+        const at1 = black.lerp(white, 1.0);
+        try expectApproxEqAbs(at1.r, 1.0, 0.000001);
+
+        // mod
+        const half = ColorF.rgb(0.5, 0.5, 0.5);
+        const modded = white.mod(half);
+        try expectApproxEqAbs(modded.r, 0.5, 0.000001);
+        try expectApproxEqAbs(modded.g, 0.5, 0.000001);
+        try expectApproxEqAbs(modded.b, 0.5, 0.000001);
+        try expectApproxEqAbs(modded.a, 1.0, 0.000001);
+
+        // HSL round-trip
+        const red_hsl = ColorF.red.toHSL();
+        try expectApproxEqAbs(red_hsl[0], 0.0, 0.01); // hue ~0
+        try expectApproxEqAbs(red_hsl[1], 1.0, 0.01); // full saturation
+        try expectApproxEqAbs(red_hsl[2], 0.5, 0.01); // lightness 0.5
+        const back_from_hsl = ColorF.fromHSL(red_hsl);
+        try expectApproxEqAbs(back_from_hsl.r, 1.0, 0.01);
+        try expectApproxEqAbs(back_from_hsl.g, 0.0, 0.01);
+        try expectApproxEqAbs(back_from_hsl.b, 0.0, 0.01);
+
+        // Color HSL round-trip
+        const red_c = Color.rgb(255, 0, 0);
+        const red_c_hsl = red_c.toHSL();
+        try expectApproxEqAbs(red_c_hsl[0], 0.0, 0.01);
+        try expectApproxEqAbs(red_c_hsl[1], 1.0, 0.01);
+        const red_back = Color.fromHSL(red_c_hsl);
+        try expectEqual(red_back.r, 255);
+        try expectEqual(red_back.g, 0);
+        try expectEqual(red_back.b, 0);
     }
 }
