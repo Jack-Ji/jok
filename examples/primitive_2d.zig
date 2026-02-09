@@ -104,8 +104,10 @@ pub fn draw(ctx: jok.Context) !void {
         defer b.popTransform();
         b.translate(.{ 100, 200 });
         try b.line(
-            .{ .x = -50, .y = 0 },
-            .{ .x = 50, .y = 0 },
+            .{
+                .p0 = .{ .x = -50, .y = 0 },
+                .p1 = .{ .x = 50, .y = 0 },
+            },
             .white,
             .{},
         );
@@ -379,8 +381,22 @@ pub fn draw(ctx: jok.Context) !void {
         try b.pushTransform();
         defer b.popTransform();
         b.translate(.{ 1000, 600 });
-        try b.line(.{ .x = -20, .y = 0 }, .{ .x = 20, .y = 0 }, .red, .{});
-        try b.line(.{ .x = 0, .y = -20 }, .{ .x = 0, .y = 20 }, .red, .{});
+        try b.line(
+            .{
+                .p0 = .{ .x = -20, .y = 0 },
+                .p1 = .{ .x = 20, .y = 0 },
+            },
+            .red,
+            .{},
+        );
+        try b.line(
+            .{
+                .p0 = .{ .x = 0, .y = -20 },
+                .p1 = .{ .x = 0, .y = 20 },
+            },
+            .red,
+            .{},
+        );
         try b.sprite(sheet.getSpriteByName("ogre").?, .{
             .pos = .{ .x = 50, .y = 0 },
             .scale = .{ .x = 2, .y = 2 },
@@ -391,8 +407,22 @@ pub fn draw(ctx: jok.Context) !void {
         try b.pushTransform();
         defer b.popTransform();
         b.translate(.{ 1150, 600 });
-        try b.line(.{ .x = -20, .y = 0 }, .{ .x = 20, .y = 0 }, .red, .{});
-        try b.line(.{ .x = 0, .y = -20 }, .{ .x = 0, .y = 20 }, .red, .{});
+        try b.line(
+            .{
+                .p0 = .{ .x = -20, .y = 0 },
+                .p1 = .{ .x = 20, .y = 0 },
+            },
+            .red,
+            .{},
+        );
+        try b.line(
+            .{
+                .p0 = .{ .x = 0, .y = -20 },
+                .p1 = .{ .x = 0, .y = 20 },
+            },
+            .red,
+            .{},
+        );
         try b.text("I am Text", .{}, .{
             .pos = .{ .x = 20, .y = 10 },
             .align_type = .middle,

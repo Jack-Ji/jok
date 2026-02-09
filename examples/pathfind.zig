@@ -188,12 +188,14 @@ pub fn draw(ctx: jok.Context) !void {
                 const y = id / graph_width;
                 try b.line(
                     .{
-                        .x = @floatFromInt(cell_size * last_x + cell_size / 2),
-                        .y = @floatFromInt(cell_size * last_y + cell_size / 2),
-                    },
-                    .{
-                        .x = @floatFromInt(cell_size * x + cell_size / 2),
-                        .y = @floatFromInt(cell_size * y + cell_size / 2),
+                        .p0 = .{
+                            .x = @floatFromInt(cell_size * last_x + cell_size / 2),
+                            .y = @floatFromInt(cell_size * last_y + cell_size / 2),
+                        },
+                        .p1 = .{
+                            .x = @floatFromInt(cell_size * x + cell_size / 2),
+                            .y = @floatFromInt(cell_size * y + cell_size / 2),
+                        },
                     },
                     .magenta,
                     .{},

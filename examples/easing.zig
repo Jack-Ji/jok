@@ -112,8 +112,10 @@ pub fn draw(ctx: jok.Context) !void {
         );
         try eb.draw(b);
         try b.line(
-            .{ .x = 0, .y = @as(f32, @floatFromInt(i)) * 25 + 20 },
-            .{ .x = 750, .y = @as(f32, @floatFromInt(i)) * 25 + 20 },
+            .{
+                .p0 = .{ .x = 0, .y = @as(f32, @floatFromInt(i)) * 25 + 20 },
+                .p1 = .{ .x = 750, .y = @as(f32, @floatFromInt(i)) * 25 + 20 },
+            },
             .white,
             .{},
         );

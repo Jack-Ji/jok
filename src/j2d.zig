@@ -818,14 +818,14 @@ pub const Batch = struct {
     };
 
     /// Draw a line between two points.
-    pub fn line(self: *Batch, p1: jok.Point, p2: jok.Point, color: jok.Color, opt: LineOption) !void {
+    pub fn line(self: *Batch, l: jok.Line, color: jok.Color, opt: LineOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         try self.pushDrawCommand(
             .{
                 .line = .{
-                    .p1 = p1,
-                    .p2 = p2,
+                    .p1 = l.p0,
+                    .p2 = l.p1,
                     .color = color.toInternalColor(),
                     .thickness = opt.thickness,
                 },

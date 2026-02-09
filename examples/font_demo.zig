@@ -123,8 +123,10 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
     try b.line(
-        pos.sub(.{ 0, 40 }),
-        pos.add(.{ 0, 70 }),
+        .{
+            .p0 = pos.sub(.{ 0, 40 }),
+            .p1 = pos.add(.{ 0, 70 }),
+        },
         .purple,
         .{},
     );
@@ -170,8 +172,10 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
     try b.line(
-        pos.sub(.{ 0, 50 }),
-        pos.add(.{ 0, 130 }),
+        .{
+            .p0 = pos.sub(.{ 0, 50 }),
+            .p1 = pos.add(.{ 0, 130 }),
+        },
         .purple,
         .{},
     );
@@ -216,8 +220,10 @@ pub fn draw(ctx: jok.Context) !void {
         },
     );
     try b.line(
-        pos.sub(.{ 0, 50 }),
-        pos.add(.{ 0, 130 }),
+        .{
+            .p0 = pos.sub(.{ 0, 50 }),
+            .p1 = pos.add(.{ 0, 130 }),
+        },
         .purple,
         .{},
     );
@@ -334,8 +340,10 @@ pub fn draw(ctx: jok.Context) !void {
         .align_type = .middle,
     });
     try b.line(
-        q_pos.sub(.{ metrics.advance_width, 0 }),
-        q_pos.add(.{ metrics.advance_width * 5, 0 }),
+        .{
+            .p0 = q_pos.sub(.{ metrics.advance_width, 0 }),
+            .p1 = q_pos.add(.{ metrics.advance_width * 5, 0 }),
+        },
         .purple,
         .{ .thickness = 2.0 },
     );

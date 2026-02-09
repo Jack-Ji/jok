@@ -94,14 +94,18 @@ pub fn draw(ctx: jok.Context) !void {
     defer b.submit();
     for (0..7) |i| {
         try b.line(
-            points_row[i].add(.{ 0, -800 }),
-            points_row[i].add(.{ 0, 800 }),
+            .{
+                .p0 = points_row[i].add(.{ 0, -800 }),
+                .p1 = points_row[i].add(.{ 0, 800 }),
+            },
             .rgba(30, 30, 30, 128),
             .{},
         );
         try b.line(
-            points_col[i].add(.{ -800, 0 }),
-            points_col[i].add(.{ 800, 0 }),
+            .{
+                .p0 = points_col[i].add(.{ -800, 0 }),
+                .p1 = points_col[i].add(.{ 800, 0 }),
+            },
             .rgba(30, 30, 30, 128),
             .{},
         );

@@ -85,14 +85,18 @@ pub fn draw(ctx: jok.Context) !void {
         b.setIdentity();
         const screen_center = ctx.getCanvasSize().toRect(.origin).getCenter();
         try b.line(
-            screen_center.sub(.{ 25, 0 }),
-            screen_center.add(.{ 25, 0 }),
+            .{
+                .p0 = screen_center.sub(.{ 25, 0 }),
+                .p1 = screen_center.add(.{ 25, 0 }),
+            },
             .red,
             .{ .thickness = 4 },
         );
         try b.line(
-            screen_center.sub(.{ 0, 25 }),
-            screen_center.add(.{ 0, 25 }),
+            .{
+                .p0 = screen_center.sub(.{ 0, 25 }),
+                .p1 = screen_center.add(.{ 0, 25 }),
+            },
             .red,
             .{ .thickness = 4 },
         );
@@ -118,14 +122,18 @@ pub fn draw(ctx: jok.Context) !void {
         b.rotateByPoint(transformed.getCenter(), camera.rotation);
         try b.rect(camera.rect, .black, .{});
         try b.line(
-            camera.rect.getCenter().sub(.{ 100, 0 }),
-            camera.rect.getCenter().add(.{ 100, 0 }),
+            .{
+                .p0 = camera.rect.getCenter().sub(.{ 100, 0 }),
+                .p1 = camera.rect.getCenter().add(.{ 100, 0 }),
+            },
             .black,
             .{ .thickness = 2 },
         );
         try b.line(
-            camera.rect.getCenter().sub(.{ 0, 100 }),
-            camera.rect.getCenter().add(.{ 0, 100 }),
+            .{
+                .p0 = camera.rect.getCenter().sub(.{ 0, 100 }),
+                .p1 = camera.rect.getCenter().add(.{ 0, 100 }),
+            },
             .black,
             .{ .thickness = 2 },
         );

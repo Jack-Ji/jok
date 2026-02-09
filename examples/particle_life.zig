@@ -593,8 +593,10 @@ fn renderSimulation() !void {
         );
 
         try b.line(
-            .{ .x = p1x, .y = p1y - 10 },
-            .{ .x = p2x, .y = p2y - 10 },
+            .{
+                .p0 = .{ .x = p1x, .y = p1y - 10 },
+                .p1 = .{ .x = p2x, .y = p2y - 10 },
+            },
             .rgb(
                 @intFromFloat(150 - power_gr),
                 @intFromFloat(150 + power_gr),
@@ -605,8 +607,10 @@ fn renderSimulation() !void {
             },
         );
         try b.line(
-            .{ .x = p1x, .y = p1y + 10 },
-            .{ .x = p2x, .y = p2y + 10 },
+            .{
+                .p0 = .{ .x = p1x, .y = p1y + 10 },
+                .p1 = .{ .x = p2x, .y = p2y + 10 },
+            },
             .rgb(
                 @intFromFloat(150 - power_rg),
                 @intFromFloat(150 + power_rg),
@@ -617,8 +621,10 @@ fn renderSimulation() !void {
             },
         );
         try b.line(
-            .{ .x = p3x, .y = p3y - 10 },
-            .{ .x = p1x, .y = p1y - 10 },
+            .{
+                .p0 = .{ .x = p3x, .y = p3y - 10 },
+                .p1 = .{ .x = p1x, .y = p1y - 10 },
+            },
             .rgb(
                 @intFromFloat(150 - power_gw),
                 @intFromFloat(150 + power_gw),
@@ -629,8 +635,10 @@ fn renderSimulation() !void {
             },
         );
         try b.line(
-            .{ .x = p3x, .y = p3y + 10 },
-            .{ .x = p1x, .y = p1y + 10 },
+            .{
+                .p0 = .{ .x = p3x, .y = p3y + 10 },
+                .p1 = .{ .x = p1x, .y = p1y + 10 },
+            },
             .rgb(
                 @intFromFloat(150 - power_wg),
                 @intFromFloat(150 + power_wg),
@@ -642,8 +650,10 @@ fn renderSimulation() !void {
         );
 
         try b.line(
-            .{ .x = p4x - 10, .y = p4y },
-            .{ .x = p1x - 10, .y = p1y },
+            .{
+                .p0 = .{ .x = p4x - 10, .y = p4y },
+                .p1 = .{ .x = p1x - 10, .y = p1y },
+            },
             .rgb(
                 @intFromFloat(150 - power_gb),
                 @intFromFloat(150 + power_gb),
@@ -654,8 +664,10 @@ fn renderSimulation() !void {
             },
         );
         try b.line(
-            .{ .x = p4x + 10, .y = p4y },
-            .{ .x = p1x + 10, .y = p1y },
+            .{
+                .p0 = .{ .x = p4x + 10, .y = p4y },
+                .p1 = .{ .x = p1x + 10, .y = p1y },
+            },
             .rgb(
                 @intFromFloat(150 - power_bg),
                 @intFromFloat(150 + power_bg),
@@ -667,8 +679,10 @@ fn renderSimulation() !void {
         );
 
         try b.line(
-            .{ .x = p2x - 10, .y = p2y },
-            .{ .x = p3x - 10, .y = p3y },
+            .{
+                .p0 = .{ .x = p2x - 10, .y = p2y },
+                .p1 = .{ .x = p3x - 10, .y = p3y },
+            },
             .rgb(
                 @intFromFloat(150 - power_rw),
                 @intFromFloat(150 + power_rw),
@@ -679,8 +693,10 @@ fn renderSimulation() !void {
             },
         );
         try b.line(
-            .{ .x = p2x + 10, .y = p2y },
-            .{ .x = p3x + 10, .y = p3y },
+            .{
+                .p0 = .{ .x = p2x + 10, .y = p2y },
+                .p1 = .{ .x = p3x + 10, .y = p3y },
+            },
             .rgb(
                 @intFromFloat(150 - power_wr),
                 @intFromFloat(150 + power_wr),
@@ -692,8 +708,10 @@ fn renderSimulation() !void {
         );
 
         try b.line(
-            .{ .x = p2x, .y = p2y - 10 },
-            .{ .x = p4x, .y = p4y - 10 },
+            .{
+                .p0 = .{ .x = p2x, .y = p2y - 10 },
+                .p1 = .{ .x = p4x, .y = p4y - 10 },
+            },
             .rgb(
                 @intFromFloat(150 - power_rb),
                 @intFromFloat(150 + power_rb),
@@ -704,8 +722,10 @@ fn renderSimulation() !void {
             },
         );
         try b.line(
-            .{ .x = p2x, .y = p2y + 10 },
-            .{ .x = p4x, .y = p4y + 10 },
+            .{
+                .p0 = .{ .x = p2x, .y = p2y + 10 },
+                .p1 = .{ .x = p4x, .y = p4y + 10 },
+            },
             .rgb(
                 @intFromFloat(150 - power_br),
                 @intFromFloat(150 + power_br),
@@ -717,8 +737,10 @@ fn renderSimulation() !void {
         );
 
         try b.line(
-            .{ .x = p3x, .y = p3y - 10 },
-            .{ .x = p4x, .y = p4y - 10 },
+            .{
+                .p0 = .{ .x = p3x, .y = p3y - 10 },
+                .p1 = .{ .x = p4x, .y = p4y - 10 },
+            },
             .rgb(
                 @intFromFloat(150 - power_wb),
                 @intFromFloat(150 + power_wb),
@@ -729,8 +751,10 @@ fn renderSimulation() !void {
             },
         );
         try b.line(
-            .{ .x = p3x, .y = p3y + 10 },
-            .{ .x = p4x, .y = p4y + 10 },
+            .{
+                .p0 = .{ .x = p3x, .y = p3y + 10 },
+                .p1 = .{ .x = p4x, .y = p4y + 10 },
+            },
             .rgb(
                 @intFromFloat(150 - power_bw),
                 @intFromFloat(150 + power_bw),
