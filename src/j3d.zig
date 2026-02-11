@@ -21,6 +21,7 @@ const builtin = @import("builtin");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("jok.zig");
+const geom = jok.geom;
 const PixelShader = jok.PixelShader;
 const threeFloats = jok.utils.threeFloats;
 const zgui = jok.vendor.zgui;
@@ -83,7 +84,7 @@ pub const BatchOption = struct {
     /// Blending mode for rendering
     blend_mode: jok.BlendMode = .blend,
     /// Optional clipping rectangle
-    clip_rect: ?jok.Rectangle = null,
+    clip_rect: ?geom.Rectangle = null,
     /// Optional offscreen render target
     offscreen_target: ?jok.Texture = null,
     /// Clear color for offscreen target
@@ -638,8 +639,8 @@ pub const Batch = struct {
     /// Render given sprite
     pub fn sprite(
         self: *Batch,
-        size: jok.Point,
-        uv: [2]jok.Point,
+        size: geom.Point,
+        uv: [2]geom.Point,
         opt: TriangleRenderer.RenderSpriteOption,
     ) !void {
         assert(self.id != invalid_batch_id);

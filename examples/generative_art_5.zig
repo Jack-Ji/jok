@@ -1,11 +1,12 @@
 // Enspired by https://www.reddit.com/r/woahdude/comments/anh3os/lissajous_curve_table/
 const std = @import("std");
 const jok = @import("jok");
+const geom = jok.geom;
 const j2d = jok.j2d;
 
 pub const jok_window_size = jok.config.WindowSize.maximized;
 pub const jok_window_resizable = true;
-pub const jok_canvas_size = jok.Size{
+pub const jok_canvas_size = geom.Size{
     .width = 800,
     .height = 800,
 };
@@ -26,8 +27,8 @@ const colors = [7]jok.Color{
 };
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var points_angular_velocity: [7]f32 = undefined;
-var points_row: [7]jok.Point = undefined;
-var points_col: [7]jok.Point = undefined;
+var points_row: [7]geom.Point = undefined;
+var points_col: [7]geom.Point = undefined;
 var curves: [49]j2d.Polyline = undefined;
 
 pub fn init(ctx: jok.Context) !void {

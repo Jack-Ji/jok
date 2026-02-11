@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
+const geom = jok.geom;
 const j2d = jok.j2d;
 const font = jok.font;
 const AffineTransform = j2d.AffineTransform;
@@ -73,7 +74,7 @@ pub fn init(ctx: jok.Context) !void {
             .ypos_type = .bottom,
             .tint_color = .white,
             .align_width = 50,
-            .scale = jok.Point.unit.scale(0.5),
+            .scale = geom.Point.unit.scale(0.5),
         },
     }, null);
     try ogre1.addChild(text);

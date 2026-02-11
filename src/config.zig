@@ -14,6 +14,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok.zig");
+const geom = jok.geom;
 
 /// Main configuration structure for the jok engine.
 /// All fields have sensible defaults and can be overridden by the game module.
@@ -34,7 +35,7 @@ pub const Config = struct {
     jok_framebuffer_color: jok.Color = .black,
 
     /// Canvas size (null means same as framebuffer size)
-    jok_canvas_size: ?jok.Size = null,
+    jok_canvas_size: ?geom.Size = null,
     /// Canvas texture scaling mode
     jok_canvas_scale_mode: jok.Texture.ScaleMode = .linear,
     /// Use integer scaling for pixel-perfect rendering
@@ -48,9 +49,9 @@ pub const Config = struct {
     /// Initial window size
     jok_window_size: WindowSize = .{ .custom = .{ .width = 800, .height = 600 } },
     /// Minimum window size (null = no limit)
-    jok_window_min_size: ?jok.Size = null,
+    jok_window_min_size: ?geom.Size = null,
     /// Maximum window size (null = no limit)
-    jok_window_max_size: ?jok.Size = null,
+    jok_window_max_size: ?geom.Size = null,
     /// Allow window resizing
     jok_window_resizable: bool = false,
     /// Remove window borders
@@ -92,7 +93,7 @@ pub const WindowSize = union(enum) {
     /// Start in fullscreen mode
     fullscreen,
     /// Custom window size
-    custom: jok.Size,
+    custom: geom.Size,
 };
 
 /// Renderer backend type.

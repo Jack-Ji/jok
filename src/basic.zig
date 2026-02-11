@@ -1,939 +1,15 @@
-//! Basic geometric types and color utilities for the jok game engine.
-//!
-//! This module provides fundamental 2D geometric primitives (Point, Size, Rectangle, Circle, etc.)
-//! and color types (Color, ColorF) used throughout the engine. All types are designed for
-//! efficient graphics operations and include common geometric operations like intersection
-//! testing, containment checks, and transformations.
-//!
-//! Key types:
-//! - Point: 2D floating-point coordinate
-//! - Size: 2D unsigned integer dimensions
-//! - Region: Integer-based rectangular area
-//! - Rectangle: Floating-point rectangular area
-//! - Circle: Circle defined by center and radius
-//! - Ellipse: Ellipse defined by center and radii
-//! - Triangle: Triangle defined by three points
-//! - Line: Line segment defined by two endpoints
-//! - Ray: Ray defined by origin and direction
+//! This module provides common definitions used throughout the engine:
 //! - Color: 8-bit RGBA color
 //! - ColorF: Floating-point RGBA color
+//! - BlendMode: Blend mode for graphics rendering operations
 //! - Vertex: Vertex with position, color, and texture coordinates
 
 const std = @import("std");
 const assert = std.debug.assert;
-const math = std.math;
 const jok = @import("jok.zig");
-const Vector = jok.j2d.Vector;
-const twoFloats = jok.utils.twoFloats;
+const geom = jok.geom;
 const sdl = jok.vendor.sdl;
 const zmath = jok.vendor.zmath;
-const minAndMax = jok.utils.math.minAndMax;
-
-/// 2D point with floating-point coordinates.
-/// Used for positions, offsets, and 2D vectors in screen space.
-pub const Point = extern struct {
-    /// Origin point (0, 0)
-    pub const origin = Point{ .x = 0, .y = 0 };
-    /// Unit point (1, 1)
-    pub const unit = Point{ .x = 1, .y = 1 };
-    /// Up direction (0, -1) - negative Y is up in screen coordinates
-    pub const up = Point{ .x = 0, .y = -1 };
-    /// Down direction (0, 1)
-    pub const down = Point{ .x = 0, .y = 1 };
-    /// Left direction (-1, 0)
-    pub const left = Point{ .x = -1, .y = 0 };
-    /// Right direction (1, 0)
-    pub const right = Point{ .x = 1, .y = 0 };
-    /// Top-left anchor point (0, 0) - for normalized coordinates
-    pub const anchor_top_left = Point{ .x = 0, .y = 0 };
-    /// Top-right anchor point (1, 0) - for normalized coordinates
-    pub const anchor_top_right = Point{ .x = 1, .y = 0 };
-    /// Bottom-left anchor point (0, 1) - for normalized coordinates
-    pub const anchor_bottom_left = Point{ .x = 0, .y = 1 };
-    /// Bottom-right anchor point (1, 1) - for normalized coordinates
-    pub const anchor_bottom_right = Point{ .x = 1, .y = 1 };
-    /// Center anchor point (0.5, 0.5) - for normalized coordinates
-    pub const anchor_center = Point{ .x = 0.5, .y = 0.5 };
-
-    x: f32,
-    y: f32,
-
-    /// Convert point to a 2-element array [x, y]
-    pub inline fn toArray(p: Point) [2]f32 {
-        return .{ p.x, p.y };
-    }
-
-    /// Convert point to a j2d.Vector
-    pub inline fn toVector(p: Point) Vector {
-        return Vector.new(p.x, p.y);
-    }
-
-    /// Convert point to Size by rounding coordinates to integers
-    pub inline fn toSize(p: Point) Size {
-        return .{
-            .width = @intFromFloat(@round(p.x)),
-            .height = @intFromFloat(@round(p.y)),
-        };
-    }
-
-    /// Calculate angle in radians from origin to this point
-    pub inline fn angle(p: Point) f32 {
-        return math.atan2(p.y, p.x);
-    }
-
-    /// Calculate angle in degrees from origin to this point
-    pub inline fn angleDegree(p: Point) f32 {
-        return math.radiansToDegrees(math.atan2(p.y, p.x));
-    }
-
-    /// Add two values to this point. Accepts Point, tuple, or array.
-    pub inline fn add(p0: Point, two_floats: anytype) Point {
-        const x, const y = twoFloats(two_floats);
-        return .{
-            .x = p0.x + x,
-            .y = p0.y + y,
-        };
-    }
-
-    /// Subtract two values from this point. Accepts Point, tuple, or array.
-    pub inline fn sub(p0: Point, two_floats: anytype) Point {
-        const x, const y = twoFloats(two_floats);
-        return .{
-            .x = p0.x - x,
-            .y = p0.y - y,
-        };
-    }
-
-    /// Multiply this point component-wise. Accepts Point, tuple, or array.
-    pub inline fn mul(p0: Point, two_floats: anytype) Point {
-        const x, const y = twoFloats(two_floats);
-        return .{
-            .x = p0.x * x,
-            .y = p0.y * y,
-        };
-    }
-
-    /// Scale this point uniformly by a scalar value
-    pub inline fn scale(p0: Point, s: f32) Point {
-        return .{
-            .x = p0.x * s,
-            .y = p0.y * s,
-        };
-    }
-
-    /// Check if two points are approximately equal (within tolerance of 0.000001)
-    pub inline fn isSame(p0: Point, p1: Point) bool {
-        const tolerance = 0.000001;
-        return std.math.approxEqAbs(f32, p0.x, p1.x, tolerance) and
-            std.math.approxEqAbs(f32, p0.y, p1.y, tolerance);
-    }
-
-    /// Calculate squared distance between two points (faster than distance)
-    pub inline fn distance2(p0: Point, p1: Point) f32 {
-        return (p0.x - p1.x) * (p0.x - p1.x) + (p0.y - p1.y) * (p0.y - p1.y);
-    }
-
-    /// Calculate Euclidean distance between two points
-    pub inline fn distance(p0: Point, p1: Point) f32 {
-        return @sqrt(distance2(p0, p1));
-    }
-};
-
-/// 2D size with unsigned integer dimensions.
-/// Used for pixel-based dimensions like window size, texture size, etc.
-pub const Size = extern struct {
-    width: u32,
-    height: u32,
-
-    /// Convert size to Point with floating-point coordinates
-    pub inline fn toPoint(s: Size) Point {
-        return .{ .x = @floatFromInt(s.width), .y = @floatFromInt(s.height) };
-    }
-
-    /// Convert size to Region at specified position
-    pub inline fn toRegion(s: Size, x: u32, y: u32) jok.Region {
-        return .{
-            .x = x,
-            .y = y,
-            .width = s.width,
-            .height = s.height,
-        };
-    }
-
-    /// Convert size to Rectangle at specified position
-    pub inline fn toRect(s: Size, pos: jok.Point) jok.Rectangle {
-        return .{
-            .x = pos.x,
-            .y = pos.y,
-            .width = @floatFromInt(s.width),
-            .height = @floatFromInt(s.height),
-        };
-    }
-
-    /// Get width as floating-point value
-    pub inline fn getWidthFloat(s: Size) f32 {
-        return @as(f32, @floatFromInt(s.width));
-    }
-
-    /// Get height as floating-point value
-    pub inline fn getHeightFloat(s: Size) f32 {
-        return @as(f32, @floatFromInt(s.height));
-    }
-
-    /// Check if two sizes are exactly equal
-    pub inline fn isSame(s0: Size, s1: Size) bool {
-        return s0.width == s1.width and s0.height == s1.height;
-    }
-
-    /// Calculate area (width * height)
-    pub inline fn area(s: Size) u32 {
-        return s.width * s.height;
-    }
-};
-
-/// Integer-based rectangular region.
-/// Used for pixel-perfect operations like texture regions, viewport regions, etc.
-pub const Region = extern struct {
-    x: u32,
-    y: u32,
-    width: u32,
-    height: u32,
-
-    /// Convert region to Rectangle with floating-point coordinates
-    pub inline fn toRect(r: Region) Rectangle {
-        return .{
-            .x = @floatFromInt(r.x),
-            .y = @floatFromInt(r.y),
-            .width = @floatFromInt(r.width),
-            .height = @floatFromInt(r.height),
-        };
-    }
-
-    /// Check if two regions are exactly equal
-    pub inline fn isSame(r0: Region, r1: Region) bool {
-        return r0.x == r1.x and r0.y == r1.y and
-            r0.width == r1.width and r0.height == r1.height;
-    }
-
-    /// Calculate area (width * height)
-    pub inline fn area(r: Region) u32 {
-        return r.width * r.height;
-    }
-};
-
-/// Floating-point rectangular area.
-/// Used for general-purpose rectangular regions with sub-pixel precision.
-/// Supports intersection testing, containment checks, and transformations.
-pub const Rectangle = extern struct {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-
-    /// Convert rectangle to Region by rounding coordinates to integers
-    pub inline fn toRegion(r: Rectangle) Region {
-        return .{
-            .x = @intFromFloat(@round(r.x)),
-            .y = @intFromFloat(@round(r.y)),
-            .width = @intFromFloat(@round(r.width)),
-            .height = @intFromFloat(@round(r.height)),
-        };
-    }
-
-    /// Get position (top-left corner) as Point
-    pub inline fn getPos(r: Rectangle) jok.Point {
-        return .{ .x = r.x, .y = r.y };
-    }
-
-    /// Get size as Point
-    pub inline fn getSizeF(r: Rectangle) jok.Point {
-        return .{ .x = r.width, .y = r.height };
-    }
-
-    /// Get top-left corner position
-    pub inline fn getTopLeft(r: Rectangle) jok.Point {
-        return .{ .x = r.x, .y = r.y };
-    }
-
-    /// Get top-right corner position
-    pub inline fn getTopRight(r: Rectangle) jok.Point {
-        return .{ .x = r.x + r.width, .y = r.y };
-    }
-
-    /// Get bottom-left corner position
-    pub inline fn getBottomLeft(r: Rectangle) jok.Point {
-        return .{ .x = r.x, .y = r.y + r.height };
-    }
-
-    /// Get bottom-right corner position
-    pub inline fn getBottomRight(r: Rectangle) jok.Point {
-        return .{ .x = r.x + r.width, .y = r.y + r.height };
-    }
-
-    /// Get center position
-    pub inline fn getCenter(r: Rectangle) jok.Point {
-        return .{ .x = r.x + r.width * 0.5, .y = r.y + r.height * 0.5 };
-    }
-
-    /// Translate rectangle by offset. Accepts Point, tuple, or array.
-    pub inline fn translate(r: Rectangle, two_floats: anytype) Rectangle {
-        const x, const y = twoFloats(two_floats);
-        return .{
-            .x = r.x + x,
-            .y = r.y + y,
-            .width = r.width,
-            .height = r.height,
-        };
-    }
-
-    /// Scale rectangle size. Accepts Point, tuple, or array.
-    pub inline fn scale(r: Rectangle, two_floats: anytype) Rectangle {
-        const x, const y = twoFloats(two_floats);
-        return .{
-            .x = r.x,
-            .y = r.y,
-            .width = r.width * x,
-            .height = r.height * y,
-        };
-    }
-
-    /// Create a padded rectangle (expands in all directions by padding amount)
-    pub inline fn padded(r: Rectangle, padding: f32) Rectangle {
-        return .{
-            .x = r.x - padding,
-            .y = r.y - padding,
-            .width = r.width + 2 * padding,
-            .height = r.height + 2 * padding,
-        };
-    }
-
-    /// Check if two rectangles are approximately equal (within tolerance of 0.000001)
-    pub inline fn isSame(r0: Rectangle, r1: Rectangle) bool {
-        const tolerance = 0.000001;
-        return std.math.approxEqAbs(f32, r0.x, r1.x, tolerance) and
-            std.math.approxEqAbs(f32, r0.y, r1.y, tolerance) and
-            std.math.approxEqAbs(f32, r0.width, r1.width, tolerance) and
-            std.math.approxEqAbs(f32, r0.height, r1.height, tolerance);
-    }
-
-    /// Calculate area (width * height)
-    pub inline fn area(r: Rectangle) f32 {
-        return r.width * r.height;
-    }
-
-    /// Check if this rectangle intersects with another rectangle
-    pub inline fn hasIntersection(r: Rectangle, b: Rectangle) bool {
-        return sdl.SDL_HasRectIntersectionFloat(@ptrCast(&r), @ptrCast(&b));
-    }
-
-    /// Calculate intersection of two rectangles. Returns null if no intersection.
-    pub inline fn intersectRect(r: Rectangle, b: Rectangle) ?Rectangle {
-        var result: Rectangle = undefined;
-        if (sdl.SDL_GetRectIntersectionFloat(@ptrCast(&r), @ptrCast(&b), @ptrCast(&result))) {
-            return result;
-        }
-        return null;
-    }
-
-    /// Calculate intersection of rectangle with a line segment.
-    /// Returns clipped line endpoints if intersection exists, null otherwise.
-    pub inline fn intersectLine(r: Rectangle, _p0: Point, _p1: Point) ?@Tuple(&.{ Point, Point }) {
-        var p0: Point = _p0;
-        var p1: Point = _p1;
-        if (sdl.SDL_GetRectAndLineIntersectionFloat(@ptrCast(&r), &p0.x, &p0.y, &p1.x, &p1.y)) {
-            return .{ p0, p1 };
-        }
-        return null;
-    }
-
-    /// Check if this rectangle intersects with a circle
-    pub inline fn intersectCircle(r: Rectangle, c: Circle) bool {
-        return c.intersectRect(r);
-    }
-
-    /// Check if this rectangle intersects with a triangle
-    pub inline fn intersectTriangle(r: Rectangle, tri: Triangle) bool {
-        return tri.intersectRect(r);
-    }
-
-    /// Check if rectangle contains a point
-    pub inline fn containsPoint(r: Rectangle, p: Point) bool {
-        return p.x >= r.x and p.x < r.x + r.width and
-            p.y >= r.y and p.y < r.y + r.height;
-    }
-
-    /// Check if rectangle fully contains another rectangle
-    pub inline fn containsRect(r: Rectangle, b: Rectangle) bool {
-        return b.x >= r.x and b.x + b.width <= r.x + r.width and
-            b.y >= r.y and b.y + b.height <= r.y + r.height;
-    }
-
-    /// Check if rectangle contains a line segment (both endpoints)
-    pub inline fn containsLine(r: Rectangle, p0: Point, p1: Point) bool {
-        return r.containsPoint(p0) and r.containsPoint(p1);
-    }
-
-    /// Check if rectangle fully contains a circle
-    pub inline fn containsCircle(r: Rectangle, c: Circle) bool {
-        return r.containsRect(.{
-            .x = c.center.x - c.radius,
-            .y = c.center.y - c.radius,
-            .width = c.radius * 2,
-            .height = c.radius * 2,
-        });
-    }
-
-    /// Check if rectangle fully contains a triangle
-    pub inline fn containsTriangle(r: Rectangle, tri: Triangle) bool {
-        return r.containsPoint(tri.p0) and r.containsPoint(tri.p1) and r.containsPoint(tri.p2);
-    }
-};
-
-/// Circle defined by center point and radius.
-/// Supports intersection and containment testing with other geometric primitives.
-pub const Circle = extern struct {
-    center: Point = .origin,
-    radius: f32 = 1,
-
-    /// Translate circle by offset. Accepts Point, tuple, or array.
-    pub inline fn translate(c: Circle, two_floats: anytype) Circle {
-        return .{
-            .center = c.center.add(two_floats),
-            .radius = c.radius,
-        };
-    }
-
-    /// Get the bounding rectangle that fully contains this circle
-    pub inline fn getBoundingRect(c: Circle) jok.Rectangle {
-        return .{
-            .x = c.center.x - c.radius,
-            .y = c.center.y - c.radius,
-            .width = c.radius * 2,
-            .height = c.radius * 2,
-        };
-    }
-
-    /// Check if circle contains a point
-    pub inline fn containsPoint(c: Circle, p: Point) bool {
-        const v: @Vector(2, f32) = .{ c.center.x - p.x, c.center.y - p.y };
-        return @reduce(.Add, v * v) < c.radius * c.radius;
-    }
-
-    /// Check if this circle intersects with another circle
-    pub inline fn intersectCircle(c0: Circle, c1: Circle) bool {
-        const r = c0.radius + c1.radius;
-        return c0.center.distance2(c1.center) <= r * r;
-    }
-
-    /// Check if circle intersects with a rectangle using closest-point algorithm
-    pub inline fn intersectRect(c: Circle, r: Rectangle) bool {
-        // Find the closest point on the rectangle to the circle center
-        const closest_x = math.clamp(c.center.x, r.x, r.x + r.width);
-        const closest_y = math.clamp(c.center.y, r.y, r.y + r.height);
-        const dx = c.center.x - closest_x;
-        const dy = c.center.y - closest_y;
-        return dx * dx + dy * dy <= c.radius * c.radius;
-    }
-
-    /// Check if circle intersects with a line segment using closest-point algorithm
-    pub inline fn intersectLine(c: Circle, l: Line) bool {
-        return l.intersectCircle(c);
-    }
-
-    /// Check if circle intersects with a triangle.
-    /// Tests circle against each triangle edge and checks if center is inside triangle.
-    pub inline fn intersectTriangle(c: Circle, tri: Triangle) bool {
-        // If the circle center is inside the triangle, they intersect
-        if (tri.containsPoint(c.center)) return true;
-        // Check if any triangle edge intersects the circle
-        const edges = [3]Line{
-            .{ .p0 = tri.p0, .p1 = tri.p1 },
-            .{ .p0 = tri.p1, .p1 = tri.p2 },
-            .{ .p0 = tri.p2, .p1 = tri.p0 },
-        };
-        for (edges) |edge| {
-            if (edge.intersectCircle(c)) return true;
-        }
-        return false;
-    }
-};
-
-/// Ellipse defined by center point and radii (x and y).
-/// Supports containment testing and focal point calculations.
-pub const Ellipse = struct {
-    center: Point = .origin,
-    /// Radii in x and y directions
-    radius: Point = .unit,
-
-    /// Translate ellipse by offset. Accepts Point, tuple, or array.
-    pub inline fn translate(e: Ellipse, two_floats: anytype) Ellipse {
-        return .{
-            .center = e.center.add(two_floats),
-            .radius = e.radius,
-        };
-    }
-
-    /// Get the bounding rectangle that fully contains this ellipse
-    pub inline fn getBoundingRect(e: Ellipse) jok.Rectangle {
-        return .{
-            .x = e.center.x - e.radius.x,
-            .y = e.center.y - e.radius.y,
-            .width = e.radius.x * 2,
-            .height = e.radius.y * 2,
-        };
-    }
-
-    /// Get squared focal radius (distance from center to focus point)
-    pub inline fn getFocalRadius2(e: Ellipse) f32 {
-        return if (e.radius.x > e.radius.y)
-            e.radius.x * e.radius.x - e.radius.y * e.radius.y
-        else
-            e.radius.y * e.radius.y - e.radius.x * e.radius.x;
-    }
-
-    /// Get focal radius (distance from center to focus point)
-    pub inline fn getFocalRadius(e: Ellipse) f32 {
-        return @sqrt(e.getFocalRadius2());
-    }
-
-    /// Check if ellipse contains a point using normalized form:
-    /// (dx/rx)^2 + (dy/ry)^2 < 1
-    pub inline fn containsPoint(e: Ellipse, p: Point) bool {
-        const dx = (p.x - e.center.x) / e.radius.x;
-        const dy = (p.y - e.center.y) / e.radius.y;
-        return dx * dx + dy * dy < 1;
-    }
-};
-
-/// Triangle defined by three points.
-/// Supports area calculation, bounding box, barycentric coordinates, and intersection testing.
-pub const Triangle = extern struct {
-    p0: Point,
-    p1: Point,
-    p2: Point,
-
-    /// Translate triangle by offset. Accepts Point, tuple, or array.
-    pub inline fn translate(tri: Triangle, two_floats: anytype) Triangle {
-        return .{
-            .p0 = tri.p0.add(two_floats),
-            .p1 = tri.p1.add(two_floats),
-            .p2 = tri.p2.add(two_floats),
-        };
-    }
-
-    /// Calculate triangle area using cross product formula
-    pub inline fn area(tri: Triangle) f32 {
-        const x1 = tri.p0.x;
-        const y1 = tri.p0.y;
-        const x2 = tri.p1.x;
-        const y2 = tri.p1.y;
-        const x3 = tri.p2.x;
-        const y3 = tri.p2.y;
-        return @abs(x1 * y2 + x2 * y3 + x3 * y1 - x2 * y1 - x3 * y2 - x1 * y3) / 2;
-    }
-
-    /// Get axis-aligned bounding rectangle
-    pub inline fn getBoundingRect(tri: Triangle) Rectangle {
-        const min_max_x = minAndMax(tri.p0.x, tri.p1.x, tri.p2.x);
-        const min_max_y = minAndMax(tri.p0.y, tri.p1.y, tri.p2.y);
-        return .{
-            .x = min_max_x[0],
-            .y = min_max_y[0],
-            .width = min_max_x[1] - min_max_x[0],
-            .height = min_max_y[1] - min_max_y[0],
-        };
-    }
-
-    /// Calculate barycentric coordinates for a point relative to this triangle.
-    /// Returns [u, v, w] where u+v+w=1. Point is inside triangle if all values >= 0.
-    /// See: https://blackpawn.com/texts/pointinpoly
-    pub inline fn barycentricCoord(tri: Triangle, point: Point) [3]f32 {
-        const v0 = zmath.f32x4(tri.p2.x - tri.p0.x, tri.p2.y - tri.p0.y, 0, 0);
-        const v1 = zmath.f32x4(tri.p1.x - tri.p0.x, tri.p1.y - tri.p0.y, 0, 0);
-        const v2 = zmath.f32x4(point.x - tri.p0.x, point.y - tri.p0.y, 0, 0);
-        const dot00 = zmath.dot2(v0, v0)[0];
-        const dot01 = zmath.dot2(v0, v1)[0];
-        const dot02 = zmath.dot2(v0, v2)[0];
-        const dot11 = zmath.dot2(v1, v1)[0];
-        const dot12 = zmath.dot2(v1, v2)[0];
-        const denom = dot00 * dot11 - dot01 * dot01;
-        if (@abs(denom) <= 1e-12) {
-            return .{ -1, -1, -1 };
-        }
-        const inv_denom = 1.0 / denom;
-        const u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
-        const v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
-        return .{ u, v, 1 - u - v };
-    }
-
-    /// Test whether a point is in triangle using barycentric coordinates
-    pub inline fn containsPoint(tri: Triangle, point: Point) bool {
-        if (tri.isDegenerate()) return false;
-        const p = tri.barycentricCoord(point);
-        return p[0] > 0 and p[1] > 0 and p[2] > 0;
-    }
-
-    /// Check if this triangle fully contains another triangle
-    pub inline fn containsTriangle(tri0: Triangle, tri1: Triangle) bool {
-        if (tri0.isDegenerate() or tri1.isDegenerate()) return false;
-        return tri0.containsPoint(tri1.p0) and
-            tri0.containsPoint(tri1.p1) and
-            tri0.containsPoint(tri1.p2);
-    }
-
-    /// Check if this triangle intersects with another triangle using Separating Axis Theorem (SAT)
-    pub inline fn intersectTriangle(tri0: Triangle, tri1: Triangle) bool {
-        if (tri0.isDegenerate() or tri1.isDegenerate()) return false;
-        const S = struct {
-            const Range = @Tuple(&[_]type{ f32, f32 });
-
-            inline fn getRange(v: zmath.Vec, tri: Triangle) Range {
-                const tm = zmath.loadMat34(&[_]f32{
-                    tri.p0.x, tri.p1.x, tri.p2.x, 0,
-                    tri.p0.y, tri.p1.y, tri.p2.y, 0,
-                    0,        0,        0,        0,
-                });
-                const xs = zmath.mul(v, tm);
-                return minAndMax(xs[0], xs[1], xs[2]);
-            }
-
-            inline fn areRangesApart(r0: Range, r1: Range) bool {
-                return r0[0] >= r1[1] or r0[1] <= r1[0];
-            }
-        };
-
-        if (tri0.getBoundingRect().intersectRect(tri1.getBoundingRect()) == null) {
-            return false;
-        }
-
-        const v0 = zmath.f32x4(tri0.p0.y - tri0.p1.y, tri0.p1.x - tri0.p0.x, 0, 0);
-        const v1 = zmath.f32x4(tri0.p0.y - tri0.p2.y, tri0.p2.x - tri0.p0.x, 0, 0);
-        const v2 = zmath.f32x4(tri0.p2.y - tri0.p1.y, tri0.p1.x - tri0.p2.x, 0, 0);
-        const v3 = zmath.f32x4(tri1.p0.y - tri1.p1.y, tri1.p1.x - tri1.p0.x, 0, 0);
-        const v4 = zmath.f32x4(tri1.p0.y - tri1.p2.y, tri1.p2.x - tri1.p0.x, 0, 0);
-        const v5 = zmath.f32x4(tri1.p2.y - tri1.p1.y, tri1.p1.x - tri1.p2.x, 0, 0);
-        for ([_]zmath.Vec{ v0, v1, v2, v3, v4, v5 }) |v| {
-            const r0 = S.getRange(v, tri0);
-            const r1 = S.getRange(v, tri1);
-            if (S.areRangesApart(r0, r1)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /// Check if triangle intersects with a rectangle using Separating Axis Theorem (SAT).
-    /// Tests 5 potential separating axes: 2 from rectangle (x,y axes) and 3 from triangle edges.
-    pub inline fn intersectRect(tri: Triangle, r: Rectangle) bool {
-        if (tri.isDegenerate()) return false;
-        // Early exit: check bounding box intersection first
-        const tri_rect = tri.getBoundingRect();
-        if (tri_rect.x >= r.x + r.width or tri_rect.x + tri_rect.width <= r.x or
-            tri_rect.y >= r.y + r.height or tri_rect.y + tri_rect.height <= r.y)
-        {
-            return false;
-        }
-
-        // Check if any triangle vertex is inside the rectangle
-        if (r.containsPoint(tri.p0) or r.containsPoint(tri.p1) or r.containsPoint(tri.p2)) {
-            return true;
-        }
-
-        // Check if any rectangle corner is inside the triangle
-        if (tri.containsPoint(r.getTopLeft()) or tri.containsPoint(r.getTopRight()) or
-            tri.containsPoint(r.getBottomLeft()) or tri.containsPoint(r.getBottomRight()))
-        {
-            return true;
-        }
-
-        // SAT: Test triangle edge normals as separating axes
-        // For each edge, project both shapes onto the edge's normal and check for overlap
-        const edges = [_][2]Point{
-            .{ tri.p0, tri.p1 },
-            .{ tri.p1, tri.p2 },
-            .{ tri.p2, tri.p0 },
-        };
-
-        for (edges) |edge| {
-            // Edge normal (perpendicular to edge)
-            const nx = edge[1].y - edge[0].y;
-            const ny = edge[0].x - edge[1].x;
-
-            // Project triangle vertices onto normal
-            const t0 = tri.p0.x * nx + tri.p0.y * ny;
-            const t1 = tri.p1.x * nx + tri.p1.y * ny;
-            const t2 = tri.p2.x * nx + tri.p2.y * ny;
-            const tri_min = @min(t0, @min(t1, t2));
-            const tri_max = @max(t0, @max(t1, t2));
-
-            // Project rectangle corners onto normal
-            const rx1 = r.x;
-            const ry1 = r.y;
-            const rx2 = r.x + r.width;
-            const ry2 = r.y + r.height;
-            const r0 = rx1 * nx + ry1 * ny;
-            const r1 = rx2 * nx + ry1 * ny;
-            const r2 = rx1 * nx + ry2 * ny;
-            const r3 = rx2 * nx + ry2 * ny;
-            const rect_min = @min(r0, @min(r1, @min(r2, r3)));
-            const rect_max = @max(r0, @max(r1, @max(r2, r3)));
-
-            // Check for separation on this axis
-            if (tri_max <= rect_min or rect_max <= tri_min) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    inline fn isDegenerate(tri: Triangle) bool {
-        const ax = tri.p1.x - tri.p0.x;
-        const ay = tri.p1.y - tri.p0.y;
-        const bx = tri.p2.x - tri.p0.x;
-        const by = tri.p2.y - tri.p0.y;
-        const area2 = ax * by - ay * bx;
-        return @abs(area2) <= 1e-8;
-    }
-};
-
-/// Line segment defined by two endpoints.
-pub const Line = extern struct {
-    p0: Point,
-    p1: Point,
-
-    /// Translate line by offset. Accepts Point, tuple, or array.
-    pub inline fn translate(l: Line, two_floats: anytype) Line {
-        return .{
-            .p0 = l.p0.add(two_floats),
-            .p1 = l.p1.add(two_floats),
-        };
-    }
-
-    /// Get the direction vector (normalized) from p0 to p1
-    pub inline fn direction(l: Line) Point {
-        return l.p1.sub(l.p0).toVector().norm().toPoint();
-    }
-
-    /// Get the squared length of the line segment
-    pub inline fn length2(l: Line) f32 {
-        return l.p0.distance2(l.p1);
-    }
-
-    /// Get the length of the line segment
-    pub inline fn length(l: Line) f32 {
-        return l.p0.distance(l.p1);
-    }
-
-    /// Get the midpoint of the line segment
-    pub inline fn midpoint(l: Line) Point {
-        return .{
-            .x = (l.p0.x + l.p1.x) * 0.5,
-            .y = (l.p0.y + l.p1.y) * 0.5,
-        };
-    }
-
-    /// Interpolate along the line segment. t=0 returns p0, t=1 returns p1.
-    pub inline fn lerp(l: Line, t: f32) Point {
-        return .{
-            .x = l.p0.x + (l.p1.x - l.p0.x) * t,
-            .y = l.p0.y + (l.p1.y - l.p0.y) * t,
-        };
-    }
-
-    /// Get the closest point on this line segment to a given point.
-    /// Returns the parameter t (clamped to [0,1]) and the closest point.
-    pub inline fn closestPoint(l: Line, p: Point) struct { t: f32, point: Point } {
-        const dx = l.p1.x - l.p0.x;
-        const dy = l.p1.y - l.p0.y;
-        const len2 = dx * dx + dy * dy;
-        if (len2 == 0) return .{ .t = 0, .point = l.p0 };
-        const t = math.clamp(((p.x - l.p0.x) * dx + (p.y - l.p0.y) * dy) / len2, 0, 1);
-        return .{ .t = t, .point = l.lerp(t) };
-    }
-
-    /// Get the bounding rectangle that fully contains this line
-    pub inline fn getBoundingRect(l: Line) jok.Rectangle {
-        const min_x = @min(l.p0.x, l.p1.x);
-        const min_y = @min(l.p0.y, l.p1.y);
-        const max_x = @max(l.p0.x, l.p1.x);
-        const max_y = @max(l.p0.y, l.p1.y);
-        return .{
-            .x = min_x,
-            .y = min_y,
-            .width = max_x - min_x,
-            .height = max_y - min_y,
-        };
-    }
-
-    /// Check if this line segment intersects another line segment.
-    /// Returns the intersection point if they intersect, null otherwise.
-    pub inline fn intersectLine(l0: Line, l1: Line) ?Point {
-        const d0x = l0.p1.x - l0.p0.x;
-        const d0y = l0.p1.y - l0.p0.y;
-        const d1x = l1.p1.x - l1.p0.x;
-        const d1y = l1.p1.y - l1.p0.y;
-        const denom = d0x * d1y - d0y * d1x;
-        if (@abs(denom) < 1e-10) return null; // parallel or coincident
-        const dx = l1.p0.x - l0.p0.x;
-        const dy = l1.p0.y - l0.p0.y;
-        const t = (dx * d1y - dy * d1x) / denom;
-        const u = (dx * d0y - dy * d0x) / denom;
-        if (t >= 0 and t <= 1 and u >= 0 and u <= 1) {
-            return l0.lerp(t);
-        }
-        return null;
-    }
-
-    /// Check if this line segment intersects a circle.
-    /// Uses closest-point-on-segment approach.
-    pub inline fn intersectCircle(l: Line, c: Circle) bool {
-        const cp = l.closestPoint(c.center);
-        return cp.point.distance2(c.center) <= c.radius * c.radius;
-    }
-
-    /// Check if this line segment intersects a rectangle.
-    pub inline fn intersectRect(l: Line, r: Rectangle) bool {
-        return r.intersectLine(l.p0, l.p1) != null;
-    }
-
-    /// Check if this line segment intersects a triangle.
-    /// Tests intersection against each triangle edge.
-    pub inline fn intersectTriangle(l: Line, tri: Triangle) bool {
-        const edges = [3]Line{
-            .{ .p0 = tri.p0, .p1 = tri.p1 },
-            .{ .p0 = tri.p1, .p1 = tri.p2 },
-            .{ .p0 = tri.p2, .p1 = tri.p0 },
-        };
-        for (edges) |edge| {
-            if (l.intersectLine(edge) != null) return true;
-        }
-        // Also check if the line is fully inside the triangle
-        return tri.containsPoint(l.p0);
-    }
-};
-
-/// Ray defined by an origin point and a direction vector.
-pub const Ray = struct {
-    origin: Point,
-    dir: Point,
-
-    /// Result of a ray intersection test.
-    /// Contains the ray parameter, intersection point, and surface normal.
-    pub const Hit = struct {
-        /// Ray parameter at intersection (distance along ray direction)
-        t: f32,
-        /// The intersection point
-        point: Point,
-        /// Surface normal at the intersection point (unit vector)
-        normal: Point,
-    };
-
-    /// Create a ray from two points (origin and a point the ray passes through)
-    pub inline fn fromPoints(p0: Point, p1: Point) Ray {
-        assert(!p0.isSame(p1));
-        return .{
-            .origin = p0,
-            .dir = p1.sub(p0).toVector().norm().toPoint(),
-        };
-    }
-
-    /// Get a point along the ray at parameter t. Returns origin + dir * t.
-    pub inline fn at(r: Ray, t: f32) Point {
-        return r.origin.add(r.dir.scale(t));
-    }
-
-    pub inline fn raycast(r: Ray, target: anytype) ?Hit {
-        return switch (@TypeOf(target)) {
-            Line => r.raycastLine(target),
-            Circle => r.raycastCircle(target),
-            Rectangle => r.raycastRect(target),
-            else => unreachable,
-        };
-    }
-
-    /// Cast this ray against a line segment.
-    /// Returns a Hit if the ray intersects the segment, null otherwise.
-    inline fn raycastLine(r: Ray, l: Line) ?Hit {
-        assert(r.dir.x != 0 or r.dir.y != 0);
-        const dx = l.p1.x - l.p0.x;
-        const dy = l.p1.y - l.p0.y;
-        const denom = r.dir.x * dy - r.dir.y * dx;
-        if (@abs(denom) < 1e-10) return null;
-        const ox = l.p0.x - r.origin.x;
-        const oy = l.p0.y - r.origin.y;
-        const t = (ox * dy - oy * dx) / denom;
-        const u = (ox * r.dir.y - oy * r.dir.x) / denom;
-        if (t >= 0 and u >= 0 and u <= 1) {
-            // Normal is perpendicular to the line segment, facing the ray origin
-            var nx = -dy;
-            var ny = dx;
-            const len = @sqrt(nx * nx + ny * ny);
-            if (len > 0) {
-                nx /= len;
-                ny /= len;
-            }
-            // Ensure normal faces toward ray origin
-            if (nx * r.dir.x + ny * r.dir.y > 0) {
-                nx = -nx;
-                ny = -ny;
-            }
-            return .{
-                .t = t,
-                .point = r.at(t),
-                .normal = .{ .x = nx, .y = ny },
-            };
-        }
-        return null;
-    }
-
-    /// Cast this ray against a circle.
-    /// Returns the nearest Hit if the ray intersects the circle, null otherwise.
-    inline fn raycastCircle(r: Ray, c: Circle) ?Hit {
-        assert(r.dir.x != 0 or r.dir.y != 0);
-        const ox = r.origin.x - c.center.x;
-        const oy = r.origin.y - c.center.y;
-        const a = r.dir.x * r.dir.x + r.dir.y * r.dir.y;
-        const b = 2 * (ox * r.dir.x + oy * r.dir.y);
-        const cc = ox * ox + oy * oy - c.radius * c.radius;
-        const disc = b * b - 4 * a * cc;
-        if (disc < 0) return null;
-        const sqrt_disc = @sqrt(disc);
-        const t0 = (-b - sqrt_disc) / (2 * a);
-        const t1 = (-b + sqrt_disc) / (2 * a);
-        const t = if (t0 >= 0) t0 else if (t1 >= 0) t1 else return null;
-        const p = r.at(t);
-        var nx = p.x - c.center.x;
-        var ny = p.y - c.center.y;
-        const len = @sqrt(nx * nx + ny * ny);
-        if (len > 0) {
-            nx /= len;
-            ny /= len;
-        }
-        return .{ .t = t, .point = p, .normal = .{ .x = nx, .y = ny } };
-    }
-
-    /// Cast this ray against a rectangle.
-    /// Returns the nearest Hit if the ray intersects the rectangle, null otherwise.
-    inline fn raycastRect(r: Ray, rect: Rectangle) ?Hit {
-        assert(r.dir.x != 0 or r.dir.y != 0);
-        const edges = [4]Line{
-            .{ .p0 = rect.getTopLeft(), .p1 = rect.getTopRight() },
-            .{ .p0 = rect.getTopRight(), .p1 = rect.getBottomRight() },
-            .{ .p0 = rect.getBottomRight(), .p1 = rect.getBottomLeft() },
-            .{ .p0 = rect.getBottomLeft(), .p1 = rect.getTopLeft() },
-        };
-        var best: ?Hit = null;
-        for (edges) |edge| {
-            if (r.raycastLine(edge)) |hit| {
-                if (best == null or hit.t < best.?.t) {
-                    best = hit;
-                }
-            }
-        }
-        return best;
-    }
-};
 
 /// 8-bit RGBA color type.
 /// Values range from 0-255 for each component. Alpha defaults to 255 (fully opaque).
@@ -1264,16 +340,263 @@ pub const ColorF = extern struct {
     }
 };
 
+/// Blend mode for graphics rendering operations.
+/// Defines how source and destination colors are combined.
+pub const BlendMode = enum {
+    /// No blending - source replaces destination
+    /// Formula: dstRGBA = srcRGBA
+    none,
+
+    /// Alpha blending - standard transparency blending
+    /// Formula:
+    /// - dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
+    /// - dstA = srcA + (dstA * (1-srcA))
+    blend,
+
+    /// Additive blending - adds source to destination (brightens)
+    /// Formula:
+    /// - dstRGB = (srcRGB * srcA) + dstRGB
+    /// - dstA = dstA
+    additive,
+
+    /// Color modulate - multiplies source and destination
+    /// Formula:
+    /// - dstRGB = srcRGB * dstRGB
+    /// - dstA = dstA
+    modulate,
+
+    /// Color multiply - modulate with alpha consideration
+    /// Formula:
+    /// - dstRGB = (srcRGB * dstRGB) + (dstRGB * (1-srcA))
+    /// - dstA = dstA
+    multiply,
+
+    //------------------------------------------------------------------------------
+    // Porter-Duff compositing operations
+    // May not be supported on all platforms
+    // See: https://ssp.impulsetrain.com/porterduff.html
+    //------------------------------------------------------------------------------
+
+    /// Porter-Duff: Source
+    pd_src,
+    /// Porter-Duff: Source Atop
+    pd_src_atop,
+    /// Porter-Duff: Source Over
+    pd_src_over,
+    /// Porter-Duff: Source In
+    pd_src_in,
+    /// Porter-Duff: Source Out
+    pd_src_out,
+    /// Porter-Duff: Destination
+    pd_dst,
+    /// Porter-Duff: Destination Atop
+    pd_dst_atop,
+    /// Porter-Duff: Destination Over
+    pd_dst_over,
+    /// Porter-Duff: Destination In
+    pd_dst_in,
+    /// Porter-Duff: Destination Out
+    pd_dst_out,
+    /// Porter-Duff: XOR
+    pd_xor,
+    /// Porter-Duff: Lighter
+    pd_lighter,
+    /// Porter-Duff: Clear
+    pd_clear,
+
+    var _init: bool = false;
+    var _pd_src: c_uint = undefined;
+    var _pd_src_atop: c_uint = undefined;
+    var _pd_src_over: c_uint = undefined;
+    var _pd_src_in: c_uint = undefined;
+    var _pd_src_out: c_uint = undefined;
+    var _pd_dst: c_uint = undefined;
+    var _pd_dst_atop: c_uint = undefined;
+    var _pd_dst_over: c_uint = undefined;
+    var _pd_dst_in: c_uint = undefined;
+    var _pd_dst_out: c_uint = undefined;
+    var _pd_xor: c_uint = undefined;
+    var _pd_lighter: c_uint = undefined;
+    var _pd_clear: c_uint = undefined;
+
+    /// Initialize Porter-Duff blend modes (called automatically)
+    inline fn init() void {
+        _pd_src = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+        _pd_src_atop = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+        _pd_src_over = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+        _pd_src_in = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+        _pd_src_out = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+        _pd_dst = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+        _pd_dst_atop = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+        _pd_dst_over = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+        _pd_dst_in = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+        _pd_dst_out = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+        _pd_xor = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            sdl.SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+        _pd_lighter = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDFACTOR_ONE,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+        _pd_clear = sdl.SDL_ComposeCustomBlendMode(
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDFACTOR_ZERO,
+            sdl.SDL_BLENDOPERATION_ADD,
+        );
+    }
+
+    /// Convert from SDL's native blend mode to jok BlendMode
+    pub fn fromNative(mode: sdl.SDL_BlendMode) @This() {
+        if (!_init) {
+            init();
+            _init = true;
+        }
+        switch (mode) {
+            sdl.SDL_BLENDMODE_NONE => return .none,
+            sdl.SDL_BLENDMODE_BLEND => return .blend,
+            sdl.SDL_BLENDMODE_ADD => return .additive,
+            sdl.SDL_BLENDMODE_MOD => return .modulate,
+            sdl.SDL_BLENDMODE_MUL => return .multiply,
+            else => {
+                if (mode == _pd_src) return .pd_src;
+                if (mode == _pd_src_atop) return .pd_src_atop;
+                if (mode == _pd_src_over) return .pd_src_over;
+                if (mode == _pd_src_in) return .pd_src_in;
+                if (mode == _pd_src_out) return .pd_src_out;
+                if (mode == _pd_dst) return .pd_dst;
+                if (mode == _pd_dst_atop) return .pd_dst_atop;
+                if (mode == _pd_dst_over) return .pd_dst_over;
+                if (mode == _pd_dst_in) return .pd_dst_in;
+                if (mode == _pd_dst_out) return .pd_dst_out;
+                if (mode == _pd_xor) return .pd_xor;
+                if (mode == _pd_lighter) return .pd_lighter;
+                if (mode == _pd_clear) return .pd_clear;
+                @panic("unreachable");
+            },
+        }
+    }
+
+    /// Convert from jok BlendMode to SDL's native blend mode
+    pub fn toNative(self: @This()) sdl.SDL_BlendMode {
+        if (!_init) {
+            init();
+            _init = true;
+        }
+        return switch (self) {
+            .none => sdl.SDL_BLENDMODE_NONE,
+            .blend => sdl.SDL_BLENDMODE_BLEND,
+            .additive => sdl.SDL_BLENDMODE_ADD,
+            .modulate => sdl.SDL_BLENDMODE_MOD,
+            .multiply => sdl.SDL_BLENDMODE_MUL,
+            .pd_src => _pd_src,
+            .pd_src_atop => _pd_src_atop,
+            .pd_src_over => _pd_src_over,
+            .pd_src_in => _pd_src_in,
+            .pd_src_out => _pd_src_out,
+            .pd_dst => _pd_dst,
+            .pd_dst_atop => _pd_dst_atop,
+            .pd_dst_over => _pd_dst_over,
+            .pd_dst_in => _pd_dst_in,
+            .pd_dst_out => _pd_dst_out,
+            .pd_xor => _pd_xor,
+            .pd_lighter => _pd_lighter,
+            .pd_clear => _pd_clear,
+        };
+    }
+};
+
 /// Vertex structure for rendering.
 /// Contains position, color, and optional texture coordinates.
 /// Used by the rendering system for drawing textured and colored geometry.
 pub const Vertex = extern struct {
     /// Vertex position in 2D space
-    pos: Point,
+    pos: geom.Point,
     /// Vertex color (floating-point RGBA)
     color: ColorF,
     /// Texture coordinates (UV mapping). Undefined if not using textures.
-    texcoord: Point = undefined,
+    texcoord: geom.Point = undefined,
 };
 
 test "basic" {
@@ -1281,587 +604,6 @@ test "basic" {
     const expect = testing.expect;
     const expectEqual = testing.expectEqual;
     const expectApproxEqAbs = testing.expectApproxEqAbs;
-
-    // Point tests
-    {
-        const p = Point{ .x = 1.0, .y = 2.0 };
-        try expectEqual(p.toArray(), [_]f32{ 1.0, 2.0 });
-        try expectEqual(p.toSize(), Size{ .width = 1, .height = 2 });
-        try expectApproxEqAbs(p.angle(), math.atan2(@as(f32, 2.0), @as(f32, 1.0)), 0.000001);
-        try expectApproxEqAbs(p.angleDegree(), std.math.radiansToDegrees(math.atan2(@as(f32, 2.0), @as(f32, 1.0))), 0.000001);
-        try expectEqual(p.add(.{ 3.0, 4.0 }), Point{ .x = 4.0, .y = 6.0 });
-        try expectEqual(p.sub(.{ 0.5, 1.0 }), Point{ .x = 0.5, .y = 1.0 });
-        try expectEqual(p.mul(.{ 2.0, 3.0 }), Point{ .x = 2.0, .y = 6.0 });
-        try expectEqual(p.scale(2.0), Point{ .x = 2.0, .y = 4.0 });
-        try expect(p.isSame(p));
-        try expect(!p.isSame(.{ .x = 1.000002, .y = 2.0 }));
-        try expectApproxEqAbs(p.distance2(.origin), 5.0, 0.000001);
-        try expectApproxEqAbs(p.distance(.origin), std.math.sqrt(5.0), 0.000001);
-    }
-
-    // Size tests
-    {
-        const s = Size{ .width = 10, .height = 20 };
-        try expectEqual(s.toPoint(), Point{ .x = 10.0, .y = 20.0 });
-        try expectApproxEqAbs(s.getWidthFloat(), 10.0, 0.000001);
-        try expectApproxEqAbs(s.getHeightFloat(), 20.0, 0.000001);
-        try expect(s.isSame(s));
-        try expect(!s.isSame(.{ .width = 10, .height = 21 }));
-        try expectEqual(s.area(), 200);
-    }
-
-    // Region tests
-    {
-        const r = Region{ .x = 5, .y = 10, .width = 15, .height = 25 };
-        try expectEqual(r.toRect(), Rectangle{ .x = 5.0, .y = 10.0, .width = 15.0, .height = 25.0 });
-        try expect(r.isSame(r));
-        try expect(!r.isSame(.{ .x = 5, .y = 10, .width = 15, .height = 26 }));
-        try expectEqual(r.area(), 375);
-    }
-
-    // Rectangle tests
-    {
-        const rect = Rectangle{ .x = 0.0, .y = 0.0, .width = 10.0, .height = 20.0 };
-        try expectEqual(rect.toRegion(), Region{ .x = 0, .y = 0, .width = 10, .height = 20 });
-        try expectEqual(rect.getPos(), Point{ .x = 0.0, .y = 0.0 });
-        try expectEqual(rect.getSizeF(), Point{ .x = 10.0, .y = 20.0 });
-        try expectEqual(rect.getTopLeft(), Point{ .x = 0.0, .y = 0.0 });
-        try expectEqual(rect.getTopRight(), Point{ .x = 10.0, .y = 0.0 });
-        try expectEqual(rect.getBottomLeft(), Point{ .x = 0.0, .y = 20.0 });
-        try expectEqual(rect.getBottomRight(), Point{ .x = 10.0, .y = 20.0 });
-        try expectEqual(rect.getCenter(), Point{ .x = 5.0, .y = 10.0 });
-        try expectEqual(rect.translate(.{ 1.0, 2.0 }), Rectangle{ .x = 1.0, .y = 2.0, .width = 10.0, .height = 20.0 });
-        try expectEqual(rect.scale(.{ 2.0, 0.5 }), Rectangle{ .x = 0.0, .y = 0.0, .width = 20.0, .height = 10.0 });
-        try expect(rect.isSame(rect));
-        try expectApproxEqAbs(rect.area(), 200.0, 0.000001);
-        try expect(rect.containsPoint(.{ .x = 5.0, .y = 10.0 }));
-        try expect(!rect.containsPoint(.{ .x = 10.0, .y = 10.0 }));
-        const inner = Rectangle{ .x = 1.0, .y = 1.0, .width = 5.0, .height = 5.0 };
-        try expect(rect.containsRect(inner));
-        try expect(!rect.containsRect(.{ .x = -1.0, .y = 0.0, .width = 11.0, .height = 20.0 }));
-
-        // padded
-        const padded = rect.padded(2.0);
-        try expect(padded.isSame(.{ .x = -2.0, .y = -2.0, .width = 14.0, .height = 24.0 }));
-
-        // containsLine
-        try expect(rect.containsLine(.{ .x = 1.0, .y = 1.0 }, .{ .x = 5.0, .y = 5.0 }));
-        try expect(!rect.containsLine(.{ .x = -1.0, .y = 0.0 }, .{ .x = 5.0, .y = 5.0 }));
-
-        // containsCircle
-        try expect(rect.containsCircle(.{ .center = .{ .x = 5.0, .y = 10.0 }, .radius = 2.0 }));
-        try expect(!rect.containsCircle(.{ .center = .{ .x = 0.0, .y = 0.0 }, .radius = 5.0 }));
-
-        // containsTriangle
-        try expect(rect.containsTriangle(.{
-            .p0 = .{ .x = 1.0, .y = 1.0 },
-            .p1 = .{ .x = 5.0, .y = 1.0 },
-            .p2 = .{ .x = 3.0, .y = 5.0 },
-        }));
-        try expect(!rect.containsTriangle(.{
-            .p0 = .{ .x = -1.0, .y = -1.0 },
-            .p1 = .{ .x = 5.0, .y = 1.0 },
-            .p2 = .{ .x = 3.0, .y = 5.0 },
-        }));
-
-        // SDL-dependent: hasIntersection
-        try expect(rect.hasIntersection(.{ .x = 5.0, .y = 5.0, .width = 10.0, .height = 10.0 }));
-        try expect(!rect.hasIntersection(.{ .x = 20.0, .y = 20.0, .width = 5.0, .height = 5.0 }));
-
-        // SDL-dependent: intersectRect
-        const isect = rect.intersectRect(.{ .x = 5.0, .y = 10.0, .width = 20.0, .height = 30.0 });
-        try expect(isect != null);
-        try expect(isect.?.isSame(.{ .x = 5.0, .y = 10.0, .width = 5.0, .height = 10.0 }));
-        try expect(rect.intersectRect(.{ .x = 20.0, .y = 20.0, .width = 5.0, .height = 5.0 }) == null);
-
-        // SDL-dependent: intersectLine
-        const line_isect = rect.intersectLine(.{ .x = -5.0, .y = 10.0 }, .{ .x = 20.0, .y = 10.0 });
-        try expect(line_isect != null);
-        const clipped_p0, const clipped_p1 = line_isect.?;
-        try expectApproxEqAbs(clipped_p0.x, 0.0, 0.000001);
-        try expectApproxEqAbs(clipped_p1.x, 10.0, 0.000001);
-        // line fully outside
-        try expect(rect.intersectLine(.{ .x = -5.0, .y = -5.0 }, .{ .x = -1.0, .y = -5.0 }) == null);
-
-        // SDL-dependent: intersectCircle (via Rectangle)
-        try expect(rect.intersectCircle(.{ .center = .{ .x = 5.0, .y = 10.0 }, .radius = 1.0 }));
-        try expect(!rect.intersectCircle(.{ .center = .{ .x = 50.0, .y = 50.0 }, .radius = 1.0 }));
-
-        // SDL-dependent: intersectTriangle (via Rectangle)
-        try expect(rect.intersectTriangle(.{
-            .p0 = .{ .x = 5.0, .y = 5.0 },
-            .p1 = .{ .x = 15.0, .y = 5.0 },
-            .p2 = .{ .x = 10.0, .y = 15.0 },
-        }));
-        try expect(!rect.intersectTriangle(.{
-            .p0 = .{ .x = 50.0, .y = 50.0 },
-            .p1 = .{ .x = 55.0, .y = 50.0 },
-            .p2 = .{ .x = 52.0, .y = 55.0 },
-        }));
-    }
-
-    // Circle tests
-    {
-        const c = Circle{ .center = .{ .x = 0.0, .y = 0.0 }, .radius = 5.0 };
-        try expectEqual(c.translate(.{ 1.0, 2.0 }), Circle{ .center = .{ .x = 1.0, .y = 2.0 }, .radius = 5.0 });
-        try expect(c.containsPoint(.{ .x = 0.0, .y = 0.0 }));
-        try expect(!c.containsPoint(.{ .x = 6.0, .y = 0.0 }));
-        const c2 = Circle{ .center = .{ .x = 4.0, .y = 0.0 }, .radius = 2.0 };
-        try expect(c.intersectCircle(c2));
-        try expect(!c.intersectCircle(.{ .center = .{ .x = 10.0, .y = 0.0 }, .radius = 2.0 }));
-        const rect = Rectangle{ .x = -3.0, .y = -3.0, .width = 6.0, .height = 6.0 };
-        try expect(c.intersectRect(rect));
-        try expect(!c.intersectRect(.{ .x = 6.0, .y = 0.0, .width = 1.0, .height = 1.0 }));
-
-        // getBoundingRect
-        try expect(c.getBoundingRect().isSame(.{ .x = -5.0, .y = -5.0, .width = 10.0, .height = 10.0 }));
-
-        // intersectLine
-        const line_through = Line{ .p0 = .{ .x = -10.0, .y = 0.0 }, .p1 = .{ .x = 10.0, .y = 0.0 } };
-        try expect(c.intersectLine(line_through));
-        try expect(!c.intersectLine(.{ .p0 = .{ .x = -10.0, .y = 10.0 }, .p1 = .{ .x = 10.0, .y = 10.0 } }));
-
-        // intersectTriangle
-        const tri_overlap = Triangle{
-            .p0 = .{ .x = 3.0, .y = -3.0 },
-            .p1 = .{ .x = 10.0, .y = -3.0 },
-            .p2 = .{ .x = 6.0, .y = 3.0 },
-        };
-        try expect(c.intersectTriangle(tri_overlap));
-        // triangle fully outside
-        try expect(!c.intersectTriangle(.{
-            .p0 = .{ .x = 10.0, .y = 10.0 },
-            .p1 = .{ .x = 12.0, .y = 10.0 },
-            .p2 = .{ .x = 11.0, .y = 12.0 },
-        }));
-        // circle center inside triangle
-        const big_tri = Triangle{
-            .p0 = .{ .x = -10.0, .y = -10.0 },
-            .p1 = .{ .x = 10.0, .y = -10.0 },
-            .p2 = .{ .x = 0.0, .y = 10.0 },
-        };
-        try expect(c.intersectTriangle(big_tri));
-    }
-
-    // Ellipse tests
-    {
-        const e = Ellipse{ .center = .origin, .radius = .{ .x = 5.0, .y = 3.0 } };
-        try expectEqual(e.translate(.{ 1.0, 2.0 }), Ellipse{ .center = .{ .x = 1.0, .y = 2.0 }, .radius = .{ .x = 5.0, .y = 3.0 } });
-        try expectApproxEqAbs(e.getFocalRadius2(), 16.0, 0.000001);
-        try expectApproxEqAbs(e.getFocalRadius(), 4.0, 0.000001);
-        try expect(e.containsPoint(.origin));
-        try expect(!e.containsPoint(.{ .x = 6.0, .y = 0.0 })); // approximate
-    }
-
-    // Triangle tests
-    {
-        const tri = Triangle{
-            .p0 = .{ .x = 0.0, .y = 0.0 },
-            .p1 = .{ .x = 4.0, .y = 0.0 },
-            .p2 = .{ .x = 2.0, .y = 3.0 },
-        };
-        try expectEqual(tri.translate(.{ 1.0, 1.0 }), Triangle{
-            .p0 = .{ .x = 1.0, .y = 1.0 },
-            .p1 = .{ .x = 5.0, .y = 1.0 },
-            .p2 = .{ .x = 3.0, .y = 4.0 },
-        });
-        try expectApproxEqAbs(tri.area(), 6.0, 0.000001);
-        try expectEqual(tri.getBoundingRect(), Rectangle{ .x = 0.0, .y = 0.0, .width = 4.0, .height = 3.0 });
-        const bc = tri.barycentricCoord(.{ .x = 2.0, .y = 1.0 });
-        try expectApproxEqAbs(bc[0], 1.0 / 3.0, 0.000001);
-        try expectApproxEqAbs(bc[1], 1.0 / 3.0, 0.000001);
-        try expectApproxEqAbs(bc[2], 1.0 / 3.0, 0.000001);
-        try expect(tri.containsPoint(.{ .x = 2.0, .y = 1.0 }));
-        try expect(!tri.containsPoint(.{ .x = 5.0, .y = 1.0 }));
-        const small_tri = Triangle{
-            .p0 = .{ .x = 1.0, .y = 0.5 },
-            .p1 = .{ .x = 2.0, .y = 0.5 },
-            .p2 = .{ .x = 1.5, .y = 1.0 },
-        };
-        try expect(tri.containsTriangle(small_tri));
-        try expect(!tri.containsTriangle(.{
-            .p0 = .{ .x = -1.0, .y = 0.0 },
-            .p1 = .{ .x = 0.0, .y = 0.0 },
-            .p2 = .{ .x = -0.5, .y = 1.0 },
-        }));
-        const other_tri = Triangle{
-            .p0 = .{ .x = 1.0, .y = 1.0 },
-            .p1 = .{ .x = 3.0, .y = 1.0 },
-            .p2 = .{ .x = 2.0, .y = 2.0 },
-        };
-        try expect(tri.intersectTriangle(other_tri));
-        try expect(!tri.intersectTriangle(.{
-            .p0 = .{ .x = 5.0, .y = 0.0 },
-            .p1 = .{ .x = 9.0, .y = 0.0 },
-            .p2 = .{ .x = 7.0, .y = 3.0 },
-        }));
-        const rect = Rectangle{ .x = -1.0, .y = -1.0, .width = 6.0, .height = 6.0 };
-        try expect(tri.intersectRect(rect));
-        try expect(!tri.intersectRect(.{ .x = 5.0, .y = -1.0, .width = 1.0, .height = 6.0 }));
-    }
-
-    // Line tests
-    {
-        const l = Line{ .p0 = .{ .x = 0.0, .y = 0.0 }, .p1 = .{ .x = 4.0, .y = 0.0 } };
-        try expectEqual(l.translate(.{ 1.0, 2.0 }), Line{ .p0 = .{ .x = 1.0, .y = 2.0 }, .p1 = .{ .x = 5.0, .y = 2.0 } });
-        try expectEqual(l.direction(), Point{ .x = 1.0, .y = 0.0 });
-        try expectApproxEqAbs(l.length2(), 16.0, 0.000001);
-        try expectApproxEqAbs(l.length(), 4.0, 0.000001);
-        try expectEqual(l.midpoint(), Point{ .x = 2.0, .y = 0.0 });
-        try expectEqual(l.lerp(0.0), Point{ .x = 0.0, .y = 0.0 });
-        try expectEqual(l.lerp(1.0), Point{ .x = 4.0, .y = 0.0 });
-        try expectEqual(l.lerp(0.5), Point{ .x = 2.0, .y = 0.0 });
-
-        // closestPoint
-        const cp = l.closestPoint(.{ .x = 2.0, .y = 3.0 });
-        try expectApproxEqAbs(cp.t, 0.5, 0.000001);
-        try expectApproxEqAbs(cp.point.x, 2.0, 0.000001);
-        try expectApproxEqAbs(cp.point.y, 0.0, 0.000001);
-        // closestPoint clamped to p0
-        const cp0 = l.closestPoint(.{ .x = -5.0, .y = 0.0 });
-        try expectApproxEqAbs(cp0.t, 0.0, 0.000001);
-        // closestPoint clamped to p1
-        const cp1 = l.closestPoint(.{ .x = 10.0, .y = 0.0 });
-        try expectApproxEqAbs(cp1.t, 1.0, 0.000001);
-        // closestPoint on zero-length line
-        const zero_line = Line{ .p0 = .{ .x = 1.0, .y = 1.0 }, .p1 = .{ .x = 1.0, .y = 1.0 } };
-        const cpz = zero_line.closestPoint(.{ .x = 5.0, .y = 5.0 });
-        try expectApproxEqAbs(cpz.t, 0.0, 0.000001);
-
-        // getBoundingRect
-        try expect(l.getBoundingRect().isSame(.{ .x = 0.0, .y = 0.0, .width = 4.0, .height = 0.0 }));
-        const diag = Line{ .p0 = .{ .x = 1.0, .y = 3.0 }, .p1 = .{ .x = 5.0, .y = 1.0 } };
-        try expect(diag.getBoundingRect().isSame(.{ .x = 1.0, .y = 1.0, .width = 4.0, .height = 2.0 }));
-
-        // intersectLine
-        const l2 = Line{ .p0 = .{ .x = 2.0, .y = -2.0 }, .p1 = .{ .x = 2.0, .y = 2.0 } };
-        const isect = l.intersectLine(l2);
-        try expect(isect != null);
-        try expectApproxEqAbs(isect.?.x, 2.0, 0.000001);
-        try expectApproxEqAbs(isect.?.y, 0.0, 0.000001);
-        // parallel lines don't intersect
-        const l3 = Line{ .p0 = .{ .x = 0.0, .y = 1.0 }, .p1 = .{ .x = 4.0, .y = 1.0 } };
-        try expect(l.intersectLine(l3) == null);
-        // non-overlapping segments don't intersect
-        const l4 = Line{ .p0 = .{ .x = 2.0, .y = 1.0 }, .p1 = .{ .x = 2.0, .y = 5.0 } };
-        try expect(l.intersectLine(l4) == null);
-
-        // intersectCircle
-        const c = Circle{ .center = .{ .x = 2.0, .y = 1.0 }, .radius = 2.0 };
-        try expect(l.intersectCircle(c));
-        try expect(!l.intersectCircle(.{ .center = .{ .x = 2.0, .y = 10.0 }, .radius = 1.0 }));
-
-        // intersectRect
-        try expect(l.intersectRect(.{ .x = 1.0, .y = -1.0, .width = 2.0, .height = 2.0 }));
-        try expect(!l.intersectRect(.{ .x = 1.0, .y = 5.0, .width = 2.0, .height = 2.0 }));
-
-        // intersectTriangle
-        const tri = Triangle{
-            .p0 = .{ .x = 1.0, .y = -1.0 },
-            .p1 = .{ .x = 3.0, .y = -1.0 },
-            .p2 = .{ .x = 2.0, .y = 1.0 },
-        };
-        try expect(l.intersectTriangle(tri));
-        try expect(!l.intersectTriangle(.{
-            .p0 = .{ .x = 10.0, .y = 10.0 },
-            .p1 = .{ .x = 12.0, .y = 10.0 },
-            .p2 = .{ .x = 11.0, .y = 12.0 },
-        }));
-        // line fully inside triangle
-        const big_tri = Triangle{
-            .p0 = .{ .x = -10.0, .y = -10.0 },
-            .p1 = .{ .x = 10.0, .y = -10.0 },
-            .p2 = .{ .x = 0.0, .y = 10.0 },
-        };
-        try expect(l.intersectTriangle(big_tri));
-    }
-
-    // Ray tests
-    {
-        const r = Ray{ .origin = .{ .x = 0.0, .y = 0.0 }, .dir = .{ .x = 1.0, .y = 0.0 } };
-
-        // fromPoints
-        const r2 = Ray.fromPoints(.{ .x = 1.0, .y = 2.0 }, .{ .x = 3.0, .y = 4.0 });
-        try expectApproxEqAbs(r2.origin.x, 1.0, 0.000001);
-        try expectApproxEqAbs(r2.origin.y, 2.0, 0.000001);
-        try expectApproxEqAbs(r2.dir.x, 0.70710678, 0.000001);
-        try expectApproxEqAbs(r2.dir.y, 0.70710678, 0.000001);
-
-        // at
-        try expectEqual(r.at(0.0), Point{ .x = 0.0, .y = 0.0 });
-        try expectEqual(r.at(5.0), Point{ .x = 5.0, .y = 0.0 });
-
-        // intersectLine
-        const seg = Line{ .p0 = .{ .x = 3.0, .y = -2.0 }, .p1 = .{ .x = 3.0, .y = 2.0 } };
-        const hit = r.raycast(seg);
-        try expect(hit != null);
-        try expectApproxEqAbs(hit.?.t, 3.0, 0.000001);
-        try expectApproxEqAbs(hit.?.point.x, 3.0, 0.000001);
-        try expectApproxEqAbs(hit.?.point.y, 0.0, 0.000001);
-        // normal should face toward ray origin (negative x direction)
-        try expectApproxEqAbs(hit.?.normal.x, -1.0, 0.000001);
-        try expectApproxEqAbs(hit.?.normal.y, 0.0, 0.000001);
-        // ray misses segment behind it
-        const seg_behind = Line{ .p0 = .{ .x = -3.0, .y = -2.0 }, .p1 = .{ .x = -3.0, .y = 2.0 } };
-        try expect(r.raycast(seg_behind) == null);
-        // parallel ray and segment
-        const seg_par = Line{ .p0 = .{ .x = 0.0, .y = 1.0 }, .p1 = .{ .x = 5.0, .y = 1.0 } };
-        try expect(r.raycast(seg_par) == null);
-
-        // intersectCircle
-        const c = Circle{ .center = .{ .x = 5.0, .y = 0.0 }, .radius = 1.0 };
-        const chit = r.raycast(c);
-        try expect(chit != null);
-        try expectApproxEqAbs(chit.?.t, 4.0, 0.000001);
-        try expectApproxEqAbs(chit.?.point.x, 4.0, 0.000001);
-        try expectApproxEqAbs(chit.?.point.y, 0.0, 0.000001);
-        // normal at hit point should point toward ray origin
-        try expectApproxEqAbs(chit.?.normal.x, -1.0, 0.000001);
-        try expectApproxEqAbs(chit.?.normal.y, 0.0, 0.000001);
-        // ray misses circle
-        try expect(r.raycast(Circle{ .center = .{ .x = 5.0, .y = 10.0 }, .radius = 1.0 }) == null);
-        // ray origin inside circle - should still hit (exit point)
-        const c_around = Circle{ .center = .{ .x = 0.0, .y = 0.0 }, .radius = 2.0 };
-        const chit2 = r.raycast(c_around);
-        try expect(chit2 != null);
-        try expectApproxEqAbs(chit2.?.t, 2.0, 0.000001);
-
-        // raycast Rectangle
-        const rect = Rectangle{ .x = 3.0, .y = -1.0, .width = 2.0, .height = 2.0 };
-        const rhit = r.raycast(rect);
-        try expect(rhit != null);
-        try expectApproxEqAbs(rhit.?.t, 3.0, 0.000001);
-        try expectApproxEqAbs(rhit.?.point.x, 3.0, 0.000001);
-        try expectApproxEqAbs(rhit.?.point.y, 0.0, 0.000001);
-        try expectApproxEqAbs(rhit.?.normal.x, -1.0, 0.000001);
-        try expectApproxEqAbs(rhit.?.normal.y, 0.0, 0.000001);
-        // ray misses rectangle
-        try expect(r.raycast(Rectangle{ .x = 3.0, .y = 5.0, .width = 2.0, .height = 2.0 }) == null);
-        // ray origin inside rectangle
-        @setEvalBranchQuota(2000);
-        const inner_rect = Rectangle{ .x = -1.0, .y = -1.0, .width = 4.0, .height = 2.0 };
-        const rhit2 = r.raycast(inner_rect);
-        try expect(rhit2 != null);
-        try expectApproxEqAbs(rhit2.?.point.x, 3.0, 0.000001);
-    }
-
-    // Point: toVector round-trip
-    {
-        const p = Point{ .x = 3.5, .y = -2.0 };
-        const v = p.toVector();
-        const back = v.toPoint();
-        try expect(p.isSame(back));
-    }
-
-    // Point: add/sub/mul with Point argument (not just tuple)
-    {
-        const a = Point{ .x = 1.0, .y = 2.0 };
-        const b = Point{ .x = 3.0, .y = 4.0 };
-        try expectEqual(a.add(b), Point{ .x = 4.0, .y = 6.0 });
-        try expectEqual(a.sub(b), Point{ .x = -2.0, .y = -2.0 });
-        try expectEqual(a.mul(b), Point{ .x = 3.0, .y = 8.0 });
-        // with array
-        try expectEqual(a.add([2]f32{ 3.0, 4.0 }), Point{ .x = 4.0, .y = 6.0 });
-    }
-
-    // Point.isSame: x matches but y differs
-    {
-        const a = Point{ .x = 1.0, .y = 2.0 };
-        try expect(!a.isSame(.{ .x = 1.0, .y = 2.1 }));
-        // negative coordinates
-        try expect((Point{ .x = -1.0, .y = -2.0 }).isSame(.{ .x = -1.0, .y = -2.0 }));
-    }
-
-    // Size: toRegion, toRect
-    {
-        const s = Size{ .width = 10, .height = 20 };
-        const reg = s.toRegion(5, 15);
-        try expectEqual(reg, Region{ .x = 5, .y = 15, .width = 10, .height = 20 });
-        const rect = s.toRect(.{ .x = 1.5, .y = 2.5 });
-        try expect(rect.isSame(.{ .x = 1.5, .y = 2.5, .width = 10.0, .height = 20.0 }));
-    }
-
-    // Size.isSame: width differs but height matches
-    {
-        const s = Size{ .width = 10, .height = 20 };
-        try expect(!s.isSame(.{ .width = 11, .height = 20 }));
-    }
-
-    // Region.isSame: each field differs individually
-    {
-        const r = Region{ .x = 5, .y = 10, .width = 15, .height = 25 };
-        try expect(!r.isSame(.{ .x = 6, .y = 10, .width = 15, .height = 25 }));
-        try expect(!r.isSame(.{ .x = 5, .y = 11, .width = 15, .height = 25 }));
-        try expect(!r.isSame(.{ .x = 5, .y = 10, .width = 16, .height = 25 }));
-    }
-
-    // Rectangle.isSame: false case and near-tolerance
-    {
-        const r = Rectangle{ .x = 1.0, .y = 2.0, .width = 3.0, .height = 4.0 };
-        try expect(!r.isSame(.{ .x = 1.1, .y = 2.0, .width = 3.0, .height = 4.0 }));
-        // near tolerance - should still be same
-        try expect(r.isSame(.{ .x = 1.0000005, .y = 2.0, .width = 3.0, .height = 4.0 }));
-    }
-
-    // Rectangle.containsPoint: point on top-left edge (inclusive)
-    {
-        const rect = Rectangle{ .x = 0.0, .y = 0.0, .width = 10.0, .height = 20.0 };
-        try expect(rect.containsPoint(.{ .x = 0.0, .y = 0.0 })); // top-left corner (>= check)
-        try expect(!rect.containsPoint(.{ .x = 10.0, .y = 0.0 })); // right edge (< check)
-        try expect(!rect.containsPoint(.{ .x = 0.0, .y = 20.0 })); // bottom edge (< check)
-        try expect(rect.containsPoint(.{ .x = 0.0, .y = 19.999 })); // just inside bottom
-    }
-
-    // Rectangle.translate/scale with Point argument
-    {
-        const rect = Rectangle{ .x = 1.0, .y = 2.0, .width = 3.0, .height = 4.0 };
-        try expectEqual(rect.translate(Point{ .x = 5.0, .y = 6.0 }), Rectangle{ .x = 6.0, .y = 8.0, .width = 3.0, .height = 4.0 });
-        try expectEqual(rect.scale(Point{ .x = 2.0, .y = 3.0 }), Rectangle{ .x = 1.0, .y = 2.0, .width = 6.0, .height = 12.0 });
-    }
-
-    // Rectangle.intersectRect: one fully inside another
-    {
-        const outer = Rectangle{ .x = 0.0, .y = 0.0, .width = 10.0, .height = 10.0 };
-        const inner = Rectangle{ .x = 2.0, .y = 2.0, .width = 3.0, .height = 3.0 };
-        const isect = outer.intersectRect(inner);
-        try expect(isect != null);
-        try expect(isect.?.isSame(inner));
-    }
-
-    // Circle.containsPoint: point exactly on boundary (should be false, uses <)
-    {
-        const c = Circle{ .center = .{ .x = 0.0, .y = 0.0 }, .radius = 5.0 };
-        try expect(!c.containsPoint(.{ .x = 5.0, .y = 0.0 }));
-        try expect(!c.containsPoint(.{ .x = 0.0, .y = 5.0 }));
-        // just inside
-        try expect(c.containsPoint(.{ .x = 4.999, .y = 0.0 }));
-    }
-
-    // Circle.intersectCircle: exactly touching (distance == r0+r1, uses <=)
-    {
-        const c0 = Circle{ .center = .{ .x = 0.0, .y = 0.0 }, .radius = 3.0 };
-        const c1 = Circle{ .center = .{ .x = 5.0, .y = 0.0 }, .radius = 2.0 };
-        try expect(c0.intersectCircle(c1)); // exactly touching
-        // one circle fully inside another
-        const c_inner = Circle{ .center = .{ .x = 1.0, .y = 0.0 }, .radius = 1.0 };
-        try expect(c0.intersectCircle(c_inner));
-    }
-
-    // Circle.intersectRect: circle fully inside rectangle
-    {
-        const c = Circle{ .center = .{ .x = 5.0, .y = 5.0 }, .radius = 1.0 };
-        try expect(c.intersectRect(.{ .x = 0.0, .y = 0.0, .width = 10.0, .height = 10.0 }));
-    }
-
-    // Ellipse.getBoundingRect
-    {
-        const e = Ellipse{ .center = .{ .x = 3.0, .y = 4.0 }, .radius = .{ .x = 5.0, .y = 2.0 } };
-        try expect(e.getBoundingRect().isSame(.{ .x = -2.0, .y = 2.0, .width = 10.0, .height = 4.0 }));
-    }
-
-    // Ellipse.getFocalRadius: ry > rx branch
-    {
-        const e = Ellipse{ .center = .origin, .radius = .{ .x = 3.0, .y = 5.0 } };
-        try expectApproxEqAbs(e.getFocalRadius2(), 16.0, 0.000001); // 25 - 9
-        try expectApproxEqAbs(e.getFocalRadius(), 4.0, 0.000001);
-    }
-
-    // Ellipse.getFocalRadius: equal radii (circle, focal radius = 0)
-    {
-        const e = Ellipse{ .center = .origin, .radius = .{ .x = 3.0, .y = 3.0 } };
-        try expectApproxEqAbs(e.getFocalRadius2(), 0.0, 0.000001);
-        try expectApproxEqAbs(e.getFocalRadius(), 0.0, 0.000001);
-    }
-
-    // Ellipse.containsPoint: along y-axis, on boundary
-    {
-        const e = Ellipse{ .center = .origin, .radius = .{ .x = 5.0, .y = 3.0 } };
-        try expect(e.containsPoint(.{ .x = 0.0, .y = 2.0 })); // inside along y
-        try expect(!e.containsPoint(.{ .x = 0.0, .y = 3.0 })); // on boundary (uses <)
-    }
-
-    // Triangle.barycentricCoord: vertex and outside point
-    {
-        const tri = Triangle{
-            .p0 = .{ .x = 0.0, .y = 0.0 },
-            .p1 = .{ .x = 4.0, .y = 0.0 },
-            .p2 = .{ .x = 2.0, .y = 3.0 },
-        };
-        // at vertex p1: u=0, v=1, w=0
-        const bc1 = tri.barycentricCoord(tri.p1);
-        try expectApproxEqAbs(bc1[1], 1.0, 0.001);
-        try expectApproxEqAbs(bc1[0], 0.0, 0.001);
-        try expectApproxEqAbs(bc1[2], 0.0, 0.001);
-        // outside point: at least one negative
-        const bc_out = tri.barycentricCoord(.{ .x = -1.0, .y = -1.0 });
-        try expect(bc_out[0] < 0 or bc_out[1] < 0 or bc_out[2] < 0);
-    }
-
-    // Triangle.containsPoint: point on edge (should be false, uses > 0)
-    {
-        const tri = Triangle{
-            .p0 = .{ .x = 0.0, .y = 0.0 },
-            .p1 = .{ .x = 4.0, .y = 0.0 },
-            .p2 = .{ .x = 2.0, .y = 3.0 },
-        };
-        try expect(!tri.containsPoint(.{ .x = 2.0, .y = 0.0 })); // midpoint of edge p0-p1
-        try expect(!tri.containsPoint(tri.p0)); // vertex
-    }
-
-    // Triangle.intersectTriangle: one fully inside another
-    {
-        const big = Triangle{
-            .p0 = .{ .x = 0.0, .y = 0.0 },
-            .p1 = .{ .x = 10.0, .y = 0.0 },
-            .p2 = .{ .x = 5.0, .y = 10.0 },
-        };
-        const small = Triangle{
-            .p0 = .{ .x = 4.0, .y = 1.0 },
-            .p1 = .{ .x = 6.0, .y = 1.0 },
-            .p2 = .{ .x = 5.0, .y = 3.0 },
-        };
-        try expect(big.intersectTriangle(small));
-    }
-
-    // Triangle.intersectRect: rect fully inside triangle
-    {
-        const tri = Triangle{
-            .p0 = .{ .x = 0.0, .y = 0.0 },
-            .p1 = .{ .x = 20.0, .y = 0.0 },
-            .p2 = .{ .x = 10.0, .y = 20.0 },
-        };
-        try expect(tri.intersectRect(.{ .x = 8.0, .y = 2.0, .width = 4.0, .height = 4.0 }));
-    }
-
-    // Line.direction: vertical and diagonal
-    {
-        const vert = Line{ .p0 = .{ .x = 0.0, .y = 0.0 }, .p1 = .{ .x = 0.0, .y = 5.0 } };
-        try expect(vert.direction().isSame(.{ .x = 0.0, .y = 1.0 }));
-        const diag = Line{ .p0 = .{ .x = 0.0, .y = 0.0 }, .p1 = .{ .x = 1.0, .y = 1.0 } };
-        const d = diag.direction();
-        const inv_sqrt2 = 1.0 / @sqrt(2.0);
-        try expectApproxEqAbs(d.x, inv_sqrt2, 0.000001);
-        try expectApproxEqAbs(d.y, inv_sqrt2, 0.000001);
-    }
-
-    // Line.intersectLine: T-intersection (endpoint touching midpoint)
-    {
-        const l0 = Line{ .p0 = .{ .x = 0.0, .y = 0.0 }, .p1 = .{ .x = 4.0, .y = 0.0 } };
-        const l1 = Line{ .p0 = .{ .x = 2.0, .y = -2.0 }, .p1 = .{ .x = 2.0, .y = 0.0 } };
-        const isect = l0.intersectLine(l1);
-        try expect(isect != null);
-        try expectApproxEqAbs(isect.?.x, 2.0, 0.000001);
-        try expectApproxEqAbs(isect.?.y, 0.0, 0.000001);
-    }
-
-    // Ray.raycast(Line): ray hitting endpoint of segment
-    {
-        const r = Ray{ .origin = .{ .x = 0.0, .y = 0.0 }, .dir = .{ .x = 1.0, .y = 0.0 } };
-        const seg = Line{ .p0 = .{ .x = 5.0, .y = -1.0 }, .p1 = .{ .x = 5.0, .y = 0.0 } };
-        const hit = r.raycast(seg);
-        try expect(hit != null);
-        try expectApproxEqAbs(hit.?.t, 5.0, 0.000001);
-    }
 
     // Color tests
     {

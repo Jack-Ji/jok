@@ -1,9 +1,10 @@
 const std = @import("std");
 const jok = @import("jok");
+const geom = jok.geom;
 const j2d = jok.j2d;
 
 const Cell = struct {
-    rect: jok.Rectangle,
+    rect: geom.Rectangle,
     alive: bool,
     color: jok.Color,
 };

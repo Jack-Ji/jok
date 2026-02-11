@@ -19,6 +19,7 @@ const Vector = @import("Vector.zig");
 const TriangleRenderer = @import("TriangleRenderer.zig");
 const Camera = @import("Camera.zig");
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const j3d = jok.j3d;
 const j2d = jok.j2d;
 const zmesh = jok.vendor.zmesh;
@@ -251,7 +252,7 @@ pub const Effect = struct {
     /// Render to output
     pub fn render(
         self: *const Effect,
-        csz: jok.Size,
+        csz: geom.Size,
         batch: *j3d.Batch,
         camera: Camera,
         tri_rd: *TriangleRenderer,
@@ -281,12 +282,12 @@ pub const DrawData = union(enum) {
         texture: ?jok.Texture = null,
     },
     sprite: struct {
-        size: jok.Point,
-        uv: [2]jok.Point = .{ .origin, .unit },
+        size: geom.Point,
+        uv: [2]geom.Point = .{ .origin, .unit },
         texture: ?jok.Texture = null,
     },
 
-    pub fn fromSprite(sp: j2d.Sprite, scale: ?jok.Point) DrawData {
+    pub fn fromSprite(sp: j2d.Sprite, scale: ?geom.Point) DrawData {
         return .{
             .sprite = .{
                 .size = .{
@@ -379,7 +380,7 @@ pub const Particle = struct {
     /// Render to output
     inline fn render(
         self: Particle,
-        csz: jok.Size,
+        csz: geom.Size,
         batch: *j3d.Batch,
         camera: Camera,
         tri_rd: *TriangleRenderer,

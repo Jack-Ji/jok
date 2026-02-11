@@ -12,6 +12,7 @@ const std = @import("std");
 const math = std.math;
 const expectEqual = std.testing.expectEqual;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const Vec = @Vector(2, f32);
 const Self = @This();
 
@@ -45,8 +46,8 @@ pub fn new(vx: f32, vy: f32) Self {
     return .{ .data = [2]f32{ vx, vy } };
 }
 
-/// Convert vector to a jok.Point.
-pub fn toPoint(self: Self) jok.Point {
+/// Convert vector to a geom.Point.
+pub fn toPoint(self: Self) geom.Point {
     return .{ .x = self.data[0], .y = self.data[1] };
 }
 

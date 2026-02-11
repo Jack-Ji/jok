@@ -39,7 +39,7 @@ pub const codepoint_ranges = @import("font/codepoint_ranges.zig");
 /// loading external font files. Useful for debug output and development.
 pub const DebugFont = struct {
     /// Embedded font data (Clacon2 TrueType font)
-    pub const font_data = @embedFile("font/clacon2.ttf");
+    pub const font_data = @embedFile("font/Orbitron-Bold.ttf");
     /// Font instance (initialized by init())
     pub var font: *Font = undefined;
 

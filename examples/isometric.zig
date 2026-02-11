@@ -1,12 +1,13 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
+const geom = jok.geom;
 const font = jok.font;
 const j2d = jok.j2d;
 const physfs = jok.vendor.physfs;
 
 const Tile = struct {
-    pos: jok.Point,
+    pos: geom.Point,
     sprite: j2d.Sprite,
 };
 

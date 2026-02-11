@@ -10,6 +10,7 @@
 
 const std = @import("std");
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const assert = std.debug.assert;
 const math = std.math;
 const zmath = jok.vendor.zmath;
@@ -46,27 +47,6 @@ pub inline fn minAndMax(_x: anytype, _y: anytype, _z: anytype) @Tuple(&[_]type{
     return .{ x, z };
 }
 
-/// Test whether two line segments intersect
-/// Each line is defined by two points
-pub inline fn areLinesIntersect(line0: [2]jok.Point, line1: [2]jok.Point) bool {
-    if (@max(line0[0].x, line0[1].x) < @min(line1[0].x, line1[1].x) or
-        @min(line0[0].x, line0[1].x) > @max(line1[0].x, line1[1].x) or
-        @max(line0[0].y, line0[1].y) < @min(line1[0].y, line1[1].y) or
-        @min(line0[0].y, line0[1].y) > @max(line1[0].y, line1[1].y))
-    {
-        return false;
-    }
-
-    const v0 = zmath.f32x4(line0[1].x - line0[0].x, line0[1].y - line0[0].y, 0, 0);
-    const v0_v1_0 = zmath.f32x4(line1[1].x - line0[0].x, line1[1].y - line0[0].y, 0, 0);
-    const v0_v1_1 = zmath.f32x4(line1[0].x - line0[0].x, line1[0].y - line0[0].y, 0, 0);
-    const v1 = zmath.f32x4(line1[1].x - line1[0].x, line1[1].y - line1[0].y, 0, 0);
-    const v1_v0_0 = zmath.f32x4(line0[1].x - line1[0].x, line0[1].y - line1[0].y, 0, 0);
-    const v1_v0_1 = zmath.f32x4(line0[0].x - line1[0].x, line0[0].y - line1[0].y, 0, 0);
-    return zmath.dot3(zmath.cross3(v0, v0_v1_0), zmath.cross3(v0, v0_v1_1))[0] <= 0 and
-        zmath.dot3(zmath.cross3(v1, v1_v0_0), zmath.cross3(v1, v1_v0_1))[0] <= 0;
-}
-
 /// Transform coordinates between isometric space and screen space
 /// Useful for isometric tile-based games
 pub const IsometricTransform = struct {
@@ -77,13 +57,13 @@ pub const IsometricTransform = struct {
     /// Options for configuring isometric transformation
     pub const IsometricOption = struct {
         /// Offset to apply in screen space
-        xy_offset: jok.Point = .origin,
+        xy_offset: geom.Point = .origin,
         /// Scale factor for tile size
         scale: f32 = 1.0,
     };
 
     /// Initialize isometric transformation with given tile size and options
-    pub fn init(tile_size: jok.Size, opt: IsometricOption) @This() {
+    pub fn init(tile_size: geom.Size, opt: IsometricOption) @This() {
         assert(tile_size.width > 0 and tile_size.height > 0);
         const w = tile_size.getWidthFloat() * opt.scale;
         const h = tile_size.getHeightFloat() * opt.scale;
@@ -102,13 +82,13 @@ pub const IsometricTransform = struct {
 
     /// Transform a point from isometric space to screen space
     /// zoffset: Additional vertical offset (useful for height/depth)
-    pub fn transformToScreen(self: @This(), p: jok.Point, zoffset: f32) jok.Point {
+    pub fn transformToScreen(self: @This(), p: geom.Point, zoffset: f32) geom.Point {
         const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.iso_to_screen);
         return .{ .x = v[0], .y = v[1] - zoffset };
     }
 
     /// Transform a point from screen space to isometric space
-    pub fn transformToIso(self: @This(), p: jok.Point) jok.Point {
+    pub fn transformToIso(self: @This(), p: geom.Point) geom.Point {
         const v = zmath.mul(
             zmath.f32x4(p.x - self.tile_width * 0.5, p.y, 0, 1),
             self.screen_to_iso,

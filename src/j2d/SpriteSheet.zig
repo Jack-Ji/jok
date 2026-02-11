@@ -19,6 +19,7 @@ const builtin = @import("builtin");
 const assert = std.debug.assert;
 const json = std.json;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const gfx = jok.utils.gfx;
 const physfs = jok.vendor.physfs;
 const stb_rect_pack = jok.vendor.stb.rect_pack;
@@ -83,7 +84,7 @@ pub const SpriteRect = struct {
 allocator: std.mem.Allocator,
 
 /// Size of the sprite sheet texture
-size: jok.Size,
+size: geom.Size,
 
 /// Packed pixel data (optional, only if keep_packed_pixels is true)
 packed_pixels: ?ImagePixels = null,
@@ -408,7 +409,7 @@ pub fn fromPicturesInDir(
 /// Create a very raw sheet with a single picture in memory, initialize name tree if possible
 pub const SpriteInfo = struct {
     name: []const u8,
-    rect: jok.Rectangle,
+    rect: geom.Rectangle,
 };
 pub fn fromSinglePictureData(ctx: jok.Context, filepixels: gfx.FilePixels, sprites: []const SpriteInfo) !*Self {
     assert(ctx.isMainThread());
@@ -620,7 +621,7 @@ pub fn getSpriteByName(self: *Self, name: []const u8) ?Sprite {
 }
 
 /// Get sprite by rectangle
-pub fn getSpriteByRectangle(self: *Self, rect: jok.Rectangle) Sprite {
+pub fn getSpriteByRectangle(self: *Self, rect: geom.Rectangle) Sprite {
     const info = try self.tex.query();
     const tex_width = @as(f32, @floatFromInt(info.width));
     const tex_height = @as(f32, @floatFromInt(info.height));

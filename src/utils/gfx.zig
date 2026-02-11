@@ -11,6 +11,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const physfs = jok.vendor.physfs;
 const stb = jok.vendor.stb;
 
@@ -30,7 +31,7 @@ pub const Error = error{
 pub const FilePixels = struct {
     allocator: std.mem.Allocator,
     pixels: []const u8, // RGBA data
-    size: jok.Size,
+    size: geom.Size,
 
     /// Free the allocated pixel data
     pub fn destroy(self: FilePixels) void {
@@ -331,7 +332,7 @@ pub const jpng = struct {
     pub const PixelData = struct {
         allocator: std.mem.Allocator,
         pixels: []const u8, // RGBA data
-        size: jok.Size,
+        size: geom.Size,
         data: []const u8, // custom data
 
         pub fn destroy(self: PixelData) void {

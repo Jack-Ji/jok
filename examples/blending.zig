@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
+const geom = jok.geom;
 const font = jok.font;
 const j2d = jok.j2d;
 const physfs = jok.vendor.physfs;
@@ -15,7 +16,7 @@ var src: jok.Texture = undefined;
 var dst: jok.Texture = undefined;
 const blends = [_]struct {
     blend: jok.BlendMode,
-    pos: jok.Point,
+    pos: geom.Point,
     name: [:0]const u8,
 }{
     .{ .blend = .none, .pos = .{ .x = 40, .y = 20 }, .name = @tagName(jok.BlendMode.none) },

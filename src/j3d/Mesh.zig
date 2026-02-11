@@ -21,6 +21,7 @@ const math = std.math;
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
 const j3d = jok.j3d;
+const geom = jok.geom;
 const physfs = jok.vendor.physfs;
 const zmath = jok.vendor.zmath;
 const zmesh = jok.vendor.zmesh;
@@ -155,7 +156,7 @@ pub const Node = struct {
         }
 
         // Remap texture coordinates to new range
-        fn remapTexcoords(self: *SubMesh, uv0: jok.Point, uv1: jok.Point) void {
+        fn remapTexcoords(self: *SubMesh, uv0: geom.Point, uv1: geom.Point) void {
             for (self.texcoords.items) |*ts| {
                 ts[0] = jok.utils.math.linearMap(ts[0], 0, 1, uv0.x, uv1.x);
                 ts[1] = jok.utils.math.linearMap(ts[1], 0, 1, uv0.y, uv1.y);
@@ -260,7 +261,7 @@ pub const Node = struct {
 
     fn render(
         node: *Node,
-        csz: jok.Size,
+        csz: geom.Size,
         batch: *j3d.Batch,
         model: zmath.Mat,
         camera: Camera,
@@ -468,7 +469,7 @@ pub fn create(allocator: std.mem.Allocator, mesh_count: usize, format: Format) !
 pub const ShapeOption = struct {
     compute_aabb: bool = true,
     tex: ?jok.Texture = null,
-    uvs: ?[2]jok.Point = null,
+    uvs: ?[2]geom.Point = null,
 };
 /// Create a mesh from a zmesh.Shape primitive.
 pub fn fromShape(
@@ -505,7 +506,7 @@ pub fn fromShape(
 pub const ObjOption = struct {
     compute_aabb: bool = true,
     tex: ?jok.Texture = null,
-    uvs: ?[2]jok.Point = null,
+    uvs: ?[2]geom.Point = null,
 };
 /// Create a mesh from a Wavefront OBJ model file.
 pub fn fromObj(
@@ -699,7 +700,7 @@ pub fn fromObj(
 pub const GltfOption = struct {
     compute_aabb: bool = true,
     tex: ?jok.Texture = null,
-    uvs: ?[2]jok.Point = null,
+    uvs: ?[2]geom.Point = null,
 };
 /// Create a mesh from a GLTF model file.
 pub fn fromGltf(ctx: jok.Context, file_path: [:0]const u8, opt: GltfOption) !*Self {
@@ -786,7 +787,7 @@ pub fn destroy(self: *Self) void {
 /// Automatically converts to right-handed coordinates for GLTF/OBJ models.
 pub fn render(
     self: *const Self,
-    csz: jok.Size,
+    csz: geom.Size,
     batch: *j3d.Batch,
     model: zmath.Mat,
     camera: Camera,

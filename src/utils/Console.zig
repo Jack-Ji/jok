@@ -11,6 +11,7 @@
 
 const std = @import("std");
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const zgui = jok.vendor.zgui;
 
 const Console = @This();
@@ -689,7 +690,7 @@ pub fn render(self: *Console, options: AdvancedOptions) !void {
 }
 
 /// Get prefered overlay size
-pub fn getPreferedOverlaySize(self: Console) jok.Size {
+pub fn getPreferedOverlaySize(self: Console) geom.Size {
     const size = self.ctx.renderer().getOutputSize() catch unreachable;
     return .{
         .width = @intFromFloat(size.getWidthFloat() * 0.3),

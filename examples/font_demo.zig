@@ -1,35 +1,42 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
+const geom = jok.geom;
 const font = jok.font;
 const j2d = jok.j2d;
 const physfs = jok.vendor.physfs;
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
-var saved_atlas: *font.Atlas = undefined;
+var loaded_font: *font.Font = undefined;
+var saved_atlas_16: *font.Atlas = undefined;
+var saved_atlas_20: *font.Atlas = undefined;
+var saved_atlas_30: *font.Atlas = undefined;
+var saved_atlas_128: *font.Atlas = undefined;
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
 
     if (!builtin.cpu.arch.isWasm()) {
+        try physfs.mount("assets", "", true);
         try physfs.mount(physfs.getBaseDir(), "", true);
     }
     try physfs.setWriteDir(physfs.getBaseDir());
 
     batchpool = try @TypeOf(batchpool).init(ctx);
+    loaded_font = try font.Font.create(ctx, if (ctx.cfg().jok_enable_physfs) "clacon2.ttf" else "assets/clacon2.ttf");
 
     const font_size = 16;
-    const vmetrics = font.DebugFont.font.getVMetrics(font_size);
+    const vmetrics = loaded_font.getVMetrics(font_size);
     const height = @as(u32, @intFromFloat(vmetrics.ascent - vmetrics.descent));
     const output = "jok is here!";
     for (0..height) |j| {
         const ypos = @as(f32, @floatFromInt(j));
         var xpos: f32 = 0;
         for (output) |c| {
-            const glyph = font.DebugFont.font.findGlyphIndex(c).?;
-            const map = try font.DebugFont.font.createGlyphBitmap(ctx.allocator(), glyph, font_size);
+            const glyph = loaded_font.findGlyphIndex(c).?;
+            const map = try loaded_font.createGlyphBitmap(ctx.allocator(), glyph, font_size);
             defer map.destroy();
-            const metrics = font.DebugFont.font.getGlyphMetrics(glyph, font_size);
+            const metrics = loaded_font.getGlyphMetrics(glyph, font_size);
             const bbox = metrics.getBBox(.{ .x = xpos, .y = 0 }, .top);
             for (0..@as(usize, @intFromFloat(metrics.advance_width))) |k| {
                 const x = xpos + @as(f32, @floatFromInt(k));
@@ -44,21 +51,30 @@ pub fn init(ctx: jok.Context) !void {
         std.debug.print("\n", .{});
     }
 
-    var atlas = try font.DebugFont.font.createAtlas(
-        ctx,
-        30,
-        &font.codepoint_ranges.chinese_full,
-        .{ .keep_pixels = true },
-    );
+    saved_atlas_16 = try loaded_font.createAtlas(ctx, 16, null, .{ .keep_pixels = true });
+    saved_atlas_20 = try loaded_font.createAtlas(ctx, 20, null, .{ .keep_pixels = true });
+    saved_atlas_30 = try loaded_font.createAtlas(ctx, 30, null, .{ .keep_pixels = true });
+    saved_atlas_128 = try loaded_font.createAtlas(ctx, 128, null, .{ .keep_pixels = true });
 
     var t = std.Io.Clock.awake.now(ctx.io());
-    try atlas.save(ctx, "atlas.png", .{});
+    try saved_atlas_16.save(ctx, "atlas_16.png", .{});
+    try saved_atlas_20.save(ctx, "atlas_20.png", .{});
+    try saved_atlas_30.save(ctx, "atlas_30.png", .{});
+    try saved_atlas_128.save(ctx, "atlas_128.png", .{});
     std.debug.print("Atlas save time: {D}\n", .{
         @as(i64, @intCast(t.durationTo(std.Io.Clock.awake.now(ctx.io())).nanoseconds)),
     });
-    atlas.destroy();
+
+    saved_atlas_16.destroy();
+    saved_atlas_20.destroy();
+    saved_atlas_30.destroy();
+    saved_atlas_128.destroy();
+
     t = std.Io.Clock.awake.now(ctx.io());
-    saved_atlas = try font.Atlas.loadFromPath(ctx, "atlas.png");
+    saved_atlas_16 = try font.Atlas.loadFromPath(ctx, "atlas_16.png");
+    saved_atlas_20 = try font.Atlas.loadFromPath(ctx, "atlas_20.png");
+    saved_atlas_30 = try font.Atlas.loadFromPath(ctx, "atlas_30.png");
+    saved_atlas_128 = try font.Atlas.loadFromPath(ctx, "atlas_128.png");
     std.debug.print("Atlas load time: {D}\n", .{
         @as(i64, @intCast(t.durationTo(std.Io.Clock.awake.now(ctx.io())).nanoseconds)),
     });
@@ -83,9 +99,8 @@ pub fn draw(ctx: jok.Context) !void {
     defer b.submit();
 
     // Left-Aligned text
-    var atlas = try font.DebugFont.getAtlas(ctx, 20);
-    var pos = jok.Point{ .x = 20, .y = 20 };
-    var area = try atlas.getBoundingBox(
+    var pos = geom.Point{ .x = 20, .y = 20 };
+    var area = try saved_atlas_20.getBoundingBox(
         "Left Aligned Text",
         pos,
         .{
@@ -97,13 +112,13 @@ pub fn draw(ctx: jok.Context) !void {
         "Left Aligned Text",
         .{},
         .{
-            .atlas = atlas,
+            .atlas = saved_atlas_20,
             .pos = pos,
             .align_type = .left,
         },
     );
-    pos.y = atlas.getVPosOfNextLine(pos.y) + 10;
-    area = try atlas.getBoundingBox(
+    pos.y = saved_atlas_20.getVPosOfNextLine(pos.y) + 10;
+    area = try saved_atlas_20.getBoundingBox(
         "Left Aligned Text with width",
         pos,
         .{
@@ -116,7 +131,7 @@ pub fn draw(ctx: jok.Context) !void {
         "Left Aligned Text with width",
         .{},
         .{
-            .atlas = atlas,
+            .atlas = saved_atlas_20,
             .pos = pos,
             .align_type = .left,
             .align_width = 120,
@@ -133,7 +148,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     // Right-Aligned text
     pos = .{ .x = size.getWidthFloat() - 50, .y = 30 };
-    area = try saved_atlas.getBoundingBox(
+    area = try saved_atlas_30.getBoundingBox(
         "Right Aligned Text",
         pos,
         .{
@@ -145,14 +160,14 @@ pub fn draw(ctx: jok.Context) !void {
         "Right Aligned Text",
         .{},
         .{
-            .atlas = saved_atlas,
+            .atlas = saved_atlas_30,
             .pos = pos,
             .align_type = .right,
             .ignore_unexist = false,
         },
     );
-    pos.y = saved_atlas.getVPosOfNextLine(pos.y) + 10;
-    area = try saved_atlas.getBoundingBox(
+    pos.y = saved_atlas_30.getVPosOfNextLine(pos.y) + 10;
+    area = try saved_atlas_30.getBoundingBox(
         "Right Aligned Text with width",
         pos,
         .{
@@ -165,7 +180,7 @@ pub fn draw(ctx: jok.Context) !void {
         "Right Aligned Text with width",
         .{},
         .{
-            .atlas = saved_atlas,
+            .atlas = saved_atlas_30,
             .pos = pos,
             .align_type = .right,
             .align_width = 150,
@@ -182,7 +197,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     // Middle-Aligned text
     pos = .{ .x = 380, .y = 150 };
-    area = try saved_atlas.getBoundingBox(
+    area = try saved_atlas_30.getBoundingBox(
         "Middle Aligned Text",
         pos,
         .{
@@ -194,13 +209,13 @@ pub fn draw(ctx: jok.Context) !void {
         "Middle Aligned Text",
         .{},
         .{
-            .atlas = saved_atlas,
+            .atlas = saved_atlas_30,
             .pos = pos,
             .align_type = .middle,
         },
     );
-    pos.y = saved_atlas.getVPosOfNextLine(pos.y) + 10;
-    area = try saved_atlas.getBoundingBox(
+    pos.y = saved_atlas_30.getVPosOfNextLine(pos.y) + 10;
+    area = try saved_atlas_30.getBoundingBox(
         "Middle Aligned Text with width",
         pos,
         .{
@@ -213,7 +228,7 @@ pub fn draw(ctx: jok.Context) !void {
         "Middle Aligned Text with width",
         .{},
         .{
-            .atlas = saved_atlas,
+            .atlas = saved_atlas_30,
             .pos = pos,
             .align_type = .middle,
             .align_width = 150,
@@ -229,12 +244,11 @@ pub fn draw(ctx: jok.Context) !void {
     );
 
     // Y-Position showcasing
-    atlas = try font.DebugFont.getAtlas(ctx, 128);
-    const metrics = font.DebugFont.font.getGlyphMetrics(
-        font.DebugFont.font.findGlyphIndex('Q').?,
+    const metrics = loaded_font.getGlyphMetrics(
+        loaded_font.findGlyphIndex('Q').?,
         128,
     );
-    const q_pos = jok.Point{ .x = 100, .y = 450 };
+    const q_pos = geom.Point{ .x = 100, .y = 450 };
     try b.rectFilled(
         metrics.getSpace(q_pos, .baseline),
         .rgba(200, 0, 0, 128),
@@ -279,14 +293,14 @@ pub fn draw(ctx: jok.Context) !void {
         "Q",
         .{},
         .{
-            .atlas = atlas,
+            .atlas = saved_atlas_128,
             .pos = q_pos,
             .ypos_type = .baseline,
         },
     );
     try b.text("baseline", .{}, .{
         .pos = q_pos.add(.{ metrics.advance_width / 2, -105 }),
-        .atlas = try font.DebugFont.getAtlas(ctx, 16),
+        .atlas = saved_atlas_16,
         .tint_color = .purple,
         .ypos_type = .bottom,
         .align_type = .middle,
@@ -295,14 +309,14 @@ pub fn draw(ctx: jok.Context) !void {
         "Q",
         .{},
         .{
-            .atlas = atlas,
+            .atlas = saved_atlas_128,
             .pos = q_pos.add(.{ metrics.advance_width, 0 }),
             .ypos_type = .top,
         },
     );
     try b.text("top", .{}, .{
         .pos = q_pos.add(.{ metrics.advance_width * 1.5, -5 }),
-        .atlas = try font.DebugFont.getAtlas(ctx, 16),
+        .atlas = saved_atlas_16,
         .tint_color = .purple,
         .ypos_type = .bottom,
         .align_type = .middle,
@@ -311,14 +325,14 @@ pub fn draw(ctx: jok.Context) !void {
         "Q",
         .{},
         .{
-            .atlas = atlas,
+            .atlas = saved_atlas_128,
             .pos = q_pos.add(.{ metrics.advance_width * 2, 0 }),
             .ypos_type = .bottom,
         },
     );
     try b.text("bottom", .{}, .{
         .pos = q_pos.add(.{ metrics.advance_width * 2.5, -130 }),
-        .atlas = try font.DebugFont.getAtlas(ctx, 16),
+        .atlas = saved_atlas_16,
         .tint_color = .purple,
         .ypos_type = .bottom,
         .align_type = .middle,
@@ -327,14 +341,14 @@ pub fn draw(ctx: jok.Context) !void {
         "Q",
         .{},
         .{
-            .atlas = atlas,
+            .atlas = saved_atlas_128,
             .pos = q_pos.add(.{ metrics.advance_width * 3, 0 }),
             .ypos_type = .middle,
         },
     );
     try b.text("middle", .{}, .{
         .pos = q_pos.add(.{ metrics.advance_width * 3.5, -65 }),
-        .atlas = try font.DebugFont.getAtlas(ctx, 16),
+        .atlas = saved_atlas_16,
         .tint_color = .purple,
         .ypos_type = .bottom,
         .align_type = .middle,
@@ -349,7 +363,7 @@ pub fn draw(ctx: jok.Context) !void {
     );
     try b.text("Y-POSITION", .{}, .{
         .pos = q_pos.add(.{ metrics.advance_width * 5, -5 }),
-        .atlas = try font.DebugFont.getAtlas(ctx, 16),
+        .atlas = saved_atlas_16,
         .tint_color = .purple,
         .ypos_type = .bottom,
     });
@@ -359,5 +373,9 @@ pub fn quit(ctx: jok.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     batchpool.deinit();
-    saved_atlas.destroy();
+    saved_atlas_16.destroy();
+    saved_atlas_20.destroy();
+    saved_atlas_30.destroy();
+    saved_atlas_128.destroy();
+    loaded_font.destroy();
 }

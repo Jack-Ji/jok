@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
+const geom = jok.geom;
 const j2d = jok.j2d;
 const j3d = jok.j3d;
 const zgui = jok.vendor.zgui;
@@ -47,8 +48,8 @@ const ShaderChoice = enum(u8) {
 };
 
 const ShaderParam = extern struct {
-    resolution: jok.Point,
-    cursor: jok.Point,
+    resolution: geom.Point,
+    cursor: geom.Point,
     time: f32,
     padding: [3]f32 = undefined,
 };

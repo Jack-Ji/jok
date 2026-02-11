@@ -20,6 +20,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const twoFloats = jok.utils.twoFloats;
 const zmath = jok.vendor.zmath;
 const Self = @This();
@@ -82,7 +83,7 @@ pub fn setToRotateByOrigin(self: *Self, radian: f32) void {
 }
 
 /// Set this transformation to a rotation around a specific point.
-pub fn setToRotateByPoint(self: *Self, p: jok.Point, radian: f32) void {
+pub fn setToRotateByPoint(self: *Self, p: geom.Point, radian: f32) void {
     self.mat = zmath.mul(
         zmath.mul(
             zmath.translation(-p.x, -p.y, 0),
@@ -99,7 +100,7 @@ pub fn setToRotateToVec(self: *Self, two_floats: anytype) void {
 }
 
 /// Set this transformation to a rotation around a point to align with a direction vector.
-pub fn setToRotateToVecByPoint(self: *Self, p: jok.Point, two_floats: anytype) void {
+pub fn setToRotateToVecByPoint(self: *Self, p: geom.Point, two_floats: anytype) void {
     const x, const y = twoFloats(two_floats);
     self.mat = zmath.mul(
         zmath.mul(
@@ -108,6 +109,14 @@ pub fn setToRotateToVecByPoint(self: *Self, p: jok.Point, two_floats: anytype) v
         ),
         zmath.translation(p.x, p.y, 0),
     );
+}
+
+/// Multiply two transformations together.
+/// The result applies m0 first, then m1.
+pub fn mul(m0: Self, m1: Self) Self {
+    return .{
+        .mat = zmath.mul(m0.mat, m1.mat),
+    };
 }
 
 /// Apply a translation to this transformation.
@@ -142,7 +151,7 @@ pub fn scaleAroundOrigin(self: Self, two_floats: anytype) Self {
 }
 
 /// Apply a scale around a specific point.
-pub fn scaleAroundPoint(self: Self, p: jok.Point, two_floats: anytype) Self {
+pub fn scaleAroundPoint(self: Self, p: geom.Point, two_floats: anytype) Self {
     const x, const y = twoFloats(two_floats);
     return .{
         .mat = zmath.mul(
@@ -166,7 +175,7 @@ pub fn rotateByOrigin(self: Self, radian: f32) Self {
 }
 
 /// Apply a rotation around a specific point.
-pub fn rotateByPoint(self: Self, p: jok.Point, radian: f32) Self {
+pub fn rotateByPoint(self: Self, p: geom.Point, radian: f32) Self {
     return .{
         .mat = zmath.mul(
             self.mat,
@@ -190,7 +199,7 @@ pub fn rotateToVec(self: Self, two_floats: anytype) Self {
 }
 
 /// Apply a rotation around a point to align with a direction vector.
-pub fn rotateToVecByPoint(self: Self, p: jok.Point, two_floats: anytype) Self {
+pub fn rotateToVecByPoint(self: Self, p: geom.Point, two_floats: anytype) Self {
     const x, const y = twoFloats(two_floats);
     return .{
         .mat = zmath.mul(
@@ -248,41 +257,41 @@ pub fn getScaleY(self: Self) f32 {
 }
 
 /// Transform a point using this transformation.
-pub fn transformPoint(self: Self, p: jok.Point) jok.Point {
+pub fn transformPoint(self: Self, p: geom.Point) geom.Point {
     const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.mat);
     return .{ .x = v[0], .y = v[1] };
 }
 
 /// Transform a point using the inverse of this transformation.
-pub fn inverseTransformPoint(self: Self, p: jok.Point) jok.Point {
+pub fn inverseTransformPoint(self: Self, p: geom.Point) geom.Point {
     const mat = zmath.inverse(self.mat);
     const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), mat);
     return .{ .x = v[0], .y = v[1] };
 }
 
 /// Transform a rectangle using this transformation.
-pub fn transformRectangle(self: Self, r: jok.Rectangle) jok.Rectangle {
+pub fn transformRectangle(self: Self, r: geom.Rectangle) geom.Rectangle {
     const pos = self.transformPoint(r.getPos());
     const size = r.getSizeF().mul(self.getScale());
     return .{ .x = pos.x, .y = pos.y, .width = size.x, .height = size.y };
 }
 
 /// Transform a circle using this transformation.
-pub fn transformCircle(self: Self, c: jok.Circle) jok.Circle {
+pub fn transformCircle(self: Self, c: geom.Circle) geom.Circle {
     const pos = self.transformPoint(c.center);
     const radius = c.radius * self.getScaleX();
     return .{ .center = pos, .radius = radius };
 }
 
 /// Transform an ellipse using this transformation.
-pub fn transformEllipse(self: Self, e: jok.Ellipse) jok.Ellipse {
+pub fn transformEllipse(self: Self, e: geom.Ellipse) geom.Ellipse {
     const pos = self.transformPoint(e.center);
     const radius = e.radius.mul(self.getScale());
     return .{ .center = pos, .radius = radius };
 }
 
 /// Transform a triangle using this transformation.
-pub fn transformTriangle(self: Self, t: jok.Triangle) jok.Triangle {
+pub fn transformTriangle(self: Self, t: geom.Triangle) geom.Triangle {
     return .{
         self.transformPoint(t.p0),
         self.transformPoint(t.p1),
@@ -290,10 +299,10 @@ pub fn transformTriangle(self: Self, t: jok.Triangle) jok.Triangle {
     };
 }
 
-/// Multiply two transformations together.
-/// The result applies m0 first, then m1.
-pub fn mul(m0: Self, m1: Self) Self {
+/// Transform a line using this transformation.
+pub fn transformLine(self: Self, l: geom.Line) geom.Line {
     return .{
-        .mat = zmath.mul(m0.mat, m1.mat),
+        self.transformPoint(l.p0),
+        self.transformPoint(l.p1),
     };
 }

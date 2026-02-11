@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
+const geom = jok.geom;
 const j2d = jok.j2d;
 const physfs = jok.vendor.physfs;
 
@@ -10,7 +11,7 @@ var as1: *j2d.AnimationSystem(j2d.Sprite) = undefined;
 var as2: *j2d.AnimationSystem(j2d.DrawCmd) = undefined;
 const velocity = 100;
 var animation: []const u8 = "player_down";
-var pos = jok.Point{ .x = 200, .y = 200 };
+var pos = geom.Point{ .x = 200, .y = 200 };
 var flip_h = false;
 
 fn animation_over(name: []const u8) void {

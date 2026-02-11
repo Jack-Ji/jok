@@ -1,8 +1,9 @@
 // Directly ported from ebitengine's doomfire example
 const std = @import("std");
 const jok = @import("jok");
+const geom = jok.geom;
 
-pub const jok_canvas_size = jok.Size{
+pub const jok_canvas_size = geom.Size{
     .width = 100,
     .height = 50,
 };

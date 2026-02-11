@@ -1,5 +1,6 @@
 const std = @import("std");
 const jok = @import("jok");
+const geom = jok.geom;
 const j2d = jok.j2d;
 const easing = jok.utils.easing;
 
@@ -7,7 +8,7 @@ pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 800, .height = 800 },
 };
 
-const PointEase = easing.EasingSystem(jok.Point);
+const PointEase = easing.EasingSystem(geom.Point);
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
 var point_easing_system: *PointEase = undefined;
@@ -15,7 +16,7 @@ var blocks: [31]EasingBlock = undefined;
 
 const EasingBlock = struct {
     id: u32,
-    pos: jok.Point,
+    pos: geom.Point,
 
     fn draw(self: @This(), batch: *j2d.Batch) !void {
         try batch.rectRoundedFilled(.{

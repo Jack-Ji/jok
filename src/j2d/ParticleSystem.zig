@@ -18,6 +18,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const j2d = jok.j2d;
 const signal = jok.utils.signal;
 const DrawCmd = @import("internal.zig").DrawCmd;
@@ -112,7 +113,7 @@ pub const AddEffect = struct {
     /// Custom random number generator (uses system default if null)
     random: ?std.Random = null,
     /// Origin point for particle emission
-    origin: jok.Point = .origin,
+    origin: geom.Point = .origin,
     /// Maximum number of particles in this effect
     max_particle_num: u32 = 1000,
     /// Total duration of effect (null = infinite)

@@ -45,6 +45,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const testing = std.testing;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const j2d = jok.j2d;
 
 /// Errors that can occur during spatial hash operations
@@ -62,7 +63,7 @@ pub const SpatialOption = struct {
     /// Number of grid cells along each axis (not pixel size).
     /// The spatial region passed to `create` must be evenly divisible by these values.
     /// Each cell will be `region.width / size.width` by `region.height / size.height` pixels.
-    size: jok.Size = .{ .width = 10, .height = 10 },
+    size: geom.Size = .{ .width = 10, .height = 10 },
 };
 
 /// Options for the `put` operation.
@@ -70,7 +71,7 @@ pub const PutOption = struct {
     /// Optional collision size centered on the object's position.
     /// When set, the object occupies a rectangle of this size and may span multiple cells.
     /// When null, the object is treated as a dimensionless point in a single cell.
-    size: ?jok.Size = null,
+    size: ?geom.Size = null,
 };
 
 /// Options for the `query` operation.
@@ -104,21 +105,21 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
 
         const Entry = struct {
             buckets: BucketStorage,
-            pos: jok.Point,
+            pos: geom.Point,
         };
 
         allocator: std.mem.Allocator,
         arena: std.heap.ArenaAllocator,
         buckets: [opt.size.width * opt.size.height]std.ArrayList(ObjectType),
         positions: std.AutoHashMap(ObjectType, Entry),
-        sizes: std.AutoHashMap(ObjectType, jok.Size),
-        spatial_rect: jok.Rectangle,
-        spatial_unit: jok.Size,
+        sizes: std.AutoHashMap(ObjectType, geom.Size),
+        spatial_rect: geom.Rectangle,
+        spatial_unit: geom.Size,
 
         /// Allocate and initialize a spatial hash over the given region.
         /// The region dimensions must be evenly divisible by the grid size.
         /// Returns error.InvalidRect if they are not.
-        pub fn create(allocator: std.mem.Allocator, rect: jok.Region) !*HashTable {
+        pub fn create(allocator: std.mem.Allocator, rect: geom.Region) !*HashTable {
             assert(rect.area() > 0);
 
             if (rect.width % opt.size.width != 0 or rect.height % opt.size.height != 0) {
@@ -131,7 +132,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
                 .arena = std.heap.ArenaAllocator.init(allocator),
                 .buckets = undefined,
                 .positions = std.AutoHashMap(ObjectType, Entry).init(allocator),
-                .sizes = std.AutoHashMap(ObjectType, jok.Size).init(allocator),
+                .sizes = std.AutoHashMap(ObjectType, geom.Size).init(allocator),
                 .spatial_rect = rect.toRect(),
                 .spatial_unit = .{
                     .width = rect.width / opt.size.width,
@@ -161,7 +162,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
         /// Insert an object at the given position.
         /// Returns error.AlreadyExists if the object ID is already present.
         /// Returns error.NotSeeable if the position is outside the spatial bounds.
-        pub fn put(self: *HashTable, obj: ObjectType, pos: jok.Point, put_opt: PutOption) !void {
+        pub fn put(self: *HashTable, obj: ObjectType, pos: geom.Point, put_opt: PutOption) !void {
             if (self.positions.get(obj) != null) return error.AlreadyExists;
 
             if (put_opt.size) |size| {
@@ -169,7 +170,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
                 // Calculate bounding rectangle
                 const w = size.getWidthFloat();
                 const h = size.getHeightFloat();
-                const rect: jok.Rectangle = .{
+                const rect: geom.Rectangle = .{
                     .x = pos.x - w * 0.5,
                     .y = pos.y - h * 0.5,
                     .width = w,
@@ -205,7 +206,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
         /// Move an existing object to a new position, updating its bucket membership.
         /// If the object moves outside the spatial bounds, it is removed.
         /// If the object does not exist and the position is in bounds, it is inserted as a point.
-        pub fn update(self: *HashTable, obj: ObjectType, pos: jok.Point) !void {
+        pub fn update(self: *HashTable, obj: ObjectType, pos: geom.Point) !void {
             if (self.positions.get(obj)) |entry| {
                 // Check if object has size
                 if (self.sizes.get(obj)) |size| {
@@ -215,7 +216,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
                     // Sized object: recalculate all overlapping buckets
                     const w = size.getWidthFloat();
                     const h = size.getHeightFloat();
-                    const rect: jok.Rectangle = .{
+                    const rect: geom.Rectangle = .{
                         .x = pos.x - w * 0.5,
                         .y = pos.y - h * 0.5,
                         .width = w,
@@ -344,7 +345,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
         /// Find all objects whose cells overlap the given rectangle (expanded by `padding`).
         /// Results are appended to `results`; the caller owns the list.
         /// Pass `QueryOption{ .precise = true }` to post-filter against actual object geometry.
-        pub fn query(self: HashTable, rect: jok.Rectangle, padding: f32, results: *std.array_list.Managed(ObjectType), query_opt: QueryOption) !void {
+        pub fn query(self: HashTable, rect: geom.Rectangle, padding: f32, results: *std.array_list.Managed(ObjectType), query_opt: QueryOption) !void {
             const padded = rect.padded(padding);
             const start_len = results.items.len;
 
@@ -401,7 +402,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
                         if (self.sizes.get(obj)) |size| {
                             const w = size.getWidthFloat();
                             const h = size.getHeightFloat();
-                            const orect: jok.Rectangle = .{
+                            const orect: geom.Rectangle = .{
                                 .x = entry.pos.x - w * 0.5,
                                 .y = entry.pos.y - h * 0.5,
                                 .width = w,
@@ -439,7 +440,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
         /// Draw spatial hash grid on screen
         /// Options for debug-drawing the spatial hash grid.
         pub const DrawOption = struct {
-            query: ?jok.Rectangle = null,
+            query: ?geom.Rectangle = null,
             rect_color: jok.Color = .black,
             query_color: jok.Color = .red,
             thickness: f32 = 2.0,
@@ -459,7 +460,7 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
                     // Skip empty cells unless they intersect with query
                     const has_objects = self.buckets[bucket_idx].items.len > 0;
 
-                    const cell_rect = jok.Rectangle{
+                    const cell_rect = geom.Rectangle{
                         .x = self.spatial_rect.x + @as(f32, @floatFromInt(x * self.spatial_unit.width)),
                         .y = self.spatial_rect.y + @as(f32, @floatFromInt(y * self.spatial_unit.height)),
                         .width = @floatFromInt(self.spatial_unit.width),
@@ -490,14 +491,14 @@ pub fn SpatialHash(comptime ObjectType: type, opt: SpatialOption) type {
             }
         }
 
-        fn hash(self: HashTable, pos: jok.Point) ?u32 {
+        fn hash(self: HashTable, pos: geom.Point) ?u32 {
             if (!self.spatial_rect.containsPoint(pos)) return null;
             return @as(u32, @intFromFloat(pos.y - self.spatial_rect.y)) / self.spatial_unit.height * opt.size.width +
                 @as(u32, @intFromFloat(pos.x - self.spatial_rect.x)) / self.spatial_unit.width;
         }
 
         /// Get all bucket indices that a rectangle overlaps
-        fn getBucketsForRect(self: HashTable, rect: jok.Rectangle, allocator: std.mem.Allocator) !std.ArrayList(u32) {
+        fn getBucketsForRect(self: HashTable, rect: geom.Rectangle, allocator: std.mem.Allocator) !std.ArrayList(u32) {
             var bucket_list = try std.ArrayList(u32).initCapacity(allocator, 10);
             errdefer bucket_list.deinit(allocator);
 
@@ -729,7 +730,7 @@ test "update with size - size override and stable across move" {
     );
     defer sh.destroy();
 
-    const size = jok.Size{ .width = 10, .height = 10 };
+    const size = geom.Size{ .width = 10, .height = 10 };
     try sh.put(1, .{ .x = 45, .y = 45 }, .{ .size = size });
 
     // Update without providing size -> size remains
@@ -768,8 +769,8 @@ test "query - rect ending on cell boundary doesn't include next cell" {
     );
     defer sh.destroy();
 
-    try sh.put(1, .{ .x = 5, .y = 5 }, .{});   // cell (0,0)
-    try sh.put(2, .{ .x = 15, .y = 5 }, .{});  // cell (1,0)
+    try sh.put(1, .{ .x = 5, .y = 5 }, .{}); // cell (0,0)
+    try sh.put(2, .{ .x = 15, .y = 5 }, .{}); // cell (1,0)
 
     var results = std.array_list.Managed(u32).init(testing.allocator);
     defer results.deinit();
@@ -922,7 +923,7 @@ test "SpatialHash: put-remove-put cycles" {
     while (cycle < 5) : (cycle += 1) {
         var i: u32 = 0;
         while (i < 8) : (i += 1) {
-            const pos = jok.Point{
+            const pos = geom.Point{
                 .x = @as(f32, @floatFromInt(i)) * 20 + 5,
                 .y = @as(f32, @floatFromInt(cycle)) * 20 + 5,
             };
@@ -1119,7 +1120,7 @@ test "SpatialHash: many objects in same cell" {
     // All objects in the same cell
     var i: u32 = 0;
     while (i < 20) : (i += 1) {
-        const pos = jok.Point{
+        const pos = geom.Point{
             .x = @as(f32, @floatFromInt(i)) * 5 + 1,
             .y = @as(f32, @floatFromInt(i)) * 5 + 1,
         };

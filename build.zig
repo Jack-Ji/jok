@@ -52,7 +52,7 @@ pub fn build(b: *Build) void {
         .{ .name = "meshes_and_lighting", .opt = .{} },
         .{ .name = "intersection_2d", .opt = .{} },
         .{ .name = "solar_system", .opt = .{} },
-        .{ .name = "font_demo", .opt = .{} },
+        .{ .name = "font_demo", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "skybox", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "particle_life", .opt = .{ .support_web = false } },
         .{ .name = "audio_demo", .opt = .{ .preload_path = "examples/assets" } },

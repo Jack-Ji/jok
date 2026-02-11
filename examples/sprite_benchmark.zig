@@ -1,13 +1,14 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
+const geom = jok.geom;
 const j2d = jok.j2d;
 const physfs = jok.vendor.physfs;
 
 const Actor = struct {
     sprite: j2d.Sprite,
-    pos: jok.Point,
-    velocity: jok.Point,
+    pos: geom.Point,
+    velocity: geom.Point,
     rot: f32,
     rot_speed: f32,
     tint_color: jok.Color,

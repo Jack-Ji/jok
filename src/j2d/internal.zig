@@ -2,28 +2,29 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const AffineTransform = @import("AffineTransform.zig");
 const zgui = jok.vendor.zgui;
 
 pub const QuadImageCmd = struct {
     texture: jok.Texture,
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
-    p4: jok.Point,
-    uv1: jok.Point,
-    uv2: jok.Point,
-    uv3: jok.Point,
-    uv4: jok.Point,
+    p1: geom.Point,
+    p2: geom.Point,
+    p3: geom.Point,
+    p4: geom.Point,
+    uv1: geom.Point,
+    uv2: geom.Point,
+    uv3: geom.Point,
+    uv4: geom.Point,
     tint_color: u32,
 };
 
 pub const ImageRoundedCmd = struct {
     texture: jok.Texture,
-    pmin: jok.Point,
-    pmax: jok.Point,
-    uv0: jok.Point,
-    uv1: jok.Point,
+    pmin: geom.Point,
+    pmax: geom.Point,
+    uv0: geom.Point,
+    uv1: geom.Point,
     tint_color: u32,
     rounding: f32,
     corner_top_left: bool,
@@ -33,15 +34,15 @@ pub const ImageRoundedCmd = struct {
 };
 
 pub const LineCmd = struct {
-    p1: jok.Point,
-    p2: jok.Point,
+    p1: geom.Point,
+    p2: geom.Point,
     color: u32,
     thickness: f32,
 };
 
 pub const RectRoundedCmd = struct {
-    pmin: jok.Point,
-    pmax: jok.Point,
+    pmin: geom.Point,
+    pmax: geom.Point,
     color: u32,
     thickness: f32,
     rounding: f32,
@@ -52,8 +53,8 @@ pub const RectRoundedCmd = struct {
 };
 
 pub const RectFillRoundedCmd = struct {
-    pmin: jok.Point,
-    pmax: jok.Point,
+    pmin: geom.Point,
+    pmax: geom.Point,
     color: u32,
     rounding: f32,
     corner_top_left: bool,
@@ -63,19 +64,19 @@ pub const RectFillRoundedCmd = struct {
 };
 
 pub const QuadCmd = struct {
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
-    p4: jok.Point,
+    p1: geom.Point,
+    p2: geom.Point,
+    p3: geom.Point,
+    p4: geom.Point,
     color: u32,
     thickness: f32,
 };
 
 pub const QuadFillCmd = struct {
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
-    p4: jok.Point,
+    p1: geom.Point,
+    p2: geom.Point,
+    p3: geom.Point,
+    p4: geom.Point,
     color1: u32,
     color2: u32,
     color3: u32,
@@ -83,24 +84,24 @@ pub const QuadFillCmd = struct {
 };
 
 pub const TriangleCmd = struct {
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
+    p1: geom.Point,
+    p2: geom.Point,
+    p3: geom.Point,
     color: u32,
     thickness: f32,
 };
 
 pub const TriangleFillCmd = struct {
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
+    p1: geom.Point,
+    p2: geom.Point,
+    p3: geom.Point,
     color1: u32,
     color2: u32,
     color3: u32,
 };
 
 pub const CircleCmd = struct {
-    p: jok.Point,
+    p: geom.Point,
     radius: f32,
     color: u32,
     thickness: f32,
@@ -108,15 +109,15 @@ pub const CircleCmd = struct {
 };
 
 pub const CircleFillCmd = struct {
-    p: jok.Point,
+    p: geom.Point,
     radius: f32,
     color: u32,
     num_segments: u32,
 };
 
 pub const EllipseCmd = struct {
-    p: jok.Point,
-    radius: jok.Point,
+    p: geom.Point,
+    radius: geom.Point,
     color: u32,
     rotation: f32,
     thickness: f32,
@@ -124,15 +125,15 @@ pub const EllipseCmd = struct {
 };
 
 pub const EllipseFillCmd = struct {
-    p: jok.Point,
-    radius: jok.Point,
+    p: geom.Point,
+    radius: geom.Point,
     color: u32,
     rotation: f32,
     num_segments: u32,
 };
 
 pub const NgonCmd = struct {
-    p: jok.Point,
+    p: geom.Point,
     radius: f32,
     color: u32,
     thickness: f32,
@@ -140,7 +141,7 @@ pub const NgonCmd = struct {
 };
 
 pub const NgonFillCmd = struct {
-    p: jok.Point,
+    p: geom.Point,
     radius: f32,
     color: u32,
     num_segments: u32,
@@ -153,34 +154,34 @@ pub const ConvexPolyFillCmd = struct {
 };
 
 pub const ConcavePolyFillCmd = struct {
-    points: std.array_list.Managed(jok.Point),
-    transformed: std.array_list.Managed(jok.Point),
+    points: std.array_list.Managed(geom.Point),
+    transformed: std.array_list.Managed(geom.Point),
     color: u32,
     transform: AffineTransform = .init,
 };
 
 pub const BezierCubicCmd = struct {
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
-    p4: jok.Point,
+    p1: geom.Point,
+    p2: geom.Point,
+    p3: geom.Point,
+    p4: geom.Point,
     color: u32,
     thickness: f32,
     num_segments: u32,
 };
 
 pub const BezierQuadraticCmd = struct {
-    p1: jok.Point,
-    p2: jok.Point,
-    p3: jok.Point,
+    p1: geom.Point,
+    p2: geom.Point,
+    p3: geom.Point,
     color: u32,
     thickness: f32,
     num_segments: u32,
 };
 
 pub const PolylineCmd = struct {
-    points: std.array_list.Managed(jok.Point),
-    transformed: std.array_list.Managed(jok.Point),
+    points: std.array_list.Managed(geom.Point),
+    transformed: std.array_list.Managed(geom.Point),
     color: u32,
     thickness: f32,
     closed: bool,
@@ -209,8 +210,8 @@ pub const DrawCmd = union(enum) {
     bezier_quadratic: BezierQuadraticCmd,
     polyline: PolylineCmd,
 
-    pub inline fn getRect(d: DrawCmd) jok.Rectangle {
-        var rect: jok.Rectangle = undefined;
+    pub inline fn getRect(d: DrawCmd) geom.Rectangle {
+        var rect: geom.Rectangle = undefined;
         switch (d) {
             .quad_image => |c| {
                 rect.x = @min(c.p1.x, c.p2.x, c.p3.x, c.p4.x);

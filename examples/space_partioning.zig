@@ -1,5 +1,6 @@
 const std = @import("std");
 const jok = @import("jok");
+const geom = jok.geom;
 const j2d = jok.j2d;
 const utils = jok.utils;
 const zgui = jok.vendor.zgui;
@@ -19,7 +20,7 @@ const SpatialPartition = union(PartitionType) {
     quad_tree: *utils.QuadTree(u32, .{}),
     spatial_hash: *utils.SpatialHash(u32, .{}),
 
-    fn create(allocator: std.mem.Allocator, ptype: PartitionType, rect: jok.Rectangle) !SpatialPartition {
+    fn create(allocator: std.mem.Allocator, ptype: PartitionType, rect: geom.Rectangle) !SpatialPartition {
         return switch (ptype) {
             .quad_tree => .{ .quad_tree = try utils.QuadTree(u32, .{}).create(allocator, rect) },
             .spatial_hash => .{ .spatial_hash = try utils.SpatialHash(u32, .{}).create(allocator, .{
@@ -45,7 +46,7 @@ const SpatialPartition = union(PartitionType) {
         }
     }
 
-    fn put(self: *SpatialPartition, obj: u32, pos: jok.Point, size: ?jok.Size) !void {
+    fn put(self: *SpatialPartition, obj: u32, pos: geom.Point, size: ?geom.Size) !void {
         switch (self.*) {
             .quad_tree => |qt| {
                 if (size) |s| {
@@ -64,7 +65,7 @@ const SpatialPartition = union(PartitionType) {
         }
     }
 
-    fn update(self: *SpatialPartition, obj: u32, pos: jok.Point) !void {
+    fn update(self: *SpatialPartition, obj: u32, pos: geom.Point) !void {
         switch (self.*) {
             .quad_tree => |qt| try qt.update(obj, pos),
             .spatial_hash => |sh| try sh.update(obj, pos),
@@ -78,14 +79,14 @@ const SpatialPartition = union(PartitionType) {
         }
     }
 
-    fn query(self: *SpatialPartition, rect: jok.Rectangle, padding: f32, results: *std.array_list.Managed(u32), precise: bool) !void {
+    fn query(self: *SpatialPartition, rect: geom.Rectangle, padding: f32, results: *std.array_list.Managed(u32), precise: bool) !void {
         switch (self.*) {
             .quad_tree => |qt| try qt.query(rect, padding, results, .{ .precise = precise }),
             .spatial_hash => |sh| try sh.query(rect, padding, results, .{ .precise = precise }),
         }
     }
 
-    fn draw(self: *SpatialPartition, b: *j2d.Batch, query_rect: ?jok.Rectangle) !void {
+    fn draw(self: *SpatialPartition, b: *j2d.Batch, query_rect: ?geom.Rectangle) !void {
         switch (self.*) {
             .quad_tree => |qt| try qt.draw(b, .{ .query = query_rect }),
             .spatial_hash => |sh| try sh.draw(b, .{ .query = query_rect }),
@@ -102,18 +103,18 @@ var move_in_tree: bool = false;
 var use_sizes: bool = false;
 var do_query: bool = false;
 var precise_query: bool = false;
-var query_size: jok.Size = undefined;
+var query_size: geom.Size = undefined;
 var query_result: std.array_list.Managed(u32) = undefined;
 
 const Object = struct {
-    pos: jok.Point,
-    velocity: jok.Point,
-    size: jok.Size,
+    pos: geom.Point,
+    velocity: geom.Point,
+    size: geom.Size,
 
     fn draw(o: Object, b: *j2d.Batch, color: ?jok.Color, show_size: bool) !void {
         if (show_size) {
             // Draw as rectangle with size
-            const rect = jok.Rectangle{
+            const rect = geom.Rectangle{
                 .x = o.pos.x - o.size.getWidthFloat() * 0.5,
                 .y = o.pos.y - o.size.getHeightFloat() * 0.5,
                 .width = o.size.getWidthFloat(),
@@ -249,7 +250,7 @@ pub fn draw(ctx: jok.Context) !void {
     zgui.end();
 
     query_result.clearRetainingCapacity();
-    var query_rect: ?jok.Rectangle = null;
+    var query_rect: ?geom.Rectangle = null;
     if (do_query) {
         const mouse = jok.io.getMouseState(ctx);
         query_rect = .{

@@ -6,8 +6,7 @@ A minimal 2d/3d game framework for zig.
 **Documentation:** https://jack-ji.github.io/jok
 
 ## What you need?
-* [Zig Compiler](https://ziglang.org/download/) (Master branch always targets latest zig, use tagged release if you wanna stick to stable version)
-* Any code editor you like
+* [Zig Compiler](https://ziglang.org/download/) (Main branch follow latest zig)
 
 ## Features
 * Friendly build system, very easy to setup new project
@@ -16,7 +15,7 @@ A minimal 2d/3d game framework for zig.
 * Fully integrated Dear-ImGui
 * Asset system (via [physfs](https://github.com/icculus/physfs), supports fs/zip/7zip/iso etc)
 * 2D batch system
-* 2D primitives (line/rectangle/quad/triangle/circle/ellipse/bezier-curve/convex-polygon/concave-polygon/polyline)
+* 2D primitives rendering (line/rectangle/quad/triangle/circle/ellipse/bezier-curve/convex-polygon/concave-polygon/polyline)
 * 2D sprite rendering (scale/rotate/blending/flipping/depth)
 * 2D sprite sheet generation/save/load
 * 2D animation system
@@ -31,7 +30,7 @@ A minimal 2d/3d game framework for zig.
 * 3D sprite/billboard rendering
 * 3D particle system
 * 3D scene management
-* Pixel shader support
+* Pixel shader support (desktop platform)
 * TrueType support, atlas generation/save/load (including kerning table for basic Latin)
 * SVG loading/rendering
 * Sound/Music playing/mixing
@@ -217,14 +216,14 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     Now, compile and run your game using command `zig build run`, have fun!
     Please let me know if you have any issue or developed something interesting with this little framework.
 
-## NOTE
+## Limitations
 **Jok** is short for **joke**, which is about how overly-complicated modern graphics programming has become.
 People are gradually forgetting lots of computing techniques used to deliver amazing games on simple machines.
 With so many tools, engines and computing resources at hand, however, gamedev is not as fun as it used to be. 
 **Jok** is an effort trying to bring the joy back, it's being developed in the spirit of retro-machines of
 1990s (especially PS1), which implies following limitations:
 
-* Custom vertex/~~fragment~~ shader is not possible
+* Custom vertex shader is not possible
 * Only support [affine texture mapping](https://en.wikipedia.org/wiki/Texture_mapping#Affine_texture_mapping)
 * No [depth buffer](https://en.wikipedia.org/wiki/Z-buffering)
 
@@ -246,8 +245,9 @@ The limitations demand developers to be both creative and careful about game's d
 * [zig-obj](https://github.com/chip2n/zig-obj) (MIT license)
 * [zigfsm](https://github.com/cryptocode/zigfsm) (MIT license)
 
-## Built-in Fonts
+## Used Fonts
 * [Classic Console Neue](http://webdraft.hu/fonts/classic-console/) (MIT license)
+* [Orbitron](https://github.com/theleagueof/orbitron) (SIL Open Font License)
 
 ## Games made in jok
 * [A Bobby Carrot Game Clone](https://github.com/TheWaWaR/bobby-carrot)

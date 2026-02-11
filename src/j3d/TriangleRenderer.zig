@@ -15,6 +15,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const j3d = jok.j3d;
 const lighting = j3d.lighting;
 const Camera = j3d.Camera;
@@ -85,13 +86,13 @@ pub const RenderSpriteOption = struct {
     shading_method: ShadingMethod = .gouraud,
 
     /// Scale factors for width/height
-    scale: jok.Point = .unit,
+    scale: geom.Point = .unit,
 
     /// Rotation angle around anchor point (radians)
     rotate_angle: f32 = 0,
 
     /// Anchor point for rotation and positioning
-    anchor_point: jok.Point = .origin,
+    anchor_point: geom.Point = .origin,
 
     /// Flip horizontally
     flip_h: bool = false,
@@ -115,7 +116,7 @@ pub const RenderSpriteOption = struct {
 // Temporary storage for clipping
 clip_vertices: std.array_list.Managed(zmath.Vec),
 clip_colors: std.array_list.Managed(jok.ColorF),
-clip_texcoords: std.array_list.Managed(jok.Point),
+clip_texcoords: std.array_list.Managed(geom.Point),
 
 // Vertices in world space (after clipped)
 world_positions: std.array_list.Managed(zmath.Vec),
@@ -165,7 +166,7 @@ inline fn clear(self: *Self) void {
 
 pub fn renderMesh(
     self: *Self,
-    csz: jok.Size,
+    csz: geom.Size,
     batch: *j3d.Batch,
     model: zmath.Mat,
     camera: Camera,
@@ -326,8 +327,8 @@ pub fn renderMesh(
             [3]jok.ColorF{ cs[idx0], cs[idx1], cs[idx2] }
         else
             null;
-        const tri_texcoords: ?[3]jok.Point = if (texcoords) |ts|
-            [3]jok.Point{
+        const tri_texcoords: ?[3]geom.Point = if (texcoords) |ts|
+            [3]geom.Point{
                 .{ .x = ts[idx0][0], .y = ts[idx0][1] },
                 .{ .x = ts[idx1][0], .y = ts[idx1][1] },
                 .{ .x = ts[idx2][0], .y = ts[idx2][1] },
@@ -374,9 +375,9 @@ pub fn renderMesh(
             zmath.f32x4(0.0, 0.0, 0.0, 1.0),
         };
         const positions_screen = zmath.mul(ndcs, ndc_to_screen);
-        const p0 = jok.Point{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
-        const p1 = jok.Point{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
-        const p2 = jok.Point{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
+        const p0 = geom.Point{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
+        const p1 = geom.Point{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
+        const p2 = geom.Point{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
 
         // Get depths
         const d0 = positions_screen[0][2];
@@ -455,12 +456,12 @@ pub fn renderMesh(
 
 pub fn renderSprite(
     self: *Self,
-    csz: jok.Size,
+    csz: geom.Size,
     batch: *j3d.Batch,
     model: zmath.Mat,
     camera: Camera,
-    size: jok.Point,
-    uv: [2]jok.Point,
+    size: geom.Point,
+    uv: [2]geom.Point,
     _opt: RenderSpriteOption,
 ) !void {
     assert(size.x > 0 and size.y > 0);
@@ -546,9 +547,9 @@ pub fn renderSprite(
             1 - opt.anchor_point.x, opt.anchor_point.y, 0, 1, // Right top
         });
         const t0 = uv0;
-        const t1 = jok.Point{ .x = uv0.x, .y = uv1.y };
+        const t1 = geom.Point{ .x = uv0.x, .y = uv1.y };
         const t2 = uv1;
-        const t3 = jok.Point{ .x = uv1.x, .y = uv0.y };
+        const t3 = geom.Point{ .x = uv1.x, .y = uv0.y };
         var ndc0: zmath.Vec = undefined;
         var ndc1: zmath.Vec = undefined;
         var ndc2: zmath.Vec = undefined;
@@ -635,10 +636,10 @@ pub fn renderSprite(
         const positions_screen = zmath.mul(ndcs, ndc_to_screen);
 
         // Get screen coordinate
-        const p0 = jok.Point{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
-        const p1 = jok.Point{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
-        const p2 = jok.Point{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
-        const p3 = jok.Point{ .x = positions_screen[3][0], .y = positions_screen[3][1] };
+        const p0 = geom.Point{ .x = positions_screen[0][0], .y = positions_screen[0][1] };
+        const p1 = geom.Point{ .x = positions_screen[1][0], .y = positions_screen[1][1] };
+        const p2 = geom.Point{ .x = positions_screen[2][0], .y = positions_screen[2][1] };
+        const p3 = geom.Point{ .x = positions_screen[3][0], .y = positions_screen[3][1] };
 
         // Get depths
         const d0 = positions_screen[0][2];

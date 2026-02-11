@@ -7,17 +7,18 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const utils = jok.utils;
 const zmath = jok.vendor.zmath;
 const AffineTransform = @import("AffineTransform.zig");
 const Camera = @This();
 
 /// Represent the screen
-screen: jok.Rectangle,
+screen: geom.Rectangle,
 
 /// Rectangle area of camera
-orig: jok.Rectangle,
-rect: jok.Rectangle,
+orig: geom.Rectangle,
+rect: geom.Rectangle,
 
 /// Rotation of camera (in radians, clock-wise)
 rotation: f32,
@@ -31,7 +32,7 @@ rotation: f32,
 ///   - height: Height of camera
 ///
 /// Returns: A newly initialized camera
-pub fn init(ctx: jok.Context, pos: jok.Point, width: u32, height: u32) Camera {
+pub fn init(ctx: jok.Context, pos: geom.Point, width: u32, height: u32) Camera {
     const half_w = @as(f32, @floatFromInt(width)) * 0.5;
     const half_h = @as(f32, @floatFromInt(height)) * 0.5;
     return .{
@@ -90,7 +91,7 @@ pub fn translateBy(self: *Camera, two_floats: anytype) void {
 ///
 /// Note: Preserves current scaling and rotation
 pub fn translateTo(self: *Camera, two_floats: anytype) void {
-    const target_center = jok.Point{
+    const target_center = geom.Point{
         .x = utils.twoFloats(two_floats)[0],
         .y = utils.twoFloats(two_floats)[1],
     };

@@ -6,8 +6,9 @@
 
 const std = @import("std");
 const assert = std.debug.assert;
-const jok = @import("../jok.zig");
 const internal = @import("internal.zig");
+const jok = @import("../jok.zig");
+const geom = jok.geom;
 const zgui = jok.vendor.zgui;
 const zmath = jok.vendor.zmath;
 const Self = @This();
@@ -19,10 +20,10 @@ width: f32,
 height: f32,
 
 /// Top-left UV coordinate (0,0 to 1,1)
-uv0: jok.Point,
+uv0: geom.Point,
 
 /// Bottom-right UV coordinate (0,0 to 1,1)
-uv1: jok.Point,
+uv1: geom.Point,
 
 /// Reference to the texture containing this sprite
 tex: jok.Texture,
@@ -65,19 +66,19 @@ pub fn getSubSprite(
 /// Options for rendering a sprite
 pub const RenderOption = struct {
     /// Position to render at
-    pos: jok.Point,
+    pos: geom.Point,
 
     /// Tint color applied to the sprite
     tint_color: jok.Color = .white,
 
     /// Scale factors for width and height
-    scale: jok.Point = .unit,
+    scale: geom.Point = .unit,
 
     /// Rotation angle in radians around the anchor point
     rotate_angle: f32 = 0,
 
     /// Anchor point for rotation and positioning (0,0 = top-left, 0.5,0.5 = center, 1,1 = bottom-right)
-    anchor_point: jok.Point = .origin,
+    anchor_point: geom.Point = .origin,
 
     /// Flip horizontally
     flip_h: bool = false,

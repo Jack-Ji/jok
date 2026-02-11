@@ -2,6 +2,7 @@ const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
 const font = jok.font;
+const geom = jok.geom;
 const j2d = jok.j2d;
 
 pub const jok_window_size = jok.config.WindowSize{
@@ -30,7 +31,7 @@ pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.none);
 
     const fb_size = ctx.getCanvasSize();
-    const rect = jok.Rectangle{
+    const rect = geom.Rectangle{
         .x = -rect_size / 2,
         .y = -rect_size / 2,
         .width = rect_size,

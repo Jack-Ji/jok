@@ -15,6 +15,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok.zig");
+const geom = jok.geom;
 const sdl = jok.vendor.sdl;
 const log = std.log.scoped(.jok);
 
@@ -46,7 +47,7 @@ pub const Window = struct {
         if (cfg.jok_renderer_type != .software) {
             _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
         }
-        var size = jok.Size{ .width = 800, .height = 600 };
+        var size = geom.Size{ .width = 800, .height = 600 };
         switch (cfg.jok_window_size) {
             .maximized => {
                 _ = sdl.SDL_SetBooleanProperty(props, sdl.SDL_PROP_WINDOW_CREATE_MAXIMIZED_BOOLEAN, true);
@@ -138,7 +139,7 @@ pub const Window = struct {
     /// Get the current size of the window.
     ///
     /// Returns: Window size in pixels
-    pub fn getSize(self: Window) jok.Size {
+    pub fn getSize(self: Window) geom.Size {
         var width: c_int = undefined;
         var height: c_int = undefined;
         _ = sdl.SDL_GetWindowSize(self.ptr, &width, &height);
@@ -152,7 +153,7 @@ pub const Window = struct {
     ///
     /// Parameters:
     ///   s: New window size in pixels
-    pub fn setSize(self: Window, s: jok.Size) !void {
+    pub fn setSize(self: Window, s: geom.Size) !void {
         if (!sdl.SDL_SetWindowSize(self.ptr, @intCast(s.width), @intCast(s.height))) {
             log.err("Set size failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
@@ -163,7 +164,7 @@ pub const Window = struct {
     ///
     /// Parameters:
     ///   s: Minimum window size in pixels
-    pub fn setMinimumSize(self: Window, s: jok.Size) !void {
+    pub fn setMinimumSize(self: Window, s: geom.Size) !void {
         if (!sdl.SDL_SetWindowMinimumSize(self.ptr, @intCast(s.width), @intCast(s.height))) {
             log.err("Set minimum size failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
@@ -174,7 +175,7 @@ pub const Window = struct {
     ///
     /// Parameters:
     ///   s: Maximum window size in pixels
-    pub fn setMaximumSize(self: Window, s: jok.Size) !void {
+    pub fn setMaximumSize(self: Window, s: geom.Size) !void {
         if (!sdl.SDL_SetWindowMaximumSize(self.ptr, @intCast(s.width), @intCast(s.height))) {
             log.err("Set maximum size failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
@@ -198,7 +199,7 @@ pub const Window = struct {
     /// Get the current position of the window.
     ///
     /// Returns: Window position in screen coordinates
-    pub fn getPosition(self: Window) jok.Point {
+    pub fn getPosition(self: Window) geom.Point {
         var x: c_int = undefined;
         var y: c_int = undefined;
         _ = sdl.SDL_GetWindowPosition(self.ptr, &x, &y);
@@ -213,7 +214,7 @@ pub const Window = struct {
         /// Center the window on screen
         center,
         /// Custom position in screen coordinates
-        custom: jok.Point,
+        custom: geom.Point,
     };
 
     /// Set the position of the window.
@@ -332,7 +333,7 @@ pub const Window = struct {
     /// Parameters:
     ///   rect: Input area rectangle (null for default)
     ///   offset_x: Horizontal offset for the composition window
-    pub fn setTextInputArea(self: Window, rect: ?jok.Region, offset_x: u32) !void {
+    pub fn setTextInputArea(self: Window, rect: ?geom.Region, offset_x: u32) !void {
         if (!sdl.SDL_SetTextInputArea(self.ptr, if (rect) |*r| r else null, @intCast(offset_x))) {
             log.err("Set text input area failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;

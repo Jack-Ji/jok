@@ -14,6 +14,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const j3d = jok.j3d;
 const zmath = jok.vendor.zmath;
 const internal = @import("internal.zig");
@@ -248,7 +249,7 @@ pub fn calcScreenPosition(
     ctx: jok.Context,
     model: zmath.Mat,
     _coord: ?[3]f32,
-) jok.Point {
+) geom.Point {
     const csz = ctx.getCanvasSize();
     const csz_w = csz.getWidthFloat();
     const csz_h = csz.getHeightFloat();

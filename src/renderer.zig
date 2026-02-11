@@ -20,6 +20,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
+const geom = jok.geom;
 const sdl = jok.vendor.sdl;
 const stb = jok.vendor.stb;
 const log = std.log.scoped(.jok);
@@ -174,7 +175,7 @@ pub const Renderer = struct {
     /// Get the output size of the renderer's framebuffer.
     ///
     /// Returns: Framebuffer size in pixels
-    pub fn getOutputSize(self: Renderer) !jok.Size {
+    pub fn getOutputSize(self: Renderer) !geom.Size {
         var width_pixels: c_int = undefined;
         var height_pixels: c_int = undefined;
         if (!sdl.SDL_GetCurrentRenderOutputSize(self.ptr, &width_pixels, &height_pixels)) {
@@ -224,7 +225,7 @@ pub const Renderer = struct {
     }
 
     /// Get the current rendering viewport region.
-    pub fn getViewport(self: Renderer) !jok.Region {
+    pub fn getViewport(self: Renderer) !geom.Region {
         var rect: sdl.SDL_Rect = undefined;
         if (!sdl.SDL_GetRenderViewport(self.ptr, &rect)) {
             log.err("Get viewport failed: {s}", .{sdl.SDL_GetError()});
@@ -234,7 +235,7 @@ pub const Renderer = struct {
     }
 
     /// Set the rendering viewport region, or null to use the entire target.
-    pub fn setViewport(self: Renderer, region: ?jok.Region) !void {
+    pub fn setViewport(self: Renderer, region: ?geom.Region) !void {
         if (!sdl.SDL_SetRenderViewport(
             self.ptr,
             if (region) |r| @ptrCast(&r) else null,
@@ -250,7 +251,7 @@ pub const Renderer = struct {
     }
 
     /// Get the current clip rectangle.
-    pub fn getClipRegion(self: Renderer) !jok.Region {
+    pub fn getClipRegion(self: Renderer) !geom.Region {
         var rect: sdl.SDL_Rect = undefined;
         if (!sdl.SDL_GetRenderClipRect(self.ptr, &rect)) {
             log.err("Get clip rect failed: {s}", .{sdl.SDL_GetError()});
@@ -260,7 +261,7 @@ pub const Renderer = struct {
     }
 
     /// Set the clip rectangle, or null to disable clipping.
-    pub fn setClipRegion(self: Renderer, clip_region: ?jok.Region) !void {
+    pub fn setClipRegion(self: Renderer, clip_region: ?geom.Region) !void {
         if (!sdl.SDL_SetRenderClipRect(
             self.ptr,
             if (clip_region) |r| @ptrCast(&r) else null,
@@ -324,7 +325,7 @@ pub const Renderer = struct {
     }
 
     /// Copy a texture (or a portion of it) to the render target.
-    pub fn drawTexture(self: Renderer, tex: jok.Texture, src: ?jok.Rectangle, dst: ?jok.Rectangle) !void {
+    pub fn drawTexture(self: Renderer, tex: jok.Texture, src: ?geom.Rectangle, dst: ?geom.Rectangle) !void {
         if (!sdl.SDL_RenderTexture(
             self.ptr,
             tex.ptr,
@@ -409,7 +410,7 @@ pub const Renderer = struct {
     ///   opt: Texture creation options
     ///
     /// Returns: Created texture or error if creation fails
-    pub fn createTexture(self: Renderer, size: jok.Size, pixels: ?[]const u8, opt: TextureOption) !jok.Texture {
+    pub fn createTexture(self: Renderer, size: geom.Size, pixels: ?[]const u8, opt: TextureOption) !jok.Texture {
         if (self.cfg.jok_renderer_type != .software) {
             const rdinfo = try self.getInfo();
             if (rdinfo.max_texture_size > 0 and (size.width > rdinfo.max_texture_size or size.height > rdinfo.max_texture_size)) {
@@ -473,7 +474,7 @@ pub const Renderer = struct {
 
     /// Options for creating an offscreen render target.
     pub const TargetOption = struct {
-        size: ?jok.Size = null,
+        size: ?geom.Size = null,
         blend_mode: jok.BlendMode = .none,
         scale_mode: jok.Texture.ScaleMode = .linear,
     };
@@ -522,7 +523,7 @@ pub const Renderer = struct {
         }
     };
     /// Read pixels from the current render target (or screen if no target is set).
-    pub fn getPixels(self: Renderer, region: ?jok.Region) !PixelData {
+    pub fn getPixels(self: Renderer, region: ?geom.Region) !PixelData {
         const rect: sdl.SDL_Rect = if (region) |r|
             @bitCast(r)
         else blk: {

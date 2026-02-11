@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
+const geom = jok.geom;
 const j2d = jok.j2d;
 const font = jok.font;
 const physfs = jok.vendor.physfs;
@@ -51,7 +52,7 @@ fn textColor(v: u32) jok.Color {
     return if (v >= 8) .{ .r = 249, .g = 246, .b = 242, .a = 255 } else .{ .r = 119, .g = 110, .b = 101, .a = 255 };
 }
 
-fn getTileRect(r: usize, c: usize) jok.Rectangle {
+fn getTileRect(r: usize, c: usize) geom.Rectangle {
     return .{
         .x = BOARD_OFFSET_X + @as(f32, @floatFromInt(c)) * (TILE_SIZE + TILE_MARGIN),
         .y = BOARD_OFFSET_Y + @as(f32, @floatFromInt(r)) * (TILE_SIZE + TILE_MARGIN),
@@ -202,7 +203,7 @@ pub fn draw(ctx: jok.Context) !void {
     defer b.submit();
     const atlas = try font.DebugFont.getAtlas(ctx, 32);
 
-    const board_rect = jok.Rectangle{
+    const board_rect = geom.Rectangle{
         .x = BOARD_OFFSET_X - TILE_MARGIN,
         .y = BOARD_OFFSET_Y - TILE_MARGIN,
         .width = GRID_SIZE * (TILE_SIZE + TILE_MARGIN) + TILE_MARGIN,

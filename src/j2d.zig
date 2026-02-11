@@ -23,6 +23,7 @@ const math = std.math;
 const ascii = std.ascii;
 const unicode = std.unicode;
 const jok = @import("jok.zig");
+const geom = jok.geom;
 const font = jok.font;
 const PixelShader = jok.PixelShader;
 const twoFloats = jok.utils.twoFloats;
@@ -89,7 +90,7 @@ pub const BatchOption = struct {
     /// Enable antialiasing for lines and shapes
     antialiased: bool = true,
     /// Optional clipping rectangle (defaults to full canvas)
-    clip_rect: ?jok.Rectangle = null,
+    clip_rect: ?geom.Rectangle = null,
     /// Perform early clipping to skip drawing off-screen objects
     do_early_clipping: bool = false,
     /// Optional offscreen render target
@@ -125,7 +126,7 @@ pub const Batch = struct {
     trs: AffineTransform,
     depth_sort: DepthSortMethod,
     blend_mode: jok.BlendMode,
-    clip_rect: jok.Rectangle = undefined,
+    clip_rect: geom.Rectangle = undefined,
     do_early_clipping: bool,
     offscreen_target: ?jok.Texture,
     offscreen_clear_color: ?jok.Color,
@@ -390,7 +391,7 @@ pub const Batch = struct {
     /// Parameters:
     ///   - p: Center point of rotation
     ///   - radian: Rotation angle in radians
-    pub fn rotateByPoint(self: *Batch, p: jok.Point, radian: f32) void {
+    pub fn rotateByPoint(self: *Batch, p: geom.Point, radian: f32) void {
         self.trs = self.trs.rotateByPoint(p, radian);
     }
 
@@ -417,26 +418,26 @@ pub const Batch = struct {
     /// Parameters:
     ///   - p: Center point of scaling
     ///   - two_floats: Scale factors as .{x, y}
-    pub fn scaleAroundPoint(self: *Batch, p: jok.Point, two_floats: anytype) void {
+    pub fn scaleAroundPoint(self: *Batch, p: geom.Point, two_floats: anytype) void {
         self.trs = self.trs.scaleAroundPoint(p, two_floats);
     }
 
     /// Options for drawing images
     pub const ImageOption = struct {
         /// Optional size override (defaults to texture size)
-        size: ?jok.Size = null,
+        size: ?geom.Size = null,
         /// Top-left UV coordinate (0,0 to 1,1)
-        uv0: jok.Point = .origin,
+        uv0: geom.Point = .origin,
         /// Bottom-right UV coordinate (0,0 to 1,1)
-        uv1: jok.Point = .unit,
+        uv1: geom.Point = .unit,
         /// Tint color applied to the image
         tint_color: jok.Color = .white,
         /// Scale factor
-        scale: jok.Point = .unit,
+        scale: geom.Point = .unit,
         /// Rotation angle in radians
         rotate_angle: f32 = 0,
         /// Anchor point for positioning (0,0 = top-left, 0.5,0.5 = center, 1,1 = bottom-right)
-        anchor_point: jok.Point = .anchor_top_left,
+        anchor_point: geom.Point = .anchor_top_left,
         /// Flip horizontally
         flip_h: bool = false,
         /// Flip vertically
@@ -451,13 +452,13 @@ pub const Batch = struct {
     ///   - texture: The texture to draw
     ///   - pos: Position to draw at
     ///   - opt: Drawing options
-    pub fn image(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageOption) !void {
+    pub fn image(self: *Batch, texture: jok.Texture, pos: geom.Point, opt: ImageOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const scaling = self.trs.getScale();
         const size = opt.size orelse blk: {
             const info = try texture.query();
-            break :blk jok.Size{
+            break :blk geom.Size{
                 .width = info.width,
                 .height = info.height,
             };
@@ -484,10 +485,10 @@ pub const Batch = struct {
     /// Options for drawing rounded images.
     /// NOTE: Rounded images are always aligned with the world axis (no rotation).
     pub const ImageRoundedOption = struct {
-        size: ?jok.Size = null,
-        uv0: jok.Point = .origin,
-        uv1: jok.Point = .unit,
-        anchor_point: jok.Point = .anchor_top_left,
+        size: ?geom.Size = null,
+        uv0: geom.Point = .origin,
+        uv1: geom.Point = .unit,
+        anchor_point: geom.Point = .anchor_top_left,
         tint_color: jok.Color = .white,
         flip_h: bool = false,
         flip_v: bool = false,
@@ -505,7 +506,7 @@ pub const Batch = struct {
     ///   - texture: The texture to draw
     ///   - pos: Position to draw at
     ///   - opt: Drawing options including rounding and corner flags
-    pub fn imageRounded(self: *Batch, texture: jok.Texture, pos: jok.Point, opt: ImageRoundedOption) !void {
+    pub fn imageRounded(self: *Batch, texture: jok.Texture, pos: geom.Point, opt: ImageRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         assert(opt.anchor_point.x >= 0 and opt.anchor_point.x <= 1);
@@ -514,7 +515,7 @@ pub const Batch = struct {
         var uv1 = opt.uv1;
         if (opt.flip_h) std.mem.swap(f32, &uv0.x, &uv1.x);
         if (opt.flip_v) std.mem.swap(f32, &uv0.y, &uv1.y);
-        const _size: jok.Point = if (opt.size) |sz|
+        const _size: geom.Point = if (opt.size) |sz|
             sz.toPoint()
         else blk: {
             const info = try texture.query();
@@ -578,15 +579,15 @@ pub const Batch = struct {
     /// Options for drawing sprites
     pub const SpriteOption = struct {
         /// Position to draw at
-        pos: jok.Point = .origin,
+        pos: geom.Point = .origin,
         /// Tint color
         tint_color: jok.Color = .white,
         /// Scale factor
-        scale: jok.Point = .unit,
+        scale: geom.Point = .unit,
         /// Rotation angle in radians
         rotate_angle: f32 = 0,
         /// Anchor point for positioning
-        anchor_point: jok.Point = .anchor_top_left,
+        anchor_point: geom.Point = .anchor_top_left,
         /// Flip horizontally
         flip_h: bool = false,
         /// Flip vertically
@@ -619,7 +620,7 @@ pub const Batch = struct {
     /// Options for text rendering
     pub const TextOption = struct {
         /// Position to draw at
-        pos: jok.Point = .origin,
+        pos: geom.Point = .origin,
         /// Font atlas to use (defaults to debug atlas)
         atlas: ?*font.Atlas = null,
         /// Ignore unsupported characters instead of erroring
@@ -637,7 +638,7 @@ pub const Batch = struct {
         /// Text color
         tint_color: jok.Color = .white,
         /// Scale factor
-        scale: jok.Point = .unit,
+        scale: geom.Point = .unit,
         /// Rotation angle in radians
         rotate_angle: f32 = 0,
         /// Depth value for sorting
@@ -786,7 +787,7 @@ pub const Batch = struct {
                     ),
                     mat,
                 );
-                const draw_pos = jok.Point{ .x = v[0], .y = v[1] };
+                const draw_pos = geom.Point{ .x = v[0], .y = v[1] };
                 const s = Sprite{
                     .width = cs.vs[1].pos.x - cs.vs[0].pos.x,
                     .height = cs.vs[3].pos.y - cs.vs[0].pos.y,
@@ -818,7 +819,7 @@ pub const Batch = struct {
     };
 
     /// Draw a line between two points.
-    pub fn line(self: *Batch, l: jok.Line, color: jok.Color, opt: LineOption) !void {
+    pub fn line(self: *Batch, l: geom.Line, color: jok.Color, opt: LineOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         try self.pushDrawCommand(
@@ -843,13 +844,13 @@ pub const Batch = struct {
     };
 
     /// Draw a rectangle outline.
-    pub fn rect(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectOption) !void {
+    pub fn rect(self: *Batch, r: geom.Rectangle, color: jok.Color, opt: RectOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const p1 = jok.Point{ .x = r.x, .y = r.y };
-        const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
-        const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
-        const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
+        const p1 = geom.Point{ .x = r.x, .y = r.y };
+        const p2 = geom.Point{ .x = p1.x + r.width, .y = p1.y };
+        const p3 = geom.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
+        const p4 = geom.Point{ .x = p1.x, .y = p1.y + r.height };
         try self.pushDrawCommand(
             .{
                 .quad = .{
@@ -872,13 +873,13 @@ pub const Batch = struct {
     };
 
     /// Draw a filled rectangle with a single color.
-    pub fn rectFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectFilledOption) !void {
+    pub fn rectFilled(self: *Batch, r: geom.Rectangle, color: jok.Color, opt: RectFilledOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const p1 = jok.Point{ .x = r.x, .y = r.y };
-        const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
-        const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
-        const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
+        const p1 = geom.Point{ .x = r.x, .y = r.y };
+        const p2 = geom.Point{ .x = p1.x + r.width, .y = p1.y };
+        const p3 = geom.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
+        const p4 = geom.Point{ .x = p1.x, .y = p1.y + r.height };
         const c = color.toInternalColor();
         try self.pushDrawCommand(
             .{
@@ -906,7 +907,7 @@ pub const Batch = struct {
     /// Draw a filled rectangle with a different color at each corner (gradient).
     pub fn rectFilledMultiColor(
         self: *Batch,
-        r: jok.Rectangle,
+        r: geom.Rectangle,
         color_top_left: jok.Color,
         color_top_right: jok.Color,
         color_bottom_right: jok.Color,
@@ -915,10 +916,10 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        const p1 = jok.Point{ .x = r.x, .y = r.y };
-        const p2 = jok.Point{ .x = p1.x + r.width, .y = p1.y };
-        const p3 = jok.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
-        const p4 = jok.Point{ .x = p1.x, .y = p1.y + r.height };
+        const p1 = geom.Point{ .x = r.x, .y = r.y };
+        const p2 = geom.Point{ .x = p1.x + r.width, .y = p1.y };
+        const p3 = geom.Point{ .x = p1.x + r.width, .y = p1.y + r.height };
+        const p4 = geom.Point{ .x = p1.x, .y = p1.y + r.height };
         const c1 = color_top_left.toInternalColor();
         const c2 = color_top_right.toInternalColor();
         const c3 = color_bottom_right.toInternalColor();
@@ -943,7 +944,7 @@ pub const Batch = struct {
     /// Options for drawing rounded rectangle outlines.
     /// NOTE: Rounded rectangles are always axis-aligned (no rotation).
     pub const RectRoundedOption = struct {
-        anchor_point: jok.Point = .anchor_top_left,
+        anchor_point: geom.Point = .anchor_top_left,
         thickness: f32 = 1.0,
         rounding: f32 = 4,
         corner_top_left: bool = true,
@@ -953,7 +954,7 @@ pub const Batch = struct {
         depth: f32 = 0.5,
     };
     /// Draw a rounded rectangle outline.
-    pub fn rectRounded(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
+    pub fn rectRounded(self: *Batch, r: geom.Rectangle, color: jok.Color, opt: RectRoundedOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const size: @Vector(2, f32) = r.getSizeF().mul(self.trs.getScale()).toArray();
@@ -980,7 +981,7 @@ pub const Batch = struct {
     /// Options for drawing filled rounded rectangles.
     /// NOTE: Rounded rectangles are always axis-aligned (no rotation).
     pub const RectRoundedFilledOption = struct {
-        anchor_point: jok.Point = .anchor_top_left,
+        anchor_point: geom.Point = .anchor_top_left,
         rounding: f32 = 4,
         corner_top_left: bool = true,
         corner_top_right: bool = true,
@@ -989,7 +990,7 @@ pub const Batch = struct {
         depth: f32 = 0.5,
     };
     /// Draw a filled rounded rectangle.
-    pub fn rectRoundedFilled(self: *Batch, r: jok.Rectangle, color: jok.Color, opt: RectRoundedFilledOption) !void {
+    pub fn rectRoundedFilled(self: *Batch, r: geom.Rectangle, color: jok.Color, opt: RectRoundedFilledOption) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
         const size: @Vector(2, f32) = r.getSizeF().mul(self.trs.getScale()).toArray();
@@ -1023,10 +1024,10 @@ pub const Batch = struct {
     /// Draw a quadrilateral outline from four points.
     pub fn quad(
         self: *Batch,
-        p1: jok.Point,
-        p2: jok.Point,
-        p3: jok.Point,
-        p4: jok.Point,
+        p1: geom.Point,
+        p2: geom.Point,
+        p3: geom.Point,
+        p4: geom.Point,
         color: jok.Color,
         opt: QuadOption,
     ) !void {
@@ -1056,10 +1057,10 @@ pub const Batch = struct {
     /// Draw a filled quadrilateral with a single color.
     pub fn quadFilled(
         self: *Batch,
-        p1: jok.Point,
-        p2: jok.Point,
-        p3: jok.Point,
-        p4: jok.Point,
+        p1: geom.Point,
+        p2: geom.Point,
+        p3: geom.Point,
+        p4: geom.Point,
         color: jok.Color,
         opt: QuadFilledOption,
     ) !void {
@@ -1092,10 +1093,10 @@ pub const Batch = struct {
     /// Draw a filled quadrilateral with a different color at each vertex.
     pub fn quadFilledMultiColor(
         self: *Batch,
-        p1: jok.Point,
-        p2: jok.Point,
-        p3: jok.Point,
-        p4: jok.Point,
+        p1: geom.Point,
+        p2: geom.Point,
+        p3: geom.Point,
+        p4: geom.Point,
         color1: jok.Color,
         color2: jok.Color,
         color3: jok.Color,
@@ -1136,7 +1137,7 @@ pub const Batch = struct {
     /// Draw a triangle outline.
     pub fn triangle(
         self: *Batch,
-        tri: jok.Triangle,
+        tri: geom.Triangle,
         color: jok.Color,
         opt: TriangleOption,
     ) !void {
@@ -1165,7 +1166,7 @@ pub const Batch = struct {
     /// Draw a filled triangle with a single color.
     pub fn triangleFilled(
         self: *Batch,
-        tri: jok.Triangle,
+        tri: geom.Triangle,
         color: jok.Color,
         opt: TriangleFilledOption,
     ) !void {
@@ -1196,7 +1197,7 @@ pub const Batch = struct {
     /// Draw a filled triangle with a different color at each vertex.
     pub fn triangleFilledMultiColor(
         self: *Batch,
-        tri: jok.Triangle,
+        tri: geom.Triangle,
         cs: [3]jok.Color,
         opt: TriangleFilledMultiColorOption,
     ) !void {
@@ -1233,7 +1234,7 @@ pub const Batch = struct {
     /// Draw a circle outline.
     pub fn circle(
         self: *Batch,
-        c: jok.Circle,
+        c: geom.Circle,
         color: jok.Color,
         opt: CircleOption,
     ) !void {
@@ -1264,7 +1265,7 @@ pub const Batch = struct {
     /// Draw a filled circle.
     pub fn circleFilled(
         self: *Batch,
-        c: jok.Circle,
+        c: geom.Circle,
         color: jok.Color,
         opt: CircleFilledOption,
     ) !void {
@@ -1298,7 +1299,7 @@ pub const Batch = struct {
     /// Draw an ellipse outline.
     pub fn ellipse(
         self: *Batch,
-        c: jok.Ellipse,
+        e: geom.Ellipse,
         color: jok.Color,
         opt: EllipseOption,
     ) !void {
@@ -1307,8 +1308,8 @@ pub const Batch = struct {
         try self.pushDrawCommand(
             .{
                 .ellipse = .{
-                    .p = c.center,
-                    .radius = c.radius,
+                    .p = e.center,
+                    .radius = e.radius,
                     .color = color.toInternalColor(),
                     .rotation = opt.rotate_angle + self.trs.getRotation(),
                     .thickness = opt.thickness,
@@ -1332,7 +1333,7 @@ pub const Batch = struct {
     /// Draw a filled ellipse.
     pub fn ellipseFilled(
         self: *Batch,
-        e: jok.Ellipse,
+        e: geom.Ellipse,
         color: jok.Color,
         opt: EllipseFilledOption,
     ) !void {
@@ -1363,7 +1364,7 @@ pub const Batch = struct {
     /// Draw a regular polygon (n-gon) outline.
     pub fn ngon(
         self: *Batch,
-        center: jok.Point,
+        center: geom.Point,
         radius: f32,
         color: jok.Color,
         num_segments: u32,
@@ -1394,7 +1395,7 @@ pub const Batch = struct {
     /// Draw a filled regular polygon (n-gon).
     pub fn ngonFilled(
         self: *Batch,
-        center: jok.Point,
+        center: geom.Point,
         radius: f32,
         color: jok.Color,
         num_segments: u32,
@@ -1428,10 +1429,10 @@ pub const Batch = struct {
     /// Draw a cubic bezier curve through four control points.
     pub fn bezierCubic(
         self: *Batch,
-        p1: jok.Point,
-        p2: jok.Point,
-        p3: jok.Point,
-        p4: jok.Point,
+        p1: geom.Point,
+        p2: geom.Point,
+        p3: geom.Point,
+        p4: geom.Point,
         color: jok.Color,
         opt: BezierCubicOption,
     ) !void {
@@ -1466,9 +1467,9 @@ pub const Batch = struct {
     /// Draw a quadratic bezier curve through three control points.
     pub fn bezierQuadratic(
         self: *Batch,
-        p1: jok.Point,
-        p2: jok.Point,
-        p3: jok.Point,
+        p1: geom.Point,
+        p2: geom.Point,
+        p3: geom.Point,
         color: jok.Color,
         opt: BezierQuadraticOption,
     ) !void {
@@ -1750,8 +1751,8 @@ pub const ConcavePoly = Polyline;
 /// 4. Render with `batch.polyline()` or `batch.concavePolyFilled()`
 /// 5. Clean up with `deinit()`
 pub const Polyline = struct {
-    points: std.array_list.Managed(jok.Point),
-    transformed: std.array_list.Managed(jok.Point),
+    points: std.array_list.Managed(geom.Point),
+    transformed: std.array_list.Managed(geom.Point),
     finished: bool = false,
 
     /// Begin building a polyline.
@@ -1794,7 +1795,7 @@ pub const Polyline = struct {
     ///
     /// Parameters:
     ///   - p: Point to add
-    pub fn point(self: *Polyline, p: jok.Point) !void {
+    pub fn point(self: *Polyline, p: geom.Point) !void {
         assert(!self.finished);
         try self.points.append(p);
     }
@@ -1803,7 +1804,7 @@ pub const Polyline = struct {
     ///
     /// Parameters:
     ///   - ps: Slice of points to add
-    pub fn npoints(self: *Polyline, ps: []jok.Point) !void {
+    pub fn npoints(self: *Polyline, ps: []geom.Point) !void {
         assert(!self.finished);
         try self.points.appendSlice(ps);
     }

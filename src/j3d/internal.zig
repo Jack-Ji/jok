@@ -1,6 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const zmath = jok.vendor.zmath;
 
 /// Test whether an OBB (oriented AABB) is outside of clipping space.
@@ -147,10 +148,10 @@ pub inline fn clipTriangle(
     tri_clip_positions: []const zmath.Vec,
     tri_world_normals: ?[3]zmath.Vec,
     tri_colors: ?[3]jok.ColorF,
-    tri_texcoords: ?[3]jok.Point,
+    tri_texcoords: ?[3]geom.Point,
     clip_vertices: *std.array_list.Managed(zmath.Vec),
     clip_colors: *std.array_list.Managed(jok.ColorF),
-    clip_texcoords: *std.array_list.Managed(jok.Point),
+    clip_texcoords: *std.array_list.Managed(geom.Point),
     world_positions: *std.array_list.Managed(zmath.Vec),
     world_normals: *std.array_list.Managed(zmath.Vec),
 ) void {
@@ -183,9 +184,9 @@ pub inline fn clipTriangle(
         c1 = cs[1];
         c2 = cs[2];
     }
-    var t0: jok.Point = undefined;
-    var t1: jok.Point = undefined;
-    var t2: jok.Point = undefined;
+    var t0: geom.Point = undefined;
+    var t1: geom.Point = undefined;
+    var t2: geom.Point = undefined;
     if (tri_texcoords) |ts| {
         t0 = ts[0];
         t1 = ts[1];
@@ -214,8 +215,8 @@ pub inline fn clipTriangle(
             std.mem.swap(jok.ColorF, &c1, &c2);
         }
         if (tri_texcoords) |_| {
-            std.mem.swap(jok.Point, &t0, &t1);
-            std.mem.swap(jok.Point, &t1, &t2);
+            std.mem.swap(geom.Point, &t0, &t1);
+            std.mem.swap(geom.Point, &t1, &t2);
         }
     } else if (!is_v0_inside and !is_v1_inside) {
         std.mem.swap(zmath.Vec, &clip_v1, &clip_v2);
@@ -235,8 +236,8 @@ pub inline fn clipTriangle(
             std.mem.swap(jok.ColorF, &c0, &c1);
         }
         if (tri_texcoords) |_| {
-            std.mem.swap(jok.Point, &t1, &t2);
-            std.mem.swap(jok.Point, &t0, &t1);
+            std.mem.swap(geom.Point, &t1, &t2);
+            std.mem.swap(geom.Point, &t0, &t1);
         }
     }
 
@@ -273,7 +274,7 @@ pub inline fn clipTriangle(
             else
                 null;
             var lerp_color: ?jok.ColorF = if (tri_colors) |_| c1.lerp(c2, lerp) else null;
-            var lerp_texcoord: ?jok.Point = if (tri_texcoords) |_| jok.Point{
+            var lerp_texcoord: ?geom.Point = if (tri_texcoords) |_| geom.Point{
                 .x = t1.x + (t2.x - t1.x) * lerp,
                 .y = t1.y + (t2.y - t1.y) * lerp,
             } else null;
@@ -303,7 +304,7 @@ pub inline fn clipTriangle(
             else
                 null;
             lerp_color = if (tri_colors != null) c0.lerp(c2, lerp) else null;
-            lerp_texcoord = if (tri_texcoords != null) jok.Point{
+            lerp_texcoord = if (tri_texcoords != null) geom.Point{
                 .x = t0.x + (t2.x - t0.x) * lerp,
                 .y = t0.y + (t2.y - t0.y) * lerp,
             } else null;
@@ -323,7 +324,7 @@ pub inline fn clipTriangle(
         else
             null;
         var lerp_color: ?jok.ColorF = if (tri_colors != null) c0.lerp(c1, lerp) else null;
-        var lerp_texcoord: ?jok.Point = if (tri_texcoords != null) jok.Point{
+        var lerp_texcoord: ?geom.Point = if (tri_texcoords != null) geom.Point{
             .x = t0.x + (t1.x - t0.x) * lerp,
             .y = t0.y + (t1.y - t0.y) * lerp,
         } else null;
@@ -344,7 +345,7 @@ pub inline fn clipTriangle(
             else
                 null;
             lerp_color = if (tri_colors != null) c1.lerp(c2, lerp) else null;
-            lerp_texcoord = if (tri_texcoords != null) jok.Point{
+            lerp_texcoord = if (tri_texcoords != null) geom.Point{
                 .x = t1.x + (t2.x - t1.x) * lerp,
                 .y = t1.y + (t2.y - t1.y) * lerp,
             } else null;
@@ -380,7 +381,7 @@ pub inline fn clipTriangle(
             else
                 null;
             lerp_color = if (tri_colors != null) c0.lerp(c2, lerp) else null;
-            lerp_texcoord = if (tri_texcoords != null) jok.Point{
+            lerp_texcoord = if (tri_texcoords != null) geom.Point{
                 .x = t0.x + (t2.x - t0.x) * lerp,
                 .y = t0.y + (t2.y - t0.y) * lerp,
             } else null;

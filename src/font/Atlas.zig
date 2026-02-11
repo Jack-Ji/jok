@@ -11,6 +11,7 @@ const json = std.json;
 const math = std.math;
 const ascii = std.ascii;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const Sprite = jok.j2d.Sprite;
 const gfx = jok.utils.gfx;
 const truetype = jok.vendor.stb.truetype;
@@ -351,11 +352,11 @@ pub const BBox = struct {
     align_width: ?u32 = null,
     auto_hyphen: bool = false,
     kerning: bool = false,
-    scale: jok.Point = .unit,
+    scale: geom.Point = .unit,
 };
 
 /// Get bounding box of text
-pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox) !jok.Rectangle {
+pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: geom.Point, opt: BBox) !geom.Rectangle {
     const yoffset = switch (opt.ypos_type) {
         .baseline => -self.vmetric_ascent,
         .top => 0,
@@ -364,7 +365,7 @@ pub fn getBoundingBox(self: *Atlas, text: []const u8, _pos: jok.Point, opt: BBox
     } * opt.scale.y;
     const align_width = if (opt.align_width) |w| @as(f32, @floatFromInt(w)) else math.inf(f32);
     var pos = _pos;
-    var rect = jok.Rectangle{
+    var rect = geom.Rectangle{
         .x = pos.x,
         .y = switch (opt.box_type) {
             .aligned => pos.y + yoffset,
@@ -476,12 +477,12 @@ pub const AppendOption = struct {
 pub fn appendDrawDataFromUTF8String(
     self: *Atlas,
     text: []const u8,
-    _pos: jok.Point,
+    _pos: geom.Point,
     color: jok.Color,
     vattrib: *std.array_list.Managed(jok.Vertex),
     vindices: *std.array_list.Managed(u32),
     opt: AppendOption,
-) !jok.Rectangle {
+) !geom.Rectangle {
     const yoffset = switch (opt.ypos_type) {
         .baseline => -self.vmetric_ascent,
         .top => 0,
@@ -489,7 +490,7 @@ pub fn appendDrawDataFromUTF8String(
         .middle => self.getFontSizeInPixels() * 0.5,
     };
     var pos = _pos;
-    var rect = jok.Rectangle{
+    var rect = geom.Rectangle{
         .x = pos.x,
         .y = switch (opt.box_type) {
             .aligned => pos.y + yoffset,
@@ -546,7 +547,7 @@ pub fn appendDrawDataFromUTF8String(
 /// Search coordinates of codepoint (in the order of left-top/right-top/right-bottom/left-bottom)
 pub inline fn getVerticesOfCodePoint(
     self: *Atlas,
-    pos: jok.Point,
+    pos: geom.Point,
     ypos_type: YPosType,
     color: jok.Color,
     codepoint: u32,

@@ -32,6 +32,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const xml = @import("xml.zig");
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const j2d = jok.j2d;
 const physfs = jok.vendor.physfs;
 const log = std.log.scoped(.jok);
@@ -75,8 +76,8 @@ pub const PropertyTree = std.StringHashMap(PropertyValue);
 pub const Tile = struct {
     tileset: *const Tileset,
     id: u32,
-    uv0: jok.Point,
-    uv1: jok.Point,
+    uv0: geom.Point,
+    uv1: geom.Point,
     props: PropertyTree,
 
     pub fn getSprite(self: Tile) j2d.Sprite {
@@ -93,7 +94,7 @@ pub const Tile = struct {
 pub const Tileset = struct {
     map: *const TiledMap,
     first_gid: u32,
-    tile_size: jok.Size,
+    tile_size: geom.Size,
     spacing: u32,
     columns: u32,
     tiles: []Tile,
@@ -147,7 +148,7 @@ const Chunk = struct {
 
     const RenderSprite = struct {
         sprite: j2d.Sprite,
-        pos: jok.Point,
+        pos: geom.Point,
         tint_color: jok.Color,
         flip_h: bool,
         flip_v: bool,
@@ -157,7 +158,7 @@ const Chunk = struct {
         layer: *const TileLayer,
         order: RenderOrder,
         gids: []GlobalTileID,
-        rect: jok.Rectangle,
+        rect: geom.Rectangle,
         idx: ?usize,
 
         fn next(it: *Iterator) ?RenderSprite {
@@ -173,7 +174,7 @@ const Chunk = struct {
                     const tile = tileset.getTile(gid);
                     const x_in_rect: f32 = @floatFromInt(i % @as(u32, @intFromFloat(it.rect.width)));
                     const y_in_rect: f32 = @floatFromInt(i / @as(u32, @intFromFloat(it.rect.width)));
-                    const pos_in_layer = jok.Point{
+                    const pos_in_layer = geom.Point{
                         .x = (it.rect.x + x_in_rect) * @as(f32, @floatFromInt(it.map.tile_size.width)),
                         .y = (it.rect.y + y_in_rect) * @as(f32, @floatFromInt(it.map.tile_size.height)),
                     };
@@ -269,9 +270,9 @@ const TileLayer = struct {
     map: *const TiledMap,
     name: []const u8,
     class: []const u8,
-    size: jok.Size,
-    offset: jok.Point,
-    parallax: jok.Point,
+    size: geom.Size,
+    offset: geom.Point,
+    parallax: geom.Point,
     tint_color: jok.Color,
     chunks: []Chunk,
     visible: bool,
@@ -293,9 +294,9 @@ const TileLayer = struct {
         }
     }
 
-    pub fn getTileByPos(self: TileLayer, pos: jok.Point) ?struct {
+    pub fn getTileByPos(self: TileLayer, pos: geom.Point) ?struct {
         tile: Tile,
-        rect: jok.Rectangle,
+        rect: geom.Rectangle,
     } {
         if (pos.x >= self.offset.x and pos.x < self.offset.x + @as(f32, @floatFromInt(self.size.width * self.map.tile_size.width)) and
             pos.y >= self.offset.y and pos.y < self.offset.y + @as(f32, @floatFromInt(self.size.height * self.map.tile_size.height)))
@@ -328,9 +329,9 @@ const Object = struct {
     map: *const TiledMap,
     layer_id: u32,
     geom: union(enum) {
-        rect: jok.Rectangle,
-        circle: jok.Circle,
-        point: jok.Point,
+        rect: geom.Rectangle,
+        circle: geom.Circle,
+        point: geom.Point,
         polygon: j2d.ConvexPoly,
         polyline: j2d.Polyline,
     },
@@ -344,8 +345,8 @@ const ObjectGroup = struct {
     map: *const TiledMap,
     name: []const u8,
     class: []const u8,
-    offset: jok.Point,
-    parallax: jok.Point,
+    offset: geom.Point,
+    parallax: geom.Point,
     tint_color: jok.Color,
     objects: []Object,
     visible: bool,
@@ -423,8 +424,8 @@ const ImageLayer = struct {
     map: *const TiledMap,
     name: []const u8,
     class: []const u8,
-    offset: jok.Point,
-    parallax: jok.Point,
+    offset: geom.Point,
+    parallax: geom.Point,
     tint_color: jok.Color,
     texture: jok.Texture,
     visible: bool,
@@ -470,7 +471,7 @@ pub const Layer = union(enum) {
         };
     }
 
-    pub fn getParallax(self: Layer) jok.Point {
+    pub fn getParallax(self: Layer) geom.Point {
         return switch (self) {
             .tile_layer => |l| l.parallax,
             .object_layer => |l| l.parallax,
@@ -492,10 +493,10 @@ pub const TiledMap = struct {
     arena: std.heap.ArenaAllocator,
     orientation: Orientation,
     order: RenderOrder,
-    map_size: jok.Size,
-    tile_size: jok.Size,
+    map_size: geom.Size,
+    tile_size: geom.Size,
     infinite: bool,
-    parallax_origin: jok.Point,
+    parallax_origin: geom.Point,
     bgcolor: jok.Color = .none,
     tilesets: []Tileset,
     layers: []Layer,
@@ -866,13 +867,13 @@ fn loadLayers(
         const Self = @This();
         const Group = struct {
             it: xml.Element.ChildElementIterator,
-            offset: jok.Point = .origin,
-            parallax: jok.Point = .unit,
+            offset: geom.Point = .origin,
+            parallax: geom.Point = .unit,
             tint_color: jok.Color = .white,
         };
         groups: std.array_list.Managed(Group),
-        offset: jok.Point,
-        parallax: jok.Point,
+        offset: geom.Point,
+        parallax: geom.Point,
         tint_color: jok.Color,
 
         fn init(allocator: std.mem.Allocator) Self {
@@ -985,8 +986,8 @@ fn loadLayers(
         var layer: Layer = undefined;
         var name: []const u8 = "";
         var class: []const u8 = "";
-        var offset: jok.Point = grouping.offset;
-        var parallax: jok.Point = grouping.parallax;
+        var offset: geom.Point = grouping.offset;
+        var parallax: geom.Point = grouping.parallax;
         var tint_color: jok.Color = grouping.tint_color;
         var visible = true;
         var props: PropertyTree = PropertyTree.init(arena_allocator);
@@ -1037,7 +1038,7 @@ fn loadLayers(
         // Load layer-specific stuff
         if (std.mem.eql(u8, e.tag, "layer")) {
             layer = .{ .tile_layer = undefined };
-            var size: jok.Size = undefined;
+            var size: geom.Size = undefined;
             for (e.attributes) |a| {
                 if (std.mem.eql(u8, a.name, "width")) {
                     size.width = try std.fmt.parseInt(u32, a.value, 10);

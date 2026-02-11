@@ -1,5 +1,6 @@
 const std = @import("std");
 const jok = @import("jok");
+const geom = jok.geom;
 const font = jok.font;
 const j2d = jok.j2d;
 const j3d = jok.j3d;
@@ -21,14 +22,14 @@ var shape_icosahedron: zmesh.Shape = undefined;
 var shape_torus: zmesh.Shape = undefined;
 var shape_parametric_sphere: zmesh.Shape = undefined;
 var shape_tetrahedron: zmesh.Shape = undefined;
-var text_draw_pos: jok.Point = undefined;
-var text_speed: jok.Point = undefined;
+var text_draw_pos: geom.Point = undefined;
+var text_speed: geom.Point = undefined;
 var screenshot_time: std.Io.Timestamp = undefined;
 var screenshot_tex: ?jok.Texture = null;
-var screenshot_pos: jok.Point = undefined;
-var screenshot_size: jok.Point = undefined;
+var screenshot_pos: geom.Point = undefined;
+var screenshot_size: geom.Point = undefined;
 var screenshot_tint_color: jok.ColorF = undefined;
-var point_easing_system: *easing.EasingSystem(jok.Point) = undefined;
+var point_easing_system: *easing.EasingSystem(geom.Point) = undefined;
 var color_easing_system: *easing.EasingSystem(jok.ColorF) = undefined;
 var show_stats: bool = true;
 var suppress: bool = true;
@@ -64,7 +65,7 @@ pub fn init(ctx: jok.Context) !void {
     shape_tetrahedron.computeNormals();
     text_draw_pos = csz.toPoint().scale(0.5);
     text_speed = .{ .x = 100, .y = 100 };
-    point_easing_system = try easing.EasingSystem(jok.Point).create(ctx.allocator());
+    point_easing_system = try easing.EasingSystem(geom.Point).create(ctx.allocator());
     color_easing_system = try easing.EasingSystem(jok.ColorF).create(ctx.allocator());
 }
 

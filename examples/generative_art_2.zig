@@ -1,6 +1,7 @@
 const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
+const geom = jok.geom;
 const j2d = jok.j2d;
 
 pub const jok_window_size = jok.config.WindowSize{
@@ -35,7 +36,7 @@ pub fn draw(ctx: jok.Context) !void {
     polyline.reset(true);
     var i: usize = 0;
     while (i < 360 * 4 + 1) : (i += 1) {
-        var point = jok.Point.origin;
+        var point = geom.Point.origin;
         var j: usize = 0;
         while (j < 5) : (j += 1) {
             const angle = std.math.degreesToRadians(

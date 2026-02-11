@@ -20,6 +20,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
+const geom = jok.geom;
 const sdl = jok.vendor.sdl;
 
 /// Keyboard modifier bit flags.
@@ -144,11 +145,11 @@ pub const MouseMotionEvent = struct {
     /// from original field named `state`
     button_state: MouseButtonState,
 
-    pos: jok.Point,
+    pos: geom.Point,
 
     /// difference of position since last reported MouseMotionEvent,
     /// ignores screen boundaries if relative mouse mode is enabled
-    delta: jok.Point,
+    delta: geom.Point,
 
     pub fn fromNative(native: sdl.SDL_MouseMotionEvent, ctx: jok.Context) MouseMotionEvent {
         assert(native.type == sdl.SDL_EVENT_MOUSE_MOTION);
@@ -181,7 +182,7 @@ pub const MouseButtonEvent = struct {
     button: MouseButton,
     is_down: bool,
     clicks: u8,
-    pos: jok.Point,
+    pos: geom.Point,
 
     pub fn fromNative(native: sdl.SDL_MouseButtonEvent, ctx: jok.Context) MouseButtonEvent {
         switch (native.type) {
@@ -311,7 +312,7 @@ pub const JoyBallEvent = struct {
     timestamp: u64,
     joystick_id: sdl.SDL_JoystickID,
     ball: u8,
-    delta: jok.Point,
+    delta: geom.Point,
 
     pub fn fromNative(native: sdl.SDL_JoyBallEvent, ctx: jok.Context) JoyBallEvent {
         switch (native.type) {
@@ -763,7 +764,7 @@ pub fn waitEventTimeout(timeout: usize) ?Event {
 
 pub const MouseState = struct {
     buttons: MouseButtonState,
-    pos: jok.Point,
+    pos: geom.Point,
 };
 
 pub fn getMouseState(ctx: jok.Context) MouseState {
@@ -1429,7 +1430,7 @@ inline fn getCanvasScale(ctx: jok.Context) f32 {
     return @as(f32, @floatFromInt(canvas_size.width)) / canvas_area.width;
 }
 
-inline fn mapPositionToCanvas(ctx: jok.Context, pos: jok.Point) jok.Point {
+inline fn mapPositionToCanvas(ctx: jok.Context, pos: geom.Point) geom.Point {
     const canvas_size = ctx.getCanvasSize();
     const canvas_area = ctx.getCanvasArea();
     const canvas_scale = @as(f32, @floatFromInt(canvas_size.width)) / canvas_area.width;

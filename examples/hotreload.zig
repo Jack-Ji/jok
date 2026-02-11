@@ -8,7 +8,7 @@ const PluginType = @import("plugin.zig").PluginType;
 pub const jok_window_always_on_top = true;
 
 var batchpool: j2d.BatchPool(64, false) = undefined;
-var text_draw_pos: jok.Point = undefined;
+var text_draw_pos: geom.Point = undefined;
 var text_speed: j2d.Vector = undefined;
 var plugin: *utils.plugin.Plugin(PluginType) = undefined;
 

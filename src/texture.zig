@@ -13,6 +13,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
+const geom = jok.geom;
 const sdl = jok.vendor.sdl;
 const zgui = jok.vendor.zgui;
 
@@ -143,7 +144,7 @@ pub const Texture = struct {
     /// Must be used with streaming textures only.
     pub const PixelData = struct {
         allocator: std.mem.Allocator,
-        region: ?jok.Region,
+        region: ?geom.Region,
         buf: []u8,
         pixels: []u32,
         width: u32,
@@ -153,7 +154,7 @@ pub const Texture = struct {
             self.allocator.free(self.buf);
         }
 
-        pub inline fn clear(self: PixelData, c: jok.Color, region: ?jok.Region) void {
+        pub inline fn clear(self: PixelData, c: jok.Color, region: ?geom.Region) void {
             const rgba = c.toRGBA32();
             if (region) |r| {
                 assert(r.x + r.width <= self.width);
@@ -185,7 +186,7 @@ pub const Texture = struct {
             self.pixels[index] = c.toRGBA32();
         }
     };
-    pub fn createPixelData(self: Texture, allocator: std.mem.Allocator, region: ?jok.Region) !PixelData {
+    pub fn createPixelData(self: Texture, allocator: std.mem.Allocator, region: ?geom.Region) !PixelData {
         const info = try self.query();
         assert(info.access == .streaming);
         assert(info.format == @as(u32, @intCast(sdl.SDL_PIXELFORMAT_RGBA32)));

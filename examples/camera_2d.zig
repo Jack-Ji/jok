@@ -1,11 +1,12 @@
 const std = @import("std");
 const jok = @import("jok");
+const geom = jok.geom;
 const j2d = jok.j2d;
 
 var batchpool: j2d.BatchPool(16, false) = undefined;
-var map: jok.Rectangle = undefined;
+var map: geom.Rectangle = undefined;
 var camera: j2d.Camera = undefined;
-var rects = std.ArrayList(jok.Rectangle).empty;
+var rects = std.ArrayList(geom.Rectangle).empty;
 
 pub fn init(ctx: jok.Context) !void {
     const csz = ctx.getCanvasSize();
@@ -105,7 +106,7 @@ pub fn draw(ctx: jok.Context) !void {
     {
         // Draw mini-map on bottom-right corner
         const csz = ctx.getCanvasSize();
-        const mini_map = jok.Rectangle{
+        const mini_map = geom.Rectangle{
             .x = csz.getWidthFloat() - 200,
             .y = csz.getHeightFloat() - 200,
             .width = 200,

@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
+const geom = jok.geom;
 const Batch = jok.j2d.Batch;
 const SpriteOption = Batch.SpriteOption;
 const DrawCmd = @import("internal.zig").DrawCmd;
@@ -29,7 +30,7 @@ pub const SpriteObj = struct {
     sp: Sprite,
     transform: AffineTransform = .init,
     tint_color: jok.Color = .white,
-    anchor_point: jok.Point = .anchor_top_left,
+    anchor_point: geom.Point = .anchor_top_left,
     flip_h: bool = false,
     flip_v: bool = false,
 };
@@ -45,7 +46,7 @@ pub const Text = struct {
     auto_hyphen: bool = false,
     kerning: bool = false,
     tint_color: jok.Color = .white,
-    scale: jok.Point = .unit,
+    scale: geom.Point = .unit,
 };
 
 /// An object in 2d space
@@ -73,7 +74,7 @@ pub const Actor = union(enum) {
         };
     }
 
-    inline fn getTransformedBounds(actor: Actor, trs: AffineTransform) jok.Rectangle {
+    inline fn getTransformedBounds(actor: Actor, trs: AffineTransform) geom.Rectangle {
         switch (actor) {
             .position => {
                 const translation = trs.getTranslation();
@@ -88,7 +89,7 @@ pub const Actor = union(enum) {
                 return trs.transformRectangle(a.dcmd.getRect());
             },
             .sprite => |a| {
-                const rect = jok.Rectangle{
+                const rect = geom.Rectangle{
                     .x = -a.anchor_point.x * a.sp.width,
                     .y = -a.anchor_point.y * a.sp.height,
                     .width = a.sp.width,
@@ -214,7 +215,7 @@ pub const Object = struct {
 
     /// Get the axis-aligned bounding box of this object after applying transforms.
     /// NOTE: Rotation is not considered; only returns an axis-aligned rectangle.
-    pub fn getTransformedBounds(o: Object, _trs: AffineTransform) jok.Rectangle {
+    pub fn getTransformedBounds(o: Object, _trs: AffineTransform) geom.Rectangle {
         const trs = o.transform.mul(_trs);
         if (builtin.mode == .Debug) {
             if (!std.math.approxEqAbs(

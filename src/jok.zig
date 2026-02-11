@@ -6,6 +6,7 @@
 //! - Window management and event handling
 //! - 2D and 3D rendering with GPU acceleration
 //! - Texture and shader support
+//! - Fundamental 2D geometry toolbox
 //! - Font rendering and text layout
 //! - Input handling (keyboard, mouse, gamepad)
 //! - Websocket client (only for webassembly)
@@ -45,6 +46,7 @@
 //! - `Event`: Input event handling (keyboard, mouse, touch, gamepad)
 //! - `Renderer`: Low-level GPU rendering interface
 //! - `Texture`: Image loading and texture management
+//! - `geom`: Fundamental 2D geometry types
 //! - `j2d`: High-level 2D rendering API (sprites, shapes, text)
 //! - `j3d`: High-level 3D rendering API (meshes, cameras, lighting)
 //! - `font`: Font loading and text rendering
@@ -67,38 +69,15 @@ pub const context = @import("context.zig");
 /// Provides access to window, renderer, input, and other subsystems.
 pub const Context = context.Context;
 
-/// 2D point with x and y coordinates.
-pub const Point = basic.Point;
-
-/// 2D size with width and height.
-pub const Size = basic.Size;
-
-/// 2D region defined by position and size.
-pub const Region = basic.Region;
-
-/// Axis-aligned rectangle.
-pub const Rectangle = basic.Rectangle;
-
-/// Circle defined by center point and radius.
-pub const Circle = basic.Circle;
-
-/// Ellipse defined by center point and radii.
-pub const Ellipse = basic.Ellipse;
-
-/// Triangle defined by three vertices.
-pub const Triangle = basic.Triangle;
-
-/// Line segment defined by two endpoints.
-pub const Line = basic.Line;
-
-/// Ray defined by an origin point and a direction vector.
-pub const Ray = basic.Ray;
-
 /// RGBA color with 8-bit integer components (0-255).
 pub const Color = basic.Color;
 
 /// RGBA color with floating-point components (0.0-1.0).
 pub const ColorF = basic.ColorF;
+
+/// Blend mode for controlling how colors are combined during rendering.
+/// Includes common modes like alpha blending, additive, multiply, etc.
+pub const BlendMode = basic.BlendMode;
 
 /// Vertex structure for custom rendering (position, UV, color).
 pub const Vertex = basic.Vertex;
@@ -129,9 +108,8 @@ pub const PixelShader = renderer.PixelShader;
 /// Supports common formats like PNG, JPG, BMP, etc.
 pub const Texture = @import("texture.zig").Texture;
 
-/// Blend mode for controlling how colors are combined during rendering.
-/// Includes common modes like alpha blending, additive, multiply, etc.
-pub const BlendMode = @import("blend.zig").BlendMode;
+// Fundamental 2D geometry types
+pub const geom = @import("geom.zig");
 
 /// High-level 2D rendering API.
 /// Provides convenient functions for drawing sprites, shapes, text, and more.
@@ -162,6 +140,7 @@ pub const vendor = @import("vendor.zig");
 // All tests
 test "all tests" {
     _ = basic;
+    _ = geom;
     _ = j2d;
     _ = j3d;
     _ = font;
