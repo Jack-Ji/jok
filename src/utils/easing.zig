@@ -35,7 +35,7 @@ const std = @import("std");
 const math = std.math;
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const geom = jok.geom;
+const Point = jok.j2d.geom.Point;
 const signal = @import("signal.zig");
 
 /// Available easing function types
@@ -80,7 +80,7 @@ const DummyMutex = struct {
 };
 
 /// Generic easing system for animating values of any type
-/// T: The type of value to animate (e.g., f32, geom.Point, jok.Color)
+/// T: The type of value to animate (e.g., f32, Point, Color)
 pub fn EasingSystem(comptime T: type) type {
     return struct {
         /// Represents a single easing animation
@@ -335,8 +335,8 @@ pub fn EaseVectorLinearly(comptime N: u32, comptime T: type) type {
     };
 }
 
-/// Linear interpolation for geom.Point
-pub fn easePointLinearly(t: f32, from: geom.Point, to: geom.Point, data: ?*anyopaque) geom.Point {
+/// Linear interpolation for Point
+pub fn easePointLinearly(t: f32, from: Point, to: Point, data: ?*anyopaque) Point {
     const es = EaseScalarLinearly(f32);
     return .{
         .x = es.ease(t, from.x, to.x, data),

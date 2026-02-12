@@ -5,6 +5,7 @@
 //!
 //! Key features:
 //! - Batched rendering for optimal performance
+//! - Fundamental 2D geometry types
 //! - Affine transformations (translate, rotate, scale)
 //! - Sprite and sprite sheet support
 //! - Animation system
@@ -23,7 +24,6 @@ const math = std.math;
 const ascii = std.ascii;
 const unicode = std.unicode;
 const jok = @import("jok.zig");
-const geom = jok.geom;
 const font = jok.font;
 const PixelShader = jok.PixelShader;
 const twoFloats = jok.utils.twoFloats;
@@ -61,6 +61,9 @@ pub const Scene = @import("j2d/Scene.zig");
 /// 2D vector utilities
 pub const Vector = @import("j2d/Vector.zig");
 
+// Fundamental 2D geometry types
+pub const geom = @import("j2d/geom.zig");
+
 /// Errors that can occur during 2D rendering operations
 pub const Error = error{
     /// Path was not finished before attempting to render
@@ -83,6 +86,8 @@ pub const DepthSortMethod = enum {
 
 /// Configuration options for creating a rendering batch
 pub const BatchOption = struct {
+    /// Camera for transform coordinate
+    camera: ?Camera = null,
     /// Depth sorting method for draw commands
     depth_sort: DepthSortMethod = .none,
     /// Blending mode for rendering
@@ -176,7 +181,7 @@ pub const Batch = struct {
 
         self.draw_commands.clearRetainingCapacity();
         self.trs_stack.clearRetainingCapacity();
-        self.trs = .init;
+        self.trs = if (opt.camera) |c| c.getTransform() else .init;
         self.depth_sort = opt.depth_sort;
         self.blend_mode = opt.blend_mode;
         self.clip_rect = opt.clip_rect orelse blk: {

@@ -6,8 +6,8 @@
 
 const std = @import("std");
 const assert = std.debug.assert;
+const geom = @import("geom.zig");
 const jok = @import("../jok.zig");
-const geom = jok.geom;
 const utils = jok.utils;
 const zmath = jok.vendor.zmath;
 const AffineTransform = @import("AffineTransform.zig");

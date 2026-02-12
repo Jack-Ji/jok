@@ -7,7 +7,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
-const geom = jok.geom;
+const Point = jok.j2d.geom.Point;
 const sdl = jok.vendor.sdl;
 const zmath = jok.vendor.zmath;
 
@@ -592,11 +592,11 @@ pub const BlendMode = enum {
 /// Used by the rendering system for drawing textured and colored geometry.
 pub const Vertex = extern struct {
     /// Vertex position in 2D space
-    pos: geom.Point,
+    pos: Point,
     /// Vertex color (floating-point RGBA)
     color: ColorF,
     /// Texture coordinates (UV mapping). Undefined if not using textures.
-    texcoord: geom.Point = undefined,
+    texcoord: Point = undefined,
 };
 
 test "basic" {

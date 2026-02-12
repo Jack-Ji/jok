@@ -39,8 +39,10 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const geom = jok.geom;
 const j2d = jok.j2d;
+const Point = j2d.geom.Point;
+const Size = j2d.geom.Size;
+const Rectangle = j2d.geom.Rectangle;
 
 /// Errors that can occur during quad tree operations
 pub const Error = error{
@@ -60,7 +62,7 @@ pub const TreeOption = struct {
 /// Options for put operation
 pub const PutOption = struct {
     /// Optional collision size (size + pos => rect)
-    size: ?geom.Size = null,
+    size: ?Size = null,
 };
 
 /// Options for query operation
@@ -80,15 +82,15 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
         const Tree = @This();
         pub const TreeNode = union(enum) {
             pub const Node = struct {
-                rect: geom.Rectangle,
+                rect: Rectangle,
                 children: [4]*TreeNode, // NW, NE, SW, SE
                 size: u32,
             };
             pub const Leaf = struct {
-                rect: geom.Rectangle,
+                rect: Rectangle,
                 objs: std.ArrayList(ObjectType),
 
-                fn getSubRect(self: Leaf, child_idx: u32) geom.Rectangle {
+                fn getSubRect(self: Leaf, child_idx: u32) Rectangle {
                     const w = self.rect.width / 2.0;
                     const h = self.rect.height / 2.0;
                     return switch (child_idx) {
@@ -104,7 +106,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
             node: Node,
             leaf: Leaf,
 
-            pub inline fn getRect(self: TreeNode) geom.Rectangle {
+            pub inline fn getRect(self: TreeNode) Rectangle {
                 return if (self == .node) self.node.rect else self.leaf.rect;
             }
         };
@@ -113,12 +115,12 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
         arena: std.heap.ArenaAllocator,
         node_pool: std.heap.MemoryPool(TreeNode),
         root: *TreeNode,
-        positions: std.AutoHashMap(ObjectType, geom.Point),
-        sizes: std.AutoHashMap(ObjectType, geom.Size),
+        positions: std.AutoHashMap(ObjectType, Point),
+        sizes: std.AutoHashMap(ObjectType, Size),
         leaves: std.AutoHashMap(ObjectType, std.ArrayList(*TreeNode.Leaf)),
 
         /// Initialize new tree
-        pub fn create(allocator: std.mem.Allocator, rect: geom.Rectangle) !*Tree {
+        pub fn create(allocator: std.mem.Allocator, rect: Rectangle) !*Tree {
             assert(rect.area() > 0);
 
             var tree = try allocator.create(Tree);
@@ -129,8 +131,8 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                 .arena = std.heap.ArenaAllocator.init(allocator),
                 .node_pool = try std.heap.MemoryPool(TreeNode).initCapacity(allocator, 1024),
                 .root = undefined,
-                .positions = std.AutoHashMap(ObjectType, geom.Point).init(allocator),
-                .sizes = std.AutoHashMap(ObjectType, geom.Size).init(allocator),
+                .positions = std.AutoHashMap(ObjectType, Point).init(allocator),
+                .sizes = std.AutoHashMap(ObjectType, Size).init(allocator),
                 .leaves = std.AutoHashMap(ObjectType, std.ArrayList(*TreeNode.Leaf)).init(allocator),
             };
             errdefer {
@@ -170,7 +172,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
         }
 
         /// Add an object into tree
-        pub fn put(self: *Tree, o: ObjectType, pos: geom.Point, put_opt: PutOption) !void {
+        pub fn put(self: *Tree, o: ObjectType, pos: Point, put_opt: PutOption) !void {
             if (self.positions.get(o) != null) return error.AlreadyExists;
 
             if (put_opt.size) |size| {
@@ -178,7 +180,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                 // Calculate bounding rectangle
                 const w = size.getWidthFloat();
                 const h = size.getHeightFloat();
-                const rect: geom.Rectangle = .{
+                const rect: Rectangle = .{
                     .x = pos.x - w * 0.5,
                     .y = pos.y - h * 0.5,
                     .width = w,
@@ -259,14 +261,14 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
         }
 
         /// Update position of object
-        pub fn update(self: *Tree, o: ObjectType, new_pos: geom.Point) !void {
+        pub fn update(self: *Tree, o: ObjectType, new_pos: Point) !void {
             if (self.positions.get(o)) |p| {
                 // Check if object has size
                 if (self.sizes.get(o)) |size| {
                     // Sized object: recalculate overlapping leaves
                     const w = size.getWidthFloat();
                     const h = size.getHeightFloat();
-                    const rect: geom.Rectangle = .{
+                    const rect: Rectangle = .{
                         .x = new_pos.x - w * 0.5,
                         .y = new_pos.y - h * 0.5,
                         .width = w,
@@ -292,7 +294,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                     // Remove from old leaves based on previous position/size to avoid stale pointers
                     const old_w = size.getWidthFloat();
                     const old_h = size.getHeightFloat();
-                    const old_rect: geom.Rectangle = .{
+                    const old_rect: Rectangle = .{
                         .x = p.x - old_w * 0.5,
                         .y = p.y - old_h * 0.5,
                         .width = old_w,
@@ -357,7 +359,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
 
         /// Update position and replace the attached collision size (size + pos => rect).
         /// Query for objects which could potentially interfect with given rectangle
-        pub fn query(self: *Tree, rect: geom.Rectangle, padding: f32, results: *std.array_list.Managed(ObjectType), query_opt: QueryOption) !void {
+        pub fn query(self: *Tree, rect: Rectangle, padding: f32, results: *std.array_list.Managed(ObjectType), query_opt: QueryOption) !void {
             const padded = rect.padded(padding);
             const start_len = results.items.len;
 
@@ -392,7 +394,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                         if (self.sizes.get(obj)) |size| {
                             const w = size.getWidthFloat();
                             const h = size.getHeightFloat();
-                            const orect: geom.Rectangle = .{
+                            const orect: Rectangle = .{
                                 .x = p.x - w * 0.5,
                                 .y = p.y - h * 0.5,
                                 .width = w,
@@ -438,7 +440,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
 
         /// Draw quadtree on screen
         pub const DrawOption = struct {
-            query: ?geom.Rectangle = null,
+            query: ?Rectangle = null,
             rect_color: jok.Color = .black,
             query_color: jok.Color = .red,
             thickness: f32 = 2.0,
@@ -469,7 +471,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
             }
         }
 
-        fn insert(self: *Tree, tree_node: *TreeNode, o: ObjectType, pos: geom.Point) !void {
+        fn insert(self: *Tree, tree_node: *TreeNode, o: ObjectType, pos: Point) !void {
             if (tree_node.* == .node) {
                 for (tree_node.node.children) |n| {
                     if (n.getRect().containsPoint(pos)) {
@@ -495,7 +497,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
             }
         }
 
-        fn newLeaf(self: *Tree, rect: geom.Rectangle) !*TreeNode {
+        fn newLeaf(self: *Tree, rect: Rectangle) !*TreeNode {
             const tree_node = try self.node_pool.create(self.allocator);
             tree_node.* = .{
                 .leaf = .{
@@ -509,7 +511,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
             return tree_node;
         }
 
-        fn searchLeaf(self: *const Tree, pos: geom.Point) *const TreeNode.Leaf {
+        fn searchLeaf(self: *const Tree, pos: Point) *const TreeNode.Leaf {
             var current = self.root;
             while (current.* == .node) {
                 for (current.node.children) |child| {
@@ -524,7 +526,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
         }
 
         /// Find all leaves that intersect with the given rectangle
-        fn findIntersectingLeaves(self: *Tree, node: *TreeNode, rect: geom.Rectangle, results: *std.ArrayList(*TreeNode.Leaf)) !void {
+        fn findIntersectingLeaves(self: *Tree, node: *TreeNode, rect: Rectangle, results: *std.ArrayList(*TreeNode.Leaf)) !void {
             if (!node.getRect().hasIntersection(rect)) return;
 
             if (node.* == .leaf) {
@@ -538,7 +540,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
 
         /// Check if leaves intersecting with the given rectangle need subdivision
         /// This is called after inserting a sized object to trigger subdivision
-        fn checkAndSubdivideForSizedObject(self: *Tree, node: *TreeNode, parent: ?*TreeNode, rect: geom.Rectangle) !void {
+        fn checkAndSubdivideForSizedObject(self: *Tree, node: *TreeNode, parent: ?*TreeNode, rect: Rectangle) !void {
             if (!node.getRect().hasIntersection(rect)) return;
 
             if (node.* == .leaf) {
@@ -587,7 +589,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                     // Sized object: find all intersecting child leaves and add to each
                     const w = size.getWidthFloat();
                     const h = size.getHeightFloat();
-                    const obj_rect = geom.Rectangle{
+                    const obj_rect = Rectangle{
                         .x = obj_pos.x - w * 0.5,
                         .y = obj_pos.y - h * 0.5,
                         .width = w,
@@ -640,7 +642,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                     const size = self.sizes.get(obj).?;
                     const w = size.getWidthFloat();
                     const h = size.getHeightFloat();
-                    const obj_rect = geom.Rectangle{
+                    const obj_rect = Rectangle{
                         .x = obj_pos.x - w * 0.5,
                         .y = obj_pos.y - h * 0.5,
                         .width = w,
@@ -663,7 +665,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
             }
         }
 
-        fn searchAndRemove(self: *Tree, parent: ?*TreeNode, tree_node: *TreeNode, o: ObjectType, pos: geom.Point) void {
+        fn searchAndRemove(self: *Tree, parent: ?*TreeNode, tree_node: *TreeNode, o: ObjectType, pos: Point) void {
             const S = struct {
                 fn compare(target: ObjectType, _o: ObjectType) std.math.Order {
                     if (is_searchable and opt.enable_sort) {
@@ -791,7 +793,7 @@ const expectError = testing.expectError;
 
 test "QuadTree: basic creation and destruction" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
@@ -806,14 +808,14 @@ test "QuadTree: basic creation and destruction" {
 
 test "QuadTree: add single object" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     const obj: u32 = 42;
-    const pos = geom.Point{ .x = 100, .y = 100 };
+    const pos = Point{ .x = 100, .y = 100 };
 
     try tree.put(obj, pos, .{});
     try expectEqual(@as(usize, 1), tree.positions.count());
@@ -823,14 +825,14 @@ test "QuadTree: add single object" {
 
 test "QuadTree: add duplicate object returns error" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     const obj: u32 = 42;
-    const pos = geom.Point{ .x = 100, .y = 100 };
+    const pos = Point{ .x = 100, .y = 100 };
 
     try tree.put(obj, pos, .{});
     try expectError(Error.AlreadyExists, tree.put(obj, pos, .{}));
@@ -838,28 +840,28 @@ test "QuadTree: add duplicate object returns error" {
 
 test "QuadTree: add object outside bounds returns error" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     const obj: u32 = 42;
-    const pos = geom.Point{ .x = 1500, .y = 100 };
+    const pos = Point{ .x = 1500, .y = 100 };
 
     try expectError(Error.NotSeeable, tree.put(obj, pos, .{}));
 }
 
 test "QuadTree: remove object" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     const obj: u32 = 42;
-    const pos = geom.Point{ .x = 100, .y = 100 };
+    const pos = Point{ .x = 100, .y = 100 };
 
     try tree.put(obj, pos, .{});
     try expectEqual(@as(usize, 1), tree.positions.count());
@@ -871,7 +873,7 @@ test "QuadTree: remove object" {
 
 test "QuadTree: remove non-existent object is safe" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
@@ -884,7 +886,7 @@ test "QuadTree: remove non-existent object is safe" {
 
 test "QuadTree: tree subdivision on exceeding leaf capacity" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 4 });
     const tree = try TreeType.create(allocator, rect);
@@ -893,7 +895,7 @@ test "QuadTree: tree subdivision on exceeding leaf capacity" {
     // Add objects to same quadrant to force subdivision
     var i: u32 = 0;
     while (i < 10) : (i += 1) {
-        const pos = geom.Point{
+        const pos = Point{
             .x = 100 + @as(f32, @floatFromInt(i)) * 10,
             .y = 100 + @as(f32, @floatFromInt(i)) * 10,
         };
@@ -907,19 +909,19 @@ test "QuadTree: tree subdivision on exceeding leaf capacity" {
 
 test "QuadTree: objects distributed across quadrants" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 2 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Add objects to different quadrants
-    try tree.put(1, geom.Point{ .x = 100, .y = 100 }, .{}); // NW
-    try tree.put(2, geom.Point{ .x = 600, .y = 100 }, .{}); // NE
-    try tree.put(3, geom.Point{ .x = 100, .y = 600 }, .{}); // SW
-    try tree.put(4, geom.Point{ .x = 600, .y = 600 }, .{}); // SE
-    try tree.put(5, geom.Point{ .x = 150, .y = 150 }, .{}); // NW
-    try tree.put(6, geom.Point{ .x = 650, .y = 150 }, .{}); // NE
+    try tree.put(1, Point{ .x = 100, .y = 100 }, .{}); // NW
+    try tree.put(2, Point{ .x = 600, .y = 100 }, .{}); // NE
+    try tree.put(3, Point{ .x = 100, .y = 600 }, .{}); // SW
+    try tree.put(4, Point{ .x = 600, .y = 600 }, .{}); // SE
+    try tree.put(5, Point{ .x = 150, .y = 150 }, .{}); // NW
+    try tree.put(6, Point{ .x = 650, .y = 150 }, .{}); // NE
 
     try expect(tree.root.* == .node);
     try expectEqual(@as(u32, 6), tree.root.node.size);
@@ -927,13 +929,13 @@ test "QuadTree: objects distributed across quadrants" {
 
 test "QuadTree: query empty tree" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    const query_rect = geom.Rectangle{ .x = 100, .y = 100, .width = 200, .height = 200 };
+    const query_rect = Rectangle{ .x = 100, .y = 100, .width = 200, .height = 200 };
     var results = std.array_list.Managed(u32).init(allocator);
     defer results.deinit();
     try tree.query(query_rect, 0, &results, .{});
@@ -943,20 +945,20 @@ test "QuadTree: query empty tree" {
 
 test "QuadTree: query returns correct objects" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Add objects at various positions
-    try tree.put(1, geom.Point{ .x = 100, .y = 100 }, .{});
-    try tree.put(2, geom.Point{ .x = 500, .y = 500 }, .{});
-    try tree.put(3, geom.Point{ .x = 900, .y = 900 }, .{});
+    try tree.put(1, Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(2, Point{ .x = 500, .y = 500 }, .{});
+    try tree.put(3, Point{ .x = 900, .y = 900 }, .{});
 
     // Query that intersects with the entire tree (since root is still a leaf)
     // This should return all objects
-    const query_rect1 = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const query_rect1 = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
     var results1 = std.array_list.Managed(u32).init(allocator);
     defer results1.deinit();
     try tree.query(query_rect1, 0, &results1, .{});
@@ -965,7 +967,7 @@ test "QuadTree: query returns correct objects" {
 
     // Query that intersects the leaf (which contains all objects)
     // Even a small query will return all objects in the leaf
-    const query_rect2 = geom.Rectangle{ .x = 50, .y = 50, .width = 100, .height = 100 };
+    const query_rect2 = Rectangle{ .x = 50, .y = 50, .width = 100, .height = 100 };
     var results2 = std.array_list.Managed(u32).init(allocator);
     defer results2.deinit();
     try tree.query(query_rect2, 0, &results2, .{});
@@ -976,28 +978,28 @@ test "QuadTree: query returns correct objects" {
 
 test "QuadTree: query after subdivision" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 2 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Add enough objects to force subdivision, all in NW quadrant
-    try tree.put(0, geom.Point{ .x = 100, .y = 100 }, .{});
-    try tree.put(1, geom.Point{ .x = 150, .y = 100 }, .{});
-    try tree.put(2, geom.Point{ .x = 200, .y = 100 }, .{});
+    try tree.put(0, Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(1, Point{ .x = 150, .y = 100 }, .{});
+    try tree.put(2, Point{ .x = 200, .y = 100 }, .{});
 
     // Also add objects to other quadrants
-    try tree.put(10, geom.Point{ .x = 600, .y = 100 }, .{}); // NE
-    try tree.put(11, geom.Point{ .x = 650, .y = 150 }, .{}); // NE
-    try tree.put(20, geom.Point{ .x = 100, .y = 600 }, .{}); // SW
-    try tree.put(30, geom.Point{ .x = 600, .y = 600 }, .{}); // SE
+    try tree.put(10, Point{ .x = 600, .y = 100 }, .{}); // NE
+    try tree.put(11, Point{ .x = 650, .y = 150 }, .{}); // NE
+    try tree.put(20, Point{ .x = 100, .y = 600 }, .{}); // SW
+    try tree.put(30, Point{ .x = 600, .y = 600 }, .{}); // SE
 
     // Tree should be subdivided now
     try expect(tree.root.* == .node);
 
     // Query only NW quadrant - should only get objects from that quadrant
-    const query_rect1 = geom.Rectangle{ .x = 0, .y = 0, .width = 300, .height = 300 };
+    const query_rect1 = Rectangle{ .x = 0, .y = 0, .width = 300, .height = 300 };
     var results1 = std.array_list.Managed(u32).init(allocator);
     defer results1.deinit();
     try tree.query(query_rect1, 0, &results1, .{});
@@ -1011,7 +1013,7 @@ test "QuadTree: query after subdivision" {
     try expect(found_nw);
 
     // Query only SE quadrant
-    const query_rect2 = geom.Rectangle{ .x = 501, .y = 501, .width = 500, .height = 500 };
+    const query_rect2 = Rectangle{ .x = 501, .y = 501, .width = 500, .height = 500 };
     var results2 = std.array_list.Managed(u32).init(allocator);
     defer results2.deinit();
     try tree.query(query_rect2, 0, &results2, .{});
@@ -1020,7 +1022,7 @@ test "QuadTree: query after subdivision" {
     try expectEqual(@as(u32, 30), results2.items[0]);
 
     // Query that spans multiple quadrants
-    const query_rect3 = geom.Rectangle{ .x = 501, .y = 0, .width = 400, .height = 400 };
+    const query_rect3 = Rectangle{ .x = 501, .y = 0, .width = 400, .height = 400 };
     var results3 = std.array_list.Managed(u32).init(allocator);
     defer results3.deinit();
     try tree.query(query_rect3, 0, &results3, .{});
@@ -1031,7 +1033,7 @@ test "QuadTree: query after subdivision" {
 
 test "QuadTree: clear resets tree" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 2 });
     const tree = try TreeType.create(allocator, rect);
@@ -1040,7 +1042,7 @@ test "QuadTree: clear resets tree" {
     // Add objects
     var i: u32 = 0;
     while (i < 10) : (i += 1) {
-        const pos = geom.Point{
+        const pos = Point{
             .x = 100 + @as(f32, @floatFromInt(i)) * 50,
             .y = 100,
         };
@@ -1058,13 +1060,13 @@ test "QuadTree: clear resets tree" {
     try expectEqual(@as(usize, 0), tree.root.leaf.objs.items.len);
 
     // Should be able to add objects again
-    try tree.put(100, geom.Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(100, Point{ .x = 100, .y = 100 }, .{});
     try expectEqual(@as(usize, 1), tree.positions.count());
 }
 
 test "QuadTree: tree shrinking after removals" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 4 });
     const tree = try TreeType.create(allocator, rect);
@@ -1073,7 +1075,7 @@ test "QuadTree: tree shrinking after removals" {
     // Add enough objects to force subdivision
     var i: u32 = 0;
     while (i < 10) : (i += 1) {
-        const pos = geom.Point{
+        const pos = Point{
             .x = 100 + @as(f32, @floatFromInt(i)) * 50,
             .y = 100,
         };
@@ -1095,19 +1097,19 @@ test "QuadTree: tree shrinking after removals" {
 
 test "QuadTree: sized objects survive shrink" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 4 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Add a sized object spanning multiple leaves
-    try tree.put(999, geom.Point{ .x = 200, .y = 200 }, .{ .size = .{ .width = 300, .height = 300 } });
+    try tree.put(999, Point{ .x = 200, .y = 200 }, .{ .size = .{ .width = 300, .height = 300 } });
 
     // Add enough point objects to force subdivision
     var i: u32 = 0;
     while (i < 5) : (i += 1) {
-        const pos = geom.Point{
+        const pos = Point{
             .x = 100 + @as(f32, @floatFromInt(i)) * 10,
             .y = 100,
         };
@@ -1123,7 +1125,7 @@ test "QuadTree: sized objects survive shrink" {
     try expect(tree.root.* == .leaf);
 
     // Sized object should remain valid and updatable
-    try tree.update(999, geom.Point{ .x = 250, .y = 250 });
+    try tree.update(999, Point{ .x = 250, .y = 250 });
     try expect(tree.positions.get(999) != null);
 
     tree.remove(999);
@@ -1132,19 +1134,19 @@ test "QuadTree: sized objects survive shrink" {
 
 test "QuadTree: sized objects survive repeated subdivide/shrink" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 4 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    try tree.put(1000, geom.Point{ .x = 250, .y = 250 }, .{ .size = .{ .width = 300, .height = 300 } });
+    try tree.put(1000, Point{ .x = 250, .y = 250 }, .{ .size = .{ .width = 300, .height = 300 } });
 
     var cycle: u32 = 0;
     while (cycle < 3) : (cycle += 1) {
         var i: u32 = 0;
         while (i < 6) : (i += 1) {
-            const pos = geom.Point{
+            const pos = Point{
                 .x = 100 + @as(f32, @floatFromInt(i)) * 10,
                 .y = 100 + @as(f32, @floatFromInt(i)) * 10,
             };
@@ -1158,7 +1160,7 @@ test "QuadTree: sized objects survive repeated subdivide/shrink" {
         }
         try expect(tree.root.* == .leaf);
 
-        try tree.update(1000, geom.Point{ .x = 260 + @as(f32, @floatFromInt(cycle)) * 5, .y = 260 });
+        try tree.update(1000, Point{ .x = 260 + @as(f32, @floatFromInt(cycle)) * 5, .y = 260 });
         try expect(tree.positions.get(1000) != null);
     }
 
@@ -1168,17 +1170,17 @@ test "QuadTree: sized objects survive repeated subdivide/shrink" {
 
 test "QuadTree: with sorted integers" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .enable_sort = true });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Add objects in non-sorted order
-    try tree.put(50, geom.Point{ .x = 100, .y = 100 }, .{});
-    try tree.put(10, geom.Point{ .x = 150, .y = 100 }, .{});
-    try tree.put(30, geom.Point{ .x = 200, .y = 100 }, .{});
-    try tree.put(20, geom.Point{ .x = 250, .y = 100 }, .{});
+    try tree.put(50, Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(10, Point{ .x = 150, .y = 100 }, .{});
+    try tree.put(30, Point{ .x = 200, .y = 100 }, .{});
+    try tree.put(20, Point{ .x = 250, .y = 100 }, .{});
 
     // Objects should be sorted in leaf
     try expect(tree.root.* == .leaf);
@@ -1195,7 +1197,7 @@ test "QuadTree: with sorted integers" {
 
 test "QuadTree: pointer types" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const Object = struct {
         id: u32,
@@ -1209,13 +1211,13 @@ test "QuadTree: pointer types" {
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    try tree.put(&obj1, geom.Point{ .x = 100, .y = 100 }, .{});
-    try tree.put(&obj2, geom.Point{ .x = 200, .y = 200 }, .{});
+    try tree.put(&obj1, Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(&obj2, Point{ .x = 200, .y = 200 }, .{});
 
     try expectEqual(@as(usize, 2), tree.positions.count());
 
     // Query should find both objects
-    const query_rect = geom.Rectangle{ .x = 0, .y = 0, .width = 300, .height = 300 };
+    const query_rect = Rectangle{ .x = 0, .y = 0, .width = 300, .height = 300 };
     var results = std.array_list.Managed(*Object).init(allocator);
     defer results.deinit();
     try tree.query(query_rect, 0, &results, .{});
@@ -1225,7 +1227,7 @@ test "QuadTree: pointer types" {
 
 test "QuadTree: minimum width constraint" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 200, .height = 200 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 200, .height = 200 };
 
     const TreeType = QuadTree(u32, .{
         .preferred_size_of_leaf = 2,
@@ -1237,7 +1239,7 @@ test "QuadTree: minimum width constraint" {
     // Try to add more than preferred_size_of_leaf
     var i: u32 = 0;
     while (i < 10) : (i += 1) {
-        const pos = geom.Point{
+        const pos = Point{
             .x = 50 + @as(f32, @floatFromInt(i)) * 5,
             .y = 50,
         };
@@ -1251,7 +1253,7 @@ test "QuadTree: minimum width constraint" {
 
 test "QuadTree: stress test with many objects" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 10000, .height = 10000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 10000, .height = 10000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
@@ -1260,7 +1262,7 @@ test "QuadTree: stress test with many objects" {
     // Add 1000 objects
     var i: u32 = 0;
     while (i < 1000) : (i += 1) {
-        const pos = geom.Point{
+        const pos = Point{
             .x = @mod(@as(f32, @floatFromInt(i)) * 73.2, 10000),
             .y = @mod(@as(f32, @floatFromInt(i)) * 41.7, 10000),
         };
@@ -1270,7 +1272,7 @@ test "QuadTree: stress test with many objects" {
     try expectEqual(@as(usize, 1000), tree.positions.count());
 
     // Query a small region
-    const query_rect = geom.Rectangle{ .x = 1000, .y = 1000, .width = 500, .height = 500 };
+    const query_rect = Rectangle{ .x = 1000, .y = 1000, .width = 500, .height = 500 };
     var results = std.array_list.Managed(u32).init(allocator);
     defer results.deinit();
     try tree.query(query_rect, 0, &results, .{});
@@ -1290,21 +1292,21 @@ test "QuadTree: stress test with many objects" {
 
 test "QuadTree: boundary cases" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 2 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Objects at exact boundaries
-    try tree.put(1, geom.Point{ .x = 0, .y = 0 }, .{});
-    try tree.put(2, geom.Point{ .x = 999.9, .y = 999.9 }, .{});
-    try tree.put(3, geom.Point{ .x = 501, .y = 501 }, .{});
+    try tree.put(1, Point{ .x = 0, .y = 0 }, .{});
+    try tree.put(2, Point{ .x = 999.9, .y = 999.9 }, .{});
+    try tree.put(3, Point{ .x = 501, .y = 501 }, .{});
 
     try expectEqual(@as(usize, 3), tree.positions.count());
 
     // Query at boundaries
-    const query_rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1, .height = 1 };
+    const query_rect = Rectangle{ .x = 0, .y = 0, .width = 1, .height = 1 };
     var results = std.array_list.Managed(u32).init(allocator);
     defer results.deinit();
     try tree.query(query_rect, 0, &results, .{});
@@ -1314,14 +1316,14 @@ test "QuadTree: boundary cases" {
 
 test "QuadTree: update - in-place update within same leaf" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 8 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     const obj: u32 = 42;
-    const old_pos = geom.Point{ .x = 100, .y = 100 };
-    const new_pos = geom.Point{ .x = 120, .y = 120 }; // still within the same leaf
+    const old_pos = Point{ .x = 100, .y = 100 };
+    const new_pos = Point{ .x = 120, .y = 120 }; // still within the same leaf
 
     try tree.put(obj, old_pos, .{});
     try expectEqual(@as(usize, 1), tree.positions.count());
@@ -1341,7 +1343,7 @@ test "QuadTree: update - in-place update within same leaf" {
 
 test "QuadTree: update - move across leaves" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 4 }); // small capacity to force subdivision
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
@@ -1349,7 +1351,7 @@ test "QuadTree: update - move across leaves" {
     // Add objects to force subdivision in NW quadrant
     var i: u32 = 0;
     while (i < 10) : (i += 1) {
-        const pos = geom.Point{ .x = 100 + @as(f32, @floatFromInt(i)) * 10, .y = 100 + @as(f32, @floatFromInt(i)) * 10 };
+        const pos = Point{ .x = 100 + @as(f32, @floatFromInt(i)) * 10, .y = 100 + @as(f32, @floatFromInt(i)) * 10 };
         try tree.put(i, pos, .{});
     }
     try expect(tree.root.* == .node); // confirm subdivision occurred
@@ -1359,7 +1361,7 @@ test "QuadTree: update - move across leaves" {
     try expect(tree.positions.get(obj) != null);
 
     // Move to SE quadrant (cross-leaf movement)
-    const new_pos = geom.Point{ .x = 800, .y = 800 };
+    const new_pos = Point{ .x = 800, .y = 800 };
 
     try tree.update(obj, new_pos);
 
@@ -1374,13 +1376,13 @@ test "QuadTree: update - move across leaves" {
 
 test "QuadTree: update - move to same position (should be no-op)" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     const obj: u32 = 100;
-    const pos = geom.Point{ .x = 500, .y = 500 };
+    const pos = Point{ .x = 500, .y = 500 };
 
     try tree.put(obj, pos, .{});
 
@@ -1395,13 +1397,13 @@ test "QuadTree: update - move to same position (should be no-op)" {
 
 test "QuadTree: update - object does not exist yet" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     const obj: u32 = 999;
-    const new_pos = geom.Point{ .x = 300, .y = 300 };
+    const new_pos = Point{ .x = 300, .y = 300 };
 
     // Update non-existent object (current implementation will add it)
     try tree.update(obj, new_pos);
@@ -1413,15 +1415,15 @@ test "QuadTree: update - object does not exist yet" {
 
 test "QuadTree: update - attempt to move outside tree bounds" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     const obj: u32 = 42;
-    try tree.put(obj, geom.Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(obj, Point{ .x = 100, .y = 100 }, .{});
 
-    const outside_pos = geom.Point{ .x = 1500, .y = 500 };
+    const outside_pos = Point{ .x = 1500, .y = 500 };
 
     // Should remove the obj
     try tree.update(obj, outside_pos);
@@ -1430,7 +1432,7 @@ test "QuadTree: update - attempt to move outside tree bounds" {
 
 test "QuadTree: query with precise option - filters by attached size" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
@@ -1449,12 +1451,12 @@ test "QuadTree: query with precise option - filters by attached size" {
 
 test "QuadTree: update with size - size override and stable across move" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    const size = geom.Size{ .width = 10, .height = 10 };
+    const size = Size{ .width = 10, .height = 10 };
     try tree.put(1, .{ .x = 45, .y = 45 }, .{ .size = size });
 
     try tree.update(1, .{ .x = 60, .y = 55 });
@@ -1467,7 +1469,7 @@ test "QuadTree: update with size - size override and stable across move" {
 
 test "QuadTree: query with precise option - falls back to position for objects without size" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
@@ -1486,17 +1488,17 @@ test "QuadTree: query with precise option - falls back to position for objects w
 
 test "QuadTree: query with padding expands search area" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 2 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Force subdivision
-    try tree.put(1, geom.Point{ .x = 100, .y = 100 }, .{});
-    try tree.put(2, geom.Point{ .x = 150, .y = 100 }, .{});
-    try tree.put(3, geom.Point{ .x = 200, .y = 100 }, .{});
-    try tree.put(10, geom.Point{ .x = 600, .y = 600 }, .{});
+    try tree.put(1, Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(2, Point{ .x = 150, .y = 100 }, .{});
+    try tree.put(3, Point{ .x = 200, .y = 100 }, .{});
+    try tree.put(10, Point{ .x = 600, .y = 600 }, .{});
 
     // Query that misses object 10 without padding
     var results1 = std.array_list.Managed(u32).init(allocator);
@@ -1517,24 +1519,24 @@ test "QuadTree: query with padding expands search area" {
 
 test "QuadTree: sized object spanning all four quadrants" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 2 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Force subdivision by adding point objects to different quadrants
-    try tree.put(1, geom.Point{ .x = 100, .y = 100 }, .{});
-    try tree.put(2, geom.Point{ .x = 600, .y = 100 }, .{});
-    try tree.put(3, geom.Point{ .x = 100, .y = 600 }, .{});
-    try tree.put(4, geom.Point{ .x = 600, .y = 600 }, .{});
-    try tree.put(5, geom.Point{ .x = 150, .y = 150 }, .{});
-    try tree.put(6, geom.Point{ .x = 650, .y = 150 }, .{});
+    try tree.put(1, Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(2, Point{ .x = 600, .y = 100 }, .{});
+    try tree.put(3, Point{ .x = 100, .y = 600 }, .{});
+    try tree.put(4, Point{ .x = 600, .y = 600 }, .{});
+    try tree.put(5, Point{ .x = 150, .y = 150 }, .{});
+    try tree.put(6, Point{ .x = 650, .y = 150 }, .{});
 
     try expect(tree.root.* == .node);
 
     // Add a large sized object centered at the middle, spanning all quadrants
-    try tree.put(99, geom.Point{ .x = 500, .y = 500 }, .{ .size = .{ .width = 600, .height = 600 } });
+    try tree.put(99, Point{ .x = 500, .y = 500 }, .{ .size = .{ .width = 600, .height = 600 } });
 
     // Query each quadrant should find the sized object
     var results_nw = std.array_list.Managed(u32).init(allocator);
@@ -1563,58 +1565,58 @@ test "QuadTree: sized object spanning all four quadrants" {
 
 test "QuadTree: sized object outside bounds returns NotSeeable" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Object centered far outside with small size
-    try expectError(Error.NotSeeable, tree.put(1, geom.Point{ .x = 2000, .y = 2000 }, .{ .size = .{ .width = 10, .height = 10 } }));
+    try expectError(Error.NotSeeable, tree.put(1, Point{ .x = 2000, .y = 2000 }, .{ .size = .{ .width = 10, .height = 10 } }));
 }
 
 test "QuadTree: sized object partially outside bounds is accepted" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Object centered at edge, half inside half outside
-    try tree.put(1, geom.Point{ .x = 0, .y = 500 }, .{ .size = .{ .width = 100, .height = 100 } });
+    try tree.put(1, Point{ .x = 0, .y = 500 }, .{ .size = .{ .width = 100, .height = 100 } });
     try expectEqual(@as(usize, 1), tree.positions.count());
 }
 
 test "QuadTree: update sized object to out of bounds removes it" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    try tree.put(1, geom.Point{ .x = 500, .y = 500 }, .{ .size = .{ .width = 50, .height = 50 } });
+    try tree.put(1, Point{ .x = 500, .y = 500 }, .{ .size = .{ .width = 50, .height = 50 } });
     try expectEqual(@as(usize, 1), tree.positions.count());
 
     // Move far outside
-    try tree.update(1, geom.Point{ .x = 5000, .y = 5000 });
+    try tree.update(1, Point{ .x = 5000, .y = 5000 });
     try expectEqual(null, tree.positions.get(1));
 }
 
 test "QuadTree: clear with sized objects" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 2 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Add mix of point and sized objects
-    try tree.put(1, geom.Point{ .x = 100, .y = 100 }, .{});
-    try tree.put(2, geom.Point{ .x = 600, .y = 100 }, .{});
-    try tree.put(3, geom.Point{ .x = 100, .y = 600 }, .{});
-    try tree.put(10, geom.Point{ .x = 500, .y = 500 }, .{ .size = .{ .width = 200, .height = 200 } });
+    try tree.put(1, Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(2, Point{ .x = 600, .y = 100 }, .{});
+    try tree.put(3, Point{ .x = 100, .y = 600 }, .{});
+    try tree.put(10, Point{ .x = 500, .y = 500 }, .{ .size = .{ .width = 200, .height = 200 } });
 
     try expectEqual(@as(usize, 4), tree.positions.count());
     try expect(tree.sizes.count() > 0);
@@ -1627,28 +1629,28 @@ test "QuadTree: clear with sized objects" {
     try expect(tree.root.* == .leaf);
 
     // Re-add after clear
-    try tree.put(20, geom.Point{ .x = 300, .y = 300 }, .{ .size = .{ .width = 50, .height = 50 } });
+    try tree.put(20, Point{ .x = 300, .y = 300 }, .{ .size = .{ .width = 50, .height = 50 } });
     try expectEqual(@as(usize, 1), tree.positions.count());
 }
 
 test "QuadTree: query deduplicates sized objects spanning multiple leaves" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 2 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Force subdivision
-    try tree.put(1, geom.Point{ .x = 100, .y = 100 }, .{});
-    try tree.put(2, geom.Point{ .x = 600, .y = 100 }, .{});
-    try tree.put(3, geom.Point{ .x = 100, .y = 600 }, .{});
-    try tree.put(4, geom.Point{ .x = 600, .y = 600 }, .{});
-    try tree.put(5, geom.Point{ .x = 150, .y = 150 }, .{});
-    try tree.put(6, geom.Point{ .x = 650, .y = 150 }, .{});
+    try tree.put(1, Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(2, Point{ .x = 600, .y = 100 }, .{});
+    try tree.put(3, Point{ .x = 100, .y = 600 }, .{});
+    try tree.put(4, Point{ .x = 600, .y = 600 }, .{});
+    try tree.put(5, Point{ .x = 150, .y = 150 }, .{});
+    try tree.put(6, Point{ .x = 650, .y = 150 }, .{});
 
     // Add sized object spanning multiple leaves
-    try tree.put(99, geom.Point{ .x = 500, .y = 500 }, .{ .size = .{ .width = 800, .height = 800 } });
+    try tree.put(99, Point{ .x = 500, .y = 500 }, .{ .size = .{ .width = 800, .height = 800 } });
 
     // Query the whole tree - object 99 should appear exactly once
     var results = std.array_list.Managed(u32).init(allocator);
@@ -1664,16 +1666,16 @@ test "QuadTree: query deduplicates sized objects spanning multiple leaves" {
 
 test "QuadTree: precise query filters sized object that doesn't actually intersect" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Small sized object in top-left corner
-    try tree.put(1, geom.Point{ .x = 10, .y = 10 }, .{ .size = .{ .width = 10, .height = 10 } });
+    try tree.put(1, Point{ .x = 10, .y = 10 }, .{ .size = .{ .width = 10, .height = 10 } });
     // Point object far away but in same leaf (no subdivision)
-    try tree.put(2, geom.Point{ .x = 900, .y = 900 }, .{});
+    try tree.put(2, Point{ .x = 900, .y = 900 }, .{});
 
     // Query bottom-right area - without precise, both are in same leaf so both returned
     var results_broad = std.array_list.Managed(u32).init(allocator);
@@ -1691,13 +1693,13 @@ test "QuadTree: precise query filters sized object that doesn't actually interse
 
 test "QuadTree: update non-existent object with in-bounds position adds it" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    try tree.update(42, geom.Point{ .x = 500, .y = 500 });
+    try tree.update(42, Point{ .x = 500, .y = 500 });
     try expectEqual(@as(usize, 1), tree.positions.count());
 
     // Verify it's queryable
@@ -1710,19 +1712,19 @@ test "QuadTree: update non-existent object with in-bounds position adds it" {
 
 test "QuadTree: update non-existent object with out-of-bounds position is no-op" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    try tree.update(42, geom.Point{ .x = 5000, .y = 5000 });
+    try tree.update(42, Point{ .x = 5000, .y = 5000 });
     try expectEqual(@as(usize, 0), tree.positions.count());
 }
 
 test "QuadTree: multiple put-remove-put cycles" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 4 });
     const tree = try TreeType.create(allocator, rect);
@@ -1732,7 +1734,7 @@ test "QuadTree: multiple put-remove-put cycles" {
     while (cycle < 5) : (cycle += 1) {
         var i: u32 = 0;
         while (i < 10) : (i += 1) {
-            const pos = geom.Point{
+            const pos = Point{
                 .x = 100 + @as(f32, @floatFromInt(i)) * 50,
                 .y = 100 + @as(f32, @floatFromInt(cycle)) * 50,
             };
@@ -1750,19 +1752,19 @@ test "QuadTree: multiple put-remove-put cycles" {
 
 test "QuadTree: sized object added before subdivision, then subdivision occurs" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 4 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Add sized object first (tree is still a single leaf)
-    try tree.put(100, geom.Point{ .x = 500, .y = 500 }, .{ .size = .{ .width = 200, .height = 200 } });
+    try tree.put(100, Point{ .x = 500, .y = 500 }, .{ .size = .{ .width = 200, .height = 200 } });
 
     // Now add enough point objects to force subdivision
     var i: u32 = 0;
     while (i < 8) : (i += 1) {
-        const pos = geom.Point{
+        const pos = Point{
             .x = 100 + @as(f32, @floatFromInt(i)) * 10,
             .y = 100,
         };
@@ -1789,13 +1791,13 @@ test "QuadTree: sized object added before subdivision, then subdivision occurs" 
 
 test "QuadTree: query non-intersecting region returns empty" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 100, .y = 100, .width = 500, .height = 500 };
+    const rect = Rectangle{ .x = 100, .y = 100, .width = 500, .height = 500 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    try tree.put(1, geom.Point{ .x = 300, .y = 300 }, .{});
+    try tree.put(1, Point{ .x = 300, .y = 300 }, .{});
 
     // Query completely outside tree bounds
     var results = std.array_list.Managed(u32).init(allocator);
@@ -1806,22 +1808,22 @@ test "QuadTree: query non-intersecting region returns empty" {
 
 test "QuadTree: tree with non-zero origin" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 500, .y = 500, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 500, .y = 500, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 2 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Objects within the offset bounds
-    try tree.put(1, geom.Point{ .x = 600, .y = 600 }, .{});
-    try tree.put(2, geom.Point{ .x = 1200, .y = 600 }, .{});
-    try tree.put(3, geom.Point{ .x = 600, .y = 1200 }, .{});
-    try tree.put(4, geom.Point{ .x = 1200, .y = 1200 }, .{});
+    try tree.put(1, Point{ .x = 600, .y = 600 }, .{});
+    try tree.put(2, Point{ .x = 1200, .y = 600 }, .{});
+    try tree.put(3, Point{ .x = 600, .y = 1200 }, .{});
+    try tree.put(4, Point{ .x = 1200, .y = 1200 }, .{});
 
     try expectEqual(@as(usize, 4), tree.positions.count());
 
     // Object at origin (0,0) should be rejected
-    try expectError(Error.NotSeeable, tree.put(5, geom.Point{ .x = 0, .y = 0 }, .{}));
+    try expectError(Error.NotSeeable, tree.put(5, Point{ .x = 0, .y = 0 }, .{}));
 
     // Query within bounds
     var results = std.array_list.Managed(u32).init(allocator);
@@ -1833,25 +1835,25 @@ test "QuadTree: tree with non-zero origin" {
 
 test "QuadTree: update sized object position across leaves" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{ .preferred_size_of_leaf = 2 });
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
     // Force subdivision
-    try tree.put(1, geom.Point{ .x = 100, .y = 100 }, .{});
-    try tree.put(2, geom.Point{ .x = 600, .y = 100 }, .{});
-    try tree.put(3, geom.Point{ .x = 100, .y = 600 }, .{});
-    try tree.put(4, geom.Point{ .x = 600, .y = 600 }, .{});
-    try tree.put(5, geom.Point{ .x = 150, .y = 150 }, .{});
-    try tree.put(6, geom.Point{ .x = 650, .y = 150 }, .{});
+    try tree.put(1, Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(2, Point{ .x = 600, .y = 100 }, .{});
+    try tree.put(3, Point{ .x = 100, .y = 600 }, .{});
+    try tree.put(4, Point{ .x = 600, .y = 600 }, .{});
+    try tree.put(5, Point{ .x = 150, .y = 150 }, .{});
+    try tree.put(6, Point{ .x = 650, .y = 150 }, .{});
 
     // Add sized object in NW
-    try tree.put(50, geom.Point{ .x = 200, .y = 200 }, .{ .size = .{ .width = 50, .height = 50 } });
+    try tree.put(50, Point{ .x = 200, .y = 200 }, .{ .size = .{ .width = 50, .height = 50 } });
 
     // Move it to SE
-    try tree.update(50, geom.Point{ .x = 800, .y = 800 });
+    try tree.update(50, Point{ .x = 800, .y = 800 });
 
     // Should be findable in SE
     var results = std.array_list.Managed(u32).init(allocator);
@@ -1874,13 +1876,13 @@ test "QuadTree: update sized object position across leaves" {
 
 test "QuadTree: query appends to existing results" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    try tree.put(1, geom.Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(1, Point{ .x = 100, .y = 100 }, .{});
 
     var results = std.array_list.Managed(u32).init(allocator);
     defer results.deinit();
@@ -1898,14 +1900,14 @@ test "QuadTree: query appends to existing results" {
 
 test "QuadTree: precise query appends to existing results correctly" {
     const allocator = testing.allocator;
-    const rect = geom.Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
+    const rect = Rectangle{ .x = 0, .y = 0, .width = 1000, .height = 1000 };
 
     const TreeType = QuadTree(u32, .{});
     const tree = try TreeType.create(allocator, rect);
     defer tree.destroy();
 
-    try tree.put(1, geom.Point{ .x = 100, .y = 100 }, .{});
-    try tree.put(2, geom.Point{ .x = 900, .y = 900 }, .{});
+    try tree.put(1, Point{ .x = 100, .y = 100 }, .{});
+    try tree.put(2, Point{ .x = 900, .y = 900 }, .{});
 
     var results = std.array_list.Managed(u32).init(allocator);
     defer results.deinit();

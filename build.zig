@@ -51,6 +51,7 @@ pub fn build(b: *Build) void {
         .{ .name = "camera_2d", .opt = .{} },
         .{ .name = "meshes_and_lighting", .opt = .{} },
         .{ .name = "intersection_2d", .opt = .{} },
+        .{ .name = "intersection_3d", .opt = .{} },
         .{ .name = "solar_system", .opt = .{} },
         .{ .name = "font_demo", .opt = .{ .preload_path = "examples/assets" } },
         .{ .name = "skybox", .opt = .{ .preload_path = "examples/assets" } },

@@ -3,7 +3,8 @@ const assert = std.debug.assert;
 const builtin = @import("builtin");
 const jok = @import("jok");
 const config = jok.config;
-const geom = jok.geom;
+const Size = jok.j2d.geom.Size;
+const Rectangle = jok.j2d.geom.Rectangle;
 const io = jok.io;
 const font = jok.font;
 const sdl = jok.vendor.sdl;
@@ -60,8 +61,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
 
         // Rendering target
         _canvas_texture: jok.Texture = undefined,
-        _canvas_size: ?geom.Size = cfg.jok_canvas_size,
-        _canvas_target_area: ?geom.Rectangle = null,
+        _canvas_size: ?Size = cfg.jok_canvas_size,
+        _canvas_target_area: ?Rectangle = null,
 
         // Drawcall suppress
         _suppress_draw: bool = false,
@@ -330,7 +331,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 _ = zgui.sdl.processEvent(ne);
 
                 // Game event processing
-                const we = jok.Event.from(ne, self._ctx);
+                const we = jok.Event.from(ne, self._ctx) orelse continue;
                 if (!builtin.cpu.arch.isWasm() and cfg.jok_exit_on_recv_esc and we == .key_up and we.key_up.scancode == .escape) {
                     kill(self);
                 } else if (cfg.jok_exit_on_recv_quit and we == .quit) {
@@ -642,7 +643,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     const scale = @floor(@min(vpw / rw, vph / rh));
                     const width = scale * rw;
                     const height = scale * rh;
-                    self._canvas_target_area = geom.Rectangle{
+                    self._canvas_target_area = Rectangle{
                         .x = (vpw - width) / 2.0,
                         .y = (vph - height) / 2.0,
                         .width = width,
@@ -650,14 +651,14 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     };
                 } else {
                     self._canvas_target_area = if (rw * vph < rh * vpw)
-                        geom.Rectangle{
+                        Rectangle{
                             .x = (vpw - rw * vph / rh) / 2.0,
                             .y = 0,
                             .width = rw * vph / rh,
                             .height = @floatFromInt(fbsize.height),
                         }
                     else
-                        geom.Rectangle{
+                        Rectangle{
                             .x = 0,
                             .y = (vph - rh * vpw / rw) / 2.0,
                             .width = @floatFromInt(fbsize.width),
@@ -759,7 +760,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Get size of canvas
-        fn getCanvasSize(ptr: *anyopaque) geom.Size {
+        fn getCanvasSize(ptr: *anyopaque) Size {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             if (cfg.jok_renderer_type != .software) {
                 if (self._canvas_size) |sz| return sz;
@@ -768,7 +769,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Set size of canvas (null means same as current framebuffer)
-        fn setCanvasSize(ptr: *anyopaque, size: ?geom.Size) !void {
+        fn setCanvasSize(ptr: *anyopaque, size: ?Size) !void {
             assert(size == null or (size.?.width > 0 and size.?.height > 0));
             const self: *@This() = @ptrCast(@alignCast(ptr));
             if (cfg.jok_renderer_type == .software) @panic("Unsupported when using software renderer!");
@@ -782,7 +783,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
         }
 
         /// Get canvas drawing area (stretched to fill framebuffer)
-        fn getCanvasArea(ptr: *anyopaque) geom.Rectangle {
+        fn getCanvasArea(ptr: *anyopaque) Rectangle {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             if (self._canvas_target_area) |area| return area;
             const output = self._renderer.getOutputSize() catch unreachable;

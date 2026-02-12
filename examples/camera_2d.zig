@@ -1,7 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
-const geom = jok.geom;
 const j2d = jok.j2d;
+const geom = j2d.geom;
 
 var batchpool: j2d.BatchPool(16, false) = undefined;
 var map: geom.Rectangle = undefined;
@@ -78,8 +78,7 @@ pub fn draw(ctx: jok.Context) !void {
 
     {
         // Draw map
-        var b = try batchpool.new(.{});
-        b.trs = camera.getTransform();
+        var b = try batchpool.new(.{ .camera = camera });
         try b.rectFilled(map, .rgb(80, 80, 80), .{});
         for (rects.items) |r| try b.rectFilled(r, .purple, .{});
 

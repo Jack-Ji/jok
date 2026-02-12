@@ -16,7 +16,7 @@ const assert = std.debug.assert;
 const math = std.math;
 const internal = @import("internal.zig");
 const jok = @import("../jok.zig");
-const geom = jok.geom;
+const Point = jok.j2d.geom.Point;
 const Batch = jok.j3d.Batch;
 const lighting = jok.j3d.lighting;
 const zmath = jok.vendor.zmath;
@@ -40,14 +40,14 @@ pub const MeshObj = struct {
 
 /// Represent a sprite in 3d space
 pub const SpriteObj = struct {
-    size: geom.Point,
-    uv: [2]geom.Point,
+    size: Point,
+    uv: [2]Point,
     transform: zmath.Mat = zmath.identity(),
     texture: ?jok.Texture = null,
     tint_color: jok.ColorF = .white,
-    scale: geom.Point = .unit,
+    scale: Point = .unit,
     rotate_angle: f32 = 0,
-    anchor_point: geom.Point = .origin,
+    anchor_point: Point = .origin,
     flip_h: bool = false,
     flip_v: bool = false,
     facing_dir: ?[3]f32 = null,

@@ -2,8 +2,8 @@ const std = @import("std");
 const math = std.math;
 const jok = @import("jok");
 const font = jok.font;
-const geom = jok.geom;
 const j2d = jok.j2d;
+const geom = j2d.geom;
 
 pub const jok_window_size = jok.config.WindowSize{
     .custom = .{ .width = 2 * rect_size, .height = 2 * rect_size },

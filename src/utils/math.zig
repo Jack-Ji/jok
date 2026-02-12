@@ -10,7 +10,8 @@
 
 const std = @import("std");
 const jok = @import("../jok.zig");
-const geom = jok.geom;
+const Point = jok.j2d.geom.Point;
+const Size = jok.j2d.geom.Size;
 const assert = std.debug.assert;
 const math = std.math;
 const zmath = jok.vendor.zmath;
@@ -57,13 +58,13 @@ pub const IsometricTransform = struct {
     /// Options for configuring isometric transformation
     pub const IsometricOption = struct {
         /// Offset to apply in screen space
-        xy_offset: geom.Point = .origin,
+        xy_offset: Point = .origin,
         /// Scale factor for tile size
         scale: f32 = 1.0,
     };
 
     /// Initialize isometric transformation with given tile size and options
-    pub fn init(tile_size: geom.Size, opt: IsometricOption) @This() {
+    pub fn init(tile_size: Size, opt: IsometricOption) @This() {
         assert(tile_size.width > 0 and tile_size.height > 0);
         const w = tile_size.getWidthFloat() * opt.scale;
         const h = tile_size.getHeightFloat() * opt.scale;
@@ -82,13 +83,13 @@ pub const IsometricTransform = struct {
 
     /// Transform a point from isometric space to screen space
     /// zoffset: Additional vertical offset (useful for height/depth)
-    pub fn transformToScreen(self: @This(), p: geom.Point, zoffset: f32) geom.Point {
+    pub fn transformToScreen(self: @This(), p: Point, zoffset: f32) Point {
         const v = zmath.mul(zmath.f32x4(p.x, p.y, 0, 1), self.iso_to_screen);
         return .{ .x = v[0], .y = v[1] - zoffset };
     }
 
     /// Transform a point from screen space to isometric space
-    pub fn transformToIso(self: @This(), p: geom.Point) geom.Point {
+    pub fn transformToIso(self: @This(), p: Point) Point {
         const v = zmath.mul(
             zmath.f32x4(p.x - self.tile_width * 0.5, p.y, 0, 1),
             self.screen_to_iso,

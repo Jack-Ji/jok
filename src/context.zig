@@ -17,7 +17,9 @@
 const std = @import("std");
 const jok = @import("jok.zig");
 const config = jok.config;
-const geom = jok.geom;
+const Point = jok.j2d.geom.Point;
+const Size = jok.j2d.geom.Size;
+const Rectangle = jok.j2d.geom.Rectangle;
 const font = jok.font;
 const zaudio = jok.vendor.zaudio;
 
@@ -45,9 +47,9 @@ pub const Context = struct {
         canvas: *const fn (ctx: *anyopaque) jok.Texture,
         audioEngine: *const fn (ctx: *anyopaque) *zaudio.Engine,
         kill: *const fn (ctx: *anyopaque) void,
-        getCanvasSize: *const fn (ctx: *anyopaque) geom.Size,
-        setCanvasSize: *const fn (ctx: *anyopaque, size: ?geom.Size) anyerror!void,
-        getCanvasArea: *const fn (ctx: *anyopaque) geom.Rectangle,
+        getCanvasSize: *const fn (ctx: *anyopaque) Size,
+        setCanvasSize: *const fn (ctx: *anyopaque, size: ?Size) anyerror!void,
+        getCanvasArea: *const fn (ctx: *anyopaque) Rectangle,
         getAspectRatio: *const fn (ctx: *anyopaque) f32,
         suppressDraw: *const fn (ctx: *anyopaque) void,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
@@ -125,17 +127,17 @@ pub const Context = struct {
     }
 
     /// Get size of canvas
-    pub fn getCanvasSize(self: Context) geom.Size {
+    pub fn getCanvasSize(self: Context) Size {
         return self.vtable.getCanvasSize(self.ctx);
     }
 
     /// Set size of canvas (null means same as current framebuffer)
-    pub fn setCanvasSize(self: Context, size: ?geom.Size) !void {
+    pub fn setCanvasSize(self: Context, size: ?Size) !void {
         return self.vtable.setCanvasSize(self.ctx, size);
     }
 
     /// Get canvas drawing area in framebuffer
-    pub fn getCanvasArea(self: Context) geom.Rectangle {
+    pub fn getCanvasArea(self: Context) Rectangle {
         return self.vtable.getCanvasArea(self.ctx);
     }
 
@@ -205,7 +207,7 @@ pub const DisplayStats = struct {
 /// Controls the appearance of debug text rendered to the screen.
 pub const DebugPrint = struct {
     /// Position to render the text
-    pos: geom.Point = .origin,
+    pos: Point = .origin,
     /// Color of the text
     color: jok.Color = .white,
 };

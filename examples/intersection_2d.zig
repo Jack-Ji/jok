@@ -1,7 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
-const geom = jok.geom;
 const j2d = jok.j2d;
+const geom = j2d.geom;
 
 var batchpool: j2d.BatchPool(8, false) = undefined;
 
@@ -189,7 +189,7 @@ pub fn draw(ctx: jok.Context) !void {
     const to_mouse = mouse_pos.sub(center);
     const to_mouse_len2 = to_mouse.dot(to_mouse);
     if (to_mouse_len2 > 0.0001) {
-        const ray = geom.Ray.fromPoints(center, mouse_pos);
+        const ray = geom.Ray.init(center, mouse_pos);
         const max_dim = @as(f32, @floatFromInt(@max(csz.width, csz.height)));
         const ray_end = center.add(ray.dir.scale(max_dim * 1.5));
         try b.line(.{ .p0 = center, .p1 = ray_end }, .yellow, .{ .thickness = 1 });

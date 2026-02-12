@@ -18,12 +18,12 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const geom = jok.geom;
 const j2d = jok.j2d;
 const signal = jok.utils.signal;
 const DrawCmd = @import("internal.zig").DrawCmd;
 const Vector = @import("Vector.zig");
 const Sprite = @import("Sprite.zig");
+const geom = @import("geom.zig");
 const AffineTransform = @import("AffineTransform.zig");
 const Self = @This();
 

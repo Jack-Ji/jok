@@ -1,7 +1,7 @@
 const std = @import("std");
 const jok = @import("jok");
-const geom = jok.geom;
 const j2d = jok.j2d;
+const geom = j2d.geom;
 const easing = jok.utils.easing;
 
 pub const jok_window_size = jok.config.WindowSize{

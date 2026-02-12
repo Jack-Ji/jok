@@ -15,6 +15,7 @@ A minimal 2d/3d game framework for zig.
 * Fully integrated Dear-ImGui
 * Asset system (via [physfs](https://github.com/icculus/physfs), supports fs/zip/7zip/iso etc)
 * 2D batch system
+* 2D geometry types
 * 2D primitives rendering (line/rectangle/quad/triangle/circle/ellipse/bezier-curve/convex-polygon/concave-polygon/polyline)
 * 2D sprite rendering (scale/rotate/blending/flipping/depth)
 * 2D sprite sheet generation/save/load
@@ -22,6 +23,7 @@ A minimal 2d/3d game framework for zig.
 * 2D particle system
 * 2D scene management
 * 3D batch system
+* 3D geometry types
 * 3D skybox rendering
 * 3D mesh rendering (gouraud/flat shading)
 * 3D model support (glTF 2.0/wavefront)

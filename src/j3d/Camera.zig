@@ -14,7 +14,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
-const geom = jok.geom;
+const Point = jok.j2d.geom.Point;
 const j3d = jok.j3d;
 const zmath = jok.vendor.zmath;
 const internal = @import("internal.zig");
@@ -249,7 +249,7 @@ pub fn calcScreenPosition(
     ctx: jok.Context,
     model: zmath.Mat,
     _coord: ?[3]f32,
-) geom.Point {
+) Point {
     const csz = ctx.getCanvasSize();
     const csz_w = csz.getWidthFloat();
     const csz_h = csz.getHeightFloat();
@@ -305,7 +305,7 @@ pub fn calcRayTestTarget(
     _test_distance: ?f32,
 ) zmath.Vec {
     const far_plane = _test_distance orelse 10000.0;
-    const ray_forward = self.dir * far_plane;
+    const ray_forward = self.dir * zmath.splat(zmath.Vec, far_plane);
     const csz = ctx.getCanvasSize();
     switch (self.frustum) {
         .orthographic => |p| {
@@ -313,12 +313,14 @@ pub fn calcRayTestTarget(
             const vertical = self.up * zmath.splat(zmath.Vec, p.height);
 
             const ray_to_center = self.position + ray_forward;
-            const dhor = hor * zmath.splat(zmath.Vec, 1.0 / csz.x);
-            const dvert = vertical * zmath.splat(zmath.Vec, 1.0 / csz.y);
+            const csz_w = csz.getWidthFloat();
+            const csz_h = csz.getHeightFloat();
+            const dhor = hor * zmath.splat(zmath.Vec, 1.0 / csz_w);
+            const dvert = vertical * zmath.splat(zmath.Vec, 1.0 / csz_h);
 
             var ray_to = ray_to_center - hor * zmath.splat(zmath.Vec, 0.5) - vertical * zmath.splat(zmath.Vec, 0.5);
             ray_to = ray_to + dhor * zmath.splat(zmath.Vec, screen_x);
-            ray_to = ray_to + dvert * zmath.splat(zmath.Vec, csz.y - screen_y);
+            ray_to = ray_to + dvert * zmath.splat(zmath.Vec, csz_h - screen_y);
             return ray_to;
         },
         .perspective => |p| {
@@ -329,12 +331,14 @@ pub fn calcRayTestTarget(
             const vertical = self.up * zmath.splat(zmath.Vec, 2.0 * far_plane * tanfov);
 
             const ray_to_center = self.position + ray_forward;
-            const dhor = hor * zmath.splat(zmath.Vec, 1.0 / csz.x);
-            const dvert = vertical * zmath.splat(zmath.Vec, 1.0 / csz.y);
+            const csz_w = csz.getWidthFloat();
+            const csz_h = csz.getHeightFloat();
+            const dhor = hor * zmath.splat(zmath.Vec, 1.0 / csz_w);
+            const dvert = vertical * zmath.splat(zmath.Vec, 1.0 / csz_h);
 
             var ray_to = ray_to_center - hor * zmath.splat(zmath.Vec, 0.5) - vertical * zmath.splat(zmath.Vec, 0.5);
             ray_to = ray_to + dhor * zmath.splat(zmath.Vec, screen_x);
-            ray_to = ray_to + dvert * zmath.splat(zmath.Vec, csz.y - screen_y);
+            ray_to = ray_to + dvert * zmath.splat(zmath.Vec, csz_h - screen_y);
             return ray_to;
         },
     }

@@ -1,6 +1,6 @@
 const std = @import("std");
 const jok = @import("../../jok.zig");
-const geom = jok.geom;
+const Region = jok.j2d.geom.Region;
 const sdl = jok.vendor.sdl;
 const gui = @import("main.zig");
 const log = std.log.scoped(.jok);
@@ -115,7 +115,7 @@ inline fn renderCommand(ctx: jok.Context, dl: gui.DrawList, cmd: *const gui.Draw
     const is_ptr = dl.getIndexBufferData();
 
     // Apply clip region
-    var clip_region: geom.Region = undefined;
+    var clip_region: Region = undefined;
     clip_region.x = @intFromFloat(std.math.clamp(cmd.clip_rect[0], 0.0, csz.getWidthFloat()));
     clip_region.y = @intFromFloat(std.math.clamp(cmd.clip_rect[1], 0.0, csz.getHeightFloat()));
     clip_region.width = @intFromFloat(@min(@as(f32, @floatFromInt(csz.width - clip_region.x)), cmd.clip_rect[2] - cmd.clip_rect[0]));

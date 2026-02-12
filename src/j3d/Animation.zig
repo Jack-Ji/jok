@@ -13,7 +13,7 @@ const std = @import("std");
 const math = std.math;
 const assert = std.debug.assert;
 const jok = @import("../jok.zig");
-const geom = jok.geom;
+const Size = jok.j2d.geom.Size;
 const j3d = jok.j3d;
 const zmath = jok.vendor.zmath;
 const Vector = @import("Vector.zig");
@@ -92,7 +92,7 @@ pub fn destroy(self: *Self) void {
 
 pub fn render(
     self: *Self,
-    csz: geom.Size,
+    csz: Size,
     batch: *j3d.Batch,
     _model: zmath.Mat,
     camera: Camera,
@@ -249,7 +249,7 @@ pub fn getDuration(self: *const Self) f32 {
 fn renderNode(
     self: *Self,
     node: *Mesh.Node,
-    csz: geom.Size,
+    csz: Size,
     batch: *j3d.Batch,
     model: zmath.Mat,
     camera: Camera,

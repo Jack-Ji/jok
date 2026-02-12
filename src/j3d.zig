@@ -21,7 +21,8 @@ const builtin = @import("builtin");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("jok.zig");
-const geom = jok.geom;
+const Point = jok.j2d.geom.Point;
+const Rectangle = jok.j2d.geom.Rectangle;
 const PixelShader = jok.PixelShader;
 const threeFloats = jok.utils.threeFloats;
 const zgui = jok.vendor.zgui;
@@ -59,6 +60,9 @@ pub const Scene = @import("j3d/Scene.zig");
 /// 3D vector mathematics
 pub const Vector = @import("j3d/Vector.zig");
 
+/// 3D geometry primitives (Ray, AABB, Sphere, Plane, Triangle, OBB)
+pub const geom = @import("j3d/geom.zig");
+
 /// Options for rendering 3D geometry
 pub const RenderOption = struct {
     /// Enable backface culling
@@ -84,7 +88,7 @@ pub const BatchOption = struct {
     /// Blending mode for rendering
     blend_mode: jok.BlendMode = .blend,
     /// Optional clipping rectangle
-    clip_rect: ?geom.Rectangle = null,
+    clip_rect: ?Rectangle = null,
     /// Optional offscreen render target
     offscreen_target: ?jok.Texture = null,
     /// Clear color for offscreen target
@@ -639,8 +643,8 @@ pub const Batch = struct {
     /// Render given sprite
     pub fn sprite(
         self: *Batch,
-        size: geom.Point,
-        uv: [2]geom.Point,
+        size: Point,
+        uv: [2]Point,
         opt: TriangleRenderer.RenderSpriteOption,
     ) !void {
         assert(self.id != invalid_batch_id);
@@ -775,7 +779,7 @@ pub const Batch = struct {
     pub fn triangles(
         self: *Batch,
         indices: []const u32,
-        pos: []const [3]f32,
+        positions: []const [3]f32,
         normals: ?[]const [3]f32,
         colors: ?[]const [3]jok.ColorF,
         texcoords: ?[]const [2]f32,
@@ -783,7 +787,7 @@ pub const Batch = struct {
     ) !void {
         assert(self.id != invalid_batch_id);
         assert(!self.is_submitted);
-        assert(@rem(indices, 3) == 0);
+        assert(@rem(indices.len, 3) == 0);
 
         if (opt.fill) {
             try self.tri_rd.renderMesh(
@@ -792,7 +796,7 @@ pub const Batch = struct {
                 self.trs,
                 self.camera,
                 indices,
-                pos,
+                positions,
                 normals,
                 colors,
                 texcoords,
@@ -807,13 +811,16 @@ pub const Batch = struct {
             );
         } else {
             var i: u32 = 2;
-            while (i < indices) : (i += 2) {
+            while (i < indices.len) : (i += 2) {
                 const idx0 = indices[i - 2];
                 const idx1 = indices[i - 1];
                 const idx2 = indices[i];
-                try line(self.trs, idx0, idx1, .{ .color = opt.rdopt.color });
-                try line(self.trs, idx1, idx2, .{ .color = opt.rdopt.color });
-                try line(self.trs, idx2, idx0, .{ .color = opt.rdopt.color });
+                assert(idx0 < positions.len);
+                assert(idx1 < positions.len);
+                assert(idx2 < positions.len);
+                try line(self.trs, positions[idx0], positions[idx1], .{ .color = opt.rdopt.color });
+                try line(self.trs, positions[idx1], positions[idx2], .{ .color = opt.rdopt.color });
+                try line(self.trs, positions[idx2], positions[idx0], .{ .color = opt.rdopt.color });
             }
         }
     }
@@ -1018,4 +1025,5 @@ const BatchReclaimer = struct {
 
 test "j3d" {
     _ = Vector;
+    _ = geom;
 }

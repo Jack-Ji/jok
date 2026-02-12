@@ -1,6 +1,6 @@
 const std = @import("std");
 const jok = @import("../../jok.zig");
-const geom = jok.geom;
+const Size = jok.j2d.geom.Size;
 const physfs = jok.vendor.physfs;
 const builtin = @import("builtin");
 
@@ -11,7 +11,7 @@ pub const Error = error{
 // Rasterized SVG bitmap (RGBA format)
 pub const SvgBitmap = struct {
     allocator: std.mem.Allocator,
-    size: geom.Size,
+    size: Size,
     pixels: []u8,
 
     pub fn destroy(self: *SvgBitmap) void {

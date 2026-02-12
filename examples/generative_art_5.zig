@@ -1,8 +1,8 @@
 // Enspired by https://www.reddit.com/r/woahdude/comments/anh3os/lissajous_curve_table/
 const std = @import("std");
 const jok = @import("jok");
-const geom = jok.geom;
 const j2d = jok.j2d;
+const geom = j2d.geom;
 
 pub const jok_window_size = jok.config.WindowSize.maximized;
 pub const jok_window_resizable = true;

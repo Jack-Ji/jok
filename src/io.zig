@@ -20,8 +20,9 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
-const geom = jok.geom;
+const Point = jok.j2d.geom.Point;
 const sdl = jok.vendor.sdl;
+const log = std.log.scoped(.jok);
 
 /// Keyboard modifier bit flags.
 pub const KeyModifierBit = enum(u16) {
@@ -145,11 +146,11 @@ pub const MouseMotionEvent = struct {
     /// from original field named `state`
     button_state: MouseButtonState,
 
-    pos: geom.Point,
+    pos: Point,
 
     /// difference of position since last reported MouseMotionEvent,
     /// ignores screen boundaries if relative mouse mode is enabled
-    delta: geom.Point,
+    delta: Point,
 
     pub fn fromNative(native: sdl.SDL_MouseMotionEvent, ctx: jok.Context) MouseMotionEvent {
         assert(native.type == sdl.SDL_EVENT_MOUSE_MOTION);
@@ -182,7 +183,7 @@ pub const MouseButtonEvent = struct {
     button: MouseButton,
     is_down: bool,
     clicks: u8,
-    pos: geom.Point,
+    pos: Point,
 
     pub fn fromNative(native: sdl.SDL_MouseButtonEvent, ctx: jok.Context) MouseButtonEvent {
         switch (native.type) {
@@ -312,7 +313,7 @@ pub const JoyBallEvent = struct {
     timestamp: u64,
     joystick_id: sdl.SDL_JoystickID,
     ball: u8,
-    delta: geom.Point,
+    delta: Point,
 
     pub fn fromNative(native: sdl.SDL_JoyBallEvent, ctx: jok.Context) JoyBallEvent {
         switch (native.type) {
@@ -567,7 +568,7 @@ pub const Event = union(enum) {
     poll_sentinel: CommonEvent,
     user: UserEvent,
 
-    pub fn from(raw: sdl.SDL_Event, ctx: jok.Context) Event {
+    pub fn from(raw: sdl.SDL_Event, ctx: jok.Context) ?Event {
         return switch (raw.type) {
             sdl.SDL_EVENT_QUIT => Event{ .quit = raw.quit },
             sdl.SDL_EVENT_TERMINATING => Event{ .terminating = raw.common },
@@ -687,8 +688,10 @@ pub const Event = union(enum) {
             sdl.SDL_EVENT_POLL_SENTINEL => Event{ .poll_sentinel = raw.common },
             else => |t| if (t >= sdl.SDL_EVENT_USER)
                 Event{ .user = UserEvent.from(raw.user) }
-            else
-                @panic("Unsupported event type detected!"),
+            else blk: {
+                log.err("Got unsupported event type: {d}\n", .{t});
+                break :blk null;
+            },
         };
     }
 };
@@ -743,7 +746,7 @@ pub fn pollNativeEvent() ?sdl.SDL_Event {
 /// May not conserve energy on some systems, in some versions/situations.
 /// This function should only be called from
 /// the thread that initialized the video subsystem.
-pub fn waitEvent() !Event {
+pub fn waitEvent() !?Event {
     var ev: sdl.SDL_Event = undefined;
     if (sdl.SDL_WaitEvent(&ev))
         return Event.from(ev);
@@ -764,7 +767,7 @@ pub fn waitEventTimeout(timeout: usize) ?Event {
 
 pub const MouseState = struct {
     buttons: MouseButtonState,
-    pos: geom.Point,
+    pos: Point,
 };
 
 pub fn getMouseState(ctx: jok.Context) MouseState {
@@ -1430,7 +1433,7 @@ inline fn getCanvasScale(ctx: jok.Context) f32 {
     return @as(f32, @floatFromInt(canvas_size.width)) / canvas_area.width;
 }
 
-inline fn mapPositionToCanvas(ctx: jok.Context, pos: geom.Point) geom.Point {
+inline fn mapPositionToCanvas(ctx: jok.Context, pos: Point) Point {
     const canvas_size = ctx.getCanvasSize();
     const canvas_area = ctx.getCanvasArea();
     const canvas_scale = @as(f32, @floatFromInt(canvas_size.width)) / canvas_area.width;

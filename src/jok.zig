@@ -46,7 +46,6 @@
 //! - `Event`: Input event handling (keyboard, mouse, touch, gamepad)
 //! - `Renderer`: Low-level GPU rendering interface
 //! - `Texture`: Image loading and texture management
-//! - `geom`: Fundamental 2D geometry types
 //! - `j2d`: High-level 2D rendering API (sprites, shapes, text)
 //! - `j3d`: High-level 3D rendering API (meshes, cameras, lighting)
 //! - `font`: Font loading and text rendering
@@ -108,9 +107,6 @@ pub const PixelShader = renderer.PixelShader;
 /// Supports common formats like PNG, JPG, BMP, etc.
 pub const Texture = @import("texture.zig").Texture;
 
-// Fundamental 2D geometry types
-pub const geom = @import("geom.zig");
-
 /// High-level 2D rendering API.
 /// Provides convenient functions for drawing sprites, shapes, text, and more.
 /// This is the recommended API for 2D games.
@@ -140,7 +136,6 @@ pub const vendor = @import("vendor.zig");
 // All tests
 test "all tests" {
     _ = basic;
-    _ = geom;
     _ = j2d;
     _ = j3d;
     _ = font;

@@ -1,8 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const jok = @import("jok");
-const geom = jok.geom;
 const j2d = jok.j2d;
+const geom = j2d.geom;
 const physfs = jok.vendor.physfs;
 
 const Actor = struct {

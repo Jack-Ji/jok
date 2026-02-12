@@ -1,9 +1,9 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
-const jok = @import("../jok.zig");
-const geom = jok.geom;
+const geom = @import("geom.zig");
 const AffineTransform = @import("AffineTransform.zig");
+const jok = @import("../jok.zig");
 const zgui = jok.vendor.zgui;
 
 pub const QuadImageCmd = struct {

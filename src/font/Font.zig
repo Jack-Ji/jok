@@ -8,7 +8,9 @@ const std = @import("std");
 const assert = std.debug.assert;
 const Atlas = @import("Atlas.zig");
 const jok = @import("../jok.zig");
-const geom = jok.geom;
+const Point = jok.j2d.geom.Point;
+const Size = jok.j2d.geom.Size;
+const Rectangle = jok.j2d.geom.Rectangle;
 const physfs = jok.vendor.physfs;
 const truetype = jok.vendor.stb.truetype;
 const codepoint_ranges = @import("codepoint_ranges.zig");
@@ -117,7 +119,7 @@ pub fn destroy(self: *Font) void {
 /// Options for atlas creation.
 pub const AtlasOption = struct {
     /// Atlas texture size
-    size: geom.Size = .{ .width = 2048, .height = 2048 },
+    size: Size = .{ .width = 2048, .height = 2048 },
     /// Whether to keep pixel data after atlas creation (for saving)
     keep_pixels: bool = false,
 };
@@ -334,11 +336,11 @@ pub const GlyphMetrics = struct {
     leftside_bearing: f32,
 
     // Bounding box (relative to origin)
-    bottom_left: geom.Point,
-    top_right: geom.Point,
+    bottom_left: Point,
+    top_right: Point,
 
     /// Get space occupied by glyph (including blank space)
-    pub inline fn getSpace(metrics: GlyphMetrics, pos: geom.Point, ypos_type: Atlas.YPosType) geom.Rectangle {
+    pub inline fn getSpace(metrics: GlyphMetrics, pos: Point, ypos_type: Atlas.YPosType) Rectangle {
         const height = metrics.ascent - metrics.descent;
         return switch (ypos_type) {
             .baseline => .{
@@ -369,7 +371,7 @@ pub const GlyphMetrics = struct {
     }
 
     /// Get space occupied by glyph
-    pub inline fn getBBox(metrics: GlyphMetrics, pos: geom.Point, ypos_type: Atlas.YPosType) geom.Rectangle {
+    pub inline fn getBBox(metrics: GlyphMetrics, pos: Point, ypos_type: Atlas.YPosType) Rectangle {
         const width = metrics.top_right.x - metrics.bottom_left.x;
         const height = metrics.top_right.y - metrics.bottom_left.y;
         return switch (ypos_type) {

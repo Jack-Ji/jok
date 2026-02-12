@@ -19,11 +19,11 @@ const builtin = @import("builtin");
 const assert = std.debug.assert;
 const json = std.json;
 const jok = @import("../jok.zig");
-const geom = jok.geom;
 const gfx = jok.utils.gfx;
 const physfs = jok.vendor.physfs;
 const stb_rect_pack = jok.vendor.stb.rect_pack;
 const stb_image = jok.vendor.stb.image;
+const geom = @import("geom.zig");
 const Sprite = @import("Sprite.zig");
 const Self = @This();
 

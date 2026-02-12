@@ -11,7 +11,8 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const jok = @import("../jok.zig");
-const geom = jok.geom;
+const Point = jok.j2d.geom.Point;
+const Size = jok.j2d.geom.Size;
 const j3d = jok.j3d;
 const zmath = jok.vendor.zmath;
 const zmesh = jok.vendor.zmesh;
@@ -23,7 +24,7 @@ box_planes: [6]zmesh.Shape,
 
 /// Temporary storage for view frustum clipping
 clip_vertices: std.array_list.Managed(zmath.Vec),
-clip_texcoords: std.array_list.Managed(geom.Point),
+clip_texcoords: std.array_list.Managed(Point),
 
 /// Initialization options for skybox
 const InitOption = struct {
@@ -99,7 +100,7 @@ pub fn deinit(self: *Self) void {
 
 pub fn render(
     self: *Self,
-    csz: geom.Size,
+    csz: Size,
     batch: *j3d.Batch,
     camera: Camera,
     textures: [6]jok.Texture, // cube textures: right/left/top/bottom/front/back
@@ -141,7 +142,7 @@ pub fn render(
                 v2,
                 zmath.f32x4(0.0, 0.0, 0.0, 1.0),
             }, vp);
-            const clip_texcoords = [3]geom.Point{
+            const clip_texcoords = [3]Point{
                 .{ .x = plane.texcoords.?[idx0][0], .y = plane.texcoords.?[idx0][1] },
                 .{ .x = plane.texcoords.?[idx1][0], .y = plane.texcoords.?[idx1][1] },
                 .{ .x = plane.texcoords.?[idx2][0], .y = plane.texcoords.?[idx2][1] },
@@ -205,7 +206,7 @@ pub fn render(
 
 /// Clip triangle in homogeneous space, against plane w=0.00001
 /// We are conceptually clipping away stuff behind camera
-inline fn clipTriangle(self: *Self, clip_positions: []const zmath.Vec, texcoords: []const geom.Point) void {
+inline fn clipTriangle(self: *Self, clip_positions: []const zmath.Vec, texcoords: []const Point) void {
     const clip_plane_w = 0.0001;
     var clip_v0 = clip_positions[0];
     var clip_v1 = clip_positions[1];
@@ -216,9 +217,9 @@ inline fn clipTriangle(self: *Self, clip_positions: []const zmath.Vec, texcoords
     var is_v0_inside = d_v0 >= 0;
     var is_v1_inside = d_v1 >= 0;
     var is_v2_inside = d_v2 >= 0;
-    var t0: geom.Point = texcoords[0];
-    var t1: geom.Point = texcoords[1];
-    var t2: geom.Point = texcoords[2];
+    var t0: Point = texcoords[0];
+    var t1: Point = texcoords[1];
+    var t2: Point = texcoords[2];
 
     // The whole triangle is behind the camera, ignore directly
     if (!is_v0_inside and !is_v1_inside and !is_v2_inside) return;
@@ -231,8 +232,8 @@ inline fn clipTriangle(self: *Self, clip_positions: []const zmath.Vec, texcoords
         std.mem.swap(f32, &d_v1, &d_v2);
         std.mem.swap(bool, &is_v0_inside, &is_v1_inside);
         std.mem.swap(bool, &is_v1_inside, &is_v2_inside);
-        std.mem.swap(geom.Point, &t0, &t1);
-        std.mem.swap(geom.Point, &t1, &t2);
+        std.mem.swap(Point, &t0, &t1);
+        std.mem.swap(Point, &t1, &t2);
     } else if (!is_v0_inside and !is_v1_inside) {
         std.mem.swap(zmath.Vec, &clip_v1, &clip_v2);
         std.mem.swap(zmath.Vec, &clip_v0, &clip_v1);
@@ -240,8 +241,8 @@ inline fn clipTriangle(self: *Self, clip_positions: []const zmath.Vec, texcoords
         std.mem.swap(f32, &d_v0, &d_v1);
         std.mem.swap(bool, &is_v1_inside, &is_v2_inside);
         std.mem.swap(bool, &is_v0_inside, &is_v1_inside);
-        std.mem.swap(geom.Point, &t1, &t2);
-        std.mem.swap(geom.Point, &t0, &t1);
+        std.mem.swap(Point, &t1, &t2);
+        std.mem.swap(Point, &t0, &t1);
     }
 
     // Append first vertex
@@ -262,7 +263,7 @@ inline fn clipTriangle(self: *Self, clip_positions: []const zmath.Vec, texcoords
             var lerp = d_v1 / (d_v1 - d_v2);
             assert(lerp >= 0 and lerp <= 1);
             var lerp_clip_position = zmath.lerp(clip_v1, clip_v2, lerp);
-            var lerp_texcoord: geom.Point = geom.Point{
+            var lerp_texcoord = Point{
                 .x = t1.x + (t2.x - t1.x) * lerp,
                 .y = t1.y + (t2.y - t1.y) * lerp,
             };
@@ -277,7 +278,7 @@ inline fn clipTriangle(self: *Self, clip_positions: []const zmath.Vec, texcoords
             lerp = d_v0 / (d_v0 - d_v2);
             assert(lerp >= 0 and lerp <= 1);
             lerp_clip_position = zmath.lerp(clip_v0, clip_v2, lerp);
-            lerp_texcoord = geom.Point{
+            lerp_texcoord = Point{
                 .x = t0.x + (t2.x - t0.x) * lerp,
                 .y = t0.y + (t2.y - t0.y) * lerp,
             };
@@ -288,7 +289,7 @@ inline fn clipTriangle(self: *Self, clip_positions: []const zmath.Vec, texcoords
         var lerp = d_v0 / (d_v0 - d_v1);
         assert(lerp >= 0 and lerp <= 1);
         var lerp_clip_position = zmath.lerp(clip_v0, clip_v1, lerp);
-        var lerp_texcoord: geom.Point = geom.Point{
+        var lerp_texcoord = Point{
             .x = t0.x + (t1.x - t0.x) * lerp,
             .y = t0.y + (t1.y - t0.y) * lerp,
         };
@@ -300,7 +301,7 @@ inline fn clipTriangle(self: *Self, clip_positions: []const zmath.Vec, texcoords
             lerp = d_v1 / (d_v1 - d_v2);
             assert(lerp >= 0 and lerp <= 1);
             lerp_clip_position = zmath.lerp(clip_v1, clip_v2, lerp);
-            lerp_texcoord = geom.Point{
+            lerp_texcoord = Point{
                 .x = t1.x + (t2.x - t1.x) * lerp,
                 .y = t1.y + (t2.y - t1.y) * lerp,
             };
@@ -318,7 +319,7 @@ inline fn clipTriangle(self: *Self, clip_positions: []const zmath.Vec, texcoords
             lerp = d_v0 / (d_v0 - d_v2);
             assert(lerp >= 0 and lerp <= 1);
             lerp_clip_position = zmath.lerp(clip_v0, clip_v2, lerp);
-            lerp_texcoord = geom.Point{
+            lerp_texcoord = Point{
                 .x = t0.x + (t2.x - t0.x) * lerp,
                 .y = t0.y + (t2.y - t0.y) * lerp,
             };
