@@ -115,6 +115,10 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._allocator = _allocator;
             self._io_backend = .init_single_threaded;
             self._io_backend.allocator = _allocator;
+            if (!builtin.cpu.arch.isWasm()) {
+                self._io_backend.async_limit = .limited(@intCast(sdl.SDL_GetNumLogicalCPUCores()));
+                self._io_backend.concurrent_limit = .limited(@intCast(sdl.SDL_GetNumLogicalCPUCores()));
+            }
             self._main_thread_id = std.Thread.getCurrentId();
             self._ctx = self.context();
 

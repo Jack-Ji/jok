@@ -5,7 +5,6 @@
 //!
 //! Key features:
 //! - Batched rendering for optimal performance
-//! - Fundamental 2D geometry types
 //! - Affine transformations (translate, rotate, scale)
 //! - Sprite and sprite sheet support
 //! - Animation system
@@ -16,6 +15,7 @@
 //! - Depth sorting and blending modes
 //! - Offscreen rendering support
 //! - Custom shader support
+//! - Fundamental 2D geometry types
 
 const std = @import("std");
 const builtin = @import("builtin");

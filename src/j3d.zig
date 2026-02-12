@@ -12,6 +12,7 @@
 //! - Animation system
 //! - Particle effects
 //! - Scene graph management
+//! - Fundamental 3D geometry types
 //!
 //! The rendering pipeline projects 3D geometry to 2D screen space and
 //! rasterizes triangles with optional lighting, texturing, and shading.

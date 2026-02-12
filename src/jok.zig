@@ -6,7 +6,6 @@
 //! - Window management and event handling
 //! - 2D and 3D rendering with GPU acceleration
 //! - Texture and shader support
-//! - Fundamental 2D geometry toolbox
 //! - Font rendering and text layout
 //! - Input handling (keyboard, mouse, gamepad)
 //! - Websocket client (only for webassembly)
