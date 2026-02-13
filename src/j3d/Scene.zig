@@ -119,6 +119,13 @@ pub const Object = struct {
     /// Add child
     pub fn addChild(o: *Object, c: *Object) !void {
         assert(o != c);
+
+        // Prevent introducing parent-child cycles.
+        var ancestor: ?*Object = o;
+        while (ancestor) |_a| : (ancestor = _a.parent) {
+            if (_a == c) return error.CycleDetected;
+        }
+
         if (c.parent) |p| {
             if (p == o) return;
 
