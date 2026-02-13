@@ -21,7 +21,7 @@ mergeInto(LibraryManager.library, {
 
             ws.onopen = function() {
                 try {
-                    Module.ccall('jok_websocket_on_open', null, ['number'], [ws_ptr]);
+                    Module.ccall('jok_websocket_on_open', null, ['number'], [id]);
                 } catch (e) {
                     console.error('Error calling jok_websocket_on_open:', e);
                 }
@@ -30,15 +30,18 @@ mergeInto(LibraryManager.library, {
             ws.onmessage = function(event) {
                 const data = new Uint8Array(event.data);
                 const data_ptr = _malloc(data.length);
-                HEAPU8.set(data, data_ptr);
-                Module.ccall('jok_websocket_on_message', null, ['number', 'number', 'number'], [ws_ptr, data_ptr, data.length]);
-                _free(data_ptr);
+                try {
+                    HEAPU8.set(data, data_ptr);
+                    Module.ccall('jok_websocket_on_message', null, ['number', 'number', 'number'], [id, data_ptr, data.length]);
+                } finally {
+                    _free(data_ptr);
+                }
             };
 
             ws.onerror = function(error) {
                 console.error('WebSocket error:', error);
                 try {
-                    Module.ccall('jok_websocket_on_error', null, ['number'], [ws_ptr]);
+                    Module.ccall('jok_websocket_on_error', null, ['number'], [id]);
                 } catch (e) {
                     console.error('Error calling jok_websocket_on_error:', e);
                 }
@@ -46,7 +49,7 @@ mergeInto(LibraryManager.library, {
 
             ws.onclose = function() {
                 try {
-                    Module.ccall('jok_websocket_on_close', null, ['number'], [ws_ptr]);
+                    Module.ccall('jok_websocket_on_close', null, ['number'], [id]);
                 } catch (e) {
                     console.error('Error calling jok_websocket_on_close:', e);
                 }
@@ -75,8 +78,12 @@ mergeInto(LibraryManager.library, {
 
         const ws = Module._websockets[handle];
         if (ws) {
-            ws.close();
+            ws.onopen = null;
+            ws.onmessage = null;
+            ws.onerror = null;
+            ws.onclose = null;
             delete Module._websockets[handle];
+            ws.close();
         }
     }
 });

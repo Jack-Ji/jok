@@ -40,6 +40,7 @@ pub const OpenSignal = signal.Signal(&.{*WebSocket});
 pub const MessageSignal = signal.Signal(&.{ *WebSocket, []const u8 });
 pub const ErrorSignal = signal.Signal(&.{*WebSocket});
 pub const CloseSignal = signal.Signal(&.{*WebSocket});
+var sockets: std.AutoHashMapUnmanaged(usize, *WebSocket) = .{};
 
 /// WebSocket client handle
 pub const WebSocket = struct {
@@ -58,27 +59,29 @@ pub const WebSocket = struct {
 
         const ws = try allocator.create(WebSocket);
         errdefer allocator.destroy(ws);
-
         ws.* = .{
             .handle = 0,
             .allocator = allocator,
-            .on_open = try OpenSignal.create(allocator),
-            .on_message = try MessageSignal.create(allocator),
-            .on_error = try ErrorSignal.create(allocator),
-            .on_close = try CloseSignal.create(allocator),
+            .on_open = OpenSignal.create(allocator) catch unreachable,
+            .on_message = MessageSignal.create(allocator) catch unreachable,
+            .on_error = ErrorSignal.create(allocator) catch unreachable,
+            .on_close = CloseSignal.create(allocator) catch unreachable,
         };
-
-        const ws_ptr = @intFromPtr(ws);
-        ws.handle = wasm_websocket_create(url.ptr, url.len, ws_ptr);
-
-        if (ws.handle == 0) {
+        errdefer {
             ws.on_open.destroy();
             ws.on_message.destroy();
             ws.on_error.destroy();
             ws.on_close.destroy();
-            return error.WebSocketCreateFailed;
         }
 
+        const ws_ptr = @intFromPtr(ws);
+        ws.handle = wasm_websocket_create(url.ptr, url.len, ws_ptr);
+        if (ws.handle == 0) {
+            return error.WebSocketCreateFailed;
+        }
+        errdefer wasm_websocket_destroy(ws.handle);
+
+        try sockets.put(allocator, ws.handle, ws);
         return ws;
     }
 
@@ -94,13 +97,16 @@ pub const WebSocket = struct {
     /// Destroy the WebSocket connection
     pub fn destroy(self: *WebSocket) void {
         if (builtin.cpu.arch.isWasm()) {
+            _ = sockets.remove(self.handle);
             wasm_websocket_destroy(self.handle);
+            self.on_open.destroy();
+            self.on_message.destroy();
+            self.on_error.destroy();
+            self.on_close.destroy();
+            self.allocator.destroy(self);
+        } else {
+            @panic("WebSocket is only supported on WebAssembly platform");
         }
-        self.on_open.destroy();
-        self.on_message.destroy();
-        self.on_error.destroy();
-        self.on_close.destroy();
-        self.allocator.destroy(self);
     }
 };
 
@@ -110,26 +116,26 @@ extern fn wasm_websocket_send(handle: usize, data: [*]const u8, len: usize) void
 extern fn wasm_websocket_destroy(handle: usize) void;
 
 /// Called by JavaScript when the connection is opened
-export fn jok_websocket_on_open(ws_ptr: usize) void {
-    const ws: *WebSocket = @ptrFromInt(ws_ptr);
+export fn jok_websocket_on_open(handle: usize) void {
+    const ws = sockets.get(handle) orelse return;
     ws.on_open.emit(.{ws});
 }
 
 /// Called by JavaScript when a message is received
-export fn jok_websocket_on_message(ws_ptr: usize, data_ptr: [*]const u8, data_len: usize) void {
-    const ws: *WebSocket = @ptrFromInt(ws_ptr);
+export fn jok_websocket_on_message(handle: usize, data_ptr: [*]const u8, data_len: usize) void {
+    const ws = sockets.get(handle) orelse return;
     const data = data_ptr[0..data_len];
     ws.on_message.emit(.{ ws, data });
 }
 
 /// Called by JavaScript when an error occurs
-export fn jok_websocket_on_error(ws_ptr: usize) void {
-    const ws: *WebSocket = @ptrFromInt(ws_ptr);
+export fn jok_websocket_on_error(handle: usize) void {
+    const ws = sockets.get(handle) orelse return;
     ws.on_error.emit(.{ws});
 }
 
 /// Called by JavaScript when the connection is closed
-export fn jok_websocket_on_close(ws_ptr: usize) void {
-    const ws: *WebSocket = @ptrFromInt(ws_ptr);
+export fn jok_websocket_on_close(handle: usize) void {
+    const ws = sockets.get(handle) orelse return;
     ws.on_close.emit(.{ws});
 }
