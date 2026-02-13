@@ -354,13 +354,9 @@ pub const Particle = struct {
     }
 
     inline fn updateColor(self: *Particle) void {
-        if (self.age >= self.color_fade_age) {
-            self.color = self.color_initial;
-        } else {
-            assert(self.color_fade_age > 0);
-            const t = @max(self.age, 0.0) / self.color_fade_age;
-            self.color = self.color_initial.lerp(self.color_final, t);
-        }
+        assert(self.color_fade_age > 0);
+        const t = std.math.clamp((self.color_fade_age - self.age) / self.color_fade_age, 0.0, 1.0);
+        self.color = self.color_initial.lerp(self.color_final, t);
     }
 
     /// If particle is dead

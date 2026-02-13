@@ -65,7 +65,7 @@ pub fn init(ctx: jok.Context) !void {
     indices = try ctx.allocator().alloc(u8, screen_size);
     @memset(indices, 36);
     @memset(indices[0..screen_width], 0);
-    pixeldata = try doomfire.createPixelData(ctx.allocator(), null);
+    pixeldata = try doomfire.createPixelData(ctx.allocator());
 
     rng = std.Random.DefaultPrng.init(@intCast(std.Io.Clock.awake.now(ctx.io()).toSeconds()));
 }

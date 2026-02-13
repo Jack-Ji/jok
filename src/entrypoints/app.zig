@@ -31,8 +31,8 @@ pub fn main(minimal: std.process.Init.Minimal) !void {
         log.err("Init game failed: {}", .{err});
         if (@errorReturnTrace()) |trace| {
             std.debug.dumpStackTrace(trace);
-            std.process.abort();
         }
+        std.process.abort();
     };
     defer game.quit(ctx);
 

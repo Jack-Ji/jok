@@ -88,6 +88,7 @@ pub fn showDialog(ctx: jok.Context, dt: DialogType, callback: DialogCallback, us
     }
 
     const real_userdata = try ctx.allocator().create(RealUserData);
+    errdefer ctx.allocator().destroy(real_userdata);
     real_userdata.* = .{
         .allocator = ctx.allocator(),
         .callback = callback,
@@ -157,7 +158,7 @@ fn realCallback(_userdata: ?*anyopaque, filelist: [*c]const [*c]const u8, _: c_i
     defer real_userdata.allocator.free(files);
     path_ptr = filelist;
     for (0..files_num) |i| {
-        files[i] = std.mem.sliceTo(filelist.*, 0);
+        files[i] = std.mem.sliceTo(path_ptr.*, 0);
         path_ptr += 1;
     }
 

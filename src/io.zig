@@ -728,10 +728,10 @@ pub fn pumpEvents() void {
     sdl.SDL_PumpEvents();
 }
 
-pub fn pollEvent() ?Event {
+pub fn pollEvent(ctx: jok.Context) ?Event {
     var ev: sdl.SDL_Event = undefined;
     if (sdl.SDL_PollEvent(&ev))
-        return Event.from(ev);
+        return Event.from(ev, ctx);
     return null;
 }
 
@@ -746,10 +746,10 @@ pub fn pollNativeEvent() ?sdl.SDL_Event {
 /// May not conserve energy on some systems, in some versions/situations.
 /// This function should only be called from
 /// the thread that initialized the video subsystem.
-pub fn waitEvent() !?Event {
+pub fn waitEvent(ctx: jok.Context) !?Event {
     var ev: sdl.SDL_Event = undefined;
     if (sdl.SDL_WaitEvent(&ev))
-        return Event.from(ev);
+        return Event.from(ev, ctx);
     return sdl.Error.SdlError;
 }
 
@@ -758,10 +758,10 @@ pub fn waitEvent() !?Event {
 /// May not conserve energy on some systems, in some versions/situations.
 /// This function should only be called from
 /// the thread that initialized the video subsystem.
-pub fn waitEventTimeout(timeout: usize) ?Event {
+pub fn waitEventTimeout(ctx: jok.Context, timeout: usize) ?Event {
     var ev: sdl.SDL_Event = undefined;
     if (sdl.SDL_WaitEventTimeout(&ev, @intCast(timeout)))
-        return Event.from(ev);
+        return Event.from(ev, ctx);
     return null;
 }
 

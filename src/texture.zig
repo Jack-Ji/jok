@@ -13,10 +13,8 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const jok = @import("jok.zig");
-const Region = jok.j2d.geom.Region;
 const sdl = jok.vendor.sdl;
 const zgui = jok.vendor.zgui;
-
 const log = std.log.scoped(.jok);
 
 /// Texture wrapper providing access to SDL texture functionality.
@@ -123,7 +121,7 @@ pub const Texture = struct {
     }
 
     pub fn getScaleMode(self: Texture) !ScaleMode {
-        const scale_mode: sdl.SDL_ScaleMode = undefined;
+        var scale_mode: sdl.SDL_ScaleMode = undefined;
         if (!sdl.SDL_GetTextureScaleMode(self.ptr, &scale_mode)) {
             log.err("Get scale mode failed: {s}", .{sdl.SDL_GetError()});
             return error.SdlError;
@@ -144,7 +142,6 @@ pub const Texture = struct {
     /// Must be used with streaming textures only.
     pub const PixelData = struct {
         allocator: std.mem.Allocator,
-        region: ?Region,
         buf: []u8,
         pixels: []u32,
         width: u32,
@@ -154,19 +151,8 @@ pub const Texture = struct {
             self.allocator.free(self.buf);
         }
 
-        pub inline fn clear(self: PixelData, c: jok.Color, region: ?Region) void {
-            const rgba = c.toRGBA32();
-            if (region) |r| {
-                assert(r.x + r.width <= self.width);
-                assert(r.y + r.height <= self.height);
-                for (0..r.height) |h| {
-                    const off_begin = (r.y + h) * self.width + r.x;
-                    const off_end = (r.y + h) * self.width + r.x + r.width;
-                    @memset(self.pixels[off_begin..off_end], rgba);
-                }
-            } else {
-                @memset(self.pixels, rgba);
-            }
+        pub inline fn clear(self: PixelData, c: jok.Color) void {
+            @memset(self.pixels, c.toRGBA32());
         }
 
         pub inline fn getPixel(self: PixelData, x: u32, y: u32) jok.Color {
@@ -186,18 +172,16 @@ pub const Texture = struct {
             self.pixels[index] = c.toRGBA32();
         }
     };
-    pub fn createPixelData(self: Texture, allocator: std.mem.Allocator, region: ?Region) !PixelData {
+    pub fn createPixelData(self: Texture, allocator: std.mem.Allocator) !PixelData {
         const info = try self.query();
         assert(info.access == .streaming);
         assert(info.format == @as(u32, @intCast(sdl.SDL_PIXELFORMAT_RGBA32)));
-        assert(region == null or region.?.width <= info.width);
-        assert(region == null or region.?.height <= info.height);
 
         var pixels: ?*anyopaque = undefined;
         var pitch: c_int = undefined;
         if (!sdl.SDL_LockTexture(
             self.ptr,
-            if (region) |r| @ptrCast(&r) else null,
+            null,
             &pixels,
             &pitch,
         )) {
@@ -207,21 +191,18 @@ pub const Texture = struct {
         assert(@rem(pitch, 4) == 0);
         sdl.SDL_UnlockTexture(self.ptr);
 
-        const width = if (region) |r| r.width else info.width;
-        assert(width * 4 == pitch);
-        const height = if (region) |r| r.height else info.height;
-        const bufsize = width * height * 4;
+        assert(info.width * 4 == pitch);
+        const bufsize = info.width * info.height * 4;
         const buf = try allocator.alloc(u8, bufsize);
         var pixelbuf: []u32 = undefined;
         pixelbuf.ptr = @ptrCast(@alignCast(buf.ptr));
-        pixelbuf.len = width * height;
+        pixelbuf.len = info.width * info.height;
         return .{
             .allocator = allocator,
-            .region = region,
             .buf = buf,
             .pixels = pixelbuf,
-            .width = width,
-            .height = height,
+            .width = info.width,
+            .height = info.height,
         };
     }
 
@@ -229,17 +210,14 @@ pub const Texture = struct {
         const info = try self.query();
         assert(info.access == .streaming);
         assert(info.format == @as(u32, @intCast(sdl.SDL_PIXELFORMAT_RGBA32)));
-
-        const width = if (data.region) |r| r.width else info.width;
-        const height = if (data.region) |r| r.height else info.height;
-        assert(width <= info.width);
-        assert(height <= info.height);
+        assert(data.width == info.width);
+        assert(data.height == info.height);
 
         var pixels: ?*anyopaque = undefined;
         var pitch: c_int = undefined;
         if (!sdl.SDL_LockTexture(
             self.ptr,
-            if (data.region) |r| @ptrCast(&r) else null,
+            null,
             &pixels,
             &pitch,
         )) {

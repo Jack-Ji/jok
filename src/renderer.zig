@@ -480,7 +480,7 @@ pub const Renderer = struct {
     };
     /// Create an offscreen render target texture. Not supported with software renderer.
     pub fn createTarget(self: Renderer, opt: TargetOption) !jok.Texture {
-        if (self.cfg.jok_renderer_type == .software) @panic("Unsupported when using software renderer!");
+        if (self.cfg.jok_renderer_type == .software) return error.NotSupported;
         const size = opt.size orelse blk: {
             const sz = try self.getOutputSize();
             break :blk sz;
@@ -507,16 +507,19 @@ pub const Renderer = struct {
         pub inline fn getPixel(px: @This(), x: u32, y: u32) jok.Color {
             assert(x < px.width);
             assert(y < px.height);
-            const c: jok.Color = undefined;
-            sdl.SDL_ReadSurfacePixel(px.surface, @intCast(x), @intCast(y), &c.r, &c.g, &c.b, &c.a);
+            var c: jok.Color = undefined;
+            _ = sdl.SDL_ReadSurfacePixel(px.surface, @intCast(x), @intCast(y), &c.r, &c.g, &c.b, &c.a);
             return c;
         }
 
         /// Create a texture from this pixel data.
         pub inline fn createTexture(px: @This(), rd: Renderer, opt: TextureOption) !jok.Texture {
-            const tex = jok.Texture{
-                .ptr = sdl.SDL_CreateTextureFromSurface(rd.ptr, px.surface),
-            };
+            const ptr = sdl.SDL_CreateTextureFromSurface(rd.ptr, px.surface);
+            if (ptr == null) {
+                log.err("Create texture from surface failed: {s}", .{sdl.SDL_GetError()});
+                return error.SdlError;
+            }
+            const tex = jok.Texture{ .ptr = ptr.? };
             try tex.setBlendMode(opt.blend_mode);
             try tex.setScaleMode(opt.scale_mode);
             return tex;

@@ -127,4 +127,5 @@ test "all utils" {
     _ = quad_tree;
     _ = spatial_hash;
     _ = ring;
+    _ = dialog;
 }

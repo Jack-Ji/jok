@@ -14,7 +14,8 @@ pub fn Ring(comptime T: type) type {
         pub const Error = error{ Full, ReadLengthInvalid };
 
         /// Allocate a new `RingType`; `deinit()` should be called to free the buffer.
-        pub fn init(allocator: Allocator, capacity: usize) Allocator.Error!RingType {
+        pub fn init(allocator: Allocator, capacity: usize) !RingType {
+            assert(capacity > 0);
             const data = try allocator.alloc(T, capacity);
             return RingType{
                 .data = data,

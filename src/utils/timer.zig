@@ -122,6 +122,7 @@ pub fn GenericTimer(comptime fun: anytype) type {
             self.args[0] = @call(.auto, self.fp, self.args);
             if (self.args[0] == 0) {
                 self.destroy();
+                return 0;
             }
             return self.args[0];
         }
@@ -158,6 +159,7 @@ pub const TimerController = struct {
 
     allocator: std.mem.Allocator,
     tlist: std.DoublyLinkedList,
+    fractional_ms: f32,
 
     /// Create a new timer controller
     pub fn create(allocator: std.mem.Allocator) !*TimerController {
@@ -165,6 +167,7 @@ pub const TimerController = struct {
         c.* = .{
             .allocator = allocator,
             .tlist = .{},
+            .fractional_ms = 0,
         };
         return c;
     }
@@ -181,7 +184,15 @@ pub const TimerController = struct {
     /// Update all timers by the given delta time
     /// Call this every frame with delta time in seconds
     pub fn update(c: *TimerController, delta_seconds: f32) void {
-        var delta_ms: u32 = @intFromFloat(delta_seconds * 1000);
+        if (delta_seconds <= 0) return;
+
+        const max_ms_f32: f32 = @floatFromInt(std.math.maxInt(u32));
+        const total_ms = @min(
+            max_ms_f32,
+            c.fractional_ms + delta_seconds * 1000.0,
+        );
+        var delta_ms: u32 = @intFromFloat(@floor(total_ms));
+        c.fractional_ms = total_ms - @as(f32, @floatFromInt(delta_ms));
 
         while (delta_ms > 0 and c.tlist.len() > 0) {
             const node = c.tlist.first.?;
@@ -308,4 +319,30 @@ test "timer" {
     controller.update(0.008);
     controller.update(0.007);
     try std.testing.expectEqual(450, S.sum);
+}
+
+test "timer preserves sub-millisecond remainder" {
+    const S = struct {
+        var fired: u32 = 0;
+
+        fn fun(_: u32) u32 {
+            fired += 1;
+            return if (fired < 3) 1 else 0;
+        }
+    };
+
+    var controller = try TimerController.create(std.testing.allocator);
+    defer controller.destroy();
+
+    _ = try GenericTimer(S.fun).create(
+        std.testing.allocator,
+        S.fun,
+        .{1},
+        controller,
+    );
+
+    controller.update(0.0005);
+    try std.testing.expectEqual(@as(u32, 0), S.fired);
+    controller.update(0.0005);
+    try std.testing.expectEqual(@as(u32, 1), S.fired);
 }

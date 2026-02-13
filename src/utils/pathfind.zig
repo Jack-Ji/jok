@@ -68,11 +68,11 @@ pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, 
     var nodes = NodeMap.init(arena.allocator());
     var frontier = NodeQueue.init(arena.allocator(), &nodes);
 
-    try nodes.put(to, .{});
-    try frontier.add(to);
+    try nodes.put(from, .{});
+    try frontier.add(from);
     while (frontier.count() != 0) {
         const current = frontier.remove();
-        if (current == from) break;
+        if (current == to) break;
 
         var it = graph.iterateNeigh(current);
         while (it.next()) |next| {
@@ -82,7 +82,7 @@ pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, 
                 try nodes.put(next, .{
                     .from = current,
                     .gcost = new_gcost,
-                    .hcost = graph.hcost(from, next),
+                    .hcost = graph.hcost(next, to),
                 });
                 try frontier.add(next);
             }
@@ -91,7 +91,7 @@ pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, 
         return null;
     }
 
-    var pos = from;
+    var pos = to;
     var path = try std.array_list.Managed(usize).initCapacity(allocator, 10);
     try path.append(pos);
     if (from != to) {
@@ -99,8 +99,9 @@ pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, 
             const node = nodes.get(pos).?;
             pos = node.from;
             try path.append(pos);
-            if (pos == to) break;
+            if (pos == from) break;
         }
+        std.mem.reverse(usize, path.items);
     }
     return path;
 }
@@ -282,4 +283,49 @@ test "pathfind" {
     try std.testing.expectEqual(path.?.items[15], Graph.pos2id(.{ .x = 9, .y = 8 }));
     try std.testing.expectEqual(path.?.items[16], Graph.pos2id(.{ .x = 9, .y = 9 }));
     path.?.deinit();
+}
+
+test "pathfind supports directed graphs" {
+    const Graph = struct {
+        const Iterator = struct {
+            ns: [2]usize = .{ 0, 0 },
+            len: usize = 0,
+            idx: usize = 0,
+
+            pub fn next(self: *@This()) ?usize {
+                if (self.idx >= self.len) return null;
+                defer self.idx += 1;
+                return self.ns[self.idx];
+            }
+        };
+
+        pub fn iterateNeigh(_: @This(), id: usize) Iterator {
+            return switch (id) {
+                0 => .{ .ns = .{ 1, 2 }, .len = 2 },
+                1 => .{ .ns = .{ 2, 0 }, .len = 1 },
+                else => .{},
+            };
+        }
+
+        pub fn gcost(_: @This(), from: usize, to: usize) usize {
+            _ = from;
+            _ = to;
+            return 1;
+        }
+
+        pub fn hcost(_: @This(), from: usize, to: usize) usize {
+            _ = from;
+            _ = to;
+            return 0;
+        }
+    };
+
+    const allocator = std.testing.allocator;
+    var path = try calculatePath(allocator, Graph{}, 0, 2);
+    defer path.?.deinit();
+
+    try std.testing.expect(path != null);
+    try std.testing.expectEqual(@as(usize, 2), path.?.items.len);
+    try std.testing.expectEqual(@as(usize, 0), path.?.items[0]);
+    try std.testing.expectEqual(@as(usize, 2), path.?.items[1]);
 }

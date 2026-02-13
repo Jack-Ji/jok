@@ -1096,7 +1096,8 @@ const MemAdapter = struct {
     }
 
     fn calloc(nmemb: usize, size: usize) callconv(.c) ?*anyopaque {
-        return alloc(nmemb * size);
+        const total = std.math.mul(usize, nmemb, size) catch return null;
+        return alloc(total);
     }
 
     fn realloc(maybe_ptr: ?*anyopaque, size: usize) callconv(.c) ?*anyopaque {
