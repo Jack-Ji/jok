@@ -667,34 +667,92 @@ pub const Triangle = struct {
 
     /// Triangle-Triangle intersection (SAT-based)
     pub fn intersectTriangle(self: Triangle, other: Triangle) bool {
-        const v0 = zmath.f32x4(self.v0[0], self.v0[1], self.v0[2], 0);
-        const v1 = zmath.f32x4(self.v1[0], self.v1[1], self.v1[2], 0);
-        const v2 = zmath.f32x4(self.v2[0], self.v2[1], self.v2[2], 0);
-        const w0 = zmath.f32x4(other.v0[0], other.v0[1], other.v0[2], 0);
-        const w1 = zmath.f32x4(other.v1[0], other.v1[1], other.v1[2], 0);
-        const w2 = zmath.f32x4(other.v2[0], other.v2[1], other.v2[2], 0);
+        // Convert to zmath vectors (w=0)
+        const A0 = zmath.f32x4(self.v0[0], self.v0[1], self.v0[2], 0);
+        const A1 = zmath.f32x4(self.v1[0], self.v1[1], self.v1[2], 0);
+        const A2 = zmath.f32x4(self.v2[0], self.v2[1], self.v2[2], 0);
 
-        const n1 = zmath.normalize3(zmath.cross3(v1 - v0, v2 - v0));
-        const n2 = zmath.normalize3(zmath.cross3(w1 - w0, w2 - w0));
+        const B0 = zmath.f32x4(other.v0[0], other.v0[1], other.v0[2], 0);
+        const B1 = zmath.f32x4(other.v1[0], other.v1[1], other.v1[2], 0);
+        const B2 = zmath.f32x4(other.v2[0], other.v2[1], other.v2[2], 0);
 
-        const d1_u0 = zmath.dot3(n1, w0 - v0)[0];
-        const d1_u1 = zmath.dot3(n1, w1 - v0)[0];
-        const d1_u2 = zmath.dot3(n1, w2 - v0)[0];
-        if ((d1_u0 > epsilon and d1_u1 > epsilon and d1_u2 > epsilon) or
-            (d1_u0 < -epsilon and d1_u1 < -epsilon and d1_u2 < -epsilon))
+        // ───────────────────────────────────────────────
+        // 1. Test plane of A against triangle B
+        // ───────────────────────────────────────────────
+        const Na = zmath.normalize3(zmath.cross3(A1 - A0, A2 - A0));
+        const dA0 = zmath.dot3(Na, B0 - A0)[0];
+        const dA1 = zmath.dot3(Na, B1 - A0)[0];
+        const dA2 = zmath.dot3(Na, B2 - A0)[0];
+
+        if ((dA0 > epsilon and dA1 > epsilon and dA2 > epsilon) or
+            (dA0 < -epsilon and dA1 < -epsilon and dA2 < -epsilon))
         {
             return false;
         }
 
-        const d2_v0 = zmath.dot3(n2, v0 - w0)[0];
-        const d2_v1 = zmath.dot3(n2, v1 - w0)[0];
-        const d2_v2 = zmath.dot3(n2, v2 - w0)[0];
-        if ((d2_v0 > epsilon and d2_v1 > epsilon and d2_v2 > epsilon) or
-            (d2_v0 < -epsilon and d2_v1 < -epsilon and d2_v2 < -epsilon))
+        // ───────────────────────────────────────────────
+        // 2. Test plane of B against triangle A
+        // ───────────────────────────────────────────────
+        const Nb = zmath.normalize3(zmath.cross3(B1 - B0, B2 - B0));
+        const dB0 = zmath.dot3(Nb, A0 - B0)[0];
+        const dB1 = zmath.dot3(Nb, A1 - B0)[0];
+        const dB2 = zmath.dot3(Nb, A2 - B0)[0];
+
+        if ((dB0 > epsilon and dB1 > epsilon and dB2 > epsilon) or
+            (dB0 < -epsilon and dB1 < -epsilon and dB2 < -epsilon))
         {
             return false;
         }
 
+        // ───────────────────────────────────────────────
+        // 3. Test the 9 edge × edge cross-product axes
+        // ───────────────────────────────────────────────
+        const edgesA = [3][3]f32{
+            .{ self.v1[0] - self.v0[0], self.v1[1] - self.v0[1], self.v1[2] - self.v0[2] },
+            .{ self.v2[1] - self.v1[1], self.v2[1] - self.v1[1], self.v2[2] - self.v1[2] },
+            .{ self.v0[0] - self.v2[0], self.v0[1] - self.v2[1], self.v0[2] - self.v2[2] },
+        };
+
+        const edgesB = [3][3]f32{
+            .{ other.v1[0] - other.v0[0], other.v1[1] - other.v0[1], other.v1[2] - other.v0[2] },
+            .{ other.v2[0] - other.v1[0], other.v2[1] - other.v1[1], other.v2[2] - other.v1[2] },
+            .{ other.v0[0] - other.v2[0], other.v0[1] - other.v2[1], other.v0[2] - other.v2[2] },
+        };
+
+        for (edgesA) |ea| {
+            for (edgesB) |eb| {
+                // axis = ea × eb
+                const axis_x = ea[1] * eb[2] - ea[2] * eb[1];
+                const axis_y = ea[2] * eb[0] - ea[0] * eb[2];
+                const axis_z = ea[0] * eb[1] - ea[1] * eb[0];
+
+                const axis_len_sq = axis_x * axis_x + axis_y * axis_y + axis_z * axis_z;
+                if (axis_len_sq < epsilon) continue; // parallel → skip degenerate axis
+
+                const axis = zmath.normalize3(zmath.f32x4(axis_x, axis_y, axis_z, 0));
+
+                // Project all 6 vertices onto axis → find intervals
+                const projA0 = zmath.dot3(axis, A0)[0];
+                const projA1 = zmath.dot3(axis, A1)[0];
+                const projA2 = zmath.dot3(axis, A2)[0];
+
+                const projB0 = zmath.dot3(axis, B0)[0];
+                const projB1 = zmath.dot3(axis, B1)[0];
+                const projB2 = zmath.dot3(axis, B2)[0];
+
+                const minA = @min(projA0, @min(projA1, projA2));
+                const maxA = @max(projA0, @max(projA1, projA2));
+
+                const minB = @min(projB0, @min(projB1, projB2));
+                const maxB = @max(projB0, @max(projB1, projB2));
+
+                if (maxA < minB - epsilon or maxB < minA - epsilon) {
+                    return false;
+                }
+            }
+        }
+
+        // No separating axis found → triangles intersect (or touch)
         return true;
     }
 };
