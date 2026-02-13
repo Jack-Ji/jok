@@ -50,6 +50,7 @@ pub fn main(minimal: std.process.Init.Minimal) !void {
             std.debug.dumpStackTrace(trace);
             return;
         }
+        std.process.abort();
     };
     emscripten_set_main_loop_arg(mainLoop, jok_ctx, 0, true);
 }
