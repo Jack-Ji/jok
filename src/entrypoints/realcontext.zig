@@ -644,7 +644,8 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 const rw: f32 = @floatFromInt(sz.width);
                 const rh: f32 = @floatFromInt(sz.height);
                 if (cfg.jok_canvas_integer_scaling) {
-                    const scale = @floor(@min(vpw / rw, vph / rh));
+                    // Keep target area non-zero to avoid divide-by-zero in input mapping.
+                    const scale = @max(1.0, @floor(@min(vpw / rw, vph / rh)));
                     const width = scale * rw;
                     const height = scale * rh;
                     self._canvas_target_area = Rectangle{
