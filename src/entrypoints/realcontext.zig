@@ -35,6 +35,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
         /// Setup configuration
         _cfg: config.Config = cfg,
 
+        /// App arguments
+        _args: std.process.Args = undefined,
+
         // Memory allocator
         _allocator: std.mem.Allocator = undefined,
 
@@ -112,6 +115,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 std.heap.smp_allocator;
             var self = try _allocator.create(@This());
             self.* = .{};
+            self._args = args;
             self._allocator = _allocator;
             self._io_backend = .init_single_threaded;
             self._io_backend.allocator = _allocator;
@@ -123,7 +127,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             self._ctx = self.context();
 
             // Init PhysicsFS
-            physfs.init(self._ctx, args);
+            physfs.init(self._ctx);
             if (builtin.cpu.arch.isWasm()) {
                 try physfs.mount("/", "", true);
             }
@@ -607,6 +611,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 .ctx = self,
                 .vtable = .{
                     .cfg = getcfg,
+                    .args = getArgs,
                     .allocator = allocator,
                     .io = getIo,
                     .seconds = seconds,
@@ -689,6 +694,12 @@ pub fn JokContext(comptime cfg: config.Config) type {
         fn getcfg(ptr: *anyopaque) config.Config {
             const self: *@This() = @ptrCast(@alignCast(ptr));
             return self._cfg;
+        }
+
+        /// Get command-line arguments passed to app
+        fn getArgs(ptr: *anyopaque) std.process.Args {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            return self._args;
         }
 
         /// Get memory allocator

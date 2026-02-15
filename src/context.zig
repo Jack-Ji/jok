@@ -35,6 +35,7 @@ pub const Context = struct {
     ctx: *anyopaque,
     vtable: struct {
         cfg: *const fn (ctx: *anyopaque) config.Config,
+        args: *const fn (ctx: *anyopaque) std.process.Args,
         allocator: *const fn (ctx: *anyopaque) std.mem.Allocator,
         io: *const fn (ctx: *anyopaque) std.Io,
         seconds: *const fn (ctx: *anyopaque) f32,
@@ -64,6 +65,11 @@ pub const Context = struct {
     /// Get setup configuration
     pub fn cfg(self: Context) config.Config {
         return self.vtable.cfg(self.ctx);
+    }
+
+    /// Get command-line arguments passed to app
+    pub fn args(self: Context) std.process.Args {
+        return self.vtable.args(self.ctx);
     }
 
     /// Get memory allocator

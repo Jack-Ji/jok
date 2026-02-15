@@ -55,7 +55,7 @@ pub fn getLastErrorCode() ErrorCode {
 ///
 /// **WARNING: This function is automatically called by jok.Context during initialization.**
 /// **DO NOT call this function directly from game code.**
-pub fn init(ctx: jok.Context, args: std.process.Args) void {
+pub fn init(ctx: jok.Context) void {
     assert(mem_allocator == null);
     mem_io = ctx.io();
     mem_allocator = ctx.allocator();
@@ -73,7 +73,7 @@ pub fn init(ctx: jok.Context, args: std.process.Args) void {
         }
     }
 
-    if (PHYSFS_init(if (builtin.cpu.arch.isWasm()) args.vector[0] else null) == 0) {
+    if (PHYSFS_init(if (builtin.cpu.arch.isWasm()) ctx.args().vector[0] else null) == 0) {
         @panic(getLastErrorCode().toDesc());
     }
 }
