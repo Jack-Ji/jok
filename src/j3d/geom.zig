@@ -668,85 +668,73 @@ pub const Triangle = struct {
     /// Triangle-Triangle intersection (SAT-based)
     pub fn intersectTriangle(self: Triangle, other: Triangle) bool {
         // Convert to zmath vectors (w=0)
-        const A0 = zmath.f32x4(self.v0[0], self.v0[1], self.v0[2], 0);
-        const A1 = zmath.f32x4(self.v1[0], self.v1[1], self.v1[2], 0);
-        const A2 = zmath.f32x4(self.v2[0], self.v2[1], self.v2[2], 0);
+        const a0 = zmath.f32x4(self.v0[0], self.v0[1], self.v0[2], 0);
+        const a1 = zmath.f32x4(self.v1[0], self.v1[1], self.v1[2], 0);
+        const a2 = zmath.f32x4(self.v2[0], self.v2[1], self.v2[2], 0);
 
-        const B0 = zmath.f32x4(other.v0[0], other.v0[1], other.v0[2], 0);
-        const B1 = zmath.f32x4(other.v1[0], other.v1[1], other.v1[2], 0);
-        const B2 = zmath.f32x4(other.v2[0], other.v2[1], other.v2[2], 0);
+        const b0 = zmath.f32x4(other.v0[0], other.v0[1], other.v0[2], 0);
+        const b1 = zmath.f32x4(other.v1[0], other.v1[1], other.v1[2], 0);
+        const b2 = zmath.f32x4(other.v2[0], other.v2[1], other.v2[2], 0);
 
-        // ───────────────────────────────────────────────
-        // 1. Test plane of A against triangle B
-        // ───────────────────────────────────────────────
-        const Na = zmath.normalize3(zmath.cross3(A1 - A0, A2 - A0));
-        const dA0 = zmath.dot3(Na, B0 - A0)[0];
-        const dA1 = zmath.dot3(Na, B1 - A0)[0];
-        const dA2 = zmath.dot3(Na, B2 - A0)[0];
+        // Test plane of A against triangle B
+        const na = zmath.normalize3(zmath.cross3(a1 - a0, a2 - a0));
+        const da0 = zmath.dot3(na, b0 - a0)[0];
+        const da1 = zmath.dot3(na, b1 - a0)[0];
+        const da2 = zmath.dot3(na, b2 - a0)[0];
 
-        if ((dA0 > epsilon and dA1 > epsilon and dA2 > epsilon) or
-            (dA0 < -epsilon and dA1 < -epsilon and dA2 < -epsilon))
+        if ((da0 > epsilon and da1 > epsilon and da2 > epsilon) or
+            (da0 < -epsilon and da1 < -epsilon and da2 < -epsilon))
         {
             return false;
         }
 
-        // ───────────────────────────────────────────────
-        // 2. Test plane of B against triangle A
-        // ───────────────────────────────────────────────
-        const Nb = zmath.normalize3(zmath.cross3(B1 - B0, B2 - B0));
-        const dB0 = zmath.dot3(Nb, A0 - B0)[0];
-        const dB1 = zmath.dot3(Nb, A1 - B0)[0];
-        const dB2 = zmath.dot3(Nb, A2 - B0)[0];
+        // Test plane of B against triangle A
+        const nb = zmath.normalize3(zmath.cross3(b1 - b0, b2 - b0));
+        const db0 = zmath.dot3(nb, a0 - b0)[0];
+        const db1 = zmath.dot3(nb, a1 - b0)[0];
+        const db2 = zmath.dot3(nb, a2 - b0)[0];
 
-        if ((dB0 > epsilon and dB1 > epsilon and dB2 > epsilon) or
-            (dB0 < -epsilon and dB1 < -epsilon and dB2 < -epsilon))
+        if ((db0 > epsilon and db1 > epsilon and db2 > epsilon) or
+            (db0 < -epsilon and db1 < -epsilon and db2 < -epsilon))
         {
             return false;
         }
 
-        // ───────────────────────────────────────────────
-        // 3. Test the 9 edge × edge cross-product axes
-        // ───────────────────────────────────────────────
-        const edgesA = [3][3]f32{
+        // Test the 9 edge × edge cross-product axes
+        const edges_a = [3][3]f32{
             .{ self.v1[0] - self.v0[0], self.v1[1] - self.v0[1], self.v1[2] - self.v0[2] },
             .{ self.v2[1] - self.v1[1], self.v2[1] - self.v1[1], self.v2[2] - self.v1[2] },
             .{ self.v0[0] - self.v2[0], self.v0[1] - self.v2[1], self.v0[2] - self.v2[2] },
         };
 
-        const edgesB = [3][3]f32{
+        const edges_b = [3][3]f32{
             .{ other.v1[0] - other.v0[0], other.v1[1] - other.v0[1], other.v1[2] - other.v0[2] },
             .{ other.v2[0] - other.v1[0], other.v2[1] - other.v1[1], other.v2[2] - other.v1[2] },
             .{ other.v0[0] - other.v2[0], other.v0[1] - other.v2[1], other.v0[2] - other.v2[2] },
         };
 
-        for (edgesA) |ea| {
-            for (edgesB) |eb| {
+        for (edges_a) |ea| {
+            for (edges_b) |eb| {
                 // axis = ea × eb
                 const axis_x = ea[1] * eb[2] - ea[2] * eb[1];
                 const axis_y = ea[2] * eb[0] - ea[0] * eb[2];
                 const axis_z = ea[0] * eb[1] - ea[1] * eb[0];
-
                 const axis_len_sq = axis_x * axis_x + axis_y * axis_y + axis_z * axis_z;
                 if (axis_len_sq < epsilon) continue; // parallel → skip degenerate axis
 
-                const axis = zmath.normalize3(zmath.f32x4(axis_x, axis_y, axis_z, 0));
-
                 // Project all 6 vertices onto axis → find intervals
-                const projA0 = zmath.dot3(axis, A0)[0];
-                const projA1 = zmath.dot3(axis, A1)[0];
-                const projA2 = zmath.dot3(axis, A2)[0];
-
-                const projB0 = zmath.dot3(axis, B0)[0];
-                const projB1 = zmath.dot3(axis, B1)[0];
-                const projB2 = zmath.dot3(axis, B2)[0];
-
-                const minA = @min(projA0, @min(projA1, projA2));
-                const maxA = @max(projA0, @max(projA1, projA2));
-
-                const minB = @min(projB0, @min(projB1, projB2));
-                const maxB = @max(projB0, @max(projB1, projB2));
-
-                if (maxA < minB - epsilon or maxB < minA - epsilon) {
+                const axis = zmath.normalize3(zmath.f32x4(axis_x, axis_y, axis_z, 0));
+                const proj_a0 = zmath.dot3(axis, a0)[0];
+                const proj_a1 = zmath.dot3(axis, a1)[0];
+                const proj_a2 = zmath.dot3(axis, a2)[0];
+                const proj_b0 = zmath.dot3(axis, b0)[0];
+                const proj_b1 = zmath.dot3(axis, b1)[0];
+                const proj_b2 = zmath.dot3(axis, b2)[0];
+                const min_a = @min(proj_a0, @min(proj_a1, proj_a2));
+                const max_a = @max(proj_a0, @max(proj_a1, proj_a2));
+                const min_b = @min(proj_b0, @min(proj_b1, proj_b2));
+                const max_b = @max(proj_b0, @max(proj_b1, proj_b2));
+                if (max_a < min_b - epsilon or max_b < min_a - epsilon) {
                     return false;
                 }
             }
@@ -963,8 +951,6 @@ pub const OBB = struct {
         return true;
     }
 };
-
-// --- Tests ---
 
 fn expectVecApprox(a: [3]f32, b: [3]f32, tol: f32) !void {
     try std.testing.expectApproxEqAbs(a[0], b[0], tol);

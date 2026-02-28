@@ -66,12 +66,13 @@ pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, 
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
     var nodes = NodeMap.init(arena.allocator());
-    var frontier = NodeQueue.init(arena.allocator(), &nodes);
+    var frontier = NodeQueue.empty;
+    frontier.context = &nodes;
 
     try nodes.put(from, .{});
-    try frontier.add(from);
+    try frontier.push(arena.allocator(), from);
     while (frontier.count() != 0) {
-        const current = frontier.remove();
+        const current = frontier.pop().?;
         if (current == to) break;
 
         var it = graph.iterateNeigh(current);
@@ -84,7 +85,7 @@ pub fn calculatePath(allocator: std.mem.Allocator, graph: anytype, from: usize, 
                     .gcost = new_gcost,
                     .hcost = graph.hcost(next, to),
                 });
-                try frontier.add(next);
+                try frontier.push(arena.allocator(), next);
             }
         }
     } else {
