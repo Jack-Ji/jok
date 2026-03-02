@@ -61,8 +61,8 @@ pub fn init(ctx: jok.Context) !void {
     try saved_atlas_20.save(ctx, "atlas_20.png", .{});
     try saved_atlas_30.save(ctx, "atlas_30.png", .{});
     try saved_atlas_128.save(ctx, "atlas_128.png", .{});
-    std.debug.print("Atlas save time: {D}\n", .{
-        @as(i64, @intCast(t.durationTo(std.Io.Clock.awake.now(ctx.io())).nanoseconds)),
+    std.debug.print("Atlas save time: {f}\n", .{
+        std.Io.Duration{ .nanoseconds = @intCast(t.durationTo(std.Io.Clock.awake.now(ctx.io())).nanoseconds) },
     });
 
     saved_atlas_16.destroy();
@@ -75,8 +75,8 @@ pub fn init(ctx: jok.Context) !void {
     saved_atlas_20 = try font.Atlas.loadFromPath(ctx, "atlas_20.png");
     saved_atlas_30 = try font.Atlas.loadFromPath(ctx, "atlas_30.png");
     saved_atlas_128 = try font.Atlas.loadFromPath(ctx, "atlas_128.png");
-    std.debug.print("Atlas load time: {D}\n", .{
-        @as(i64, @intCast(t.durationTo(std.Io.Clock.awake.now(ctx.io())).nanoseconds)),
+    std.debug.print("Atlas load time: {f}\n", .{
+        std.Io.Duration{ .nanoseconds = @intCast(t.durationTo(std.Io.Clock.awake.now(ctx.io())).nanoseconds) },
     });
 }
 

@@ -95,8 +95,8 @@ pub fn init(ctx: jok.Context) !void {
         if (ctx.cfg().jok_enable_physfs) "models/prime_truckin.mtl" else "assets/models/prime_truckin.mtl",
         .{},
     );
-    std.debug.print("Models load time: {D}\n", .{
-        @as(i64, @intCast(t.durationTo(std.Io.Clock.awake.now(ctx.io())).nanoseconds)),
+    std.debug.print("Models load time: {f}\n", .{
+        std.Io.Duration{ .nanoseconds = @intCast(t.durationTo(std.Io.Clock.awake.now(ctx.io())).nanoseconds) },
     });
 
     animation1_1 = try j3d.Animation.create(ctx.allocator(), mesh1.getAnimation("default").?);
