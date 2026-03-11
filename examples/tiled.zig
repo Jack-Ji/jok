@@ -29,8 +29,7 @@ pub fn event(ctx: jok.Context, e: jok.Event) !void {
 }
 
 pub fn update(ctx: jok.Context) !void {
-    // your game state updating code
-    _ = ctx;
+    map.updateAnimation(ctx.deltaSeconds());
 }
 
 pub fn draw(ctx: jok.Context) !void {

@@ -26,8 +26,6 @@
 //! }
 //! ```
 
-/// Tiled Editor
-/// https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
 const std = @import("std");
 const assert = std.debug.assert;
 const xml = @import("xml.zig");
@@ -52,6 +50,7 @@ pub const Error = error{
     UnsupportedLayerCompression,
     UnsupportedPropertyType,
     UnsupportedObjectType,
+    NoAnimation,
 };
 
 pub const Orientation = enum {
@@ -76,14 +75,26 @@ pub const PropertyValue = union(enum) {
 };
 pub const PropertyTree = std.StringHashMap(PropertyValue);
 
+pub const Frame = struct {
+    sprite: j2d.Sprite,
+    duration: f32,
+};
+
 pub const Tile = struct {
     tileset: *const Tileset,
     id: u32,
+    type: []const u8,
     uv0: Point,
     uv1: Point,
+    anim_frames: ?[]Frame,
+    anim_index: u32,
+    anim_duration: f32,
     props: PropertyTree,
 
     pub fn getSprite(self: Tile) j2d.Sprite {
+        if (self.anim_frames) |fs| {
+            return fs[self.anim_index].sprite;
+        }
         return .{
             .width = @as(f32, @floatFromInt(self.tileset.map.tile_size.width)),
             .height = @as(f32, @floatFromInt(self.tileset.map.tile_size.height)),
@@ -113,6 +124,19 @@ pub const Tileset = struct {
         const id = gid.id() - self.first_gid;
         assert(id < self.tiles.len);
         return self.tiles[id];
+    }
+
+    pub fn updateAnimation(self: *Tileset, delta: f32) void {
+        for (self.tiles) |*t| {
+            if (t.anim_frames) |fs| {
+                t.anim_duration += delta;
+                if (t.anim_duration > fs[t.anim_index].duration) {
+                    t.anim_duration -= fs[t.anim_index].duration;
+                    t.anim_index += 1;
+                    if (t.anim_index >= fs.len) t.anim_index = 0;
+                }
+            }
+        }
     }
 };
 
@@ -511,6 +535,12 @@ pub const TiledMap = struct {
         self.allocator.destroy(self);
     }
 
+    /// Update state of all tilesets' animations
+    pub fn updateAnimation(self: *TiledMap, delta: f32) void {
+        for (self.tilesets) |*ts| ts.updateAnimation(delta);
+    }
+
+    /// Render visible layers
     pub fn render(self: TiledMap, b: *j2d.Batch) !void {
         for (self.layers) |l| try l.render(b);
     }
@@ -825,6 +855,7 @@ fn loadTilesets(
             const y: f32 = @floatFromInt(idx / ts[tsidx].columns * cell_height);
             t.tileset = &ts[tsidx];
             t.id = @intCast(idx);
+            t.type = "";
             t.uv0 = .{
                 .x = x / texwidth,
                 .y = y / texheight,
@@ -833,22 +864,41 @@ fn loadTilesets(
                 .x = (x + ts[tsidx].tile_size.getWidthFloat()) / texwidth,
                 .y = (y + ts[tsidx].tile_size.getHeightFloat()) / texheight,
             };
+            t.anim_frames = null;
+            t.anim_index = 0;
+            t.anim_duration = 0;
             t.props = PropertyTree.init(arena_allocator);
         }
 
-        // Get tiles' properties
+        // Init tile's other props
         var it3 = tileset.findChildrenByTag("tile");
         while (it3.next()) |e2| {
-            var id: u32 = undefined;
-            for (e2.attributes) |a| {
-                if (std.mem.eql(u8, a.name, "id")) {
-                    id = try std.fmt.parseInt(u32, a.value, 10);
-                    assert(id > 0);
-                    break;
-                }
+            const local_id: u32 = try std.fmt.parseInt(u32, e2.getAttribute("id").?, 10);
+
+            // Load type/class
+            if (e2.getAttribute("type")) |v| {
+                ts[tsidx].tiles[local_id].type = try arena_allocator.dupe(u8, v);
             }
-            assert(id > 0);
-            try initPropertyTree(e2, arena_allocator, &ts[tsidx].tiles[id - 1].props);
+
+            // Load animation
+            if (e2.findChildByTag("animation")) |e3| {
+                var frames = std.array_list.Managed(Frame).init(temp_allocator);
+                defer frames.deinit();
+
+                var it4 = e3.findChildrenByTag("frame");
+                while (it4.next()) |f| {
+                    const ltid = try std.fmt.parseInt(u32, f.getAttribute("tileid").?, 10);
+                    const duration = try std.fmt.parseFloat(f32, f.getAttribute("duration").?);
+                    try frames.append(.{
+                        .sprite = ts[tsidx].tiles[ltid].getSprite(),
+                        .duration = duration / 1000.0,
+                    });
+                }
+                ts[tsidx].tiles[local_id].anim_frames = try arena_allocator.dupe(Frame, frames.items);
+            }
+
+            // Load properties
+            try initPropertyTree(e2, arena_allocator, &ts[tsidx].tiles[local_id].props);
         }
     }
 
