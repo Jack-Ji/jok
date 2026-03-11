@@ -35,7 +35,7 @@ pub fn init(allocator: std.mem.Allocator, _io: std.Io) void {
 
         _ = zguiCreateContext(null);
 
-        temp_buffer = std.ArrayList(u8){};
+        temp_buffer = std.ArrayList(u8).empty;
         temp_buffer.?.resize(allocator, 3 * 1024 + 1) catch unreachable;
     }
 }
@@ -50,7 +50,7 @@ pub fn initWithExistingContext(allocator: std.mem.Allocator, ctx: Context) void 
 
     zguiSetCurrentContext(ctx);
 
-    temp_buffer = std.ArrayList(u8){};
+    temp_buffer = std.ArrayList(u8).empty;
     temp_buffer.?.resize(mem_allocator.?, 3 * 1024 + 1) catch unreachable;
 }
 pub fn getCurrentContext() ?Context {

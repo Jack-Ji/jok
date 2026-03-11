@@ -31,21 +31,21 @@ pub const ObjData = struct {
 
     const Builder = struct {
         allocator: Allocator,
-        material_libs: std.ArrayList([]const u8) = .{},
-        vertices: std.ArrayList(f32) = .{},
-        tex_coords: std.ArrayList(f32) = .{},
-        normals: std.ArrayList(f32) = .{},
-        meshes: std.ArrayList(Mesh) = .{},
+        material_libs: std.ArrayList([]const u8) = .empty,
+        vertices: std.ArrayList(f32) = .empty,
+        tex_coords: std.ArrayList(f32) = .empty,
+        normals: std.ArrayList(f32) = .empty,
+        meshes: std.ArrayList(Mesh) = .empty,
 
         // current mesh
         name: ?[]const u8 = null,
-        num_verts: std.ArrayList(u32) = .{},
-        indices: std.ArrayList(Mesh.Index) = .{},
+        num_verts: std.ArrayList(u32) = .empty,
+        indices: std.ArrayList(Mesh.Index) = .empty,
         index_i: u32 = 0,
 
         // current mesh material
         current_material: ?MeshMaterial = null,
-        mesh_materials: std.ArrayList(MeshMaterial) = .{},
+        mesh_materials: std.ArrayList(MeshMaterial) = .empty,
         num_processed_verts: usize = 0,
 
         fn onError(self: *Builder) void {
@@ -119,8 +119,8 @@ pub const ObjData = struct {
             }
             if (name) |n| {
                 self.name = try self.allocator.dupe(u8, n);
-                self.num_verts = .{};
-                self.indices = .{};
+                self.num_verts = .empty;
+                self.indices = .empty;
                 self.num_processed_verts = 0;
                 self.current_material = null;
             }
