@@ -557,7 +557,7 @@ pub fn fromObj(
     // Parse obj data
     var objdata = try zobj.parseObj(ctx.allocator(), obj_file_data);
     defer objdata.deinit(ctx.allocator());
-    if (objdata.material_libs.len != 0 and objdata.material_libs.len > 1) {
+    if (objdata.material_libs.len > 1) {
         return error.TooManyMaterial;
     }
 
@@ -685,6 +685,12 @@ pub fn fromObj(
     }
 
     if (opt.tex) |t| {
+        var it = self.textures.iterator();
+        while (it.next()) |kv| {
+            kv.value_ptr.destroy();
+        }
+        self.textures.clearAndFree();
+
         const tex_id = @intFromPtr(t.ptr);
         for (self.root.meshes) |*m| {
             m.tex_id = tex_id;
@@ -693,6 +699,8 @@ pub fn fromObj(
                 m.remapTexcoords(opt.uvs.?[0], opt.uvs.?[1]);
             }
         }
+    } else {
+        self.own_textures = true;
     }
     return self;
 }
