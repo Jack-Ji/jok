@@ -738,7 +738,7 @@ pub fn QuadTree(comptime ObjectType: type, opt: TreeOption) type {
                         self.collectAndDestroy(c, &objs, &seen);
                     }
 
-                    var new_tree_node: TreeNode = .{
+                    const new_tree_node: TreeNode = .{
                         .leaf = .{
                             .rect = parent_rect,
                             .objs = objs,
