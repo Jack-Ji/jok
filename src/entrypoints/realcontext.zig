@@ -945,8 +945,9 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 });
                 zgui.text("V-Sync Enabled: {}", .{rdinfo.vsync > 0});
                 zgui.separator();
-                zgui.text("Duration: {f}", .{
-                    std.Io.Duration{ .nanoseconds = @intFromFloat(self._seconds_real * 1e9) },
+
+                zgui.text("Duration: {d}s", .{
+                    std.Io.Duration.fromNanoseconds(@intFromFloat(self._seconds_real * 1e9)).toSeconds(),
                 });
 
                 const cpu_time = if (self._fps > 0.0) 1000.0 / self._fps else 0.0;
