@@ -55,6 +55,7 @@ pub const Context = struct {
         suppressDraw: *const fn (ctx: *anyopaque) void,
         isRunningSlow: *const fn (ctx: *anyopaque) bool,
         loadTexture: *const fn (ctx: *anyopaque, sub_path: [:0]const u8, access: jok.Texture.Access, flip: bool) anyerror!jok.Texture,
+        loadFont: *const fn (ctx: *anyopaque, sub_path: [:0]const u8) anyerror!*font.Font,
         loadShader: *const fn (ctx: *anyopaque, sub_path: [:0]const u8, entrypoint: ?[:0]const u8, format: ?jok.ShaderFormat) anyerror!jok.PixelShader,
         setPostEffect: *const fn (ctx: *anyopaque, shader: ?jok.PixelShader) void,
         displayStats: *const fn (ctx: *anyopaque, opt: DisplayStats) void,
@@ -165,6 +166,11 @@ pub const Context = struct {
     /// Load texture from path to file
     pub fn loadTexture(self: Context, sub_path: [:0]const u8, access: jok.Texture.Access, flip: bool) anyerror!jok.Texture {
         return self.vtable.loadTexture(self.ctx, sub_path, access, flip);
+    }
+
+    /// Load font from path to file
+    pub fn loadFont(self: Context, sub_path: [:0]const u8) anyerror!*font.Font {
+        return self.vtable.loadFont(self.ctx, sub_path);
     }
 
     /// Load shader from path to file

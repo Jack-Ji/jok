@@ -631,6 +631,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     .suppressDraw = suppressDraw,
                     .isRunningSlow = isRunningSlow,
                     .loadTexture = loadTexture,
+                    .loadFont = loadFont,
                     .loadShader = loadShader,
                     .setPostEffect = setPostEffect,
                     .displayStats = displayStats,
@@ -859,6 +860,29 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     flip,
                 );
             }
+        }
+
+        /// Load font from path to file
+        pub fn loadFont(ptr: *anyopaque, sub_path: [:0]const u8) !*font.Font {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            var filedata: []const u8 = undefined;
+            if (cfg.jok_enable_physfs) {
+                const handle = try physfs.open(sub_path, .read);
+                defer handle.close();
+
+                filedata = try handle.readAllAlloc(self._allocator);
+            } else {
+                filedata = try std.Io.Dir.cwd().readFileAlloc(
+                    self._io_backend.io(),
+                    std.mem.sliceTo(sub_path, 0),
+                    self._allocator,
+                    .unlimited,
+                );
+                defer self._allocator.free(filedata);
+            }
+            defer self._allocator.free(filedata);
+
+            return font.Font.fromTrueTypeData(self._allocator, filedata);
         }
 
         /// Load shader from path to file

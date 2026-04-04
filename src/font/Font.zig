@@ -30,89 +30,35 @@ const max_font_size = 20 * (1 << 20);
 allocator: std.mem.Allocator,
 
 /// Font file's data (owned if loaded from file, null if using external data)
-font_data: ?[]u8,
+font_data: []const u8,
 
 /// Internal font information from stb_truetype
 font_info: truetype.stbtt_fontinfo,
 
-/// Create Font instance from TrueType file.
-///
-/// Loads a TrueType font from the filesystem (or PhysFS if enabled).
-///
-/// Parameters:
-///   ctx: Application context
-///   path: Path to the TrueType font file
-///
-/// Returns: Allocated Font instance
-pub fn create(ctx: jok.Context, path: [:0]const u8) !*Font {
-    const allocator = ctx.allocator();
-    var self = try allocator.create(Font);
-    self.allocator = allocator;
-    errdefer allocator.destroy(self);
-
-    if (ctx.cfg().jok_enable_physfs) {
-        const handle = try physfs.open(path, .read);
-        defer handle.close();
-
-        self.font_data = try handle.readAllAlloc(allocator);
-    } else {
-        const stat = try std.Io.Dir.statFile(
-            std.Io.Dir.cwd(),
-            ctx.io(),
-            std.mem.sliceTo(path, 0),
-            .{ .follow_symlinks = false },
-        );
-        self.font_data = try allocator.alloc(u8, @intCast(stat.size));
-        _ = try std.Io.Dir.readFile(
-            std.Io.Dir.cwd(),
-            ctx.io(),
-            std.mem.sliceTo(path, 0),
-            self.font_data.?,
-        );
-    }
-
-    // Extract font info
-    const rc = truetype.stbtt_InitFont(
-        &self.font_info,
-        self.font_data.?.ptr,
-        truetype.stbtt_GetFontOffsetForIndex(self.font_data.?.ptr, 0),
-    );
-    assert(rc > 0);
-
-    return self;
-}
-
-/// Create Font instance from TrueType data in memory.
-///
-/// WARNING: The font data must remain valid for the lifetime of the Font instance.
-/// The Font does not take ownership of the data.
-///
-/// Parameters:
-///   allocator: Memory allocator
-///   data: TrueType font data (must remain valid)
-///
-/// Returns: Allocated Font instance
+/// Create Font instance from ttf data in memory.
 pub fn fromTrueTypeData(allocator: std.mem.Allocator, data: []const u8) !*Font {
     var self = try allocator.create(Font);
+    errdefer allocator.destroy(self);
     self.allocator = allocator;
-    self.font_data = null;
+    self.font_data = try allocator.dupe(u8, data);
+    errdefer allocator.free(self.font_data);
 
     // Extract font info
     const rc = truetype.stbtt_InitFont(
         &self.font_info,
-        data.ptr,
+        self.font_data.ptr,
         truetype.stbtt_GetFontOffsetForIndex(data.ptr, 0),
     );
-    assert(rc > 0);
+    if (rc == 0) {
+        return error.InvalidFontData;
+    }
 
     return self;
 }
 
 /// Destroy the font and free associated resources.
 pub fn destroy(self: *Font) void {
-    if (self.font_data) |data| {
-        self.allocator.free(data);
-    }
+    self.allocator.free(self.font_data);
     self.allocator.destroy(self);
 }
 

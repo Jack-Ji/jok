@@ -23,7 +23,7 @@ pub fn init(ctx: jok.Context) !void {
     try physfs.setWriteDir(physfs.getBaseDir());
 
     batchpool = try @TypeOf(batchpool).init(ctx);
-    loaded_font = try font.Font.create(ctx, if (ctx.cfg().jok_enable_physfs) "clacon2.ttf" else "assets/clacon2.ttf");
+    loaded_font = try ctx.loadFont(if (ctx.cfg().jok_enable_physfs) "clacon2.ttf" else "assets/clacon2.ttf");
 
     const font_size = 16;
     const vmetrics = loaded_font.getVMetrics(font_size);

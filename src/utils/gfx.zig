@@ -280,7 +280,7 @@ pub const jpng = struct {
 
     pub const SaveOption = struct {
         png_compress_level: u8 = 8,
-        data_compress_options: ?std.compress.flate.Compress.Options = .level_4,
+        data_compress_options: ?std.compress.flate.Compress.Options = null, // BUG: decompress doesn't work for now
     };
 
     /// Save texture in jpng format
