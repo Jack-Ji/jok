@@ -381,10 +381,29 @@ pub const JokOptions = struct {
     sdl_lib_path: ?[]const u8 = null,
     sdl_include_path: ?[]const u8 = null,
 };
-fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) struct {
+
+pub const JokLibrary = struct {
     module: *Build.Module,
     artifact: *Build.Step.Compile,
-} {
+};
+
+pub fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) JokLibrary {
+    return getJokLibraryInternal(b, target, optimize, opt);
+}
+
+pub fn module(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) *Build.Module {
+    return getJokLibraryInternal(b, target, optimize, opt).module;
+}
+
+pub fn artifact(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) *Build.Step.Compile {
+    return getJokLibraryInternal(b, target, optimize, opt).artifact;
+}
+
+pub fn sdlModule(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) *Build.Module {
+    return getSdlModule(getJokBuilder(b, opt.dep_name), target, optimize, opt.sdl_include_path);
+}
+
+fn getJokLibraryInternal(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) JokLibrary {
     const builder = getJokBuilder(b, opt.dep_name);
     const jokmod = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
@@ -450,8 +469,28 @@ fn getJokBuilder(b: *Build, dep_name: ?[]const u8) *Build {
     return if (dep_name) |dep| b.dependency(dep, .{ .skipbuild = true }).builder else b;
 }
 
+var cachedSdlBuilder: ?*Build = null;
+var cachedSdlModule: ?*Build.Module = null;
+
+/// Returns the cached SDL module for the given build instance if one exists,
+/// otherwise returns null.
+fn getCachedSdlModule(b: *Build) ?*Build.Module {
+    if (cachedSdlBuilder == b) return cachedSdlModule;
+    return null;
+}
+
+/// Cache the SDL module for a given build so that subsequent requests for the SDL
+/// module from the same build instance return the cached module rather than
+/// creating a new one.
+fn cacheSdlModule(b: *Build, sdl_mod: *Build.Module) void {
+    cachedSdlBuilder = b;
+    cachedSdlModule = sdl_mod;
+}
+
 // Get module for SDL3 headers
 fn getSdlModule(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode, sdl_include_path: ?[]const u8) *Build.Module {
+    if (getCachedSdlModule(b)) |cached| return cached;
+
     // Use custom SDL3 headers if provided, otherwise use dependency
     const tc = if (sdl_include_path) |inc_path| blk: {
         const header_path = b.pathJoin(&.{ inc_path, "SDL3", "SDL.h" });
@@ -484,7 +523,9 @@ fn getSdlModule(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode,
         tc.defineCMacro("__WINT_TYPE__", "unsigned int");
         tc.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
     }
-    return tc.createModule();
+    const sdl_mod = tc.createModule();
+    cacheSdlModule(b, sdl_mod);
+    return sdl_mod;
 }
 
 // Sdk for compile and link using emscripten
