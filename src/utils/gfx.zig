@@ -280,7 +280,7 @@ pub const jpng = struct {
 
     pub const SaveOption = struct {
         png_compress_level: u8 = 8,
-        data_compress_options: ?std.compress.flate.Compress.Options = null, // BUG: decompress doesn't work for now
+        data_compress_options: ?std.compress.flate.Compress.Options = .default,
     };
 
     /// Save texture in jpng format
@@ -469,6 +469,7 @@ pub const jpng = struct {
             );
             try compress.writer.writeAll(data);
             try compress.writer.flush();
+            try compress.finish();
             const deflated = bufwriter.buffered();
             try writer.writeAll(deflated);
             const checksum = std.hash.Crc32.hash(deflated);
