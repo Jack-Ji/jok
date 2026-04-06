@@ -404,6 +404,8 @@ pub fn sdlModule(b: *Build, target: ResolvedTarget, optimize: std.builtin.Optimi
 }
 
 fn getJokLibraryInternal(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) JokLibrary {
+    if (getCachedJokLibrary(b)) |cached| return cached;
+
     const builder = getJokBuilder(b, opt.dep_name);
     const jokmod = builder.createModule(.{
         .root_source_file = builder.path("src/jok.zig"),
@@ -461,12 +463,27 @@ fn getJokLibraryInternal(b: *Build, target: ResolvedTarget, optimize: std.builti
         }
     }
 
-    return .{ .module = jokmod, .artifact = lib };
+    const library: JokLibrary = .{ .module = jokmod, .artifact = lib };
+    cacheJokLibrary(b, library);
+    return library;
 }
 
 // Get jok's own builder from project's
 fn getJokBuilder(b: *Build, dep_name: ?[]const u8) *Build {
     return if (dep_name) |dep| b.dependency(dep, .{ .skipbuild = true }).builder else b;
+}
+
+var cachedJokBuilder: ?*Build = null;
+var cachedJokLibrary: JokLibrary = undefined;
+
+fn getCachedJokLibrary(b: *Build) ?JokLibrary {
+    if (cachedJokBuilder == b) return cachedJokLibrary;
+    return null;
+}
+
+fn cacheJokLibrary(b: *Build, library: JokLibrary) void {
+    cachedJokBuilder = b;
+    cachedJokLibrary = library;
 }
 
 var cachedSdlBuilder: ?*Build = null;
