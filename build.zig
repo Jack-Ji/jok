@@ -473,26 +473,26 @@ fn getJokBuilder(b: *Build, dep_name: ?[]const u8) *Build {
     return if (dep_name) |dep| b.dependency(dep, .{ .skipbuild = true }).builder else b;
 }
 
-var cachedJokBuilder: ?*Build = null;
-var cachedJokLibrary: JokLibrary = undefined;
+var cached_jok_builder: ?*Build = null;
+var cached_jok_library: JokLibrary = undefined;
 
 fn getCachedJokLibrary(b: *Build) ?JokLibrary {
-    if (cachedJokBuilder == b) return cachedJokLibrary;
+    if (cached_jok_builder == b) return cached_jok_library;
     return null;
 }
 
 fn cacheJokLibrary(b: *Build, library: JokLibrary) void {
-    cachedJokBuilder = b;
-    cachedJokLibrary = library;
+    cached_jok_builder = b;
+    cached_jok_library = library;
 }
 
-var cachedSdlBuilder: ?*Build = null;
-var cachedSdlModule: ?*Build.Module = null;
+var cached_sdl_builder: ?*Build = null;
+var cached_sdl_module: ?*Build.Module = null;
 
 /// Returns the cached SDL module for the given build instance if one exists,
 /// otherwise returns null.
 fn getCachedSdlModule(b: *Build) ?*Build.Module {
-    if (cachedSdlBuilder == b) return cachedSdlModule;
+    if (cached_sdl_builder == b) return cached_sdl_module;
     return null;
 }
 
@@ -500,8 +500,8 @@ fn getCachedSdlModule(b: *Build) ?*Build.Module {
 /// module from the same build instance return the cached module rather than
 /// creating a new one.
 fn cacheSdlModule(b: *Build, sdl_mod: *Build.Module) void {
-    cachedSdlBuilder = b;
-    cachedSdlModule = sdl_mod;
+    cached_sdl_builder = b;
+    cached_sdl_module = sdl_mod;
 }
 
 // Get module for SDL3 headers
