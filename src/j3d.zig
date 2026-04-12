@@ -984,7 +984,7 @@ pub fn BatchPool(comptime pool_size: usize, comptime thread_safe: bool) type {
         /// Recycle all internally reserved memories.
         ///
         /// NOTE: should only be used when no batch is being used.
-        pub fn recycleMemory(self: @This()) void {
+        pub fn recycleMemory(self: *@This()) void {
             self.mutex.lockUncancelable(self.ctx.io());
             defer self.mutex.unlock(self.ctx.io());
             assert(self.alloc_set.count() == pool_size);

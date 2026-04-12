@@ -38,6 +38,7 @@ A minimal 2d/3d game framework for zig.
 * Sound/Music playing/mixing
 * WebSocket client (webassembly platform)
 * Tiled editor support (tmx/tsx loading/rendering)
+* Lua scripting support
 * Misc powerful utils, such as easing/timer/signal/fsm/plugin system
 
 ## Supported platforms
@@ -246,6 +247,7 @@ The limitations demand developers to be both creative and careful about game's d
 * [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
 * [zig-obj](https://github.com/chip2n/zig-obj) (MIT license)
 * [zigfsm](https://github.com/cryptocode/zigfsm) (MIT license)
+* [ziglua](https://github.com/natecraddock/ziglua) (MIT license)
 
 ## Used Fonts
 * [Classic Console Neue](http://webdraft.hu/fonts/classic-console/) (MIT license)

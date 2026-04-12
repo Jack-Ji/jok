@@ -69,6 +69,7 @@ pub fn build(b: *Build) void {
         .{ .name = "space_partioning", .opt = .{} },
         .{ .name = "post_effect", .opt = .{ .support_web = false } },
         .{ .name = "shaders", .opt = .{ .support_web = false } },
+        .{ .name = "lua", .opt = .{ .support_web = false } },
         .{ .name = "generative_art_1", .opt = .{} },
         .{ .name = "generative_art_2", .opt = .{} },
         .{ .name = "generative_art_3", .opt = .{} },
@@ -270,6 +271,11 @@ pub fn createTest(
 
     // Create module to be used for testing
     const sdl = getSdlModule(getJokBuilder(b, opt.dep_name), target, optimize, opt.sdl_include_path);
+    const dep_zlua = getJokBuilder(b, opt.dep_name).dependency("ziglua", .{
+        .target = target,
+        .optimize = optimize,
+        .lang = .lua55,
+    });
     const root = b.createModule(.{
         .root_source_file = b.path(root_source_file),
         .target = target,
@@ -277,6 +283,7 @@ pub fn createTest(
         .imports = &.{
             .{ .name = "jok", .module = jok.module },
             .{ .name = "sdl", .module = sdl },
+            .{ .name = "zlua", .module = dep_zlua.module("zlua") },
         },
     });
     for (opt.additional_deps) |d| {
@@ -431,6 +438,7 @@ fn getJokLibraryInternal(b: *Build, target: ResolvedTarget, optimize: std.builti
     @import("src/vendor/znoise/build.zig").inject(libmod);
 
     var lib: *Build.Step.Compile = undefined;
+    var dep_zlua: *Build.Dependency = undefined;
     if (target.result.cpu.arch.isWasm()) {
         lib = builder.addLibrary(.{ .name = "jok", .root_module = libmod });
 
@@ -439,10 +447,19 @@ fn getJokLibraryInternal(b: *Build, target: ResolvedTarget, optimize: std.builti
         em.possibleSetup(&lib.step);
 
         // Add the Emscripten system include seach path
+        const em_sys_include = em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" });
         libmod.addCMacro("__WINT_TYPE__", "unsigned int");
         jokmod.addCMacro("__WINT_TYPE__", "unsigned int");
-        libmod.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
-        jokmod.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
+        libmod.addSystemIncludePath(em_sys_include);
+        jokmod.addSystemIncludePath(em_sys_include);
+
+        // Initialize lua dependency
+        dep_zlua = builder.dependency("ziglua", .{
+            .target = target,
+            .optimize = optimize,
+            .lang = .lua55,
+            .additional_system_headers = em_sys_include.getPath(b),
+        });
     } else {
         lib = builder.addLibrary(.{
             .linkage = .static,
@@ -461,7 +478,18 @@ fn getJokLibraryInternal(b: *Build, target: ResolvedTarget, optimize: std.builti
             const sdl_lib = sdl_dep.artifact("SDL3");
             libmod.linkLibrary(sdl_lib);
         }
+
+        // Initialize lua dependency
+        dep_zlua = builder.dependency("ziglua", .{
+            .target = target,
+            .optimize = optimize,
+            .lang = .lua55,
+        });
     }
+
+    // Import and link library
+    jokmod.addImport("zlua", dep_zlua.module("zlua"));
+    libmod.addImport("zlua", dep_zlua.module("zlua"));
 
     const library: JokLibrary = .{ .module = jokmod, .artifact = lib };
     cacheJokLibrary(b, library);

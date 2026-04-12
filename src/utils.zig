@@ -16,6 +16,7 @@
 //! - Spatial data structures (QuadTree, SpatialHash)
 //! - FSM (Finite State Machine) management
 //! - Counter-Strike style console
+//! - Lua 5.5 scripting support
 
 const jok = @import("jok.zig");
 
@@ -66,6 +67,9 @@ pub const ring = @import("utils/ring.zig");
 
 /// Console system for debugging and command input (Counter-Strike style)
 pub const Console = @import("utils/Console.zig");
+
+// Lua 5.5 scripting support
+pub const scripting = @import("utils/scripting.zig");
 
 /// Misc utils
 /// Convert various types (structs, arrays, vectors) to a 2-element f32 array
@@ -128,4 +132,5 @@ test "all utils" {
     _ = spatial_hash;
     _ = ring;
     _ = dialog;
+    _ = scripting;
 }
