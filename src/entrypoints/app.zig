@@ -30,7 +30,7 @@ pub fn main(minimal: std.process.Init.Minimal) !void {
     game.init(ctx) catch |err| {
         log.err("Init game failed: {}", .{err});
         if (@errorReturnTrace()) |trace| {
-            std.debug.dumpStackTrace(trace);
+            std.debug.dumpErrorReturnTrace(trace);
         }
         std.process.abort();
     };

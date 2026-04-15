@@ -318,7 +318,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 drawFn(self._ctx) catch |err| {
                     log.err("Got error in `draw`: {s}", .{@errorName(err)});
                     if (@errorReturnTrace()) |trace| {
-                        std.debug.dumpStackTrace(trace);
+                        std.debug.dumpErrorReturnTrace(trace);
                         if (cfg.jok_kill_on_error) {
                             kill(self);
                             return;
@@ -362,7 +362,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     eventFn(self._ctx, we) catch |err| {
                         log.err("Got error in `event`: {s}", .{@errorName(err)});
                         if (@errorReturnTrace()) |trace| {
-                            std.debug.dumpStackTrace(trace);
+                            std.debug.dumpErrorReturnTrace(trace);
                             if (cfg.jok_kill_on_error) {
                                 kill(self);
                                 return;
@@ -387,7 +387,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
             updateFn(self._ctx) catch |err| {
                 log.err("Got error in `update`: {s}", .{@errorName(err)});
                 if (@errorReturnTrace()) |trace| {
-                    std.debug.dumpStackTrace(trace);
+                    std.debug.dumpErrorReturnTrace(trace);
                     if (cfg.jok_kill_on_error) {
                         kill(self);
                         return;

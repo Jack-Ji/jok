@@ -1,7 +1,8 @@
 .{
     .name = .jok,
-    .version = "0.103.0",
+    .version = "0.104.0",
     .fingerprint = 0x8204585c92cd7f34, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.16.0",
     .paths = .{
         "README.md",
         "build.zig",
@@ -11,12 +12,12 @@
     },
     .dependencies = .{
         .sdl = .{
-            .url = "git+https://github.com/castholm/SDL#76ee7f13177b5dfad124e7066dec29c90f7db275",
-            .hash = "sdl-0.4.2+3.4.4-SDL--nF2pQHiRAibwjhZ6jBJu0Omc3x4EoxPn6gxfnAi",
+            .url = "git+https://github.com/castholm/SDL#c5ba24c694b5d520cdc1d029d8def398690d6894",
+            .hash = "sdl-0.4.2+3.4.4-SDL--kB3pQHKG_4zWG-pH04ZcZZj_IRF7dwMpxNVGwd6",
         },
         .ziglua = .{
-            .url = "git+https://github.com/natecraddock/ziglua#9f5f3db7ed893000e44badc073e0f3632b731021",
-            .hash = "zlua-0.1.0-hGRpC-xTBQDwe5Mu1zKV5SB2VOY9AmSco05_vurY5jGh",
+            .url = "git+https://github.com/natecraddock/ziglua#350ec18b90edf9dd569bdd64f4de9b330620529f",
+            .hash = "zlua-0.1.0-hGRpC9VUBQC0BjcD5XP3frF2gNtTXBB5LhJFf_ygafpd",
         },
         .emsdk = .{
             .url = "git+https://github.com/emscripten-core/emsdk?ref=4.0.23#c0bb220cb6e6f4e0fabb6f6db9efd53390ef5e56",

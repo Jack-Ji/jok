@@ -490,20 +490,20 @@ pub fn save(self: Self, ctx: jok.Context, path: [:0]const u8, opt: jok.utils.gfx
 
     // Serialize sheet info
     var json_root = json.Value{
-        .object = json.ObjectMap.init(arena.allocator()),
+        .object = try json.ObjectMap.init(arena.allocator(), &.{}, &.{}),
     };
     var it = self.search_tree.iterator();
     while (it.next()) |entry| {
         const name = entry.key_ptr.*;
         const rect = self.rects[entry.value_ptr.*];
-        var obj = json.ObjectMap.init(arena.allocator());
-        try obj.put("s0", json.Value{ .float = @as(f64, rect.s0) });
-        try obj.put("t0", json.Value{ .float = @as(f64, rect.t0) });
-        try obj.put("s1", json.Value{ .float = @as(f64, rect.s1) });
-        try obj.put("t1", json.Value{ .float = @as(f64, rect.t1) });
-        try obj.put("w", json.Value{ .float = @as(f64, rect.width) });
-        try obj.put("h", json.Value{ .float = @as(f64, rect.height) });
-        try json_root.object.put(name, json.Value{ .object = obj });
+        var obj = try json.ObjectMap.init(arena.allocator(), &.{}, &.{});
+        try obj.put(arena.allocator(), "s0", json.Value{ .float = @as(f64, rect.s0) });
+        try obj.put(arena.allocator(), "t0", json.Value{ .float = @as(f64, rect.t0) });
+        try obj.put(arena.allocator(), "s1", json.Value{ .float = @as(f64, rect.s1) });
+        try obj.put(arena.allocator(), "t1", json.Value{ .float = @as(f64, rect.t1) });
+        try obj.put(arena.allocator(), "w", json.Value{ .float = @as(f64, rect.width) });
+        try obj.put(arena.allocator(), "h", json.Value{ .float = @as(f64, rect.height) });
+        try json_root.object.put(arena.allocator(), name, json.Value{ .object = obj });
     }
     var stream = json.Stringify{
         .writer = &bufwriter,

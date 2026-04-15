@@ -92,7 +92,7 @@ pub fn save(
 
     // Serialize atlas info
     var json_root = json.Value{
-        .object = json.ObjectMap.init(arena.allocator()),
+        .object = try json.ObjectMap.init(arena.allocator(), &.{}, &.{}),
     };
     var char_ranges = json.Value{
         .array = try json.Array.initCapacity(
@@ -170,17 +170,17 @@ pub fn save(
         vr.array.appendAssumeCapacity(.{ .float = @floatCast(p.value_ptr.*) });
         kerning_values.array.appendAssumeCapacity(vr);
     }
-    try json_root.object.put("char_ranges", char_ranges);
-    try json_root.object.put("ascent", .{
+    try json_root.object.put(arena.allocator(), "char_ranges", char_ranges);
+    try json_root.object.put(arena.allocator(), "ascent", .{
         .float = self.vmetric_ascent,
     });
-    try json_root.object.put("descent", .{
+    try json_root.object.put(arena.allocator(), "descent", .{
         .float = self.vmetric_descent,
     });
-    try json_root.object.put("line_gap", .{
+    try json_root.object.put(arena.allocator(), "line_gap", .{
         .float = self.vmetric_line_gap,
     });
-    try json_root.object.put("kerning_table", kerning_values);
+    try json_root.object.put(arena.allocator(), "kerning_table", kerning_values);
     var stream = json.Stringify{
         .writer = &bufwriter,
         .options = .{},
