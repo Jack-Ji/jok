@@ -493,10 +493,15 @@ pub const Circle = extern struct {
     }
 
     /// Check if circle intersects with a triangle.
-    /// Tests circle against each triangle edge and checks if center is inside triangle.
+    /// Tests circle against each triangle edge and checks if center OR any vertex is inside.
     pub fn intersectTriangle(c: Circle, tri: Triangle) bool {
         // If the circle center is inside the triangle, they intersect
         if (tri.containsPoint(c.center)) return true;
+
+        // If any triangle vertex is inside the circle, they intersect
+        // (fixes the case where the entire triangle is inside the circle)
+        if (c.containsPoint(tri.p0) or c.containsPoint(tri.p1) or c.containsPoint(tri.p2)) return true;
+
         // Check if any triangle edge intersects the circle
         const edges = [3]Line{
             .{ .p0 = tri.p0, .p1 = tri.p1 },
@@ -920,7 +925,10 @@ pub const Line = extern struct {
 
     /// Get the direction vector (normalized) from p0 to p1
     pub fn direction(l: Line) Point {
-        return l.p1.sub(l.p0).norm();
+        const d = l.p1.sub(l.p0);
+        const len2 = d.dot(d);
+        if (len2 <= 1e-12) return .{ .x = 0, .y = 0 };
+        return d.scale(1.0 / @sqrt(len2));
     }
 
     /// Get the squared length of the line segment
@@ -1037,10 +1045,8 @@ pub const Line = extern struct {
 
     /// Check if a point belongs to the line segment
     pub fn containsPoint(l: Line, p: Point) bool {
-        const dir = l.direction();
-        const angle = p.sub(l.p0).norm().dot(dir);
-        const proj = p.sub(l.p0).dot(dir);
-        return math.approxEqAbs(f32, angle, 1.0, 1e-6) and proj > 0 and proj < l.length();
+        const cp = l.closestPoint(p);
+        return cp.point.distance2(p) <= 1e-8;
     }
 };
 

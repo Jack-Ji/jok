@@ -3,94 +3,161 @@ const jok = @import("jok");
 const j2d = jok.j2d;
 const geom = j2d.geom;
 
+/// A simple 2D geometry intersection and raycasting demo
+/// Drag shapes with left mouse button. Yellow ray from screen center shows raycasting with hit normals.
 var batchpool: j2d.BatchPool(8, false) = undefined;
+
+// ==================== Shape Definitions ====================
+
+const Shape = union(enum) {
+    rect: geom.Rectangle,
+    circle: geom.Circle,
+    ellipse: geom.Ellipse,
+    triangle: geom.Triangle,
+    line: geom.Line,
+    point: geom.Point,
+};
+
+/// All interactive shapes in the scene
+var shapes = [_]Shape{
+    .{ .rect = geom.Rectangle{ .x = 60, .y = 60, .width = 140, .height = 90 } },
+    .{ .rect = geom.Rectangle{ .x = 150, .y = 120, .width = 140, .height = 90 } },
+
+    .{ .circle = geom.Circle{ .center = .{ .x = 380, .y = 90 }, .radius = 50 } },
+    .{ .circle = geom.Circle{ .center = .{ .x = 450, .y = 130 }, .radius = 40 } },
+
+    .{ .ellipse = geom.Ellipse{ .center = .{ .x = 650, .y = 90 }, .radius = .{ .x = 70, .y = 40 } } },
+    .{ .ellipse = geom.Ellipse{ .center = .{ .x = 720, .y = 130 }, .radius = .{ .x = 50, .y = 30 } } },
+
+    .{ .triangle = geom.Triangle{
+        .p0 = .{ .x = 80, .y = 260 },
+        .p1 = .{ .x = 180, .y = 220 },
+        .p2 = .{ .x = 120, .y = 320 },
+    } },
+    .{ .triangle = geom.Triangle{
+        .p0 = .{ .x = 220, .y = 240 },
+        .p1 = .{ .x = 320, .y = 260 },
+        .p2 = .{ .x = 260, .y = 340 },
+    } },
+
+    .{ .line = geom.Line{ .p0 = .{ .x = 380, .y = 250 }, .p1 = .{ .x = 520, .y = 310 } } },
+    .{ .line = geom.Line{ .p0 = .{ .x = 400, .y = 330 }, .p1 = .{ .x = 560, .y = 260 } } },
+
+    .{ .point = geom.Point{ .x = 680, .y = 280 } },
+    .{ .point = geom.Point{ .x = 740, .y = 310 } },
+};
+
+// ==================== Drag System ====================
 
 const DragTarget = enum {
     none,
-    rect0,
-    rect1,
-    circle0,
-    circle1,
-    ellipse0,
-    ellipse1,
-    tri0,
-    tri1,
-    line0,
-    line1,
-    point0,
-    point1,
+    index0,
+    index1,
+    index2,
+    index3,
+    index4,
+    index5,
+    index6,
+    index7,
+    index8,
+    index9,
+    index10,
+    index11,
 };
 
 var drag_target: DragTarget = .none;
 var mouse_pos: geom.Point = .origin;
 
-var rect0 = geom.Rectangle{ .x = 60, .y = 60, .width = 140, .height = 90 };
-var rect1 = geom.Rectangle{ .x = 150, .y = 120, .width = 140, .height = 90 };
+const HANDLE_RADIUS: f32 = 8.0;
+const LINE_PICK_THRESHOLD: f32 = 8.0;
 
-var circle0 = geom.Circle{ .center = .{ .x = 380, .y = 90 }, .radius = 50 };
-var circle1 = geom.Circle{ .center = .{ .x = 450, .y = 130 }, .radius = 40 };
-
-var ellipse0 = geom.Ellipse{ .center = .{ .x = 650, .y = 90 }, .radius = .{ .x = 70, .y = 40 } };
-var ellipse1 = geom.Ellipse{ .center = .{ .x = 720, .y = 130 }, .radius = .{ .x = 50, .y = 30 } };
-
-var tri0 = geom.Triangle{
-    .p0 = .{ .x = 80, .y = 260 },
-    .p1 = .{ .x = 180, .y = 220 },
-    .p2 = .{ .x = 120, .y = 320 },
-};
-var tri1 = geom.Triangle{
-    .p0 = .{ .x = 220, .y = 240 },
-    .p1 = .{ .x = 320, .y = 260 },
-    .p2 = .{ .x = 260, .y = 340 },
-};
-
-var line0 = geom.Line{ .p0 = .{ .x = 380, .y = 250 }, .p1 = .{ .x = 520, .y = 310 } };
-var line1 = geom.Line{ .p0 = .{ .x = 400, .y = 330 }, .p1 = .{ .x = 560, .y = 260 } };
-
-var point0 = geom.Point{ .x = 680, .y = 280 };
-var point1 = geom.Point{ .x = 740, .y = 310 };
-
+/// Returns which shape (if any) should be dragged based on mouse position
 fn pickTarget(pos: geom.Point) DragTarget {
-    const handle_radius: f32 = 8.0;
-    const handle_radius2: f32 = handle_radius * handle_radius;
-    const line_threshold2: f32 = 8.0 * 8.0;
+    const handle_radius2 = HANDLE_RADIUS * HANDLE_RADIUS;
+    const line_threshold2 = LINE_PICK_THRESHOLD * LINE_PICK_THRESHOLD;
 
-    if (rect0.containsPoint(pos)) return .rect0;
-    if (rect1.containsPoint(pos)) return .rect1;
-    if (circle0.containsPoint(pos)) return .circle0;
-    if (circle1.containsPoint(pos)) return .circle1;
-    if (ellipse0.containsPoint(pos)) return .ellipse0;
-    if (ellipse1.containsPoint(pos)) return .ellipse1;
-    if (tri0.containsPoint(pos)) return .tri0;
-    if (tri1.containsPoint(pos)) return .tri1;
-    if (line0.closestPoint(pos).point.distance2(pos) <= line_threshold2) return .line0;
-    if (line1.closestPoint(pos).point.distance2(pos) <= line_threshold2) return .line1;
-    if (point0.distance2(pos) <= handle_radius2) return .point0;
-    if (point1.distance2(pos) <= handle_radius2) return .point1;
+    for (&shapes, 0..) |*shape, i| {
+        const target: DragTarget = @enumFromInt(i);
+
+        switch (shape.*) {
+            .rect => |r| if (r.containsPoint(pos)) return target,
+            .circle => |c| if (c.containsPoint(pos)) return target,
+            .ellipse => |e| if (e.containsPoint(pos)) return target,
+            .triangle => |t| if (t.containsPoint(pos)) return target,
+            .line => |l| {
+                const closest = l.closestPoint(pos);
+                if (closest.point.distance2(pos) <= line_threshold2) return target;
+            },
+            .point => |p| {
+                if (p.distance2(pos) <= handle_radius2) return target;
+            },
+        }
+    }
 
     return .none;
 }
 
+/// Apply drag delta to the selected shape
 fn applyDrag(target: DragTarget, delta: geom.Point) void {
-    switch (target) {
-        .rect0 => rect0 = rect0.translate(delta),
-        .rect1 => rect1 = rect1.translate(delta),
-        .circle0 => circle0 = circle0.translate(delta),
-        .circle1 => circle1 = circle1.translate(delta),
-        .ellipse0 => ellipse0 = ellipse0.translate(delta),
-        .ellipse1 => ellipse1 = ellipse1.translate(delta),
-        .tri0 => tri0 = tri0.translate(delta),
-        .tri1 => tri1 = tri1.translate(delta),
-        .line0 => line0 = line0.translate(delta),
-        .line1 => line1 = line1.translate(delta),
-        .point0 => point0 = point0.add(delta),
-        .point1 => point1 = point1.add(delta),
-        .none => {},
+    if (target == .none) return;
+
+    switch (shapes[@intFromEnum(target)]) {
+        .rect => |*r| r.* = r.translate(delta),
+        .circle => |*c| c.* = c.translate(delta),
+        .ellipse => |*e| e.* = e.translate(delta),
+        .triangle => |*t| t.* = t.translate(delta),
+        .line => |*l| l.* = l.translate(delta),
+        .point => |*p| p.* = p.add(delta),
     }
 }
 
+// ==================== Hit Testing ====================
+
+/// Returns whether a shape intersects with any other shape
+fn isShapeHit(idx: usize) bool {
+    const self = shapes[idx];
+
+    for (shapes, 0..) |other, j| {
+        if (idx == j) continue;
+
+        switch (self) {
+            .rect => |r| switch (other) {
+                inline else => |o| if (r.intersect(o)) return true,
+            },
+            .circle => |c| switch (other) {
+                inline else => |o| if (c.intersect(o)) return true,
+            },
+            .ellipse => |e| switch (other) {
+                inline else => |o| if (e.intersect(o)) return true,
+            },
+            .triangle => |t| switch (other) {
+                inline else => |o| if (t.intersect(o)) return true,
+            },
+            .line => |l| switch (other) {
+                .point => |o| {
+                    const closest = l.closestPoint(o);
+                    if (closest.point.distance(o) < 2.0) return true;
+                },
+                inline else => |o| if (o.intersect(l)) return true,
+            },
+            .point => |p| switch (other) {
+                .line => |o| {
+                    const closest = o.closestPoint(p);
+                    if (closest.point.distance(p) < 2.0) return true;
+                },
+                .point => |o| if (p.distance(o) < 2.0) return true,
+                inline else => |o| if (o.containsPoint(p)) return true,
+            },
+        }
+    }
+    return false;
+}
+
+// ==================== Rendering Helpers ====================
+
 fn drawHit(b: *j2d.Batch, hit: geom.Ray.Hit) !void {
     const normal_len: f32 = 18.0;
+
     try b.circleFilled(.{ .center = hit.point, .radius = 3 }, .yellow, .{});
     try b.line(
         .{ .p0 = hit.point, .p1 = hit.point.add(hit.normal.scale(normal_len)) },
@@ -98,6 +165,17 @@ fn drawHit(b: *j2d.Batch, hit: geom.Ray.Hit) !void {
         .{ .thickness = 2 },
     );
 }
+
+fn getShapeColor(idx: usize, is_dragging: bool) jok.Color {
+    return if (isShapeHit(idx))
+        .red
+    else if (is_dragging)
+        .white // could use a highlight color if desired
+    else
+        .white;
+}
+
+// ==================== Main Callbacks ====================
 
 pub fn init(ctx: jok.Context) !void {
     std.log.info("game init", .{});
@@ -137,73 +215,50 @@ pub fn update(ctx: jok.Context) !void {
 pub fn draw(ctx: jok.Context) !void {
     try ctx.renderer().clear(.none);
 
-    const rect0_hit = rect0.intersect(rect1) or rect0.intersect(circle0) or rect0.intersect(circle1) or rect0.intersect(ellipse0) or rect0.intersect(ellipse1) or rect0.intersect(tri0) or rect0.intersect(tri1) or rect0.intersect(line0) or rect0.intersect(line1) or rect0.intersect(point0) or rect0.intersect(point1);
-    const rect1_hit = rect1.intersect(rect0) or rect1.intersect(circle0) or rect1.intersect(circle1) or rect1.intersect(ellipse0) or rect1.intersect(ellipse1) or rect1.intersect(tri0) or rect1.intersect(tri1) or rect1.intersect(line0) or rect1.intersect(line1) or rect1.intersect(point0) or rect1.intersect(point1);
-
-    const circle0_hit = circle0.intersect(rect0) or circle0.intersect(rect1) or circle0.intersect(circle1) or circle0.intersect(ellipse0) or circle0.intersect(ellipse1) or circle0.intersect(tri0) or circle0.intersect(tri1) or circle0.intersect(line0) or circle0.intersect(line1) or circle0.intersect(point0) or circle0.intersect(point1);
-    const circle1_hit = circle1.intersect(rect0) or circle1.intersect(rect1) or circle1.intersect(circle0) or circle1.intersect(ellipse0) or circle1.intersect(ellipse1) or circle1.intersect(tri0) or circle1.intersect(tri1) or circle1.intersect(line0) or circle1.intersect(line1) or circle1.intersect(point0) or circle1.intersect(point1);
-
-    const ellipse0_hit = ellipse0.intersect(rect0) or ellipse0.intersect(rect1) or ellipse0.intersect(circle0) or ellipse0.intersect(circle1) or ellipse0.intersect(ellipse1) or ellipse0.intersect(tri0) or ellipse0.intersect(tri1) or ellipse0.intersect(line0) or ellipse0.intersect(line1) or ellipse0.intersect(point0) or ellipse0.intersect(point1);
-    const ellipse1_hit = ellipse1.intersect(rect0) or ellipse1.intersect(rect1) or ellipse1.intersect(circle0) or ellipse1.intersect(circle1) or ellipse1.intersect(ellipse0) or ellipse1.intersect(tri0) or ellipse1.intersect(tri1) or ellipse1.intersect(line0) or ellipse1.intersect(line1) or ellipse1.intersect(point0) or ellipse1.intersect(point1);
-
-    const tri0_hit = tri0.intersect(rect0) or tri0.intersect(rect1) or tri0.intersect(circle0) or tri0.intersect(circle1) or tri0.intersect(ellipse0) or tri0.intersect(ellipse1) or tri0.intersect(tri1) or tri0.intersect(line0) or tri0.intersect(line1) or tri0.intersect(point0) or tri0.intersect(point1);
-    const tri1_hit = tri1.intersect(rect0) or tri1.intersect(rect1) or tri1.intersect(circle0) or tri1.intersect(circle1) or tri1.intersect(ellipse0) or tri1.intersect(ellipse1) or tri1.intersect(tri0) or tri1.intersect(line0) or tri1.intersect(line1) or tri1.intersect(point0) or tri1.intersect(point1);
-
-    const line0_hit = line0.intersect(rect0) or line0.intersect(rect1) or line0.intersect(circle0) or line0.intersect(circle1) or line0.intersect(ellipse0) or line0.intersect(ellipse1) or line0.intersect(tri0) or line0.intersect(tri1) or line0.intersect(line1) or line0.intersect(point0) or line0.intersect(point1);
-    const line1_hit = line1.intersect(rect0) or line1.intersect(rect1) or line1.intersect(circle0) or line1.intersect(circle1) or line1.intersect(ellipse0) or line1.intersect(ellipse1) or line1.intersect(tri0) or line1.intersect(tri1) or line1.intersect(line0) or line1.intersect(point0) or line1.intersect(point1);
-
-    const point0_hit = rect0.containsPoint(point0) or rect1.containsPoint(point0) or circle0.containsPoint(point0) or circle1.containsPoint(point0) or ellipse0.containsPoint(point0) or ellipse1.containsPoint(point0) or tri0.containsPoint(point0) or tri1.containsPoint(point0) or line0.closestPoint(point0).point.distance(point0) < 2 or line1.closestPoint(point0).point.distance(point0) < 2 or point0.distance(point1) < 2;
-    const point1_hit = rect0.containsPoint(point1) or rect1.containsPoint(point1) or circle0.containsPoint(point1) or circle1.containsPoint(point1) or ellipse0.containsPoint(point1) or ellipse1.containsPoint(point1) or tri0.containsPoint(point1) or tri1.containsPoint(point1) or line0.closestPoint(point1).point.distance(point1) < 2 or line1.closestPoint(point1).point.distance(point1) < 2 or point0.distance(point1) < 2;
-
     var b = try batchpool.new(.{});
     defer b.submit();
 
-    const rect0_color: jok.Color = if (rect0_hit) .red else .white;
-    const rect1_color: jok.Color = if (rect1_hit) .red else .white;
-    const circle0_color: jok.Color = if (circle0_hit) .red else .white;
-    const circle1_color: jok.Color = if (circle1_hit) .red else .white;
-    const ellipse0_color: jok.Color = if (ellipse0_hit) .red else .white;
-    const ellipse1_color: jok.Color = if (ellipse1_hit) .red else .white;
-    const tri0_color: jok.Color = if (tri0_hit) .red else .white;
-    const tri1_color: jok.Color = if (tri1_hit) .red else .white;
-    const line0_color: jok.Color = if (line0_hit) .red else .white;
-    const line1_color: jok.Color = if (line1_hit) .red else .white;
-    const point0_color: jok.Color = if (point0_hit) .red else .white;
-    const point1_color: jok.Color = if (point1_hit) .red else .white;
+    // Draw all shapes
+    for (shapes, 0..) |shape, i| {
+        const is_dragging = drag_target == @as(DragTarget, @enumFromInt(i));
+        const color = getShapeColor(i, is_dragging);
+        const thickness = if (is_dragging) @as(f32, 6) else @as(f32, 2);
 
-    try b.rect(rect0, rect0_color, .{ .thickness = if (drag_target == .rect0) 6 else 2 });
-    try b.rect(rect1, rect1_color, .{ .thickness = if (drag_target == .rect1) 6 else 2 });
-    try b.circle(circle0, circle0_color, .{ .thickness = if (drag_target == .circle0) 6 else 2 });
-    try b.circle(circle1, circle1_color, .{ .thickness = if (drag_target == .circle1) 6 else 2 });
-    try b.ellipse(ellipse0, ellipse0_color, .{ .thickness = if (drag_target == .ellipse0) 6 else 2 });
-    try b.ellipse(ellipse1, ellipse1_color, .{ .thickness = if (drag_target == .ellipse1) 6 else 2 });
-    try b.triangle(tri0, tri0_color, .{ .thickness = if (drag_target == .tri0) 6 else 2 });
-    try b.triangle(tri1, tri1_color, .{ .thickness = if (drag_target == .tri1) 6 else 2 });
-    try b.line(line0, line0_color, .{ .thickness = if (drag_target == .line0) 6 else 2 });
-    try b.line(line1, line1_color, .{ .thickness = if (drag_target == .line1) 6 else 2 });
-    try b.circleFilled(.{ .center = point0, .radius = 5 }, point0_color, .{});
-    try b.circleFilled(.{ .center = point1, .radius = 5 }, point1_color, .{});
+        switch (shape) {
+            .rect => |r| try b.rect(r, color, .{ .thickness = thickness }),
+            .circle => |c| try b.circle(c, color, .{ .thickness = thickness }),
+            .ellipse => |e| try b.ellipse(e, color, .{ .thickness = thickness }),
+            .triangle => |t| try b.triangle(t, color, .{ .thickness = thickness }),
+            .line => |l| try b.line(l, color, .{ .thickness = thickness }),
+            .point => |p| try b.circleFilled(.{ .center = p, .radius = 5 }, color, .{}),
+        }
+    }
 
+    // Draw ray from center to mouse and perform raycasting
     const csz = ctx.getCanvasSize();
     const center = csz.toRect(.origin).getCenter();
     const to_mouse = mouse_pos.sub(center);
     const to_mouse_len2 = to_mouse.dot(to_mouse);
+
     if (to_mouse_len2 > 0.0001) {
         const ray = geom.Ray.init(center, mouse_pos);
         const max_dim = @as(f32, @floatFromInt(@max(csz.width, csz.height)));
         const ray_end = center.add(ray.dir.scale(max_dim * 1.5));
+
         try b.line(.{ .p0 = center, .p1 = ray_end }, .yellow, .{ .thickness = 1 });
 
-        if (ray.raycast(rect0)) |hit| try drawHit(b, hit);
-        if (ray.raycast(rect1)) |hit| try drawHit(b, hit);
-        if (ray.raycast(circle0)) |hit| try drawHit(b, hit);
-        if (ray.raycast(circle1)) |hit| try drawHit(b, hit);
-        if (ray.raycast(ellipse0)) |hit| try drawHit(b, hit);
-        if (ray.raycast(ellipse1)) |hit| try drawHit(b, hit);
-        if (ray.raycast(tri0)) |hit| try drawHit(b, hit);
-        if (ray.raycast(tri1)) |hit| try drawHit(b, hit);
-        if (ray.raycast(line0)) |hit| try drawHit(b, hit);
-        if (ray.raycast(line1)) |hit| try drawHit(b, hit);
+        // Raycast against all shapes
+        for (shapes) |s| {
+            const hit = switch (s) {
+                .rect => |r| ray.raycast(r),
+                .circle => |c| ray.raycast(c),
+                .ellipse => |e| ray.raycast(e),
+                .triangle => |t| ray.raycast(t),
+                .line => |l| ray.raycast(l),
+                else => null,
+            };
+            if (hit) |h| try drawHit(b, h);
+        }
     }
 
     ctx.debugPrint("Press mouse's Left button to drag shapes.", .{});

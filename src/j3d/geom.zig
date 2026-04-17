@@ -122,20 +122,18 @@ pub const Ray = struct {
         if (discriminant < 0) return null;
 
         const sqrt_d = @sqrt(discriminant);
-        var t = (-b - sqrt_d) / (2.0 * a);
-        if (t < epsilon) {
-            t = (-b + sqrt_d) / (2.0 * a);
-            if (t < epsilon) return null;
-        }
+        const t_near = (-b - sqrt_d) / (2.0 * a);
 
-        const point = self.at(t);
+        if (t_near < epsilon) return null;
+
+        const point = self.at(t_near);
         const normal_vec = zmath.normalize3(zmath.f32x4(
             point[0] - sphere.center[0],
             point[1] - sphere.center[1],
             point[2] - sphere.center[2],
             0,
         ));
-        return .{ .distance = t, .point = point, .normal = zmath.vecToArr3(normal_vec) };
+        return .{ .distance = t_near, .point = point, .normal = zmath.vecToArr3(normal_vec) };
     }
 
     /// Raycast against Plane
@@ -703,7 +701,7 @@ pub const Triangle = struct {
         // Test the 9 edge × edge cross-product axes
         const edges_a = [3][3]f32{
             .{ self.v1[0] - self.v0[0], self.v1[1] - self.v0[1], self.v1[2] - self.v0[2] },
-            .{ self.v2[1] - self.v1[1], self.v2[1] - self.v1[1], self.v2[2] - self.v1[2] },
+            .{ self.v2[0] - self.v1[0], self.v2[1] - self.v1[1], self.v2[2] - self.v1[2] },
             .{ self.v0[0] - self.v2[0], self.v0[1] - self.v2[1], self.v0[2] - self.v2[2] },
         };
 
