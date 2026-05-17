@@ -4,6 +4,7 @@ const assert = std.debug.assert;
 const zmeshMalloc = @import("memory.zig").zmeshMalloc;
 
 pub const IndexType: type = u32;
+
 pub const ShapeHandle = *opaque {};
 pub const Shape = @This();
 
@@ -14,10 +15,10 @@ texcoords: ?[][2]f32,
 handle: ShapeHandle,
 
 pub fn init(
-    indices: std.array_list.Managed(IndexType),
-    positions: std.array_list.Managed([3]f32),
-    maybe_normals: ?std.array_list.Managed([3]f32),
-    maybe_texcoords: ?std.array_list.Managed([2]f32),
+    indices: std.ArrayList(IndexType),
+    positions: std.ArrayList([3]f32),
+    maybe_normals: ?std.ArrayList([3]f32),
+    maybe_texcoords: ?std.ArrayList([2]f32),
 ) Shape {
     const handle = par_shapes_create_empty();
     const parmesh = @as(
@@ -447,20 +448,22 @@ test "zmesh.invert" {
 test "zmesh.custom" {
     const zmesh = @import("main.zig");
 
-    zmesh.init(std.testing.allocator);
+    const allocator = std.testing.allocator;
+
+    zmesh.init(allocator);
     defer zmesh.deinit();
 
-    var positions = std.array_list.Managed([3]f32).init(std.testing.allocator);
-    defer positions.deinit();
-    try positions.append(.{ 0.0, 0.0, 0.0 });
-    try positions.append(.{ 1.0, 0.0, 0.0 });
-    try positions.append(.{ 1.0, 0.0, 1.0 });
+    var positions: std.ArrayList([3]f32) = .{};
+    defer positions.deinit(allocator);
+    try positions.append(allocator, .{ 0.0, 0.0, 0.0 });
+    try positions.append(allocator, .{ 1.0, 0.0, 0.0 });
+    try positions.append(allocator, .{ 1.0, 0.0, 1.0 });
 
-    var indices = std.array_list.Managed(IndexType).init(std.testing.allocator);
-    defer indices.deinit();
-    try indices.append(0);
-    try indices.append(1);
-    try indices.append(2);
+    var indices: std.ArrayList(IndexType) = .{};
+    defer indices.deinit(allocator);
+    try indices.append(allocator, 0);
+    try indices.append(allocator, 1);
+    try indices.append(allocator, 2);
 
     var shape = Shape.init(indices, positions, null, null);
     defer shape.deinit();

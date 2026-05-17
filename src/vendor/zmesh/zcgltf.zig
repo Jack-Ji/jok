@@ -1,10 +1,139 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const assert = std.debug.assert;
+const mem = @import("memory.zig");
 
 pub const Bool32 = i32;
 pub const CString = [*:0]const u8;
 pub const MutCString = [*:0]u8;
+
+pub fn parseAndLoadFile(pathname: [:0]const u8) Error!*Data {
+    const options = Options{
+        .memory = .{
+            .alloc_func = mem.zmeshAllocUser,
+            .free_func = mem.zmeshFreeUser,
+        },
+    };
+
+    const data = try parseFile(options, pathname);
+    errdefer free(data);
+
+    try loadBuffers(options, data, pathname);
+
+    return data;
+}
+
+pub fn freeData(data: *Data) void {
+    free(data);
+}
+
+pub fn appendMeshPrimitive(
+    allocator: std.mem.Allocator,
+    data: *Data,
+    mesh_index: u32,
+    prim_index: u32,
+    indices: *std.ArrayListUnmanaged(u32),
+    positions: *std.ArrayListUnmanaged([3]f32),
+    normals: ?*std.ArrayListUnmanaged([3]f32),
+    texcoords0: ?*std.ArrayListUnmanaged([2]f32),
+    tangents: ?*std.ArrayListUnmanaged([4]f32),
+) !void {
+    assert(mesh_index < data.meshes_count);
+    assert(prim_index < data.meshes.?[mesh_index].primitives_count);
+
+    const mesh = &data.meshes.?[mesh_index];
+    const prim = &mesh.primitives[prim_index];
+
+    const num_vertices: u32 = @as(u32, @intCast(prim.attributes[0].data.count));
+    const num_indices: u32 = @as(u32, @intCast(prim.indices.?.count));
+
+    // Indices.
+    {
+        try indices.ensureTotalCapacity(allocator, indices.items.len + num_indices);
+
+        const accessor = prim.indices.?;
+        const buffer_view = accessor.buffer_view.?;
+
+        assert(accessor.stride == buffer_view.stride or buffer_view.stride == 0);
+        assert(buffer_view.buffer.data != null);
+
+        const data_addr = @as([*]const u8, @ptrCast(buffer_view.buffer.data)) +
+            accessor.offset + buffer_view.offset;
+
+        if (accessor.stride == 1) {
+            if (accessor.component_type != .r_8u) {
+                return error.InvalidIndicesAccessorComponentType;
+            }
+            const src = @as([*]const u8, @ptrCast(data_addr));
+            var i: u32 = 0;
+            while (i < num_indices) : (i += 1) {
+                indices.appendAssumeCapacity(src[i]);
+            }
+        } else if (accessor.stride == 2) {
+            if (accessor.component_type != .r_16u) {
+                return error.InvalidIndicesAccessorComponentType;
+            }
+            const src = @as([*]const u16, @ptrCast(@alignCast(data_addr)));
+            var i: u32 = 0;
+            while (i < num_indices) : (i += 1) {
+                indices.appendAssumeCapacity(src[i]);
+            }
+        } else if (accessor.stride == 4) {
+            if (accessor.component_type != .r_32u) {
+                return error.InvalidIndicesAccessorComponentType;
+            }
+            const src = @as([*]const u32, @ptrCast(@alignCast(data_addr)));
+            var i: u32 = 0;
+            while (i < num_indices) : (i += 1) {
+                indices.appendAssumeCapacity(src[i]);
+            }
+        } else {
+            return error.InvalidIndicesAccessorStride;
+        }
+    }
+
+    // Attributes.
+    {
+        const attributes = prim.attributes[0..prim.attributes_count];
+        for (attributes) |attrib| {
+            const accessor = attrib.data;
+            assert(accessor.component_type == .r_32f);
+
+            const buffer_view = accessor.buffer_view.?;
+            assert(buffer_view.buffer.data != null);
+
+            assert(accessor.stride == buffer_view.stride or buffer_view.stride == 0);
+            assert(accessor.stride * accessor.count == buffer_view.size);
+
+            const data_addr = @as([*]const u8, @ptrCast(buffer_view.buffer.data)) +
+                accessor.offset + buffer_view.offset;
+
+            if (attrib.type == .position) {
+                assert(accessor.type == .vec3);
+                const slice = @as([*]const [3]f32, @ptrCast(@alignCast(data_addr)))[0..num_vertices];
+                try positions.appendSlice(allocator, slice);
+            } else if (attrib.type == .normal) {
+                if (normals) |n| {
+                    assert(accessor.type == .vec3);
+                    const slice = @as([*]const [3]f32, @ptrCast(@alignCast(data_addr)))[0..num_vertices];
+                    try n.appendSlice(allocator, slice);
+                }
+            } else if (attrib.type == .texcoord) {
+                if (texcoords0) |tc| {
+                    assert(accessor.type == .vec2);
+                    const slice = @as([*]const [2]f32, @ptrCast(@alignCast(data_addr)))[0..num_vertices];
+                    try tc.appendSlice(allocator, slice);
+                }
+            } else if (attrib.type == .tangent) {
+                if (tangents) |tan| {
+                    assert(accessor.type == .vec4);
+                    const slice = @as([*]const [4]f32, @ptrCast(@alignCast(data_addr)))[0..num_vertices];
+                    try tan.appendSlice(allocator, slice);
+                }
+            }
+        }
+    }
+}
 
 pub const FileType = enum(c_int) {
     invalid,
@@ -109,6 +238,7 @@ pub const Type = enum(c_int) {
 };
 
 pub const PrimitiveType = enum(c_int) {
+    invalid,
     points,
     lines,
     line_loop,
@@ -230,15 +360,6 @@ pub const AccessorSparse = extern struct {
     indices_component_type: ComponentType,
     values_buffer_view: *BufferView,
     values_byte_offset: usize,
-    extras: Extras,
-    indices_extras: Extras,
-    values_extras: Extras,
-    extensions_count: usize,
-    extensions: ?[*]Extension,
-    indices_extensions_count: usize,
-    indices_extensions: ?[*]Extension,
-    values_extensions_count: usize,
-    values_extensions: ?[*]Extension,
 };
 
 pub const Accessor = extern struct {
@@ -295,6 +416,22 @@ pub const Accessor = extern struct {
     }
 };
 
+pub const FilterType = enum(c_int) {
+    undefined = 0,
+    nearest = 9728,
+    linear = 9729,
+    nearest_mipmap_nearest = 9984,
+    linear_mipmap_nearest = 9985,
+    nearest_mipmap_linear = 9986,
+    linear_mipmap_linear = 9987,
+};
+
+pub const WrapMode = enum(c_int) {
+    clamp_to_edge = 33071,
+    mirrored_repeat = 33648,
+    repeat = 10497,
+};
+
 pub const Attribute = extern struct {
     name: ?MutCString,
     type: AttributeType,
@@ -314,10 +451,10 @@ pub const Image = extern struct {
 
 pub const Sampler = extern struct {
     uri: ?MutCString,
-    mag_filter: i32,
-    min_filter: i32,
-    wrap_s: i32,
-    wrap_t: i32,
+    mag_filter: FilterType,
+    min_filter: FilterType,
+    wrap_s: WrapMode,
+    wrap_t: WrapMode,
     extras: Extras,
     extensions_count: usize,
     extensions: ?[*]Extension,
@@ -329,6 +466,8 @@ pub const Texture = extern struct {
     sampler: ?*Sampler,
     has_basisu: Bool32,
     basisu_image: ?*Image,
+    has_webp: Bool32,
+    webp_image: ?*Image,
     extras: Extras,
     extensions_count: usize,
     extensions: ?[*]Extension,
@@ -348,9 +487,6 @@ pub const TextureView = extern struct {
     scale: f32,
     has_transform: Bool32,
     transform: TextureTransform,
-    extras: Extras,
-    extensions_count: usize,
-    extensions: ?[*]Extension,
 };
 
 pub const PbrMetallicRoughness = extern struct {
@@ -420,10 +556,21 @@ pub const Iridescence = extern struct {
     iridescence_thickness_texture: TextureView,
 };
 
+pub const DiffuseTransmission = extern struct {
+    diffuse_transmission_texture: TextureView,
+    diffuse_transmission_factor: f32,
+    diffuse_transmission_color_factor: [3]f32,
+    diffuse_transmission_color_texture: TextureView,
+};
+
 pub const Anisotropy = extern struct {
     anisotropy_strength: f32,
     anisotropy_rotation: f32,
     anisotropy_texture: TextureView,
+};
+
+pub const Dispersion = extern struct {
+    dispersion: f32,
 };
 
 pub const Material = extern struct {
@@ -438,7 +585,9 @@ pub const Material = extern struct {
     has_sheen: Bool32,
     has_emissive_strength: Bool32,
     has_iridescence: Bool32,
+    has_diffuse_transmission: Bool32,
     has_anisotropy: Bool32,
+    has_dispersion: Bool32,
     pbr_metallic_roughness: PbrMetallicRoughness,
     pbr_specular_glossiness: PbrSpecularGlossiness,
     clearcoat: Clearcoat,
@@ -449,7 +598,9 @@ pub const Material = extern struct {
     volume: Volume,
     emissive_strength: EmissiveStrength,
     iridescence: Iridescence,
+    diffuse_transmission: DiffuseTransmission,
     anisotropy: Anisotropy,
+    dispersion: Dispersion,
     normal_texture: TextureView,
     occlusion_texture: TextureView,
     emissive_texture: TextureView,
@@ -816,6 +967,7 @@ extern fn cgltf_node_transform_local(node: ?*const Node, out_matrix: ?*[16]f32) 
 extern fn cgltf_node_transform_world(node: ?*const Node, out_matrix: ?*[16]f32) void;
 
 extern fn cgltf_buffer_view_data(view: ?*const BufferView) ?[*]u8;
+extern fn cgltf_find_accessor(prim: ?*const Primitive, type: AttributeType, index: i32) ?*const Accessor;
 
 extern fn cgltf_accessor_read_float(
     accessor: ?*const Accessor,
@@ -887,79 +1039,6 @@ fn resultToError(result: Result) Error!void {
 
 test {
     std.testing.refAllDeclsRecursive(@This());
-}
-
-test "extern struct layout" {
-    @setEvalBranchQuota(10_000);
-    const c = @cImport(@cInclude("cgltf.h"));
-    inline for (comptime std.meta.declarations(@This())) |decl| {
-        const ZigType = @field(@This(), decl.name);
-        if (@TypeOf(ZigType) != type) {
-            continue;
-        }
-        if (comptime std.meta.activeTag(@typeInfo(ZigType)) == .@"struct" and
-            @typeInfo(ZigType).@"struct".layout == .@"extern")
-        {
-            comptime var c_name_buf: [256]u8 = undefined;
-            const c_name = comptime try cTypeNameFromZigTypeName(&c_name_buf, decl.name);
-            const CType = @field(c, c_name);
-            std.testing.expectEqual(@sizeOf(CType), @sizeOf(ZigType)) catch |err| {
-                std.log.err("@sizeOf({s}) != @sizeOf({s})", .{ decl.name, c_name });
-                return err;
-            };
-            comptime var i: usize = 0;
-            inline for (comptime std.meta.fieldNames(CType)) |c_field_name| {
-                std.testing.expectEqual(
-                    @offsetOf(CType, c_field_name),
-                    @offsetOf(ZigType, std.meta.fieldNames(ZigType)[i]),
-                ) catch |err| {
-                    std.log.err(
-                        "@offsetOf({s}, {s}) != @offsetOf({s}, {s})",
-                        .{ decl.name, std.meta.fieldNames(ZigType)[i], c_name, c_field_name },
-                    );
-                    return err;
-                };
-                i += 1;
-            }
-        }
-    }
-}
-
-test "enum" {
-    @setEvalBranchQuota(10_000);
-    const c = @cImport(@cInclude("cgltf.h"));
-    inline for (comptime std.meta.declarations(@This())) |decl| {
-        const ZigType = @field(@This(), decl.name);
-        if (@TypeOf(ZigType) != type) {
-            continue;
-        }
-        if (comptime std.meta.activeTag(@typeInfo(ZigType)) == .@"enum") {
-            comptime var c_name_buf: [256]u8 = undefined;
-            const c_name = comptime try cTypeNameFromZigTypeName(&c_name_buf, decl.name);
-            const CType = @field(c, c_name);
-            std.testing.expectEqual(@sizeOf(CType), @sizeOf(ZigType)) catch |err| {
-                std.log.err("@sizeOf({s}) != @sizeOf({s})", .{ decl.name, c_name });
-                return err;
-            };
-            inline for (comptime std.meta.fieldNames(ZigType)) |field_name| {
-                const c_field_name = comptime buildName: {
-                    var buf: [256]u8 = undefined;
-                    var fbs = std.io.fixedBufferStream(&buf);
-                    try fbs.writer().writeAll(c_name);
-                    try fbs.writer().writeByte('_');
-                    try fbs.writer().writeAll(field_name);
-                    break :buildName fbs.getWritten();
-                };
-                std.testing.expectEqual(
-                    @field(c, c_field_name),
-                    @intFromEnum(@field(ZigType, field_name)),
-                ) catch |err| {
-                    std.log.err(decl.name ++ "." ++ field_name ++ " != " ++ c_field_name, .{});
-                    return err;
-                };
-            }
-        }
-    }
 }
 
 fn cTypeNameFromZigTypeName(

@@ -59,7 +59,7 @@ pub const RenderOption = struct {
 };
 
 // Raw GLTF node type from the zcgltf library.
-const GltfNode = zmesh.io.zcgltf.bindings.Node;
+const GltfNode = zmesh.io.zcgltf.Node;
 
 /// A node in the mesh's scene graph hierarchy, containing transform, submeshes, and children.
 pub const Node = struct {
@@ -315,11 +315,11 @@ pub const Node = struct {
 };
 
 // Raw GLTF animation type from the zcgltf library.
-const GltfAnimation = zmesh.io.zcgltf.bindings.Animation;
+const GltfAnimation = zmesh.io.zcgltf.Animation;
 // Raw GLTF animation path type (scale, rotation, translation).
-const GltfAnimationPathType = zmesh.io.zcgltf.bindings.AnimationPathType;
+const GltfAnimationPathType = zmesh.io.zcgltf.AnimationPathType;
 // Raw GLTF interpolation type (linear, step, cubic_spline).
-const GltfInterpolationType = zmesh.io.zcgltf.bindings.InterpolationType;
+const GltfInterpolationType = zmesh.io.zcgltf.InterpolationType;
 
 /// A skeletal or transform animation loaded from a GLTF file.
 pub const Animation = struct {
@@ -415,7 +415,7 @@ pub const Animation = struct {
 };
 
 // Raw GLTF skin type from the zcgltf library.
-const GltfSkin = zmesh.io.zcgltf.bindings.Skin;
+const GltfSkin = zmesh.io.zcgltf.Skin;
 
 /// Skeletal skin data: inverse bind matrices and joint nodes.
 pub const Skin = struct {
@@ -721,7 +721,7 @@ pub fn fromGltf(ctx: jok.Context, file_path: [:0]const u8, opt: GltfOption) !*Se
             const handle = try physfs.open(file_path, .read);
             defer handle.close();
 
-            const options = zmesh.io.zcgltf.bindings.Options{
+            const options = zmesh.io.zcgltf.Options{
                 .memory = .{
                     .alloc_func = zmesh.mem.zmeshAllocUser,
                     .free_func = zmesh.mem.zmeshFreeUser,
@@ -729,8 +729,8 @@ pub fn fromGltf(ctx: jok.Context, file_path: [:0]const u8, opt: GltfOption) !*Se
                 .file = physfs.zmesh.file_options,
             };
             filedata = try handle.readAllAlloc(ctx.allocator());
-            const data = try zmesh.io.zcgltf.bindings.parse(options, filedata.?);
-            try zmesh.io.zcgltf.bindings.loadBuffers(options, data, file_path);
+            const data = try zmesh.io.zcgltf.parse(options, filedata.?);
+            try zmesh.io.zcgltf.loadBuffers(options, data, file_path);
             break :blk data;
         } else {
             const idx = std.mem.indexOfSentinel(u8, 0, file_path);
@@ -857,7 +857,7 @@ fn loadNodeTree(
             const prim = &mesh.primitives[prim_index];
 
             // Load material
-            var transform: ?zmesh.io.zcgltf.bindings.TextureTransform = null;
+            var transform: ?zmesh.io.zcgltf.TextureTransform = null;
             if (opt.tex) |t| {
                 sm.tex_id = @intFromPtr(t.ptr);
                 if (opt.uvs != null) {

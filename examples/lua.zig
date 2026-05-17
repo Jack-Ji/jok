@@ -29,6 +29,7 @@ pub fn init(ctx: jok.Context) !void {
 
     const csz = ctx.getCanvasSize();
     lua = try jok.utils.scripting.Lua.init(ctx.allocator());
+    lua.vm.openLibs();
     try lua.registerTypes(&[_]jok.utils.scripting.BoundType{
         .{
             .Type = Engine,

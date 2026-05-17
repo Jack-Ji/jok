@@ -22,7 +22,9 @@ pub const Lua = struct {
 
     pub fn init(allocator: std.mem.Allocator) !Lua {
         const vm = try zlua.Lua.init(allocator);
-        vm.openLibs();
+        if (builtin.mode == .Debug) {
+            vm.openDebug();
+        }
         return .{ .vm = vm };
     }
 
@@ -37,37 +39,37 @@ pub const Lua = struct {
 
     pub fn runString(self: Lua, lua_string: [:0]const u8) !void {
         self.vm.loadString(lua_string) catch |err| {
-            log.err("Lua: {s}", .{try self.vm.toString(-1)});
+            log.err("Lua: loadString failed: {s}", .{try self.vm.toString(-1)});
             self.vm.pop(1);
             return err;
         };
 
         // Execute the new line
         self.vm.protectedCall(.{ .args = 0, .results = 0 }) catch |err| {
-            log.err("Lua: {s}", .{try self.vm.toString(-1)});
+            log.err("Lua: protectedCall failed: {s}", .{try self.vm.toString(-1)});
             self.vm.pop(1);
             return err;
         };
     }
 
     pub fn callFunction(self: Lua, ReturnType: type, func_name: [:0]const u8, args: anytype) !ReturnType {
-        _ = self.vm.getGlobal(func_name) catch {
+        if (self.vm.getGlobal(func_name) != .function) {
             log.err("Lua: couldn't find function `{s}'", .{func_name});
             self.vm.pop(1);
             return error.NotExist;
-        };
-
-        if (!self.vm.isFunction(-1)) {
-            self.vm.pop(1);
-            return error.NotFunction;
         }
 
         // Check arguments
         const type_info = @typeInfo(@TypeOf(args));
         if (type_info != .@"struct" or !type_info.@"struct".is_tuple) @compileError("Lua: invalid args");
         if (builtin.mode == .Debug) {
-            const arity = try self.getFunctionArity(func_name);
-            if (arity.nparams != args.len) return error.InvalidArgs;
+            if (self.vm.getGlobal("debug") == .table) {
+                self.vm.pop(1);
+                const arity = try self.getFunctionArity(func_name);
+                if (arity.nparams != args.len) return error.InvalidArgs;
+            } else {
+                self.vm.pop(1);
+            }
         }
 
         inline for (args) |v| try self.vm.pushAny(v);
@@ -93,11 +95,11 @@ pub const Lua = struct {
     }
 
     pub fn get(self: Lua, ReturnType: type, name: [:0]const u8) !ReturnType {
-        _ = self.vm.getGlobal(name) catch {
+        if (self.vm.getGlobal(name) == .nil) {
             log.err("Lua: couldn't find `{s}'", .{name});
             self.vm.pop(1);
             return error.NotExist;
-        };
+        }
 
         defer self.vm.pop(1);
         return try self.vm.toAny(ReturnType, -1);
@@ -105,20 +107,17 @@ pub const Lua = struct {
 
     fn getFunctionArity(self: Lua, func_name: [:0]const u8) !struct { nparams: u32, isvararg: bool } {
         // 1. Get the function by name
-        _ = try self.vm.getGlobal(func_name);
+        _ = self.vm.getGlobal(func_name);
         defer self.vm.pop(1);
 
-        if (!self.vm.isFunction(-1)) {
-            return error.NotAFunction;
-        }
-
         // 2. Call debug.getinfo(func, "u")
-        _ = try self.vm.getGlobal("debug");
+        _ = self.vm.getGlobal("debug");
         defer self.vm.pop(1);
         _ = self.vm.getField(-1, "getinfo");
         self.vm.pushValue(-3); // push the function (argument to getinfo)
         _ = self.vm.pushString("u"); // what = "u"
         self.vm.call(.{ .args = 2, .results = 1 }); // debug.getinfo(func, "u") → 1 result (table)
+        defer self.vm.pop(1);
 
         // 3. Extract nparams and isvararg from the table
         _ = self.vm.getField(-1, "nparams");
@@ -128,8 +127,6 @@ pub const Lua = struct {
         _ = self.vm.getField(-1, "isvararg");
         const isvararg = self.vm.toBoolean(-1);
         self.vm.pop(1);
-
-        self.vm.pop(1); // pop the info table
 
         return .{ .nparams = @intCast(nparams), .isvararg = isvararg };
     }
@@ -287,7 +284,7 @@ fn Registry(comptime entries: []const BoundType) type {
             const start_top = luaState.getTop();
 
             // Get our library
-            _ = try luaState.getGlobal(meta_table_name);
+            _ = luaState.getGlobal(meta_table_name);
 
             // Register any constant fields, like Vec2.one
             const found_fields = comptime findFields(bound_type.Type, bound_type.ignore_fields);
@@ -826,6 +823,8 @@ test "lua scripting" {
 
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
+    lua.vm.openBase();
+    lua.vm.openPackage();
 
     const testScript =
         \\ -- sample data
@@ -897,9 +896,12 @@ test "lua scripting" {
     sample.c = "world";
     try lua.set("sample_data", sample);
     sample = try lua.get(Sample, "sample_data");
-    try testing.expectEqualStrings(sample.c, "world");
+    try testing.expectEqualStrings("world", sample.c);
 
     try lua.callFunction(void, "nops", .{});
     const ret = try lua.callFunction([:0]const u8, "concat", .{ "hello", "lua" });
     try testing.expectEqualStrings("hello lua", ret);
+
+    const err = lua.callFunction([:0]const u8, "concat", .{"hello"});
+    try testing.expectError(error.InvalidArgs, err);
 }

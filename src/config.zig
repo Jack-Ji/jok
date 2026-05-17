@@ -37,7 +37,7 @@ pub const Config = struct {
     /// Canvas size (null means same as framebuffer size)
     jok_canvas_size: ?Size = null,
     /// Canvas texture scaling mode
-    jok_canvas_scale_mode: jok.Texture.ScaleMode = .linear,
+    jok_canvas_scale_mode: jok.Texture.ScaleMode = if (builtin.cpu.arch.isWasm()) .nearest else .pixelart,
     /// Use integer scaling for pixel-perfect rendering
     jok_canvas_integer_scaling: bool = false,
 

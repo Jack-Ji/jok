@@ -38,6 +38,8 @@ pub const Texture = struct {
         nearest = sdl.SDL_SCALEMODE_NEAREST,
         /// Linear filtering (smooth)
         linear = sdl.SDL_SCALEMODE_LINEAR,
+        /// Nearest pixel sampling with improved scaling for pixel art
+        pixelart = sdl.SDL_SCALEMODE_PIXELART,
     };
 
     ptr: [*c]sdl.SDL_Texture,

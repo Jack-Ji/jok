@@ -50,7 +50,6 @@ var shapes = [_]Shape{
 // ==================== Drag System ====================
 
 const DragTarget = enum {
-    none,
     index0,
     index1,
     index2,
@@ -63,6 +62,7 @@ const DragTarget = enum {
     index9,
     index10,
     index11,
+    none,
 };
 
 var drag_target: DragTarget = .none;

@@ -500,6 +500,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                 \\    Video Drivers    : {f}
                 \\    Graphics API     : {f}
                 \\    Vertical Sync    : {d}
+                \\    Scaling Mode     : {s}
                 \\    Max Texture Size : {d}
                 \\
                 \\
@@ -528,6 +529,7 @@ pub fn JokContext(comptime cfg: config.Config) type {
                     ),
                     S.fmtGraphics(self._renderer),
                     info.vsync,
+                    @tagName(cfg.jok_canvas_scale_mode),
                     info.max_texture_size,
                 },
             );
