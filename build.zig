@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const Build = std.Build;
 const ResolvedTarget = Build.ResolvedTarget;
 const OptimizeMode = std.builtin.OptimizeMode;
+const Translator = @import("translate_c").Translator;
 const builtin = @import("builtin");
 
 pub fn build(b: *Build) void {
@@ -38,32 +39,32 @@ pub fn build(b: *Build) void {
         .{ .name = "hello", .opt = .{} },
         .{ .name = "zgui_demo", .opt = .{} },
         .{ .name = "console_demo", .opt = .{} },
-        .{ .name = "sprite_benchmark", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "cube_benchmark", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "sprite_sheet", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "sprite_scene_2d", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "sprite_scene_3d", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "particle_2d", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "particle_3d", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "animation_2d", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "animation_3d", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "primitive_2d", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "sprite_benchmark", .opt = .{ .preload_path = b.path("examples/assets") } },
+        .{ .name = "cube_benchmark", .opt = .{ .preload_path = b.path("examples/assets") } },
+        .{ .name = "sprite_sheet", .opt = .{ .preload_path = b.path("examples/assets") } },
+        .{ .name = "sprite_scene_2d", .opt = .{ .preload_path = b.path("examples/assets") } },
+        .{ .name = "sprite_scene_3d", .opt = .{ .preload_path = b.path("examples/assets") } },
+        .{ .name = "particle_2d", .opt = .{ .preload_path = b.path("examples/assets") } },
+        .{ .name = "particle_3d", .opt = .{ .preload_path = b.path("examples/assets") } },
+        .{ .name = "animation_2d", .opt = .{ .preload_path = b.path("examples/assets") } },
+        .{ .name = "animation_3d", .opt = .{ .preload_path = b.path("examples/assets") } },
+        .{ .name = "primitive_2d", .opt = .{ .preload_path = b.path("examples/assets") } },
         .{ .name = "camera_2d", .opt = .{} },
         .{ .name = "meshes_and_lighting", .opt = .{} },
         .{ .name = "intersection_2d", .opt = .{} },
         .{ .name = "intersection_3d", .opt = .{} },
         .{ .name = "solar_system", .opt = .{} },
-        .{ .name = "font_demo", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "skybox", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "font_demo", .opt = .{ .preload_path = b.path("examples/assets") } },
+        .{ .name = "skybox", .opt = .{ .preload_path = b.path("examples/assets") } },
         .{ .name = "particle_life", .opt = .{ .support_web = false } },
-        .{ .name = "audio_demo", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "audio_demo", .opt = .{ .preload_path = b.path("examples/assets") } },
         .{ .name = "easing", .opt = .{} },
-        .{ .name = "svg", .opt = .{ .preload_path = "examples/assets" } },
-        .{ .name = "blending", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "svg", .opt = .{ .preload_path = b.path("examples/assets") } },
+        .{ .name = "blending", .opt = .{ .preload_path = b.path("examples/assets") } },
         .{ .name = "pathfind", .opt = .{} },
-        .{ .name = "isometric", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "isometric", .opt = .{ .preload_path = b.path("examples/assets") } },
         .{ .name = "conway_life", .opt = .{} },
-        .{ .name = "tiled", .opt = .{ .preload_path = "examples/assets" } },
+        .{ .name = "tiled", .opt = .{ .preload_path = b.path("examples/assets") } },
         .{ .name = "2048", .opt = .{} },
         //.{ .name = "hotreload", .opt = .{ .plugin = "plugin" } },
         .{ .name = "space_partioning", .opt = .{} },
@@ -86,7 +87,7 @@ pub fn build(b: *Build) void {
 const ExampleOptions = struct {
     plugin: ?[]const u8 = null,
     support_web: bool = true,
-    preload_path: ?[]const u8 = null,
+    preload_path: ?Build.LazyPath = null,
 };
 
 /// Helper for creating examples
@@ -271,7 +272,7 @@ pub fn createTest(
 
     // Create module to be used for testing
     const sdl = getSdlModule(getJokBuilder(b, opt.dep_name), target, optimize, opt.sdl_include_path);
-    const dep_zlua = getJokBuilder(b, opt.dep_name).dependency("ziglua", .{
+    const dep_zlua = getJokBuilder(b, opt.dep_name).dependency("zlua", .{
         .target = target,
         .optimize = optimize,
         .lang = .lua55,
@@ -303,8 +304,8 @@ pub fn createTest(
 pub const WebOptions = struct {
     dep_name: ?[]const u8 = "jok",
     additional_deps: []const Dependency = &.{},
-    shell_file_path: ?[]const u8 = null,
-    preload_path: ?[]const u8 = null,
+    shell_file_path: ?Build.LazyPath = null,
+    preload_path: ?Build.LazyPath = null,
 };
 
 /// Create web application
@@ -362,14 +363,10 @@ pub fn createWebApp(
         .lib_main = lib,
         .target = target,
         .optimize = optimize,
-        .shell_file_path = if (opt.shell_file_path) |p|
-            b.path(p)
-        else
-            builder.path("src/entrypoints/shell.html"),
+        .shell_file_path = opt.shell_file_path orelse builder.path("src/entrypoints/shell.html"),
         .preload_path = opt.preload_path,
         .extra_args = &.{
             "-sSTACK_SIZE=4MB",
-            b.fmt("--js-library={s}", .{builder.path("src/entrypoints/websocket.js").getPath(b)}),
             "-sEXPORTED_RUNTIME_METHODS=ccall,cwrap",
             "-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_jok_websocket_on_open,_jok_websocket_on_message,_jok_websocket_on_error,_jok_websocket_on_close",
         },
@@ -394,20 +391,19 @@ pub const JokLibrary = struct {
     artifact: *Build.Step.Compile,
 };
 
+// Get jok module and library artifact
 pub fn getJokLibrary(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) JokLibrary {
     return getJokLibraryInternal(b, target, optimize, opt);
 }
 
+// Get jok module
 pub fn module(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) *Build.Module {
     return getJokLibraryInternal(b, target, optimize, opt).module;
 }
 
+// Get jok library artifact
 pub fn artifact(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) *Build.Step.Compile {
     return getJokLibraryInternal(b, target, optimize, opt).artifact;
-}
-
-pub fn sdlModule(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) *Build.Module {
-    return getSdlModule(getJokBuilder(b, opt.dep_name), target, optimize, opt.sdl_include_path);
 }
 
 fn getJokLibraryInternal(b: *Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, opt: JokOptions) JokLibrary {
@@ -437,55 +433,59 @@ fn getJokLibraryInternal(b: *Build, target: ResolvedTarget, optimize: std.builti
     @import("src/vendor/zobj/build.zig").inject(libmod);
     @import("src/vendor/znoise/build.zig").inject(libmod);
 
-    var lib: *Build.Step.Compile = undefined;
-    var dep_zlua: *Build.Dependency = undefined;
-    if (target.result.cpu.arch.isWasm()) {
-        lib = builder.addLibrary(.{ .name = "jok", .root_module = libmod });
+    const lib: *Build.Step.Compile, const dep_zlua: *Build.Dependency = BLK: {
+        if (target.result.cpu.arch.isWasm()) {
+            const lib = builder.addLibrary(.{ .name = "jok", .root_module = libmod });
 
-        // Setup emscripten when necessary
-        const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
-        em.possibleSetup(&lib.step);
+            // Setup emscripten when necessary
+            const em = Emscripten.init(b, builder.dependency("emsdk", .{}));
+            lib.step.dependOn(em.setup());
 
-        // Add the Emscripten system include seach path
-        const em_sys_include = em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" });
-        libmod.addCMacro("__WINT_TYPE__", "unsigned int");
-        jokmod.addCMacro("__WINT_TYPE__", "unsigned int");
-        libmod.addSystemIncludePath(em_sys_include);
-        jokmod.addSystemIncludePath(em_sys_include);
+            // Add the Emscripten system include seach path
+            const em_sys_include = em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" });
+            libmod.addCMacro("__WINT_TYPE__", "unsigned int");
+            jokmod.addCMacro("__WINT_TYPE__", "unsigned int");
+            libmod.addSystemIncludePath(em_sys_include);
+            jokmod.addSystemIncludePath(em_sys_include);
 
-        // Initialize lua dependency
-        dep_zlua = builder.dependency("ziglua", .{
-            .target = target,
-            .optimize = optimize,
-            .lang = .lua55,
-            .additional_system_headers = em_sys_include.getPath(b),
-        });
-    } else {
-        lib = builder.addLibrary(.{
-            .linkage = .static,
-            .name = "jok",
-            .root_module = libmod,
-        });
+            // Initialize lua dependency
+            const dep_zlua = builder.dependency("zlua", .{
+                .target = target,
+                .optimize = optimize,
+                .lang = .lua55,
+                .additional_system_headers = em_sys_include,
+            });
 
-        // Use pre-built SDL3 if paths are provided, otherwise build from source
-        if (opt.sdl_lib_path) |lib_path| {
-            // Link against pre-built SDL3 library
-            libmod.addLibraryPath(.{ .cwd_relative = lib_path });
-            libmod.linkSystemLibrary("SDL3", .{});
+            break :BLK .{ lib, dep_zlua };
         } else {
-            // Build SDL3 from source
-            const sdl_dep = builder.dependency("sdl", .{ .target = target, .optimize = optimize });
-            const sdl_lib = sdl_dep.artifact("SDL3");
-            libmod.linkLibrary(sdl_lib);
-        }
+            const lib = builder.addLibrary(.{
+                .linkage = .static,
+                .name = "jok",
+                .root_module = libmod,
+            });
 
-        // Initialize lua dependency
-        dep_zlua = builder.dependency("ziglua", .{
-            .target = target,
-            .optimize = optimize,
-            .lang = .lua55,
-        });
-    }
+            // Use pre-built SDL3 if paths are provided, otherwise build from source
+            if (opt.sdl_lib_path) |lib_path| {
+                // Link against pre-built SDL3 library
+                libmod.addLibraryPath(.{ .cwd_relative = lib_path });
+                libmod.linkSystemLibrary("SDL3", .{});
+            } else {
+                // Build SDL3 from source
+                const sdl_dep = builder.dependency("sdl", .{ .target = target, .optimize = optimize });
+                const sdl_lib = sdl_dep.artifact("SDL3");
+                libmod.linkLibrary(sdl_lib);
+            }
+
+            // Initialize lua dependency
+            const dep_zlua = builder.dependency("zlua", .{
+                .target = target,
+                .optimize = optimize,
+                .lang = .lua55,
+            });
+
+            break :BLK .{ lib, dep_zlua };
+        }
+    };
 
     // Import and link library
     jokmod.addImport("zlua", dep_zlua.module("zlua"));
@@ -537,38 +537,35 @@ fn getSdlModule(b: *Build, target: Build.ResolvedTarget, optimize: OptimizeMode,
     if (getCachedSdlModule(b)) |cached| return cached;
 
     // Use custom SDL3 headers if provided, otherwise use dependency
+    const translate_c = b.dependency("translate_c", .{});
     const tc = if (sdl_include_path) |inc_path| blk: {
         const header_path = b.pathJoin(&.{ inc_path, "SDL3", "SDL.h" });
-        const translate = b.addTranslateC(.{
-            .root_source_file = .{ .cwd_relative = header_path },
+        const t: Translator = .init(translate_c, .{
+            .c_source_file = .{ .cwd_relative = header_path },
             .target = target,
             .optimize = optimize,
         });
-        translate.addIncludePath(.{ .cwd_relative = inc_path });
-        translate.defineCMacro("SDL_DISABLE_OLD_NAMES", null);
-        break :blk translate;
+        t.addIncludePath(.{ .cwd_relative = inc_path });
+        t.defineCMacro("SDL_DISABLE_OLD_NAMES", null);
+        break :blk t;
     } else blk: {
         const sdl_dep = b.dependency("sdl", .{});
-        const translate = b.addTranslateC(.{
-            .root_source_file = sdl_dep.path("include/SDL3/SDL.h"),
+        const t: Translator = .init(translate_c, .{
+            .c_source_file = sdl_dep.path("include/SDL3/SDL.h"),
             .target = target,
             .optimize = optimize,
         });
-        translate.addIncludePath(sdl_dep.path("include"));
-        translate.defineCMacro("SDL_DISABLE_OLD_NAMES", null);
-        break :blk translate;
+        t.addIncludePath(sdl_dep.path("include"));
+        t.defineCMacro("SDL_DISABLE_OLD_NAMES", null);
+        break :blk t;
     };
 
     if (target.result.cpu.arch.isWasm()) {
-        // Setup emscripten when necessary
         const em = Emscripten.init(b, b.dependency("emsdk", .{}));
-        em.possibleSetup(&tc.step);
-
-        // Add the Emscripten system include seach path
         tc.defineCMacro("__WINT_TYPE__", "unsigned int");
         tc.addSystemIncludePath(em.path(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
     }
-    const sdl_mod = tc.createModule();
+    const sdl_mod = tc.mod;
     cacheSdlModule(b, sdl_mod);
     return sdl_mod;
 }
@@ -597,18 +594,13 @@ const Emscripten = struct {
     // NOTE 3: this code works just fine when the SDK version is updated in build.zig.zon
     // since this will be cloned into a new zig cache directory which doesn't have
     // an .emscripten file yet until the one-time setup.
-    fn possibleSetup(sdk: *Sdk, step: *Build.Step) void {
-        const dot_emsc_path = sdk.path(&.{".emscripten"}).getPath(sdk.builder);
-        var single_threaded = std.Io.Threaded.init_single_threaded;
-        const dot_emsc_exists = !std.meta.isError(std.Io.Dir.accessAbsolute(single_threaded.io(), dot_emsc_path, .{}));
-        if (!dot_emsc_exists) {
-            const emsdk_install = sdk.createEmsdkStep();
-            emsdk_install.addArgs(&.{ "install", "latest" });
-            const emsdk_activate = sdk.createEmsdkStep();
-            emsdk_activate.addArgs(&.{ "activate", "latest" });
-            emsdk_activate.step.dependOn(&emsdk_install.step);
-            step.dependOn(&emsdk_activate.step);
-        }
+    fn setup(sdk: *Sdk) *Build.Step {
+        const emsdk_install = sdk.createEmsdkStep();
+        emsdk_install.addArgs(&.{ "install", "latest" });
+        const emsdk_activate = sdk.createEmsdkStep();
+        emsdk_activate.addArgs(&.{ "activate", "latest" });
+        emsdk_activate.step.dependOn(&emsdk_install.step);
+        return &emsdk_activate.step;
     }
 
     // for wasm32-emscripten, need to run the Emscripten linker from the Emscripten SDK
@@ -618,15 +610,15 @@ const Emscripten = struct {
         target: Build.ResolvedTarget,
         optimize: OptimizeMode,
         shell_file_path: ?Build.LazyPath = null,
-        preload_path: ?[]const u8 = null,
+        preload_path: ?Build.LazyPath = null,
         release_use_lto: bool = true,
         use_filesystem: bool = true,
         use_emmalloc: bool = false,
         extra_args: []const []const u8 = &.{},
     };
     fn link(sdk: *Sdk, opt: EmLinkOptions) *Build.Step.InstallDir {
-        const emcc_path = sdk.path(&.{ "upstream", "emscripten", "emcc" }).getPath(sdk.builder);
-        const emcc = sdk.builder.addSystemCommand(&.{emcc_path});
+        const emcc_path = sdk.tool("emcc");
+        const emcc = sdk.builder.addRunFile(emcc_path);
         emcc.setName("emcc");
         if (opt.optimize == .Debug) {
             emcc.addArg("-sASSERTIONS");
@@ -645,11 +637,9 @@ const Emscripten = struct {
         emcc.addArg("-sALLOW_MEMORY_GROWTH=1");
         emcc.addArg("-sMAXIMUM_MEMORY=2gb");
         emcc.addArg("-sERROR_ON_UNDEFINED_SYMBOLS=0");
+        emcc.addPrefixedFileArg("--js-library=", sdk.builder.path("src/entrypoints/websocket.js"));
         if (opt.shell_file_path) |p| emcc.addPrefixedFileArg("--shell-file=", p);
-        if (opt.preload_path) |p| {
-            emcc.addArg("--preload-file");
-            emcc.addArg(sdk.builder.fmt("{s}@/", .{sdk.builder.pathFromRoot(p)}));
-        }
+        if (opt.preload_path) |p| emcc.addDecoratedDirectoryArg("--preload-file=", p, "@/");
         if (!opt.use_filesystem) emcc.addArg("-sNO_FILESYSTEM=1");
         if (opt.use_emmalloc) emcc.addArg("-sMALLOC='emmalloc'");
         for (opt.extra_args) |arg| emcc.addArg(arg);
@@ -679,17 +669,18 @@ const Emscripten = struct {
     // build a run step which uses the emsdk emrun command to run a build target in the browser
     // NOTE: ideally this would go into a separate emsdk-zig package
     fn run(sdk: *Sdk, name: []const u8) *Build.Step.Run {
-        const emrun_path = sdk.builder.findProgram(&.{"emrun"}, &.{}) catch
-            sdk.path(&.{ "upstream", "emscripten", "emrun" }).getPath(sdk.builder);
-        return sdk.builder.addSystemCommand(&.{ emrun_path, sdk.builder.fmt("{s}/web/{s}.html", .{ sdk.builder.install_path, name }) });
+        const run_path = sdk.tool("emrun");
+        var step = sdk.builder.addRunFile(run_path);
+        step.addArg(sdk.builder.fmt("zig-out/web/{s}.html", .{name}));
+        return step;
     }
 
     fn createEmsdkStep(sdk: *Sdk) *Build.Step.Run {
         if (builtin.os.tag == .windows) {
-            return sdk.builder.addSystemCommand(&.{sdk.path(&.{"emsdk.bat"}).getPath(sdk.builder)});
+            return sdk.builder.addRunFile(&.{sdk.path(&.{"emsdk.bat"})});
         } else {
             const step = sdk.builder.addSystemCommand(&.{"bash"});
-            step.addArg(sdk.path(&.{"emsdk"}).getPath(sdk.builder));
+            step.addFileArg(sdk.path(&.{"emsdk"}));
             return step;
         }
     }
@@ -697,5 +688,11 @@ const Emscripten = struct {
     // helper function to build a LazyPath from the emsdk root and provided path components
     fn path(sdk: *Sdk, subPaths: []const []const u8) Build.LazyPath {
         return sdk.emsdk.path(sdk.builder.pathJoin(subPaths));
+    }
+
+    // helper function to get Emscripten SDK tool path
+    pub fn tool(sdk: *Sdk, toolname: []const u8) Build.LazyPath {
+        const toolFilename = if (builtin.os.tag == .windows) sdk.builder.fmt("{s}.exe", .{tool}) else toolname;
+        return sdk.path(&.{ "upstream", "emscripten", toolFilename });
     }
 };

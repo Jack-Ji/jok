@@ -12,16 +12,20 @@
     },
     .dependencies = .{
         .sdl = .{
-            .url = "git+https://github.com/castholm/SDL#21c6b79840d123e94a9f183f4b0fa1731668f48d",
-            .hash = "sdl-0.5.0+3.4.8-SDL--k4DpgH323IfF6cEaGzKUdtUQv1azbBmmcv0RMAu",
-        },
-        .ziglua = .{
-            .url = "git+https://github.com/natecraddock/ziglua#8f271c82baa5fc43aa02a72f6da020c2025d9436",
-            .hash = "zlua-0.1.0-hGRpC2aABQD4D9PBVH3wAW8k32-I4969MRQ0CpOwoley",
+            .url = "git+https://github.com/castholm/SDL#018241066ffdae90d8b11f8bdc6242202f0f5451",
+            .hash = "sdl-0.5.1+3.4.10-SDL--kbMpgGMXke11Ujh5HUPKch7G_SUAS12LI0QFoqj",
         },
         .emsdk = .{
             .url = "git+https://github.com/emscripten-core/emsdk#41190c21c662e9cc1962aea94e71cbae9fd2fc87",
             .hash = "N-V-__8AAKTICQA3jgQe0MV0PXcbozMNZnWFZXnG0fgNSF8E",
+        },
+        .translate_c = .{
+            .url = "git+https://codeberg.org/ziglang/translate-c#b32c255cae0c4351451241b1bfbb5ac98f52f00e",
+            .hash = "translate_c-0.0.0-Q_BUWrYwBwDY2ReuBk6RPPRm9slyutnCWZnQA9RvdX9g",
+        },
+        .zlua = .{
+            .url = "git+https://github.com/natecraddock/ziglua#9a520d0bbaac378d2e926c76edb584da104941dc",
+            .hash = "zlua-0.1.0-hGRpCwGVBQCZRZ2QEHLENoYjRj-nNjD500_BmMsXeqT4",
         },
     },
 }
