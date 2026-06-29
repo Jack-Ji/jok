@@ -57,6 +57,11 @@ TIPS: To eliminate console terminal on Windows platform, override `exe.subsystem
     ```bash
     zig fetch --save git+https://github.com/jack-ji/jok.git
     ```
+    
+    For a tagged version:
+    ```bash
+    zig fetch --save git+https://github.com/jack-ji/jok.git#0.16.0
+    ```
 
 2. Use *jok*'s build script to add build step
 
