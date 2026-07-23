@@ -1,7 +1,7 @@
-[![build](/../../actions/workflows/windows_native.yml/badge.svg)](/../../actions/workflows/windows_native.yml) [![build](/../../actions/workflows/linux_native.yml/badge.svg)](/../../actions/workflows/linux_native.yml) [![build](/../../actions/workflows/macos_native.yml/badge.svg)](/../../actions/workflows/macos_native.yml) [![build](/../../actions/workflows/webassembly.yml/badge.svg)](/../../actions/workflows/webassembly.yml) [![build](/../../actions/workflows/windows_cross.yml/badge.svg)](/../../actions/workflows/windows_cross.yml) [![build](/../../actions/workflows/linux_cross.yml/badge.svg)](/../../actions/workflows/linux_cross.yml)
-
 # jok
 A minimal 2d/3d game framework for zig.
+
+[Project has been moved](https://git.sr.ht/~jackji/jok)
 
 **Documentation:** https://jack-ji.github.io/jok
 
